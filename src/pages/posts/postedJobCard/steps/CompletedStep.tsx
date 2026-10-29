@@ -26,6 +26,51 @@ import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
  * to the collapsed part") — an empty group printed two rows of chrome to
  * report an absence, and an empty gallery behind a chip would be a dead tap.
  */
+/**
+ * One crew member's tip row (Q709(c)). F29 per member: a member whose payout
+ * setup is not finished cannot receive a tip (create-payment refuses it), so
+ * their row offers none and says why in the same line the single-Helpr card
+ * uses (useHelprTakesTips; unknown keeps the Tip offered).
+ */
+function CrewTipRow({ member: m, onTip }: { member: { id: string; name: string; tipped: boolean }; onTip: () => void }) {
+  const takesTips = useHelprTakesTips(m.id, !m.tipped);
+  if (!m.tipped && takesTips === false) {
+    return (
+      <li className="space-y-0.5">
+        <span className="block text-ds-13 text-foreground truncate">{m.name}</span>
+        <p className="text-ds-12 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(m.name)}</p>
+      </li>
+    );
+  }
+  return (
+    <li className="flex items-center justify-between gap-2">
+      <span className="text-ds-13 text-foreground truncate min-w-0 flex-1">{m.name}</span>
+      {/* The row chip is w-full by design (it shares a row); here it
+          sits beside a name, so it gets the width of one row slot. */}
+      <div className="w-[5.5rem] shrink-0">
+        {m.tipped ? (
+          <JobActionChip
+            icon={CheckCircle2}
+            label="Tipped"
+            ariaLabel={`Tipped — you already tipped ${m.name}`}
+            tone="done"
+            disabled
+            onClick={() => {}}
+          />
+        ) : (
+          <JobActionChip
+            icon={DollarSign}
+            label="Tip"
+            ariaLabel={`Tip ${m.name}`}
+            tone="boost"
+            onClick={onTip}
+          />
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function CompletedStep({
   job,
   helperNames,
@@ -99,31 +144,7 @@ export function CompletedStep({
       ) : crewTips.length > 0 ? (
         <ul className="space-y-1.5" aria-label="Tip your crew" data-crew-tips>
           {crewTips.map((m) => (
-            <li key={m.id} className="flex items-center justify-between gap-2">
-              <span className="text-ds-13 text-foreground truncate min-w-0 flex-1">{m.name}</span>
-              {/* The row chip is w-full by design (it shares a row); here it
-                  sits beside a name, so it gets the width of one row slot. */}
-              <div className="w-[5.5rem] shrink-0">
-              {m.tipped ? (
-                <JobActionChip
-                  icon={CheckCircle2}
-                  label="Tipped"
-                  ariaLabel={`Tipped — you already tipped ${m.name}`}
-                  tone="done"
-                  disabled
-                  onClick={() => {}}
-                />
-              ) : (
-                <JobActionChip
-                  icon={DollarSign}
-                  label="Tip"
-                  ariaLabel={`Tip ${m.name}`}
-                  tone="boost"
-                  onClick={() => onTip(job.id, m.name, m.id)}
-                />
-              )}
-              </div>
-            </li>
+            <CrewTipRow key={m.id} member={m} onTip={() => onTip(job.id, m.name, m.id)} />
           ))}
         </ul>
       ) : undefined}

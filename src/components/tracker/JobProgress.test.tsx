@@ -6,7 +6,7 @@
 // @mutate src/components/tracker/JobProgress.tsx |   problem: "bg-[hsl(var(--burnt-sienna))]", |   problem: "bg-primary",
 // @mutate src/components/tracker/JobProgress.tsx |   if (tone === "cancelled") { |   if (false) {
 // @mutate src/components/tracker/JobProgress.tsx |   done: "bg-[hsl(var(--bark))]", |   done: "bg-[hsl(var(--success-ink))]",
-// @mutate src/components/tracker/JobProgress.tsx |               {s === "you" && <Hand className="h-3 w-3 shrink-0" />} |
+// @mutate src/components/tracker/JobProgress.tsx |               {s === "you" && <Hand className="job-step-cur-icon h-3 w-3 shrink-0" />} |
 // @mutate src/components/tracker/JobProgress.tsx |     `Job progress, step ${stage + 1} of ${n}: ${(JOB_PROGRESS_STEPS as readonly string[])[stage]}, | `Job progress, step ${stage + 1} of ${n}:
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";

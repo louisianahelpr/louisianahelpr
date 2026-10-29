@@ -31,9 +31,12 @@ const DRAFT = {
 const aiAnswer = {
   hold: false,
   release: null as null | (() => void),
+  // Photo coach (owner 2026-10-29): a test may add a cover pick and a photo tip.
+  extra: {} as { coverPhoto?: number; photoTip?: string },
   next(): Promise<typeof DRAFT> {
-    if (!this.hold) return Promise.resolve(DRAFT);
-    return new Promise((res) => { this.release = () => res(DRAFT); });
+    const d = { ...DRAFT, ...this.extra };
+    if (!this.hold) return Promise.resolve(d);
+    return new Promise((res) => { this.release = () => res(d); });
   },
 };
 
@@ -113,6 +116,7 @@ describe("photo-first selling", () => {
     drops.length = 0;
     aiAnswer.hold = false;
     aiAnswer.release = null;
+    aiAnswer.extra = {};
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
     URL.revokeObjectURL = vi.fn();
@@ -212,7 +216,7 @@ describe("photo-first selling", () => {
 
   // Owner 2026-10-28: "claude did not help with the listing so idk how to get it to do the listing for me".
   // @mutate src/components/declutter/DeclutterSellView.tsx | autoStart: !itemId && held.length > 0 | autoStart: false
-  // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? () => requestAiDraftFromPhotos(held, hintAt) : null), | : null),
+  // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? withCoverFile(held, (f) => requestAiDraftFromPhotos(f, hintAt)) : null), | : null),
   // @mutate src/components/declutter/SellAiDraft.tsx | : mergeAiDraft(f, atStart, d))); | : f));
   // @mutate src/components/declutter/SellAiDraft.tsx |     price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? pick("price", String(d.priceDollars)) : current.price, |     price: current.price,
   // @mutate src/components/declutter/SellAiDraft.tsx |           <AiPriceLine draft={d} /> |
@@ -248,6 +252,26 @@ describe("photo-first selling", () => {
     // Claude's price fills the price box; the seller can change it.
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByLabelText("Price")).toHaveValue("45");
+  });
+
+  // Photo coach (owner 2026-10-29): Claude's best cover goes first, and its one photo tip shows under the photos.
+  // @mutate src/components/declutter/SellAiDraft.tsx |   if (!cover \|\| held[0] === cover \|\| !held.includes(cover)) return held; |   return held;
+  // @mutate src/components/declutter/SellAiDraft.tsx |     return typeof d.coverPhoto === "number" ? { ...d, coverFile: files[d.coverPhoto] } : d; |     return d;
+  // @mutate src/components/declutter/SellAiDraft.tsx |       onDraft?.(d); |       void onDraft;
+  // @mutate src/components/declutter/SellAiDraft.tsx |         {d.photoTip && ( |         {false && (
+  it("Claude's cover pick moves that photo first, and its tip shows", async () => {
+    aiAnswer.extra = { coverPhoto: 1, photoTip: "A photo of the label" };
+    // Previews named after their file, so the order is readable.
+    URL.createObjectURL = vi.fn((f: Blob) => `blob:${(f as File).name}`);
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg"), jpg("b.jpg"), jpg("c.jpg")] } });
+    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(document.querySelector("[data-ai-photo-tip]")).toHaveTextContent("One more photo would help: A photo of the label");
+    // b.jpg is the cover now, marked as such.
+    const held = () => [...document.querySelectorAll("[data-held-photo] img")].map((i) => i.getAttribute("src"));
+    await waitFor(() => expect(held()).toEqual(["blob:b.jpg", "blob:a.jpg", "blob:c.jpg"]));
+    expect(document.querySelectorAll("[data-held-photo]")[0].querySelector("[data-cover-chip]")).not.toBeNull();
   });
 
   it("what the seller typed while Claude was writing is kept", async () => {

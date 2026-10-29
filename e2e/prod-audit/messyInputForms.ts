@@ -1002,6 +1002,9 @@ export const GAPS: Record<string, string> = {
   // genuinely dead (no control opened it) and was deleted (owner, 2026-09-23).
   "src/components/profile/DeleteAccountDialog.tsx":
     "opened only by a control NEVER_PRESS refuses (/delete (my )?account/) — the shared accounts are a sign-in dependency for the suite",
+  // A3-I5 (owner 2026-10-29): DeleteAccountDialog's "is it really you?" step, rendered only inside that dialog.
+  "src/components/profile/DeleteAccountReauth.tsx":
+    "rendered only inside DeleteAccountDialog, which only a control NEVER_PRESS refuses (/delete (my )?account/) opens; its password box goes only to Supabase sign-in, and its code box (maxLength 10) only to the emailed-code check, both answered by the server",
   // Non-text controls: no typed value to be messy. Checked by press-every-control (npm run audit:press).
   "src/components/dashboard/FilterSheet.tsx": "switch only — no typed input",
   "src/components/dashboard/filterSheet/FilterSheetRows.tsx": "switch only — no typed input (the Show-only rows extracted from FilterSheet.tsx, Q184)",

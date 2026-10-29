@@ -47,6 +47,8 @@ vi.mock("@/components/AppPage", () => ({
 }));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => last.value }));
+// Porch weekday chips (20261029161347) read the seller's picked days; none picked here.
+vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,

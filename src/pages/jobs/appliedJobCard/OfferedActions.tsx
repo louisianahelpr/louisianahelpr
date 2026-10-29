@@ -37,6 +37,9 @@ interface OfferedActionsProps {
 export function OfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
+  // Which button was pressed: only that one says "Accepting…" / "Declining…" (audit 2026-10-28 F6:
+  // both did). Both stay disabled while the answer is in flight.
+  const [pressed, setPressed] = useState<"accept" | "decline" | null>(null);
   // Q1180: they tapped Accept and it waits on their Stripe setup; tapping
   // again reopens the checklist (accept_job_offer answers with what is left).
   const acceptPending = useAcceptPendingJobs().has(job.id);
@@ -57,7 +60,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // src/test/offerCardHierarchy.test.tsx.
   // Once accepted and waiting only on Stripe, the button finishes that accept
   // (owner, 2026-10-08: "it should say finish accepting, they already accepted").
-  const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job";
+  const acceptLabel = busy && pressed === "accept" ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job";
   // Item 5 (owner, 2026-10-07): after a pending accept the card says plainly
   // it is NOT accepted yet, and what it waits on (the same profile mirror of
   // helper_accept_missing the pop-up's list comes from).
@@ -254,13 +257,17 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           className="flex-1 rounded-ds-md"
           disabled={busy}
           aria-busy={busy}
-          onClick={() => (skipConfirm ? onHelperResponse(app, false) : setConfirmOpen(true))}
+          onClick={() => {
+            if (!skipConfirm) return setConfirmOpen(true);
+            setPressed("decline");
+            onHelperResponse(app, false);
+          }}
           style={{
             color: "hsl(var(--burnt-sienna))",
             borderColor: "hsl(var(--burnt-sienna) / 0.30)",
           }}
         >
-          <XCircle className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {busy ? "Declining…" : "Decline"}
+          <XCircle className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {busy && pressed === "decline" ? "Declining…" : "Decline"}
         </Button>
         <Button
           variant="primary"
@@ -269,7 +276,10 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           disabled={busy}
           aria-busy={busy}
           data-offer-primary="accept"
-          onClick={() => onHelperResponse(app, true)}
+          onClick={() => {
+            setPressed("accept");
+            onHelperResponse(app, true);
+          }}
         >
           <CheckCircle2 className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {acceptLabel}
         </Button>
@@ -289,6 +299,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         primaryHaptic="warning"
         onPrimary={() => {
           setConfirmOpen(false);
+          setPressed("decline");
           onHelperResponse(app, false);
         }}
         secondaryLabel="Cancel"

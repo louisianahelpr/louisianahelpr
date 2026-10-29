@@ -361,6 +361,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
    */
   const isSyntheticDirectOffer = (app: Application) => app.id.startsWith("direct-");
 
+  /**
+   * The Working card's own read of the job says its card is only HELD (Q2399): the accept is the hire,
+   * so capture_hold goes first instead of an accept the database is certain to refuse
+   * (payment_not_captured, a 403 in every held accept: audit 2026-10-28 F6). A stale read costs one
+   * extra request, never a charge (withCardHoldCapture).
+   */
+  const heldCard = (app: Application) => (app as Application & { job?: { payment_status?: string | null } | null }).job?.payment_status === "held";
+
   const respondToDirectOffer = async (app: Application, accept: boolean) => {
     // Q1185 (owner, 2026-10-03: "Same as a regular offer"): the server decides
     // the accept, as accept_job_offer does. Ready, it completes now and the
@@ -374,7 +382,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     const { data, error, holdMessage } = await withCardHoldCapture(app.job_id, () => supabase.rpc("respond_to_direct_offer", {
       p_job_id: app.job_id,
       p_accept: accept,
-    }));
+    }), { knownHeld: accept && heldCard(app) });
 
     if (error) {
       hapticError();
@@ -509,7 +517,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // on it; its own verdict no longer stops the tap.
       await checkHelperAwardEligibility();
       // Q2399: the accept on a held card is the hire: the card is charged first.
-      const { data: acceptData, error: acceptError, holdMessage } = await withCardHoldCapture(app.job_id, () => supabase.rpc("accept_job_offer", { p_job_id: app.job_id }));
+      const { data: acceptData, error: acceptError, holdMessage } = await withCardHoldCapture(app.job_id, () => supabase.rpc("accept_job_offer", { p_job_id: app.job_id }), { knownHeld: heldCard(app) });
       if (!acceptError) {
         const result = (acceptData ?? {}) as { state?: string; missing?: AcceptMissing[] };
         if (result.state === "pending_setup") {

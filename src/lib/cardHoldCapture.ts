@@ -59,21 +59,38 @@ async function captureHeldCard(jobId: string): Promise<HoldCapture> {
  * result as if the RPC had. `holdMessage` is set when the hire is waiting on
  * the poster or could not be finished: the caller shows it instead of the
  * RPC's error.
+ *
+ * `knownHeld`: the caller's own read of the job says its card is only held
+ * (payment_status 'held'). Then capture_hold goes FIRST, with no RPC call
+ * before it that is certain to be refused (audit 2026-10-28 F6: every accept
+ * on a held job logged a 403 payment_not_captured, then captured and retried).
+ * capture_hold runs the RPC itself, as this Helpr, and answers `not_held` when
+ * the job is no longer held, so a stale read costs one extra request, never a
+ * charge: the RPC then runs here for its own answer.
  */
 export async function withCardHoldCapture<R extends { data?: unknown; error: unknown }>(
   jobId: string,
   run: () => PromiseLike<R>,
+  opts: { knownHeld?: boolean } = {},
 ): Promise<R & { holdMessage?: string }> {
+  if (opts.knownHeld) {
+    const capture = await captureHeldCard(jobId);
+    if (capture.kind === "done") return { data: capture.result, error: null } as R;
+    if (capture.kind !== "not_held") return { data: null, error: { message: "payment_not_captured" }, holdMessage: capture.message } as R & { holdMessage?: string };
+    return afterNotHeld(await run());
+  }
   const first = await run();
   if (!first.error || !isPaymentNotCaptured(first.error)) return first;
   const capture = await captureHeldCard(jobId);
   if (capture.kind === "done") return { ...first, data: capture.result, error: null };
-  if (capture.kind === "not_held") {
-    const again = await run();
-    // Still refused as uncaptured: payments have not caught up; never claim the poster was told.
-    return again.error && isPaymentNotCaptured(again.error)
-      ? { ...again, holdMessage: "This job's payment isn't ready yet. Try again in a moment." }
-      : again;
-  }
+  if (capture.kind === "not_held") return afterNotHeld(await run());
   return { ...first, holdMessage: capture.message };
+}
+
+/** capture_hold said the job is not held: the RPC's own answer, unless it is STILL refused as uncaptured. */
+function afterNotHeld<R extends { data?: unknown; error: unknown }>(again: R): R & { holdMessage?: string } {
+  // Still refused as uncaptured: payments have not caught up; never claim the poster was told.
+  return again.error && isPaymentNotCaptured(again.error)
+    ? { ...again, holdMessage: "This job's payment isn't ready yet. Try again in a moment." }
+    : again;
 }

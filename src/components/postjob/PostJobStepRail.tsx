@@ -2,6 +2,15 @@ import { Check } from "lucide-react";
 import { POST_JOB_SCREENS, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
+ * Board 166's desktop columns, shared by every Post a Job screen that shows the rail (the form steps
+ * and Review): step rail left, the step centred (max 640px), the "How your post will look" card right.
+ * The card joins at xl, not lg (lead, 2026-10-25): beside the 248px app rail the three columns left the
+ * form about 215px at 1024 and 370px at 1180 (measured). The phone is the one centred column.
+ */
+export const POST_JOB_DESKTOP_GRID =
+  "mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section";
+
+/**
  * Board 166: on desktop the flow's steps sit in a rail on the left. The
  * current step is marked; a step already passed can be reopened (Back keeps
  * what was typed, so going back loses nothing); a step ahead cannot be

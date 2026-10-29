@@ -55,6 +55,21 @@ const SaveHelperButton = ({
     };
   }, [helperId, customerId]);
 
+  /** The unsave toast's Undo: save the Helpr again, and say so if that fails. */
+  const undoUnsave = async () => {
+    const { error } = await supabase
+      .from("favorite_helpers")
+      .insert({ customer_id: customerId, helper_id: helperId });
+    // 23505: already back (a second tap, or another tab): that is the goal.
+    if (error && error.code !== "23505") {
+      hapticError();
+      toast.error("Couldn't save Helpr — try again?");
+      return;
+    }
+    setSaved(true);
+    onChange?.(true);
+  };
+
   const toggle = async () => {
     if (working || saved === null) return;
 
@@ -94,6 +109,13 @@ const SaveHelperButton = ({
     } else if (nextSaved) {
       successToast("Saved to your Helprs", {
         action: { label: "View", onClick: () => navigate("/profile?tab=saved_helpers") },
+      });
+    } else {
+      // A3-I3: unsaving used to end in silence while saving said so. The
+      // toast carries an action because applyToastPolicy drops an actionless
+      // success toast; Undo puts the Helpr back.
+      successToast("Removed from your Helprs", {
+        action: { label: "Undo", onClick: () => undoUnsave() },
       });
     }
 

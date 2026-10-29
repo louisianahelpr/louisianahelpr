@@ -555,7 +555,15 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     const jobMap = new Map(
       (jobsRes.data ?? []).filter((j) => jobIds.has(j.id)).map((j) => [j.id, j]),
     );
-    appliedApps = apps.map((a) => ({ ...a, job: jobMap.get(a.job_id) || null }));
+    // The series state for the Helpr's series parents too (A2-C42, lead 2026-10-29): without it every Helpr
+    // card read a split series as one-Helpr (series_split_ok unknown). Same never-throwing read as posted rows.
+    const appliedSeries = await fetchJobSeriesState(
+      [...jobMap.values()].filter((j) => !j.parent_job_id && (j.recurrence_days?.length ?? 0) > 0).map((j) => j.id),
+    );
+    appliedApps = apps.map((a) => {
+      const job = jobMap.get(a.job_id);
+      return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null };
+    });
   }
 
   const directOffers = directOffersRes.data ?? [];

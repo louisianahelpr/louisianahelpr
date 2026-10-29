@@ -71,10 +71,16 @@ export async function fetchRefundRequestView(orderId: string): Promise<RefundReq
   ) as unknown as RefundRequestView;
 }
 
-/** The buyer asks, within 24 hours of the handover. */
-export async function askRefund(orderId: string, reason: RefundReason, note: string): Promise<{ result: string }> {
+/**
+ * The buyer asks, within 24 hours of the handover. Audit 1b D2-7: `photoPaths` (problem-folder paths from
+ * uploadProblemPhoto) go only when there are some; the refund form sends them only once declutter_ask_refund takes
+ * p_photo_paths (REFUND_FORM_PHOTOS_READY, bound to the migrations by problemPhotosWaitForServer.test.ts).
+ */
+export async function askRefund(orderId: string, reason: RefundReason, note: string, photoPaths: readonly string[] = []): Promise<{ result: string }> {
+  const base = { p_order_id: orderId, p_reason: reason, p_note: note };
+  const args = photoPaths.length ? { ...base, p_photo_paths: [...photoPaths] } : base;
   return rpcData(
-    await supabase.rpc("declutter_ask_refund", { p_order_id: orderId, p_reason: reason, p_note: note }),
+    await supabase.rpc("declutter_ask_refund", args as typeof base),
     (e) => rpcErrorMessage("declutter_ask_refund", e),
   ) as unknown as { result: string };
 }

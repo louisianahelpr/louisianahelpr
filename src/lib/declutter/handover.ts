@@ -193,6 +193,29 @@ export async function uploadHandoverPhoto(userId: string, orderId: string, file:
   return path;
 }
 
+/**
+ * Audit 1b D2-7: one photo for a problem report or a refund request, cleaned and shrunk like every Declutter photo
+ * (cleanListingPhoto: metadata stripped, at most 1920 px), to `<uid>/declutter/problem/<order>/<file>` (the signed-in
+ * member's own folder), the folder declutter_handover_photo_access and declutter_report_problem accept. Evidence, not
+ * a handover: a photo taken earlier (the damage when it was opened) is fine, so there is no live-camera check.
+ */
+export async function uploadProblemPhoto(orderId: string, file: File): Promise<string> {
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) throw new Error("not_authenticated");
+  const cleaned = await cleanListingPhoto(file);
+  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
+  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
+  const path = `${uid}/declutter/problem/${orderId}/${nonce}.jpg`;
+  const { error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).upload(path, cleaned, {
+    contentType: "image/jpeg",
+    upsert: false,
+    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
+  });
+  if (error) throw new Error("photo_not_uploaded");
+  return path;
+}
+
 /** Boards 71/72/159: where the handover stands, for either side (declutter_my_handover; never a code). */
 export interface MyHandover {
   order_id: string;

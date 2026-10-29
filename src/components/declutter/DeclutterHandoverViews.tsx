@@ -52,6 +52,8 @@ import {
 } from "@/lib/declutter/handover";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { payoutLine } from "./declutterPayoutWords";
+import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
+import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
@@ -552,12 +554,14 @@ function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: 
   useEffect(() => { if (open && openProp) formRef.current?.scrollIntoView?.({ block: "center" }); }, [open, openProp]);
   const [reason, setReason] = useState<ProblemReason>("not_as_described");
   const [note, setNote] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]); // D2-7: up to 3, uploaded on Send (once the server takes them)
   const send = useMutation({
-    mutationFn: () => reportProblem(orderId, reason, note.trim(), []),
+    mutationFn: async () => reportProblem(orderId, reason, note.trim(), PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : []),
     onSuccess: () => {
       toast.success("Reported. Nobody is paid until Louisiana Helpr decides.");
       setOpen(false);
       setNote("");
+      setPhotos([]);
       invalidate(qc, orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -571,6 +575,7 @@ function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: 
       </select>
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
       <textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />}
       <div className="flex gap-2">
         <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate()}>Send</button>
         <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>

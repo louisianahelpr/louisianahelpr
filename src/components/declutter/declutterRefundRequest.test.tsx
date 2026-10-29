@@ -24,8 +24,19 @@ const state = vi.hoisted(() => ({
   answered: [] as unknown[][],
   offers: [] as unknown[][],
   returned: [] as unknown[][],
+  /** D2-7: whether declutter_ask_refund takes photos (problemPhotos.ts; off until it does), and what was uploaded. */
+  refundPhotos: false,
+  uploaded: [] as unknown[][],
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/lib/declutter/problemPhotos", () => ({
+  PROBLEM_PHOTO_MAX: 3,
+  PROBLEM_FORM_PHOTOS_READY: false,
+  get REFUND_FORM_PHOTOS_READY() { return state.refundPhotos; },
+}));
+vi.mock("@/lib/declutter/handover", () => ({
+  uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push([orderId, f.name]); return `me/declutter/problem/${orderId}/${f.name}`; },
+}));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/refundRequests")>();
   return {
@@ -66,6 +77,7 @@ beforeEach(() => {
   state.answered = [];
   state.offers = [];
   state.returned = [];
+  state.uploaded = [];
 });
 
 describe("DeclutterRefundPanel", () => {
@@ -80,7 +92,29 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.click(screen.getByLabelText("Damaged"));
     fireEvent.change(screen.getByLabelText("Tell them more"), { target: { value: "  The leg is cracked.  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send to the seller" }));
-    await waitFor(() => expect(state.asked).toEqual([["o1", "damaged", "The leg is cracked."]]));
+    await waitFor(() => expect(state.asked).toEqual([["o1", "damaged", "The leg is cracked.", []]]));
+  });
+
+  // Audit 1b D2-7: up to 3 photos on the refund form, uploaded on Send and sent with the request; hidden until
+  // declutter_ask_refund takes them (problemPhotosWaitForServer.test.ts).
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx | REFUND_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(v.order_id, photos) : [] | []
+  it("D2-7: the refund form's photos are uploaded and sent with the request once the server takes them; hidden before", async () => {
+    Object.assign(URL, { createObjectURL: () => "blob:p", revokeObjectURL: () => undefined });
+    state.refundPhotos = false;
+    const off = show(BASE);
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    expect(screen.queryByRole("group", { name: "Photos" })).toBeNull();
+    off.unmount();
+    state.refundPhotos = true;
+    const { container } = show(BASE);
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    const input = container.querySelector('[data-problem-photos] input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "a.jpg", { type: "image/jpeg" }), new File(["x"], "b.jpg", { type: "image/jpeg" })] } });
+    fireEvent.change(screen.getByLabelText("Tell them more"), { target: { value: "Cracked" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send to the seller" }));
+    await waitFor(() => expect(state.asked).toEqual([["o1", "not_as_described", "Cracked", ["me/declutter/problem/o1/a.jpg", "me/declutter/problem/o1/b.jpg"]]]));
+    expect(state.uploaded).toEqual([["o1", "a.jpg"], ["o1", "b.jpg"]]);
+    state.refundPhotos = false;
   });
 
   it("seller: the offer starts empty, cannot be sent until it is an amount, and sends exactly that amount", async () => {

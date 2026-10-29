@@ -345,7 +345,7 @@ describe("reads", () => {
     h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.accepts_offers does not exist" }, status: 400 });
     h.queue.push(ok([{ id: "a" }]));
     await expect(fetchLiveItems()).resolves.toEqual([{ id: "a", porch_ok: true, accepts_offers: true }]);
-    expect(h.queries.at(-1)!.ops[0]).toEqual(["select", [COLUMNS.replace(", porch_ok", "").replace(", accepts_offers", "")]]);
+    expect(h.queries[h.queries.length - 1].ops[0]).toEqual(["select", [COLUMNS.replace(", porch_ok", "").replace(", accepts_offers", "")]]);
   });
 
   it("any other read refusal still throws (no second read)", async () => {

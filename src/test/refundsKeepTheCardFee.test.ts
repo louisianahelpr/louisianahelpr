@@ -551,14 +551,16 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // already tried, marked or sent; rebooks the seller's payout before returning.
       // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow): the same refunds and fee policies;
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
-      declutter_refund_after_handover: "20261027153244_declutter_seller_delivery.sql 2a7eaad5c68fad89",
+      // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
+      declutter_refund_after_handover: "20261029224147_declutter_admin_decision_closes_refund_request.sql d1b59b54d43cf573",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",
       // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
       declutter_full_refund_cents: "20261026155251_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
-      declutter_refund_request_view: "20261026155251_declutter_refund_requests.sql aaba36d7331191f4",
+      // D2-5 (20261029224147): + admin_decided (the request ended with an admin decision); still reads the settled refund row's amount and status only.
+      declutter_refund_request_view: "20261029224147_declutter_admin_decision_closes_refund_request.sql f5014b4207909c83",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee

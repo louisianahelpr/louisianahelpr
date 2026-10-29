@@ -11,6 +11,10 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, choice === "part" ? offerCents : null), |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, offerCents),
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
+ * D2-5 (audit 1b #5): a request Louisiana Helpr decided says so on both sides, never "is looking" or "said no".
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       if (r.admin_decided) return <p | if (false) return <p
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.status === "declined" && r.admin_decided) return | if (false) return
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       {r.admin_decided && "Louisiana Helpr decided to refund the buyer. "} |
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "part" && offerCents === null)} onClick={() => send.mutate()}> |       <button type="button" className={primary} disabled={send.isPending} onClick={() => send.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -138,8 +142,27 @@ describe("DeclutterRefundPanel", () => {
 
   it("buyer: while the item goes back, the refund is promised on the seller's confirmation, with no button to press", async () => {
     show({ ...BASE, can_ask: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });
-    expect(await screen.findByText(/Give the item back; arrange it in Messages\. Your refund is sent as soon as Nikki confirms they have it\./)).toBeTruthy();
+    expect(await screen.findByText(/Give the item back; message Nikki from your order\. Your refund is sent as soon as Nikki confirms they have it\./)).toBeTruthy();
     expect(document.querySelector("[data-full-refund-why]")?.textContent).toMatch(/^That's all you paid, less the small part the card network kept/);
     expect(screen.queryByRole("button", { name: "I got it back" })).toBeNull();
+  });
+
+  it("D2-5: a request Louisiana Helpr decided says who decided, on both sides", async () => {
+    const decidedFor = { ...REQ, status: "declined" as const, declined_at: "2026-10-24T19:00:00Z", admin_decided: true };
+    let u = show({ ...BASE, can_ask: false, can_report: false, request: decidedFor });
+    expect(await screen.findByText("Louisiana Helpr decided: Nikki keeps the payment, and the sale is final.")).toBeTruthy();
+    expect(screen.queryByText(/said no/)).toBeNull();
+    expect(screen.queryByText(/is looking/)).toBeNull();
+    u.unmount();
+    u = show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: decidedFor });
+    expect(await screen.findByText("Louisiana Helpr decided: you keep the payment, and the sale is final.")).toBeTruthy();
+    expect(screen.queryByText(/You said no/)).toBeNull();
+    u.unmount();
+    const refunded = { ...REQ, status: "agreed" as const, refund_cents: 1330, refund_status: "pending" as const, admin_decided: true };
+    u = show({ ...BASE, can_ask: false, can_report: false, request: refunded });
+    expect((await screen.findByText(/Louisiana Helpr decided to refund the buyer\./)).textContent).toBe("Louisiana Helpr decided to refund the buyer. $13.30 is coming back to your card.");
+    u.unmount();
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: refunded });
+    expect((await screen.findByText(/Louisiana Helpr decided to refund the buyer\./)).textContent).toBe("Louisiana Helpr decided to refund the buyer. The buyer got $13.30 back.");
   });
 });

@@ -9,7 +9,7 @@
  * @mutate src/components/messages/chatView/DealCard.tsx |   const { net } = useHelprTakeHome(job); |   const net = job.budget;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Conversation } from "../types";
@@ -109,7 +109,8 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
     const { container } = show(true);
     await screen.findByText("held safely");
     expect(container.textContent).toContain("$40");
-    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")).toBeNull());
+    // The card has loaded ("held safely" is on screen), so the absence is real, not a first paint.
+    expect(container.querySelector("[data-deal-take-home]")).toBeNull();
     expect(container.textContent).not.toContain("you take home");
   });
 });

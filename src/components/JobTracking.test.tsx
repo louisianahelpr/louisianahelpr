@@ -429,4 +429,4 @@ describe("trackingProofCaption", () => {
 // BLIND TO: everything rendered. This file only exercises the pure derivation;
 // the mount, the CTA wiring and the gate itself live in
 // JobTracking.onTheWayGate.test.tsx.
-// @mutate src/components/JobTracking.tsx | revision_requested") {\n    atLeast(STATUS_IDX.assigned); | revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed);
+// @mutate src/lib/jobProgressIndex.ts | revision_requested") {\n    atLeast(STATUS_IDX.assigned); | revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed);

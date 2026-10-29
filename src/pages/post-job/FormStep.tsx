@@ -93,7 +93,7 @@ export function FormStep({ form }: FormStepProps) {
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
     // button used to read "Review & pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
-    else submitLabel = "That start time has passed";
+    else submitLabel = "Pick a later start to continue";
   } else if (askingQuotes) {
     submitLabel = quoteSending ? "Sending…" : "Ask for quotes";
   } else if (!form.budgetComplete) {

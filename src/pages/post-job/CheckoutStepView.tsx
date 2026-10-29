@@ -1,6 +1,8 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
-import { FORM_PAGE_OF } from "@/components/postjob/postJobScreens";
+import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
+import { POST_JOB_DESKTOP_GRID, PostJobStepRail } from "@/components/postjob/PostJobStepRail";
+import { FORM_PAGE_OF, type PostJobScreen } from "@/components/postjob/postJobScreens";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface CheckoutStepViewProps {
@@ -27,8 +29,23 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   // the hire (create-payment). A bank payment cannot be held, so it is still
   // charged when the job posts.
   const cardHoldOn = form.cardHoldOn === true;
+  // From Review, a passed form step is tappable too (owner 2026-10-25): the form keeps what was typed.
+  // The phone's step bar and the desktop rail share this one rule, as on the form steps.
+  const canPick = (s: PostJobScreen) => FORM_PAGE_OF[s] !== undefined && s !== "kind";
+  const pick = (s: PostJobScreen) => {
+    if (s === "groups") form.setCategoryGroup(null);
+    const p = FORM_PAGE_OF[s];
+    if (!p) return;
+    form.setFormPage(p);
+    form.setStep("form");
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  };
   return (
-    <div key="checkout-step" className="space-y-section">
+    // A2-L13 (audit 2026-10-28): Review sits in the same board 166 columns as the form steps. Without
+    // them, at 1440 it dropped the step rail and the post preview and its rows ran about 1144px wide.
+    <div key="checkout-step" className={POST_JOB_DESKTOP_GRID}>
+      <PostJobStepRail screen="review" canPick={canPick} onPick={pick} />
+      <div className="min-w-0 space-y-section">
       {/* Screen 7 of 7 (board 46). The card is charged when the job posts
           (create-payment, automatic capture; design-b handoff), so this
           screen says pay, never "nothing is charged now". Under
@@ -36,16 +53,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
       <PostJobStepHeader
         screen="review"
         question="Look good?"
-        // From Review, a passed form step is tappable too (owner 2026-10-25): the form keeps what was typed.
-        canPick={(s) => FORM_PAGE_OF[s] !== undefined && s !== "kind"}
-        onPick={(s) => {
-          if (s === "groups") form.setCategoryGroup(null);
-          const p = FORM_PAGE_OF[s];
-          if (!p) return;
-          form.setFormPage(p);
-          form.setStep("form");
-          requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-        }}
+        canPick={canPick}
+        onPick={pick}
         helper={
           // A post a gift card covers in full charges $0: no "pay" line then.
           form.totalCharge > 0
@@ -106,6 +115,10 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         // (owner, 2026-10-14, "no later prompt").
         onSubmit={form.handleSubmit}
       />
+      </div>
+      <aside className="hidden xl:block sticky top-6">
+        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.budgetNum} />
+      </aside>
     </div>
   );
 }

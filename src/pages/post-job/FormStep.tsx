@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
-import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
+import { POST_JOB_DESKTOP_GRID, PostJobStepRail } from "@/components/postjob/PostJobStepRail";
 import { FORM_PAGE_OF, screenOfFormPage, type PostJobScreen } from "@/components/postjob/postJobScreens";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
@@ -177,7 +177,7 @@ export function FormStep({ form }: FormStepProps) {
     // The card joins at xl, not lg (lead, 2026-10-25): beside the 248px app rail
     // the three columns left the form about 215px at 1024 and 370px at 1180
     // (measured), so from lg to xl it is the step list and the form only.
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
+    <div key="form-step" ref={rootRef} className={POST_JOB_DESKTOP_GRID}>
       <PostJobStepRail screen={screenOfFormPage(page, !!openGroup)} canPick={canPickStep} onPick={pickStep} />
       <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (

@@ -149,3 +149,62 @@ export function sanitizeRoom(raw: unknown): DeclutterDraft[] {
   }
   return out;
 }
+
+/**
+ * "Sell a bunch" (owner 2026-10-29: "upload all pictures for everything they
+ * want to sell, ai does the forms and they review all at once"): mode 'group'
+ * takes up to GROUP_MAX_PHOTOS photos of SEVERAL items in one call (the app
+ * sends more in batches), each a real JPEG under the room cap, all together
+ * under GROUP_MAX_TOTAL_BYTES. The photos are only passed to the model.
+ */
+export const GROUP_MAX_PHOTOS = 8;
+export const GROUP_MAX_TOTAL_BYTES = 6_000_000;
+
+/** The photos as the app sent them, or null when any is not a valid photo or there are too many or too much. */
+export function groupPhotosFromBody(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > GROUP_MAX_PHOTOS) return null;
+  const out: string[] = [];
+  let total = 0;
+  for (const p of raw) {
+    const one = roomPhotosFromBody([p]);
+    if (!one) return null;
+    total += Math.floor((one[0].length * 3) / 4);
+    if (total > GROUP_MAX_TOTAL_BYTES) return null;
+    out.push(one[0]);
+  }
+  return out;
+}
+
+/** One item the model grouped: its photos (indexes into the photos sent) and its draft. */
+export interface GroupedDraft extends DeclutterDraft {
+  photos: number[];
+}
+
+/**
+ * The model's grouping, untrusted: each item through sanitizeDraft (so each
+ * fails closed on the banned check), photo indexes kept only when they are
+ * whole numbers in range and not already used by an earlier item, items left
+ * with no photo dropped. Every photo the model did not place comes back in
+ * `leftover`, so the app never loses one.
+ */
+export function sanitizeGroups(raw: unknown, photoCount: number): { items: GroupedDraft[]; leftover: number[] } {
+  const used = new Set<number>();
+  const items: GroupedDraft[] = [];
+  const list = raw && typeof raw === "object" ? (raw as { items?: unknown }).items : null;
+  for (const it of Array.isArray(list) ? list : []) {
+    if (items.length >= GROUP_MAX_PHOTOS) break;
+    const d = sanitizeDraft(it);
+    const idx = it && typeof it === "object" ? (it as { photos?: unknown }).photos : null;
+    if (!d || !Array.isArray(idx)) continue;
+    const photos: number[] = [];
+    for (const n of idx) {
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n >= photoCount || used.has(n)) continue;
+      used.add(n);
+      photos.push(n);
+    }
+    if (photos.length > 0) items.push({ ...d, photos });
+  }
+  const leftover: number[] = [];
+  for (let i = 0; i < photoCount; i++) if (!used.has(i)) leftover.push(i);
+  return { items, leftover };
+}

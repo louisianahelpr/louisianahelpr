@@ -4,7 +4,8 @@
  *
  * The seller has uploaded photos to their own DRAFT. This reads up to 4 of
  * them from storage (service role, after checking the draft is the caller's)
- * and asks Gemini (the ai-job-builder pattern). Two modes:
+ * and asks Claude (Sonnet, through _shared/claudeMessages.ts; owner 2026-10-22:
+ * Claude only, Gemini removed). The modes:
  *   draft  (row 32) a title, description, category, delivery size, 1-5
  *          condition stars and a starting price with its reason (owner
  *          2026-10-29; clamped to our own sold prices by groundPrice when the
@@ -28,6 +29,16 @@
  *          Extra gates: the 'declutter_moving_out' switch, the selling gates
  *          (declutter_assert_can_scan_room, with the caller's own token), and
  *          a per-member hourly cap on top of the per-minute one.
+ *   group  "Sell a bunch" (owner 2026-10-29): up to 8 photos of SEVERAL items,
+ *          sent in the body, never stored. The model sorts them into items
+ *          (the same thing from different angles is one item) and drafts each
+ *          with the one-item prompt; each goes through sanitizeDraft (fails
+ *          closed on the banned check) and every photo it did not place comes
+ *          back as leftover (sanitizeGroups). Nothing is saved: the seller
+ *          fixes the grouping and lists through the ordinary draft calls, each
+ *          item still getting its own `check` before it publishes. Same gates
+ *          as a new listing's photos (declutter_assert_can_draft_from_photos
+ *          as the caller) plus its own hourly cap.
  *
  * SHOP ITEMS (Shops slice 2, migration 20261017061157_shops_items; spec
  * docs/specs/local-shops-prep.md L51): the same two modes for a maker's DRAFT
@@ -40,7 +51,7 @@
  *
  * Gates: signed in, confirmed email, the hidden switch for the VERIFIED
  * caller (requireFeature: 'declutter', or 'shops' for a shop item), per-IP
- * rate limit (Gemini costs money).
+ * rate limit (every model call costs money).
  */
 import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
@@ -49,8 +60,8 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import {
-  DECLUTTER_CATEGORIES, DELIVERY_SIZES, ROOM_MAX_ITEMS, groundPrice, hintPointFromBody, roomPhotosFromBody, sanitizeDraft, sanitizeRoom,
-  type DeclutterDraft, type SoldRange,
+  DECLUTTER_CATEGORIES, DELIVERY_SIZES, GROUP_MAX_PHOTOS, ROOM_MAX_ITEMS, groundPrice, groupPhotosFromBody, hintPointFromBody, roomPhotosFromBody,
+  sanitizeDraft, sanitizeGroups, sanitizeRoom, type DeclutterDraft, type SoldRange,
 } from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
@@ -118,10 +129,11 @@ async function askModel(
   userText: string,
   images: ClaudeImage[],
   tool: { name: string; description: string; parameters: Record<string, unknown> },
+  timeoutMs = 25_000,
 ): Promise<{ ok: true; parsed: unknown } | { ok: false; status: number; detail: string }> {
   const callModel = async (): Promise<Response> => {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 25_000);
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {
       return await claudeFetch(apiKey, {
         system: `${systemPrompt}\n\n${tool.description}. Answer only with JSON in the required shape.`,
@@ -185,6 +197,7 @@ serve(async (req) => {
 
   try {
     if (body?.mode === "room") return await roomScan(req, anon, admin, authData.user, body);
+    if (!shopItem && body?.mode === "group") return await groupScan(req, anon, body);
     // A NEW listing's photos, still on the device (owner 2026-10-28): draft from the body, store nothing.
     if (!shopItem && (body?.mode ?? "draft") === "draft" && body?.itemId === undefined && body?.photos !== undefined) {
       return await photosDraft(req, anon, body);
@@ -459,4 +472,71 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
   const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
   return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
+}
+
+/**
+ * Mode 'group' ("Sell a bunch", owner 2026-10-29): up to GROUP_MAX_PHOTOS
+ * photos of several items, still on the seller's device, sent in the body.
+ * Never stored; nothing is saved. The gates are a new listing's
+ * (declutter_assert_can_draft_from_photos with the CALLER's token), then its
+ * own hourly cap. One call sorts and drafts up to 8 photos, so its model call
+ * gets a longer timeout than one item's.
+ */
+async function groupScan(req: Request, anon: Client, body: Record<string, unknown>): Promise<Response> {
+  const { error: gateErr } = await anon.rpc("declutter_assert_can_draft_from_photos");
+  if (gateErr) {
+    const code = MEMBER_GATE_CODES.find((c) => gateErr.message?.includes(c));
+    if (!code) console.error("[declutter-ai-draft] group gate failed:", gateErr.message);
+    return json({ error: code ?? "ai_unavailable" }, code ? 403 : 500);
+  }
+  // Counted after the gates, so a refused caller spends nothing. 20 calls is 160 photos an hour.
+  const hourly = await checkRateLimit(req, { windowMs: 3_600_000, maxRequests: 20, keyPrefix: "declutter-ai-group" });
+  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
+  const photos = groupPhotosFromBody(body.photos);
+  if (!photos) return json({ error: "group_photos_invalid" }, 400);
+
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+  const systemPrompt = `${ITEM_SYSTEM_PROMPT}
+The photos below may show SEVERAL different items. They are numbered from 0 in the order given. Sort them into items: photos of the same object from different angles or distances belong to ONE item; different objects are different items. Put each photo in exactly one item (in "photos", by its number). Then write each item's listing as described above.`;
+  const answer = await askModel(
+    ANTHROPIC_API_KEY,
+    systemPrompt,
+    `Sort these ${photos.length} photos (numbered 0 to ${photos.length - 1}) into items and draft each item's listing.`,
+    photos.map((p) => ({ mediaType: "image/jpeg", base64: p })),
+    {
+      name: "group_items",
+      description: "The separate used household items in the photos, each with its photo numbers and its draft listing",
+      parameters: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            maxItems: GROUP_MAX_PHOTOS,
+            items: {
+              ...ITEM_SCHEMA,
+              properties: { photos: { type: "array", items: { type: "integer" } }, ...ITEM_SCHEMA.properties },
+              required: ["photos", ...ITEM_SCHEMA.required],
+            },
+          },
+        },
+        required: ["items"],
+        additionalProperties: false,
+      },
+    },
+    45_000,
+  );
+  if (!answer.ok) {
+    console.error("[declutter-ai-draft] group model error:", answer.status, answer.detail);
+    return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
+  }
+  // No list at all is a model fault, never "no items": say so.
+  if (!answer.parsed || !Array.isArray((answer.parsed as { items?: unknown }).items)) {
+    console.error("[declutter-ai-draft] group answer had no item list");
+    return json({ error: "ai_unavailable" }, 502);
+  }
+  const { items, leftover } = sanitizeGroups(answer.parsed, photos.length);
+  // Everything sanitizeDraft returns except the flag's reason (never shown to the seller), so a field it
+  // gains later (builder 25's suggested price) reaches this mode too without a second list here.
+  return json({ items: items.map(({ flagReason: _reason, ...d }) => d), leftover });
 }

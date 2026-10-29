@@ -77,8 +77,7 @@ vi.mock("@/lib/realtimeRecovery", () => ({
 
 import { DealCard } from "@/components/messages/chatView/DealCard";
 import { helperCardLine } from "@/pages/jobs/appliedJobCard/HelperCollapsedStrip";
-import type { Job } from "@/components/job-card/activityConstants";
-import type { AppliedApp } from "@/components/job-card/jobStatusLine";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { Conversation } from "@/components/messages/types";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
 

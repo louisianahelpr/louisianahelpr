@@ -191,6 +191,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
    * notice — the screen looked like it was working.
    */
   const nearbyUnavailable = nearbyMiles !== null && userLoc.status !== "ready";
+  // The radius is actually narrowing the feed. Every piece of copy that words
+  // a distance result ("That's everything nearby.", "Widen to 25 mi") reads
+  // this, never the raw radius: before location is shared a picked 5 mi keeps
+  // every job, and the end card said "nearby" over a job 58.8 mi away (A2-B5).
+  const nearbyApplied = nearbyMiles !== null && !nearbyUnavailable;
   // The radius DID run, but from a parish centroid derived from the signup ZIP
   // rather than a device fix (see useUserLocation's fallback chain). Callers
   // must not quote a small mileage off this as though it were measured — it is
@@ -206,7 +211,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
    * either is on, that count describes a different set from the rendered one.
    */
   const clientOnlyNarrowing =
-    (nearbyMiles !== null && !nearbyUnavailable) || matchAvailability;
+    nearbyApplied || matchAvailability;
 
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
@@ -603,6 +608,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     totalMatchingCount: clientOnlyNarrowing ? null : totalMatchingCount,
     totalMatchingCountLoading,
     savedShownCount,
-    userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
+    userLoc, nearbyMiles, nearbyUnavailable, nearbyApplied, nearbyApproximate,
   };
 }

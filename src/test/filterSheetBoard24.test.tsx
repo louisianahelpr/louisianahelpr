@@ -186,7 +186,7 @@ describe("board 24: the Jobs toolbar mounts the sheet with its title and the pag
     sortBy: "smart", setSortBy: noop, expiresWithin: "", setExpiresWithin: noop, jobWhen: "", setJobWhen: noop,
     minBudget: "", setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
     matchAvailability: false, setMatchAvailability: noop, boostedOnly: false, setBoostedOnly: noop,
-    urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false,
+    urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false, nearbyApplied: false,
   } as unknown as BrowseTasksToolbarProps["filters"];
 
   it("renders 'Filter jobs' with Price and When, and 'Show 4 jobs' from resultCount", () => {
@@ -236,7 +236,7 @@ describe("board 24, lead review 2026-10-20: lighter chips, a segmented View, mut
       sortBy: "smart", setSortBy: noop, expiresWithin: "", setExpiresWithin: noop, jobWhen: "", setJobWhen: noop,
       minBudget: "", setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
       matchAvailability: false, setMatchAvailability: noop, boostedOnly: false, setBoostedOnly: noop,
-      urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false,
+      urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false, nearbyApplied: false,
     } as unknown as BrowseTasksToolbarProps["filters"];
     render(<MemoryRouter><BrowseTasksToolbar filters={filters} user={null} helperAvailability={[]} view="list" setView={noop} /></MemoryRouter>);
     const group = screen.getByRole("radiogroup", { name: "Feed view" });

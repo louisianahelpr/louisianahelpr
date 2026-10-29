@@ -192,6 +192,22 @@ describe("useDashboardFilters — Nearby radius (BD-001)", () => {
       expect(result.current.nearbyUnavailable).toBe(false);
     });
 
+    // A2-B5: before location is shared the radius changes nothing, so no copy
+    // may say it did ("That's everything nearby… Widen to 25 mi" over a job
+    // 58.8 mi away). nearbyApplied is the one flag the copy reads.
+    it("reports nearbyApplied false while the radius is not applied", () => {
+      geo.state = { status: "idle" };
+      const { result } = setup();
+      act(() => result.current.setLocationFilter("nearby:5"));
+      expect(result.current.nearbyApplied).toBe(false);
+    });
+
+    it("reports nearbyApplied true once coordinates resolve", () => {
+      const { result } = setup();
+      act(() => result.current.setLocationFilter("nearby:5"));
+      expect(result.current.nearbyApplied).toBe(true);
+    });
+
     it("does not report nearbyUnavailable when no radius is selected", () => {
       geo.state = { status: "error", message: "Location access is off. Turn it on in Settings to use your location." };
       const { result } = setup();

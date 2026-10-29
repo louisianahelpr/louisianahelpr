@@ -418,7 +418,8 @@ export function BrowseTasksFeed({
         // wider radius rather than the generic "widen your parish".
         // Falls back gracefully when coords aren't known or no radius
         // is set, so the message never reads as broken.
-        const nearbyActive = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+        // Only a radius that RAN (A2-B5): before location is shared it keeps every job.
+        const nearbyActive = filters.nearbyApplied;
         const currentMiles = filters.nearbyMiles ?? 0;
         // Next-rung suggestion — round-numbered radii (5/10/25/50) read
         // cleaner in a sentence than the previous value × 2 ("13 mi").
@@ -502,7 +503,8 @@ export function BrowseTasksFeed({
         // The end of the list, short lists included (owner, 2026-10-19). It rides INSIDE the list, above the
         // list's dock clearance (6rem), so it sits right under the last job instead of ~200px below it.
         const endCard = !showFullSkeleton && !hasNextPage && combinedVisible.length > 0 ? (() => {
-          const nearby = filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+          // Only a radius that RAN (A2-B5): before location is shared it keeps every job.
+          const nearby = filters.nearbyApplied;
           const miles = filters.nearbyMiles ?? 0;
           // The next round rung, then "any distance" (clears the radius).
           const next = miles < 5 ? 10 : miles < 10 ? 25 : miles < 25 ? 50 : null;

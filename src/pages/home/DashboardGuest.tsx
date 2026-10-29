@@ -594,8 +594,8 @@ const DashboardGuest = () => {
         // (#690 parity): when "Near me" is active and coords
         // resolved, suggest a concrete wider radius rather than a
         // generic "widen your parish".
-        const nearbyActive =
-          filters.nearbyMiles !== null && filters.locationFilter.startsWith("nearby:");
+        // Only a radius that RAN (A2-B5): before location is shared it keeps every job.
+        const nearbyActive = filters.nearbyApplied;
         const currentMiles = filters.nearbyMiles ?? 0;
         const nextMiles =
           currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;

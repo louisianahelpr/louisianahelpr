@@ -174,7 +174,7 @@ describe("no category chip row on Browse", () => {
     sortBy: "smart", setSortBy: noop, expiresWithin: "", setExpiresWithin: noop, jobWhen: "", setJobWhen: noop,
     minBudget: "", setMinBudget: noop, maxBudget: "", setMaxBudget: noop,
     matchAvailability: false, setMatchAvailability: noop, boostedOnly: false, setBoostedOnly: noop,
-    urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false,
+    urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false, nearbyApplied: false,
   } as unknown as BrowseTasksToolbarProps["filters"];
 
   it("with the sheet closed, Browse's toolbar draws no category control at all", () => {

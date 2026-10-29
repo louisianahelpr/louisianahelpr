@@ -1,4 +1,4 @@
-import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
+import { test, expect, FAKE_HELPER, installSupabaseMocks, mockRpc } from "./fixtures";
 
 // Produces the App Store review screenshot for the twelve in-app purchase
 // products.
@@ -30,7 +30,12 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 test.use({ deviceScaleFactor: 3 });
 
 test("capture the membership screen for App Store review", async ({ helperPage: page }) => {
-  await installSupabaseMocks(page, { user: FAKE_HELPER, rules: [] });
+  await installSupabaseMocks(page, {
+    user: FAKE_HELPER,
+    // Memberships ON for this capture only: while the switch is off the tab shows no plans at all (A3-C14,
+    // MembershipPlansGate), and App Review needs the paid tiers on screen.
+    rules: [mockRpc("feature_switches_for_me", { memberships: true })],
+  });
   // The onboarding tour renders a modal that would sit over the tier cards.
   await page.addInitScript(() => {
     try {

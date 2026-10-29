@@ -3,6 +3,7 @@ import { confirmConsequential } from "@/lib/toastPolicy";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { MissingRowCountError, WriteRejectedError, unwrapMutation } from "@/lib/mutationResult";
 import { notifyJobParty } from "@/lib/notifications";
+import { confirmPosterArrival } from "@/lib/posterArrival";
 import { report } from "@/lib/errorLogger";
 import { functionInvokeError } from "@/lib/supabaseResult";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
@@ -283,14 +284,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       const arrivedAt = new Date().toISOString();
       const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
       try {
-        unwrapMutation(
-          await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId).select("id"),
-          {
-            action: "confirm arrival",
-            rejectedMessage: "We couldn't confirm arrival — this job may have already been cancelled. Pull to refresh.",
-            context: { jobId },
-          },
-        );
+        // The one confirm-arrival write and the Helpr's notice (src/lib/posterArrival.ts), shared with the job page.
+        await confirmPosterArrival({ id: jobId, helper_id: postedJobs.find((j) => j.id === jobId)?.helper_id }, arrivedAt);
       } catch (err) {
         // unwrapMutation already reported its own rejections; report the rest.
         if (!(err instanceof WriteRejectedError || err instanceof MissingRowCountError)) report(err, { tags: { area: "activity", op: "confirmArrival" }, context: { jobId } });
@@ -298,11 +293,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         hapticError();
         toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm arrival just now — please try again.");
         return;
-      }
-      const job = postedJobs.find(j => j.id === jobId);
-      if (job?.helper_id) {
-        // Server-built copy (Q223).
-        await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "arrival_confirmed" });
       }
       hapticSuccess();
       toast.success("Arrival confirmed.");

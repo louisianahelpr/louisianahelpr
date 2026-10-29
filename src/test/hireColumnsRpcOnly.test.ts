@@ -193,4 +193,4 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE UPDATE ON public.jobs | AFTER UPDATE ON public.jobs
 // Layer 3: a client hire write planted. (Re-anchored 2026-10-03, Q1187: the
 // useOfferHandlers confirm PATCH it used to plant into is retired.)
-// @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | .update({ poster_confirmed_arrival_at: arrivedAt }) | .update({ poster_confirmed_arrival_at: arrivedAt, helper_id: jobId })
+// @mutate src/lib/posterArrival.ts | .update({ poster_confirmed_arrival_at: arrivedAt }) | .update({ poster_confirmed_arrival_at: arrivedAt, helper_id: jobId })

@@ -16,6 +16,8 @@
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |               ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1` |               ? `/posts?highlight=${encodeURIComponent(job.id)}`
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
+ * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
@@ -31,10 +33,13 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { JobPageRow } from "./useJobPage";
+import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 
 const state = {
   job: null as JobPageRow | null,
@@ -55,6 +60,9 @@ vi.mock("./useJobPage", () => ({
   }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
+// The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.
+const confirmArrivalMock = vi.hoisted(() => vi.fn(async (_job: { id: string; helper_id: string | null }) => {}));
+vi.mock("@/lib/posterArrival", () => ({ confirmPosterArrival: confirmArrivalMock }));
 // A booked ("accepted") job asks whether its slot was moved; no move on these fixtures.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 // The Helpr Guarantee panel's read (no claim on these jobs); its own behaviour is helprGuarantee.test.ts and the PGlite proof.
@@ -257,6 +265,51 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByText("Refunded to your card.")).toBeTruthy();
     // No misleading progress colour (lead review 2026-10-22): an all-grey bar that says Cancelled.
     expect(screen.getByLabelText(/^Job progress: Cancelled/).getAttribute("data-tone")).toBe("cancelled");
+  });
+});
+
+describe("job page, the poster confirms the arrival here (F14)", () => {
+  // Audit 2026-10-28 (p4j-parr-card-375.png): the page's tracker said "Confirm they arrived" and the only button was
+  // "Manage job"; the confirm lived on the Posted card. Now the page's button is the confirm, the card's own write.
+  const arrived = () =>
+    row({
+      customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+      helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+      helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+    });
+
+  beforeEach(() => confirmArrivalMock.mockClear());
+
+  it("offers Confirm arrival, never Manage job, and runs the card's own write", async () => {
+    state.job = arrived();
+    state.party = true;
+    renderPage();
+    expect(screen.getByLabelText(/^Job progress, step 6 of 8: Arrived, waiting on you\./)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm arrival" }));
+    await waitFor(() => expect(confirmArrivalMock).toHaveBeenCalledTimes(1));
+    expect(confirmArrivalMock.mock.calls[0][0]).toMatchObject({ id: arrived().id, helper_id: POSTER });
+    // Still on the job page: the catch-all route (any navigation) never rendered.
+    expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("the page and the Posted card share ONE confirm-arrival write (src/lib/posterArrival.ts)", () => {
+    const ROOT = path.resolve(__dirname, "../../../..");
+    const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
+      .split("\n").filter((f) => /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\./.test(f) && !f.startsWith("src/test/"));
+    expect(files.length).toBeGreaterThan(500);
+    const writers = files.filter((f) => /\.update\(\{\s*poster_confirmed_arrival_at\b/.test(readFileSync(path.join(ROOT, f), "utf8")));
+    expect(writers).toEqual(["src/lib/posterArrival.ts"]);
+    const callers = files.filter((f) => /\bconfirmPosterArrival\(/.test(readFileSync(path.join(ROOT, f), "utf8")) && f !== "src/lib/posterArrival.ts");
+    expect(callers.sort()).toEqual(["src/components/job-card/activityActions/useLifecycleHandlers.ts", "src/pages/jobs/jobPage/usePageConfirmArrival.ts"]);
+  });
+
+  it("keeps Manage job while there is nothing to confirm yet (on the way)", () => {
+    state.job = { ...arrived(), helper_arrived_at: null };
+    state.party = true;
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Confirm arrival" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Manage job" })).toBeTruthy();
   });
 });
 

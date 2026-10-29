@@ -338,6 +338,12 @@ export function JobConfirmation({
     ? "less than 24 hours"
     : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
 
+  // "Thursday, October 22, 2037 at 9:00 AM": the day the Helpr commits to, and the time when the job has one.
+  const scheduledStart = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
+  const scheduledFor = `${jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" })}${
+    scheduledStart ? ` at ${scheduledStart.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" })}` : ""
+  }`;
+
   /* The commit popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,
      and the hand-off to the caller's real cancel path. The inline variant drops
@@ -361,7 +367,8 @@ export function JobConfirmation({
               className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
             >
-              {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              {/* F11 (audit 2026-10-28): the start time with the date, both on Louisiana time. */}
+              {scheduledFor}
             </p>
           </div>
           {/* The SHARED consequence box. This was a hand-built copy of it —
@@ -374,12 +381,14 @@ export function JobConfirmation({
           </DialogCallout>
         </div>
         <DialogFooter>
-          <DialogSecondaryAction onClick={() => setShowConfirmDialog(false)}>Cancel</DialogSecondaryAction>
+          {/* "Not now", not "Cancel" (F11): it sat beside the job-cancel link below, two cancels
+              that do very different things. */}
+          <DialogSecondaryAction onClick={() => setShowConfirmDialog(false)}>Not now</DialogSecondaryAction>
           <DialogPrimaryAction
             onClick={handleConfirm}
             disabled={confirming}
           >
-            {confirming ? "Confirming…" : "Yes, I Confirm"}
+            {confirming ? "Confirming…" : "Yes, I confirm"}
           </DialogPrimaryAction>
         </DialogFooter>
         {/* Distinct from Cancel: Cancel just dismisses this popup, nothing

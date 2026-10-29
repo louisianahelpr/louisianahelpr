@@ -94,7 +94,9 @@ describe("Post a job sizes its grids to its own column", () => {
 
   it("the preview card joins at xl; lg to xl is the step list and the form", () => {
     const step = read("src/pages/post-job/FormStep.tsx");
-    expect(step).toContain("lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px]");
+    // The page grid is shared with Review (CheckoutStepView) as POST_JOB_DESKTOP_GRID in PostJobStepRail.
+    expect(step).toContain('<div key="form-step" ref={rootRef} className={POST_JOB_DESKTOP_GRID}>');
+    expect(read("src/components/postjob/PostJobStepRail.tsx")).toContain("lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px]");
     expect(step).toContain('<aside className="hidden xl:block sticky top-6">');
     // The price screen's inline copy of the card covers everything below xl, so no width loses it.
     expect(step).toContain('<div className="xl:hidden"><PostJobPreviewCard');

@@ -19,6 +19,8 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const line = job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : | const line =
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire someone.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open &&
@@ -41,6 +43,7 @@ const state = {
   applicants: { total: 0, pending: 0 },
   owed: 0,
   myApplication: null as { status: string; closed_reason: string | null } | null,
+  cardHold: false,
 };
 
 vi.mock("./useJobPage", () => ({
@@ -68,6 +71,8 @@ vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
 // An accepted (offered) job asks whether it was rescheduled; these jobs never were.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
+// Q2399 card_hold_at_post: the poster's money line follows it (F4).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "card_hold_at_post" && state.cardHold }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
@@ -135,6 +140,7 @@ beforeEach(() => {
   state.applicants = { total: 0, pending: 0 };
   state.myApplication = null;
   state.owed = 0;
+  state.cardHold = false;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
@@ -210,6 +216,22 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByText("Pick your Helpr")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&applicants=1`);
+  });
+
+  // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line
+  // never says "when you posted"; a job whose card is only held says it is not charged yet.
+  it("under the card hold: 'Paid. We hold it…', and a held card is not charged until the hire", () => {
+    state.cardHold = true;
+    state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
+    state.party = true;
+    const { unmount } = renderPage();
+    expect(screen.getByText("Paid. We hold it until the job is done.")).toBeTruthy();
+    expect(document.body.textContent).not.toContain("when you posted");
+    unmount();
+    state.job = row({ customer_id: ME, payment_status: "held" });
+    renderPage();
+    expect(screen.getByText("Your card isn't charged until you hire someone.")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/Paid when you posted|You're charged when you post/);
   });
 
   it("an unpaid post says Helprs can't see it; an unverified money state prints nothing", () => {

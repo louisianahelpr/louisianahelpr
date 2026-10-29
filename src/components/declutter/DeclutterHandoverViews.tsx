@@ -14,7 +14,8 @@
  *     buyer's "Picked up" photo, taken at the address, which pays the seller
  *     right away (rows 26, 97, 99),
  *   - "They didn't show" from 15 minutes after the booked time (row 94),
- *   - "Report a problem" until the seller is paid (rows 15, 67, 96),
+ *   - "Report a problem" once the booked pickup is over or the item is handed over, until the seller is paid
+ *     (rows 15, 67, 96; owner 2026-10-29: never while the order waits for pickup),
  *   - the seller's payout status (row 93) and, after handover, a review both
  *     ways (row 45).
  * Every rule is enforced by the server (20261015042253); these screens only
@@ -273,7 +274,8 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
           {order.handover === "porch"
-            ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />} />
+            ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
+                noDays={<ProblemForm orderId={order.orderId} />} />
             : <BookingPanel order={order} booking={booking} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
@@ -281,7 +283,10 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
+          {/* Owner 2026-10-29 (D2-9): no "Report a problem" while the order waits for pickup. Its button shows once the
+              booked time is over, the moment "They didn't show" opens; "Something's not right" in the "I got it" sheet
+              (the handover itself) still opens the form. */}
+          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} />
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
@@ -526,6 +531,15 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       </>)}
     </div>
   );
+}
+
+/**
+ * True once the booked pickup is over (D2-9): 15 minutes after a booked time, or the end of a porch day, the same
+ * moment "They didn't show" opens. No booking yet: false (the order is still waiting for pickup).
+ */
+function pickupTimeOver(booking: Pick<MyBooking, "slot_start" | "pickup_day"> | null, now = Date.now()): boolean {
+  const from = booking ? noShowFrom(booking) : null;
+  return !!from && now >= new Date(from).getTime() + 15 * 60_000;
 }
 
 function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {

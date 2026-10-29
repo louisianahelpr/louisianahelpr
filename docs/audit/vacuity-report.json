@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T00:47:50.853Z",
-  "guards": 2548,
-  "registered": 2538,
+  "generated": "2026-10-29T01:47:58.454Z",
+  "guards": 2558,
+  "registered": 2548,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
@@ -17,6 +17,7 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminTestRows.test.ts",
+    "src/components/landing/liveJobsRowFits.test.tsx",
     "src/test/declutterOneSectionHeading.test.ts",
     "src/test/declutterPriceDropsOptIn.test.ts",
     "src/test/disabledPrimaryLooksDisabled.test.ts",

@@ -17,6 +17,7 @@ import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import type { SellerWindow } from "@/lib/declutter/pickupSlots";
+import { assertLivePhoto } from "@/lib/declutter/livePhoto";
 
 function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
@@ -177,6 +178,8 @@ export async function porchPhoto(
  */
 const DECLUTTER_HANDOVER_BUCKET = "declutter-handover";
 export async function uploadHandoverPhoto(userId: string, orderId: string, file: File): Promise<string> {
+  // Live camera only (20261029002010): a photo taken more than 10 minutes ago is refused before it is uploaded.
+  assertLivePhoto(file);
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());

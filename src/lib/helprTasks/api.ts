@@ -19,6 +19,7 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { rpcErrorMessage } from "./errorCopy";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import type { SellerWindow } from "@/lib/declutter/pickupSlots";
+import { assertLivePhoto } from "@/lib/declutter/livePhoto";
 
 export type TaskSize = "small" | "large" | "xl";
 type TaskStatus = "open" | "accepted" | "picked_up" | "delivered" | "confirmed" | "unfilled" | "cancelled" | "failed";
@@ -285,7 +286,9 @@ async function uploadCleaned(path: string, file: File): Promise<string> {
 }
 
 /** A task photo (metadata stripped) at `<uid>/task/<task>/<file>`, the only path the SQL accepts. */
-export function uploadTaskPhoto(userId: string, taskId: string, file: File): Promise<string> {
+export async function uploadTaskPhoto(userId: string, taskId: string, file: File): Promise<string> {
+  // Live camera only (20261029002010): a handover photo taken more than 10 minutes ago is refused before upload.
+  assertLivePhoto(file);
   return uploadCleaned(`${userId}/task/${taskId}/${nonce()}.jpg`, file);
 }
 

@@ -109,6 +109,7 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     not_booked_yet: D.not_booked_yet,
     photo_not_uploaded: DC.photo_not_uploaded,
+    photo_too_old: DC.photo_too_old,
     wrong_side: D.wrong_side_delivered,
   },
   declutter_report_not_delivered: {

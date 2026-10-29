@@ -222,16 +222,20 @@ export const DashboardHome = ({
             accent="primary"
             onClick={() => onNavigate("analytics")}
           />
-          <KpiCard
-            label={`Completed Jobs (${rangeLabel})`}
-            value={v(stats.completedJobsInRange)}
-            icon={CheckCircle2}
-            accent="primary"
-            trend={completedTrend}
-            compareLabel={compareCopy}
-            sparkline={stats.completedJobsSeries}
-            onClick={() => onNavigate("analytics")}
-          />
+          {/* Two to a row: without the Late Cancel tile this is the third of three and sat alone
+              beside an empty cell (audit 2026-10-28 P5-12, 1440), so it takes the whole row then. */}
+          <div className={stats.lateCancellationRevenue > 0 ? undefined : "col-span-2"} data-testid="financial-health-completed">
+            <KpiCard
+              label={`Completed Jobs (${rangeLabel})`}
+              value={v(stats.completedJobsInRange)}
+              icon={CheckCircle2}
+              accent="primary"
+              trend={completedTrend}
+              compareLabel={compareCopy}
+              sparkline={stats.completedJobsSeries}
+              onClick={() => onNavigate("analytics")}
+            />
+          </div>
           {stats.lateCancellationRevenue > 0 && (
             <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
           )}

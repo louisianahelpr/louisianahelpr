@@ -209,7 +209,7 @@ describe("photo-first selling", () => {
   // Owner 2026-10-28: "claude did not help with the listing so idk how to get it to do the listing for me".
   // @mutate src/components/declutter/DeclutterSellView.tsx | autoStart: !itemId && held.length > 0 | autoStart: false
   // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null), | : null),
-  // @mutate src/components/declutter/SellAiDraft.tsx |       setForm((f) => mergeAiDraft(f, atStart, d)); |       void atStart;
+  // @mutate src/components/declutter/SellAiDraft.tsx | : mergeAiDraft(f, atStart, d))); | : f));
   it("a NEW listing: Claude writes it by itself once the first photos are added, shows it, and can write it again", async () => {
     aiAnswer.hold = true;
     open();

@@ -175,7 +175,9 @@ export default function SellFlow() {
     () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId) : null) : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null),
     [itemId, photoCount, held],
   );
-  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0 });
+  // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
+  const resumedEmpty = !!itemId && loadedFor.current === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
+  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty });
   const problem = useMemo(() => formProblem(form), [form]);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -542,8 +544,8 @@ export default function SellFlow() {
             {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
             <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} />
           </ul>
-          <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax">
-            <h3 id="sell-tax" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
+          <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax-head">
+            <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
             <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>
             <div className="flex items-start gap-3 text-ds-14">
               <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} />

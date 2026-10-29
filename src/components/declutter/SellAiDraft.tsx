@@ -5,7 +5,9 @@
  * A NEW listing runs it by itself as soon as its first photos are added
  * (useSellAiDraft below, requestAiDraftFromPhotos: the photos go in the
  * request and are never stored); a saved draft runs it from its uploaded
- * photos (requestAiDraft). Either way the seller sees "Claude is writing your
+ * photos (requestAiDraft), by itself too when the draft is resumed with
+ * photos and an empty title or details (audit AA9, 2026-10-29: "Finish
+ * listing" only offered a button), filling ONLY the empty fields. Either way the seller sees "Claude is writing your
  * listing…", then what Claude wrote, to change on the next steps, and can ask
  * for it again ("Write it again"). Nothing is saved until step 4.
  */
@@ -48,32 +50,51 @@ function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDr
 }
 
 /**
+ * A resumed draft's auto-run (audit AA9): only what the seller left empty is
+ * filled. The title and details when blank, the category while it is still
+ * "Other"; the condition and size have no empty value, so they stay theirs.
+ */
+function fillEmptyFields<F extends AiFields>(current: F, d: AiDraft): F {
+  return {
+    ...current,
+    title: current.title.trim() ? current.title : d.title,
+    description: current.description.trim() ? current.description : d.description,
+    category: current.category === "other" ? d.category : current.category,
+  };
+}
+
+/**
  * The run itself: `ask` is the call (from held photos or the saved draft).
- * `autoStart` (a new listing with its first photos) runs it once by itself.
+ * `autoStart` (a new listing with its first photos) runs it once by itself;
+ * `autoFillEmpty` (a resumed draft with photos and empty fields) runs it once
+ * by itself too, filling only the empty fields. "Write it again" is the
+ * seller's own ask, so it fills every field they have not changed since.
  */
 export function useSellAiDraft<F extends AiFields>({
   ask,
   form,
   setForm,
   autoStart,
+  autoFillEmpty = false,
 }: {
   ask: (() => Promise<AiDraft>) | null;
   form: F;
   setForm: (update: (f: F) => F) => void;
   autoStart: boolean;
+  autoFillEmpty?: boolean;
 }) {
   const [state, setState] = useState<AiState>({ status: "idle" });
   const formRef = useRef(form);
   formRef.current = form;
   const ran = useRef(false);
-  const run = useCallback(async () => {
+  const run = useCallback(async (onlyEmpty = false) => {
     if (!ask) return;
     ran.current = true;
     const atStart: AiFields = { ...formRef.current };
     setState({ status: "busy" });
     try {
       const d = await ask();
-      setForm((f) => mergeAiDraft(f, atStart, d));
+      setForm((f) => (onlyEmpty ? fillEmptyFields(f, d) : mergeAiDraft(f, atStart, d)));
       setState({ status: "done", draft: d });
     } catch (err) {
       // Not silent: the panel shows the seller the plain-words reason and a "Try again" button
@@ -83,9 +104,9 @@ export function useSellAiDraft<F extends AiFields>({
     }
   }, [ask, setForm]);
   useEffect(() => {
-    if (autoStart && ask && !ran.current) void run();
-  }, [autoStart, ask, run]);
-  return { state, run };
+    if ((autoStart || autoFillEmpty) && ask && !ran.current) void run(!autoStart);
+  }, [autoStart, autoFillEmpty, ask, run]);
+  return { state, run: () => run(false) };
 }
 
 export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () => void }) {

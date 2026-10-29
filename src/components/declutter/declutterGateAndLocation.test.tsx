@@ -210,6 +210,7 @@ describe("Declutter location ask", () => {
     account.profile = {};
     live.items = [];
     sessionStorage.clear();
+    localStorage.clear();
     getCurrentPosition.mockReset();
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition } });
   });

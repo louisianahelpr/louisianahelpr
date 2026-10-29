@@ -925,7 +925,7 @@ test.describe.serial("marketplace chain", () => {
         // VN-21 the tracker's Done CTA is the card's ONE primary and the
         // same-label PayoutPrimary stands down, so there is one; `.first()`
         // stays as a guard. It opens the "Mark This Job Complete?"
-        // confirmation this step expects (its button reads "Mark Complete",
+        // confirmation this step expects (its button reads "Mark job complete",
         // owner 2026-09-14; was "Yes, I'm Done").
         const payout = c.getByRole("button", { name: /^Mark job complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
@@ -968,7 +968,7 @@ test.describe.serial("marketplace chain", () => {
           const payoutButtons = await c.getByRole("button", { name: /^Mark job complete$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
-          const yes = hp.getByRole("button", { name: "Mark Complete", exact: true });
+          const yes = hp.getByRole("alertdialog").getByRole("button", { name: "Mark job complete", exact: true });
           await expect(yes, "Mark job complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();

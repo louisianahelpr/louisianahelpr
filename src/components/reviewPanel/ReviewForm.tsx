@@ -436,12 +436,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
             <DialogSecondaryAction
               onClick={() => { setTipPromptOpen(false); onClose(); }}
             >
-              No Thanks
+              No thanks
             </DialogSecondaryAction>
             <DialogPrimaryAction
               onClick={() => { setTipPromptOpen(false); setTipDialogOpen(true); }}
             >
-              Send a Tip
+              Send a tip
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

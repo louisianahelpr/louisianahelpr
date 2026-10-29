@@ -47,7 +47,7 @@ describe("Mark job complete confirm popup", () => {
 
   it("asks to mark the job complete, not to request a payout", () => {
     expect(tracking).toContain('title="Mark this job complete?"');
-    expect(tracking).toContain('primaryLabel="Mark Complete"');
+    expect(tracking).toContain('primaryLabel="Mark job complete"');
     expect(tracking).not.toContain("Request Your Payout?");
     expect(tracking).not.toMatch(/Yes, I['’]m Done/);
   });

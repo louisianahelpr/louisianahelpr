@@ -440,7 +440,7 @@ export const PhotoProofGroup = ({
   // If no photos at all and can't upload, show a minimal empty state
   if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
     return (
-      <CardSubPanel icon={Image} title="Photo Proof">
+      <CardSubPanel icon={Image} title="Photo proof">
         {/* Full `text-muted-foreground`, not `/60`: the alpha dropped this
             11px line to 2.61:1 on the card surface (axe, serious). It was
             invisible to the sweep because it only renders inside a completed
@@ -453,7 +453,7 @@ export const PhotoProofGroup = ({
   return (
     <CardSubPanel
       icon={Image}
-      title="Photo Proof"
+      title="Photo proof"
       action={
         (hasBefore || hasAfter) ? (
           <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium shrink-0">

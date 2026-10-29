@@ -48,6 +48,10 @@ export function PayoutSetupForm({ onSettled }: {
   const { user } = useAuthReady();
   const userId = user?.id;
   const [onboarding, setOnboarding] = useState(false);
+  // Why the last "Set up payouts" press did not start, in the server's own words, shown under the
+  // button until the next press. Audit 2026-10-28 P4-5: a refused start (stripe-connect 403) left
+  // nothing on screen after the toast faded; the words now stay where the member is looking.
+  const [startError, setStartError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -102,6 +106,7 @@ export function PayoutSetupForm({ onSettled }: {
     if (setupPaused) return;
     const ok = await requireBiometric("Confirm changes to your payout account");
     if (!ok) return;
+    setStartError(null);
     setOnboarding(true);
     try {
       const returnUrl = getPublicReturnUrl();
@@ -127,7 +132,8 @@ export function PayoutSetupForm({ onSettled }: {
       });
     } catch (err: unknown) {
       hapticError();
-      toast.error(userFacingError(err, "We couldn't start payout setup — try again in a moment."));
+      report(err, { severity: "warning", tags: { source: "PayoutSetupForm.onboard" } });
+      setStartError(userFacingError(err, "We couldn't start payout setup — try again in a moment."));
       setOnboarding(false);
     }
   };
@@ -465,6 +471,14 @@ export function PayoutSetupForm({ onSettled }: {
               <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
             )}
           </Button>
+          {startError && (
+            <div role="alert" data-testid="payout-start-error" className="rounded-ds-md px-3 py-2.5 text-ds-13 leading-snug" style={{ background: "hsl(var(--destructive) / 0.08)", color: "hsl(var(--ink-deep))" }}>
+              <p className="font-semibold">{startError}</p>
+              <p className="mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Nothing was changed. Try again, or talk to a real person from You → Help.
+              </p>
+            </div>
+          )}
           {status?.connected && (
             <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)} disabled={resetting} className="w-full text-ds-11 text-muted-foreground">
               {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}

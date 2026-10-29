@@ -45,7 +45,7 @@
  * interpolated message followed by ". " (serverMessageSentenceEnd.test.ts),
  * functions.invoke transport errors (edgeFunctionErrorReachesTheUser.test.ts).
  *
- * @mutate src/components/PayoutSetupForm.tsx | toast.error(userFacingError(err, "We couldn't start payout setup — try again in a moment.")); | toast.error(err instanceof Error ? err.message : "We couldn't start payout setup — try again in a moment.");
+ * @mutate src/components/PayoutSetupForm.tsx | toast.error(userFacingError(err, "We couldn't open your Stripe dashboard — try again in a moment.")); | toast.error(err instanceof Error ? err.message : "We couldn't open your Stripe dashboard — try again in a moment.");
  * @mutate src/components/admin/AdminExport.tsx | toast.error(userFacingError(queryErr, "Couldn't export that — try again.")); | toast.error("Export failed: " + queryErr.message);
  * @mutate src/components/profile/SubscriptionTab.tsx | toast.error(err.message); | toast.error("Couldn't start checkout — try again?");
  * @mutate src/components/admin/AdminUserNotes.tsx | "Couldn't save that note — try again." | "Couldn't save that note — try again"

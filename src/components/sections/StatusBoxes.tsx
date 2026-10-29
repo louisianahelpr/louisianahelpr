@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -45,6 +45,21 @@ export function useStatusFilter<K extends string>(valid: readonly K[]) {
  * sideways, so a label is never cut. `hot` is kept for callers but no longer
  * paints a number: rust is for money only (spec §1.1).
  */
+/** The fade at the row's end when a control is pinned there (one icon wide): `pr-11` and the mask below. */
+const END_FADE_PX = 44;
+
+/**
+ * How far to scroll the chip track so the lit chip sits fully in view, clear of the end fade; 0 when it already
+ * does. Audit A2-L18 (2026-10-29, 375 Posted): after a cancel left "Waiting" lit, it sat under the fade and the
+ * search icon, cut to "Wait". Rects are the track's and the chip's getBoundingClientRect.
+ */
+export function revealDelta(track: { left: number; right: number }, chip: { left: number; right: number }, endFade: number): number {
+  const over = chip.right - (track.right - endFade);
+  if (over > 0) return Math.ceil(over);
+  const under = chip.left - track.left;
+  return under < 0 ? Math.floor(under) : 0;
+}
+
 /** The All chip's key: not a group, so it carries `data-status-all`, never `data-status-box`. */
 const ALL = "\u0000all";
 
@@ -72,7 +87,25 @@ export function StatusBoxes<K extends string>({
   onlyLit?: boolean;
 }) {
   const active = boxes.find((b) => b.key === value);
-  const chip = (key: string, label: string, count: number, on: boolean, onClick: () => void) => (
+  const trackRef = useRef<HTMLDivElement>(null);
+  const endFade = end ? END_FADE_PX : 0;
+  // The lit chip is brought into view whenever the filter changes, and again when the chips change width (their
+  // counts land after the first paint), so it is never left cut under the end fade (A2-L18).
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const reveal = () => {
+      const lit = track.querySelector<HTMLElement>("[aria-pressed='true']");
+      if (!lit) return;
+      const d = revealDelta(track.getBoundingClientRect(), lit.getBoundingClientRect(), endFade);
+      if (d !== 0) track.scrollLeft += d;
+    };
+    reveal();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(reveal);
+    for (const c of Array.from(track.children)) ro?.observe(c);
+    return () => ro?.disconnect();
+  }, [value, endFade, boxes.length]);
+  const chip =(key: string, label: string, count: number, on: boolean, onClick: () => void) => (
     <button
       key={key}
       type="button"
@@ -92,6 +125,7 @@ export function StatusBoxes<K extends string>({
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
       <div
+        ref={trackRef}
         // With a control at the end, the row softly fades over its last 44px (one icon wide), so the chip that runs
         // under it reads as "more", never as clipped; the same 44px of end padding lets the last chip scroll fully
         // clear of the fade (lead, 390, 2026-10-25).

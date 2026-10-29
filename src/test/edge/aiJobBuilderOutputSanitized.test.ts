@@ -5,7 +5,7 @@
  * category string, any extra key, negative or non-finite numbers all reached
  * the form. The handler now returns sanitizeJob(parsed) or a 502.
  *
- * @mutate supabase/functions/ai-job-builder/index.ts | const jobData = sanitizeJob(claudeJson(await claudeRes.json())); | const jobData = claudeJson(await claudeRes.json()) as ReturnType<typeof sanitizeJob>;
+ * @mutate supabase/functions/ai-job-builder/index.ts | const job = sanitizeJob(answer); | const job = answer as ReturnType<typeof sanitizeJob>;
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | ? r.category : "other", | ? r.category : r.category,
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | Math.min(hi, Math.max(lo, v)) | v
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | if (out.length + ch.length > max) break; | if (Array.from(out).length >= max) break;
@@ -23,7 +23,10 @@ const base = { title: "Mow my lawn", description: "Front and back.", category: "
 describe("ai-job-builder output is whitelisted and bounded (A-002)", () => {
   it("the handler returns the sanitised object, never the raw parse", () => {
     const src = readFileSync("supabase/functions/ai-job-builder/index.ts", "utf8");
-    expect(src).toMatch(/const jobData = sanitizeJob\(claudeJson\(await claudeRes\.json\(\)\)\);/);
+    // A2-C25: the poster's stated price, day and time are laid over the SANITISED object (keepStatedFacts
+    // reads only checked day/time fields from the raw answer).
+    expect(src).toMatch(/const answer = claudeJson\(await claudeRes\.json\(\)\);\s+const job = sanitizeJob\(answer\);/);
+    expect(src).toMatch(/const jobData = job \? keepStatedFacts\(job, answer, /);
   });
 
   it("client location reaches the system prompt as one bounded line", () => {

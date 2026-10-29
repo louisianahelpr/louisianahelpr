@@ -6903,7 +6903,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 61,
+      "line": 64,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6913,7 +6913,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 89,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

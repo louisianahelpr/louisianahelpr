@@ -28,6 +28,9 @@ export interface AiGeneratedJob {
   special_requirements?: string;
   is_group_job?: boolean;
   helpers_needed?: number;
+  /** A2-C25: the day the poster named ("saturday", "tomorrow"...) and their start time ("09:00"). */
+  preferred_day?: string;
+  start_time?: string;
 }
 
 interface AiJobBuilderProps {

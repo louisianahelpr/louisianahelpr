@@ -64,3 +64,76 @@ export function sanitizeJob(raw: unknown): Record<string, unknown> | null {
   if (helpers !== undefined) out.helpers_needed = Math.round(helpers);
   return out;
 }
+
+/**
+ * A2-C25 (app audit 2026-10-28): the builder turned a stated "$40" into $60 on
+ * a second run and ignored "Saturday morning around 9". What the poster SAID
+ * wins over what the model wrote, so these read the poster's own words.
+ */
+export const JOB_DAYS = ["today", "tomorrow", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+type JobDay = (typeof JOB_DAYS)[number];
+
+/** The one price the poster named ("$40", "40 dollars", "40 bucks"), or null if none or several. */
+export function statedPrice(text: string): number | null {
+  const found = new Set<number>();
+  for (const m of text.matchAll(/\$\s?(\d{1,4}(?:\.\d{1,2})?)(?!\d)|\b(\d{1,4}(?:\.\d{1,2})?)\s?(?:dollars|bucks|usd)\b/gi)) {
+    const n = Number(m[1] ?? m[2]);
+    if (Number.isFinite(n)) found.add(n);
+  }
+  if (found.size !== 1) return null;
+  const [n] = found;
+  return n >= 10 && n <= MAX_BUDGET ? Math.round(n) : null;
+}
+
+/** The one day the poster named (a weekday, today or tomorrow), or null if none or several. */
+export function statedDay(text: string): JobDay | null {
+  const lower = text.toLowerCase();
+  const hits = JOB_DAYS.filter((d) => new RegExp(`\\b${d}s?\\b`).test(lower) || (d === "today" && /\btonight\b/.test(lower)));
+  return hits.length === 1 ? hits[0] : null;
+}
+
+/**
+ * The start time the poster named, as "HH:MM" (24 h), or null. Only when the
+ * words make the half of the day plain: "9am", "9:30 pm", or an hour with
+ * "morning" / "afternoon" / "evening" / "tonight" ("Saturday morning around 9").
+ */
+export function statedTime(text: string): string | null {
+  const lower = text.toLowerCase();
+  const hhmm = (h: number, m: number) => (h >= 0 && h < 24 && m >= 0 && m < 60 ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` : null);
+  const explicit = [...lower.matchAll(/\b(\d{1,2})(?::(\d{2}))?\s?(a\.?m\.?|p\.?m\.?)(?![a-z])/g)];
+  if (explicit.length === 1) {
+    const [, h, m, ap] = explicit[0];
+    const hour = Number(h) % 12 + (ap.startsWith("p") ? 12 : 0);
+    return Number(h) >= 1 && Number(h) <= 12 ? hhmm(hour, Number(m ?? 0)) : null;
+  }
+  if (explicit.length > 1) return null;
+  const bare = [...lower.matchAll(/\b(?:at|around|about|by|from|after)\s+(\d{1,2})(?::(\d{2}))?(?!\s?(?:\d|%|hours?|hrs?|minutes?|mins?|dollars|bucks|days?|weeks?))\b/g)];
+  if (bare.length !== 1) return null;
+  const morning = /\bmorning\b/.test(lower);
+  const later = /\b(afternoon|evening|tonight)\b/.test(lower);
+  if (morning === later) return null;
+  const h = Number(bare[0][1]);
+  if (h < 1 || h > 12) return null;
+  return hhmm(morning ? h % 12 : (h % 12) + 12, Number(bare[0][2] ?? 0));
+}
+
+/**
+ * The model's day and time, checked (a JOB_DAYS value; "HH:MM"), then
+ * overridden by what the poster stated; the stated price sets both ends of the
+ * budget. `userText` is the poster's own turns only.
+ */
+export function keepStatedFacts(job: Record<string, unknown>, raw: unknown, userText: string): Record<string, unknown> {
+  const r = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+  const out = { ...job };
+  const price = statedPrice(userText);
+  if (price !== null) {
+    out.budget_min = price;
+    out.budget_max = price;
+  }
+  const day = statedDay(userText) ?? ((JOB_DAYS as readonly unknown[]).includes(r.preferred_day) ? (r.preferred_day as JobDay) : null);
+  if (day) out.preferred_day = day;
+  const modelTime = typeof r.start_time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.start_time) ? r.start_time : null;
+  const time = statedTime(userText) ?? modelTime;
+  if (time) out.start_time = time;
+  return out;
+}

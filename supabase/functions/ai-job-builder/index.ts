@@ -2,7 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { sanitizeJob } from "./sanitize.ts";
+import { JOB_DAYS, keepStatedFacts, sanitizeJob } from "./sanitize.ts";
 import { fetchWithRetry } from "./retry.ts";
 import { claudeFetch, claudeJson } from "../_shared/claudeMessages.ts";
 
@@ -24,6 +24,8 @@ const JOB_POSTING_SCHEMA = {
     special_requirements: { type: "string", description: "Any special requirements or notes" },
     is_group_job: { type: "boolean", description: "Whether multiple helprs are needed" },
     helpers_needed: { type: "number", description: "Number of helprs needed if group job" },
+    preferred_day: { type: "string", enum: [...JOB_DAYS, "none"], description: "The day the person asked for, or none" },
+    start_time: { type: "string", description: "The start time the person asked for, 24-hour HH:MM, or empty" },
   },
   required: ["title", "description", "category", "estimated_hours", "budget_min", "budget_max"],
   additionalProperties: false,
@@ -130,16 +132,27 @@ serve(async (req) => {
 
 CANONICAL NOUNS — house style, follow exactly: the person who does the job is
 always "Helpr", capitalized, and never any other common noun for that role;
-the person who posted the job is always "you" or "the person who posted this job" — never "customer"
+the person who posted the job is "the person who posted this job" — never "customer"
 or "client". Use these exact terms in the title, description and any special
 requirements text you write.
+
+WRITE IN THE THIRD PERSON. The description is read by the Helprs deciding whether
+to take the job, so describe the job itself ("The front and back lawn need mowing…",
+"Looking for a Helpr to…"). Never address the person who posted it as "you" and
+never write "You need…".
+
+KEEP WHAT THE PERSON SAID. If they name a price, set budget_min and budget_max both
+to exactly that number; never raise or lower it. If they name a day, set
+preferred_day to it (a weekday, today or tomorrow); if they name a start time, set
+start_time to it in 24-hour HH:MM ("Saturday morning around 9" is saturday and
+09:00). If they name neither, use "none" and an empty start_time; never invent one.
 
 Given a brief description of what the user needs help with, generate a complete job posting with:
 1. A clear, concise title (target 24 chars or fewer — the form's title field hard-caps at exactly 32 and rejects anything longer, so aim well under the cap rather than skimming it)
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
 3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, electrical, plumbing, hvac, roofing, welding, carpentry, auto_repair, appliance_repair, flooring, concrete_masonry, fencing, pressure_washing, declutter_help, other
 4. Estimated hours needed
-5. A suggested budget range (min and max in USD)
+5. A suggested budget range (min and max in USD), or exactly the price they named
 6. Any special requirements or notes
 
 ${location ? `Additional context: Location is ${location}` : ''}`;
@@ -180,7 +193,10 @@ ${location ? `Additional context: Location is ${location}` : ''}`;
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const jobData = sanitizeJob(claudeJson(await claudeRes.json()));
+      const answer = claudeJson(await claudeRes.json());
+      const job = sanitizeJob(answer);
+      // A2-C25: the poster's own price, day and time win over the model's (sanitize.ts keepStatedFacts).
+      const jobData = job ? keepStatedFacts(job, answer, turns.filter((t) => t.role === "user").map((t) => t.content).join("\n")) : null;
       if (!jobData) {
         return new Response(JSON.stringify({ error: "Failed to generate job posting" }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },

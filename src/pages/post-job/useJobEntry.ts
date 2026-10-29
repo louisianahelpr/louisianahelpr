@@ -4,6 +4,8 @@ import type { SampleJob } from "@/data/sampleJobs";
 import type { JobDraft } from "@/hooks/useDraftJob";
 import type { Step } from "./postJobFormTypes";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
+import { aiDayToDate, aiStartTime } from "./aiJobDay";
+import { todayYmd } from "@/lib/jobDate";
 
 /**
  * useJobEntry — owns the "populate the form from an external source"
@@ -99,6 +101,14 @@ export function useJobEntry(params: UseJobEntryParams) {
     if (data.is_group_job) {
       setIsGroupJob(true);
       if (data.helpers_needed !== undefined) setHelpersNeeded(String(data.helpers_needed));
+    }
+    // A2-C25: the day and start time the poster asked for ("Saturday morning around 9").
+    const day = aiDayToDate(data.preferred_day, todayYmd());
+    if (day) setDateNeeded(day);
+    const time = aiStartTime(data.start_time);
+    if (time) {
+      setStartTime(time);
+      setIsFlexibleSchedule(false);
     }
   };
 

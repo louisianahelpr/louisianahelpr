@@ -14,6 +14,7 @@
  *   }
  */
 import { useState, useCallback } from "react";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 export type PermissionKind = "camera" | "photos" | "location" | "declutter_location" | "contacts" | "notifications";
 
@@ -143,6 +144,41 @@ function markConfirmed(kind: PermissionKind) {
 }
 
 /**
+ * A2-C23 (app audit 2026-10-28): opening the Browse map showed the "Location"
+ * explainer over a blurred map although the browser had already granted
+ * location. The explainer warms up the OS prompt; when the OS answer is
+ * already yes there is no prompt left to explain. Only location is probed.
+ */
+const LOCATION_KINDS: ReadonlySet<PermissionKind> = new Set(["location", "declutter_location"]);
+
+async function webGeolocationGranted(): Promise<boolean> {
+  const status = await navigator.permissions?.query({ name: "geolocation" as PermissionName });
+  return status?.state === "granted";
+}
+
+async function nativeLocationGranted(): Promise<boolean> {
+  // Destructured, never awaited as the plugin object (thenable assimilation).
+  const { Geolocation } = await import("@capacitor/geolocation");
+  const p = await Geolocation.checkPermissions();
+  return p.location === "granted" || p.coarseLocation === "granted";
+}
+
+/**
+ * Null when there is nothing to ask (not a location kind, or no permissions
+ * API on this browser), so those callers keep the synchronous path below.
+ * A probe that throws reads as "not granted": the explainer shows, which is
+ * the conservative direction (it can only ask more, never skip it).
+ */
+function osAlreadyGranted(kind: PermissionKind): Promise<boolean> | null {
+  if (!LOCATION_KINDS.has(kind)) return null;
+  if (!isNativePlatform && (typeof navigator === "undefined" || !navigator.permissions?.query)) return null;
+  return (isNativePlatform ? nativeLocationGranted() : webGeolocationGranted()).catch((err: unknown) => {
+    console.warn("[permissions] could not read the location permission; explaining first", err);
+    return false;
+  });
+}
+
+/**
  * Page-level hook for components that need to request a permission.
  * Returns `request(kind, onGranted)` — shows rationale on first ask,
  * then on confirm runs the actual native API call (which triggers
@@ -170,33 +206,54 @@ export function usePermissionRationale() {
           return false;
         }
       }
-      return new Promise((resolve) => {
-        setState({
-          open: true,
-          kind,
-          resolve: async (confirmed: boolean) => {
-            if (!confirmed) {
-              resolve(false);
-              return;
-            }
-            markConfirmed(kind);
-            try {
-              await runNativeCall();
-              resolve(true);
-            } catch {
-              // Silent by design — same as the fast path above: a declined OS
-              // prompt is the normal outcome, and the caller decides what to
-              // do with `false`.
-              resolve(false);
-            }
-          },
-        });
-      });
+      const probe = osAlreadyGranted(kind);
+      if (!probe) return explainThenRun(kind, runNativeCall);
+      const granted = await probe;
+      if (granted) {
+        // The OS already said yes (A2-C23): nothing to explain, and later
+        // asks take the fast path above.
+        markConfirmed(kind);
+        try {
+          await runNativeCall();
+          return true;
+        } catch {
+          // Silent by design — same as the fast path above: `false` is the
+          // honest answer and the caller owns what to show.
+          return false;
+        }
+      }
+      return explainThenRun(kind, runNativeCall);
     },
     [],
   );
 
   return { request };
+}
+
+/** Open the explainer; on a yes, record it and run the OS call. */
+function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void): Promise<boolean> {
+  return new Promise((resolve) => {
+    setState({
+      open: true,
+      kind,
+      resolve: async (confirmed: boolean) => {
+        if (!confirmed) {
+          resolve(false);
+          return;
+        }
+        markConfirmed(kind);
+        try {
+          await runNativeCall();
+          resolve(true);
+        } catch {
+          // Silent by design — same as the fast path in request(): a declined
+          // OS prompt is the normal outcome, and the caller decides what to
+          // do with `false`.
+          resolve(false);
+        }
+      },
+    });
+  });
 }
 
 /**

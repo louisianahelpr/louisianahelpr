@@ -215,6 +215,8 @@ export interface MyHandover {
   status: "paid" | "handed_over";
   side: "buyer" | "seller";
   confirmed_at: string | null;
+  /** Who made the handover: "buyer" ("I got it"), "seller", "auto", "admin"... (declutter_my_handover). */
+  confirmed_by?: string | null;
   set_out_at: string | null;
   set_out_photo_path: string | null;
   /** Board 159 / Q2266: the seller's "Where exactly?" note (absent until 20261021023158 is on prod). */

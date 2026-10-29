@@ -5,7 +5,7 @@
  * is src/test/pglite/declutterSlice4.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
@@ -385,10 +385,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("What went wrong?"), { target: { value: "damaged" } });
-    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Leg is cracked" } });
+    fireEvent.change(screen.getByLabelText("What went wrong?"), { target: { value: "not_received" } });
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Nobody was there" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "damaged", "Leg is cracked", []]));
+    await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_received", "Nobody was there", []]));
   });
 
   it("after handover: the seller sees the payout (minus a fee debt) and both can review (rows 45, 93)", async () => {
@@ -861,7 +861,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
 // order waits for pickup. Its button shows once the booked pickup is over (the "They didn't show" moment: 15 minutes
 // after a booked time, the end of a porch day). The one exception: the seller has no pickup days left, so the buyer
 // cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} /> | onOpenChange={setProblemOpen} />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} /> |  if (!o) setAtHandover(false); }} />
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |               {side === "buyer" && !booked && noDays} |
 describe("D2-9: no Report a problem while the order waits for pickup", () => {
@@ -915,5 +915,46 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
     expect(await screen.findByText(/no pickup days left/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
     expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
+  });
+});
+
+// Audit 1028 part 2, D2-11 and D2-8: the problem reasons fit who reports and when (problemReasons.ts). After the booked
+// time with nothing handed over, the buyer can say they didn't get it, never "damaged"; from the "I got it" sheet (the
+// item in front of them) never "I didn't get it"; the seller never gets the buyer's reasons.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | stage={atHandover ? "handover" : "waiting"} | stage="waiting"
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const reasons = PROBLEM_REASONS[side][stage]; |   const reasons = PROBLEM_REASONS.buyer.delivery;
+// @mutate src/components/declutter/problemReasons.ts |     waiting: [["not_received", "I didn't get it"], ["safety", "I felt unsafe"], ["other", "Something else"]], |     waiting: [["not_received", "I didn't get it"], ["damaged", "It's damaged"], ["safety", "I felt unsafe"], ["other", "Something else"]],
+describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
+  beforeEach(() => {
+    state.calls = [];
+    state.handover = null;
+    state.porchDays = null;
+  });
+  const options = () => [...(screen.getByLabelText("What went wrong?") as HTMLSelectElement).options].map((o) => o.textContent);
+
+  it("after the booked time, nothing handed over: the buyer's reasons start with I didn't get it, no damage words", async () => {
+    state.bookings = [slot(20)];
+    show([line()]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    expect(options()).toEqual(["I didn't get it", "I felt unsafe", "Something else"]);
+  });
+
+  it("the seller gets their own reasons, never the buyer's", async () => {
+    state.bookings = [slot(20)];
+    show([line({ my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const o = options();
+    expect(o[0]).toBe("The buyer didn't come");
+    for (const buyerReason of ["I didn't get it", "It's damaged", "It isn't as described"]) expect(o).not.toContain(buyerReason);
+    expect(o.length).toBeGreaterThan(1);
+  });
+
+  it("from the I got it sheet (the item in front of the buyer): damage reasons, never I didn't get it", async () => {
+    state.bookings = [slot(60)];
+    show([line({ handover: "porch" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
+    await screen.findByLabelText("What went wrong?");
+    expect(options()).toEqual(["It isn't as described", "It's damaged", "I felt unsafe", "Something else"]);
   });
 });

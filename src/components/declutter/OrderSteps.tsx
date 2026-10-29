@@ -35,6 +35,8 @@ export type OrderFacts = {
   /** The order is handed over (final). */
   done: boolean;
   cancelled?: boolean;
+  /** Audit 1b D2-2: a problem is open; nothing is asked of either side until Louisiana Helpr decides. */
+  problem?: boolean;
 };
 
 export type OrderBucket = "needs_you" | "waiting" | "upcoming" | "done" | "cancelled";
@@ -79,7 +81,7 @@ export function orderStepAt(f: OrderFacts): number {
 
 /** Whether the next move is the viewer's own. */
 export function orderWaitsOnYou(f: OrderFacts): boolean {
-  if (f.done || f.cancelled) return false;
+  if (f.done || f.cancelled || f.problem) return false;
   const buyer = f.side === "buyer";
   switch (f.handover) {
     case "porch":
@@ -99,6 +101,7 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
 export function orderBucket(f: OrderFacts): OrderBucket {
   if (f.cancelled) return "cancelled";
   if (f.done) return "done";
+  if (f.problem) return "waiting";
   if (orderWaitsOnYou(f)) return "needs_you";
   // A day or time is set, the handover has not happened and nothing is asked of the viewer before it: coming up.
   // Otherwise it is on the other person or the clock (a buyer's day to pick, a Helpr to take it, the sale to settle).

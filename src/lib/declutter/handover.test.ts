@@ -76,6 +76,7 @@ import {
   fetchItemAddress,
   fetchMyBookings,
   fetchMyPayouts,
+  fetchOpenProblems,
   fetchOpenProblemsForAdmin,
   leaveReview,
   porchNote,
@@ -127,6 +128,22 @@ describe("reads", () => {
     expect(h.queries[0].table).toBe("declutter_problems");
     expect(h.queries[0].ops).toContainEqual(["eq", ["status", "open"]]);
     expect(h.queries[0].ops).toContainEqual(["order", ["created_at", { ascending: true }]]);
+  });
+
+  // Audit 1b D2-2: both order cards read the order's OPEN problem (RLS lets the two sides read their own orders').
+  // @mutate src/lib/declutter/handover.ts | rows = unwrap(await q.in("order_id", orderIds).eq("status", "open")); | rows = unwrap(await q.in("order_id", orderIds));
+  // @mutate src/lib/declutter/handover.ts |   if (!orderIds.length) return []; |
+  // @mutate src/lib/declutter/handover.ts | const rows = unwrap(await q.in("order_id", orderIds).eq("status", "open")); | const rows = (await q.in("order_id", orderIds).eq("status", "open")).data;
+  it("fetchOpenProblems reads only open problems on these orders, skips an empty list, and surfaces a read error", async () => {
+    expect(await fetchOpenProblems([])).toEqual([]);
+    expect(h.queries).toHaveLength(0);
+    h.queue.push(ok([{ id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" }]));
+    expect(await fetchOpenProblems(["o1", "o2"])).toEqual([{ id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" }]);
+    expect(h.queries[0].table).toBe("declutter_problems");
+    expect(h.queries[0].ops).toContainEqual(["in", ["order_id", ["o1", "o2"]]]);
+    expect(h.queries[0].ops).toContainEqual(["eq", ["status", "open"]]);
+    h.queue.push(refused("permission denied"));
+    await expect(fetchOpenProblems(["o1"])).rejects.toBeTruthy();
   });
 
   it("fetchItemAddress returns the first row, or null when the caller may not see it", async () => {

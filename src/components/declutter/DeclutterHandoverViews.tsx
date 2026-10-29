@@ -47,8 +47,12 @@ import {
   uploadHandoverPhoto,
   type MyBooking,
   type MyPayout,
+  type OpenProblem,
   type ProblemReason,
 } from "@/lib/declutter/handover";
+import { ProblemOpenNote } from "./DeclutterProblemOpen";
+import { payoutLine } from "./declutterPayoutWords";
+import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
@@ -57,7 +61,7 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
-import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
@@ -117,6 +121,7 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
   void qc.invalidateQueries({ queryKey: ["declutter", "bookings"] });
   void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
+  void qc.invalidateQueries({ queryKey: ["declutter", "problems"] });
 }
 
 /**
@@ -144,6 +149,8 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     queryFn: () => fetchMyPayouts(userId),
     enabled: !!userId && orders.some((o) => o.side === "seller"),
   });
+  // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
+  const problems = useOpenProblems(ids);
   const shown = show ? orders.filter((o) => show(o.orderId)) : orders;
   if (shown.length === 0 || !userId) return null;
   if (bookings.isError) {
@@ -160,35 +167,14 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           userId={userId}
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
+          problem={problems.get(o.orderId) ?? null}
         />
       ))}
     </section>
   );
 }
 
-const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
-  // 141d: the payout waits until the sale is final (20261026155251).
-  pending: "We send it once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.",
-  failed: "Your payout didn't go through yet. We'll keep trying. Check that your payout account is set up.",
-  succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
-  nothing_due: "Nothing to pay out: this sale covered an amount you owed from an earlier refund.",
-};
-
-/**
- * What the payout is made of: "after the buyer's refund" (board 141d), or
- * "($30.00 + $15.00 delivery minus $1.50 you owed)". A seller delivery's rate is
- * paid with the items (20261027153244), so the payout is items + rate - refunded - debt,
- * each read from the row's own columns. A free delivery adds no delivery part.
- */
-function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents">): string {
-  if ((p.refunded_cents ?? 0) > 0) return " after the buyer's refund";
-  const rate = p.delivery_cents ?? 0;
-  if (rate <= 0 && p.debt_cents <= 0) return "";
-  const parts = rate > 0 ? `${formatPrice(p.items_cents)} + ${formatPrice(rate)} delivery` : formatPrice(p.items_cents);
-  return p.debt_cents > 0 ? ` (${parts} minus ${formatPrice(p.debt_cents)} you owed)` : ` (${parts})`;
-}
-
-function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView }) {
+function OrderCard({ order, userId, booking, payout, view, problem }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -223,6 +209,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
+      {problem && <ProblemOpenNote problem={problem} side={order.side} />}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
@@ -233,20 +220,16 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           slot={booking?.slot_start ?? null}
           day={booking?.pickup_day ?? null}
           itemsCents={items}
+          problemOpen={!!problem}
         />
       )}
       {done ? (
         <>
           {(order.handover === "delivery" || order.handover === "seller_delivery") && <p className="text-sm font-medium">Handed over.</p>}
-          {order.side === "seller" && payout && items > 0 && (
-            <p className="text-sm">
-              {formatPrice(payout.amount_cents)}
-              {payoutBreakdown(payout)}. {PAYOUT_WORDS[payout.status]}
-            </p>
-          )}
+          {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
-              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} />} />
+              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} />} />
             </Suspense>
           )}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
@@ -257,7 +240,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           <Suspense fallback={<HelprSpinner />}>
             <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
           </Suspense>
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />
+          {!problem && <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
       ) : order.handover === "delivery" ? (
         <>
@@ -265,14 +248,15 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
-          <ProblemForm orderId={order.orderId} />
+          {!problem && <ProblemForm orderId={order.orderId} />}
         </>
       ) : (
         <>
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
-          {order.handover === "porch"
+          {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
+          {problem ? null : order.handover === "porch"
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />} />
             : <BookingPanel order={order} booking={booking} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
@@ -280,8 +264,8 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />}
-          {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
+          {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
+          {!problem && <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />}
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}

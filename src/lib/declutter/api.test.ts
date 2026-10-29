@@ -23,7 +23,7 @@
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |   if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) { |   if (first.error) {
- * @mutate src/lib/declutter/api.ts | { body, timeout: AI_TIMEOUT_MS } | { body }
+ * @mutate src/lib/declutter/api.ts | { body, timeout: timeoutMs } | { body }
  * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
  * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;
  * @mutate src/lib/declutter/api.ts | (error as { context?: { name?: unknown } }).context?.name === "AbortError"; | false;

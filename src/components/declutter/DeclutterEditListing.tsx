@@ -47,7 +47,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
   const ready = attested && title.trim().length >= 3 && (free || ways.length > 0) && !save.isPending;
   return (
     <form className="space-y-4" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); }}>
-      {/* Lead 2026-10-29: photo edits on a live listing wait for the photo functions (Q?b41-photo-edit). */}
+      {/* Lead 2026-10-29: photo edits on a live listing wait for the photo functions (Q2476). */}
       <p className="text-ds-13 text-muted-foreground" data-edit-photos="">To change photos, take it down and relist.</p>
       <div className="space-y-1">
         <label htmlFor="edit-title" className="block text-ds-14 font-semibold">Title</label>

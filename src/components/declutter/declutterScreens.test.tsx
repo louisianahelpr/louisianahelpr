@@ -68,6 +68,9 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 // The whole hook shape: Sell it for me (on Selling and Sell an item) reads explain + gatedProps too.
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge, explain: () => {}, gatedProps: () => ({}) }) }));
+// A1-B2: the Buy now label reads the setup fee still owed; an account that paid it (the fee's own cases live in
+// declutterYourOffer.test.tsx).
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeKnown: () => true }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => state.payoutBlock }));
 // The server's answer to "may this member set up payouts" (payout_setup_hire_allowed_for_me):
 // since 2026-10-27, true for a seller only once a paid order holds money for them.

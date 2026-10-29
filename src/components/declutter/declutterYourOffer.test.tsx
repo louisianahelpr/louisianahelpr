@@ -28,9 +28,14 @@ const state = {
   offers: [] as unknown[],
   responded: [] as { offerId: string; action: string }[],
   claimed: 0,
+  /** useFirstPayoutFeeCents: the one-time setup fee still owed on this account (0 once paid). */
+  setupFeeCents: 0,
+  /** useFirstPayoutFeeKnown: false while that answer is not in. */
+  setupFeeKnown: true,
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/mobileNav/useDockYield", () => ({ useDockYield: () => undefined }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
@@ -98,6 +103,8 @@ beforeEach(() => {
   state.offers = [];
   state.responded = [];
   state.claimed = 0;
+  state.setupFeeCents = 0;
+  state.setupFeeKnown = true;
   where = "";
 });
 
@@ -171,5 +178,29 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Make an offer" })).toBeEnabled());
     expect(screen.queryByText("Change my offer")).toBeNull();
+  });
+});
+
+// A1-B2 (Declutter audit, prod 2026-10-29): the button said "Buy now · $32.20 total" while Stripe charged $34.20,
+// because a first purchase also carries the one-time account setup fee. The button names what will be charged.
+describe("Buy now names the charge, setup fee included (A1-B2)", () => {
+  it("an account that still owes the setup fee sees it in the Buy now total", async () => {
+    state.setupFeeCents = 200;
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    // $40 price -> $42.70 checkout total (5% + 70c) -> $44.70 with the $2 setup fee: the Stripe charge.
+    expect((await screen.findAllByText("$44.70 total")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("$42.70 total")).toBeNull();
+    expect(screen.queryByText("+ any one-time setup fee")).toBeNull();
+  });
+
+  it("once paid it is the checkout total alone", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+  });
+
+  it("while the fee answer is not in, it says a setup fee may be added, never a figure $2 low on its own", async () => {
+    state.setupFeeKnown = false;
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    expect((await screen.findAllByText("+ any one-time setup fee")).length).toBeGreaterThan(0);
   });
 });

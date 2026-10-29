@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
 import { buyNow, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -105,14 +106,21 @@ const CARD_POLL_MS = 1_500;
 /**
  * Board 4: "Buy now" over "$40.60 total". The total is the checkout
  * total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
- * freezes), never the bare price (D6). Screen readers hear one line.
+ * freezes), never the bare price (D6), PLUS the one-time account setup fee a
+ * first purchase carries (A1-B2: the button said $32.20 while Stripe charged
+ * $34.20; checkout's payCents adds the same useFirstPayoutFeeCents). Until that
+ * answer is in, the label says a setup fee may be added rather than show a
+ * figure $2 low. Screen readers hear one line.
  */
 function BuyNowLabel({ priceCents }: { priceCents: number }) {
+  const setupFeeCents = useFirstPayoutFeeCents();
+  const setupFeeKnown = useFirstPayoutFeeKnown();
   return (
     <span className="flex flex-col items-center leading-tight">
       <span className="font-semibold">Buy now</span>{" "}
       <span className="sr-only">·</span>{" "}
-      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents))} total</span>
+      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)} total</span>
+      {!setupFeeKnown && <span data-buy-setup-fee-pending="" className="text-xs font-medium">+ any one-time setup fee</span>}
     </span>
   );
 }

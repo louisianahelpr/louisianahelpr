@@ -8,7 +8,7 @@
  * the card's primary follows (the day-before confirm window and its deadline, on the way, arrived, marked done).
  * Guard: src/test/oneJobTracker.test.ts.
  */
-import { confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
@@ -277,6 +277,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       const mine = poster ? !posterIn : !helprIn;
       if (slot) {
         return at(3, mine, "Confirmed", mine ? (poster ? `Confirm the new time, ${slot}` : `Confirm you'll be there ${slot}`) : `Waiting for ${otherLow} to confirm ${slot}`, held);
+      }
+      // A2-C40: past the start the poster's "I'm still on" is gone (JobConfirmation, posterConfirmClosesMs), and
+      // the auto-start sweep can take up to 15 minutes: say where things stand, never "tap" a button that isn't there.
+      if (poster && !posterIn && now >= posterConfirmClosesMs(job.date_needed, job.start_time)) {
+        return at(3, false, "Confirmed", helprIn ? `It's start time. ${other} confirmed they'll be there` : `It's start time. ${other} hasn't confirmed`, held);
       }
       if (poster) {
         return at(3, mine, "Confirmed", !posterIn ? "Tap I'm still on to confirm" : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);

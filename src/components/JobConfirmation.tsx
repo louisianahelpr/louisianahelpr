@@ -13,7 +13,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock } from "lucide-react";
-import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { slotLabel } from "@/components/tracker/jobProgressState";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
@@ -170,7 +170,7 @@ export function JobConfirmation({
      no place for me to confirm the job is still on"): the old -12 closed it at
      NOON on the job day, so a same-day 2 PM job had no "I'm still on" after
      12:00. No start time: the end of the job day. */
-  const posterWindowEnd = ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDate.getTime() + 24 * 3_600_000)).getTime();
+  const posterWindowEnd = posterConfirmClosesMs(dateNeeded, startTime);
   const showConfirmation =
     isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24);
 

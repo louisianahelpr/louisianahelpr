@@ -202,7 +202,8 @@ BEGIN
   v_uid := public.declutter_assert_member(true);
   SELECT * INTO v_item FROM public.declutter_lock_buyable_item(p_item_id, v_uid);
   -- Smart offers (owner 2026-10-29): offers off = Buy only.
-  IF NOT (SELECT i.accepts_offers FROM public.declutter_items i WHERE i.id = p_item_id) THEN
+  -- IS NOT TRUE, not NOT (...): a NULL accepts_offers must refuse, never skip the RAISE.
+  IF (SELECT i.accepts_offers FROM public.declutter_items i WHERE i.id = p_item_id) IS NOT TRUE THEN
     RAISE EXCEPTION 'offers_off' USING ERRCODE = '55000', HINT = 'This seller is not taking offers. You can still buy it.';
   END IF;
 

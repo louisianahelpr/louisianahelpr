@@ -19,6 +19,12 @@
  * open a private chat (contact-leak filter, rate limit, only the two of them read it), the checkout time waits
  * for it, the seller may ADD a way, and a sale that runs out after such a talk ends with no strike.
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterHandoverChoices.pglite.mjs
+ *
+ * Then T9, AL-6 (owner 2026-10-28, "Chats saved and filtered"): 20261029005124_declutter_admin_problem_talk, applied
+ * 3 times: for a reported problem an admin reads the order's whole chat and its items' questions (removed ones marked)
+ * as sides only; members, anon and an unknown problem are refused.
+ *   AL6_MIGRATION=skip node src/test/pglite/declutterHandoverChoices.pglite.mjs      # RED: T9 fails
+ *   AL6_PATH=<planted copy> node src/test/pglite/declutterHandoverChoices.pglite.mjs
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -32,6 +38,10 @@ const BUNDLE_FILE = "20261027211754_declutter_bundle_discount.sql";
 const NEW_FILE = "20261028235247_declutter_handover_choices.sql";
 const TALK_FILE = "20261028235249_declutter_handover_talk.sql";
 const skipTalk = process.env.TALK_MIGRATION === "skip" || process.env.NEW_MIGRATION === "skip";
+// AL-6 (owner 2026-10-28): the admin's read of a problem's chat and questions, applied 3x in T9.
+// AL6_MIGRATION=skip leaves it out (T9 is RED); AL6_PATH=<planted copy> applies a planted one.
+const AL6_FILE = "20261029005124_declutter_admin_problem_talk.sql";
+const al6Sql = process.env.AL6_MIGRATION === "skip" ? "" : readFileSync(process.env.AL6_PATH ?? `${MIG_DIR}${AL6_FILE}`, "utf8");
 const OWED_FILE = "20261027163240_payout_setup_only_when_owed.sql";
 // main's later Declutter money migrations (on prod): the chain 141d's own proof replays.
 const LATER_ON_PROD = [
@@ -74,7 +84,7 @@ const PROD_MD5 = {
 };
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const { SELLER, SELLER2, SELLER3, BUYER, BUYER2, BUYER3, OUTSIDER } = USERS;
+const { SELLER, SELLER2, SELLER3, BUYER, BUYER2, BUYER3, OUTSIDER, ADMIN } = USERS;
 const skip = process.env.NEW_MIGRATION === "skip";
 
 const db = new PGlite();
@@ -535,6 +545,54 @@ if (process.env.NEW_MIGRATION !== "skip") { // runs with TALK_MIGRATION=skip too
   await svc(`UPDATE public.declutter_cart_items SET checkout_by = now() - interval '2 hours' WHERE buyer_id = '${BUYER2}' AND item_id = '${I(92)}' AND status = 'in_cart'`);
   await svc(`SELECT public.declutter_deadline_sweep()`);
   ok((await strikes(BUYER2)) === b0 + 1, "no talk opened: the missed checkout is a strike, as before");
+
+  // T9. AL-6 (owner 2026-10-28, "Chats saved and filtered"): the chat and the item questions are kept and an admin
+  // reads them for a reported problem, as sides only, never a name or id (declutter_admin_problem_talk).
+  if (al6Sql !== null) { // always: AL6_MIGRATION=skip runs T9 against no migration, so it is RED
+    for (let i = 1; i <= 3; i++) {
+      const r = await run(al6Sql);
+      ok(!r?.error, `the AL-6 admin chat read applies (run ${i} of 3)${r?.error ? `: ${r.error}` : ""}`);
+    }
+    const orderId = paid.order_id;
+    await svc(`UPDATE public.declutter_orders SET status = 'paid', paid_at = now() WHERE id = '${orderId}'`);
+    const pid = one(await svc(`INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note)
+      VALUES ('${orderId}', '${BUYER3}', 'buyer', 'not_received', 'It was not on the porch') RETURNING id`));
+    ok(!!pid, `a problem is reported on the order the talk was about (${pid})`);
+    // The item's questions: the buyer's (answered) and another member's (removed later); both kept for the admin.
+    await svc(`INSERT INTO public.declutter_questions (item_id, asker_id, question, answer, answered_at, created_at)
+      VALUES ('${I(77)}', '${BUYER3}', 'Does the lamp work?', 'Yes, new bulb.', now(), now() - interval '2 days')`);
+    await svc(`INSERT INTO public.declutter_questions (item_id, asker_id, question, removed_at, created_at)
+      VALUES ('${I(77)}', '${BUYER2}', 'Is it heavy?', now(), now() - interval '1 day')`);
+    // A talk between the same two about an EARLIER sale (before this order's lines were in the cart): not this order's.
+    await svc(`INSERT INTO public.declutter_handover_talks (id, buyer_id, seller_id, opened_by, opened_at, expires_at, closed_at)
+      VALUES ('99999999-0000-0000-0000-000000000001', '${BUYER3}', '${SELLER}', '${BUYER3}', now() - interval '40 days', now() - interval '37 days', now() - interval '37 days')`);
+    await svc(`INSERT INTO public.declutter_handover_talk_messages (talk_id, sender_id, body, created_at)
+      VALUES ('99999999-0000-0000-0000-000000000001', '${BUYER3}', 'an older sale', now() - interval '40 days')`);
+    const rows = await me(ADMIN, `SELECT * FROM public.declutter_admin_problem_talk('${pid}')`);
+    ok(Array.isArray(rows), `an admin reads the problem's chat and questions (${JSON.stringify(rows).slice(0, 120)})`);
+    const chat = Array.isArray(rows) ? rows.filter((r) => r.kind === "chat") : [];
+    const qs = Array.isArray(rows) ? rows.filter((r) => r.kind === "question") : [];
+    const kept = one(await svc(`SELECT count(*)::int FROM public.declutter_handover_talk_messages WHERE talk_id = '${talkId}'`));
+    ok(chat.length === kept && kept >= 31, `every message of the order's talk is there, none dropped (${chat.length} of ${kept})`);
+    ok(Array.isArray(rows) && rows.every((r, i) => i === 0 || new Date(rows[i - 1].said_at) <= new Date(r.said_at)), "oldest first");
+    ok(chat.some((r) => r.side === "buyer" && /library/.test(r.body)), "the buyer's message as \"buyer\"");
+    ok(chat.some((r) => r.side === "seller" && /porch pickup instead/.test(r.body)), "the seller's answer as \"seller\"");
+    ok(!chat.some((r) => /older sale/.test(r.body)), "a talk about an earlier sale between the same two is left out");
+    ok(!chat.some((r) => /225-555-0142|example\.com/.test(r.body)), "the refused contact details were never stored");
+    ok(qs.length === 2 && qs[0].side === "buyer" && qs[0].answer === "Yes, new bulb." && !qs[0].removed, `the buyer's answered question (${JSON.stringify(qs[0])})`);
+    ok(qs[1]?.side === "another_member" && qs[1]?.removed === true, `another member's removed question, kept and marked (${JSON.stringify(qs[1])})`);
+    const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+    ok(Array.isArray(rows) && rows.every((r) => !uuidRe.test(JSON.stringify(r))), "no row carries a member id");
+    ok(Array.isArray(rows) && rows.every((r) => Object.keys(r).sort().join() === "answer,answered_at,body,kind,removed,said_at,side"),
+      `only the seven columns, no name or address (${Array.isArray(rows) && rows[0] ? Object.keys(rows[0]).join() : ""})`);
+    ok(refused(await me(BUYER3, `SELECT * FROM public.declutter_admin_problem_talk('${pid}')`), /not_admin/), "the buyer cannot read it here");
+    ok(refused(await me(SELLER, `SELECT * FROM public.declutter_admin_problem_talk('${pid}')`), /not_admin/), "the seller cannot read it here");
+    ok(refused(await anon(`SELECT * FROM public.declutter_admin_problem_talk('${pid}')`), /permission denied/), "anon cannot call it");
+    ok(refused(await me(ADMIN, `SELECT * FROM public.declutter_admin_problem_talk('99999999-0000-0000-0000-0000000000ff')`), /problem_not_found/),
+      "an unknown problem: problem_not_found");
+    const acl = one(await svc(`SELECT proacl::text FROM pg_proc WHERE proname = 'declutter_admin_problem_talk'`)) ?? "";
+    ok(/authenticated=X/.test(acl) && !/anon=X/.test(acl) && !/(^|[{,])=X/.test(acl), `declutter_admin_problem_talk: no PUBLIC or anon (${acl})`);
+  }
 
   // T8. Grants.
   for (const fn of ["declutter_open_handover_talk", "declutter_send_handover_message", "declutter_add_handover"]) {

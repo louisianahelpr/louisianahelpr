@@ -436,11 +436,14 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent).toMatch(/You pay with pickup\$32\.20/);
   });
 
-  // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee sees it on its own line
-  // and in "You pay", exactly as declutter-checkout puts it on the page; an account that paid it sees neither.
+  // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
+  // "You pay", exactly as declutter-checkout charges it; an account that paid it sees neither.
+  // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Board 161: the bill is the items
+  // and what you pay, never a fee line, so the setup fee is said in words under the total, like the service fee.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         {false && (
-  it("Q2352: the first purchase shows the one-time account setup fee on its own line and in the total", async () => {
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2"> |         {setupFeeCents > 0 && <div className="flex justify-between gap-3"><dt>One-time account setup fee</dt><dd>{formatPrice(setupFeeCents)}</dd></div>}<div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
+  it("Q2352 + audit 1a #6: the first purchase's setup fee is in the total and said in words, never a fee line", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
@@ -448,8 +451,13 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/One-time account setup fee\$2/);
     expect(bill.textContent).toMatch(/You pay\$10\.05/);
+    expect(document.querySelector("[data-checkout-setup-fee]")?.textContent).toBe("Includes the one-time $2 account setup fee.");
+    expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+    // Every priced line above "You pay" is something bought (items, a discount, a delivery), never a fee.
+    const rows = Array.from(bill.querySelectorAll("dt")).map((dt) => dt.textContent ?? "");
+    expect(rows).toEqual(["2 items", "You pay"]);
+    expect(rows.filter((r) => /fee/i.test(r))).toEqual([]);
     expect(screen.getByRole("button", { name: "Pay $10.05" })).toBeInTheDocument();
     expect(document.querySelector("[data-setup-fee-pending]")).toBeNull();
     state.setupFeeCents = 0;

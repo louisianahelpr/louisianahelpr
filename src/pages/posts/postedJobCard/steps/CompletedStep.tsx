@@ -7,6 +7,7 @@ import type { PosterStepCtx } from "./posterStepContract";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 
 /**
  * POSTER STEP 4 — done.
@@ -53,6 +54,12 @@ export function CompletedStep({
   // the Review button's per-member state). The server takes the member's id
   // (create-payment refuses a crew tip without one).
   const crewTips = crew ? meta?.crewTips ?? [] : [];
+  // F29 (audit 2026-10-28): a Helpr whose payout setup is not finished cannot
+  // receive a tip (create-payment refuses it). Decided here, from the same
+  // fact the hire row's Select reads, so the Tip is never offered and refused.
+  const tipOpen = !crew && !hasTipped;
+  const takesTips = useHelprTakesTips(job.helper_id, tipOpen);
+  const offerTip = tipOpen && takesTips !== false;
 
   // Approving completion leaves the job at 'payout_pending' until the transfer
   // settles, so gating Review on 'released' hid it during exactly the window
@@ -76,18 +83,20 @@ export function CompletedStep({
          buttons should be to the right of more"). Once done they are the
          quiet "Reviewed" / "Tipped" chips inside More. */
       primary={
-        (canReview && !hasReviewed) || (!crew && !hasTipped) ? (
+        (canReview && !hasReviewed) || offerTip ? (
           <>
             {canReview && !hasReviewed ? (
               <JobStepPrimaryButton icon={Star} label="Review" ariaLabel={`Review — leave a review for ${reviewName}`} onClick={() => onReview(job)} />
             ) : null}
-            {!crew && !hasTipped ? (
+            {offerTip ? (
               <JobStepPrimaryButton icon={DollarSign} label="Tip" ariaLabel={`Tip ${helperName}`} onClick={() => onTip(job.id, helperName)} />
             ) : null}
           </>
         ) : undefined
       }
-      ask={crewTips.length > 0 ? (
+      ask={tipOpen && takesTips === false ? (
+        <p className="text-ds-13 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName)}</p>
+      ) : crewTips.length > 0 ? (
         <ul className="space-y-1.5" aria-label="Tip your crew" data-crew-tips>
           {crewTips.map((m) => (
             <li key={m.id} className="flex items-center justify-between gap-2">
@@ -133,11 +142,6 @@ export function CompletedStep({
             onClick={() => setPhotosOpen(true)}
           />
         ) : null,
-        /* TIP IS NOT GATED ON THE HELPER BEING PAYABLE, and this component
-           cannot gate it: `create-payment` refuses a tip outright when the
-           helper has no `profiles.stripe_account_id`, and nothing in scope here
-           carries that fact. Gating it needs a `helperPayoutReady` map built
-           beside `helperNames`. Not guessed at here. */
         /* A crew (Q407) is tipped member by member: one Tip per member row in
            the `ask` slot above (Q709(c)), so this job-level chip, which has no
            member to name, is not drawn on a crew. */

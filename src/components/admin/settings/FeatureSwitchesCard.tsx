@@ -45,6 +45,7 @@ const AUDIENCE_CONSEQUENCE: Record<FeatureAudience, string> = {
 export function FeatureSwitchesCard() {
   const queryClient = useQueryClient();
   const canaryReachesMe = useFeature("switch_canary");
+  const [declutterShowTest, setDeclutterShowTest] = useState(false);
   // What the SERVER says about this account, per switch (feature_enabled_for):
   // the proof that flipping a switch reached you, before any screen uses it.
   const reachesMe: Partial<Record<FeatureKey, boolean>> = {
@@ -168,10 +169,11 @@ export function FeatureSwitchesCard() {
         secondaryLabel="Cancel"
       />
     </AdminCard>
-    <DeclutterReviewCard />
+    {/* One "Show test listings" switch for both Declutter admin cards (audit 1028 part 2, D2-4). */}
+    <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} />
     <ShopItemsReviewCard />
     <CategorySuggestionsCard />
-    <DeclutterProblemsCard />
+    <DeclutterProblemsCard includeTest={declutterShowTest} />
     <MeetupSpotsCard />
     <DonationPartnersCard />
     <RentalsOwnershipCard />

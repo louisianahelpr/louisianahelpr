@@ -82,9 +82,15 @@ function PendingItem({ row }: { row: PendingRow }) {
   );
 }
 
-export function DeclutterReviewCard() {
+/**
+ * "Show test listings" is held by the parent (FeatureSwitchesCard) when it passes `showTest`, so the same switch also
+ * shows test accounts' problems on the Declutter problems card (audit 1028 part 2, D2-4). Alone, the card holds it.
+ */
+export function DeclutterReviewCard({ showTest: shown, onShowTestChange }: { showTest?: boolean; onShowTestChange?: (on: boolean) => void } = {}) {
   const on = useFeature("declutter");
-  const [showTest, setShowTest] = useState(false);
+  const [ownShowTest, setOwnShowTest] = useState(false);
+  const showTest = shown ?? ownShowTest;
+  const setShowTest = onShowTestChange ?? setOwnShowTest;
   const pending = useQuery({
     // ["declutter", "admin-pending"] stays the prefix PendingItem invalidates after a decision.
     queryKey: ["declutter", "admin-pending", showTest ? "with-test" : "real-only"],

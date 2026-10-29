@@ -39,13 +39,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0, kase: null as unknown };
+const state = { asked: [] as unknown[], rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0, kase: null as unknown };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/helprTasks/photoUrl", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
 vi.mock("@/lib/declutter/handover", () => ({
-  fetchOpenProblemsWithDetail: async () => state.rows,
+  fetchOpenProblemsWithDetail: async (includeTest?: boolean) => { state.asked.push(includeTest); return state.rows; },
   handoverPhotoUrl: async (p: string) => `https://signed.test/${p}`,
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },
   adminDecideDeliveryDamage: async (...a: unknown[]) => { state.calls.push(["damage", ...a]); return {}; },
@@ -70,18 +70,33 @@ const detail = (over: Record<string, unknown> = {}) => ({
   confirmed_at: null, confirmed_by: null, helpr_delivery: false, ...over,
 });
 
-function show() {
+function show(includeTest?: boolean) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><DeclutterProblemsCard /></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><DeclutterProblemsCard includeTest={includeTest} /></QueryClientProvider>);
 }
 
 beforeEach(() => {
+  state.asked = [];
   state.rows = [];
   state.calls = [];
   state.talk = [];
   state.talkError = false;
   state.talkAsked = 0;
   state.kase = null;
+});
+
+// Audit 1028 part 2, D2-4: with "Show test listings" on, the card asks the server for test accounts' problems too.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     queryFn: () => fetchOpenProblemsWithDetail(includeTest), |     queryFn: () => fetchOpenProblemsWithDetail(),
+describe("DeclutterProblemsCard: test accounts' problems (D2-4)", () => {
+  it("off by default; on, the read asks for them and the card says so", async () => {
+    const off = show();
+    expect(await screen.findByText("No open problems.")).toBeTruthy();
+    expect(state.asked).toEqual([false]);
+    off.unmount();
+    show(true);
+    expect(await screen.findByText(/test accounts' included/)).toBeTruthy();
+    await waitFor(() => expect(state.asked).toEqual([false, true]));
+  });
 });
 
 describe("DeclutterProblemsCard: the delivery decision", () => {

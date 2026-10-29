@@ -217,7 +217,9 @@ export function MineJobFace({
       )}
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}
-      {progress && progress.stage !== null && (
+      {/* A2-L19 (2026-10-29): no bar for a cancelled (or refunded) card. Its "cancelled" tone is eight empty grey
+          segments under the word "Cancelled", and the status line above already says "Cancelled": it said it twice. */}
+      {progress && progress.stage !== null && progress.tone !== "cancelled" && (
         <div className="order-2 pt-2 md:order-none md:basis-full md:pt-0" data-mine-face-progress="" onClick={onOpen}>
           <JobProgress progress={progress} barOnly />
         </div>

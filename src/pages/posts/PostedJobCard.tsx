@@ -1,6 +1,6 @@
 import { memo, useRef } from "react";
 import { PosterIdentityLine } from "@/components/identity/IdentityPromptCard";
-import { takesApplicants } from "./postedJobCard/crewRefill";
+import { listingExpiryShown, takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { useNavigate } from "react-router-dom";
@@ -236,7 +236,7 @@ function PostedJobCardInner({
                 showFullAddress
                 latitude={job.latitude}
                 longitude={job.longitude}
-                expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
+                expiresAt={listingExpiryShown(job, initialGroupHelpers) ? job.expires_at : null}
                 // "👥 3", right after the time — the same chip and the same
                 // slot the browse feed and the applied card now use.
                 helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}

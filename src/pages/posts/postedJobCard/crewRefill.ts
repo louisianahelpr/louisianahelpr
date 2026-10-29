@@ -1,4 +1,5 @@
 import { jobOfferCutoff, OFFER_MIN_LEAD_MINUTES } from "@/lib/offerDeadline";
+import { crewIsBooked } from "./crewBooked";
 
 /**
  * Q1378 (owner, 2026-10-05): when a member leaves a booked crew, the rest
@@ -57,4 +58,18 @@ export function takesApplicants(
   closedSpots: number | undefined = undefined,
 ): boolean {
   return job.status === "open" || crewSpotRefillable(job, roster, now, closedSpots);
+}
+
+/**
+ * Does the poster's card show the listing's countdown ("2d left", and "Expired" once jobs.expires_at passes)?
+ * Only on an OPEN job nobody is hired on: expires_at only ever closes such a listing. It used to read
+ * `!helper_id && status !== "cancelled"`, and a crew job never sets helper_id, so a hired, working or completed crew
+ * showed a red "Expired" (audit 2026-10-28 A2-B9). A crew with any member hired (crewIsBooked, the server's own
+ * "booked" test) shows none either. Guard: src/test/noExpiryOnceHired.test.ts.
+ */
+export function listingExpiryShown(
+  job: { status?: string | null; helper_id?: string | null; is_group_job?: boolean | null },
+  roster: ReadonlyArray<{ helper_id: string | null }> | null | undefined,
+): boolean {
+  return job.status === "open" && !job.helper_id && !crewIsBooked(job, roster);
 }

@@ -133,7 +133,8 @@ describe("every pop-up title is sentence case", () => {
     // 180: -1 the refund's "You have the item back?" left BrandConfirmDialog for Declutter's ConfirmSheet (deep audit
     // 2026-10-28 #59), whose title is a prop this reader does not see.
     // 181: + "Agree the handover" (the Declutter handover chat, #3730, DeclutterHandoverTalk).
-    expect(all.length).toBe(181);
+    // 182: + "Edit listing" (Declutter Manage listing, audit 1028 D1-1, Q2475).
+    expect(all.length).toBe(182);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

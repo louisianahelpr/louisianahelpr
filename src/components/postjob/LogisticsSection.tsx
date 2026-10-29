@@ -22,7 +22,7 @@ import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
 import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
-import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
+import { SCHEDULE_TOO_SOON_COPY, TODAY_CLOSED_COPY } from "@/lib/jobScheduleCopy";
 import { sameDayStartTime } from "@/lib/sameDayJob";
 
 /** The smallest of the N frozen crew shares of `budget`, in dollars. */
@@ -208,7 +208,12 @@ export function LogisticsSection({
   // Q2438 "Need it today": today, at the soonest start the server takes (2 hours' notice).
   const today = strip[0]?.iso ?? todayYmd();
   const sameDayStart = sameDayStartTime();
-  const isToday = !isRecurring && dateNeeded === today;
+  // F19 (audit 2026-10-28): once no start today is left, today is closed
+  // everywhere on this screen: the button reads disabled (never pressed), and
+  // today's strip card and calendar day cannot be picked.
+  const todayClosed = !sameDayStart;
+  const isToday = !isRecurring && dateNeeded === today && !todayClosed;
+  const holdsClosedToday = todayClosed && dateNeeded === today;
   const needItToday = () => {
     if (!sameDayStart) return;
     setIsFlexibleSchedule(false);
@@ -370,8 +375,10 @@ export function LogisticsSection({
                 aria-pressed={isToday}
                 onClick={needItToday}
                 disabled={!sameDayStart}
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-ds-13 font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:text-muted-foreground ${
-                  isToday ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-ds-13 font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
+                  todayClosed
+                    ? "cursor-not-allowed border border-dashed border-border bg-transparent text-muted-foreground"
+                    : isToday ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
                 }`}
               >
                 <Zap className="h-4 w-4" aria-hidden />
@@ -379,7 +386,7 @@ export function LogisticsSection({
               </button>
             </div>
             {!sameDayStart ? (
-              <p className="text-ds-12 text-muted-foreground leading-snug">It is too late to post a job for today. Pick tomorrow or later.</p>
+              <p className="text-ds-12 text-muted-foreground leading-snug">{TODAY_CLOSED_COPY}</p>
             ) : isToday ? (
               <p className="text-ds-12 text-muted-foreground leading-snug" data-testid="need-it-today-note">
                 Today{startTime.trim() ? `, starting ${jobStartTimeLabel(startTime)}` : ""}. Helprs nearby who are available now hear about it first, and it closes when it starts.
@@ -403,9 +410,10 @@ export function LogisticsSection({
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
         <Label id="date-label">{dateLabel}<span aria-hidden className="text-[hsl(var(--destructive-ink))]">{" *"}</span></Label>
-        <div id={showCalendar ? undefined : "date"} role="radiogroup" aria-labelledby="date-label" aria-required className="grid grid-cols-5 gap-1.5">
+        <div id={showCalendar ? undefined : "date"} role="radiogroup" aria-labelledby="date-label" aria-describedby={holdsClosedToday ? "date-closed-error" : undefined} aria-required className="grid grid-cols-5 gap-1.5">
           {strip.map((d) => {
             const on = d.iso === dateNeeded;
+            const closed = todayClosed && d.iso === today;
             return (
               <button
                 key={d.iso}
@@ -413,9 +421,12 @@ export function LogisticsSection({
                 role="radio"
                 aria-checked={on}
                 aria-label={d.long}
+                disabled={closed}
                 onClick={() => setDateNeeded(d.iso)}
                 className={`flex min-h-[60px] min-w-0 flex-col items-center justify-center rounded-ds-md px-1 py-2 font-sans transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
-                  on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
+                  closed
+                    ? `cursor-not-allowed border border-dashed bg-transparent text-muted-foreground ${on ? "border-[hsl(var(--destructive-ink))]" : "border-border"}`
+                    : on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
                 }`}
               >
                 <span className={`text-ds-11 leading-tight ${on ? "" : "text-muted-foreground"}`}>{d.weekday}</span>
@@ -424,6 +435,11 @@ export function LogisticsSection({
             );
           })}
         </div>
+        {/* A draft or an open screen can still hold today after it closed: the
+            error sits on the date, the field that has to change. */}
+        <FieldError id="date-closed-error">
+          {holdsClosedToday ? TODAY_CLOSED_COPY : undefined}
+        </FieldError>
         {!showCalendar && (
           <button type="button" onClick={() => setMoreDates(true)} className="self-start inline-flex min-h-[44px] items-center font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
             More dates
@@ -441,6 +457,7 @@ export function LogisticsSection({
           value={dateNeeded}
           onChange={setDateNeeded}
           min={todayLocalISO()}
+          isDateDisabled={todayClosed ? (iso) => iso === today : undefined}
         />
         )}
       </div>
@@ -458,7 +475,7 @@ export function LogisticsSection({
           role="radiogroup"
           aria-labelledby="start-time-label"
           aria-required={!isFlexibleSchedule}
-          aria-describedby={scheduleInPast ? "start-time-error" : undefined}
+          aria-describedby={scheduleInPast && !holdsClosedToday ? "start-time-error" : undefined}
           className="flex flex-wrap gap-2"
         >
           {isFlexibleSchedule && (
@@ -479,7 +496,7 @@ export function LogisticsSection({
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">
-          {scheduleInPast ? SCHEDULE_TOO_SOON_COPY : undefined}
+          {scheduleInPast && !holdsClosedToday ? SCHEDULE_TOO_SOON_COPY : undefined}
         </FieldError>
       </div>
       </div>

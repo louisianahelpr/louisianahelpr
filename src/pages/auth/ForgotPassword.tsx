@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,9 @@ const ForgotPassword = () => {
   // the user's SITUATION, not this page's title.
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/forgot-password"]);
-  const [email, setEmail] = useState("");
+  // The address typed on /login comes along in router state (A3-C12).
+  const carried = (useLocation().state as { email?: unknown } | null)?.email;
+  const [email, setEmail] = useState(typeof carried === "string" ? carried : "");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   // Resend cooldown — counts down from 60s after each send so users can

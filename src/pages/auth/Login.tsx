@@ -458,8 +458,11 @@ const Login = () => {
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
               {/* Board 37: the recovery link sits on the Password label's row. */}
+              {/* The typed email rides along in router state (never the URL, so it stays
+                  out of history and logs): audit 2026-10-29 A3-C12. */}
               <Link
                 to="/forgot-password"
+                state={{ email: email.trim() }}
                 className="min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >

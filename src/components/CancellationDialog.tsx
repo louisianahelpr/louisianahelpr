@@ -420,7 +420,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     that was wrong. */}
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
                   {/* Owner 2026-10-25: no fee names or numbers to members, only what comes back. */}
-                  Cancel anytime before you hire. Most of your payment comes back to your card within the hour.
+                  {/* A2-C29: a held card was never charged, and card-hold-sweep lets the hold go within about 10 minutes. */}
+                  {cardHeld
+                    ? "Cancel anytime before you hire. Your card was only held, never charged, and the hold is let go within about 10 minutes."
+                    : "Cancel anytime before you hire. Most of your payment comes back to your card within the hour."}
                   {keptFeeSentence}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">

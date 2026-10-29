@@ -51,7 +51,7 @@ describe("cancelRefundToast", () => {
   // @mutate src/components/job-card/ActivityDialogs.tsx |           cardHeld={props.cancelDialogJob.payment_status === "held"} |
   it("a card only held: released, not charged, never a refund or a fee", () => {
     const t = cancelRefundToast({ wasFunded: false, cardHeld: true, appliedFee: 12, flatModel: true, keptFeeSentence: kept });
-    expect(t).toBe("Job cancelled. The hold on your card is released, and your card was not charged.");
+    expect(t).toBe("Job cancelled. Your card was not charged, and the hold on it is let go within about 10 minutes.");
     const dialogs = blankComments(readFileSync("src/components/job-card/ActivityDialogs.tsx", "utf8"));
     expect(dialogs).toMatch(/cardHeld=\{props\.cancelDialogJob\.payment_status === "held"\}/);
     expect(dialogs).toMatch(/payment_status !== "held"\s*\}/);

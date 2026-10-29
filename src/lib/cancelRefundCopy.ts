@@ -151,7 +151,7 @@ export function cancelRefundToast(args: {
 }): string {
   const { wasFunded, appliedFee, keptFeeSentence } = args;
   // A held job never carries a gift (redeem_gift_card refuses 'held'), and its card was never charged.
-  if (args.cardHeld) return "Job cancelled. The hold on your card is released, and your card was not charged.";
+  if (args.cardHeld) return "Job cancelled. Your card was not charged, and the hold on it is let go within about 10 minutes.";
   const gift = args.gift ?? "none";
   const neutral = `Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.${keptFeeSentence}`;
   // A reserved gift is never spent before its card leg completes, so it comes

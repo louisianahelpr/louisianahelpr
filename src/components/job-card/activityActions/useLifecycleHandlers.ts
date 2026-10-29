@@ -342,19 +342,11 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     if (!user) return;
     setReportingNoShow(true);
     try {
-      const job = postedJobs.find((j) => j.id === jobId);
-      if (!job?.helper_id) {
-        // A BARE RETURN HERE LOOKED LIKE SUCCESS. The `finally` below closes
-        // the confirm dialog either way, so "Confirm No-Show" dismissed the
-        // sheet and did nothing at all — no write, no toast, no clue. The
-        // usual cause is a stale list (the helper was unassigned, or this card
-        // is from a previous fetch), which a refresh fixes, so say that.
-        hapticError();
-        toast.error("We couldn't find the Helpr on this job — pull to refresh and try again.");
-        return;
-      }
-      const helperId = job.helper_id;
-
+      // THE SERVER NAMES THE HELPR, NOT THIS LIST (audit 2026-10-29 A2-B13). Confirm No-Show from the job page's
+      // Manage job (/jobs?highlight=<id>&manage=1&tab=posted) failed with "We couldn't find the Helpr on this job":
+      // the job was not in `postedJobs`, and a local lookup refused before the RPC ran. The RPC reads the job under
+      // its own row lock, refuses a job with no Helpr (no_helper_assigned, worded by rpcErrorMessage) and returns
+      // the struck Helpr's id, which is the one the notice below goes to. Guard: src/test/noShowFromJobPage.test.tsx.
       // Atomic via the report_helper_no_show RPC (migration 20260518140000,
       // latest 20260831183302): it locks the job row FOR UPDATE, re-checks the
       // caller is the poster, records the violation, runs the shared
@@ -368,7 +360,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         p_job_id: jobId,
       });
       if (rpcError) {
-        report(rpcError, { tags: { area: "activity", op: "handleNoShow.rpc" }, context: { jobId, helperId } });
+        report(rpcError, { tags: { area: "activity", op: "handleNoShow.rpc" }, context: { jobId } });
         hapticError();
         // The RPC's preconditions (funded job, start time passed, one report
         // per job) are things the poster can act on, so say which one stopped
@@ -381,7 +373,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       // RPC returns a Json blob (typed as `Json` in the generated types);
       // narrow to the shape the RPC emits before reading fields.
-      const actionTaken = ((rpcData ?? {}) as { action?: string }).action ?? "warning";
+      const { action: actionTaken = "warning", helper_id: helperId } = (rpcData ?? {}) as { action?: string; helper_id?: string };
 
       // Which rung did the RPC actually reach? Migration 20260831183302 moved
       // the top rung: a second no-show (from a DIFFERENT poster) is now a
@@ -397,7 +389,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // Notifications (best-effort) — shared by every path.
       // Server-built copy (Q223): the rung is read from the user_violations
       // row report_helper_no_show just wrote, never from this client.
-      await notifyJobParty({ user_id: helperId, job_id: job.id, template: "no_show_reported" });
+      if (helperId) await notifyJobParty({ user_id: helperId, job_id: jobId, template: "no_show_reported" });
       // No client admin fan-out (Q308): create-notification refuses a
       // non-admin sending to an admin, so the old per-admin loop here never
       // delivered. report_helper_no_show pages the ban review itself.

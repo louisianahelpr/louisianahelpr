@@ -17,12 +17,20 @@
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |  && row.detail?.helpr_delivery !== false; | ;
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     d.picked_up_photo_path && { | false && {
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     mutationFn: () => adminDecideDeliveryDamage(row.id, note.trim() \|\| null), |     mutationFn: () => adminDecideProblem(row.id, "refund_buyer", "none", false, null),
+ *
+ * AL-6 (owner 2026-10-28, "Chats saved and filtered"): the card shows the buyer and seller's whole handover chat
+ * and the questions on the items (declutter_admin_problem_talk), each line as a side, never a name.
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       <ProblemTalk problemId={row.id} /> |
+ * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |   const chat = talk.data.filter((r) => r.kind === "chat"); |   const chat = talk.data.filter((r) => r.kind === "chat").slice(-1);
+ * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx | {q.removed ? " · hidden in the app" : ""} | {""}
+ * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx | {SIDE[m.side]} · {when(m.said_at)} | {when(m.said_at)}
+ * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |         <button type="button" className="underline" onClick={() => void talk.refetch()}>Try again</button> |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { rows: [] as unknown[], calls: [] as unknown[][] };
+const state = { rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0 };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
@@ -32,6 +40,11 @@ vi.mock("@/lib/declutter/handover", () => ({
   handoverPhotoUrl: async (p: string) => `https://signed.test/${p}`,
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },
   adminDecideDeliveryDamage: async (...a: unknown[]) => { state.calls.push(["damage", ...a]); return {}; },
+}));
+
+vi.mock("@/lib/declutter/adminProblemCase", () => ({
+  fetchProblemTalk: async () => { state.talkAsked += 1; if (state.talkError) throw new Error("not_admin"); return state.talk; },
+  fetchProblemCase: async () => null,
 }));
 
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
@@ -56,6 +69,9 @@ function show() {
 beforeEach(() => {
   state.rows = [];
   state.calls = [];
+  state.talk = [];
+  state.talkError = false;
+  state.talkAsked = 0;
 });
 
 describe("DeclutterProblemsCard: the delivery decision", () => {
@@ -150,5 +166,46 @@ describe("DeclutterProblemsCard: a false report (AL-5)", () => {
     show();
     await screen.findByText(/reported by the Helpr/);
     expect(screen.queryByText("Was the report true?")).toBeNull();
+  });
+});
+
+describe("DeclutterProblemsCard: the chat and the questions (AL-6)", () => {
+  const talkRows = [
+    { kind: "question", side: "buyer", body: "Does the lamp work?", said_at: "2026-10-14T09:00:00Z", answer: "Yes, new bulb.", answered_at: "2026-10-14T10:00:00Z", removed: false },
+    { kind: "question", side: "another_member", body: "Is it heavy?", said_at: "2026-10-14T11:00:00Z", answer: null, answered_at: null, removed: true },
+    { kind: "chat", side: "buyer", body: "No spot near me. Porch?", said_at: "2026-10-15T09:00:00Z", answer: null, answered_at: null, removed: false },
+    { kind: "chat", side: "seller", body: "Sure, Saturday morning.", said_at: "2026-10-15T09:30:00Z", answer: null, answered_at: null, removed: false },
+  ];
+
+  it("shows the whole chat as Buyer and Seller, and every question with its answer, a hidden one marked", async () => {
+    state.talk = talkRows;
+    state.rows = [row("not_received", "buyer", [], detail())];
+    show();
+    const chat = await screen.findByRole("list", { name: "Handover chat" });
+    expect(chat.textContent).toMatch(/^Buyer · .*No spot near me\. Porch\?Seller · .*Sure, Saturday morning\.$/);
+    const qs = screen.getByRole("list", { name: "Questions on the items" });
+    expect(qs.textContent).toContain("Question from buyer");
+    expect(qs.textContent).toContain("Seller's answer");
+    expect(qs.textContent).toContain("Yes, new bulb.");
+    expect(qs.textContent).toMatch(/Question from another member · .* · hidden in the app/);
+    // Sides only: the names on the card come from the order line above, never from the chat.
+    expect(chat.textContent).not.toMatch(/Hallie|Sam/);
+  });
+
+  it("says so when there is no chat and no question", async () => {
+    state.rows = [row("not_received", "buyer", [], detail())];
+    show();
+    expect(await screen.findByText("No chat and no questions on these items.")).toBeInTheDocument();
+  });
+
+  it("a failed read says so with Try again, which asks again", async () => {
+    state.talkError = true;
+    state.rows = [row("not_received", "buyer", [], detail())];
+    show();
+    const again = await screen.findByRole("button", { name: "Try again" });
+    const before = state.talkAsked;
+    state.talkError = false;
+    fireEvent.click(again);
+    await waitFor(() => expect(state.talkAsked).toBeGreaterThan(before));
   });
 });

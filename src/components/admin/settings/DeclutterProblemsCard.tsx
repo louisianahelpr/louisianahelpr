@@ -11,6 +11,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { taskPhotoUrl } from "@/lib/helprTasks/photoUrl";
 import { AdminCard } from "../AdminViewShell";
+import { ProblemTalk } from "./DeclutterProblemTalk";
 
 /**
  * Declutter problems waiting for an admin (spec rows 15, 67, 96; B54):
@@ -177,6 +178,8 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
+      {/* AL-6: the buyer and seller's chat and the item questions, kept whole, as sides only. */}
+      <ProblemTalk problemId={row.id} />
       {reporter ? (
         <fieldset className="space-y-1">
           <legend className="text-xs font-medium">Was the report true?</legend>

@@ -22,6 +22,9 @@
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}\n |         \n
  * @mutate src/lib/quotes/api.ts | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 48; | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 24;
+ * @mutate src/pages/post-job/FormStep.tsx | helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : | helper={askingQuotes ? "Choose how long Helprs near you can send quotes. You pay only when you book one." :
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx | counter, or set your own price instead.\n | counter, or set your own price instead. Nothing is charged until you book.\n
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx | Each quote comes with a note | Members near you send a note
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -105,7 +108,21 @@ describe("Post a job: Set a price or Get quotes", () => {
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByText(/You set the budget, then review and pay/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
-    expect(screen.getByText(/Members near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
+    expect(screen.getByText(/Helprs near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
+  });
+
+  // A2-C31 (audit 2026-10-28, p2b-q-quotes-p1-375.png): the Get quotes screen said "pay when you book" three times
+  // (header helper, the line under the pills, the Quotes card) and called Helprs "Members". Said once, in the line
+  // under the pills; Helprs everywhere.
+  it("Get quotes says when you pay once, and calls them Helprs (A2-C31)", () => {
+    const { container } = show(form());
+    fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
+    // Vacuity floor: the quotes screen (its window control) is really mounted.
+    expect(screen.getByRole("radio", { name: "48 hours" })).toBeInTheDocument();
+    const text = container.textContent ?? "";
+    expect(text.match(/(when|until) you book/gi) ?? []).toHaveLength(1);
+    expect(text).not.toMatch(/members near you/i);
+    expect(text).toMatch(/Helprs near you/);
   });
 
   it("switch off (not a tester): the choice shows with Get quotes greyed and Coming soon; a tap only says so", async () => {

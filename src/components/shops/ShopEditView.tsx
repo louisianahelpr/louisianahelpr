@@ -241,7 +241,7 @@ export default function ShopEditView() {
       <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
         {!myId.data && (
           <p className="text-sm text-muted-foreground">
-            A shop is free, and it is also your business profile. You need to be 18 or older. You set up payouts when you make your first sale.
+            A shop is free, and it is also your business profile. You need to be 18 or older. Payouts come later, when you make your first sale.
           </p>
         )}
         <div className="space-y-1.5">

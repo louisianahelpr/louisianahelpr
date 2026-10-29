@@ -6,7 +6,7 @@
  * no payout gate (src/test/payoutSetupOnlyWhenOwed.test.ts pins that). So the
  * COPY changes: 18 or older only, payouts at the first sale.
  *
- * @mutate src/components/shops/ShopEditView.tsx | You need to be 18 or older. You set up payouts when you make your first sale. | You need to be 18 or older and have payouts set up.
+ * @mutate src/components/shops/ShopEditView.tsx | You need to be 18 or older. Payouts come later, when you make your first sale. | You need to be 18 or older and have payouts set up.
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -52,7 +52,7 @@ describe("/shops/mine intro: who may open a shop", () => {
     const intro = screen.getByText(/A shop is free/);
     const text = intro.textContent ?? "";
     expect(text).toMatch(/18 or older/);
-    expect(text).toMatch(/payouts when you make your first sale/);
+    expect(text).toMatch(/Payouts come later, when you make your first sale/);
     // Never a precondition on payouts before opening.
     expect(text).not.toMatch(/have payouts set up|payouts? (?:must|need)|set up payouts (?:first|before)/i);
   });

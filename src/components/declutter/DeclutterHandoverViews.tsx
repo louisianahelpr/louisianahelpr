@@ -62,7 +62,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
-import { PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
+import { onDay, PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
@@ -436,6 +436,13 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
   const free = order.lines.every((l) => l.price_cents === 0); // #6: no pay words on a free claim
   // Board 159: the seller checks the porch photo in "Put it out" before sending it.
   const [preview, setPreview] = useState<File | null>(null);
+  // Audit 1028 D1-5: once the seller's porch photo is in, the card stops asking for it (a retake stays possible).
+  // D1-4: before the booked day the server refuses the photo (porch_day_not_yet), so the card says the day instead.
+  // The same handover row and key PorchOutPhoto reads.
+  const seller = order.side === "seller";
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: seller });
+  const posted = seller && !!handoverRow.data?.set_out_at;
+  const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),
     onSuccess: () => { toast.success("Saved."); invalidate(qc, order.orderId); },
@@ -488,19 +495,24 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
           </div>
         </>
       )}
+      {notYet ? (
+        <p className="text-sm" data-porch-not-yet="">Put it out {onDay(booking.pickup_day as string)}.</p>
+      ) : (<>
       <label htmlFor={fileId} className="sr-only">
         {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${free ? ")" : ": needed before you can be paid automatically)"}` : `Photo when you pick it up, taken at the address ("Picked up"${free ? ")" : ": this pays the seller 24 hours later)"}`}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } e.target.value = ""; }} />
-      <button type="button" className={order.side === "seller" ? primary : btn} disabled={photo.isPending}
+      <button type="button" className={order.side === "seller" && !posted ? primary : btn} disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
-        {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
+        {photo.isPending ? "Saving…" : order.side === "seller" ? (posted ? "Retake the porch photo" : "Take the porch photo") : "Take your pickup photo"}
       </button>
-      <p className="text-ds-12 text-muted-foreground">
-        {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
-      </p>
+      {!posted && (
+        <p className="text-ds-12 text-muted-foreground">
+          {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
+        </p>
+      )}
       {order.side === "seller" && (
         <PutItOutSheet
           file={preview}
@@ -511,6 +523,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
           onClose={() => setPreview(null)}
         />
       )}
+      </>)}
     </div>
   );
 }

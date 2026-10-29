@@ -424,6 +424,42 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText(/You get/).textContent).toBe("You get $40 once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.");
   });
 
+  // Audit 1028 D1-5 (1a-s-porch-after-375): after the porch photo the seller's card still asked for it ("Take the porch
+  // photo", "needed before you can be paid automatically", "Pick another day (once)"). D1-4: before the booked day
+  // the server refuses the photo, so the card says the day instead of offering the button.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const posted = seller && !!handoverRow.data?.set_out_at; |   const posted = false;
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   const putOut = side === "seller" && !!out.data?.set_out_at; |   const putOut = false;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day); |   const notYet = false;
+  it("the seller's porch card: the day before it's due, then the photo, then no more asking (D1-5)", async () => {
+    const today = new Date();
+    const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const tomorrow = key(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    state.porchDays = [tomorrow];
+    const seller = () => show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    // 1. Booked for tomorrow: a line with the day, no photo button yet.
+    state.bookings = [{ ...slot(-60 * 24), pickup_day: tomorrow }];
+    state.handover = { side: "seller" };
+    let v = seller();
+    expect(await screen.findByText("Put it out tomorrow.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
+    v.unmount();
+    // 2. On the day, not out yet: the photo is asked for.
+    state.bookings = [{ ...slot(-60), pickup_day: key(today) }];
+    v = seller();
+    expect(await screen.findByRole("button", { name: "Take the porch photo" })).toBeInTheDocument();
+    expect(screen.getByText(/You need it before you can be paid automatically/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Pick another day (once)" })).toBeInTheDocument();
+    v.unmount();
+    // 3. The photo is in: no more asking; a retake stays possible.
+    state.handover = { side: "seller", set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
+    v = seller();
+    expect(await screen.findByRole("button", { name: "Retake the porch photo" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
+    expect(screen.queryByText(/You need it before you can be paid automatically/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pick another day (once)" })).toBeNull();
+    v.unmount();
+  });
+
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.

@@ -66,6 +66,7 @@ export function SeriesDatesForJob({
       userId={userId ?? null}
       isPoster={isPoster}
       firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
+      firstVisitHasHelpr={!!job.helper_id}
       splitOk={!!job.series_split_ok}
     />
   );

@@ -13,6 +13,9 @@
  * @mutate src/components/series/SeriesDatesPanel.tsx | const r = await claimSeriesDates(jobId, pickedOpen); | const r = await claimSeriesDates(jobId, picked);
  * @mutate src/lib/seriesDates.ts | alreadyYours: r.already_yours ?? [], | alreadyYours: [],
  * @mutate src/lib/seriesDates.ts |       if (isNotDeployedYet(r.error)) return null; |       if (false) return null;
+ * @mutate src/components/series/SeriesDatesPanel.tsx |   const allDates = view.dates.length + (firstAhead ? 1 : 0); |   const allDates = view.dates.length;
+ * @mutate src/components/series/SeriesDatesPanel.tsx |   const allHeld = held + (firstAhead && firstVisitHasHelpr ? 1 : 0); |   const allHeld = held;
+ * @mutate src/components/series/JobSeriesCardControls.tsx |       firstVisitHasHelpr={!!job.helper_id} |       firstVisitHasHelpr={false}
  */
 // @mutate src/components/series/SeriesDatesPanel.tsx |               <h4 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Visits</h4> |
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -204,6 +207,28 @@ describe("SeriesDatesPanel", () => {
     // ...and can message them first (owner, 2026-10-11): the job's thread with that applicant.
     fireEvent.click(screen.getByRole("button", { name: /^Message / }));
     expect(screen.getByTestId("location").textContent).toBe("/messages?jobId=p1&userId=applicant-1");
+  });
+
+  // Audit 2026-10-28 A2-C37: Review said 4 visits, the posted card "0 of 3 upcoming dates": the dates read lists only
+  // the LATER visits. The poster's count now includes the first visit (the series' own job) while it is ahead.
+  it("the poster's count includes the first visit while it is still ahead (4 visits, not 3)", async () => {
+    tables.value = {
+      series_visit_holds: { data: [], error: null },
+      recurring_visit_releases: { data: [], error: null },
+      series_date_offers: { data: [], error: null },
+      jobs: { data: [], error: null },
+    };
+    const first = renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2026-09-09" });
+    expect(await screen.findByRole("button", { name: /0 of 4 upcoming dates have a Helpr · 4 open/ })).toBeInTheDocument();
+    first.unmount();
+    renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2026-09-09", firstVisitHasHelpr: true });
+    expect(await screen.findByRole("button", { name: /1 of 4 upcoming dates have a Helpr · 3 open/ })).toBeInTheDocument();
+    // The card hands the panel whether the first visit has its Helpr (the series' own job row's helper_id).
+    const { readFileSync } = await import("node:fs");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const { resolve } = await import("node:path");
+    const controls = blankComments(readFileSync(resolve(__dirname, "JobSeriesCardControls.tsx"), "utf8"));
+    expect(controls).toContain("firstVisitHasHelpr={!!job.helper_id}");
   });
 
   it("picking sends only the open dates ticked, never one of the viewer's own", async () => {

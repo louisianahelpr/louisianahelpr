@@ -19,6 +19,7 @@ import {
   type SeriesDate,
 } from "@/lib/seriesDates";
 import { unwrap } from "@/lib/supabaseResult";
+import { todayYmd } from "@/lib/jobDate";
 
 /**
  * Visit dates of a recurring series, per date (docs/OPEN.md Q407 (5), (6) and
@@ -42,6 +43,7 @@ export function SeriesDatesPanel({
   userId,
   isPoster,
   firstHelpr,
+  firstVisitHasHelpr = false,
   splitOk,
   inset = true,
 }: {
@@ -54,6 +56,8 @@ export function SeriesDatesPanel({
   isPoster: boolean;
   /** recurring_helper_id when it is still the Helpr hired on the parent. */
   firstHelpr: string | null;
+  /** The first visit (the series' own job row) has a Helpr hired on it: jobs.helper_id is set. */
+  firstVisitHasHelpr?: boolean;
   splitOk: boolean;
   /** Card-edge margins (the poster's card); false inside an already padded footer. */
   inset?: boolean;
@@ -132,8 +136,15 @@ export function SeriesDatesPanel({
   const pickedMine = picked.filter((d) => mine.some((m) => m.date === d));
   const pickedOpen = picked.filter((d) => takeable.some((t) => t.date === d));
 
+  // The poster's count includes the FIRST visit (the series' own job row) while it is still ahead: the dates read
+  // lists only the later visits, so a 4-visit series posted on Review read "0 of 3 upcoming dates" (audit 2026-10-28
+  // A2-C37). Guard: src/components/series/SeriesDatesPanel.test.tsx.
+  const firstAhead = isPoster && dateNeeded >= todayYmd();
+  const allDates = view.dates.length + (firstAhead ? 1 : 0);
+  const allHeld = held + (firstAhead && firstVisitHasHelpr ? 1 : 0);
+  const allOpen = openDates.length + (firstAhead && !firstVisitHasHelpr ? 1 : 0);
   const summary = isPoster
-    ? `${held} of ${view.dates.length} upcoming date${view.dates.length === 1 ? "" : "s"} have a Helpr${openDates.length ? ` · ${openDates.length} open` : ""}`
+    ? `${allHeld} of ${allDates} upcoming date${allDates === 1 ? "" : "s"} have a Helpr${allOpen ? ` · ${allOpen} open` : ""}`
     : pickUpCount > 0
       ? "A date opened up — pick it up"
       : `${mine.length} upcoming date${mine.length === 1 ? "" : "s"} are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;

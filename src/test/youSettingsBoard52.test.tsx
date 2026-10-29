@@ -9,6 +9,7 @@
  * @mutate src/components/profile/SettingsTab.tsx |       <Group title="Look"> |       <Group title="Display">
  * @mutate src/pages/profile/types.ts |   security: "Account and security", |   security: "Account Security",
  * @mutate src/pages/profile/Profile.tsx | { returnTo.current = "settings"; setTab | { returnTo.current = null; setTab
+ * @mutate src/components/profile/SettingsTab.tsx | onClick={() => onSelectTab("blocked")} | onClick={() => onSelectTab("security")}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -72,8 +73,10 @@ describe("You › Settings, board 52", () => {
     const { onSelectTab, onRequestLogout } = renderSettings();
     fireEvent.click(screen.getByText("Notifications"));
     fireEvent.click(screen.getByText("Account and security"));
+    // A3-C16: Your account › Blocked people opens the list of people you blocked.
+    fireEvent.click(screen.getByText("Blocked people"));
     fireEvent.click(screen.getByText("Log out"));
-    expect(onSelectTab.mock.calls.map((c) => c[0])).toEqual(["notifications", "security"]);
+    expect(onSelectTab.mock.calls.map((c) => c[0])).toEqual(["notifications", "security", "blocked"]);
     expect(onRequestLogout).toHaveBeenCalledTimes(1);
   });
 

@@ -114,6 +114,13 @@ suspended or deleted still appears and is still offerable; whether the offer
 respects blocks in either direction; and whether the list leaks anything about
 a helper the viewer could not otherwise see.
 
+### Blocked people (`?tab=blocked`, A3-C16, 2026-10-29)
+
+You › Settings › Blocked people lists the member's own blocks with Unblock.
+Verify: it lists only rows where the member is the BLOCKER (never who blocked
+them); a blocked person who was deleted or banned still shows and can still be
+unblocked; Unblock is a checked write (zero rows is a failure, not success).
+
 Also yours, and previously owned only incidentally: **`/user/:userId`**, the
 public profile. `lh-seo-web` covers its meta tags. Nobody covered what it
 discloses.

@@ -86,6 +86,8 @@ const DECLUTTER_FILES = [
   "20261028235709_declutter_handover_photos_at_the_address.sql",
   // Anti-lying #2: live camera only: photo_too_old.
   "20261029002010_declutter_handover_photos_live_only.sql",
+  // Audit 1a #4: the seller's porch photo waits for the booked day (porch_day_not_yet).
+  "20261029201542_declutter_porch_photo_not_before_the_day.sql",
   // Owner 2026-10-28: the ways the seller ticks (invalid_handovers, handover_not_offered).
   "20261028235247_declutter_handover_choices.sql",
   // Q2462: the handover chat (no_agreed_sale, talk_blocked, handover_way_open, talk_recently_closed, talk_not_found,
@@ -121,7 +123,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(38); // 38: + porch days (20261029161347, owner 2026-10-29); 37: + smart offers (20261029162620, owner 2026-10-29); 36: + the ways the seller ticks (20261028235247) and the handover chat (20261028235249, Q2462); 34: + a strike for a proven false report (20261029000048, AL-5); 33: + handover photos are live (20261029002010, anti-lying #2); 32: + every handover photo taken at the address (20261028235709, anti-lying #1); 31: + a buyer removes a cart line (20261028221904, A2-8); 30: + porch pickup day (20261028225038, owner 2026-10-28); 29: + which items a bundle discount can apply to (20261028214524, #36); 28: + a seller delivery's "I got it" waits for its day (20261028202844, #7); 27: + the seller's price-drop step (20261028160637, owner 2026-10-28); 26: + tips on deliveries (20261028014848, Q2453); 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(39); // 39: + the porch photo waits for the booked day (20261029201542, audit 1a #4); 38: + porch days (20261029161347, owner 2026-10-29); 37: + smart offers (20261029162620, owner 2026-10-29); 36: + the ways the seller ticks (20261028235247) and the handover chat (20261028235249, Q2462); 34: + a strike for a proven false report (20261029000048, AL-5); 33: + handover photos are live (20261029002010, anti-lying #2); 32: + every handover photo taken at the address (20261028235709, anti-lying #1); 31: + a buyer removes a cart line (20261028221904, A2-8); 30: + porch pickup day (20261028225038, owner 2026-10-28); 29: + which items a bundle discount can apply to (20261028214524, #36); 28: + a seller delivery's "I got it" waits for its day (20261028202844, #7); 27: + the seller's price-drop step (20261028160637, owner 2026-10-28); 26: + tips on deliveries (20261028014848, Q2453); 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
     expect(codes.size).toBeGreaterThan(25);
   });
 

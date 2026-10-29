@@ -14,7 +14,7 @@
  */
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   SELECT COALESCE((SELECT so.created_at > now() - interval '10 minutes' |   SELECT COALESCE((SELECT so.created_at > now() - interval '1 day'
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF NOT public.handover_photo_is_fresh('helpr-tasks', p_path) THEN |   IF false THEN
-// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   -- Live camera only (20261029002010): uploaded in the last 10 minutes, by the storage server's own clock.\n  IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN |   IF false THEN
+// @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |   -- Live camera only (20261029002010): uploaded in the last 10 minutes, by the storage server's own clock.\n  IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN |   IF false THEN
 // @mutate src/lib/declutter/handover.ts |   assertLivePhoto(file);\n  const cleaned |   const cleaned
 // @mutate src/lib/helprTasks/api.ts |   assertLivePhoto(file);\n  return uploadCleaned(`${userId}/task/ |   return uploadCleaned(`${userId}/task/
 // @mutate src/components/ui/PhotoPickButton.tsx |         capture="environment"\n |
@@ -58,7 +58,10 @@ describe("every Declutter handover photo is live (camera at that moment, server'
     const fresh = flat(DEFS.get("handover_photo_is_fresh")?.stmt ?? "");
     expect(fresh).toContain("so.created_at > now() - interval '10 minutes'");
     expect(fresh).toContain("FROM storage.objects so WHERE so.bucket_id = p_bucket AND so.name = p_path");
-    const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql"), "utf8"));
+    // The grant sits beside the check's NEWEST definition (whichever migration that is).
+    const freshFile = DEFS.get("handover_photo_is_fresh")?.file ?? "";
+    expect(freshFile).not.toBe("");
+    const mig = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations", freshFile), "utf8"));
     expect(mig).toContain("REVOKE ALL ON FUNCTION public.handover_photo_is_fresh(text, text) FROM PUBLIC, anon, authenticated;");
   });
 

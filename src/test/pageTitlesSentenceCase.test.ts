@@ -14,6 +14,12 @@
  * @mutate src/pages/post-job/paymentReturnCopy.ts | "Confirming payment — Helpr" | "Confirming Payment — Helpr"
  * @mutate src/pages/admin/Admin.tsx | payouts: "Payout batches", | payouts: "Payout Batches",
  * @mutate src/pages/profile/types.ts | legal: "Legal & policies", | legal: "Legal & Policies",
+ *
+ * One suffix (audit 2026-10-28 P5-8): /terms/full and /privacy/full said
+ * "— Louisiana Helpr" while every other tab title says "— Helpr" (AppPage's
+ * usePageTitle and the rest of publicPageMeta). Every page `title` there ends
+ * " — Helpr"; only the landing page leads with "Helpr — ".
+ * @mutate src/lib/publicPageMeta.mjs | title: "Privacy Policy, full text — Helpr", | title: "Privacy Policy, full text — Louisiana Helpr",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -44,9 +50,11 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 const metaTitles: string[] = [];
+const pageTitles: string[] = [];
 const collect = (v: unknown) => {
   if (!v || typeof v !== "object") return;
   for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+    if (k === "title" && typeof x === "string") pageTitles.push(x);
     if ((k === "title" || k === "ogTitle") && typeof x === "string") metaTitles.push(x);
     else collect(x);
   }
@@ -79,5 +87,10 @@ describe("page titles are sentence case", () => {
   it("Profile tab titles and Admin view labels", () => {
     expect(Object.values(TAB_TITLES).filter((t) => problems(t).length)).toEqual([]);
     expect(viewLabels.filter((t) => problems(t).length)).toEqual([]);
+  });
+  it("every page title ends ' — Helpr', never ' — Louisiana Helpr' (P5-8)", () => {
+    expect(pageTitles.length).toBeGreaterThan(15);
+    const odd = pageTitles.filter((t) => t !== meta.LANDING_PAGE_META.title && !/ — Helpr$/.test(t));
+    expect(odd).toEqual([]);
   });
 });

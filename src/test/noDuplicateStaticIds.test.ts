@@ -9,7 +9,7 @@
  * Two ids in branches that never render together (an early return, a ternary)
  * are listed in KNOWN with a reason; the list is EXACT both ways.
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
+ * @mutate src/components/declutter/SellFormParts.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

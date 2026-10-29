@@ -4,14 +4,14 @@
  * account hooks are stubbed: these tests check what each STATE renders, not
  * the backend (the backend proof is src/test/pglite/declutterSlice2.pglite.mjs).
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
+ * @mutate src/components/declutter/SellOneScreen.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Waiting for a review. We'll send you a notice.", |   pending_review: "pending_review",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
- * @mutate src/components/declutter/DeclutterSellView.tsx | <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} /> | <input type="checkbox" id="sell-tax" className="mt-0.5" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
+ * @mutate src/components/declutter/SellFormParts.tsx | <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} /> | <input type="checkbox" id="sell-tax" className="mt-0.5" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
  * Owner 2026-10-28 "make these checks 1": one box, all four facts; one tick lists (attestItem's four trues: api.test.ts).
- * @mutate src/components/declutter/DeclutterSellView.tsx |     if (!attested) { |     if (false) {
+ * @mutate src/components/declutter/useSellFlowState.ts |     if (!attested) { |     if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;

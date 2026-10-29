@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T21:26:18.491Z",
-  "guards": 2677,
-  "registered": 2676,
+  "generated": "2026-10-29T22:28:04.098Z",
+  "guards": 2678,
+  "registered": 2677,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
@@ -130,16 +130,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/SellHandoverChoices.tsx",
-      "tests": [
-        "src/components/declutter/sellPorchDays.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterBunchView.tsx",
-        "src/components/declutter/SellFormParts.tsx"
       ]
     },
     {

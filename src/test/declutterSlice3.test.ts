@@ -14,7 +14,8 @@
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
- * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
+ * @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
+ * @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql |   IF COALESCE(v_rules.auto_offers, false) AND v_rules.floor_price_cents < v_item.o_price_cents THEN |   IF v_rules.floor_price_cents < v_item.o_price_cents THEN
  * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |        SET current_price_cents = greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), |        SET current_price_cents = greatest(
  * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
@@ -95,8 +96,20 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
 
   it("row 58 + B26: offers >= half the CURRENT price; nothing a buyer is told depends on the hidden floor", () => {
     expect(flat(body("declutter_make_offer"))).toContain("IF p_amount_cents * 2 < v_item.o_price_cents THEN RAISE EXCEPTION 'offer_too_low'");
-    for (const fn of ["declutter_make_offer", "declutter_respond_offer", "declutter_buy_now", "declutter_lock_buyable_item", "declutter_take_item"]) {
+    for (const fn of ["declutter_buy_now", "declutter_lock_buyable_item", "declutter_take_item"]) {
       expect(body(fn), fn).not.toMatch(/floor_price_cents/);
+    }
+    // Smart offers (20261029162620, owner 2026-10-29): the floor answers an offer ONLY when the seller turned on
+    // "answer offers automatically" (auto_offers). Every floor read sits after that gate, read into v_rules.
+    for (const fn of ["declutter_make_offer", "declutter_respond_offer"]) {
+      const b = flat(body(fn));
+      const gate = b.indexOf("IF COALESCE(v_rules.auto_offers, false) AND v_rules.floor_price_cents <");
+      expect(gate, fn).toBeGreaterThan(0);
+      const uses = [...b.matchAll(/floor_price_cents/g)].map((m) => m.index ?? 0);
+      expect(uses.length, fn).toBeGreaterThan(1);
+      const select = b.indexOf("SELECT p.auto_offers, p.floor_price_cents INTO v_rules");
+      expect(uses.filter((i) => i !== select + "SELECT p.auto_offers, p.".length && i < gate), fn).toEqual([]);
+      expect(b.slice(gate).replace(/v_rules\.floor_price_cents/g, ""), fn).not.toMatch(/floor_price_cents/);
     }
     expect(flat(body("declutter_my_offers"))).toContain("CASE WHEN o.seller_id = v_uid THEN p.floor_price_cents END");
   });

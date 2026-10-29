@@ -1004,6 +1004,8 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     offer_already_open: DC.offer_already_open,
+    // An offer at or above the seller's lowest price is accepted at once (declutter_take_item), which can find it closed.
+    offer_not_open: DC.offer_not_open,
     offer_rate_limited: DC.offer_rate_limited,
     offer_too_low: DC.offer_too_low,
     offers_off: DC.offers_off,

@@ -24,7 +24,18 @@ import {
   type RefundReason,
   type RefundRequestView,
 } from "@/lib/declutter/refundRequests";
+import { acceptRefundWithReturn } from "@/lib/declutter/refundReturns";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import {
+  DeclutterReturnBuyer,
+  DeclutterReturnPhotoPick,
+  DeclutterReturnSellerInfo,
+  DeclutterReturnWayPicker,
+  emptyReturnPick,
+  returnPickArgs,
+  sellerReturnPhotoPath,
+} from "./DeclutterRefundReturn";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -172,10 +183,11 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2" data-refund-returning="">
           <p className="text-sm">
-            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> Give the item back;
-            arrange it in Messages. Your refund is sent as soon as {who} confirms they have it.
+            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
+            {r.return_way ? "" : " Give the item back; arrange it in Messages."} Your refund is sent as soon as {who} confirms they have it.
           </p>
-          {r.return_by && <p className="text-ds-12 text-muted-foreground">If {who} hasn't confirmed by {at(r.return_by)}, Louisiana Helpr decides.</p>}
+          <DeclutterReturnBuyer v={v} who={cap(who)} />
+          {(r.return_deadline ?? r.return_by) && <p className="text-ds-12 text-muted-foreground">If {who} hasn't confirmed by {at(r.return_deadline ?? r.return_by ?? "")}, Louisiana Helpr decides.</p>}
         </div>
       );
     case "agreed":
@@ -204,8 +216,15 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   // Owner 2026-10-21: the amount starts EMPTY.
   const [amount, setAmount] = useState("");
   const offerCents = offerCentsFromInput(amount);
+  // Declutter returns: the way back is picked with "Refund in full" and sent in the same call.
+  const [pick, setPick] = useState(emptyReturnPick);
+  const pickArgs = returnPickArgs(pick);
   const send = useMutation({
-    mutationFn: () => answerRefund(v.request?.id ?? "", choice, choice === "part" ? offerCents : null),
+    mutationFn: () => {
+      const r = v.request;
+      if (r && choice === "full" && pickArgs) return acceptRefundWithReturn(r.id, pick.way, pickArgs.day, pickArgs.atIso);
+      return answerRefund(r?.id ?? "", choice, choice === "part" ? offerCents : null);
+    },
     onSuccess: (r) => {
       toast.success(r.result === "returning" ? "Agreed. Tap I got it back once you have the item." : r.result === "offered" ? "Offer sent." : "Answer sent.");
       refresh();
@@ -213,8 +232,10 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const [confirmBack, setConfirmBack] = useState(false);
+  const [backPhoto, setBackPhoto] = useState<File | null>(null);
+  const { user } = useAuthReady();
   const back = useMutation({
-    mutationFn: () => confirmItemReturned(v.request?.id ?? ""),
+    mutationFn: async () => confirmItemReturned(v.request?.id ?? "", await sellerReturnPhotoPath(user?.id, v.order_id, backPhoto)),
     onSuccess: () => { toast.success("Refund sent. The buyer is told."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -225,6 +246,8 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     return (
       <div className="space-y-2" data-refund-returning="">
         <p className="text-sm">You agreed to a full refund. Once {who} gives the item back, tap I got it back and the refund is sent.</p>
+        <DeclutterReturnSellerInfo v={v} who={cap(who)} />
+        {r.return_way && <DeclutterReturnPhotoPick orderId={v.order_id} file={backPhoto} onFile={setBackPhoto} />}
         <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button>
         {/* Money review 2026-10-27: sending the refund can't be undone, so the tap asks once. Deep audit 2026-10-28 #59:
             in Declutter's one confirm style (ConfirmSheet), like every other "I got it". */}
@@ -240,7 +263,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
         >
           {`This sends ${refundDollars(v.full_refund_cents)} back to ${who} now, and you get no payout for this sale. It can't be undone.`}
         </ConfirmSheet>
-        {r.return_by && <p className="text-ds-12 text-muted-foreground">Tap it by {at(r.return_by)}, or Louisiana Helpr decides. Your payout waits until then.</p>}
+        {(r.return_deadline ?? r.return_by) && <p className="text-ds-12 text-muted-foreground">Tap it by {at(r.return_deadline ?? r.return_by ?? "")}, or Louisiana Helpr decides. Your payout waits until then.</p>}
       </div>
     );
   }
@@ -264,6 +287,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
           </span>
         </span>
       </label>
+      {choice === "full" && <DeclutterReturnWayPicker id={id} who={cap(who)} value={pick} onChange={setPick} />}
       <label className="flex min-h-11 items-start gap-2 text-sm">
         <input type="radio" name={id} checked={choice === "part"} onChange={() => setChoice("part")} className="mt-1" />
         <span>
@@ -284,7 +308,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
           <span className="block text-ds-12 text-muted-foreground">{cap(who)} can ask Louisiana Helpr to decide.</span>
         </span>
       </label>
-      <button type="button" className={primary} disabled={send.isPending || (choice === "part" && offerCents === null)} onClick={() => send.mutate()}>
+      <button type="button" className={primary} disabled={send.isPending || (choice === "part" && offerCents === null) || (choice === "full" && !pickArgs)} onClick={() => send.mutate()}>
         Send answer
       </button>
       <p className="text-ds-12 text-muted-foreground">Answer by {at(r.answer_by)} or Louisiana Helpr decides. Your payout waits until then.</p>

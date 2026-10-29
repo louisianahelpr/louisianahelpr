@@ -31,15 +31,15 @@
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'offered')) THEN false
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours' |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |   IF r.status <> 'returning' THEN | IF false THEN
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |         OR (x.status = 'returning' AND x.return_by <= now()) | 
+ * @mutate supabase/migrations/20261029192457_declutter_returns.sql |   IF r.status <> 'returning' THEN | IF false THEN
+ * @mutate supabase/migrations/20261029192457_declutter_returns.sql |         OR (x.status = 'returning' AND x.return_by <= now() AND public.declutter_return_backstop_at(x) <= now()) | 
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF NOT public.declutter_payout_unsent(o.id) THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT | IF false THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents >= o.items_cents THEN |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents > o.items_cents THEN
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents) |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents + 1)
  * @mutate supabase/migrations/20261027171453_declutter_withdraw_refund_not_once_returning.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
+ * @mutate supabase/migrations/20261029192457_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
@@ -139,7 +139,8 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
   it("7. the sweep sends an unanswered request, and an unanswered offer, to an admin", () => {
     const s = flat(body("declutter_refund_request_sweep"));
     expect(s).toMatch(/\(x\.status = 'open' AND x\.answer_by <= now\(\)\) OR \(x\.status = 'offered' AND x\.offer_answer_by <= now\(\)\)/);
-    expect(s).toMatch(/OR \(x\.status = 'returning' AND x\.return_by <= now\(\)\)/);
+    // Declutter returns (20261029192457): a return goes to an admin at the later of return_by and the return day/time + 24h.
+    expect(s).toMatch(/OR \(x\.status = 'returning' AND x\.return_by <= now\(\) AND public\.declutter_return_backstop_at\(x\) <= now\(\)\)/);
     expect(s).toMatch(/declutter_refund_request_to_admin\(/);
   });
 

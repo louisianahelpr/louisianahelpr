@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql | VALUES ('declutter-handover', 'declutter-handover', false, | VALUES ('declutter-handover', 'declutter-handover', true,
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = p_photo_path) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- Live camera only (20261029002010) |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = p_photo_path) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- Live camera only (20261029002010)
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = v_path) THEN |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = v_path) THEN
- * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |     RETURN split_part(p_name, '/', 1) = v_uid::text\n       AND EXISTS | RETURN EXISTS
+ * @mutate supabase/migrations/20261029192457_declutter_returns.sql |     RETURN split_part(p_name, '/', 1) = v_uid::text\n       AND EXISTS | RETURN EXISTS
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

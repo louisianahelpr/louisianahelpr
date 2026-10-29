@@ -1,0 +1,206 @@
+/**
+ * Declutter returns (migration 20261029192457_declutter_returns.sql): the way a full-refund item goes back to the seller, inside the
+ * refund panel (DeclutterRefundRequest.tsx) and nowhere else (src/test/declutterReturns.test.ts). Owner 2026-10-29:
+ * only the two free ways, no paid Helpr trip. Every rule is the server's; this only shows them and sends choices.
+ */
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { geocodeAddress } from "@/lib/geocode";
+import { meetupMapUrl } from "@/lib/declutter/meetup";
+import { currentPosition } from "@/lib/declutter/position";
+import type { RefundRequestView } from "@/lib/declutter/refundRequests";
+import {
+  returnDayChoices,
+  returnDayWords,
+  returnDroppedOff,
+  setReturnAddress,
+  uploadReturnPhoto,
+  type ReturnWay,
+} from "@/lib/declutter/refundReturns";
+
+const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
+const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
+const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
+
+const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/** The seller's pick, kept in the answer form until "Send answer". */
+export interface ReturnPick {
+  way: ReturnWay;
+  day: string;
+  /** A collect time from a datetime-local box ("2026-10-30T15:00"), or "". */
+  local: string;
+}
+
+export function emptyReturnPick(): ReturnPick {
+  return { way: "drop_off", day: returnDayChoices()[0] ?? "", local: "" };
+}
+
+/** What the RPC takes: a drop-off sends its day; a collect sends its time. Null when the pick isn't complete. */
+export function returnPickArgs(p: ReturnPick): { day: string | null; atIso: string | null } | null {
+  if (p.way === "drop_off") return p.day ? { day: p.day, atIso: null } : null;
+  const t = p.local ? new Date(p.local) : null;
+  return t && !Number.isNaN(t.getTime()) ? { day: null, atIso: t.toISOString() } : null;
+}
+
+/** The seller picks how the item comes back (shown under "Refund in full"). */
+export function DeclutterReturnWayPicker({ id, who, value, onChange }: {
+  id: string;
+  who: string;
+  value: ReturnPick;
+  onChange: (p: ReturnPick) => void;
+}) {
+  const days = returnDayChoices();
+  return (
+    <fieldset className="space-y-2 pl-6" data-return-way="">
+      <legend className="text-xs font-medium">How does it come back? Both ways are free.</legend>
+      <label className="flex min-h-11 items-start gap-2 text-sm">
+        <input type="radio" name={`${id}-way`} checked={value.way === "drop_off"} onChange={() => onChange({ ...value, way: "drop_off" })} className="mt-1" />
+        <span>
+          <span className="font-medium">{who} brings it back</span>
+          <span className="block text-ds-12 text-muted-foreground">To your pickup address, on the day you pick or after, with a photo taken there.</span>
+        </span>
+      </label>
+      <label className="flex min-h-11 items-start gap-2 text-sm">
+        <input type="radio" name={`${id}-way`} checked={value.way === "collect"} onChange={() => onChange({ ...value, way: "collect" })} className="mt-1" />
+        <span>
+          <span className="font-medium">I'll pick it up</span>
+          <span className="block text-ds-12 text-muted-foreground">You go to the address {who} gives you, at the time you pick.</span>
+        </span>
+      </label>
+      {value.way === "drop_off" ? (
+        <div>
+          <label htmlFor={`${id}-day`} className="block text-xs font-medium">From which day?</label>
+          <select id={`${id}-day`} className={input} value={value.day} onChange={(e) => onChange({ ...value, day: e.target.value })}>
+            {days.map((d) => <option key={d} value={d}>{returnDayWords(d)}</option>)}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <label htmlFor={`${id}-at`} className="block text-xs font-medium">When will you come? (within 7 days)</label>
+          <input id={`${id}-at`} type="datetime-local" className={input} value={value.local} onChange={(e) => onChange({ ...value, local: e.target.value })} />
+        </div>
+      )}
+    </fieldset>
+  );
+}
+
+function useRefreshRefund(orderId: string) {
+  const qc = useQueryClient();
+  return () => void qc.invalidateQueries({ queryKey: ["declutter", "refund-request", orderId] });
+}
+
+/** The buyer, while the item is coming back: what to do for the way the seller picked. */
+export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: string }) {
+  const r = v.request;
+  const { user } = useAuthReady();
+  const refresh = useRefreshRefund(v.order_id);
+  const [address, setAddress] = useState("");
+  const drop = useMutation({
+    mutationFn: async (file: File) => {
+      if (!r || !user) throw new Error("not_authenticated");
+      const where = await currentPosition();
+      const path = await uploadReturnPhoto(user.id, v.order_id, file);
+      return returnDroppedOff(r.id, path, where);
+    },
+    onSuccess: () => { toast.success(`Dropped off. ${who} is told.`); refresh(); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const addr = useMutation({
+    mutationFn: async () => {
+      if (!r) throw new Error("refund_not_found");
+      const g = await geocodeAddress(address.trim());
+      if (!g) throw new Error("address_not_found");
+      return setReturnAddress(r.id, address.trim(), { lat: g.latitude, lng: g.longitude });
+    },
+    onSuccess: () => { toast.success(`Saved. ${who} is told where to pick it up.`); setAddress(""); refresh(); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  if (!r || r.status !== "returning" || !r.return_way) return null;
+  if (r.return_way === "drop_off") {
+    if (r.return_dropped_off_at) {
+      return <p className="text-sm" data-return-dropped="">You dropped it off {at(r.return_dropped_off_at)}. Your refund is sent once {who} confirms they have it.</p>;
+    }
+    const fileId = `dcl-return-${v.order_id}`;
+    return (
+      <div className="space-y-2" data-return-drop-off="">
+        <p className="text-sm">Bring the item back to {who}'s pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}, then take a photo there.</p>
+        <label htmlFor={fileId} className="sr-only">Photo of the item where you left it, taken at the pickup address</label>
+        <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={drop.isPending}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) drop.mutate(f); e.target.value = ""; }} />
+        <button type="button" className={primary} disabled={drop.isPending} onClick={() => document.getElementById(fileId)?.click()}>
+          {drop.isPending ? "Saving…" : "Take your drop-off photo"}
+        </button>
+      </div>
+    );
+  }
+  const addrId = `dcl-return-addr-${v.order_id}`;
+  return (
+    <div className="space-y-2" data-return-collect="">
+      <p className="text-sm">{who} will come for it{r.return_at ? ` ${at(r.return_at)}` : ""}.</p>
+      {r.return_address ? (
+        <p className="text-sm">Pickup address: <span className="font-medium">{r.return_address}</span></p>
+      ) : (
+        <>
+          <label htmlFor={addrId} className="block text-xs font-medium">Where should they pick it up?</label>
+          <input id={addrId} className={input} autoComplete="street-address" maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
+          <button type="button" className={primary} disabled={addr.isPending || address.trim().length < 5} onClick={() => addr.mutate()}>
+            {addr.isPending ? "Saving…" : "Send the address"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The seller, while the item is coming back: the way, the buyer's address for a collect, the drop-off. */
+export function DeclutterReturnSellerInfo({ v, who }: { v: RefundRequestView; who: string }) {
+  const r = v.request;
+  if (!r || r.status !== "returning" || !r.return_way) return null;
+  if (r.return_way === "drop_off") {
+    return r.return_dropped_off_at
+      ? <p className="text-sm" data-return-dropped="">{who} dropped it off at your pickup address {at(r.return_dropped_off_at)}, with a photo.</p>
+      : <p className="text-sm" data-return-drop-off="">{who} brings it to your pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}.</p>;
+  }
+  return (
+    <div className="space-y-1" data-return-collect="">
+      <p className="text-sm">You pick it up{r.return_at ? ` ${at(r.return_at)}` : ""}.</p>
+      {r.return_address && r.return_lat != null && r.return_lng != null ? (
+        <p className="text-sm">
+          At <span className="font-medium">{r.return_address}</span>.{" "}
+          <a className="underline" href={meetupMapUrl({ spot_lat: r.return_lat, spot_lng: r.return_lng, spot_name: r.return_address })} target="_blank" rel="noreferrer">
+            Directions
+          </a>
+        </p>
+      ) : (
+        <p className="text-ds-12 text-muted-foreground">Waiting for {who} to add the address.</p>
+      )}
+    </div>
+  );
+}
+
+/** The seller's optional photo with "I got it back". */
+export function DeclutterReturnPhotoPick({ orderId, file, onFile }: { orderId: string; file: File | null; onFile: (f: File | null) => void }) {
+  const fileId = `dcl-return-back-${orderId}`;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label htmlFor={fileId} className="sr-only">Photo of the item you got back (optional)</label>
+      <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1}
+        onChange={(e) => { onFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+      <button type="button" className={btn} onClick={() => document.getElementById(fileId)?.click()}>
+        {file ? "Retake the photo" : "Add a photo (optional)"}
+      </button>
+      {file && <span className="text-ds-12 text-muted-foreground">Photo ready.</span>}
+    </div>
+  );
+}
+
+/** Upload the seller's optional photo (null when none). */
+export async function sellerReturnPhotoPath(userId: string | undefined, orderId: string, file: File | null): Promise<string | null> {
+  if (!file) return null;
+  if (!userId) throw new Error("not_authenticated");
+  return uploadReturnPhoto(userId, orderId, file);
+}

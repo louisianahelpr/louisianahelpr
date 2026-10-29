@@ -33,6 +33,20 @@ interface RefundRequest {
   refund_cents: number | null;
   refund_status: "pending" | "succeeded" | "failed" | null;
   created_at: string;
+  /** Declutter returns: how the item comes back (refundReturns.ts). Null for a request agreed without a way. */
+  return_way?: "drop_off" | "collect" | null;
+  /** A drop-off: from this Louisiana day (YYYY-MM-DD). A collect: the day of return_at. */
+  return_day?: string | null;
+  /** A collect: when the seller comes. */
+  return_at?: string | null;
+  /** A drop-off: when the buyer left it, with a photo at the address. */
+  return_dropped_off_at?: string | null;
+  /** While returning: when Louisiana Helpr takes over if the seller hasn't confirmed. */
+  return_deadline?: string | null;
+  /** A collect, while returning: the address the buyer typed (and its point, for directions). */
+  return_address?: string | null;
+  return_lat?: number | null;
+  return_lng?: number | null;
 }
 
 export interface RefundRequestView {
@@ -101,11 +115,12 @@ export async function answerRefundOffer(requestId: string, accept: boolean): Pro
 
 /**
  * The seller has the item back after agreeing a full refund (owner 2026-10-23, #3558 answer 2): the refund
- * is sent now, never before.
+ * is sent now, never before. `photoPath`: the seller's optional live photo (refundReturns.uploadReturnPhoto).
  */
-export async function confirmItemReturned(requestId: string): Promise<{ result: string; refund_cents?: number }> {
+export async function confirmItemReturned(requestId: string, photoPath: string | null = null): Promise<{ result: string; refund_cents?: number }> {
   return rpcData(
-    await supabase.rpc("declutter_refund_item_returned", { p_request_id: requestId }),
+    // nullable-arg: the photo is optional (p_photo_path DEFAULT NULL).
+    await supabase.rpc("declutter_refund_item_returned", { p_request_id: requestId, p_photo_path: photoPath as string }),
     (e) => rpcErrorMessage("declutter_refund_item_returned", e),
   ) as unknown as { result: string; refund_cents?: number };
 }

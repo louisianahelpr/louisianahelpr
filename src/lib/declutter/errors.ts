@@ -160,6 +160,15 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   refund_already_asked: "You already asked for a refund on this sale.",
   refund_window_over: "The 24 hours to ask for a refund are over, so this sale is final.",
   refund_already_answered: "This refund request was already answered.",
+  // Declutter returns (20261029192457_declutter_returns.sql): the two free ways back.
+  invalid_return_way: "Choose how the item comes back: the buyer brings it, or you pick it up.",
+  invalid_return_day: "Pick a day in the next 7 days.",
+  invalid_return_time: "Pick a time from now on, within the next 7 days.",
+  not_a_drop_off: "This item isn't coming back by drop-off.",
+  before_return_day: "You can drop it off from the day the seller picked.",
+  not_a_collect: "The seller isn't picking this one up.",
+  address_required: "Type the address (up to 300 characters).",
+  address_not_found: "We couldn't find that address. Check the street number, street and town.",
   refund_answer_late: "The 24 hours to answer are over, so Louisiana Helpr decides this one.",
   invalid_answer: "Pick an answer.",
   invalid_amount: "Offer an amount above $0 and below the item price. To give it all back, choose Refund in full.",
@@ -262,7 +271,6 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   item_photos_invalid: "Claude couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
   ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",
   // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
-  address_not_found: "We couldn't find that address. Check the street number, street and town.",
   geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",
   photo_unavailable: "That photo couldn't load. Try again.",
   // declutter-checkout's raise_pay before its migration is deployed (PGRST202).

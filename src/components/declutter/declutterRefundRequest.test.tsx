@@ -7,11 +7,11 @@
  * Deep audit 2026-10-28 B-5 (#5): the full refund is less than the payment (the card network keeps its part); the buyer
  * is told why in words wherever that amount is shown, with no fee name or figure (membersSeeNoFeeWords scans the copy).
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | . <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund | . For a full refund
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> Give the item back; | {refundDollars(v.full_refund_cents)}. Give the item back;
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, choice === "part" ? offerCents : null), |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, offerCents),
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice, choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice, offerCents);
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "part" && offerCents === null)} onClick={() => send.mutate()}> |       <button type="button" className={primary} disabled={send.isPending} onClick={() => send.mutate()}>
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "part" && offerCents === null) \|\| (choice === "full" && !pickArgs)} onClick={() => send.mutate()}> |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "full" && !pickArgs)} onClick={() => send.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -24,7 +24,12 @@ const state = vi.hoisted(() => ({
   answered: [] as unknown[][],
   offers: [] as unknown[][],
   returned: [] as unknown[][],
+  accepted: [] as unknown[][],
 }));
+vi.mock("@/lib/declutter/refundReturns", async (orig) => {
+  const real = await orig<typeof import("@/lib/declutter/refundReturns")>();
+  return { ...real, acceptRefundWithReturn: async (...a: unknown[]) => { state.accepted.push(a); return { result: "returning" }; } };
+});
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/refundRequests")>();
@@ -66,6 +71,7 @@ beforeEach(() => {
   state.answered = [];
   state.offers = [];
   state.returned = [];
+  state.accepted = [];
 });
 
 describe("DeclutterRefundPanel", () => {
@@ -103,7 +109,27 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
     fireEvent.click(screen.getByText("Refund in full"));
     fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
-    await waitFor(() => expect(state.answered).toEqual([["r1", "full", null]]));
+    // Declutter returns (20261029192457): the full answer and the way back go in ONE call, with no amount.
+    await waitFor(() => expect(state.accepted).toHaveLength(1));
+    expect(state.accepted[0]).toEqual(["r1", "drop_off", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), null]);
+    expect(state.answered).toEqual([]);
+  });
+
+  it("seller: Refund in full with I'll pick it up sends the time, and needs one first", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    fireEvent.click(await screen.findByText("I'll pick it up"));
+    expect(screen.getByRole("button", { name: "Send answer" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/When will you come\?/), { target: { value: "2030-01-02T15:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    await waitFor(() => expect(state.accepted).toEqual([["r1", "collect", null, new Date("2030-01-02T15:00").toISOString()]]));
+  });
+
+  it("seller: a collect shows the buyer's address with directions while it is coming back", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false,
+      request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z", return_way: "collect", return_at: "2026-10-25T20:00:00Z",
+        return_address: "77 Return Rd", return_lat: 30.46, return_lng: -91.16 } });
+    expect(await screen.findByText("77 Return Rd")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Directions" }).getAttribute("href")).toMatch(/^https:\/\/maps\.apple\.com\/\?ll=30\.46,-91\.16/);
   });
 
   it("buyer: takes the seller's offer", async () => {
@@ -133,7 +159,7 @@ describe("DeclutterRefundPanel", () => {
     // #59: Declutter's one confirm style, the in-app sheet.
     expect(document.querySelector('[data-confirm-sheet="refund-item-back"]')).toHaveTextContent("It can't be undone.");
     fireEvent.click(await screen.findByRole("button", { name: "Yes, send the refund" }));
-    await waitFor(() => expect(state.returned).toEqual([["r1"]]));
+    await waitFor(() => expect(state.returned).toEqual([["r1", null]]));
   });
 
   it("buyer: while the item goes back, the refund is promised on the seller's confirmation, with no button to press", async () => {

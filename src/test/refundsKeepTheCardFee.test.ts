@@ -557,7 +557,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
       declutter_full_refund_cents: "20261026155251_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
-      declutter_refund_request_view: "20261026155251_declutter_refund_requests.sql aaba36d7331191f4",
+      // Returns (20261029192457) add the return fields (way, day, time, collect address, drop-off time); still no write.
+      declutter_refund_request_view: "20261029192457_declutter_returns.sql 20ef516cc0d83e98",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee

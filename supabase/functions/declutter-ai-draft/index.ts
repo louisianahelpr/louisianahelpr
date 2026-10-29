@@ -106,15 +106,33 @@ const ITEM_SCHEMA = {
  */
 const PRICE_RULE = `Suggest a fair starting price in whole US dollars (1 to 1000) for a quick local sale of this USED item, from what you see: the kind of item, its condition and its size. Give price_reason as one short plain line about the item itself (for example "Solid wood and only light wear, so it should sell fast at this price"). Never mention retail, new, original or store prices, or any website or marketplace.`;
 
+const PHOTO_COACH_RULE = `Read any labels, tags or markings in the photos: put the brand, model, size or measurements you can actually read into details as one short line (for example "Brand: KitchenAid. Model: KSM150. 5 quart."); leave details empty when nothing is readable, and never guess. Set cover_photo to the number of the photo (0 for the first one sent) that shows the whole item best for a listing's cover. Set photo_tip to at most ONE short tip for one more photo that would help a buyer (for example "A photo of the label" or "A photo of the back"), or leave it empty when the photos are enough.`;
+
 const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
 
 /** One item's listing from its photos: a saved draft's (mode 'draft') or a new listing's held photos (photosDraft). */
 const ITEM_SYSTEM_PROMPT = `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
 Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
 ${PRICE_RULE}
+${PHOTO_COACH_RULE}
 ${BANNED_RULE}`;
 
-const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: ITEM_SCHEMA };
+/**
+ * Photo coach (owner 2026-10-29), one item's draft only (room mode keeps ITEM_SCHEMA): what the labels
+ * say, the best cover photo, and at most one "one more photo would help" tip.
+ */
+const DRAFT_SCHEMA = {
+  ...ITEM_SCHEMA,
+  properties: {
+    ...ITEM_SCHEMA.properties,
+    details: { type: "string" },
+    cover_photo: { type: "integer", minimum: 0 },
+    photo_tip: { type: "string" },
+  },
+  required: [...ITEM_SCHEMA.required, "details", "cover_photo", "photo_tip"],
+};
+
+const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: DRAFT_SCHEMA };
 
 /**
  * One Claude request (owner 2026-10-22: Claude only, Gemini removed) with its
@@ -299,7 +317,7 @@ serve(async (req) => {
         flagged: shopDraft.flagged,
       });
     }
-    const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
+    const draft = answer.parsed ? sanitizeDraft(answer.parsed, images.length) : null;
     if (!draft) return json({ error: "ai_unavailable" }, 502);
 
     if (mode === "check") {
@@ -340,6 +358,8 @@ function draftAnswer(draft: DeclutterDraft) {
     flagged: draft.flagged,
     priceDollars: draft.priceDollars,
     priceReason: draft.priceReason,
+    coverPhoto: draft.coverPhoto,
+    photoTip: draft.photoTip,
   };
 }
 
@@ -469,7 +489,7 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
     console.error("[declutter-ai-draft] photos-draft model error:", answer.status, answer.detail);
     return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
   }
-  const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
+  const draft = answer.parsed ? sanitizeDraft(answer.parsed, photos.length) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
   return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
 }

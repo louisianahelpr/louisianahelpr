@@ -70,7 +70,7 @@ describe("Claude drafts a NEW listing from photos in the body", () => {
     expect(own).not.toMatch(/\.storage\b|\.from\(|\.upload\(|\.insert\(|\.update\(/);
     expect([...own.matchAll(/\.rpc\(/g)]).toHaveLength(1);
     // The answer goes through the same sanitizer (fail-closed banned flag) as a saved draft's.
-    expect(own).toContain("sanitizeDraft(answer.parsed)");
+    expect(own).toContain("sanitizeDraft(answer.parsed, photos.length)");
   });
 
   it("the gate is the 'declutter' switch, the ban check and the selling member gates; anon cannot run it", () => {

@@ -10,7 +10,7 @@
  * The feed (useDashboardData) and the job page's poster card (DeclutterSellerCard) both read the poster
  * through get_safe_profiles and print formatName(full_name). The deep-link path now does the same.
  *
- * @mutate src/pages/home/QuickApplyHandler.tsx |       openSheet(await withPoster(data as unknown as EnrichedJob)); |       openSheet(data as unknown as EnrichedJob);
+ * @mutate src/pages/home/QuickApplyHandler.tsx |       const job = await withPoster(data as unknown as EnrichedJob); |       const job = data as unknown as EnrichedJob;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";

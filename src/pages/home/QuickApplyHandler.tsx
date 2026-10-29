@@ -5,6 +5,8 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
+import { fetchRatingStats } from "@/lib/reviewStats";
+import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type BrowseRow = Database["public"]["Views"]["open_jobs_browse"]["Row"];
@@ -33,6 +35,46 @@ const SHEET_COLUMNS =
 //
 // The only toast left is the failure toast: a job that is gone, filled or
 // still held back has no sheet to open.
+/**
+ * Give a bare `open_jobs_browse` row the poster fields the feed adds
+ * (useDashboardData phase 2): name and avatar from get_safe_profiles, rating
+ * from fetchRatingStats. Never blocks the sheet: on a failed read the row
+ * opens as before (JobPosterCard's "a neighbor" fallback) and the error is
+ * reported.
+ */
+async function withPoster(job: EnrichedJob): Promise<EnrichedJob> {
+  const posterId = job.customer_id;
+  if (!posterId) return job;
+  try {
+    const [profilesRes, stats] = await Promise.all([
+      supabase.rpc("get_safe_profiles", { user_ids: [posterId] }),
+      fetchRatingStats([posterId]),
+    ]);
+    if (profilesRes.error) throw profilesRes.error;
+    const profile = profilesRes.data?.find((p) => p.user_id === posterId);
+    const rating = stats.get(posterId);
+    return {
+      ...job,
+      ...(profile ? {
+        posterName: formatName(profile.full_name),
+        posterAvatarUrl: profile.avatar_url ?? null,
+        posterSubscriptionTier: profile.subscription_tier ?? null,
+        posterIdVerified: (profile as { is_id_verified?: boolean }).is_id_verified ?? false,
+      } : {}),
+      posterReviewCount: rating?.count ?? 0,
+      posterAvgRating: rating?.avg ?? 0,
+    };
+  } catch (error) {
+    // Reported, not swallowed: the sheet still opens on the bare row.
+    report(error, {
+      severity: "warning",
+      tags: { source: "QuickApplyHandler.posterLookup" },
+      context: { job_id: job.id },
+    });
+    return job;
+  }
+}
+
 export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHandled }: {
   searchParams: URLSearchParams;
   user: SupaUser | null;
@@ -265,7 +307,13 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
       // by 20260904034410 (dead-feature cut) and `open_jobs_browse` never
       // projected it, so the "Book Now" copy in ApplyBody is unreachable for
       // every job in the product today. Verified, not assumed.
-      openSheet(data as unknown as EnrichedJob);
+      //
+      // F8 (audit 2026-10-28): the bare row carries no poster, so the sheet read
+      // "Posted by a neighbor" over a "U" avatar while the job page named
+      // "E2E P.". withPoster reads the poster the way the feed does.
+      const job = await withPoster(data as unknown as EnrichedJob);
+      if (cancelled) return;
+      openSheet(job);
     })();
 
     return () => { cancelled = true; };

@@ -129,19 +129,26 @@ export async function confirmHandover(orderId: string): Promise<HandoverResult> 
 
 /**
  * The seller's "Picked up" on a pickup at the door (big items, porch_ok off; owner 2026-10-18):
- * completes the handover like the buyer's "I got it". The photo is optional.
+ * completes the handover like the buyer's "I got it". The photo is optional; with one, `where` is the device's
+ * position, checked against the handover place (20261028235709: the pickup address, or the meeting spot).
  */
-export async function sellerPickedUp(orderId: string, photoPath: string | null): Promise<HandoverResult> {
+export async function sellerPickedUp(orderId: string, photoPath: string | null, where: { lat: number; lng: number } | null = null): Promise<HandoverResult> {
   return rpcData(
-    await supabase.rpc("declutter_seller_picked_up", { p_order_id: orderId, p_photo_path: photoPath as string }),
+    await supabase.rpc("declutter_seller_picked_up", {
+      p_order_id: orderId,
+      p_photo_path: photoPath as string,
+      p_lat: (where?.lat ?? null) as number,
+      p_lng: (where?.lng ?? null) as number,
+    }),
     (e) => rpcErrorMessage("declutter_seller_picked_up", e),
   ) as unknown as HandoverResult;
 }
 
 /**
- * Porch photo (row 26). Seller: "Set out" (no location). Buyer: "Picked up",
- * taken at the address; it pays the seller right away unless a problem is
- * open (row 99, owner 2026-10-15).
+ * Porch photo (row 26). Seller: "Set out". Buyer: "Picked up"; it pays the
+ * seller right away unless a problem is open (row 99, owner 2026-10-15). Both
+ * are taken at the address (`where`, within 200 m; the seller's since
+ * 20261028235709).
  */
 export async function porchPhoto(
   orderId: string,

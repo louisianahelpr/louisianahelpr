@@ -122,6 +122,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   wrong_side: "Only the buyer taps \"I got it\", and only the seller taps \"Picked up\".",
   location_required: "Turn on location so we can confirm you're at the pickup address.",
   not_at_pickup: "Take the photo at the pickup address.",
+  // Anti-lying #1 (20261028235709): the seller's "Picked up" photo at a safe meeting spot is taken at the spot.
+  not_at_meetup: "Take the photo at the meeting spot.",
   already_picked_up: "The buyer already picked up this item.",
   seller_set_out: "The seller set the item out. If it isn't there, report a problem.",
   too_early: "You can report a no-show 15 minutes after the booked time, or for a porch pickup day, once that day is over.",

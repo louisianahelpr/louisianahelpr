@@ -50,6 +50,8 @@ vi.mock("@/components/DateTimeField", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
+// Anti-lying #1 (20261028235709): every handover photo carries the device's position (the server checks the place).
+vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.45, lng: -91.15 }) }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
@@ -288,7 +290,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     const picked = await screen.findByRole("dialog");
     expect(within(picked).getByText("Did Dana take it?")).toBeInTheDocument();
     fireEvent.click(within(picked).getByRole("button", { name: "Picked up" }));
-    await waitFor(() => expect(state.calls).toContainEqual(["seller_picked_up", "o1", null]));
+    // No photo: no position asked for (the photo is optional; its place is checked only when there is one).
+    await waitFor(() => expect(state.calls).toContainEqual(["seller_picked_up", "o1", null, null]));
   });
 
   it("door pickup (owner 2026-10-18): both sides get the safety tips; the buyer is pointed to Add a Helpr; porch has no tips and no seller \"Picked up\"", async () => {
@@ -507,6 +510,7 @@ describe("Declutter slice 4: paid-order cards", () => {
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "The sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       const where = await currentPosition();\n      const path | const where = order.side === "buyer" ? await currentPosition() : null;\n      const path
  */
 describe("boards 159 + 160: handover sheets", () => {
   beforeEach(() => {
@@ -531,6 +535,8 @@ describe("boards 159 + 160: handover sheets", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Send photo · it's out" }));
     await waitFor(() => expect(state.calls).toContainEqual(["porch_note", "o1", "Left side, by the swing"]));
     expect(state.calls.findIndex((c) => c[0] === "porch_photo")).toBeLessThan(state.calls.findIndex((c) => c[0] === "porch_note"));
+    // Anti-lying #1: the seller's "Left on porch" photo is sent with where it was taken, as the buyer's is.
+    expect(state.calls.find((c) => c[0] === "porch_photo")?.[3]).toEqual({ lat: 30.45, lng: -91.15 });
   });
 
   it("Q2266 retake: a photo sent with no note still clears the old note (lh-authz-rls review #1)", async () => {

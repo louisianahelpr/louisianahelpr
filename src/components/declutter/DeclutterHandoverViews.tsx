@@ -367,7 +367,11 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const pickedUp = useMutation({
-    mutationFn: async () => sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null),
+    // A photo is taken where the handover is (20261028235709): the position first, so a refusal uploads nothing.
+    mutationFn: async () => {
+      const where = photo ? await currentPosition() : null;
+      return sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null, where);
+    },
     onSuccess: () => {
       toast.success(free ? "Picked up." : "Picked up. You're paid in 24 hours, unless the buyer asks for a refund.");
       setPhoto(null);
@@ -389,7 +393,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     return (
       <div className="space-y-2">
         {rule('the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported')}
-        <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional)</label>
+        <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
           onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
@@ -430,8 +434,9 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
   });
   const photo = useMutation({
     mutationFn: async ({ file, note }: { file: File; note?: string }) => {
+      // Both sides' porch photos are taken at the address (the seller's since 20261028235709).
+      const where = await currentPosition();
       const path = await uploadHandoverPhoto(userId, order.orderId, file);
-      const where = order.side === "buyer" ? await currentPosition() : null;
       const r = await porchPhoto(order.orderId, path, where);
       // Q2266: the note follows the photo; a note that cannot be saved never undoes the photo.
       // Always sent with a seller's photo, even empty: a retake must never leave the old note under the new photo
@@ -485,7 +490,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
       </button>
       <p className="text-ds-12 text-muted-foreground">
-        {order.side === "seller" ? `One photo where the buyer will find it.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
+        {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
       </p>
       {order.side === "seller" && (
         <PutItOutSheet

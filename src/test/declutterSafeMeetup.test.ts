@@ -32,7 +32,12 @@ describe("Q2425 safe meetup spots: the server", () => {
       "declutter_meetup_spot_near_lines", "declutter_address_access", "declutter_seller_picked_up"];
     // declutter_start_checkout: restated again by Q2427 (20261027211754) with the meetup lines kept (asserted below).
     expect(newestFunction("declutter_start_checkout").file >= FILE).toBe(true);
-    for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
+    // declutter_seller_picked_up: restated by anti-lying #1 (20261028235709, its photo taken at the spot) with the
+    // meetup lines kept (asserted below).
+    for (const n of names) {
+      if (n === "declutter_seller_picked_up") expect(newestFunction(n).file >= FILE, n).toBe(true);
+      else expect(newestFunction(n).file, n).toContain(FILE);
+    }
     expect(names.length).toBeGreaterThan(6);
   });
 

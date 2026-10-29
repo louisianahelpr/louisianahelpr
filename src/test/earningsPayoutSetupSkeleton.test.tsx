@@ -15,6 +15,8 @@
  */
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const payoutSetup = withHeader && !profile?.stripe_account_id; | const payoutSetup = false;
 // @mutate src/components/profile/EarningsTab.tsx | {!hasStripeAccount && (stripeLoading \|\| (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />} | {false && <EarningsPayoutSetupSkeleton />}
+// @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |                   {JOBS_ONLY_PAYOUT_LINE} |                   Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
+// @mutate src/components/payouts/payoutSourcesLine.ts | payoutSourcesLine({ declutter: false, shops: false }) | payoutSourcesLine({ declutter: true, shops: true })
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const wallet = !!profile?.stripe_account_id; | const wallet = false;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -41,6 +43,20 @@ const renderSkeleton = (props: { withHeader?: boolean } = {}) =>
 describe("Earnings skeleton is data-aware (Q429)", () => {
   beforeEach(() => {
     mockProfile = undefined;
+  });
+
+  // Audit 2026-10-28 P4-1: the connect block named Jobs, Declutter and your shop
+  // for every member while Declutter and Shops were hidden. A skeleton fetches
+  // nothing (skeletonsReadAsLoading renders it with no QueryClient), so it reads
+  // no switch: it draws the Jobs-only line, true for every member.
+  it("draws the Jobs-only payout line on the connect block and reads no switch", () => {
+    mockProfile = { stripe_account_id: null };
+    renderSkeleton();
+    const block = (screen.getByTestId("earnings-payout-setup-skeleton").textContent ?? "").replace(/\s+/g, " ");
+    expect(block).toContain("Add a bank once. Every payout from Jobs goes there.");
+    expect(block).not.toMatch(/Declutter|your shop/);
+    const skel = read("src/components/profile/earningsTab/EarningsPageSkeleton.tsx");
+    expect(skel).not.toMatch(/useFeature|usePayoutSourcesLine/);
   });
 
   it("draws the connect block when the profile has no Stripe account", () => {
@@ -93,7 +109,17 @@ describe("the ghost copy is the real copy, so it wraps like the real lines", () 
     // 2: the connect card's title and body. The activity card's three lines
     // left with that card (Q1177).
     expect(ghosts.length).toBe(2);
-    const real = read("src/components/PayoutSetupForm.tsx") + read("src/components/PaymentTab.tsx");
-    for (const g of ghosts) expect(real, g).toContain(g);
+    const form = read("src/components/PayoutSetupForm.tsx");
+    const real = form + read("src/components/PaymentTab.tsx");
+    for (const g of ghosts) {
+      // The body is the Jobs-only payout line (P4-1); the form prints the same
+      // builder's line for the viewer, which is that line while no switch is on.
+      if (g === "{JOBS_ONLY_PAYOUT_LINE}") {
+        expect(form).toContain("{payoutSources}");
+        expect(form).toContain("const payoutSources = usePayoutSourcesLine();");
+        continue;
+      }
+      expect(real, g).toContain(g);
+    }
   });
 });

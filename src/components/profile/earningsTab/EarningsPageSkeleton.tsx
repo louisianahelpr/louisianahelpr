@@ -4,6 +4,7 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { JOBS_ONLY_PAYOUT_LINE } from "@/components/payouts/payoutSourcesLine";
 
 /**
  * ONE skeleton for the Money tab (VN-3, owner 2026-09-15: "One skeleton.
@@ -131,6 +132,8 @@ export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { te
 }
 
 export function EarningsPayoutSetupSkeleton() {
+  // A skeleton fetches nothing, so it reads no switch: it draws the Jobs-only
+  // line, the one true for every member (audit 2026-10-28 P4-1).
   return (
     <div aria-hidden data-testid="earnings-payout-setup-skeleton" className="space-y-section">
       <section className="space-y-2">
@@ -143,7 +146,7 @@ export function EarningsPayoutSetupSkeleton() {
                   Where should we send your money?
                 </GhostLine>
                 <GhostLine className="font-sans mt-1 text-ds-13">
-                  Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
+                  {JOBS_ONLY_PAYOUT_LINE}
                 </GhostLine>
                 {/* The three PAYOUT_START_POINTS lines (board 87), so the card holds its height. */}
                 <div className="mt-2 space-y-1">

@@ -465,11 +465,23 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
     second.unmount();
 
+    // 2b. A1-C2: booked for TOMORROW and not out: no "I got it" yet, and it says when it comes.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!porchReady) { |   if (false) {
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (pickupDay ? porchDayIsNow(pickupDay) : | (pickupDay ? true :
+    state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
+    const early = show([line({ handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText('You can tap "I got it" once the seller puts it out, or on your pickup day.')).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+    early.unmount();
+
     // 3. The porch photo is in: pick it up today.
     state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     const third = show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("It's out. Pick it up today.")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Step 3 of 4: On the porch" })).toBeInTheDocument();
+    // A1-C2: the porch photo is in (still booked for tomorrow), so "I got it" is there.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| | !porchBuyer \|\|
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
     third.unmount();
 
     // 4. The seller: put it out that day; no "Out all day" / "Out until" for a day.
@@ -477,6 +489,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("Put it out tomorrow and post the porch photo.")).toBeInTheDocument();
+    // A1-C3: the seller is never told "once the seller posts the porch photo".
+    // @mutate src/components/declutter/DeclutterPorchDay.tsx | {side === "seller" ? "The buyer can come any time that day once you post the porch photo." : | {false ? "" :
+    expect(screen.getByText(/Pickup day:/).textContent).toMatch(/The buyer can come any time that day once you post the porch photo\./);
+    expect(document.body.textContent).not.toMatch(/once the seller posts/);
     expect(screen.queryByRole("button", { name: "Out all day" })).toBeNull();
     expect(screen.queryByLabelText("Out until")).toBeNull();
     expect(screen.getByText(/once the sale is final: 24 hours after the handover/)).toBeInTheDocument();

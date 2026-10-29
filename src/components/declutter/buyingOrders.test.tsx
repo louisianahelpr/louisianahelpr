@@ -230,6 +230,18 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(within(el).queryByText(/Delivery card/)).toBeNull();
   });
 
+  // A1-C2: a porch pickup is a DAY; its booking's slot_start is only that day's start, so the card never shows a time.
+  // @mutate src/components/declutter/BuyingOrders.tsx |     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day) |     const when = false ? "" 
+  it("a porch pickup day reads as the day ('for tomorrow'), never a clock time", async () => {
+    load([{ id: "pd1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null }]);
+    const t = new Date(NOW + 24 * 3_600_000);
+    const tomorrow = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+    state.bookings = state.bookings.map((b) => ({ ...b, pickup_day: tomorrow }));
+    show();
+    expect(await screen.findByText("The seller puts it out for tomorrow and posts a photo.")).toBeInTheDocument();
+    expect(card("pd1").textContent).not.toMatch(/\d:\d\d/);
+  });
+
   it("the next action opens the card at that action, and the head button gives way to the real control", async () => {
     load(CASES.filter((c) => c.id === "home0"));
     show();

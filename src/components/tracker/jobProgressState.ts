@@ -40,6 +40,8 @@ export type ProgressJob = {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
   has_active_dispute?: boolean | null;
+  /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
+  is_group_job?: boolean | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
   id?: string | null;
   require_photo_proof?: boolean | null;
@@ -160,6 +162,15 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   };
 }
 
+/**
+ * Someone is hired on this job. A one-Helpr job says so in helper_id; a crew job never does (helper_id stays null,
+ * the roster is group_job_helpers), and leaves `open` only once its crew is hired, so its status says it (audit
+ * 2026-10-28 A2-B8: a booked crew read "Posted · They haven't replied yet"). Guard: src/test/crewTrackerCountsTheRoster.test.ts.
+ */
+function someoneHired(job: ProgressJob): boolean {
+  return !!job.helper_id || (job.is_group_job === true && !!job.status && job.status !== "open");
+}
+
 /** The card's line and face for a surface that is not a card, from the same functions the cards call. */
 function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | null {
   const row = job as unknown as Job;
@@ -180,7 +191,7 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
     id: "progress",
     job: row,
     helper_id: o.threadHelprId ?? job.helper_id,
-    status: o.application ?? (job.helper_id ? "accepted" : "pending"),
+    status: o.application ?? (someoneHired(job) ? "accepted" : "pending"),
     closed_reason: null,
     posterName: o.otherFirst ?? null,
   } as unknown as AppliedApp, false, o.workUnderway === undefined ? undefined : { workUnderway: o.workUnderway });
@@ -213,7 +224,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   }
 
   if (status === "completed" || job.poster_completed_at) return at(8, false, "Done", "", held);
-  if (!LIVE.has(status) || !job.helper_id) return at(null, false, "", "", held);
+  if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 
   // An offer is not a booking: until the Helpr accepts, nobody is hired.
   if (!job.helper_confirmed_at) {

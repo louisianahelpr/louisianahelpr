@@ -380,6 +380,8 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   it("Report a problem needs a note and sends the reason (rows 15, 67)", async () => {
+    // D2-9: offered once the booked time is over.
+    state.bookings = [slot(20)];
     show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
@@ -852,5 +854,65 @@ describe("#2: the buyer books from the seller's pickup times", () => {
     fireEvent.click(times[0]);
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
     await waitFor(() => expect(state.calls).toContainEqual(["book", "o1", days[0].slots[0].iso]));
+  });
+});
+
+// Owner 2026-10-29 (audit 1028 D2-9): nobody cancels a paid order, and "Report a problem" is not offered while the
+// order waits for pickup. Its button shows once the booked pickup is over (the "They didn't show" moment: 15 minutes
+// after a booked time, the end of a porch day). The one exception: the seller has no pickup days left, so the buyer
+// cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} /> | onOpenChange={setProblemOpen} />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
+// @mutate src/components/declutter/DeclutterPorchDay.tsx |               {side === "buyer" && !booked && noDays} |
+describe("D2-9: no Report a problem while the order waits for pickup", () => {
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const now = new Date();
+  const today = key(now);
+  const yesterday = key(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const tomorrow = key(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.meetup = null;
+    state.porchDays = [tomorrow];
+  });
+
+  it("each pickup kind and side: hidden before booking and during the booked time, shown once it is over", async () => {
+    const cases: { name: string; handover: string; booking: unknown; offered: boolean }[] = [];
+    for (const handover of ["pickup_home", "porch"]) {
+      cases.push({ name: `${handover}, not booked`, handover, booking: null, offered: false });
+      cases.push({ name: `${handover}, booked time 5 min in`, handover, booking: slot(5), offered: false });
+      cases.push({ name: `${handover}, booked time in an hour`, handover, booking: slot(-60), offered: false });
+      cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true });
+    }
+    cases.push({ name: "porch day today", handover: "porch", booking: { ...slot(60), pickup_day: today }, offered: false });
+    cases.push({ name: "porch day tomorrow", handover: "porch", booking: { ...slot(-600), pickup_day: tomorrow }, offered: false });
+    cases.push({ name: "porch day yesterday", handover: "porch", booking: { ...slot(60 * 30), pickup_day: yesterday }, offered: true });
+    let hidden = 0;
+    for (const c of cases) {
+      for (const side of ["buyer", "seller"] as const) {
+        state.bookings = c.booking ? [c.booking] : [];
+        const { unmount } = show([line({ handover: c.handover, my_side: side, porch_ok: true })]);
+        await screen.findByText(/Oak chair/);
+        // Let the bookings and porch-days reads settle before asking what the card offers.
+        await waitFor(() => expect(screen.queryByText(/Loading pickup days/)).toBeNull());
+        if (c.booking) await screen.findByText(/Pickup( day)?:/);
+        const offered = !!screen.queryByRole("button", { name: "Report a problem" });
+        expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${c.offered}`);
+        if (!offered) hidden++;
+        unmount();
+      }
+    }
+    expect(hidden).toBeGreaterThan(9);
+  });
+
+  it("the seller has no pickup days left: the buyer, who cannot book, can still report it", async () => {
+    state.porchDays = [];
+    state.bookings = [];
+    show([line({ handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText(/no pickup days left/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
+    expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
   });
 });

@@ -21,6 +21,10 @@ export type ProfileJob = {
   category: string;
   budget: number;
   created_at: string;
+  /** The two parties, so the public profile lists only jobs the VIEWER was
+      part of (A3-C8). Optional: rows from older call sites carry neither. */
+  customer_id?: string | null;
+  helper_id?: string | null;
   // No latitude/longitude. These were selected for ANOTHER user's jobs and
   // read by nothing — dead PII on the wire. Removed alongside
   // `20260831232513_address_only_when_offered`, which stops a helper who has

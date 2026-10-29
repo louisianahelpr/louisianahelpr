@@ -754,7 +754,7 @@ const UserProfile = () => {
 
             {/* Posted Jobs expanded inline */}
             {showPostedJobs && (
-              <JobsList jobs={postedJobs} variant="posted" knownCount={postedTotalCount} />
+              <JobsList jobs={postedJobs} variant="posted" knownCount={postedTotalCount} viewerId={currentUserId} isOwnProfile={isOwnProfile} />
             )}
 
             {/* Worked Jobs expanded inline */}
@@ -763,6 +763,8 @@ const UserProfile = () => {
                 jobs={completedWorkedJobs}
                 variant="worked"
                 knownCount={completedWorkedCount}
+                viewerId={currentUserId}
+                isOwnProfile={isOwnProfile}
               />
             )}
 

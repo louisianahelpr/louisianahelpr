@@ -1733,6 +1733,7 @@ export type Database = {
       }
       declutter_handovers: {
         Row: {
+          set_out_distance_m: number | null
           code: string
           confirmed_at: string | null
           confirmed_by: string | null
@@ -1747,6 +1748,7 @@ export type Database = {
           wrong_attempts: number
         }
         Insert: {
+          set_out_distance_m?: number | null
           code: string
           confirmed_at?: string | null
           confirmed_by?: string | null
@@ -1761,6 +1763,7 @@ export type Database = {
           wrong_attempts?: number
         }
         Update: {
+          set_out_distance_m?: number | null
           code?: string
           confirmed_at?: string | null
           confirmed_by?: string | null

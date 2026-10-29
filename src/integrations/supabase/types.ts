@@ -14573,6 +14573,7 @@ export type Database = {
       declutter_seller_item_private: {
         Args: { p_item_id: string }
         Returns: {
+          auto_offers: boolean
           floor_price_cents: number
           pickup_address: string
           pickup_lat: number

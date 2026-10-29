@@ -79,6 +79,8 @@ export interface DeclutterItem {
   live_at: string | null;
   /** Row 101: porch pickup allowed (the default). False = meet at the seller's home only. */
   porch_ok: boolean;
+  /** Smart offers (20261029162620): false = Buy only, the item page shows no "Make an offer". Absent = on (older fixtures, other reads). */
+  accepts_offers?: boolean;
 }
 
 export interface DeclutterPhoto {
@@ -112,27 +114,38 @@ export interface DraftFields {
 }
 
 const ITEM_COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
 
 type ItemRead = { data: unknown; error: { message: string; code?: string } | null; status?: number };
-const ITEM_COLUMNS_BEFORE_PORCH = ITEM_COLUMNS.replace(", porch_ok", "");
+/** Columns a newer migration adds, with the default an item has before it is live (each column's own DEFAULT). */
+const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true };
 
 /**
- * Row 101's column, porch_ok (20261017055504), reaches prod through db-deploy,
- * and the web app through prod-deploy; both start on the push to main, in no
- * fixed order. If the app is live first, the read is refused with 42703 naming
- * the column: read again without it, every item porch-on (the column's
- * default). Every other refusal is thrown as before. Remove once the migration
+ * Row 101's column, porch_ok (20261017055504), and smart offers' accepts_offers
+ * (20261029162620) reach prod through db-deploy, and the web app through
+ * prod-deploy; both start on the push to main, in no fixed order. If the app is
+ * live first, the read is refused with 42703 naming the column: read again
+ * without it, every item at that column's default (porch on, offers on). Every
+ * other refusal is thrown as before. Remove a column's entry once its migration
  * is live on prod (lh-money-escrow review, porch default #2).
  */
 async function readItems(run: (columns: string) => PromiseLike<ItemRead>): Promise<unknown> {
-  const first = await run(ITEM_COLUMNS);
-  if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) {
-    const data = unwrap(await run(ITEM_COLUMNS_BEFORE_PORCH));
-    const withPorch = (r: unknown) => (r && typeof r === "object" ? { ...r, porch_ok: true } : r);
-    return Array.isArray(data) ? data.map(withPorch) : withPorch(data);
+  let columns = ITEM_COLUMNS;
+  const defaults: Record<string, boolean> = {};
+  for (;;) {
+    const res = await run(columns);
+    const missing = res.error?.code === "42703"
+      ? Object.keys(NEWER_ITEM_COLUMNS).find((c) => !(c in defaults) && res.error!.message.includes(c))
+      : undefined;
+    if (!missing) {
+      const data = unwrap(res);
+      if (Object.keys(defaults).length === 0) return data;
+      const fill = (r: unknown) => (r && typeof r === "object" ? { ...r, ...defaults } : r);
+      return Array.isArray(data) ? data.map(fill) : fill(data);
+    }
+    defaults[missing] = NEWER_ITEM_COLUMNS[missing];
+    columns = columns.replace(`, ${missing}`, "");
   }
-  return unwrap(first);
 }
 
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */

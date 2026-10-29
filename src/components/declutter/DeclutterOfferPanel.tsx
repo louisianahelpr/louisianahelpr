@@ -157,6 +157,8 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers, enabled: item.status === "live" });
   const myHold = myHoldOn(cart.data, item.id);
   const myOffer = myOpenOfferOn(offers.data, item.id);
+  // Smart offers (20261029162620): the seller turned offers off = Buy only. An open offer of the buyer's still shows.
+  const offersOff = item.accepts_offers === false;
   const minCents = minOfferCents(item.current_price_cents);
   const cents = dollarsInputToCents(amount);
   const offerProblem =
@@ -253,7 +255,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   return (
     <section ref={panel} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label="Buy or make an offer">
       {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
-      <div ref={buttons} className={myOffer ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
+      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
             and Buy now steps back to an outline. */}
         <Button
@@ -267,7 +269,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         >
           <BuyNowLabel priceCents={item.current_price_cents} />
         </Button>
-        {!myOffer && (
+        {!myOffer && !offersOff && (
           <Button
             type="button"
             variant="outline"
@@ -282,6 +284,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         )}
       </div>
       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
+      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
       {/* The card step says it itself; once is enough. */}
       {!showCardStep && <p className="text-xs text-muted-foreground">You're only charged when you buy.</p>}
       {card.isError && (
@@ -365,7 +368,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                 >
                   Your offer
                 </Button>
-              ) : (
+              ) : offersOff ? null : (
                 <Button
                   type="button"
                   variant="outline"

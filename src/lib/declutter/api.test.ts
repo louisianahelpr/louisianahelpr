@@ -22,7 +22,9 @@
  * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
- * @mutate src/lib/declutter/api.ts |   if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) { |   if (first.error) {
+ * @mutate src/lib/declutter/api.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
+ * @mutate src/lib/declutter/api.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false };
+ * @mutate src/lib/declutter/api.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
  * @mutate src/lib/declutter/api.ts | { body, timeout: timeoutMs } | { body }
  * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
  * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;
@@ -135,7 +137,7 @@ const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string, extra: Record<string, unknown> = {}): Result => ({ data: null, error: { message, ...extra } });
 
 const COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
 
 const FIELDS: DraftFields = {
   title: "Oak desk",
@@ -331,6 +333,19 @@ describe("reads", () => {
     h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.porch_ok does not exist" }, status: 400 });
     h.queue.push(ok([{ id: "a" }]));
     await expect(fetchLiveItems()).resolves.toEqual([{ id: "a", porch_ok: true }]);
+  });
+
+  it("smart offers deploy window: accepts_offers missing (42703) reads again without it, offers on; both missing too", async () => {
+    expect(COLUMNS).toMatch(/, accepts_offers$/);
+    h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.accepts_offers does not exist" }, status: 400 });
+    h.queue.push(ok({ id: "i1", porch_ok: false }));
+    await expect(fetchItem("i1")).resolves.toEqual({ id: "i1", porch_ok: false, accepts_offers: true });
+    expect(h.queries.map((q) => q.ops[0])).toEqual([["select", [COLUMNS]], ["select", [COLUMNS.replace(", accepts_offers", "")]]]);
+    h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.porch_ok does not exist" }, status: 400 });
+    h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.accepts_offers does not exist" }, status: 400 });
+    h.queue.push(ok([{ id: "a" }]));
+    await expect(fetchLiveItems()).resolves.toEqual([{ id: "a", porch_ok: true, accepts_offers: true }]);
+    expect(h.queries.at(-1)!.ops[0]).toEqual(["select", [COLUMNS.replace(", porch_ok", "").replace(", accepts_offers", "")]]);
   });
 
   it("any other read refusal still throws (no second read)", async () => {

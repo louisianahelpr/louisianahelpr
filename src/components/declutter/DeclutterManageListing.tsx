@@ -46,6 +46,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
+import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
 
 type View = "menu" | "price" | "sold" | "delete";
@@ -146,6 +147,8 @@ export function ManageListingSheet({
                   onCheckedChange={(on) => drops.mutate(!on)}
                 />
               </li>
+              {/* Smart offers (owner 2026-10-29): Accept offers, Lowest you'll take (with Claude's suggestion), auto answers. */}
+              <DeclutterOfferRules itemId={item.id} priceCents={item.current_price_cents} acceptsOffers={item.accepts_offers} floorCents={manage?.floor_price_cents ?? null} rowClassName={ROW} />
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* Q2430: free on day 12 if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />

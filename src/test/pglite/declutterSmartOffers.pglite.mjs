@@ -18,6 +18,9 @@
  * the price does nothing automatic; no card refuses; declutter_set_offer_rules is the seller's own and turns auto
  * off with offers off; grants by role name.
  *
+ * Also 20261029170419_declutter_seller_reads_offer_rules (builder 33, smart offers (d)), applied 3x after it:
+ * declutter_seller_item_private returns auto_offers to the seller only (READ_MIGRATION=skip: RED).
+ *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite.
  */
 import os from "node:os";
@@ -41,6 +44,9 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const { SELLER, BUYER, BUYER2, BUYER3, NOCARD } = USERS;
 const skip = process.env.NEW_MIGRATION === "skip";
 const NEW_SQL = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
+const READ_FILE = "20261029170419_declutter_seller_reads_offer_rules.sql";
+const skipRead = skip || process.env.READ_MIGRATION === "skip";
+const READ_SQL = readFileSync(process.env.READ_MIGRATION_PATH ?? `${MIG_DIR}${READ_FILE}`, "utf8");
 
 const db = new PGlite();
 await db.exec(`CREATE SCHEMA IF NOT EXISTS storage;
@@ -67,6 +73,7 @@ await db.exec(`
 await db.exec(readFileSync(`${MIG_DIR}${SETUP_FEE_FILE}`, "utf8"));
 await db.exec(CARDS_SQL);
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(NEW_SQL);
+if (!skipRead) for (let i = 0; i < 3; i++) await db.exec(READ_SQL);
 
 let pass = 0;
 let fail = 0;
@@ -165,6 +172,16 @@ ok(refused(await me(BUYER, `SELECT public.declutter_set_offer_rules('${I(8)}', t
 ok(refused(await as("anon", null, `SELECT public.declutter_set_offer_rules('${I(8)}', true, true)`), /permission denied/), "anon cannot");
 ok(Array.isArray(await me(SELLER, `SELECT public.declutter_set_offer_rules('${I(8)}', true, true)`))
   && (await svc(`SELECT auto_offers FROM public.declutter_item_private WHERE item_id = '${I(8)}'`))?.[0]?.auto_offers === true, "the seller turns auto on");
+
+// The seller reads their own auto switch back (20261029170419); nobody else can.
+const r8 = await me(SELLER, `SELECT * FROM public.declutter_seller_item_private('${I(8)}')`);
+ok(Array.isArray(r8) && r8[0]?.auto_offers === true && typeof r8[0]?.floor_price_cents === "number", `the seller reads auto_offers back (${JSON.stringify(r8?.[0] ?? r8)})`);
+ok(Array.isArray(await me(SELLER, `SELECT public.declutter_set_offer_rules('${I(8)}', true, false)`))
+  && (await me(SELLER, `SELECT * FROM public.declutter_seller_item_private('${I(8)}')`))?.[0]?.auto_offers === false, "and reads it off after turning it off");
+ok(refused(await me(BUYER, `SELECT * FROM public.declutter_seller_item_private('${I(8)}')`), /item_not_found/), "another member cannot read it");
+ok(refused(await as("anon", null, `SELECT * FROM public.declutter_seller_item_private('${I(8)}')`), /permission denied/), "anon cannot read it");
+const acl2 = await svc(`SELECT proacl::text AS acl FROM pg_proc WHERE proname = 'declutter_seller_item_private'`);
+ok(/authenticated=X/.test(acl2?.[0]?.acl ?? "") && !/anon=/.test(acl2?.[0]?.acl ?? "") && !/(^|[{,])=X/.test(acl2?.[0]?.acl ?? ""), `seller read: grants by role name (${acl2?.[0]?.acl})`);
 
 // no card: the auto accept is refused like Buy.
 await item(9, { auto: true });

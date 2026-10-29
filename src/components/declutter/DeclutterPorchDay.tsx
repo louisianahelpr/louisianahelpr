@@ -90,7 +90,8 @@ export function PorchDayPanel({ orderId, side, booking, fallback }: {
     <div className="space-y-2" data-porch-day={booked ?? ""}>
       {booked ? (
         <p className="text-sm">
-          Pickup day: <span className="font-medium">{porchDayWords(booked)}</span>. It's out all that day once the seller posts the porch photo.
+          Pickup day: <span className="font-medium">{porchDayWords(booked)}</span>.{" "}
+          {side === "seller" ? "The buyer can come any time that day once you post the porch photo." : "It's out all that day once the seller posts the porch photo."}
         </p>
       ) : side === "seller" ? (
         <p className="text-sm text-muted-foreground">Waiting for the buyer to pick a pickup day (within 7 days of paying).</p>

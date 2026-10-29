@@ -54,6 +54,24 @@ function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDr
 }
 
 /**
+ * Photo coach (owner 2026-10-29): a NEW listing's held photos with Claude's pick for the cover moved
+ * first. Matched by the File itself (the one Claude was sent), so photos added or removed while it was
+ * writing never move the wrong one; the seller can still reorder or remove them.
+ */
+export function coverFirst(held: File[], cover: File | undefined): File[] {
+  if (!cover || held[0] === cover || !held.includes(cover)) return held;
+  return [cover, ...held.filter((f) => f !== cover)];
+}
+
+/** A held-photos ask that also names the File Claude picked for the cover (index into what it was sent). */
+export function withCoverFile(files: File[], ask: (f: File[]) => Promise<AiDraft>): () => Promise<AiDraft & { coverFile?: File }> {
+  return async () => {
+    const d = await ask(files);
+    return typeof d.coverPhoto === "number" ? { ...d, coverFile: files[d.coverPhoto] } : d;
+  };
+}
+
+/**
  * A resumed draft's auto-run (audit AA9): only what the seller left empty is
  * filled. The title and details when blank, the category while it is still
  * "Other"; the condition and size have no empty value, so they stay theirs.
@@ -81,12 +99,15 @@ export function useSellAiDraft<F extends AiFields>({
   setForm,
   autoStart,
   autoFillEmpty = false,
+  onDraft,
 }: {
   ask: (() => Promise<AiDraft>) | null;
   form: F;
   setForm: (update: (f: F) => F) => void;
   autoStart: boolean;
   autoFillEmpty?: boolean;
+  /** Called with each answer (the photo coach's cover pick). */
+  onDraft?: (d: AiDraft & { coverFile?: File }) => void;
 }) {
   const [state, setState] = useState<AiState>({ status: "idle" });
   const formRef = useRef(form);
@@ -100,6 +121,7 @@ export function useSellAiDraft<F extends AiFields>({
     try {
       const d = await ask();
       setForm((f) => (onlyEmpty ? fillEmptyFields(f, d) : mergeAiDraft(f, atStart, d)));
+      onDraft?.(d);
       setState({ status: "done", draft: d });
     } catch (err) {
       // Not silent: the panel shows the seller the plain-words reason and a "Try again" button
@@ -107,7 +129,7 @@ export function useSellAiDraft<F extends AiFields>({
       console.warn("[declutter] Claude's listing draft failed", err);
       setState({ status: "error", message: declutterErrorMessage(err) });
     }
-  }, [ask, setForm]);
+  }, [ask, setForm, onDraft]);
   useEffect(() => {
     if ((autoStart || autoFillEmpty) && ask && !ran.current) void run(!autoStart);
   }, [autoStart, autoFillEmpty, ask, run]);
@@ -145,6 +167,11 @@ export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () =
           <Sparkles className="h-4 w-4 shrink-0 text-[hsl(var(--sage-ink))]" aria-hidden />
           <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">Claude wrote your listing</p>
         </div>
+        {d.photoTip && (
+          <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-photo-tip="">
+            <span className="font-semibold">One more photo would help:</span> {d.photoTip}
+          </p>
+        )}
         <div className="space-y-1">
           <p className="text-ds-17 font-bold text-foreground [overflow-wrap:anywhere]" data-ai-title="">{d.title}</p>
           <p className="text-ds-13 text-muted-foreground">

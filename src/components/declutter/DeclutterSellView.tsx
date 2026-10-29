@@ -20,7 +20,7 @@
  * Under 18 (row 53) and missing payout setup (row 23) show as plain-English
  * blocks, never as dead buttons; the server refuses both anyway.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,7 +70,7 @@ import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellItForMeEntry } from "./SellItForMe";
-import { SellAiDraftPanel, useSellAiDraft } from "./SellAiDraft";
+import { SellAiDraftPanel, coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
 import { LastSetupNote, useLastListingSetup } from "./SellLastSetup";
 import { HANDOVER_CHOICE, SellHandoverChoices, handoverSummary } from "./SellHandoverChoices";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES, dropPctOf } from "@/lib/declutter/priceDrop";
@@ -104,6 +104,7 @@ export default function SellFlow() {
   const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
+  const setCoverFirst = useCallback((d: { coverFile?: File }) => setHeld((h) => coverFirst(h, d.coverFile)), []);
   // Where the price hint looks (W12): the pickup address once found, else the
   // saved listing's area, else what we already know about the member.
   // Never asks for location.
@@ -179,12 +180,12 @@ export default function SellFlow() {
   // go in the request (never stored) and it runs by itself once the first ones are added; a saved draft
   // asks from its uploaded photos. Either way "Write it again" asks once more.
   const aiAsk = useMemo(
-    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId, hintAt) : null) : held.length > 0 ? () => requestAiDraftFromPhotos(held, hintAt) : null),
+    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId, hintAt) : null) : held.length > 0 ? withCoverFile(held, (f) => requestAiDraftFromPhotos(f, hintAt)) : null),
     [itemId, photoCount, held],
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
   const resumedEmpty = !!itemId && loadedId === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
-  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty });
+  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty, onDraft: setCoverFirst });
   const usedLastSetup = useLastListingSetup(itemId ? undefined : user?.id, { setForm, setWays, setCoords });
   const problem = useMemo(() => formProblem(form), [form]);
   const keepUp = useKeepUp(itemId);

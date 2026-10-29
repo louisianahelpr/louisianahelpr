@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { Check } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { hasIdBadge } from "@/lib/awardGate";
 import type { Profile } from "./types";
 import { PROFILE_NAME_HEADING_LEVEL } from "./headingContract";
+
+/** Edit profile: You > Settings > Your account > Edit profile, opened directly. */
+export const EDIT_PROFILE_PATH = "/profile?tab=profile";
 
 /** Spec v2 §9.8: the You header names an ID-verified member this way. */
 export const VERIFIED_NEIGHBOR = "Verified neighbor";
@@ -26,7 +29,9 @@ export function youCardFacts(verified: boolean, avgRating: number | null, review
 /**
  * BOARD 18's slim profile card: photo with the verified seal, name, the facts
  * line and "View my public profile". The photo and the link both open the
- * public profile, the page other members see. Editing lives in You › Settings › Your profile.
+ * public profile, the page other members see. "Edit" (app audit A3-C6,
+ * 2026-10-29) opens Edit profile directly; it was reachable only through
+ * You > Settings > Your account > Edit profile.
  */
 export function YouCard({
   profile,
@@ -72,6 +77,18 @@ export function YouCard({
           View my public profile
         </button>
       </div>
+      <button
+        type="button"
+        data-testid="you-card-edit"
+        aria-label="Edit profile"
+        onClick={() => navigate(EDIT_PROFILE_PATH)}
+        className="btn-press ml-auto shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center gap-1.5 px-2 text-ds-13 font-bold"
+        style={{ color: "hsl(var(--bark))" }}
+      >
+        <Pencil className="w-4 h-4" aria-hidden />
+        {/* Icon only on a phone: the word cost "View my public profile" its one line at 375. */}
+        <span className="max-sm:hidden">Edit</span>
+      </button>
     </div>
   );
 }

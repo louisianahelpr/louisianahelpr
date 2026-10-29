@@ -5,12 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { taskPhotoUrl } from "@/lib/helprTasks/photoUrl";
 import { AdminCard } from "../AdminViewShell";
+import { HelprPhoto, ProblemCaseView } from "./DeclutterProblemCase";
 import { ProblemTalk } from "./DeclutterProblemTalk";
 
 /**
@@ -39,22 +39,6 @@ import { ProblemTalk } from "./DeclutterProblemTalk";
  */
 type ProblemRow = AdminProblem;
 
-/** The Helpr's photo at the pickup (private helpr-tasks bucket, signed URL; admins may read it). */
-function HelprPhoto({ path }: { path: string }) {
-  const url = useQuery({ queryKey: ["helpr-tasks", "photo", path], queryFn: () => taskPhotoUrl(path), staleTime: 5 * 60_000 });
-  if (url.isError) return <p className="text-xs" role="alert">The Helpr's photo couldn't load.</p>;
-  if (!url.data) return null;
-  return <img src={url.data} alt="The Helpr's photo at the pickup address" className="h-32 w-32 rounded-lg object-cover" loading="lazy" />;
-}
-
-/** A handover photo (private declutter-handover bucket, signed URL; admins may read it). */
-function HandoverPhoto({ path, alt }: { path: string; alt: string }) {
-  const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
-  if (url.isError || url.data === null) return <p className="text-xs" role="alert">This photo couldn't load.</p>;
-  if (!url.data) return <div className="aspect-square w-full rounded-lg bg-muted" aria-hidden />;
-  return <img src={url.data} alt={alt} className="aspect-square w-full rounded-lg object-cover" loading="lazy" />;
-}
-
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : null);
 
 /**
@@ -72,15 +56,6 @@ function ProblemDetail({ d }: { d: AdminProblemDetail }) {
     d.premium_cents != null && `buyer fee ${formatPrice(d.premium_cents)}`,
     d.tax_cents ? `tax ${formatPrice(d.tax_cents)}` : null,
   ].filter(Boolean).join(", ");
-  const photos = [
-    d.set_out_photo_path && { path: d.set_out_photo_path, label: "Seller set it out", at: when(d.set_out_at), extra: null },
-    d.picked_up_photo_path && {
-      path: d.picked_up_photo_path,
-      label: "Buyer picked it up",
-      at: when(d.picked_up_at),
-      extra: d.picked_up_distance_m != null ? `${d.picked_up_distance_m} m from the pickup address` : null,
-    },
-  ].filter(Boolean) as { path: string; label: string; at: string | null; extra: string | null }[];
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
@@ -97,22 +72,6 @@ function ProblemDetail({ d }: { d: AdminProblemDetail }) {
           </p>
         </div>
       </div>
-      {photos.length > 0 ? (
-        <div className="grid max-w-md grid-cols-2 gap-3">
-          {photos.map((ph) => (
-            <figure key={ph.path} className="space-y-1">
-              <HandoverPhoto path={ph.path} alt={ph.label} />
-              <figcaption className="text-xs">
-                <span className="font-medium">{ph.label}</span>
-                {ph.at ? <span className="block text-muted-foreground">{ph.at}</span> : null}
-                {ph.extra ? <span className="block text-muted-foreground">{ph.extra}</span> : null}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">No handover photos.</p>
-      )}
       {d.confirmed_at ? (
         <p className="text-xs text-muted-foreground">Handover confirmed {when(d.confirmed_at)}{d.confirmed_by ? ` (${CONFIRMED_BY_WORDS[d.confirmed_by] ?? d.confirmed_by})` : ""}.</p>
       ) : null}
@@ -177,6 +136,8 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
+      {/* AL-4: the order's steps and both sides' handover photos, side by side with their times and places. */}
+      {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
       {/* AL-6: the buyer and seller's chat and the item questions, kept whole, as sides only. */}
       <ProblemTalk problemId={row.id} />

@@ -15,7 +15,7 @@
  * "Damaged in delivery" only on an order a Helpr carries.
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.detail ? <ProblemDetail d={row.detail} /> : null} |
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |  && row.detail?.helpr_delivery !== false; | ;
- * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     d.picked_up_photo_path && { | false && {
+ * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |   if (d.picked_up_photo_path) { |   if (false) {
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     mutationFn: () => adminDecideDeliveryDamage(row.id, note.trim() \|\| null), |     mutationFn: () => adminDecideProblem(row.id, "refund_buyer", "none", false, null),
  *
  * AL-6 (owner 2026-10-28, "Chats saved and filtered"): the card shows the buyer and seller's whole handover chat
@@ -24,13 +24,22 @@
  * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |   const chat = talk.data.filter((r) => r.kind === "chat"); |   const chat = talk.data.filter((r) => r.kind === "chat").slice(-1);
  * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx | {q.removed ? " · hidden in the app" : ""} | {""}
  * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx | {SIDE[m.side]} · {when(m.said_at)} | {when(m.said_at)}
- * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |         <button type="button" className="underline" onClick={() => void talk.refetch()}>Try again</button> |
+ * @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |  onRetry={() => void talk.refetch()} /> |  />
+ *
+ * AL-4 (owner 2026-10-28, "One dispute screen for admin"): the order's steps (OrderSteps, from the order's own rows
+ * via declutter_admin_problem_case) and both sides' handover photos side by side with their times and places, the
+ * Helpr's pickup and drop-off photos included, above the decide buttons.
+ * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |   if (c?.helpr_dropoff_photo_path) { |   if (false) {
+ * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |   if (c?.helpr_pickup_photo_path) { |   if (false) {
+ * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |       place: metres(c.helpr_dropoff_distance_m, "drop-off address"), helpr: true }); |       place: null, helpr: true });
+ * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |             slotStart: c.slot_start ?? c.pickup_day, |             slotStart: null,
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null} |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0 };
+const state = { rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0, kase: null as unknown };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
@@ -44,7 +53,7 @@ vi.mock("@/lib/declutter/handover", () => ({
 
 vi.mock("@/lib/declutter/adminProblemCase", () => ({
   fetchProblemTalk: async () => { state.talkAsked += 1; if (state.talkError) throw new Error("not_admin"); return state.talk; },
-  fetchProblemCase: async () => null,
+  fetchProblemCase: async () => state.kase,
 }));
 
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
@@ -72,6 +81,7 @@ beforeEach(() => {
   state.talk = [];
   state.talkError = false;
   state.talkAsked = 0;
+  state.kase = null;
 });
 
 describe("DeclutterProblemsCard: the delivery decision", () => {
@@ -207,5 +217,50 @@ describe("DeclutterProblemsCard: the chat and the questions (AL-6)", () => {
     state.talkError = false;
     fireEvent.click(again);
     await waitFor(() => expect(state.talkAsked).toBeGreaterThan(before));
+  });
+});
+
+describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
+  const kase = (over: Record<string, unknown> = {}) => ({
+    handover: "porch", order_status: "paid", slot_start: null, pickup_day: "2026-10-16", seller_delivery_status: null,
+    seller_delivery_slot_start: null, seller_delivered_at: null, helpr_accepted_at: null, helpr_picked_up_at: null,
+    helpr_pickup_photo_path: null, helpr_delivered_at: null, helpr_dropoff_photo_path: null, helpr_dropoff_distance_m: null, ...over,
+  });
+
+  it("draws the order's steps from its own rows: porch, day picked, on the porch, picked up", async () => {
+    state.kase = kase();
+    state.rows = [row("not_as_described", "buyer", [], detail({ set_out_photo_path: null, set_out_at: null, picked_up_photo_path: null, picked_up_at: null }))];
+    const v = show();
+    await screen.findByText("Oak side table and 1 more");
+    await waitFor(() => expect(document.querySelector("[data-order-steps]")).not.toBeNull());
+    let steps = document.querySelector("[data-order-steps]")!;
+    expect(steps.getAttribute("data-order-steps")).toBe("porch");
+    // A day is picked (the booking's porch day), nothing set out yet: "Day picked" is the current step.
+    expect(steps.getAttribute("data-order-step")).toBe("1");
+    v.unmount();
+    // Set out, not yet picked up: "On the porch".
+    state.rows = [row("not_as_described", "buyer", [], detail({ picked_up_photo_path: null, picked_up_at: null }))];
+    show();
+    await waitFor(() => expect(document.querySelector("[data-order-steps]")).not.toBeNull());
+    steps = document.querySelector("[data-order-steps]")!;
+    expect(steps.getAttribute("data-order-step")).toBe("2");
+  });
+
+  it("puts the seller's side next to the buyer's, with the Helpr's pickup and drop-off photos, times and the drop-off distance", async () => {
+    state.kase = kase({ handover: "delivery", helpr_accepted_at: "2026-10-16T08:00:00Z", helpr_picked_up_at: "2026-10-16T09:30:00Z",
+      helpr_pickup_photo_path: "h1/task/t1/pickup.jpg", helpr_delivered_at: "2026-10-16T11:00:00Z", helpr_dropoff_photo_path: "h1/task/t1/dropoff.jpg",
+      helpr_dropoff_distance_m: 18 });
+    state.rows = [row("damaged", "buyer", [], detail({ handover: "delivery", helpr_delivery: true, set_out_photo_path: null, picked_up_photo_path: null }))];
+    show();
+    const grid = await screen.findByLabelText("Handover photos, side by side");
+    const [seller, buyer] = Array.from(grid.children) as HTMLElement[];
+    expect(seller.textContent).toMatch(/^Seller's side/);
+    expect(buyer.textContent).toMatch(/^Buyer's side/);
+    expect(await within(seller).findByAltText("Helpr picked it up")).toHaveAttribute("src", "https://signed.test/h1/task/t1/pickup.jpg");
+    expect(await within(buyer).findByAltText("Helpr dropped it off")).toHaveAttribute("src", "https://signed.test/h1/task/t1/dropoff.jpg");
+    expect(within(buyer).getByText("18 m from the drop-off address")).toBeInTheDocument();
+    expect(seller.textContent).toContain(new Date("2026-10-16T09:30:00Z").toLocaleString());
+    // The decide buttons stay on the same card.
+    expect(screen.getByRole("button", { name: "Damaged in delivery" })).toBeInTheDocument();
   });
 });

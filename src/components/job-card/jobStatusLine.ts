@@ -716,8 +716,10 @@ export type HelperWait =
 export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   job_gone: { detail: "This job has closed" },
   not_selected: { detail: "You weren't picked" },
-  /* Closed by the poster's no-show report (closed_reason 'no_show', 20261029180706): nobody passed on them. */
-  reported_no_show: { detail: "The poster reported you didn't show up for this job" },
+  /* Closed by the poster's no-show report (closed_reason 'no_show', 20261029180706): nobody passed on them. The
+     collapsed card's one line (collapsedStatusSentence: 194px at 320) holds the short form; the closed label and
+     the job page say the whole sentence, "The poster reported you didn't show up for this job". */
+  reported_no_show: { detail: "Reported as a no-show" },
   /* The reason, when the job has one, follows as the line's `suffix`. */
   cancelled: { detail: "Cancelled" },
   applied: { detail: "They haven't replied yet" },

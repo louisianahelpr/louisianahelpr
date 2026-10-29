@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-28T22:11:38.860Z",
-  "guards": 2529,
-  "registered": 2519,
+  "generated": "2026-10-29T00:47:50.853Z",
+  "guards": 2548,
+  "registered": 2538,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
@@ -19,7 +19,8 @@
     "src/components/admin/adminTestRows.test.ts",
     "src/test/declutterOneSectionHeading.test.ts",
     "src/test/declutterPriceDropsOptIn.test.ts",
-    "src/test/disabledPrimaryLooksDisabled.test.ts"
+    "src/test/disabledPrimaryLooksDisabled.test.ts",
+    "src/test/emailSendLogOneRow.test.ts"
   ],
   "classD_selfReferential": [
     {

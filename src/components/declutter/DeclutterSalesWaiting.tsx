@@ -57,7 +57,8 @@ export function SalesWaiting() {
       </ul>
       <ConfirmSheet open={asking !== null} title="Cancel this sale?" confirmLabel="Cancel sale" cancelLabel="Keep the sale" pending={cancel.isPending}
         onConfirm={() => { if (asking) cancel.mutate(asking); }} onClose={() => setAsking(null)} testId="cancel-sale">
-        You'll get a Declutter strike, and the buyer is told. 3 strikes pause Declutter for you.
+        {/* Audit 1028 part 2, D2-10: the cancel also takes the listing down (declutter_seller_cancel_sale: withdrawn). */}
+        You'll get a Declutter strike, and the buyer is told. Your listing comes down too; relist it from History. 3 strikes pause Declutter for you.
       </ConfirmSheet>
     </section>
   );

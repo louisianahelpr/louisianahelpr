@@ -63,6 +63,8 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 // No earlier listing: the form starts blank (the last-setup prefill has its own test, declutterSellLastSetup).
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+// The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
+vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,

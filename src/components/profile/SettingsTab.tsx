@@ -224,6 +224,8 @@ export function SettingsTab({
         {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
         <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
         <ShareJobPhotosRow profile={profile} />
+        {/* A3-C16: unblock without having to find the person's profile first. */}
+        <Row testId="blocked" label={TAB_TITLES.blocked} sub="People you blocked, and unblock" onClick={() => onSelectTab("blocked")} />
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
         {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}
       </Group>

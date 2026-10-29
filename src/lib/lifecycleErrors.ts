@@ -963,6 +963,8 @@ export const RPC_ERROR_COPY = {
     porch_unavailable: DC.porch_unavailable,
     // Owner 2026-10-28 (20261028235247): a way the giver did not tick.
     handover_not_offered: DC.handover_not_offered,
+    // D-NEW14 (20261029224749): a giver with saved porch places, and no place picked yet.
+    porch_place_needed: DC.porch_place_needed,
     under_18: DC.under_18,
   },
   // Owner 2026-10-28: the ways the seller ticks on step 4 (20261028235247).

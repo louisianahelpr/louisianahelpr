@@ -25,7 +25,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: () => void apply.flow.handleApplyRequest(job.id) } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const line = job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : | const line =
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""]; |     : HELD_LINE[job.payment_status ?? ""];
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire someone.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -294,7 +294,9 @@ describe("job page, poster side (boards 15, 168)", () => {
     const { unmount } = renderPage();
     expect(screen.getByText("Not paid yet. Helprs can't see this job until it's paid.")).toBeTruthy();
     unmount();
-    state.job = row({ customer_id: ME, status: "completed", payment_status: "payout_pending" });
+    // payout_pending was this "unverified" example until F32 gave it its line (posterMoneyAfterRelease.test.tsx);
+    // a state the card has no verified sentence for still prints nothing.
+    state.job = row({ customer_id: ME, status: "completed", payment_status: "cancelling" });
     renderPage();
     expect(document.querySelector("[data-poster-money] p.mt-1\\.5")).toBeNull();
     expect(screen.getByLabelText(/^Job progress: all 8 steps done/)).toBeTruthy();

@@ -4,6 +4,7 @@
  * Rust is money only (spec §1.1); every figure comes from the job row or the
  * real fee rule, or it is not shown (§1.5).
  */
+import { Link } from "react-router-dom";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
@@ -63,16 +64,44 @@ const HELD_LINE: Partial<Record<string, string>> = {
  */
 const PAID_UNDER_CARD_HOLD = "Paid. We hold it until the job is done.";
 
+/** "Sat, Oct 31 at 11:13 PM" in Louisiana time (the payout schedule is Louisiana's). */
+function payoutWhen(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return `${day} at ${time}`;
+}
+
+/**
+ * The poster's money once they approved (audit 2026-10-28 F32: a finished, released job still read "Your budget
+ * $40" with no line at all, because payout_pending had none): that it was paid and released, when the Helpr's pay
+ * goes out (jobs.payout_scheduled_at, the release's own schedule), and where the receipt is.
+ */
+const RELEASED = new Set(["payout_pending", "released"]);
+function releasedLine(job: JobPageRow): string {
+  if (job.payment_status === "released") return HELD_LINE.released!;
+  const at = job.payout_scheduled_at && new Date(job.payout_scheduled_at).getTime() > Date.now() ? job.payout_scheduled_at : null;
+  return at ? `Paid and released to your Helpr. Their pay goes out ${payoutWhen(at)}.` : "Paid and released to your Helpr. Their pay goes out with the next payout.";
+}
+
 export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
   const cardHoldOn = useFeature("card_hold_at_post");
-  const line = job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""];
+  const released = RELEASED.has(job.payment_status ?? "");
+  const line = released
+    ? releasedLine(job)
+    : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""];
   return (
     <div data-poster-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-15 font-semibold">Your budget</p>
+        <p className="text-ds-15 font-semibold">{released ? "Job price" : "Your budget"}</p>
         <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>
       </div>
       {line && <p className="mt-1.5 text-ds-13 text-muted-foreground">{line}</p>}
+      {released && (
+        <Link data-receipt-link="" to="/profile?tab=receipts" className="mt-2 inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
+          See your receipt
+        </Link>
+      )}
       {/* Zero applicants is the page's own "No applicants yet" block (board 57), not a line here. */}
       {job.status === "open" && !loading && total > 0 && (
         <p data-applicant-count="" className="mt-3 border-t border-border pt-3 text-ds-14 font-semibold">

@@ -4,7 +4,7 @@
  * ("Take the before photo" after both photos). The supabase mock trims each row to the columns selected, the way
  * PostgREST does, so a column the read forgets is missing here exactly as on prod.
  *
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls"; | has_active_dispute";
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at"; | has_active_dispute";
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |     enabled: !!job.data?.party && !!job.data.job.helper_id, |     enabled: false,
  */
 import { describe, it, expect, vi } from "vitest";
@@ -19,6 +19,7 @@ const db: Record<string, Record<string, unknown>[]> = {
     location: "1 Main St", customer_id: "poster", status: "in_progress", payment_status: "escrow", urgent_fee: null, helpers_needed: 1,
     is_group_job: false, photos: [], helper_fee_flat_cents: 70, helper_fee_percent: 5, helper_id: "me", poster_fee_flat_cents: null,
     helper_arrived_at: "2026-10-28T12:00:00Z", require_photo_proof: true, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    payout_scheduled_at: "2026-11-01T04:13:00Z",
   }],
   job_tracking: [{ job_id: JOB, status: "working", created_at: "2026-10-28T12:10:00Z" }],
 };
@@ -54,6 +55,8 @@ describe("the job page's party read carries the Working card's inputs", () => {
     expect(job.require_photo_proof).toBe(true);
     expect(job.proof_before_urls).toEqual(["b.jpg"]);
     expect(job.proof_after_urls).toEqual(["a.jpg"]);
+    // F32: when the released pay goes out, for the poster's money card.
+    expect(job.payout_scheduled_at).toBe("2026-11-01T04:13:00Z");
     await waitFor(() => expect(result.current.tracking.data).toBe("working"));
   });
 });

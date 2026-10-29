@@ -18,6 +18,11 @@
  * @mutate src/lib/declutter/handover.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_porch_note")) return "not_deployed"; |
  * @mutate src/lib/declutter/handover.ts | send(tags.length ? { ...base, p_tags: [...tags] } : base) | send(base)
  * @mutate src/lib/declutter/handover.ts |     res = await send(base); |
+ * @mutate src/lib/declutter/handover.ts |   if (res.error) await discardRefusedHandoverPhoto(photoPath);\n  return rpcData(res, (e) => rpcErrorMessage("declutter_seller_picked_up", e)) | return rpcData(res, (e) => rpcErrorMessage("declutter_seller_picked_up", e))
+ * @mutate src/lib/declutter/sellerDelivery.ts |   if (res.error) await discardRefusedHandoverPhoto(photoPath);\n  data(res, | data(res,
+ * @mutate src/lib/declutter/handover.ts |   if (!isStorageObjectPath(path)) return; |
+ * @mutate src/lib/declutter/handover.ts |     if (error) console.warn("[declutter] refused handover photo not removed", error.message); |
+ * @mutate src/lib/declutter/handover.ts |     // Best effort: the member sees the RPC's refusal, never this cleanup's failure.\n | throw e;\n
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,6 +34,7 @@ const h = vi.hoisted(() => {
   const rpcs: unknown[][] = [];
   const store: unknown[][] = [];
   const next = () => queue.shift() ?? { data: null, error: null };
+  const removeResult: { error: unknown; throws: boolean } = { error: null, throws: false };
 
   const makeBuilder = (table: string) => {
     const q: { table: string; ops: [string, unknown[]][] } = { table, ops: [] };
@@ -56,10 +62,15 @@ const h = vi.hoisted(() => {
           store.push(["upload", bucket, ...a]);
           return Promise.resolve(next());
         },
+        // Audit 1a #10: the refused-photo cleanup. Its result never comes from the shared queue.
+        remove: (...a: unknown[]) => {
+          store.push(["remove", bucket, ...a]);
+          return removeResult.throws ? Promise.reject(new Error("network down")) : Promise.resolve({ data: [], error: removeResult.error });
+        },
       }),
     },
   };
-  return { queue, queries, rpcs, store, supabase, clean: vi.fn() };
+  return { queue, queries, rpcs, store, supabase, removeResult, clean: vi.fn() };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: h.supabase }));
@@ -86,6 +97,7 @@ import {
   uploadHandoverPhoto,
 } from "./handover";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { markDelivered } from "./sellerDelivery";
 
 const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string): Result => ({ data: null, error: { message } });
@@ -95,6 +107,8 @@ beforeEach(() => {
   h.queries.length = 0;
   h.rpcs.length = 0;
   h.store.length = 0;
+  h.removeResult.error = null;
+  h.removeResult.throws = false;
   h.clean.mockReset();
 });
 afterEach(() => vi.restoreAllMocks());
@@ -248,5 +262,48 @@ describe("uploadHandoverPhoto", () => {
     h.clean.mockResolvedValue(new File([new Uint8Array([9])], "x.jpg", { type: "image/jpeg" }));
     h.queue.push(refused("storage down"));
     await expect(uploadHandoverPhoto("u1", "o1", file)).rejects.toThrow("photo_not_uploaded");
+  });
+});
+
+describe("audit 1a #10: a refused handover photo is removed, and the refusal still surfaces", () => {
+  const removes = () => h.store.filter((c) => c[0] === "remove");
+  const P = "u1/declutter/handover/o1/x.jpg";
+
+  it("porch photo, seller picked up and seller delivered: a refusal removes the photo and throws the RPC's error", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    h.queue.push(refused("photo_too_old"));
+    await expect(porchPhoto("o1", P, { lat: 30, lng: -92 })).rejects.toThrow(/photo_too_old/);
+    h.queue.push(refused("photo_not_at_address"));
+    await expect(sellerPickedUp("o1", P, { lat: 30, lng: -92 })).rejects.toThrow(/photo_not_at_address/);
+    h.queue.push(refused("photo_too_old"));
+    await expect(markDelivered("o1", P, { lat: 30, lng: -92 })).rejects.toThrow(/photo_too_old/);
+    expect(removes()).toEqual([
+      ["remove", "declutter-handover", [P]],
+      ["remove", "declutter-handover", [P]],
+      ["remove", "declutter-handover", [P]],
+    ]);
+  });
+
+  it("an accepted photo is never removed, and no photo means nothing to remove", async () => {
+    h.queue.push(ok({ result: "set_out" }));
+    await porchPhoto("o1", P, null);
+    h.queue.push(refused("not_your_order"));
+    await expect(sellerPickedUp("o1", null)).rejects.toThrow(/not_your_order/);
+    h.queue.push(refused("not_your_order"));
+    await expect(markDelivered("o1", "")).rejects.toThrow(/not_your_order/);
+    expect(removes()).toEqual([]);
+  });
+
+  it("a failed cleanup is logged and never replaces the RPC's error", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    h.removeResult.error = { message: "denied" };
+    h.queue.push(refused("photo_too_old"));
+    await expect(porchPhoto("o1", P, null)).rejects.toThrow(/photo_too_old/);
+    h.removeResult.error = null;
+    h.removeResult.throws = true;
+    h.queue.push(refused("photo_too_old"));
+    await expect(porchPhoto("o1", P, null)).rejects.toThrow(/photo_too_old/);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["[declutter] refused handover photo not removed", "[declutter] refused handover photo not removed"]);
   });
 });

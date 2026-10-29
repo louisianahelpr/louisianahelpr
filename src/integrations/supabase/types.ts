@@ -14077,6 +14077,10 @@ export type Database = {
         Args: { p_name: string; p_write: boolean }
         Returns: boolean
       }
+      declutter_handover_photo_unattached: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       declutter_handover_sweep: { Args: never; Returns: Json }
       declutter_haul_away_state: {
         Args: { p_item_ids?: string[] }

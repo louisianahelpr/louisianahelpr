@@ -99,6 +99,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
+  ('declutter_handover_photo_unattached', 'allow', 'audit 1a #10 (20261029222816): TRUE = this declutter-handover path is in the caller''s own handover folder and no handover row holds it, so the uploader may delete it (storage DELETE policy)'),
   ('shop_handover_photo_access',    'allow',    'TRUE = the caller may write (the shop, own folder, charged accepted order) or read (a party or an admin) this shop-handover object (20261018211820)'),
   ('rentals_public_listing_visible','allow',    'may anyone with the link see this Homes listing (visible, Homes open to everyone, not a test or seed owner; 20261019062540)'),
   ('rentals_listing_photo_access',  'allow',    'TRUE = the caller may upload into / read this listing-photos object (own folder, own open listing, not taken down; 20261019071203)'),
@@ -270,6 +271,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
   -- D is an admin, so reading a well-formed declutter-handover path is TRUE for D (no order row needed).
   ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
+  -- Audit 1a #10: A's own handover-folder path that no declutter_handovers row holds, so the non-NULL call is TRUE for A.
+  ('declutter_handover_photo_unattached', '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg'''], ARRAY[1]),
   -- D is an admin, so reading a well-formed shop-handover path is TRUE for D (no order row needed).
   ('shop_handover_photo_access',    '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/shops/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
   -- D's listing L (live; the 'rentals' step opens Homes to everyone; D is no test or seed account), so TRUE for anyone.

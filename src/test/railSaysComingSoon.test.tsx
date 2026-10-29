@@ -2,8 +2,8 @@
  * Audit #42 (Declutter deep audit, 2026-10-28): a section not open to the
  * viewer said "Coming soon" on the phone's Explore chips but "Soon" on the
  * desktop rail. The lead's rule: a member sees "Coming soon" wherever the
- * section is listed in the nav; a tester who can open it sees "Preview"
- * (previewMark.test.tsx). On the rail it is a muted line under the name: as a
+ * section is listed in the nav; a tester who can open it sees "Coming soon" in
+ * olive (previewMark.test.tsx; it said "Preview" until audit A2-L17, 2026-10-29). On the rail it is a muted line under the name: as a
  * pill beside "Declutter" it ran 21px past the nested row (WebKit, 1440,
  * ~/.lh-shots/b3-1028/s42).
  *

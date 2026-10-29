@@ -12,7 +12,7 @@
  *  - "rail":    "Coming soon" UNDER the section's name on the desktop rail, as on the
  *               phone's chips. Audit #42 (2026-10-28): a member's phone chip said "Coming
  *               soon" and the same member's rail said "Soon"; the lead's rule: members see
- *               "Coming soon", a tester who can open the section sees "Preview". As a pill
+ *               "Coming soon", a tester who can open the section sees it too, in olive (PreviewPill, A2-L17). As a pill
  *               beside the name it did not fit: "Declutter" plus the pill ran 21px past the
  *               nested row's 131px (WebKit, 1440), so it is a muted line under the name.
  */

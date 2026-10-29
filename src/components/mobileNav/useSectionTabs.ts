@@ -39,7 +39,7 @@ export function useOpenSectionKeys(): SectionKey[] {
 /**
  * Is this live section a PREVIEW for the viewer: open to them only because they
  * are a tester (admin or test account), not yet to everyone? Then a small
- * "Preview" mark sits where it is listed (PreviewPill), so the owner sees what
+ * olive "Coming soon" mark sits where it is listed (PreviewPill), so the owner sees what
  * members cannot. `openToEveryone` is the features_open_to_everyone() answer,
  * null until it has loaded and after any failure: then NOTHING is a preview,
  * never a false mark. A member's live section is always open to everyone, so a

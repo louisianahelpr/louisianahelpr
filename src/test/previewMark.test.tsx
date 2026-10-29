@@ -1,7 +1,9 @@
 /**
  * THE "Preview" MARK (lead, 2026-10-21): a live section the viewer can open
- * only because they are a tester (admin or test account) says "Preview"
- * wherever it is listed, so the owner can see what members cannot.
+ * only because they are a tester (admin or test account) carries an olive
+ * mark wherever it is listed, so the owner can see what members cannot. It
+ * says "Coming soon", the phone switcher's words (audit A2-L17, 2026-10-29:
+ * the rail said "Preview" while the 375 switcher said "Coming soon").
  *
  * No new server function: preview = the section's switch is on for the viewer
  * (useFeature) AND features_open_to_everyone() (migration 20261019051933,
@@ -23,7 +25,8 @@
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isSuccess ? new Set(q.data ?? []) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
  * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals); |   const openToEveryone = useOpenToEveryoneAnswer(true);
- * @mutate src/components/DesktopSidebarNav.tsx |                 {preview && <PreviewPill variant="compact" className="ml-auto" />} |
+ * @mutate src/components/DesktopSidebarNav.tsx |                   {preview && <PreviewPill variant="rail" />} |
+ * @mutate src/components/sections/PreviewPill.tsx |       Coming soon\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
  * @mutate src/components/create/CreateSheet.tsx |                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />} |                   {on && <PreviewPill data-create-preview={s.key} />}
  * @mutate src/components/profile/SettingsTab.tsx |           const preview = s.feature !== null && !!tab?.preview; |           const preview = s.feature !== null && !!tab?.on;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       await queryClient.invalidateQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY }); |
@@ -32,7 +35,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { renderHook, waitFor } from "@testing-library/react";
+import { render, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -44,6 +47,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { sectionIsPreview, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
+import { PreviewPill } from "@/components/sections/PreviewPill";
 
 const ROOT = resolve(__dirname, "..", "..");
 let client: QueryClient;
@@ -159,7 +163,7 @@ describe("(b) useSectionTabs `preview`", () => {
 describe("(c) every listing draws PreviewPill, gated on the section's own preview flag", () => {
   const read = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
   const SITES: Array<[string, RegExp]> = [
-    ["src/components/DesktopSidebarNav.tsx", /\{preview && <PreviewPill\b/],
+    ["src/components/DesktopSidebarNav.tsx", /\{preview && <PreviewPill variant="rail"/],
     ["src/components/profile/SettingsTab.tsx", /badge=\{preview \? <PreviewPill\b/],
     ["src/components/create/CreateSheet.tsx", /\{on && isPreview\(s\) && <PreviewPill\b/],
   ];
@@ -172,10 +176,17 @@ describe("(c) every listing draws PreviewPill, gated on the section's own previe
     expect(read("src/components/sections/ExploreSwitcher.tsx")).toMatch(/s\.feature !== null && !!live\.find\(\(t\) => t\.path === s\.path\)\?\.preview/);
   });
 
-  it("the pill says 'Preview' in sentence case, muted olive", () => {
-    const pill = read("src/components/sections/PreviewPill.tsx");
-    expect(pill).toMatch(/>\s*Preview\s*</);
-    expect(pill).toMatch(/color: "hsl\(var\(--bark\)\)"/);
+  it("the mark says 'Coming soon' (the phone switcher's words, A2-L17) in sentence case, muted olive, in both variants", () => {
+    for (const variant of ["pill", "rail"] as const) {
+      const { container, unmount } = render(<PreviewPill variant={variant} data-x="" />);
+      const el = container.querySelector("[data-preview-pill]") as HTMLElement;
+      expect({ variant, text: el.textContent?.trim(), color: el.style.color }).toEqual({ variant, text: "Coming soon", color: "hsl(var(--bark))" });
+      unmount();
+    }
+  });
+
+  it("on the rail the mark is a line under the section's name, inside the label (beside it, the row ran past its padding)", () => {
+    expect(read("src/components/DesktopSidebarNav.tsx")).toMatch(/\{soon && <SoonPill variant="rail"[^}]*\}\s*(?:\{\s*\}\s*)?\{preview && <PreviewPill variant="rail" \/>\}\s*<\/span>/);
   });
 
   it("an admin's switch change re-asks which sections are open to everyone", () => {

@@ -256,7 +256,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helper_has_advanced_analytics",
   "declutter_in_agreed_sale", "declutter_slot_in_windows", "declutter_handover_photo_access", "shop_handover_photo_access",
   // Declutter slice 5 (20261017055505).
-  "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "handover_photo_is_fresh", "helpr_task_same_stripe_mode",
+  "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "handover_photo_is_fresh", "declutter_return_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
   // Declutter delivery-pay raise (Q1929, 20261021185418).
   "declutter_delivery_raise_open",

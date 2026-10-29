@@ -13,6 +13,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Conversation } from "../types";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const POSTER = "aaaaaaaa-0000-4000-8000-000000000001";
 const HELPR = "bbbbbbbb-0000-4000-8000-000000000002";
@@ -24,7 +25,7 @@ const ROW = {
   id: JOB,
   title: "Two-room clean",
   category: "cleaning",
-  date_needed: "2026-11-20",
+  date_needed: jobLocalDateISO(22),
   start_time: "09:00:00",
   budget: 40,
   status: "accepted",

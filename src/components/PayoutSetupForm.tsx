@@ -459,8 +459,13 @@ export function PayoutSetupForm({ onSettled }: {
 
       {!setupPaused && !isFullyOnboarded && !checking && (
         <>
+          {/* size="wrap": at 320 the one-line label ran past both edges of
+              the button (measured on Money > Earned, helper-e2e: content 249px
+              in a 246px button, "Stripe" cut at the right). It wraps to a
+              second line instead. Guard: PayoutSetupForm.test.tsx. */}
           <Button
             variant="primary"
+            size="wrap"
             onClick={handleOnboard}
             disabled={onboarding}
             className="w-full rounded-ds-md"

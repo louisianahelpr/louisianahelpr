@@ -475,3 +475,23 @@ describe("PayoutSetupForm — a refused start says why, on screen", () => {
     expect(screen.queryByTestId("payout-start-error")).toBeNull();
   });
 });
+
+/**
+ * The start button's label wraps instead of running past its edges (320 px,
+ * Money > Earned, measured 2026-10-28 as helper-e2e: content 249px in a 246px
+ * button, "Stripe" cut at the right). Button's `wrap` size is the shared
+ * primitive's grow-not-clip size (whitespace-normal, h-auto). The on-screen
+ * class check is clipped-labels.spec.ts ("overflowing labels ... payout
+ * setup"), which measures this card at 320 and 375.
+ */
+// @mutate src/components/PayoutSetupForm.tsx |             size="wrap"\n            onClick={handleOnboard} |             onClick={handleOnboard}
+describe("PayoutSetupForm, the start button fits at 320", () => {
+  it("the start/continue button wraps its label rather than running it past its edges", async () => {
+    statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, requirements: [] };
+    renderForm();
+    const button = await screen.findByRole("button", { name: /Set up payouts with Stripe/ });
+    expect(button.className).toMatch(/\bwhitespace-normal\b/);
+    expect(button.className).toMatch(/\bh-auto\b/);
+    expect(button.className).not.toMatch(/\bwhitespace-nowrap\b/);
+  });
+});

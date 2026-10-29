@@ -1753,7 +1753,10 @@ serve(async (req) => {
       //    Payout" button, tapped it, and got a "N minutes remaining" error
       //    where N never shrank on retry. The poster's Approve inherited the
       //    same stuck clock. This is now the one expression all three surfaces
-      //    use: COALESCE(poster_confirmed_working_at, helper_arrived_at).
+      //    use: LEAST(poster_confirmed_working_at, helper_arrived_at), the
+      //    EARLIER stamp (audit 2026-10-28 F12, migration
+      //    20261029042735_done_floor_from_arrival): it was COALESCE, so a
+      //    poster's late "Confirm they're working" restarted the Helpr's clock.
       //
       //    NULL ANCHOR ⇒ ALLOW, deliberately. Both stamps NULL means there is
       //    no recorded start to measure from, and the trigger's own shape
@@ -1766,11 +1769,10 @@ serve(async (req) => {
       //    gates above still stand between them and the completion write.
       //    Applies to BOTH parties: the floor is a property of the job, not of
       //    who taps first.
-      const workStartMs = job.poster_confirmed_working_at
-        ? Date.parse(job.poster_confirmed_working_at)
-        : job.helper_arrived_at
-          ? Date.parse(job.helper_arrived_at)
-          : NaN;
+      const workStamps = [job.poster_confirmed_working_at, job.helper_arrived_at]
+        .map((t) => (t ? Date.parse(t) : NaN))
+        .filter((ms) => Number.isFinite(ms));
+      const workStartMs = workStamps.length ? Math.min(...workStamps) : NaN;
       if (Number.isFinite(workStartMs)) {
         const elapsed = Date.now() - workStartMs;
         const MIN_JOB_TIME_MS = 30 * 60 * 1000; // 30 minutes

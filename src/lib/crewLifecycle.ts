@@ -3,6 +3,7 @@ import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { doneFloorStart } from "@/components/job-card/useDoneFloor";
 import type { AcceptMissing } from "@/lib/awardGate";
 
 /**
@@ -88,7 +89,7 @@ export function crewMinutesUntilDone(
   slot: Pick<CrewSlot, "poster_confirmed_working_at" | "helper_arrived_at">,
   nowMs = Date.now(),
 ): number {
-  const from = slot.poster_confirmed_working_at ?? slot.helper_arrived_at;
+  const from = doneFloorStart(slot.poster_confirmed_working_at, slot.helper_arrived_at);
   if (!from) return 0;
   const left = Date.parse(from) + 30 * 60_000 - nowMs;
   return left > 0 ? Math.ceil(left / 60_000) : 0;
@@ -223,7 +224,7 @@ const CREW_DONE_GATE_COPY: Record<string, string> = {
   completion_requires_confirmed_arrival:
     `The person who posted this job has to tap "Confirm they've arrived" for you before you can mark your part done.`,
   completion_requires_proof_photos: "Add before and after photos of your part before marking it done.",
-  completion_min_work_time: "A part can't be marked done within 30 minutes of starting.",
+  completion_min_work_time: "You can mark your part done 30 minutes after you arrived.",
 };
 
 function crewDoneGateCopy(error: { message?: string } | null): string | null {

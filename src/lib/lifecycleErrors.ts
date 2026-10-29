@@ -476,7 +476,7 @@ export const RPC_ERROR_COPY = {
     job_not_completable: "This job isn't active any more, so it can't be marked done. Pull to refresh.",
     completion_requires_confirmed_arrival: LIFECYCLE_REASONS.completion_requires_confirmed_arrival,
     completion_requires_proof_photos: "Add before and after photos before marking the job done.",
-    completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
+    completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
   },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {

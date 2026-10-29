@@ -18,6 +18,7 @@ import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } fro
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice } from "@/lib/declutter/distance";
+import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
@@ -103,6 +104,8 @@ function buyerStanding(f: OrderFacts, when: string | null): string {
   }
 }
 
+/** "today", "tomorrow" or "Thu, Oct 30", to sit after "for". */
+const porchDayLower = (day: string) => porchDayWords(day).replace(/^(Today|Tomorrow)$/, (w) => w.toLowerCase());
 const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The buyer's paid orders in cart order (the same order, and so the same bookings key, as PaidOrdersSection). */
@@ -168,7 +171,8 @@ export function useBuyingTracker(): BuyingTracker {
   const views = new Map<string, BuyerOrderView>();
   const counts: Record<OrderBucket, number> = { needs_you: 0, waiting: 0, upcoming: 0, done: 0, cancelled: 0 };
   for (const o of orders) {
-    const slot = (bookings.data ?? []).find((b) => b.order_id === o.orderId)?.slot_start ?? null;
+    const bookingRow = (bookings.data ?? []).find((b) => b.order_id === o.orderId);
+    const slot = bookingRow?.slot_start ?? null;
     const sdRow = sdRows[sd.indexOf(o)]?.data ?? null;
     const facts = buyerOrderFacts(o, {
       slotStart: slot,
@@ -179,7 +183,9 @@ export function useBuyingTracker(): BuyingTracker {
     const bucket = orderBucket(facts);
     counts[bucket]++;
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null : slot;
-    const when = whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
+    // A1-C2: a porch pickup is a DAY (pickup_day); its slot_start is only the day's start, so never show it as a time.
+    const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day)
+      : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
     views.set(o.orderId, {
       orderId: o.orderId,

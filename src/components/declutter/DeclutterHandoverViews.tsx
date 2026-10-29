@@ -36,6 +36,7 @@ import {
   bookPickup,
   confirmHandover,
   fetchMyBookings,
+  fetchMyHandover,
   fetchMyPayouts,
   porchNote,
   porchPhoto,
@@ -51,7 +52,7 @@ import {
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
-import { noShowFrom, PorchDayPanel } from "./DeclutterPorchDay";
+import { noShowFrom, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -278,7 +279,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} who={who} onProblem={() => setProblemOpen(true)} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
         </>
@@ -349,8 +350,13 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   );
 }
 
-function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: PaidOrder; userId: string; slotStart: string; who: string; onProblem: () => void }) {
+function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; who: string; onProblem: () => void }) {
   const qc = useQueryClient();
+  // A1-C2: the buyer's "I got it" on a porch pickup waits for the porch photo (set_out_at) or the pickup day
+  // (the same handover row and key PorchOutPhoto reads, so nothing is read twice).
+  const porchBuyer = order.side === "buyer" && order.handover === "porch";
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: porchBuyer });
+  const porchReady = !porchBuyer || !!handoverRow.data?.set_out_at || (pickupDay ? porchDayIsNow(pickupDay) : Date.now() >= new Date(slotStart).getTime());
   // #6: a free claim has no payment, payout or refund to speak of.
   const free = order.lines.every((l) => l.price_cents === 0);
   const rule = (how: string) => <p className="text-sm text-muted-foreground">{free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "}The handover is when {how}.</p>;
@@ -401,6 +407,9 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
         <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
       </div>
     );
+  }
+  if (!porchReady) {
+    return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;
   }
   return (
     <>

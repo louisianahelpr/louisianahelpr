@@ -65,6 +65,8 @@ export function ReserveSheet({
         ) : (
           <>
             <SheetHero title="Reserve it for 48 hours" />
+            {/* A1-C1: the strike is said before "Reserve it", not only after it. */}
+            <p className="mb-2 text-ds-14 font-semibold text-foreground" data-reserve-strike="">Check out within 48 hours, or you get a strike and it goes back up for sale.</p>
             <dl className="mt-1 space-y-1 rounded-[20px] border border-border bg-background p-3 text-ds-14" data-reserve-bill="">
               <div className="min-w-0">
                 <dt className="sr-only">Item</dt>

@@ -486,11 +486,14 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.
   it("pickup times use the shared DateTimeField and the porch photo is a button, not a bare file box", () => {
-    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterDeliveryViews.tsx", "src/components/declutter/DeclutterFoldedTime.tsx"]) {
+    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterPickupWindows.tsx", "src/components/declutter/DeclutterFoldedTime.tsx"]) {
       const src = blankComments(readFileSync(f, "utf8"));
       expect(src, f).not.toMatch(/type="datetime-local"/);
       expect(src, f).toMatch(/<DateTimeField\b/);
     }
+    // The Helpr's Accept picker moved its fallback DateTimeField into DeclutterPickupWindows (TaskPickupTime, 2026-10-28);
+    // DeclutterDeliveryViews still never draws a bare datetime box.
+    expect(blankComments(readFileSync("src/components/declutter/DeclutterDeliveryViews.tsx", "utf8"))).not.toMatch(/type="datetime-local"/);
     const hv = blankComments(readFileSync("src/components/declutter/DeclutterHandoverViews.tsx", "utf8"));
     expect(hv).toMatch(/Take the porch photo/);
   });

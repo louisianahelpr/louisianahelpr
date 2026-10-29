@@ -1,8 +1,10 @@
 /**
  * Board 158: the Manage a listing sheet and the paused card. Each row makes the
  * one real call (migration 20261020064354_declutter_manage_listing.sql; its
- * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x), and the
- * rows the server can't do yet ("Edit listing" for a live item) are not shown.
+ * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x). "Edit listing" (audit 1028 D1-1, migration
+ * 20261029205908, PGlite T11 in src/test/pglite/declutterHandoverChoices.pglite.mjs) shows for a live listing only.
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |               {item.status === "live" && ( |               {false && (
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |         {view === "edit" && <DeclutterEditListing item={item} onDone={close} />} |
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx |   const deployed = state.data !== "not_deployed"; |   const deployed = true;
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   onCheckedChange={(on) => drops.mutate(!on)} |                   onCheckedChange={(on) => drops.mutate(on)}
@@ -56,7 +58,11 @@ vi.mock("@/lib/declutter/api", () => ({
   setKeepUp: async (...a: unknown[]) => { calls.push(["keep_up", ...a]); return a[1]; },
   fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "x", pickup_lat: 0, pickup_lng: 0, auto_offers: offerRules.auto }),
   setOfferRules: async (...a: unknown[]) => { calls.push(["offer_rules", ...a]); },
+  editListing: async (...a: unknown[]) => { calls.push(["edit", ...a]); return "live"; },
+  fetchItemHandovers: async () => ["porch"],
 }));
+// The edit form's porch-day chips read the seller's own setting; they have their own test (sellPorchDays.test.tsx).
+vi.mock("./SellPorchDays", () => ({ SellPorchDays: () => null }));
 vi.mock("@/lib/declutter/aiReply", () => ({
   requestSuggestedFloor: async (...a: unknown[]) => { calls.push(["suggest_floor", ...a]); return { floorCents: 2500, reason: "Similar lamps sold for $25 to $35 near you." }; },
   suggestedReplyErrorMessage: () => "unavailable",
@@ -121,8 +127,18 @@ describe("Manage a listing (board 158)", () => {
     for (const t of ["Change price or lowest price", "Stop price drops", "Pause listing", "Mark sold elsewhere", "Delete listing"]) {
       expect(screen.getByText(t)).toBeTruthy();
     }
-    expect(screen.queryByText("Edit listing")).toBeNull();
     expect(screen.getByText("Hide it without losing it. Open offers close.")).toBeTruthy();
+  });
+
+  it("D1-1: a live listing offers Edit listing, which opens the edit form; a paused one does not", async () => {
+    const v = sheet();
+    fireEvent.click(await screen.findByText("Edit listing"));
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(screen.getByLabelText("Title")).toHaveValue("Mid-century lamp");
+    v.unmount();
+    sheet({ status: "paused" });
+    await screen.findByText("Relist");
+    expect(screen.queryByText("Edit listing")).toBeNull();
   });
 
   it("before the migration reaches prod, only taking it down is offered", async () => {

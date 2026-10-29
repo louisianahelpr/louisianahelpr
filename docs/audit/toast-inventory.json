@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1018,
-    "files": 271,
-    "rendering": 860,
-    "suppressedByPolicy": 158,
+    "calls": 1020,
+    "files": 272,
+    "rendering": 861,
+    "suppressedByPolicy": 159,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 716,
+      "toast.error": 717,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 161,
+      "toast.success": 162,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 457,
       "template": 104,
-      "dynamic": 507,
+      "dynamic": 509,
       "jsx": 0
     }
   },
@@ -4440,6 +4440,36 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterEditListing.tsx",
+      "line": 39,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"pending_review\" ? \"Saved. It's back in review, and we'll tell you when it's live again.\" : \"Saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Saved. It's back in review, and we'll tell you when it's live again."
+          },
+          {
+            "form": "literal",
+            "text": "Saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterEditListing.tsx",
+      "line": 45,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
       "line": 36,
       "kind": "toast.success",
@@ -4791,7 +4821,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 72,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4801,7 +4831,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

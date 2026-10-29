@@ -13939,6 +13939,22 @@ export type Database = {
       }
       declutter_donation_rules: { Args: never; Returns: Json }
       declutter_free_rules: { Args: never; Returns: Json }
+      declutter_edit_listing: {
+        Args: {
+          p_bought_for_personal_use: boolean
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_handovers: string[]
+          p_item_id: string
+          p_keeps_item_until_handover: boolean
+          p_not_a_frequent_seller: boolean
+          p_not_in_the_business: boolean
+          p_title: string
+        }
+        Returns: string
+      }
       declutter_complete_handover: { Args: { p_by: string; p_order_id: string }; Returns: Json }
       declutter_confirm_handover: {
         Args: { p_code: string; p_method: string; p_order_id: string }

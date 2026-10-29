@@ -10,7 +10,7 @@
  * @mutate src/lib/declutter/api.ts |       .eq("status", "paid")\n      .order("closed_at", { ascending: false }), |       .order("closed_at", { ascending: false }),
  * @mutate src/lib/declutter/api.ts | if (r.item_id && !sales.has(r.item_id)) sales.set | if (r.item_id) sales.set
  * @mutate src/lib/declutter/api.ts | .select("item_id, price_cents, order_id") | .select("item_id, price_cents")
- * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true, |       p_not_a_frequent_seller: false,
+ * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e)); |       p_not_a_frequent_seller: false,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e));
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
  * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
  * @mutate src/lib/declutter/api.ts |     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL, |     cacheControl: "3600",

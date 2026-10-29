@@ -594,6 +594,37 @@ export async function relistListing(itemId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_relist_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_relist_listing", e)) as string;
 }
 
+export interface ListingEdit {
+  title: string;
+  description: string;
+  category: string;
+  conditionStars: number;
+  deliverySize: DeliverySize;
+  handovers: SellerHandover[];
+}
+
+/**
+ * Audit 1028 D1-1: edit a live listing (20261029205908). The server decides from what changed: a new title,
+ * description or category returns "pending_review" (hidden until approved, open offers closed); anything else
+ * "live". The four tax confirmations go with every edit (the one checkbox the screen asks for).
+ */
+export async function editListing(itemId: string, f: ListingEdit): Promise<"live" | "pending_review"> {
+  return rpcData(
+    await supabase.rpc("declutter_edit_listing", {
+      p_item_id: itemId,
+      p_title: f.title,
+      p_description: f.description,
+      p_category: f.category,
+      p_condition_stars: f.conditionStars,
+      p_delivery_size: f.deliverySize,
+      p_handovers: f.handovers,
+      p_bought_for_personal_use: true,
+      p_not_in_the_business: true,
+      p_not_a_frequent_seller: true,
+      p_keeps_item_until_handover: true,
+    }), (e) => rpcErrorMessage("declutter_edit_listing", e)) as "live" | "pending_review";
+}
+
 /** A taken-down listing back to a draft (20261028180400): its words and price are kept, its photos were deleted at take-down. */
 export async function reopenListing(itemId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_reopen_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_reopen_listing", e)) as string;

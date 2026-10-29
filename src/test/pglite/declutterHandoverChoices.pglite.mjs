@@ -51,6 +51,9 @@ const al6Sql = process.env.AL6_MIGRATION === "skip" ? "" : readFileSync(process.
 // AL-4 (owner 2026-10-28): the admin's read of a problem's order facts and Helpr photos, applied 3x in T10.
 const AL4_FILE = "20261029011313_declutter_admin_problem_case.sql";
 const al4Sql = process.env.AL4_MIGRATION === "skip" ? "" : readFileSync(process.env.AL4_PATH ?? `${MIG_DIR}${AL4_FILE}`, "utf8");
+// T11 (audit 1028 D1-1, owner 2026-10-29 "REVIEW ONLY BIG CHANGES"): editing a live listing.
+const EDIT_FILE = "20261029205908_declutter_edit_listing.sql";
+const editSql = process.env.EDIT_MIGRATION === "skip" ? "" : readFileSync(process.env.EDIT_PATH ?? `${MIG_DIR}${EDIT_FILE}`, "utf8");
 const OWED_FILE = "20261027163240_payout_setup_only_when_owed.sql";
 // main's later Declutter money migrations (on prod): the chain 141d's own proof replays.
 const LATER_ON_PROD = [
@@ -651,6 +654,94 @@ if (process.env.NEW_MIGRATION !== "skip") { // runs with TALK_MIGRATION=skip too
       "an unknown problem: problem_not_found");
     const acl = one(await svc(`SELECT proacl::text FROM pg_proc WHERE proname = 'declutter_admin_problem_case'`)) ?? "";
     ok(/authenticated=X/.test(acl) && !/anon=X/.test(acl) && !/(^|[{,])=X/.test(acl), `declutter_admin_problem_case: no PUBLIC or anon (${acl})`);
+  }
+
+  // T11. Editing a live listing (audit 1028 D1-1; owner 2026-10-29 "REVIEW ONLY BIG CHANGES"): declutter_edit_listing.
+  if (editSql !== null) { // always: EDIT_MIGRATION=skip runs T11 against no migration, so it is RED
+    for (let i = 1; i <= 3; i++) {
+      const r = await run(editSql);
+      ok(!r?.error, `the edit-listing migration applies (run ${i} of 3)${r?.error ? `: ${r.error}` : ""}`);
+    }
+    const ATT = "true, true, true, true";
+    const arr = (a) => (a === null ? "NULL" : `ARRAY[${a.map((w) => `'${w}'`).join(",")}]::text[]`);
+    const edit = (uid, n, f, att = ATT) => me(uid, `SELECT public.declutter_edit_listing('${I(n)}', ${lit(f.title)}, ${lit(f.description)}, ${lit(f.category)},
+      ${f.condition}, ${lit(f.size)}, ${arr(f.ways)}, ${att}) AS r`);
+    await itemFloor(110, SELLER2, 4000, 2000);
+    const base = (await svc(`SELECT title, description, category, condition_stars, delivery_size FROM public.declutter_items WHERE id = '${I(110)}'`))[0];
+    const same = { title: base.title, description: base.description, category: base.category, condition: base.condition_stars, size: base.delivery_size, ways: ["porch"] };
+    // An open offer on it, so we can see whether it closes.
+    const off = await me(BUYER2, `SELECT public.declutter_make_offer('${I(110)}', 3000) AS id`);
+    ok(Array.isArray(off), `a buyer makes an offer (${JSON.stringify(off).slice(0, 120)})`);
+    const offerOpen = async () => one(await svc(`SELECT count(*)::int FROM public.declutter_offers WHERE item_id = '${I(110)}' AND status = 'open'`));
+    ok((await offerOpen()) === 1, "the offer is open");
+
+    // Small change: condition, size and the ways. Saved at once, still live, the offer stays open.
+    let r = await edit(SELLER2, 110, { ...same, condition: base.condition_stars === 5 ? 4 : 5, size: base.delivery_size === "small" ? "large" : "small", ways: ["meetup", "porch"] });
+    ok(Array.isArray(r) && r[0]?.r === "live", `a small change saves and stays live (${JSON.stringify(r).slice(0, 120)})`);
+    let row = await itemRow(110);
+    ok(row?.status === "live" && JSON.stringify(row?.handovers) === JSON.stringify(["meetup", "porch"]) && row?.porch_ok === true,
+      `the ways changed on a live item (${JSON.stringify(row)})`);
+    ok((await offerOpen()) === 1, "a small change leaves the offer open");
+    // Taking a way away (porch off) is a small change too, through this function only.
+    r = await edit(SELLER2, 110, { ...same, ways: ["meetup"] });
+    row = await itemRow(110);
+    ok(Array.isArray(r) && r[0]?.r === "live" && row?.porch_ok === false && JSON.stringify(row?.handovers) === JSON.stringify(["meetup"]),
+      `porch can be taken off a live listing by an edit (${JSON.stringify(r).slice(0, 80)} ${JSON.stringify(row)})`);
+    r = await edit(SELLER2, 110, { ...same, ways: ["meetup", "porch"] });
+    ok(Array.isArray(r) && r[0]?.r === "live", "and put back");
+    ok(one(await svc(`SELECT count(*)::int FROM public.declutter_tax_attestations WHERE item_id = '${I(110)}' AND attested_at > now() - interval '1 minute'`)) === 1,
+      "the four confirmations are recorded again with the edit");
+
+    // The tax confirmations are required on every edit; nothing is saved without them.
+    r = await edit(SELLER2, 110, { ...same, condition: 1 }, "true, true, false, true");
+    ok(refused(r, /attestation_required/), `an edit without all four confirmations is refused (${JSON.stringify(r).slice(0, 120)})`);
+    ok((await svc(`SELECT condition_stars FROM public.declutter_items WHERE id = '${I(110)}'`))[0]?.condition_stars !== 1, "and nothing was saved");
+
+    // Same text with stray spaces is not a big change (decided on the stored, trimmed text).
+    r = await edit(SELLER2, 110, { ...same, title: `  ${base.title}  `, ways: ["meetup", "porch"] });
+    ok(Array.isArray(r) && r[0]?.r === "live", "the same title with spaces round it is not a change");
+
+    // Big change: a new title. Back to review, the AI check voided, the offer closed with a notice.
+    r = await edit(SELLER2, 110, { ...same, title: "A different title", ways: ["meetup", "porch"] });
+    ok(Array.isArray(r) && r[0]?.r === "pending_review", `a new title goes back to review (${JSON.stringify(r).slice(0, 120)})`);
+    row = await itemRow(110);
+    ok(row?.status === "pending_review", `hidden until approved (${row?.status})`);
+    ok((await offerOpen()) === 0, "the open offer closed");
+    ok((await notes(BUYER2, "Listing changed")) >= 1, "the buyer is told");
+    ok(one(await svc(`SELECT count(*)::int FROM public.declutter_item_private WHERE item_id = '${I(110)}' AND ai_checked_at IS NULL`)) === 1, "the AI check is voided");
+    // Not live any more: a second edit waits for the review.
+    ok(refused(await edit(SELLER2, 110, same), /item_not_editable/), "a listing in review is not edited again");
+
+    // Description and category are big too.
+    for (const [n, change] of [[111, { description: "Now with a scratch" }], [112, { category: base.category === "furniture" ? "home_decor" : "furniture" }]]) {
+      await itemFloor(n, SELLER2, 4000, 2000);
+      // Each item's own title, so only the one field differs.
+      const r2 = await edit(SELLER2, n, { ...same, title: `Handover item ${n}`, ...change });
+      ok(Array.isArray(r2) && r2[0]?.r === "pending_review", `${Object.keys(change)[0]} is a big change (${JSON.stringify(r2).slice(0, 100)})`);
+    }
+
+    // Who and what may be edited.
+    await itemFloor(113, SELLER2, 4000, 2000);
+    ok(refused(await edit(SELLER, 113, same), /item_not_found/), "another seller's listing: item_not_found");
+    ok(refused(await anon(`SELECT public.declutter_edit_listing('${I(113)}', 'x', '', 'furniture', 3, 'small', ARRAY['porch'], true, true, true, true)`), /permission denied/), "anon cannot call it");
+    ok(refused(await edit(SELLER2, 113, { ...same, ways: [] }), /invalid_handovers/), "no way ticked is refused");
+    ok(refused(await edit(SELLER2, 113, { ...same, ways: ["pickup_home"] }), /invalid_handovers/), "pickup at the door is not a way");
+    await svc(`UPDATE public.declutter_items SET status = 'paused' WHERE id = '${I(113)}'`);
+    ok(refused(await edit(SELLER2, 113, same), /item_not_editable/), "a paused listing is relisted first");
+    await svc(`UPDATE public.declutter_items SET status = 'reserved' WHERE id = '${I(113)}'`);
+    ok(refused(await edit(SELLER2, 113, same), /item_not_editable/), "a reserved listing is never edited");
+    // The ways still freeze on a listed item for anything but this function.
+    await svc(`UPDATE public.declutter_items SET status = 'live' WHERE id = '${I(113)}'`);
+    ok(refused(await svc(`UPDATE public.declutter_items SET handovers = ARRAY['meetup'] WHERE id = '${I(113)}'`), /item_not_editable/),
+      "a direct change of a live item's ways is still refused");
+    ok(refused(await svc(`UPDATE public.declutter_items SET porch_ok = false WHERE id = '${I(113)}'`), /item_not_editable/),
+      "a direct porch-off on a live item is still refused");
+    // A free item stays porch pickup only.
+    await item(114, SELLER2, 0);
+    ok(refused(await edit(SELLER2, 114, { ...same, ways: ["meetup"] }), /invalid_handovers/), "a free item stays porch only");
+
+    const acl = one(await svc(`SELECT proacl::text FROM pg_proc WHERE proname = 'declutter_edit_listing'`)) ?? "";
+    ok(/authenticated=X/.test(acl) && !/anon=X/.test(acl) && !/(^|[{,])=X/.test(acl), `declutter_edit_listing: no PUBLIC or anon (${acl})`);
   }
 
   // T8. Grants.

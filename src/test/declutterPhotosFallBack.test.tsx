@@ -23,6 +23,7 @@ import { FallbackImg } from "@/components/declutter/FallbackImg";
 const DIR = resolve(__dirname, "../components/declutter");
 
 /** file -> how many bare <img> it may keep, and why. Exact both ways. */
+// @two-way src/test/declutterPhotosFallBack.test.tsx:stale baseline entry
 const ALLOWED: Record<string, number> = {
   "DeclutterBunchCard.tsx": 1, // a blob: preview of a photo being picked
   "DeclutterSellPhotos.tsx": 2, // the seller's own photos while listing: an uploaded one, and a blob: preview
@@ -46,7 +47,15 @@ function bareImgs(): Record<string, number> {
 
 describe("Declutter photos fall back to their placeholder", () => {
   it("every <img> handles a failed load, or is an exact, reasoned exception", () => {
-    expect(bareImgs()).toEqual(ALLOWED);
+    const bare = bareImgs();
+    const problems: string[] = [];
+    for (const [file, n] of Object.entries(bare)) {
+      if ((ALLOWED[file] ?? 0) < n) problems.push(`${file}: ${n - (ALLOWED[file] ?? 0)} <img> with no onError: use FallbackImg`);
+    }
+    for (const [file, n] of Object.entries(ALLOWED)) {
+      if ((bare[file] ?? 0) < n) problems.push(`stale baseline entry ${file} (${n}, now ${bare[file] ?? 0}) — remove it (lower the baseline)`);
+    }
+    expect(problems).toEqual([]);
   });
 
   it("FallbackImg shows its placeholder once the photo fails, and tries a new photo again", () => {

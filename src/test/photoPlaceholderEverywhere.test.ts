@@ -9,7 +9,7 @@
  * card files must render PhotoPlaceholder. Every category a Declutter item or
  * a shop can have gets its own icon (no silent fallback for a known key).
  *
- * @mutate src/components/declutter/MovingSaleBanner.tsx | <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | null
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | ) : (\n                  <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | ) : (\n                  null
  * @mutate src/components/shops/ShopBrowseCard.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
  * @mutate src/components/rentals/listings/RentBrowse.tsx | <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" /> | <Home className="h-8 w-8" />
  * @mutate src/lib/declutter/categoryIcons.ts |   books_media: BookOpen, |   books_mediaz: BookOpen,

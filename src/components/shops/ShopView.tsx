@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Printer, Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl } from "@/lib/shops/api";
@@ -47,6 +48,10 @@ export default function ShopView() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // Desktop website: the title row lives in the global top bar, with room for the owner's two
+  // buttons. Phone: they took the title row and cut the shop's name to "B..." at 375 (audit
+  // 2026-10-28 P5-5), so there they sit in the shop card's actions and the name has the row.
+  const titleInDesktopBar = useHeaderInDesktopBar();
   const categories = useShopCategories();
   const shop = useQuery({ queryKey: ["shops", "page", id], queryFn: () => fetchShop(id), enabled: !!id });
   // The owner's own items (ShopItemsList reads the same query): an owner whose shop lists nothing yet
@@ -85,20 +90,23 @@ export default function ShopView() {
   const catLabel = categoryLabel(categories.data, s.category);
   const shareable = { id: s.id, name: s.name, category_label: catLabel, area_label: s.area_label };
   const ownerEmpty = s.mine && s.offers_selling && ownItems.isSuccess && !ownItems.data.some((i) => i.status === "live");
+  const ownerButtons = (size: "sm" | "default", round: string) => (
+    <>
+      <Button type="button" size={size} variant="outline" className={`whitespace-nowrap${round}`} onClick={() => navigate("/shops/dashboard")}>
+        Dashboard
+      </Button>
+      <Button type="button" size={size} variant="outline" className={`whitespace-nowrap${round}`} onClick={() => navigate("/shops/mine")}>
+        Edit shop
+      </Button>
+    </>
+  );
   return (
     <AppPage
       title={s.name}
       backTo="/shops"
       titleActions={
         s.mine ? (
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/dashboard")}>
-              Dashboard
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="whitespace-nowrap" onClick={() => navigate("/shops/mine")}>
-              Edit shop
-            </Button>
-          </div>
+          titleInDesktopBar ? <div className="flex gap-2">{ownerButtons("sm", "")}</div> : undefined
         ) : (
           <Button
             type="button"
@@ -161,6 +169,7 @@ export default function ShopView() {
                   Print a sign
                 </Button>
               )}
+              {s.mine && !titleInDesktopBar && ownerButtons("default", " rounded-full")}
             </>
           }
         />

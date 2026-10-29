@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
 import { EmbeddedActivityHeader, EmbeddedActivityLoading, boxLabelledFilters } from "@/components/job-card/embeddedActivity";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -82,6 +82,10 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const manageJobId = defaultTab === "posted" && searchParams.get("manage") === "1" ? searchParams.get("highlight") : null;
   // `&applicants=1` (the job page's "Review N applicants"): open that job's applicants, not just its card.
   const applicantsJobId = defaultTab === "posted" && searchParams.get("applicants") === "1" ? searchParams.get("highlight") : null;
+  // `/jobs?tab=working&job=<id>&open=1` (the job page's Open in working / See the offer / View application, and the
+  // chat card's Open job; audit 2026-10-28 F10): that Working card opens in place, not just pulsed in its bucket.
+  // `?job=` names the JOB here; `?highlight=` on this tab names an APPLICATION, so a job id there matched nothing.
+  const openWorkingJobId = defaultTab === "applied" && searchParams.get("open") === "1" ? searchParams.get("job") : null;
 
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //
@@ -303,7 +307,10 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
 
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");
-    if (hadJobParam) next.delete("job");
+    if (hadJobParam) {
+      next.delete("job");
+      next.delete("open");
+    }
     if (bucket) {
       setStatusFilter(bucket);
       // Mirror it into the URL only when it differs from the default, matching
@@ -332,6 +339,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   });
 
   useManageDeepLink(manageJobId, postedJobs, actions);
+  // The Working cards expand by JOB id (AppliedJobCard: toggleExpandedJobId(app.job_id)).
+  const appliedJobRefs = useMemo(() => appliedApps.map((a) => ({ id: a.job_id })), [appliedApps]);
+  useManageDeepLink(openWorkingJobId, appliedJobRefs, actions);
   useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList);
   const toastClearance = useToastClearance();
 

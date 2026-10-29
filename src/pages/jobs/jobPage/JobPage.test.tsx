@@ -55,6 +55,8 @@ vi.mock("./useJobPage", () => ({
   }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
+// A booked ("accepted") job asks whether its slot was moved; no move on these fixtures.
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 // The Helpr Guarantee panel's read (no claim on these jobs); its own behaviour is helprGuarantee.test.ts and the PGlite proof.
 vi.mock("@/lib/guarantee", async (orig) => ({ ...(await orig<typeof import("@/lib/guarantee")>()), fetchGuaranteeClaim: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -267,7 +269,16 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByText("Mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
-    expect(screen.getByTestId("where").textContent).toBe("/jobs?tab=working");
+    // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
+  it("an offered Helpr's See the offer opens that offer's card on Working", () => {
+    state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
+    state.party = true;
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "See the offer" }));
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
 });
 

@@ -9,7 +9,7 @@ import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGrossLabel, formatDollarsWhole } from "@/lib/moneyLimits";
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
-import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 import { LAST_UPDATED } from "./legalSections";
 // The approval window and the payout schedule are the platform's binding
@@ -584,7 +584,7 @@ export const TermsContent = () => {
       <PolicyRowItem
         icon={AlertTriangle}
         title="General guidance only"
-        body={<p>Tax laws change frequently. Consult a CPA for advice specific to your situation.</p>}
+        body={<TaxGuidanceLine />}
       />
     </PolicySection>
 

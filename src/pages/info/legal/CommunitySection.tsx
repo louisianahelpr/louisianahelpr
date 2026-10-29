@@ -3,7 +3,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, Ban, Clock, FileText, Shield, Siren,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
-import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
 // The reliability ladder is stated ONCE, in reliabilityLadder.ts, which
 // reliabilityLadder.parity.test.ts pins to the SQL that enforces it. This page
@@ -423,7 +423,7 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={AlertTriangle}
         title="General guidance only"
-        body={<p>Tax laws change frequently. Consult a CPA for advice specific to your situation.</p>}
+        body={<TaxGuidanceLine />}
       />
     </PolicySection>
 

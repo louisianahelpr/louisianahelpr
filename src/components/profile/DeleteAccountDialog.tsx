@@ -1,4 +1,4 @@
-import { Dialog, DialogDestructiveAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
+import { Dialog, DialogDestructiveAction, DialogPrimaryAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Check, Loader2, X } from "lucide-react";
 import { useInRouterContext, useLocation } from "react-router-dom";
@@ -252,9 +252,11 @@ export function DeleteAccountDialog({
               popupShellInventory catches precisely so a new dialog cannot
               quietly become the app's 150th slightly-different header. */}
           <DialogHero
-            title={<><Check className="w-5 h-5" strokeWidth={2.5} /> Your account is deleted.</>}
+            // The check on the title's own line (A3-L9: it sat alone above it).
+            title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 shrink-0" strokeWidth={2.5} aria-hidden /> Your account is deleted.</span>}
           />
-          <div className="text-center space-y-4 py-2" role="status" aria-live="polite">
+          {/* Left-aligned like the title above it (A3-L9: a centred body under a left title). */}
+          <div className="space-y-4 py-2" role="status" aria-live="polite">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
               Your profile, photos and ID documents have been erased. The payment
               records the law requires us to keep no longer carry your name.
@@ -264,7 +266,8 @@ export function DeleteAccountDialog({
             </p>
           </div>
           <DialogFooter>
-            <DialogSecondaryAction onClick={onAcknowledgeDeleted}>Done</DialogSecondaryAction>
+            {/* The panel's only way forward is its commit, so it wears the primary fill, not the grey (A3-L9). */}
+            <DialogPrimaryAction onClick={onAcknowledgeDeleted}>Done</DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

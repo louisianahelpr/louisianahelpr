@@ -120,9 +120,13 @@ export default function SellFlow() {
 
   // Load an existing draft into the form once.
   const loadedFor = useRef<string | null>(null);
+  // The same fact as state, for what the RENDER reads (the resumed-draft auto-fill): a ref read during render
+  // never schedules the render that would see it, so the auto-fill could miss its turn (CI #3783).
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   useEffect(() => {
     if (!itemId || !item.data || !priv.data || loadedFor.current === itemId) return;
     loadedFor.current = itemId;
+    setLoadedId(itemId);
     const it = item.data;
     setForm({
       title: it.title,
@@ -179,7 +183,7 @@ export default function SellFlow() {
     [itemId, photoCount, held],
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
-  const resumedEmpty = !!itemId && loadedFor.current === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
+  const resumedEmpty = !!itemId && loadedId === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
   const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty });
   const usedLastSetup = useLastListingSetup(itemId ? undefined : user?.id, { setForm, setWays, setCoords });
   const problem = useMemo(() => formProblem(form), [form]);
@@ -250,6 +254,7 @@ export default function SellFlow() {
       }
       const id = await createDraft(fields);
       loadedFor.current = id;
+      setLoadedId(id);
       // The form already holds this draft's step: the drop-state read must not reset it.
       dropLoadedFor.current = id;
       setParams({ item: id }, { replace: true });

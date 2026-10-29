@@ -73,6 +73,9 @@ vi.mock("@/lib/declutter/api", () => ({
   setPickupWindows: async () => 1,
   attestItem: async () => undefined,
   publishItem: async () => "live",
+  // Keep it up until it sells (KeepUpRow, 20261029154323): off on this draft.
+  fetchKeepUp: async () => false,
+  setKeepUp: async (_id: string, on: boolean) => on,
 }));
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";

@@ -409,3 +409,43 @@ describe("PayoutSetupForm, board 87's four states", () => {
     await screen.findByText("One more step");
   });
 });
+
+/**
+ * Audit 2026-10-28 P4-5: a test account pressing "Set up payouts with Stripe"
+ * got stripe-connect 403 {"error":"Test accounts can't set up a new payout
+ * account. …"} and nothing on screen (the error reached the console; the toast,
+ * if seen at all, was gone). The refusal is now written under the button in the
+ * server's own words, with what to do next, until the next press.
+ *
+ * @mutate src/components/PayoutSetupForm.tsx |       setStartError(userFacingError(err, "We couldn't start payout setup — try again in a moment.")); |       userFacingError(err, "We couldn't start payout setup — try again in a moment.");
+ */
+describe("PayoutSetupForm — a refused start says why, on screen", () => {
+  const REFUSAL = "Test accounts can't set up a new payout account. Use the sanctioned test fixture account instead.";
+  const refused = () => ({
+    data: null,
+    error: Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+      context: new Response(JSON.stringify({ error: REFUSAL, reason: "test_seat_no_new_connect_account" }), { status: 403 }),
+    }),
+  });
+
+  it("shows the server's words and a next step under the button, and clears them on the next press", async () => {
+    statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, transfers_status: null, requirements: [] };
+    invokeMock.mockImplementation(async (_fn: string, opts?: { body?: { action?: string } }) =>
+      opts?.body?.action === "onboard" ? refused() : { data: statusFixture, error: null });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /Set up payouts with Stripe/ }));
+
+    const alert = await screen.findByTestId("payout-start-error");
+    expect(alert.getAttribute("role")).toBe("alert");
+    expect(alert.textContent).toContain(REFUSAL);
+    expect(alert.textContent).toMatch(/Try again, or talk to a real person from You → Help\./);
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+
+    // The next press starts clean: a success leaves no stale refusal behind.
+    invokeMock.mockImplementation(async () => ({ data: { url: "https://connect.stripe.com/setup/x" }, error: null }));
+    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+    await waitFor(() => expect(openExternalUrlMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("payout-start-error")).toBeNull();
+  });
+});

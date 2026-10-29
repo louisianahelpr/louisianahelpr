@@ -28,14 +28,14 @@
  * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
  * @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
- * @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
  * @mutate supabase/migrations/20261030134109_declutter_take_back_problem_report.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d |   o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts; |    WHERE id = p_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts;
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END; |   RETURN 'reopened';
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id AND payment_livemode IS NULL; |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id;
- * @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
+ * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -200,7 +200,9 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
   it("review notes 2026-10-15: CSPRNG code, nearest item's pickup point, refund mode set once, only the recorded refund reopens", () => {
     expect(flat(body("declutter_new_handover_code"))).toContain("gen_random_uuid()");
     expect(body("declutter_new_handover_code")).not.toMatch(/(^|[^_])random\(\)/);
-    expect(flat(body("declutter_porch_photo"))).toContain("WHERE c.order_id = o.id AND p.pickup_lat IS NOT NULL AND p.pickup_lng IS NOT NULL;");
+    // The nearest of the ORDER's pickup points (D-NEW14, 20261029224749): the frozen porch place, else every item's point.
+    expect(flat(body("declutter_porch_photo"))).toContain("FROM public.declutter_order_pickup_points(o.id) pt;");
+    expect(flat(body("declutter_order_pickup_points"))).toContain("WHERE c.order_id = p_order_id AND p.pickup_lat IS NOT NULL AND p.pickup_lng IS NOT NULL");
     expect(flat(body("declutter_porch_photo"))).toMatch(/SELECT min\(round\(2 \* 6371000/);
     expect(flat(body("declutter_refund_set_mode"))).toContain("WHERE id = p_refund_id AND payment_livemode IS NULL;");
     expect(flat(body("declutter_refund_reversed"))).toContain("WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded' RETURNING attempts INTO v_attempts;");

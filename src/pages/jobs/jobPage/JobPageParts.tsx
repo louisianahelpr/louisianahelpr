@@ -15,6 +15,7 @@ import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/components/tracker/jobProgressState";
+import { useFeature } from "@/hooks/useFeature";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
@@ -38,14 +39,25 @@ export function JobTracker({ job, side }: { job: JobPageRow; side: "poster" | "h
 /** How the poster's money stands, from payment_status. Unlisted states print nothing rather than a guess. */
 const HELD_LINE: Partial<Record<string, string>> = {
   escrow: "Paid when you posted. We hold it until the job is done.",
+  // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
+  held: "Your card isn't charged until you hire someone.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
   refunded: "Refunded to your card.",
   released: "Paid out to your Helpr.",
 };
 
+/**
+ * Under card_hold_at_post (Q2399, the flag the checkout step's copy follows) a card is charged at the
+ * hire, not at posting, so a paid job's line no longer says when (audit 2026-10-28 F4: "Paid when you
+ * posted" on a job whose card was captured at the hire). A bank payment or a gift is still paid at
+ * posting; "Paid" is true for every way the job was funded.
+ */
+const PAID_UNDER_CARD_HOLD = "Paid. We hold it until the job is done.";
+
 export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
-  const line = HELD_LINE[job.payment_status ?? ""];
+  const cardHoldOn = useFeature("card_hold_at_post");
+  const line = job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""];
   return (
     <div data-poster-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">

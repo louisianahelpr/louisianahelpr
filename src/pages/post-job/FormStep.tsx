@@ -296,7 +296,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until you hire someone. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}

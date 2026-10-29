@@ -21,6 +21,7 @@ import { maybeCelebrate } from "@/lib/celebrate";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
+import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
@@ -47,6 +48,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   // the moment of peak satisfaction.
   const [tipPromptOpen, setTipPromptOpen] = useState(false);
   const [tipDialogOpen, setTipDialogOpen] = useState(false);
+  const takesTips = useHelprTakesTips(revieweeId, open && canTip);
   const { user: viewer } = useAuthReady();
 
   const MAX_PHOTOS = 3;
@@ -249,7 +251,8 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         // no longer does is decide who gets asked to rate the app.
         track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
       }
-      if (rating === 5 && canTip) {
+      // F29: never offer a tip the server will refuse (payout setup not finished).
+      if (rating === 5 && canTip && takesTips !== false) {
         // 5-star moment — show the tip prompt instead of closing immediately
         // so the poster can tip while still satisfied.
         setTipPromptOpen(true);

@@ -8,6 +8,14 @@ import { CompletedStep } from "./CompletedStep";
 import type { PosterStepCtx } from "./posterStepContract";
 import { openMore } from "@/test/helpers/openMore";
 
+// The single-Helpr Tip asks whether the Helpr can take tips (F29,
+// useHelprTakesTips; its own guard is tipNeverOfferedWhenPayoutNotReady):
+// "unknown" here, which keeps the Tip offered, with no network read.
+vi.mock("@/hooks/useHelprTakesTips", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/useHelprTakesTips")>()),
+  useHelprTakesTips: () => null,
+}));
+
 // Q709(c), owner 2026-10-05: on a completed crew card, ONE Tip per member row,
 // each showing "Tipped" once that member has been tipped; the tip names the
 // member (create-payment refuses a crew tip without one).

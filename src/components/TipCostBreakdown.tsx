@@ -121,16 +121,16 @@ export function TipPicker({ jobPriceDollars, valueDollars, onChange }: {
  * budget, or budget / crew size on a crew job, where a tip goes to one member).
  * The base the percent presets are a percent of; null while loading.
  */
-export function useTipJob(jobId: string): { title: string; shareDollars: number } | null {
+export function useTipJob(jobId: string): { title: string; shareDollars: number; helperId: string | null } | null {
   const { data } = useQuery({
     queryKey: ["tip-job", jobId],
     queryFn: async () =>
       unwrap(
-        await supabase.from("jobs").select("title, budget, is_group_job, helpers_needed").eq("id", jobId).maybeSingle(),
-      ) as { title: string; budget: number | null; is_group_job: boolean | null; helpers_needed: number | null } | null,
+        await supabase.from("jobs").select("title, budget, is_group_job, helpers_needed, helper_id").eq("id", jobId).maybeSingle(),
+      ) as { title: string; budget: number | null; is_group_job: boolean | null; helpers_needed: number | null; helper_id: string | null } | null,
     staleTime: 60_000,
   });
   if (!data || data.budget == null) return null;
   const crew = data.is_group_job && (data.helpers_needed ?? 0) > 1 ? data.helpers_needed! : 1;
-  return { title: data.title, shareDollars: Number(data.budget) / crew };
+  return { title: data.title, shareDollars: Number(data.budget) / crew, helperId: data.helper_id ?? null };
 }

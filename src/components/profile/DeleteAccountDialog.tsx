@@ -4,6 +4,7 @@ import { Check, Loader2, X } from "lucide-react";
 import { useInRouterContext, useLocation } from "react-router-dom";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
+import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -13,7 +14,8 @@ interface DeleteAccountDialogProps {
   deleteConfirmText: string;
   setDeleteConfirmText: (value: string) => void;
   deletingAccount: boolean;
-  onDelete: () => void;
+  /** Runs `confirmIdentity` (password or emailed code, A3-I5) and deletes only when it resolves true. */
+  onDelete: (confirmIdentity: () => Promise<boolean>) => void;
   /**
    * True once the server has confirmed the account is gone — the dialog swaps
    * to its final panel and refuses to show anything that reads as "not done".
@@ -290,10 +292,36 @@ export function DeleteAccountDialog({
     );
   }
 
-  // Step 2 keeps its own shell because it needs an inline input, which sits
-  // outside the BrandConfirmDialog contract.
+  // Step 2 keeps its own shell because it needs inline inputs, which sit
+  // outside the BrandConfirmDialog contract. Its own component so the
+  // identity check's hooks are not behind the early returns above.
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <DeleteStepTwo
+      open={open}
+      onOpenChange={handleOpenChange}
+      setDeleteStep={setDeleteStep}
+      deleteConfirmText={deleteConfirmText}
+      setDeleteConfirmText={setDeleteConfirmText}
+      deletingAccount={deletingAccount}
+      onDelete={onDelete}
+    />
+  );
+}
+
+function DeleteStepTwo({
+  open,
+  onOpenChange,
+  setDeleteStep,
+  deleteConfirmText,
+  setDeleteConfirmText,
+  deletingAccount,
+  onDelete,
+}: Pick<DeleteAccountDialogProps, "open" | "onOpenChange" | "setDeleteStep" | "deleteConfirmText" | "setDeleteConfirmText" | "deletingAccount" | "onDelete">) {
+  // Password, or an emailed code for members without one (A3-I5, owner
+  // 2026-10-29). The server refuses without it too (recentSignIn.ts).
+  const reauth = useDeleteReauth(deletingAccount);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent role="alertdialog">
         <DialogHero
           title="Delete account"
@@ -303,7 +331,7 @@ export function DeleteAccountDialog({
             why. `aria-label` covered screen readers; sighted users got a bare
             box under a title. This is the visible instruction that stays put. */}
         <DialogDescription>
-          Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below to confirm.
+          Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below, then confirm it&rsquo;s you.
         </DialogDescription>
         <Input
           autoFocus
@@ -314,6 +342,7 @@ export function DeleteAccountDialog({
           className="my-2 h-11 text-center font-mono tracking-wide rounded-ds-md"
           disabled={deletingAccount}
         />
+        {reauth.fields}
         {/* Plain DialogFooter. `sm:flex-col-reverse sm:space-x-0` pinned
             step 2 of this dialog to a full-width stack on desktop while step 1
             — the BrandConfirmDialog directly before it — went to an inline
@@ -327,13 +356,15 @@ export function DeleteAccountDialog({
           </DialogSecondaryAction>
           {/* The shared destructive treatment (the --alert fill), not a
               hand-copied style block: the one alert button in the flow
-              (spec v2 §9.26, board 120). */}
+              (spec v2 §9.26, board 120). preventDefault keeps the dialog
+              open (dialog.tsx wraps alertdialog actions in Close), so a
+              wrong password or code is said here, under the field. */}
           <DialogDestructiveAction
-            disabled={deleteConfirmText !== CONFIRM_PHRASE || deletingAccount}
-            onClick={() => { void hapticError(); onDelete(); }}
+            disabled={deleteConfirmText !== CONFIRM_PHRASE || !reauth.ready || deletingAccount}
+            onClick={(e) => { e.preventDefault(); void hapticError(); onDelete(reauth.confirm); }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Delete my account
+            {deletingAccount ? "Deleting…" : "Delete my account"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

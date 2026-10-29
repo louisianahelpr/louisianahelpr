@@ -4,6 +4,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
+import { REAUTH_REQUIRED_CODE, REAUTH_REQUIRED_MESSAGE, REAUTH_WINDOW_SECONDS, signedInWithin } from "../_shared/recentSignIn.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -50,6 +51,21 @@ serve(async (req) => {
     if (confirmation !== "DELETE MY ACCOUNT") {
       return new Response(JSON.stringify({ error: "Invalid confirmation" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // The person must have proven who they are in the last few minutes
+    // (A3-I5, owner 2026-10-29: "asks for the password"). Typing DELETE only
+    // proves someone is holding an unlocked, signed-in device. The dialog
+    // re-proves identity first (password, or an emailed code for members with
+    // no password), which starts a session whose sign-in time is now; a token
+    // that is merely refreshed keeps its old sign-in time and is refused here.
+    // Checked before anything below writes (closeUnpaidShopPages does).
+    // getUser(token) above has already accepted this token.
+    if (!signedInWithin(token, REAUTH_WINDOW_SECONDS, Math.floor(Date.now() / 1000))) {
+      return new Response(JSON.stringify({ error: REAUTH_REQUIRED_MESSAGE, code: REAUTH_REQUIRED_CODE }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

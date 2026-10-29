@@ -64,7 +64,7 @@ const corsHeaders = {
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
   invite: "You've been invited to Helpr",
-  magiclink: 'Your Helpr login link',
+  magiclink: 'Your Helpr code',
   recovery: 'Reset your Helpr password',
   email_change: 'Confirm your new email',
   email_change_current: 'Email change requested',
@@ -104,7 +104,7 @@ const SAMPLE_PROJECT_URL = getAppUrl()
 const SAMPLE_EMAIL = 'user@example.test'
 const SAMPLE_DATA: Record<string, object> = {
   signup: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, recipient: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },
-  magiclink: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
+  magiclink: { token: '123456' },
   recovery: { siteName: SITE_NAME, confirmationUrl: SAMPLE_PROJECT_URL },
   invite: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, confirmationUrl: SAMPLE_PROJECT_URL },
   email_change: { siteName: SITE_NAME, email: SAMPLE_EMAIL, newEmail: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },

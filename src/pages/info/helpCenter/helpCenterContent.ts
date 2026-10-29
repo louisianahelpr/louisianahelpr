@@ -350,7 +350,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // not exist. Also added: `delete-own-account/index.ts:56-105` REFUSES
         // deletion while the account holds an active job or escrowed funds, so
         // "Yes." on its own was an answer some readers could not act on.
-        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. Finish or cancel any active job first: we can't delete an account while money is still held in escrow. We retain transaction records per Louisiana law but remove all personal data.",
+        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still held in escrow. We retain transaction records per Louisiana law but remove all personal data.",
       },
       {
         q: "What is Senior Mode?",

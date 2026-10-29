@@ -58,7 +58,7 @@ export interface UseDeleteAccount {
     deleteConfirmText: string;
     setDeleteConfirmText: (value: string) => void;
     deletingAccount: boolean;
-    onDelete: () => void;
+    onDelete: (confirmIdentity: () => Promise<boolean>) => void;
     accountDeleted: boolean;
     onAcknowledgeDeleted: () => void;
   };
@@ -108,9 +108,24 @@ export function useDeleteAccount(): UseDeleteAccount {
     navigate("/", { replace: true });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (confirmIdentity: () => Promise<boolean>) => {
     if (confirmText !== UI_CONFIRM_PHRASE) return;
     setDeleting(true);
+    // Is it really you? (A3-I5, owner 2026-10-29.) Password, or the emailed
+    // code; a success starts a fresh session, which delete-own-account
+    // requires (403 reauth_required otherwise). A wrong one says so under the
+    // field and deletes nothing.
+    let confirmed = false;
+    try {
+      confirmed = await confirmIdentity();
+    } catch (err: unknown) {
+      console.error("[deleteAccount] identity check threw", err);
+      toast.error("We couldn't check it's you — try again?");
+    }
+    if (!confirmed) {
+      setDeleting(false);
+      return;
+    }
     try {
       const { error } = await supabase.functions.invoke("delete-own-account", {
         body: { confirmation: SERVER_CONFIRM_PHRASE },
@@ -188,7 +203,7 @@ export function useDeleteAccount(): UseDeleteAccount {
       deleteConfirmText: confirmText,
       setDeleteConfirmText: setConfirmText,
       deletingAccount: deleting,
-      onDelete: () => { void handleDelete(); },
+      onDelete: (confirmIdentity) => { void handleDelete(confirmIdentity); },
       accountDeleted: deleted,
       onAcknowledgeDeleted: () => { void finish(); },
     },

@@ -62,10 +62,11 @@ for (const abs of walkSource(["src"])) {
 describe("email-auth calls carry a Turnstile captchaToken (Q1314)", () => {
   it("finds the app's email-auth call sites (floor)", () => {
     // Measured 2026-10-05: Login signInWithPassword, Signup signUp,
-    // ForgotPassword + SecurityTab resetPasswordForEmail, SignupPending resend.
+    // ForgotPassword + SecurityTab resetPasswordForEmail, SignupPending resend;
+    // 2026-10-29 (A3-I5): deleteAccountReauth signInWithPassword + signInWithOtp.
     expect(sites.length).toBeGreaterThan(4);
     expect(new Set(sites.map((s) => s.method))).toEqual(
-      new Set(["signInWithPassword", "signUp", "resetPasswordForEmail", "resend"]),
+      new Set(["signInWithPassword", "signUp", "resetPasswordForEmail", "resend", "signInWithOtp"]),
     );
   });
 

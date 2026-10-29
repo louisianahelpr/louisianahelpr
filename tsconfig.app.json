@@ -81,6 +81,7 @@
     "supabase/functions/backfill-job-geocode/budget.ts",
     "supabase/functions/_shared/geocodeDropoff.ts",
     "supabase/functions/_shared/confirmLink.ts",
+    "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
     "supabase/functions/_shared/emailSendLog.ts",
     "supabase/functions/_shared/payments/types.ts",

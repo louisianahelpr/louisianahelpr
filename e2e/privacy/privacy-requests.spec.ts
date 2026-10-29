@@ -328,6 +328,8 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     await page.getByRole("button", { name: "Delete account" }).click();
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
+    // A3-I5 (owner 2026-10-29): the delete asks for the password first.
+    await page.getByLabel("Your password").fill(PASSWORD);
     // Last check before the irreversible press: fresh from the database, fail closed.
     await requireDisposable(request, userId);
     const [res] = await Promise.all([
@@ -465,6 +467,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
           await page.getByRole("button", { name: "Delete account" }).click();
           await page.getByRole("button", { name: "Continue" }).click();
           await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
+          await page.getByLabel("Your password").fill(PASSWORD);
           await disposable();
           const [res] = await Promise.all([
             page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),

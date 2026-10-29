@@ -30,9 +30,11 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const invoke = vi.fn();
+// Step 2 asks for the password before deleting (A3-I5, owner 2026-10-29).
+const signInWithPassword = vi.fn().mockResolvedValue({ data: {}, error: null });
 const signOut = vi.fn().mockResolvedValue(undefined);
 const currentUser = {
-  user: { id: "u1", email: "banned@example.com" },
+  user: { id: "u1", email: "banned@example.com", identities: [{ provider: "email" }] },
   profile: { ban_status: "temp_banned", auto_suspended_until: null as string | null },
   isLoading: false,
 };
@@ -43,6 +45,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      signInWithPassword: (...a: unknown[]) => signInWithPassword(...a),
     },
     functions: { invoke: (...a: unknown[]) => invoke(...a) },
     from: () => ({
@@ -161,8 +164,14 @@ describe("/account-banned — in-app account deletion", () => {
     expect(confirm).toBeDisabled();
 
     fireEvent.change(input, { target: { value: "DELETE" } });
+    // Still guarded: the password is the second half (A3-I5).
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/your password/i), { target: { value: "pw" } });
     await waitFor(() => expect(confirm).toBeEnabled());
     fireEvent.click(confirm);
+    await waitFor(() =>
+      expect(signInWithPassword).toHaveBeenCalledWith({ email: "banned@example.com", password: "pw", options: { captchaToken: undefined } }),
+    );
 
     // The server contract is unchanged: the dialog's short phrase maps to the
     // long one the edge function has always validated. If these ever drift,
@@ -211,6 +220,7 @@ describe("/account-banned — in-app account deletion", () => {
     fireEvent.change(await screen.findByLabelText(/type delete to confirm/i), {
       target: { value: "DELETE" },
     });
+    fireEvent.change(screen.getByLabelText(/your password/i), { target: { value: "pw" } });
     fireEvent.click(screen.getByRole("button", { name: /delete my account/i }));
 
     await waitFor(() => expect(invoke).toHaveBeenCalled());
@@ -240,6 +250,7 @@ describe("/account-banned — in-app account deletion", () => {
     fireEvent.change(await screen.findByLabelText(/type delete to confirm/i), {
       target: { value: "DELETE" },
     });
+    fireEvent.change(screen.getByLabelText(/your password/i), { target: { value: "pw" } });
     fireEvent.click(screen.getByRole("button", { name: /delete my account/i }));
 
     await waitFor(() => expect(invoke).toHaveBeenCalled());
@@ -250,17 +261,17 @@ describe("/account-banned — in-app account deletion", () => {
     // is the only screen that would have told them.
     expect(signOut).not.toHaveBeenCalled();
 
-    // The refusal reaches the user. Step 2 is `role="alertdialog"`, so the
-    // shared Close wrapper dismisses it on commit (43 confirms rely on that),
-    // which means the toast is the ONLY carrier for "you still have escrow
-    // in flight" — hence `functionErrorMessage` rather than the SDK's
-    // "non-2xx".
+    // The refusal reaches the user as a toast carrying the server's sentence
+    // ("you still have escrow in flight") — hence `functionErrorMessage`
+    // rather than the SDK's "non-2xx".
     const { toast } = await import("sonner");
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
-    // And the flow is re-openable rather than wedged.
+    // And the flow is not wedged. Step 2 now stays open on commit (its delete
+    // button calls preventDefault so a wrong password can be said under the
+    // field, A3-I5), so the person can retry or go Back from right there.
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /delete account/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /delete my account/i })).toBeEnabled(),
     );
   });
 });

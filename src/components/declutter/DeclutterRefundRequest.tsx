@@ -26,6 +26,8 @@ import {
   type RefundRequestView,
 } from "@/lib/declutter/refundRequests";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
+import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -104,9 +106,14 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
   const handover = useQuery({ queryKey: ["declutter", "handover", v.order_id], queryFn: () => fetchMyHandover(v.order_id) });
   const buyerHasIt = handover.data?.confirmed_by === "buyer" || !!handover.data?.picked_up_at;
   const reasons = (Object.keys(REFUND_REASON_WORDS) as RefundReason[]).filter((k) => !(buyerHasIt && k === "not_received"));
+  // D2-7: up to 3 photos, uploaded when the request is sent (only once the server takes them: REFUND_FORM_PHOTOS_READY).
+  const [photos, setPhotos] = useState<File[]>([]);
   const ask = useMutation({
-    mutationFn: () => askRefund(v.order_id, reason, note.trim()),
-    onSuccess: () => { toast.success(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); refresh(); },
+    mutationFn: async () => {
+      const paths = REFUND_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(v.order_id, photos) : [];
+      return askRefund(v.order_id, reason, note.trim(), paths);
+    },
+    onSuccess: () => { toast.success(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); setPhotos([]); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const offer = useMutation({
@@ -142,6 +149,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         ))}
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">Tell them more</label>
         <textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={ask.isPending} />}
         <p className="text-ds-12 text-muted-foreground">
           {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(v.full_refund_cents)} back to your card
           {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund

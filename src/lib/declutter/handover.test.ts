@@ -69,8 +69,11 @@ const h = vi.hoisted(() => {
         },
       }),
     },
+    // D2-7: the problem photo goes into the signed-in member's own folder (read from the local session).
+    auth: { getSession: () => Promise.resolve({ data: { session: session.uid ? { user: { id: session.uid } } : null } }) },
   };
-  return { queue, queries, rpcs, store, supabase, removeResult, clean: vi.fn() };
+  const session = { uid: "u1" as string | null };
+  return { queue, queries, rpcs, store, supabase, removeResult, session, clean: vi.fn() };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: h.supabase }));
@@ -96,6 +99,7 @@ import {
   reportProblem,
   setPorchTime,
   uploadHandoverPhoto,
+  uploadProblemPhoto,
 } from "./handover";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { markDelivered } from "./sellerDelivery";
@@ -322,5 +326,39 @@ describe("audit 1a #10: a refused handover photo is removed, and the refusal sti
     await expect(porchPhoto("o1", P, null)).rejects.toThrow(/photo_too_old/);
     expect(warn).toHaveBeenCalledTimes(2);
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["[declutter] refused handover photo not removed", "[declutter] refused handover photo not removed"]);
+  });
+});
+
+// Audit 1b D2-7: problem and refund photos go into <uid>/declutter/problem/<order>/, the folder the storage rule and
+// declutter_report_problem accept; cleaned like every Declutter photo; a photo taken earlier is fine (evidence).
+// @mutate src/lib/declutter/handover.ts |   const path = `${uid}/declutter/problem/${orderId}/${nonce}.jpg`; |   const path = `${uid}/declutter/handover/${orderId}/${nonce}.jpg`;
+// @mutate src/lib/declutter/handover.ts |   if (!uid) throw new Error("not_authenticated"); |
+// @mutate src/lib/declutter/handover.ts |   const cleaned = await cleanListingPhoto(file);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");\n  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());\n  const path = `${uid} |   const cleaned = file;\n  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());\n  const path = `${uid}
+describe("uploadProblemPhoto", () => {
+  const old = new File([new Uint8Array([1, 2, 3])], "x.heic", { type: "image/heic", lastModified: Date.now() - 3 * 86_400_000 });
+  beforeEach(() => { h.session.uid = "u1"; });
+
+  it("uploads the cleaned JPEG under the member's <uid>/declutter/problem/<order>/, even a photo taken days ago", async () => {
+    h.clean.mockResolvedValue(new File([new Uint8Array([9])], "x.jpg", { type: "image/jpeg" }));
+    h.queue.push(ok({ path: "ignored" }));
+    const path = await uploadProblemPhoto("o1", old);
+    expect(path).toMatch(/^u1\/declutter\/problem\/o1\/[^/]+\.jpg$/);
+    expect(h.clean).toHaveBeenCalledWith(old);
+    const [op, bucket, upPath, body, opts] = h.store[0] as [string, string, string, File, Record<string, unknown>];
+    expect([op, bucket, upPath, body.type]).toEqual(["upload", "declutter-handover", path, "image/jpeg"]);
+    expect(opts).toEqual({ contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+  });
+
+  it("refuses when signed out, an uncleanable file, and a failed upload", async () => {
+    h.session.uid = null;
+    await expect(uploadProblemPhoto("o1", old)).rejects.toThrow("not_authenticated");
+    expect(h.store).toHaveLength(0);
+    h.session.uid = "u1";
+    h.clean.mockResolvedValue(new File([new Uint8Array([9])], "x.gif", { type: "image/gif" }));
+    await expect(uploadProblemPhoto("o1", old)).rejects.toThrow("photo_not_uploaded");
+    expect(h.store).toHaveLength(0);
+    h.clean.mockResolvedValue(new File([new Uint8Array([9])], "x.jpg", { type: "image/jpeg" }));
+    h.queue.push(refused("storage down"));
+    await expect(uploadProblemPhoto("o1", old)).rejects.toThrow("photo_not_uploaded");
   });
 });

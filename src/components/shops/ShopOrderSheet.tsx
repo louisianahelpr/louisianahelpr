@@ -12,7 +12,7 @@
  * The server re-checks every rule (shops_request_order): nothing here is the
  * protection. Styling is today's shared components only (no visual pass yet).
  */
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -64,6 +64,8 @@ function QuantityStepper({ item, value, onChange }: { item: ShopItem; value: num
 export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // One heading id per instance (A0-L1), for whichever state is showing.
+  const headId = useId();
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   const terms = useQuery({ queryKey: ["shops", "order-terms", shopId], queryFn: () => fetchOrderTerms(shopId), enabled: !!shopId });
   const [qty, setQty] = useState<Record<string, number>>({});
@@ -84,16 +86,16 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
   if (items.isLoading || terms.isLoading) {
     return (
-      <section className="space-y-2" aria-labelledby="shop-order" role="status" aria-label="Loading ordering">
-        <h2 id="shop-order" className="text-sm font-semibold">Order</h2>
+      <section className="space-y-2" aria-labelledby={headId} role="status" aria-label="Loading ordering">
+        <h2 id={headId} className="text-sm font-semibold">Order</h2>
         <Skeleton className="h-32 w-full rounded-2xl" />
       </section>
     );
   }
   if (terms.isError || !t) {
     return (
-      <section className="space-y-2" aria-labelledby="shop-order">
-        <h2 id="shop-order" className="text-sm font-semibold">Order</h2>
+      <section className="space-y-2" aria-labelledby={headId}>
+        <h2 id={headId} className="text-sm font-semibold">Order</h2>
         <div role="alert" className="space-y-2">
           <p className="text-sm">{shopsErrorMessage(terms.error)}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void terms.refetch()} disabled={terms.isFetching}>
@@ -141,9 +143,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby="shop-order">
+    <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
-        <h2 id="shop-order" className="text-sm font-semibold">Order</h2>
+        <h2 id={headId} className="text-sm font-semibold">Order</h2>
         <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
       </div>
 

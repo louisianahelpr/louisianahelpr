@@ -203,7 +203,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx` | input×1, textarea×1 | file |  | Edit your message · Remove attachment |
 | `src/pages/jobs/AppliedJobsTab.tsx` | textarea×1 |  |  | Withdraw reason — other |
 | `src/pages/posts/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
-| `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×3, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date | 500 | Job title · Description · Category · category-applicants-lock-hint · category-tax-lock-hint · Location · edit-date-needed · edit-flexible-schedule |
+| `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×3, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date | 500 | Job title · Description · Category · category-applicants-lock-hint · category-tax-lock-hint · Location · edit-flexible-schedule · Flexible schedule |
 | `src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx` | input×1 | checkbox |  |  |
 | `src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx` | textarea×1 |  |  | Private note |
 | `src/pages/posts/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
@@ -373,7 +373,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/shops/ShopOrderSheet.tsx` | textarea×1 |  |  | Loading ordering · shop-order · shop-order-date · shop-order-date-help · shop-order-note · shop-order-cancel-policy · shop-order-total |
+| `src/components/shops/ShopOrderSheet.tsx` | textarea×1 |  |  | Loading ordering · shop-order-date · shop-order-date-help · shop-order-note · shop-order-cancel-policy · shop-order-total |
 
 ## /shops/dashboard
 

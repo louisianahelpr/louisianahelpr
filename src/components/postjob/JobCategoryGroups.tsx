@@ -119,50 +119,49 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     tile(it.value, categoryEmoji(it.value), it.label, () => pick(it.value), { pressed: category === it.value });
 
   const open = group ? JOB_CATEGORY_GROUPS.find((g) => g.id === group) : null;
-  if (open) {
-    return (
-      <div id="category-picker" className="pj-cq">
+  // ONE category-picker element (A0-L1): useJobSubmit's scrollToField("category-picker") finds it in either view.
+  return (
+    <div id="category-picker" className={open ? "pj-cq" : "pj-cq space-y-5"}>
+      {open ? (
         <section aria-label={`In ${open.label}`} className="pj-tiles grid gap-2.5">
           {open.items.map(categoryTile)}
         </section>
-      </div>
-    );
-  }
+      ) : (
+        <>
+          <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="sr-only">Search categories</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g. wash my driveway"
+              className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
+            />
+          </label>
 
-  return (
-    <div id="category-picker" className="pj-cq space-y-5">
-      <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="sr-only">Search categories</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g. wash my driveway"
-          className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
-        />
-      </label>
+          {matches ? (
+            <section aria-label="Matching categories" className="space-y-2.5">
+              <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Matches</h2>
+              {matches.length > 0 ? (
+                <div className="pj-tiles grid gap-2.5">{matches.map(categoryTile)}</div>
+              ) : (
+                <p className="font-sans text-ds-14 text-muted-foreground">
+                  No category matches "{query.trim()}". Pick a group below, or Something else.
+                </p>
+              )}
+            </section>
+          ) : null}
 
-      {matches ? (
-        <section aria-label="Matching categories" className="space-y-2.5">
-          <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Matches</h2>
-          {matches.length > 0 ? (
-            <div className="pj-tiles grid gap-2.5">{matches.map(categoryTile)}</div>
-          ) : (
-            <p className="font-sans text-ds-14 text-muted-foreground">
-              No category matches "{query.trim()}". Pick a group below, or Something else.
-            </p>
-          )}
-        </section>
-      ) : null}
+          <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5">
+            {JOB_CATEGORY_GROUPS.map(groupTile)}
+          </section>
 
-      <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5">
-        {JOB_CATEGORY_GROUPS.map(groupTile)}
-      </section>
-
-      {/* I1: "Other" always works; this sends a missing category to the admin
-          queue (hidden switch suggest_category). */}
-      <SuggestCategory area="jobs" />
+          {/* I1: "Other" always works; this sends a missing category to the admin
+              queue (hidden switch suggest_category). */}
+          <SuggestCategory area="jobs" />
+        </>
+      )}
     </div>
   );
 }

@@ -37,7 +37,7 @@ import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
-import { useParishForZip, useZipFillsTown } from "@/hooks/useParishForZip";
+import { useParishForZip } from "@/hooks/useParishForZip";
 import { cityZipMismatchHint } from "@/lib/cityZipMismatch";
 
 const Signup = () => {
@@ -109,9 +109,8 @@ const Signup = () => {
   // Live parish resolution from the ZIP, shared with CompleteProfile and
   // ProfileEditForm — resolved as the user types so both hints below can
   // render before submit, not just at it.
-  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
   // A3-I1: a recognised ZIP fills an empty town with the ZIP's town (never replaces a typed one).
-  useZipFillsTown(zipCode, location, setLocation);
+  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
   const cityZipMismatch = cityZipMismatchHint(location, resolvedZipParish);
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the

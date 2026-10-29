@@ -32,8 +32,14 @@ export interface ZipParishState {
 
 const INCOMPLETE: ParishResolution = { status: "incomplete" };
 
-export function useParishForZip(zipCode: string): ZipParishState {
+/**
+ * Pass the form's town and its setter (A3-I1) and a recognised ZIP also fills
+ * that town when it is empty: see useZipFillsTown below. Signup, CompleteProfile
+ * and ProfileEditForm pass them; Profile.tsx only reads the parish.
+ */
+export function useParishForZip(zipCode: string, town?: string, setTown?: (town: string) => void): ZipParishState {
   const [resolution, setResolution] = useState<ParishResolution>(INCOMPLETE);
+  useZipFillsTown(zipCode, town ?? "", setTown);
 
   useEffect(() => {
     const cleaned = zipCode.replace(/\D/g, "");
@@ -68,19 +74,22 @@ export const UNKNOWN_ZIP_MESSAGE =
  * (City at signup, Area on the profile) with the ZIP's town. A town the member
  * typed is never replaced, and once a ZIP has filled the field, clearing it does
  * not bring the town back for that same ZIP. Used by every ZIP + town form:
- * Signup, CompleteProfile, ProfileEditForm.
+ * Signup, CompleteProfile, ProfileEditForm, through useParishForZip's town
+ * arguments (one line in each form, so none of them grows).
  */
-export function useZipFillsTown(zipCode: string, town: string, setTown: (town: string) => void): void {
+export function useZipFillsTown(zipCode: string, town: string, setTown: ((town: string) => void) | undefined): void {
   const filledFor = useRef<string | null>(null);
   const [city, setCity] = useState<string | null>(null);
+  const fills = !!setTown;
   useEffect(() => {
     let cancelled = false;
     setCity(null);
-    void resolveCityByZip(zipCode).then((c) => { if (!cancelled) setCity(c); });
+    // No town to fill (Profile.tsx): no lookup either.
+    if (fills) void resolveCityByZip(zipCode).then((c) => { if (!cancelled) setCity(c); });
     return () => { cancelled = true; };
-  }, [zipCode]);
+  }, [zipCode, fills]);
   useEffect(() => {
-    if (!city || filledFor.current === city) return;
+    if (!setTown || !city || filledFor.current === city) return;
     filledFor.current = city;
     if (!town.trim()) setTown(city);
   }, [city, town, setTown]);

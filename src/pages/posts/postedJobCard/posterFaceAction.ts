@@ -3,6 +3,7 @@ import type { PosterWait } from "@/components/job-card/jobStatusLine";
 import type { MineFaceAction } from "@/components/job-card/MineJobFace";
 import type { Job } from "../../../components/job-card/activityConstants";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
+import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 
 /**
  * The ONE button on the poster's Posted card face (board 14; lead 2026-10-20:
@@ -30,6 +31,8 @@ export interface PosterFaceHandlers {
   approve: () => void;
   review: () => void;
   tip: () => void;
+  /** F29: false when the Helpr's payout setup is not finished (useHelprTakesTips); the face then offers no tip. */
+  tipsReady?: boolean | null;
   postAgain: () => void;
   message: () => void;
   manage: () => void;
@@ -77,7 +80,7 @@ export function posterFaceAction(
       return { label: "Leave a review", onClick: h.review, tone: "primary" };
     case "done_tip_open":
       // A crew is tipped member by member, in the card.
-      return job.is_group_job
+      return job.is_group_job || h.tipsReady === false
         ? { label: "Manage job", onClick: h.manage, tone: "secondary" }
         : { label: `Tip ${first(h.helperName)}`, onClick: h.tip, tone: "primary" };
     case "stalled":
@@ -131,6 +134,7 @@ export function usePosterFaceAction(a: {
   onViewDispute: (job: Job) => void;
 }): { faceAction: MineFaceAction; completionRequest: number } {
   const { job, toggle } = a;
+  const tipsReady = useHelprTakesTips(job.helper_id, a.wait === "done_tip_open" && !job.is_group_job);
   // Bumped by "Approve and release": PostedJobActions opens its completion sheet.
   const [completionRequest, setCompletionRequest] = useState(0);
   const faceAction = posterFaceAction(a.wait, job, {
@@ -146,6 +150,7 @@ export function usePosterFaceAction(a: {
     },
     review: () => a.onReview(job),
     tip: () => a.onTip(job.id, a.helperName),
+    tipsReady,
     postAgain: () => a.navigate(`/post-job?rebook=${job.id}`),
     message: () => a.navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages"),
     manage: () => toggle(job.id),

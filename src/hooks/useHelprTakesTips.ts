@@ -1,0 +1,76 @@
+/**
+ * Can this Helpr receive a tip right now? Decided UP FRONT, from the same
+ * server fact the hire row's Select reads ("payout setup not finished yet",
+ * ApplicantHireRow): get_safe_profiles.is_payout_ready
+ * (stripe_account_id IS NOT NULL AND stripe_payouts_enabled).
+ *
+ * Audit 2026-10-28 part 4, F29: the tip was offered three times (the 5-star
+ * prompt, "Tip <name>" on the Done card, the tip sheet with its amounts) and
+ * refused only at the last tap, when create-payment answered 400 "This Helpr
+ * hasn't set up their payout account yet and cannot receive tips". Every tip
+ * surface now asks this first and, when the answer is no, offers no tip and
+ * says so in one line (tipsNotReadyLine).
+ *
+ * Returns false only when the server SAID not ready. Loading, a read error or
+ * no row is null ("unknown"): the surface keeps offering the tip and
+ * create-payment stays the backstop, so an outage never hides a tip that
+ * would have worked.
+ *
+ * A plain effect with a per-Helpr cache, not React Query: the Posted card's
+ * face reads it, and that card renders in places (and tests) with no
+ * QueryClientProvider above it.
+ */
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
+import { pickRequestedProfile } from "@/lib/safeProfiles";
+
+const CACHE_MS = 60_000;
+const cache = new Map<string, { at: number; value: Promise<boolean | null> }>();
+
+function readTakesTips(helperId: string): Promise<boolean | null> {
+  const hit = cache.get(helperId);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+  const value = (async () => {
+    const { data, error } = await supabase.rpc("get_safe_profiles", { user_ids: [helperId] });
+    if (error) {
+      // Unknown, not "no": the tip stays offered and create-payment decides.
+      report(error, { severity: "warning", tags: { source: "useHelprTakesTips" } });
+      cache.delete(helperId);
+      return null;
+    }
+    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null }[] | null, helperId);
+    return row ? row.is_payout_ready === true : null;
+  })();
+  cache.set(helperId, { at: Date.now(), value });
+  return value;
+}
+
+/** Test seam: forget every cached answer. */
+export function __resetHelprTakesTipsCache() {
+  cache.clear();
+}
+
+export function useHelprTakesTips(helperId: string | null | undefined, enabled = true): boolean | null {
+  const [answer, setAnswer] = useState<{ id: string; value: boolean | null } | null>(null);
+  useEffect(() => {
+    if (!enabled || !helperId) return;
+    let live = true;
+    readTakesTips(helperId).then(
+      (value) => { if (live) setAnswer({ id: helperId, value }); },
+      (err: unknown) => {
+        // Unknown on a thrown read too (offline): the tip stays offered.
+        report(err, { severity: "warning", tags: { source: "useHelprTakesTips" } });
+        cache.delete(helperId);
+      },
+    );
+    return () => { live = false; };
+  }, [helperId, enabled]);
+  return enabled && helperId && answer?.id === helperId ? answer.value : null;
+}
+
+/** The one honest line a tip surface shows instead of the tip, when the Helpr can't receive one yet. */
+export function tipsNotReadyLine(name: string | null | undefined): string {
+  const first = (name ?? "").trim().split(/\s+/)[0];
+  return `${first || "This Helpr"} hasn't finished payout setup yet, so a tip can't reach them. You can tip once they do.`;
+}

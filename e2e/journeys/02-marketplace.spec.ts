@@ -1094,10 +1094,10 @@ test.describe.serial("marketplace chain", () => {
          and the failure surfaced 90 seconds later as "release never settled",
          which reads as a broken payout rather than an unclicked button. */
       await press(pp, c, /^Approve\b/, "approve");
-      const sheet = pp.getByRole("dialog").filter({ hasText: /Confirm and release/ });
+      const sheet = pp.getByRole("dialog").filter({ hasText: /Approve and release/ });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
       await journey.milestone(pp, "release-confirm");
-      await sheet.getByRole("button", { name: /^Confirm and release/ }).click();
+      await sheet.getByRole("button", { name: /^Approve and release/ }).click();
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "release never settled" })
         .toMatch(/^(payout_pending|released)$/);

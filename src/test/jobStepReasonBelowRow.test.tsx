@@ -246,10 +246,10 @@ describe("Posts card: the gate reason renders ABOVE the action row", () => {
         )}
       />,
     );
-    // Gone (owner, 2026-10-08): nothing sits below the row; "Approve & Pay" is
+    // Gone (owner, 2026-10-08): nothing sits below the row; "Approve and release" is
     // the row's primary and says the release itself.
     expect(screen.queryByText(/Approve to release payment/)).toBeNull();
-    expect(screen.getByRole("button", { name: /^Approve & Pay/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Approve and release/ })).toBeTruthy();
   });
 });
 

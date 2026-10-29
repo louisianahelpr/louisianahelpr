@@ -95,7 +95,7 @@ describe("Rentals: the release decision shows the tenant's 'Was it fixed?' answe
     // "Release Payment" into the place "Request a Revision" had just held
     // (lh-money-escrow review of 3674fa1e4 #1).
     const box = screen.getByText("Your tenant says it's NOT fixed");
-    for (const choice of [/^Confirm and release/, "Something's not right"]) {
+    for (const choice of [/^Approve and release/, "Something's not right"]) {
       expect(screen.getByText(choice).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING, `the answer sits above "${choice}"`).toBeTruthy();
     }
   });

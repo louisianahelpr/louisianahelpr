@@ -7,6 +7,7 @@ import { PhotoProofDialog } from "@/components/PhotoProof";
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/pages/posts/CompletionChoiceSheet";
+import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 import { hasJobStarted } from "@/lib/dateUtils";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
@@ -159,16 +160,17 @@ export function InProgressStep(ctx: PosterStepCtx) {
       step="in_progress"
       /* APPROVE IS THE ROW'S PRIMARY once the Helpr marks it done (owner,
          2026-10-08: "approve should be a primary button to the right of more";
-         contract step 10, "Approve & Pay"). Disabled "Approved" once paid. */
+         contract step 10). Disabled "Approved" once released. F33: "Approve and release", the
+         sheet's own words (src/lib/releaseCopy.ts); never "Pay", the poster already paid. */
       primary={
         showApprove ? (
           <JobStepPrimaryButton
             icon={CheckCircle2}
-            label={job.poster_completed_at ? "Approved" : "Approve & Pay"}
+            label={job.poster_completed_at ? "Approved" : RELEASE_ACTION}
             ariaLabel={
               job.poster_completed_at
                 ? "Approved — you already released payment for this job"
-                : "Approve & Pay — accept the work and release payment to your Helpr"
+                : `${RELEASE_ACTION}: accept the work and release the money to your Helpr`
             }
             tone={job.poster_completed_at ? "done" : "primary"}
             disabled={completingJobId === job.id || !!job.poster_completed_at}

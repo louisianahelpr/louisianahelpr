@@ -1,7 +1,7 @@
 // Board 65 (poster: confirm and release): "<Helpr> says it's done", the job, a money
-// note with the job price only (never the Helpr's take-home), "Confirm and release $X"
+// note with the job price only (never the Helpr's take-home), "Approve and release $X"
 // that runs the existing release, and "Something's not right" opening the fix request.
-// @mutate src/pages/posts/CompletionChoiceSheet.tsx |                   {jobPrice ? `Confirm and release $${formatPriceExact(jobPrice)}` : "Confirm and release"} |                   {"Confirm and release"}
+// @mutate src/pages/posts/CompletionChoiceSheet.tsx |                   {releaseActionLabel(jobPrice)} |                   {releaseActionLabel(null)}
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx |             jobPrice={!job.is_group_job && !(job.urgent_fee && job.urgent_fee > 0) ? job.budget : null} |             jobPrice={job.budget}
 // @mutate src/pages/posts/CompletionChoiceSheet.tsx |           event.preventDefault();\n          (event.currentTarget as HTMLElement \| null)?.focus({ preventScroll: true }); |           void event;
 // @mutate src/pages/posts/CompletionChoiceSheet.tsx | <strong className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}> | <strong className="tabular-nums">
@@ -46,13 +46,13 @@ describe("board 65: confirm and release", () => {
     expect(document.body.textContent).not.toMatch(/receives|take.?home|payout|after fees|\d+%|\$0\.70/i);
     // #2: one consistent story: released on confirm; held only through "Something's not right".
     expect(screen.getByText(/job price is/).textContent).toMatch(/tap "Something's not right" and the money stays held\.$/);
-    fireEvent.click(screen.getByRole("button", { name: "Confirm and release $90" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve and release $90" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
   it("names no number when the release is not simply the job price, and 'Something's not right' asks what to fix", () => {
     show(null);
-    expect(screen.getByRole("button", { name: "Confirm and release" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve and release" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Something's not right" }));
     expect(screen.getByText("What needs to be fixed?")).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe("board 65: confirm and release", () => {
   // Lead MUST (2026-10-21): a stray Enter or Space at open must not release money.
   it("opens with focus on the sheet, never on the release button", async () => {
     show(90);
-    const release = screen.getByRole("button", { name: "Confirm and release $90" });
+    const release = screen.getByRole("button", { name: "Approve and release $90" });
     await new Promise((r) => setTimeout(r, 50));
     expect(document.activeElement).not.toBe(release);
     expect(document.activeElement?.getAttribute("role")).toBe("dialog");

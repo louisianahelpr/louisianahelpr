@@ -9069,7 +9069,7 @@
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -9089,7 +9089,7 @@
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

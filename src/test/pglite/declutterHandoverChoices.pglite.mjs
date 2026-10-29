@@ -25,6 +25,12 @@
  * as sides only; members, anon and an unknown problem are refused.
  *   AL6_MIGRATION=skip node src/test/pglite/declutterHandoverChoices.pglite.mjs      # RED: T9 fails
  *   AL6_PATH=<planted copy> node src/test/pglite/declutterHandoverChoices.pglite.mjs
+ *
+ * Then T10, AL-4 (owner 2026-10-28, "One dispute screen for admin"): 20261029011313_declutter_admin_problem_case,
+ * applied 3 times: the order's step facts (booking day, seller delivery, Helpr task times) and the Helpr's pickup and
+ * drop-off photos with the drop-off distance, admin only, never a code, address or id.
+ *   AL4_MIGRATION=skip node src/test/pglite/declutterHandoverChoices.pglite.mjs      # RED: T10 fails
+ *   AL4_PATH=<planted copy> node src/test/pglite/declutterHandoverChoices.pglite.mjs
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -42,6 +48,9 @@ const skipTalk = process.env.TALK_MIGRATION === "skip" || process.env.NEW_MIGRAT
 // AL6_MIGRATION=skip leaves it out (T9 is RED); AL6_PATH=<planted copy> applies a planted one.
 const AL6_FILE = "20261029005124_declutter_admin_problem_talk.sql";
 const al6Sql = process.env.AL6_MIGRATION === "skip" ? "" : readFileSync(process.env.AL6_PATH ?? `${MIG_DIR}${AL6_FILE}`, "utf8");
+// AL-4 (owner 2026-10-28): the admin's read of a problem's order facts and Helpr photos, applied 3x in T10.
+const AL4_FILE = "20261029011313_declutter_admin_problem_case.sql";
+const al4Sql = process.env.AL4_MIGRATION === "skip" ? "" : readFileSync(process.env.AL4_PATH ?? `${MIG_DIR}${AL4_FILE}`, "utf8");
 const OWED_FILE = "20261027163240_payout_setup_only_when_owed.sql";
 // main's later Declutter money migrations (on prod): the chain 141d's own proof replays.
 const LATER_ON_PROD = [
@@ -592,6 +601,56 @@ if (process.env.NEW_MIGRATION !== "skip") { // runs with TALK_MIGRATION=skip too
       "an unknown problem: problem_not_found");
     const acl = one(await svc(`SELECT proacl::text FROM pg_proc WHERE proname = 'declutter_admin_problem_talk'`)) ?? "";
     ok(/authenticated=X/.test(acl) && !/anon=X/.test(acl) && !/(^|[{,])=X/.test(acl), `declutter_admin_problem_talk: no PUBLIC or anon (${acl})`);
+  }
+
+  // T10. AL-4 (owner 2026-10-28, "One dispute screen for admin"): the order's own step facts and the Helpr's photos for
+  // a reported problem, admin only, no names, ids, addresses or codes (declutter_admin_problem_case).
+  if (al4Sql !== null) { // always: AL4_MIGRATION=skip runs T10 against no migration, so it is RED
+    // The porch day column this world predates (20261028225038_declutter_porch_pick_a_day adds it, as on this branch).
+    await svc(`ALTER TABLE public.declutter_bookings ADD COLUMN IF NOT EXISTS pickup_day date`);
+    for (let i = 1; i <= 3; i++) {
+      const r = await run(al4Sql);
+      ok(!r?.error, `the AL-4 admin case read applies (run ${i} of 3)${r?.error ? `: ${r.error}` : ""}`);
+    }
+    const pid = one(await svc(`SELECT id FROM public.declutter_problems WHERE note = 'It was not on the porch'`));
+    const caseRow = async () => (await me(ADMIN, `SELECT * FROM public.declutter_admin_problem_case('${pid}')`));
+    let c = await caseRow();
+    ok(Array.isArray(c) && c.length === 1 && c[0].handover === "porch" && c[0].order_status === "paid" && c[0].pickup_day === null,
+      `an admin reads the order's facts: porch, paid, no day yet (${JSON.stringify(c).slice(0, 160)})`);
+    const orderId = one(await svc(`SELECT order_id FROM public.declutter_problems WHERE id = '${pid}'`));
+    const b = await svc(`INSERT INTO public.declutter_bookings (order_id, buyer_id, seller_id, pickup_day)
+      VALUES ('${orderId}', '${BUYER3}', '${SELLER}', (now() + interval '1 day')::date) RETURNING order_id`);
+    ok(Array.isArray(b), `a pickup day is booked (${JSON.stringify(b).slice(0, 100)})`);
+    c = await caseRow();
+    ok(Array.isArray(c) && c[0]?.pickup_day !== null, `the day shows (${JSON.stringify(c?.[0]?.pickup_day)})`);
+    // A Helpr delivery's photos, times and the drop-off distance (the task's own row; the code never leaves it).
+    const t = await svc(`INSERT INTO public.helpr_tasks (source_kind, source_id, title, pickup_address, pickup_area, pickup_lat, pickup_lng,
+        dropoff_address, dropoff_area, dropoff_lat, dropoff_lng, dropoff_code, size, trip_miles, pay_cents, fee_cents,
+        latest_pickup_at, open_until, status, helpr_id, pickup_slot_start, accepted_at, picked_up_at, pickup_photo_path, delivered_at, dropoff_photo_path, dropoff_distance_m)
+      VALUES ('declutter_delivery', '${orderId}', 'Lamp', '1 Porch St', 'Mid City', 30.45, -91.15, '9 Home Rd', 'Downtown', 30.46, -91.16,
+        '4821', 'small', 5, 2000, 200, now() + interval '1 day', now() + interval '1 day', 'delivered', '${OUTSIDER}', now() - interval '3 hours',
+        now() - interval '3 hours', now() - interval '2 hours', 'helpr/x/pickup.jpg', now() - interval '1 hour', 'helpr/x/dropoff.jpg', 42)
+      RETURNING id`);
+    const taskId = one(t);
+    if (taskId) {
+      await svc(`INSERT INTO public.declutter_order_deliveries (order_id, delivery_cents, dropoff_address, dropoff_area, dropoff_lat, dropoff_lng, road_miles, size, task_id)
+        VALUES ('${orderId}', 2000, '9 Home Rd', 'Downtown', 30.46, -91.16, 5, 'small', '${taskId}')`);
+    }
+    c = await caseRow();
+    const r0 = Array.isArray(c) ? c[0] : null;
+    ok(!!taskId, `a Helpr task row for the order (${JSON.stringify(t).slice(0, 120)})`);
+    ok(!!taskId && r0?.helpr_pickup_photo_path === "helpr/x/pickup.jpg" && r0?.helpr_dropoff_photo_path === "helpr/x/dropoff.jpg"
+      && r0?.helpr_dropoff_distance_m === 42 && r0?.helpr_picked_up_at && r0?.helpr_delivered_at && r0?.helpr_accepted_at,
+      `the Helpr's pickup and drop-off photos with times and the drop-off distance (${JSON.stringify(r0).slice(0, 220)})`);
+    const flat = JSON.stringify(c);
+    ok(!/4821|Home Rd|Porch St|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(flat), "no code, address or id in it");
+    ok(refused(await me(BUYER3, `SELECT * FROM public.declutter_admin_problem_case('${pid}')`), /not_admin/), "the buyer cannot read it");
+    ok(refused(await me(SELLER, `SELECT * FROM public.declutter_admin_problem_case('${pid}')`), /not_admin/), "the seller cannot read it");
+    ok(refused(await anon(`SELECT * FROM public.declutter_admin_problem_case('${pid}')`), /permission denied/), "anon cannot call it");
+    ok(refused(await me(ADMIN, `SELECT * FROM public.declutter_admin_problem_case('99999999-0000-0000-0000-0000000000ff')`), /problem_not_found/),
+      "an unknown problem: problem_not_found");
+    const acl = one(await svc(`SELECT proacl::text FROM pg_proc WHERE proname = 'declutter_admin_problem_case'`)) ?? "";
+    ok(/authenticated=X/.test(acl) && !/anon=X/.test(acl) && !/(^|[{,])=X/.test(acl), `declutter_admin_problem_case: no PUBLIC or anon (${acl})`);
   }
 
   // T8. Grants.

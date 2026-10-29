@@ -5,6 +5,7 @@
  * "Seller", or "Another member" for a question someone else asked. A question the app hid is kept and marked.
  */
 import { useQuery } from "@tanstack/react-query";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchProblemTalk, type ProblemTalkRow } from "@/lib/declutter/adminProblemCase";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
@@ -14,12 +15,7 @@ const when = (iso: string) => new Date(iso).toLocaleString();
 export function ProblemTalk({ problemId }: { problemId: string }) {
   const talk = useQuery({ queryKey: ["declutter", "admin-problem-talk", problemId], queryFn: () => fetchProblemTalk(problemId) });
   if (talk.isError) {
-    return (
-      <p className="text-xs" role="alert">
-        The chat couldn't load: {declutterErrorMessage(talk.error)}{" "}
-        <button type="button" className="underline" onClick={() => void talk.refetch()}>Try again</button>
-      </p>
-    );
+    return <ErrorState variant="inline" title="The chat couldn't load." body={declutterErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />;
   }
   // Not on the server yet (PGRST202): nothing to show, as before.
   if (talk.isPending || talk.data === null) return null;

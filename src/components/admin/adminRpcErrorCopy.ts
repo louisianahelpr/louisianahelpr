@@ -209,6 +209,8 @@ export const ADMIN_RPC_ERROR_COPY = {
   declutter_admin_open_problems: { not_admin: DC.not_admin },
   // AL-6 (owner 2026-10-28): the problem card's chat and questions (DeclutterProblemTalk via src/lib/declutter/adminProblemCase.ts).
   declutter_admin_problem_talk: { not_admin: DC.not_admin, problem_not_found: DC.problem_not_found },
+  // AL-4 (owner 2026-10-28): the problem card's order steps and Helpr photos (DeclutterProblemCase).
+  declutter_admin_problem_case: { not_admin: DC.not_admin, problem_not_found: DC.problem_not_found },
   declutter_admin_review_item: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

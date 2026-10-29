@@ -13681,6 +13681,24 @@ export type Database = {
         Returns: number
       }
       declutter_admin_decide_delivery_damage: { Args: { p_note: string; p_problem_id: string }; Returns: Json }
+      declutter_admin_problem_case: {
+        Args: { p_problem_id: string }
+        Returns: {
+          handover: string
+          helpr_accepted_at: string
+          helpr_delivered_at: string
+          helpr_dropoff_distance_m: number
+          helpr_dropoff_photo_path: string
+          helpr_picked_up_at: string
+          helpr_pickup_photo_path: string
+          order_status: string
+          pickup_day: string
+          seller_delivered_at: string
+          seller_delivery_slot_start: string
+          seller_delivery_status: string
+          slot_start: string
+        }[]
+      }
       declutter_admin_problem_talk: {
         Args: { p_problem_id: string }
         Returns: {

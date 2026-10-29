@@ -26,3 +26,28 @@ export async function fetchProblemTalk(problemId: string): Promise<ProblemTalkRo
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   return (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_problem_talk", e) ?? null) ?? []) as ProblemTalkRow[];
 }
+
+export interface ProblemCase {
+  handover: string | null;
+  order_status: string | null;
+  slot_start: string | null;
+  pickup_day: string | null;
+  seller_delivery_status: string | null;
+  seller_delivery_slot_start: string | null;
+  seller_delivered_at: string | null;
+  helpr_accepted_at: string | null;
+  helpr_picked_up_at: string | null;
+  helpr_pickup_photo_path: string | null;
+  helpr_delivered_at: string | null;
+  helpr_dropoff_photo_path: string | null;
+  helpr_dropoff_distance_m: number | null;
+}
+
+/** The order's step facts and the Helpr's photos for one problem. Null before the read is on the server (PGRST202). */
+export async function fetchProblemCase(problemId: string): Promise<ProblemCase | null> {
+  const res = await supabase.rpc("declutter_admin_problem_case", { p_problem_id: problemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_admin_problem_case")) return null;
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  const rows = (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_problem_case", e) ?? null) ?? []) as ProblemCase[];
+  return rows[0] ?? null;
+}

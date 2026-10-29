@@ -7,7 +7,7 @@
  * preview card on the right.
  *
  * @mutate src/pages/post-job/CheckoutStepView.tsx |       <PostJobStepRail screen="review" canPick={canPick} onPick={pick} /> |
- * @mutate src/pages/post-job/CheckoutStepView.tsx |         <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.budgetNum} /> |
+ * @mutate src/pages/post-job/CheckoutStepView.tsx |         <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.quoteReview ? 0 : form.budgetNum} /> |
  * @mutate src/pages/post-job/CheckoutStepView.tsx |     <div key="checkout-step" className={POST_JOB_DESKTOP_GRID}> |     <div key="checkout-step" className="space-y-section">
  */
 import { describe, it, expect, vi } from "vitest";

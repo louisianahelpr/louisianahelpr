@@ -11,7 +11,7 @@
  *
  *   - `<SosShareButton …>`              (both cards' SOS)
  *   - `<DisputeLink …>`                 (the old inline dispute link)
- *   - `<JobActionChip … label="Report a Problem" | "Dispute" …>`
+ *   - `<JobActionChip … label="Report a problem" | "Dispute" …>`
  *
  * Each must carry a `key="…"` that is in MORE_ONLY_CHIP_KEYS; one without a
  * key, or with any other key, lands on the row and fails here.
@@ -68,7 +68,7 @@ function inventory(): Site[] {
       const selfClose = code.indexOf("/>", start);
       const tagSrc = code.slice(start, selfClose === -1 ? undefined : selfClose);
       const tag = m[1];
-      if (tag === "JobActionChip" && !/\blabel="(Report a Problem|Dispute)"/.test(tagSrc)) continue;
+      if (tag === "JobActionChip" && !/\blabel="(Report a problem|Dispute)"/.test(tagSrc)) continue;
       sites.push({
         file: relative(ROOT, abs),
         line: code.slice(0, start).split("\n").length,
@@ -87,7 +87,7 @@ describe("every tracker safety action is keyed into the shell's `More` menu", ()
     expect(sites.length).toBeGreaterThan(3);
     const tags = sites.map((s) => s.tag);
     expect(tags.filter((t) => t === "SosShareButton").length).toBeGreaterThan(1);
-    expect(tags).toContain("JobActionChip Report a Problem");
+    expect(tags).toContain("JobActionChip Report a problem");
     expect(tags).toContain("JobActionChip Dispute");
   });
 
@@ -105,7 +105,7 @@ describe("every tracker safety action is keyed into the shell's `More` menu", ()
 function Harness({ side }: { side: "helper" | "poster" }) {
   const [sosOpen, setSosOpen] = useState(false);
   const safetyKey = side === "helper" ? "report" : "dispute";
-  const safetyLabel = side === "helper" ? "Report a Problem" : "Dispute";
+  const safetyLabel = side === "helper" ? "Report a problem" : "Dispute";
   return (
     <JobStepCard
       side={side}
@@ -123,7 +123,7 @@ function Harness({ side }: { side: "helper" | "poster" }) {
 
 describe("the shell: safety actions sit only inside More, and SOS still opens its sheet", () => {
   for (const [side, label] of [
-    ["helper", "Report a Problem"],
+    ["helper", "Report a problem"],
     ["poster", "Dispute"],
   ] as const) {
     it(`${side} side: ${label} and SOS are not on the row; More (44px, named "More") holds both; SOS opens the sheet`, () => {

@@ -92,10 +92,11 @@ describe("You › Settings, board 52", () => {
     ]);
   });
 
-  it("Download my data opens the export card where it lives (board 176)", () => {
+  it("Download my data downloads in place, not via the Privacy policy (A3-I4; behaviour in settingsDownloadsDataDirectly)", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../components/profile/SettingsTab.tsx"), "utf8"));
     expect(src).toContain('label="Download my data"');
-    expect(src).toContain("navigate(dataRightsTarget(true))");
+    expect(src).toContain("onClick={() => void dataExport.startExport()}");
+    expect(src).not.toContain("navigate(dataRightsTarget(true))");
   });
 
   it("a tab opened from Settings backs out to Settings", () => {

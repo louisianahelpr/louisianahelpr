@@ -9712,6 +9712,16 @@
       "renders": true
     },
     {
+      "file": "src/hooks/useDataExport.ts",
+      "line": 64,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't put your data together just now — try again or email support."
+      },
+      "renders": true
+    },
+    {
       "file": "src/hooks/useDeleteAccount.ts",
       "line": 123,
       "kind": "toast.error",
@@ -10592,16 +10602,6 @@
       "title": {
         "form": "dynamic",
         "text": "data?.error || (error ? await functionErrorMessage( error, \"We couldn't send that — please try again.\", ) : \"We couldn't send that — please try again.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/info/legal/DataExportCard.tsx",
-      "line": 108,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "We couldn't put your data together just now — try again or email support."
       },
       "renders": true
     },

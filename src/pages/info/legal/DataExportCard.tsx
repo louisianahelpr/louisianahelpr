@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { report } from "@/lib/errorLogger";
-import { hapticError } from "@/lib/haptics";
-import { saveOrShareFile } from "@/lib/fileExport";
-import { toast } from "sonner";
+import { useDataExport } from "@/hooks/useDataExport";
 import { DATA_EXPORT_ANCHOR, dataRightsTarget } from "./dataExportAnchor";
-import { functionInvokeError } from "@/lib/supabaseResult";
 
 /** The card's anchor: on the Legal tab's Privacy panel when signed in,
  *  `/privacy` when signed out (see dataRightsTarget). */
@@ -49,7 +44,8 @@ export function DataExportCard() {
   // deciding from `user` alone showed that reader "Sign In to Download".
   const { user, isReady } = useAuthReady();
   const userId = user?.id ?? null;
-  const [exporting, setExporting] = useState(false);
+  // The export itself is shared with Settings' "Download my data" row (A3-I4).
+  const { exporting, startExport } = useDataExport(userId);
 
   // Scroll to the card when the URL names it — the sign-in link returns to
   // this anchor (on /profile?tab=legal&doc=privacy; see dataRightsTarget),
@@ -66,50 +62,6 @@ export function DataExportCard() {
     window.addEventListener("hashchange", check);
     return () => window.removeEventListener("hashchange", check);
   }, []);
-
-  const handleExport = async () => {
-    if (!userId) return;
-    setExporting(true);
-    try {
-      // One server call for the whole account (Q290). The edge function runs
-      // export_my_data() as this user (every table with a column that
-      // references a person: messages, payouts, reports filed, legal
-      // acceptances, login history and the rest; the list is guarded two-way
-      // against the schema by src/test/dataExportCoversEveryUserTable.test.ts)
-      // and adds signed links to the person's stored files. It fails closed:
-      // an error, never a file that silently leaves part of the account out.
-      const { data, error } = await supabase.functions.invoke("export-my-data");
-      if (error) throw await functionInvokeError(error);
-      if (!data || typeof data !== "object" || !("exported_at" in data)) {
-        throw new Error("export-my-data returned no export");
-      }
-      const payload = { ...(data as Record<string, unknown>) };
-
-      // `saveOrShareFile`, never `<a download>` + blob URL: WKWebView honours
-      // neither, so on iOS the old handoff fetched every row and produced no
-      // file. It picks the route the platform supports (native: share a real
-      // `file://`; web: the anchor download) and toasts on every failure path.
-      // See src/lib/fileExport.ts.
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const ok = await saveOrShareFile({
-        blob,
-        filename: `helpr-data-export-${new Date().toISOString().split("T")[0]}.json`,
-        label: "your data export",
-        source: "LegalTab.exportData",
-      });
-      // saveOrShareFile owns the failure toast and telemetry; a cancelled
-      // share sheet also lands here and stays silent, which is correct.
-      if (!ok) hapticError();
-    } catch (err) {
-      // Tag kept as `LegalTab.exportData` so existing error dashboards and
-      // alerts keep matching after the move.
-      report(err, { tags: { source: "LegalTab.exportData" } });
-      hapticError();
-      toast.error("We couldn't put your data together just now — try again or email support.");
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <section id={DATA_EXPORT_ANCHOR} aria-labelledby="legal-data-export" className="space-y-2 scroll-mt-20">
@@ -147,7 +99,7 @@ export function DataExportCard() {
             </Button>
           ) : userId ? (
             <Button
-              onClick={handleExport}
+              onClick={() => void startExport()}
               disabled={exporting}
               aria-busy={exporting}
               variant="primary"

@@ -2,7 +2,7 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Download, Loader2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { Switch } from "@/components/ui/switch";
@@ -13,7 +13,7 @@ import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig"
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import type { MenuItem, Profile } from "@/components/profile/profileLanding/types";
 import { TAB_TITLES } from "@/pages/profile/types";
-import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
+import { useDataExport } from "@/hooks/useDataExport";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -58,7 +58,7 @@ export function accountLine(email: string | null | undefined, identities: { prov
   return parts.length ? parts.join(" · ") : null;
 }
 
-function Row({ label, badge, sub, onClick, right, testId, danger = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean }) {
+function Row({ label, badge, sub, onClick, right, testId, danger = false, busy = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean; busy?: boolean }) {
   const name = (
     <span className={`block text-ds-15 font-semibold leading-tight ${danger ? "" : "text-foreground"}`} style={danger ? { color: "hsl(var(--alert-ink))" } : undefined}>{label}</span>
   );
@@ -73,7 +73,7 @@ function Row({ label, badge, sub, onClick, right, testId, danger = false }: { la
   );
   const cls = "w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left";
   return onClick ? (
-    <button type="button" data-settings-row={testId} onClick={onClick} className={`glass-press ${cls} ctl-tint transition-colors`}>
+    <button type="button" data-settings-row={testId} onClick={onClick} aria-busy={busy || undefined} className={`glass-press ${cls} ctl-tint transition-colors`}>
       {body}
     </button>
   ) : (
@@ -149,6 +149,7 @@ export function SettingsTab({
   const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const dataExport = useDataExport(user?.id);
   const { theme } = useDarkMode();
   const { prefs, setHidden } = useSectionPrefs();
   const live = useSectionTabs();
@@ -222,8 +223,17 @@ export function SettingsTab({
         {idOn && profile && profile.is_seed !== true && (
           <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheck("general")} />
         )}
-        {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
-        <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
+        {/* A3-I4: downloads here, through the same export as the Privacy policy's card (useDataExport), instead of opening the whole policy. */}
+        <Row
+          testId="download-data"
+          label="Download my data"
+          sub={dataExport.exporting ? "Preparing your file…" : "A copy of what Helpr holds about you"}
+          busy={dataExport.exporting}
+          onClick={() => void dataExport.startExport()}
+          right={dataExport.exporting
+            ? <Loader2 className="w-4 h-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+            : <Download className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />}
+        />
         <ShareJobPhotosRow profile={profile} />
         {/* A3-C16: unblock without having to find the person's profile first. */}
         <Row testId="blocked" label={TAB_TITLES.blocked} sub="People you blocked, and unblock" onClick={() => onSelectTab("blocked")} />

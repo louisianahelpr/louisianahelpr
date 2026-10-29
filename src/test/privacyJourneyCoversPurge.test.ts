@@ -19,7 +19,7 @@
  *
  * @mutate supabase/functions/_shared/accountPurge.ts | steps.push({ step: "avatar_pointer", ok: false, | steps.push({ step: "avatar_ptr", ok: false,
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   "user-documents",\n |
- * @mutate src/pages/info/legal/DataExportCard.tsx | functions.invoke("export-my-data") | functions.invoke("export-my-dat")
+ * @mutate src/hooks/useDataExport.ts | functions.invoke("export-my-data") | functions.invoke("export-my-dat")
  * @mutate scripts/lib/privacyJourney.mjs |   if (subject.isSeed !== true) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs |   if (m[1] !== subject.runTag) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs | created < subject.runStartedAt - 5 * 60_000) | false)
@@ -70,7 +70,7 @@ describe("privacy journey covers every purge step (Q70)", () => {
     // export_my_data() section list, kept equal to EXPORT_SECTIONS by
     // src/test/dataExportCoversEveryUserTable.test.ts; here: the card really
     // downloads that payload, and nothing the journey seeds is left out.
-    const card = blankComments(read("src/pages/info/legal/DataExportCard.tsx"));
+    const card = blankComments(read("src/hooks/useDataExport.ts")); // the export moved here from DataExportCard (A3-I4)
     expect(card).toMatch(/functions\.invoke\("export-my-data"\)/);
     expect(card).toMatch(/const payload = \{ \.\.\.\(data as Record<string, unknown>\) \};/);
     expect(card).toMatch(/JSON\.stringify\(payload, null, 2\)/);

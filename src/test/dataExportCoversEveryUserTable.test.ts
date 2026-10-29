@@ -453,7 +453,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // Q408: the service-role client, with the id getUser() verified.
     expect(fn).toMatch(/await admin\.rpc\("export_my_data", \{ p_user_id: user\.id \}\)/);
     expect(fn).toMatch(/storage_objects: storageObjects,/);
-    const card = blankComments(read("src/pages/info/legal/DataExportCard.tsx"));
+    const card = blankComments(read("src/hooks/useDataExport.ts")); // the export moved here from DataExportCard (A3-I4)
     expect(card).toMatch(/functions\.invoke\("export-my-data"/);
     const head = /v_out\s*:=\s*jsonb_build_object\(([^;]*)\);/.exec(body)?.[1] ?? "";
     const headKeys = [...head.matchAll(/'(\w+)',/g)].map((m) => m[1]);

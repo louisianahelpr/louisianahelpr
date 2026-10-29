@@ -3185,6 +3185,24 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_seller_porch_days: {
+        Row: {
+          seller_id: string
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          seller_id: string
+          updated_at?: string
+          weekdays: number[]
+        }
+        Update: {
+          seller_id?: string
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       declutter_strikes: {
         Row: {
           appeal_decided_at: string | null
@@ -14073,6 +14091,7 @@ export type Database = {
         Args: { p_code: string; p_member: string }
         Returns: undefined
       }
+      declutter_is_porch_day: { Args: { p_dow: number; p_seller: string }; Returns: boolean }
       declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
       declutter_item_address: {
         Args: { p_item_id: string }

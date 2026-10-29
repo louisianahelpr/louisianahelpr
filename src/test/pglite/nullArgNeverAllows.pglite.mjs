@@ -211,6 +211,7 @@ CREATE TABLE public.declutter_meetup_spots (id uuid PRIMARY KEY, parish text, na
   kind text, active boolean NOT NULL DEFAULT true);
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
+CREATE TABLE public.declutter_seller_porch_days (seller_id uuid PRIMARY KEY, weekdays smallint[] NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
 -- Declutter is on (as on prod): declutter_item_link_visible (Q2426) reads the switch.
 INSERT INTO public.feature_switches VALUES ('declutter', 'testers', 'Declutter');
@@ -289,7 +290,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Declutter share card (Q2426), 2026-10-27.
   "declutter_item_link_visible",
   // A3-8 / A2-18 (20261028210552): the tip line's check; after are_users_blocked (a HELPER), which its SQL body calls.
-  "declutter_delivery_tip_open"];
+  "declutter_delivery_tip_open",
+  // Porch days (20261029161347): the one porch-weekday rule.
+  "declutter_is_porch_day"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

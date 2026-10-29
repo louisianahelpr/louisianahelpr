@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 197 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1013 (across 270 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1017 (across 271 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 33 |
 | Multi-step flows — probable | flow | 27 |
 | Back/next navigation only | flow | 56 |
-| Forms (submittable) | form | 85 |
+| Forms (submittable) | form | 86 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 162 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 25 |
-| **Navigable surfaces** (places a person can stand) | mixed | **673** |
-| **Copy surfaces** (strings a person may read) | mixed | **1060** |
-| **Total auditable surface** | mixed | **1733** |
+| **Navigable surfaces** (places a person can stand) | mixed | **674** |
+| **Copy surfaces** (strings a person may read) | mixed | **1064** |
+| **Total auditable surface** | mixed | **1738** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 197 | 130 | agree within method (script counts every menu instance) |
-| Forms | 85 | ~38 | agree |
+| Forms | 86 | ~38 | agree |
 | Confirmed multi-step flows | 33 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -548,6 +548,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterOfferPanel.tsx` (form tag)
+- [ ] `src/components/declutter/DeclutterOfferRules.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterQuestions.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterWantedViews.tsx` (form tag)

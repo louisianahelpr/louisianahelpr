@@ -66,7 +66,8 @@ import { seedPasswordFor } from "./seedPasswords.mjs";
 import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
 import { SHARED_TEST_ACCOUNTS, ensureTestAccountsEnrolled, findUnenrolled } from "../lib/testAccountEnrolment.mjs";
-import { stateFixtureJobIds } from "../e2e/seedStateFixtures.mjs";
+import { stateFixtureJobIds, fixtureId } from "../e2e/seedStateFixtures.mjs";
+import { pickSeedThreadJob } from "./seedThreadJob.mjs";
 import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
 import { upsertJobsPastOpenJobCap } from "./openJobCapFallback.mjs";
 
@@ -889,18 +890,21 @@ async function apply() {
 
   // The real funded pair job to hang the thread, reviews and dispute on.
   const pairJobs = await select(`jobs?customer_id=eq.${posterId}&helper_id=eq.${helperId}&select=id,status,payment_status,has_active_dispute&order=created_at.desc`);
-  const threadJob = pairJobs.find((j) => ["completed", "in_progress", "accepted", "disputed"].includes(j.status)) ?? pairJobs[0];
   // The durable state fixtures (scripts/e2e/seedStateFixtures.mjs) hold ONE
   // state each for the screens that need it: a review would turn the completed
   // one's "Leave a Review" into a reviewed card, and a dispute would take a
   // scheduled or arrived one out of its state. They may carry the thread; they
   // are never reviewed or disputed here.
   const stateFixtures = new Set(stateFixtureJobIds());
+  // F28 (audit 2026-10-28): the thread goes ONLY on a job this seed owns, the completed state
+  // fixture first. It took the newest pair job, which was a live audit's own job, and moved 34
+  // seed messages into the chat the audit was driving (seedThreadJob.mjs).
+  const threadJob = pickSeedThreadJob(pairJobs, [fixtureId("job:helper-completed"), ...stateFixtures]);
   const releasedJob = pairJobs.find((j) => j.payment_status === "released" && !stateFixtures.has(j.id));
   // No pair job → skip the pair fixtures (thread, reactions, pins) rather than fail
   // the whole seed. Owner, 2026-10-01: Stripe is live, so a funded pair job cannot
   // be made, and the seeder must not invent one; the rest of the seed still runs.
-  if (!threadJob) console.log("SKIPPED pair fixtures: no poster↔helper job on prod (thread, reactions, pins, reviews, dispute)");
+  if (!threadJob) console.log("SKIPPED thread fixtures: no seed-owned poster↔helper state fixture on prod (thread, reactions, pins); run scripts/e2e/seedStateFixtures.mjs --apply");
 
   // Applications: 45 on the heavy job, and the helper on the poster's open job.
   // Keyed on (job_id, helper_id), the table's unique key, not on a seed id: a journey

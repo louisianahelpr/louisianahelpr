@@ -3,6 +3,7 @@ import { StatusPill } from "./StatusPill";
 import { formatShortDate, formatPrice } from "@/lib/format";
 import type { GiftCardRow } from "./types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { formatName } from "@/lib/utils";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
 export function CreditCard({
@@ -23,10 +24,12 @@ export function CreditCard({
   /** "received" shows who it's from; "sent" shows who it went to. */
   perspective?: "received" | "sent";
 }) {
-  // AL-011: split the NAME, never the fallback ("A neighbor" split to "from A").
+  // AL-011: format the NAME, never the fallback ("A neighbor" split to "from A").
   // Q369: a NULL donor_id is a donor who deleted their account.
+  // A3-C17: "First L." (formatName), the way the preview and the gift
+  // notification name the sender, not the first word alone.
   const donorFirst = credit.donor_id
-    ? credit.donor?.full_name?.trim().split(" ")[0] || "a neighbor"
+    ? formatName(credit.donor?.full_name, "a neighbor")
     : `a ${FORMER_MEMBER_LABEL.toLowerCase()}`;
   const subline =
     perspective === "sent"

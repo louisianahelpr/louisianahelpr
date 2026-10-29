@@ -56,15 +56,20 @@ export async function fetchReceivedGiftCards(userId: string, myEmail: string): P
     // separate, non-load-bearing profiles lookup keyed by user_id = donor_id.
     // A failure here leaves the cosmetic name null (CreditCard shows "A
     // neighbor") but never drops the gifts themselves.
+    //
+    // get_safe_profiles, not `profiles` (A3-C17, app audit 2026-10-29): the
+    // profiles SELECT policies (read on prod 2026-10-29) let a member read only
+    // their OWN row, so this lookup always came back empty for a member and the
+    // list said "from a neighbor" while the preview and the notification named
+    // the same sender "E2E P.". get_safe_profiles is how one member reads
+    // another's display name ("First L.", display_name_for_viewer).
     const donorIds = [...new Set(rows.map((r) => r.donor_id).filter(Boolean))];
     if (donorIds.length > 0) {
       try {
-        const donors = unwrap(
-          await supabase
-            .from("profiles")
-            .select("user_id, full_name")
-            .in("user_id", donorIds),
-        ) as Array<{ user_id: string; full_name: string | null }>;
+        const donors = (unwrap(await supabase.rpc("get_safe_profiles", { user_ids: donorIds })) ?? []) as Array<{
+          user_id: string;
+          full_name: string | null;
+        }>;
         const nameById = new Map(donors.map((d) => [d.user_id, d.full_name]));
         return rows.map((r) => ({
           ...r,

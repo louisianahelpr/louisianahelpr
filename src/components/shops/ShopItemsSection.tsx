@@ -5,7 +5,7 @@
  * a review, listed, not approved), Edit and Take down. The server decides
  * every rule (shops_* RPCs) and this shows its words.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -51,10 +51,19 @@ function ItemRow({ item, onEdit, onTakeDown, busy }: { item: ShopItem; onEdit: (
   );
 }
 
-export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; ownerId: string }) {
+/**
+ * `startAdding`: the shop page's "Add an item" (an owner's empty shop, audit 2026-10-28 P5-2) lands
+ * on /shops/mine#add-item, and ShopEditView passes it here: open the new-item editor and bring it
+ * into view.
+ */
+export default function ShopItemsSection({ shopId, ownerId, startAdding = false }: { shopId: string; ownerId: string; startAdding?: boolean }) {
   const qc = useQueryClient();
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId) });
-  const [editing, setEditing] = useState<string | "new" | null>(null);
+  const [editing, setEditing] = useState<string | "new" | null>(startAdding ? "new" : null);
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (startAdding) sectionRef.current?.scrollIntoView?.({ block: "start" });
+  }, [startAdding]);
   const [takeDown, setTakeDown] = useState<ShopItem | null>(null);
   const withdraw = useMutation({
     mutationFn: (itemId: string) => withdrawShopItem(itemId),
@@ -69,7 +78,7 @@ export default function ShopItemsSection({ shopId, ownerId }: { shopId: string; 
   const open = editing === "new" ? null : list.find((i) => i.id === editing) ?? null;
 
   return (
-    <section className="space-y-4 pb-8" aria-labelledby="shop-my-items">
+    <section ref={sectionRef} className="space-y-4 pb-8" aria-labelledby="shop-my-items">
       <h2 id="shop-my-items" className="text-base font-semibold">Items</h2>
       <ShopDailyCap shopId={shopId} />
       {items.isLoading ? (

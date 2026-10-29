@@ -15,11 +15,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Printer, Share2 } from "lucide-react";
+import { Plus, Printer, Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShop, setShopFollow, setShopPaused, shopPhotoUrl } from "@/lib/shops/api";
+import { fetchShopItems } from "@/lib/shops/items";
 import { shareShop } from "@/lib/shops/publicShop";
 import { saveShopFlyer } from "@/lib/shops/shopFlyer";
 import { shopsErrorMessage } from "@/lib/shops/errors";
@@ -48,6 +49,13 @@ export default function ShopView() {
   const qc = useQueryClient();
   const categories = useShopCategories();
   const shop = useQuery({ queryKey: ["shops", "page", id], queryFn: () => fetchShop(id), enabled: !!id });
+  // The owner's own items (ShopItemsList reads the same query): an owner whose shop lists nothing yet
+  // gets the empty state and "Add an item" FIRST, ahead of Share and Print (audit 2026-10-28 P5-2).
+  const ownItems = useQuery({
+    queryKey: ["shops", "items", id],
+    queryFn: () => fetchShopItems(id),
+    enabled: !!id && !!shop.data?.mine && !!shop.data?.offers_selling,
+  });
   const follow = useMutation({
     mutationFn: (next: boolean) => setShopFollow(id, next),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["shops", "page", id] }),
@@ -76,6 +84,7 @@ export default function ShopView() {
   const logo = s.photos.find((p) => p.kind === "logo");
   const catLabel = categoryLabel(categories.data, s.category);
   const shareable = { id: s.id, name: s.name, category_label: catLabel, area_label: s.area_label };
+  const ownerEmpty = s.mine && s.offers_selling && ownItems.isSuccess && !ownItems.data.some((i) => i.status === "live");
   return (
     <AppPage
       title={s.name}
@@ -128,6 +137,15 @@ export default function ShopView() {
           hours={s.hours}
           actions={
             <>
+              {ownerEmpty && (
+                <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2" data-testid="shop-owner-empty">
+                  <p className="text-sm text-muted-foreground">No items listed yet.</p>
+                  <Button type="button" className="btn-grad-primary rounded-full" onClick={() => navigate("/shops/mine#add-item")}>
+                    <Plus className="mr-1.5 h-4 w-4" aria-hidden />
+                    Add an item
+                  </Button>
+                </div>
+              )}
               <Button type="button" variant="outline" className="rounded-full" onClick={() => void shareShop(shareable)}>
                 <Share2 className="mr-1.5 h-4 w-4" aria-hidden />
                 {s.mine ? "Share my shop" : "Share"}
@@ -154,7 +172,7 @@ export default function ShopView() {
             <p className="text-sm whitespace-pre-line break-words">{s.about}</p>
           </ShopCard>
         )}
-        {s.offers_selling && <ShopItemsList shopId={s.id} />}
+        {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
         <ShopHoursCard hours={s.hours} />
         {s.parishes_served.length > 0 && (

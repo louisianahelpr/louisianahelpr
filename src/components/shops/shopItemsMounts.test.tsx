@@ -6,11 +6,11 @@
  * -> ShopItemsSection) once the shop exists. The children are stubbed; their own behaviour is pinned in
  * shopItemsScreens.test.tsx.
  *
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && <ShopItemsList shopId={s.id} />} |         {false && <ShopItemsList shopId={s.id} />}
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && <ShopItemsList shopId={s.id} />} |         {<ShopItemsList shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} />} |         {false && <ShopItemsList shopId={s.id} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} />} |         {<ShopItemsList shopId={s.id} />}
  * @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (lastAnswer === true) return null;
  * @mutate src/pages/shops/ShopEditPage.tsx |       <ShopEditView />\n | \n
- * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />} |       {null}
+ * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding={startAdding} />} |       {null}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

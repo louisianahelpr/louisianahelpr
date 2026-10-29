@@ -208,9 +208,7 @@ export function LogisticsSection({
   // Q2438 "Need it today": today, at the soonest start the server takes (2 hours' notice).
   const today = strip[0]?.iso ?? todayYmd();
   const sameDayStart = sameDayStartTime();
-  // F19 (audit 2026-10-28): once no start today is left, today is closed
-  // everywhere on this screen: the button reads disabled (never pressed), and
-  // today's strip card and calendar day cannot be picked.
+  // F19: no start left today → today is closed everywhere here (button, strip card, calendar day).
   const todayClosed = !sameDayStart;
   const isToday = !isRecurring && dateNeeded === today && !todayClosed;
   const holdsClosedToday = todayClosed && dateNeeded === today;
@@ -435,11 +433,8 @@ export function LogisticsSection({
             );
           })}
         </div>
-        {/* A draft or an open screen can still hold today after it closed: the
-            error sits on the date, the field that has to change. */}
-        <FieldError id="date-closed-error">
-          {holdsClosedToday ? TODAY_CLOSED_COPY : undefined}
-        </FieldError>
+        {/* A held-over today: the error sits on the date, the field to change. */}
+        <FieldError id="date-closed-error">{holdsClosedToday ? TODAY_CLOSED_COPY : undefined}</FieldError>
         {!showCalendar && (
           <button type="button" onClick={() => setMoreDates(true)} className="self-start inline-flex min-h-[44px] items-center font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
             More dates

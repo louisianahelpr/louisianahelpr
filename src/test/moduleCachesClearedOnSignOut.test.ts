@@ -74,6 +74,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/chunkReload.ts:failedAssetUrls": { kind: "not-user-data", why: "same-origin /assets chunk paths that failed to load this page" },
   "src/lib/pushPermissionNudge.ts:inFlight": { kind: "not-user-data", why: "nudge reasons in flight" },
   "src/lib/routePrefetch.ts:warmed": { kind: "not-user-data", why: "route chunk names" },
+  "src/hooks/useHelprTakesTips.ts:cache": { kind: "not-user-data", why: "per-Helpr yes/no on whether payouts are ready (public fact behind the tip button), 60 s; no personal data (audit F29)" },
   "src/lib/jobRealtimeBus.ts:buses": { kind: "not-user-data", why: "ref-counted realtime channels per job id; each entry is removed when its last subscriber leaves (audit F1)" },
   "src/lib/realtimeRecovery.ts:downChannels": { kind: "not-user-data", why: "channel health" },
   "src/lib/realtimeRecovery.ts:healthListeners": { kind: "not-user-data", why: "subscriber callbacks" },

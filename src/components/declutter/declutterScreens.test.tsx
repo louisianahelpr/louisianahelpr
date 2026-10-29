@@ -66,6 +66,8 @@ vi.mock("@/hooks/useFeature", () => ({
   // DeclutterPage warms the declutter_wanted read with useFeatureStatus (Q?declutter-settle).
   useFeatureStatus: () => ({ on: state.feature, settled: true }),
 }));
+// Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
+vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 // The whole hook shape: Sell it for me (on Selling and Sell an item) reads explain + gatedProps too.

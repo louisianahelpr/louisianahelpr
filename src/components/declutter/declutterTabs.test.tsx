@@ -52,6 +52,8 @@ const state = {
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+// Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
+vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,

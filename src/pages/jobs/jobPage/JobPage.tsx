@@ -36,6 +36,9 @@ import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel"
 import { jobPageViewerState } from "./viewerState";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSellerCard } from "@/lib/declutter/api";
+import { posterStatusLine } from "@/components/job-card/jobStatusLine";
+import type { Job } from "@/components/job-card/activityConstants";
+import { usePageConfirmArrival } from "./usePageConfirmArrival";
 
 function groupLabel(category: string): string | null {
   const id = jobCategoryGroupOf(category);
@@ -71,6 +74,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterId = q.data?.job.customer_id ?? null;
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
 
   if (q.isPending) {
     return (
@@ -119,7 +123,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
-  const primary = isPoster
+  // The poster's own line, the one the Posted card and this page's tracker print (posterStatusLine): when it asks
+  // them to confirm the Helpr arrived, the button here does it (F14), instead of sending them to the card.
+  const posterWait = isPoster ? posterStatusLine(job as unknown as Job, pending).id : null;
+  const primary = isPoster && posterWait === "confirm_arrival"
+    ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    : isPoster
     ? {
         label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
         // The Posted card face is a link back to this page (board 14), so the
@@ -185,7 +194,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
           {primary && (
-            <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={primary.go}>
+            <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={primary.go} disabled={"disabled" in primary ? primary.disabled : false}>
               {primary.label}
             </Button>
           )}

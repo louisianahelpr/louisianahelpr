@@ -7,7 +7,8 @@
  * from supabase/functions, comments blanked, never a hand list): each must have its words in the line, and a new
  * caller fails here until the line covers it.
  *
- * @mutate src/pages/info/legal/PrivacySection.tsx | , and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing.</li> | .</li>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | , and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing, and | , and
+ * @mutate src/pages/info/legal/PrivacySection.tsx | , and a buyer's question about a Declutter listing with that listing's photos and words, to suggest the seller's answer.</li> | .</li>
  * @mutate src/pages/info/legal/PrivacySection.tsx | the job details you give the AI job builder, to draft your post, | the details you give us,
  */
 import { readFileSync, statSync } from "node:fs";
@@ -36,6 +37,7 @@ const callsAi = (code: string): boolean => importsClaude(code) ||
 const USE_WORDS: Record<string, string[]> = {
   "ai-job-builder": ["AI job builder"],
   "declutter-ai-draft": ["Declutter listing", "room photos"],
+  "declutter-ai-reply": ["buyer's question", "suggest the seller's answer"],
 };
 
 function walk(dir: string): string[] {

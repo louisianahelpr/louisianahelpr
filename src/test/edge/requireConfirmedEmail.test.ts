@@ -51,6 +51,7 @@ const FUNCTIONS = resolve(__dirname, "../../../supabase/functions");
 const GATED = [
   "ai-job-builder",
   "declutter-ai-draft",
+  "declutter-ai-reply",
   "declutter-card",
   "declutter-checkout",
   "shop-checkout",

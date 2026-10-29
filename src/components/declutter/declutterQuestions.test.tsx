@@ -9,6 +9,12 @@
  * @mutate src/components/declutter/DeclutterQuestions.tsx | " Want to make a deal? Make an offer." | " Want to make a deal? Message or Make offer."
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
+ *
+ * Suggested reply (owner 2026-10-29, builder 26 feature 1): Claude's draft shows in the seller's sheet; Send posts
+ * exactly it, Edit only fills the box, nothing is ever posted without a tap, and a reply with a blank cannot be sent.
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |                 onSend={(t) => send.mutate({ id: q.id, text: t })} |                 onSend={() => send.mutate({ id: q.id, text: "" })}
+ * @mutate src/components/declutter/DeclutterSuggestedReply.tsx |         {!needsSeller && ( |         {true && (
+ * @mutate src/components/declutter/DeclutterSuggestedReply.tsx |   const { reply, needsSeller } = s.data; |   const { reply, needsSeller } = s.data; if (!needsSeller) onSend(reply);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -22,6 +28,16 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchSellerCard: async () => state.seller,
   askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); return "q9"; },
   answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); return "2026-10-20"; },
+}));
+
+const suggest = { calls: [] as string[], result: { reply: "Yes, it fits with the back seats down.", needsSeller: false } as { reply: string; needsSeller: boolean } | Error };
+vi.mock("@/lib/declutter/aiReply", () => ({
+  requestSuggestedReply: async (id: string) => {
+    suggest.calls.push(id);
+    if (suggest.result instanceof Error) throw suggest.result;
+    return suggest.result;
+  },
+  suggestedReplyErrorMessage: () => "A suggested reply isn't available right now. You can write your own.",
 }));
 
 import { DeclutterQuestions, askedWhen } from "./DeclutterQuestions";
@@ -46,7 +62,16 @@ beforeEach(() => {
   state.seller = { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null };
   calls.answer = [];
   calls.ask = [];
+  suggest.calls = [];
+  suggest.result = { reply: "Yes, it fits with the back seats down.", needsSeller: false };
 });
+
+async function openAnswerSheet() {
+  renderIt({ isSeller: true, canAsk: false });
+  await screen.findByText("Asked today · waiting for your answer");
+  fireEvent.click(screen.getByRole("button", { name: "Answer" }));
+  return screen.findByRole("dialog");
+}
 
 describe("board 162: public questions", () => {
   it("buyer: the count, who answered, who it waits for, and a note that never offers messaging", async () => {
@@ -91,6 +116,45 @@ describe("board 162: public questions", () => {
     fireEvent.change(within(sheet).getByLabelText("Your answer"), { target: { value: " Yes, with the back seats down. " } });
     fireEvent.click(post);
     await waitFor(() => expect(calls.answer).toEqual([["q2", "Yes, with the back seats down."]]));
+  });
+
+  it("suggested reply: shown for that question, never posted on its own; Send posts exactly it", async () => {
+    const sheet = await openAnswerSheet();
+    expect(await within(sheet).findByText("Suggested reply")).toBeInTheDocument();
+    expect(within(sheet).getByText("Yes, it fits with the back seats down.")).toBeInTheDocument();
+    expect(suggest.calls).toEqual(["q2"]);
+    // Shown is not sent.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls.answer).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(calls.answer).toEqual([["q2", "Yes, it fits with the back seats down."]]));
+  });
+
+  it("suggested reply: Edit fills the answer box and sends nothing", async () => {
+    const sheet = await openAnswerSheet();
+    fireEvent.click(await within(sheet).findByRole("button", { name: "Edit" }));
+    expect((within(sheet).getByLabelText("Your answer") as HTMLTextAreaElement).value).toBe("Yes, it fits with the back seats down.");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls.answer).toEqual([]);
+    expect(within(sheet).getByRole("button", { name: "Post answer" })).toBeEnabled();
+  });
+
+  it("suggested reply with a blank: Edit only, no Send, and it says why", async () => {
+    suggest.result = { reply: "It is about ___ inches wide.", needsSeller: true };
+    const sheet = await openAnswerSheet();
+    expect(await within(sheet).findByText("Your listing doesn't say this. Fill in the blank before you post.")).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Send" })).toBeNull();
+    expect(within(sheet).getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(calls.answer).toEqual([]);
+  });
+
+  it("suggested reply unavailable: the seller can still write their own", async () => {
+    suggest.result = new Error("ai_unavailable");
+    const sheet = await openAnswerSheet();
+    expect(await within(sheet).findByText(/You can write your own\./)).toBeInTheDocument();
+    fireEvent.change(within(sheet).getByLabelText("Your answer"), { target: { value: "Yes." } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post answer" }));
+    await waitFor(() => expect(calls.answer).toEqual([["q2", "Yes."]]));
   });
 
   it("askedWhen: today, yesterday, days, then a date", () => {

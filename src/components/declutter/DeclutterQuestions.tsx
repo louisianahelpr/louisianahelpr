@@ -17,6 +17,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { answerQuestion, askQuestion, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -106,6 +107,18 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
         {q && (
           <div className="space-y-2">
             <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">"{q.question}"</p>
+            {/* Owner 2026-10-29: Claude's suggested reply; Send posts it, Edit fills the box. Never sent on its own. */}
+            {!answer && (
+              <DeclutterSuggestedReply
+                questionId={q.id}
+                sending={send.isPending}
+                onSend={(t) => send.mutate({ id: q.id, text: t })}
+                onEdit={(t) => {
+                  setAnswer(t);
+                  requestAnimationFrame(() => document.getElementById("declutter-answer")?.focus());
+                }}
+              />
+            )}
             <label htmlFor="declutter-answer" className="block pt-2 text-ds-15 font-semibold">Your answer</label>
             <textarea
               id="declutter-answer"

@@ -53,7 +53,7 @@ import {
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
-import { noShowFrom, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
+import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -283,9 +283,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
-          {/* Owner 2026-10-29 (D2-9): no "Report a problem" while the order waits for pickup. Its button shows once the
-              booked time is over, the moment "They didn't show" opens; "Something's not right" in the "I got it" sheet
-              (the handover itself) still opens the form. */}
+          {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). */}
           <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} />
         </>
       )}
@@ -531,15 +529,6 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       </>)}
     </div>
   );
-}
-
-/**
- * True once the booked pickup is over (D2-9): 15 minutes after a booked time, or the end of a porch day, the same
- * moment "They didn't show" opens. No booking yet: false (the order is still waiting for pickup).
- */
-function pickupTimeOver(booking: Pick<MyBooking, "slot_start" | "pickup_day"> | null, now = Date.now()): boolean {
-  const from = booking ? noShowFrom(booking) : null;
-  return !!from && now >= new Date(from).getTime() + 15 * 60_000;
 }
 
 function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {

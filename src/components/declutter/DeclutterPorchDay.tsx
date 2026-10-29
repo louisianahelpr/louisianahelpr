@@ -50,6 +50,16 @@ export function noShowFrom(booking: Pick<MyBooking, "slot_start" | "pickup_day">
   return new Date(end.getTime() - 15 * 60_000).toISOString();
 }
 
+/**
+ * True once the booked pickup is over (owner 2026-10-29, D2-9: no "Report a problem" while the order waits for
+ * pickup): 15 minutes after a booked time, or the end of a porch day, the moment "They didn't show" opens. The
+ * "I got it" sheet's "Something's not right" (the handover itself) still opens the form. No booking yet: false.
+ */
+export function pickupTimeOver(booking: Pick<MyBooking, "slot_start" | "pickup_day"> | null, now = Date.now()): boolean {
+  const from = booking ? noShowFrom(booking) : null;
+  return !!from && now >= new Date(from).getTime() + 15 * 60_000;
+}
+
 type Booking = MyBooking & { buyer_reschedules?: number; seller_reschedules?: number };
 
 export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {

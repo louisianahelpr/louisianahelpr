@@ -862,7 +862,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
 // after a booked time, the end of a porch day). The one exception: the seller has no pickup days left, so the buyer
 // cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} /> | onOpenChange={setProblemOpen} />
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
+// @mutate src/components/declutter/DeclutterPorchDay.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |               {side === "buyer" && !booked && noDays} |
 describe("D2-9: no Report a problem while the order waits for pickup", () => {
   const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -895,9 +895,10 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
         state.bookings = c.booking ? [c.booking] : [];
         const { unmount } = show([line({ handover: c.handover, my_side: side, porch_ok: true })]);
         await screen.findByText(/Oak chair/);
-        // Let the bookings and porch-days reads settle before asking what the card offers.
-        await waitFor(() => expect(screen.queryByText(/Loading pickup days/)).toBeNull());
+        // Wait for the reads the answer depends on: the booking, and on a porch-day card the seller's days.
         if (c.booking) await screen.findByText(/Pickup( day)?:/);
+        const dayCard = c.handover === "porch" && (!c.booking || "pickup_day" in (c.booking as object));
+        if (dayCard) expect((await screen.findAllByText(/pick a pickup day|Pickup day:/i)).length).toBeGreaterThan(0);
         const offered = !!screen.queryByRole("button", { name: "Report a problem" });
         expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${c.offered}`);
         if (!offered) hidden++;

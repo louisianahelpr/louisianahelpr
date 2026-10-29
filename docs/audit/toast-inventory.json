@@ -67,7 +67,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 805,
+      "line": 792,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -80,7 +80,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 819,
+      "line": 806,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

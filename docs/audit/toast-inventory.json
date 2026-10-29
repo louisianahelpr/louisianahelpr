@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1017,
+    "calls": 1018,
     "files": 271,
-    "rendering": 859,
+    "rendering": 860,
     "suppressedByPolicy": 158,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 715,
+      "toast.error": 716,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 456,
-      "template": 103,
-      "dynamic": 508,
+      "literal": 457,
+      "template": 104,
+      "dynamic": 507,
       "jsx": 0
     }
   },
@@ -5443,116 +5443,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 216,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "problem"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 221,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Set a price between $1 and $1,000."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 252,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 275,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "added > 0 ? \"Saved with your photos.\" : \"Saved. Now add photos.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Saved with your photos."
-          },
-          {
-            "form": "literal",
-            "text": "Saved. Now add photos."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 278,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 294,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 307,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "A listing can have up to 12 photos."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 320,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 327,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Tick the box about this item before you list it."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 347,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterShareCard.tsx",
       "line": 43,
       "kind": "toast.success",
@@ -6179,6 +6069,116 @@
             "text": "declutterErrorMessage(err)"
           }
         ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 169,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 174,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Set a price between $1 and $1,000."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 205,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 229,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. Now add photos."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 232,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 248,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 261,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "A listing can have up to 12 photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 274,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 280,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Tick the box about this item before you list it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 293,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${declutterErrorMessage(err)} You can turn on \"Keep it up\" from Manage listing."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 309,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

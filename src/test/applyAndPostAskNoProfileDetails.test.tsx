@@ -24,7 +24,7 @@
  *
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | setSaveAsTemplate(false);\n    handleApplyConfirm(); | setSaveAsTemplate(false);
  * @mutate src/pages/post-job/CheckoutStepView.tsx | onSubmit={form.handleSubmit} | onSubmit={() => undefined}
- * @mutate src/pages/post-job/CheckoutStepView.tsx | <div key="checkout-step" className="space-y-section"> | <div key="checkout-step" className="space-y-section"><input type="tel" aria-label="Phone number" />
+ * @mutate src/pages/post-job/CheckoutStepView.tsx | <div key="checkout-step" className={POST_JOB_DESKTOP_GRID}> | <div key="checkout-step" className={POST_JOB_DESKTOP_GRID}><input type="tel" aria-label="Phone number" />
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | <ViolationDialog violations={pendingViolations} | <label htmlFor="dob">Birthday</label><ViolationDialog violations={pendingViolations}
  */
 import fs from "node:fs";

@@ -355,7 +355,7 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,',
   // Q1929 settleRaise: READS the order's buyer to check the raise page's payer. No money column, no write.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle()',
-  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents").eq("id", orderId).maybeSingle()',
   // Q2307: the same Stripe fee handed to declutter_refund_party_gone (an order a party has left), then to mark_order_paid.
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",

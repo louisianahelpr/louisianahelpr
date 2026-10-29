@@ -78,6 +78,9 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   offer_expired: "This offer ran out of time.",
   other_side_unavailable: "The other side can't trade on Declutter right now, so this can't go ahead.",
   counter_same_amount: "That's the same amount. To agree to it, tap Accept.",
+  // Smart offers (20261029162620): the seller turned offers off; Buy still works.
+  offers_off: "This seller isn't taking offers. You can still buy it.",
+  invalid_offer_rules: "Choose whether you take offers, and whether to answer them automatically.",
   price_changed: "The price changed. Check the new price and try again.",
   handover_unavailable: "Choose porch pickup, pickup at the seller's home, or Helpr delivery.",
   seller_tax_not_ready: "Checkout for this seller isn't available yet.",

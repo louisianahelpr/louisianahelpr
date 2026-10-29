@@ -1968,6 +1968,7 @@ export type Database = {
           auto_free_day12: boolean
           ai_checked_at: string | null
           ai_flag_reason: string | null
+          auto_offers: boolean
           drop_stop_cents: number | null
           drops_stopped: boolean
           floor_price_cents: number
@@ -1987,6 +1988,7 @@ export type Database = {
           auto_free_day12?: boolean
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
+          auto_offers?: boolean
           drop_stop_cents?: number | null
           drops_stopped?: boolean
           floor_price_cents: number
@@ -2006,6 +2008,7 @@ export type Database = {
           auto_free_day12?: boolean
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
+          auto_offers?: boolean
           drop_stop_cents?: number | null
           drops_stopped?: boolean
           floor_price_cents?: number
@@ -2033,6 +2036,7 @@ export type Database = {
       }
       declutter_items: {
         Row: {
+          accepts_offers: boolean
           admin_approved_at: string | null
           area_label: string
           area_lat: number
@@ -2066,6 +2070,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_offers?: boolean
           admin_approved_at?: string | null
           area_label: string
           area_lat: number
@@ -2099,6 +2104,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_offers?: boolean
           admin_approved_at?: string | null
           area_label?: string
           area_lat?: number
@@ -14777,6 +14783,14 @@ export type Database = {
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }
         Returns: boolean
+      }
+      declutter_set_offer_rules: {
+        Args: {
+          p_accepts_offers: boolean
+          p_auto_offers: boolean
+          p_item_id: string
+        }
+        Returns: undefined
       }
       declutter_set_listing_price: {
         Args: {

@@ -6,8 +6,11 @@
  * internal; the setter is behind the 'declutter' switch and the ban check. Behaviour per account:
  * src/test/pglite/declutterPorchWeekdays.pglite.mjs.
  *
- * @mutate supabase/migrations/20261029161347_declutter_porch_weekdays.sql |        AND public.declutter_is_porch_day(o.seller_id, extract(dow FROM d::date)::smallint) |        AND EXISTS (SELECT 1 FROM public.declutter_pickup_windows w WHERE w.seller_id = o.seller_id AND w.weekday = extract(dow FROM d::date)::smallint)
- * @mutate supabase/migrations/20261029161347_declutter_porch_weekdays.sql |   IF NOT public.declutter_is_porch_day(o.seller_id, extract(dow FROM p_day)::smallint) THEN |   IF false THEN
+ * Since 20261029224749 (D-NEW14 porch places) both porch functions call declutter_order_is_porch_day, which reads
+ * the order's frozen place and otherwise this same helper, so the one-rule property still holds.
+ * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |        AND public.declutter_order_is_porch_day(o.id, extract(dow FROM d::date)::smallint) |        AND EXISTS (SELECT 1 FROM public.declutter_pickup_windows w WHERE w.seller_id = o.seller_id AND w.weekday = extract(dow FROM d::date)::smallint)
+ * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   IF NOT public.declutter_order_is_porch_day(o.id, extract(dow FROM p_day)::smallint) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |     ELSE COALESCE(public.declutter_is_porch_day((SELECT o.seller_id FROM public.declutter_orders o WHERE o.id = p_order_id), p_dow), false) |     ELSE true
  * @mutate supabase/migrations/20261029161347_declutter_porch_weekdays.sql | REVOKE ALL ON FUNCTION public.declutter_is_porch_day(uuid, smallint) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_is_porch_day(uuid, smallint) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261029161347_declutter_porch_weekdays.sql |   PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  IF p_weekdays | IF p_weekdays
  */
@@ -19,21 +22,24 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const DEFS = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (fn: string) => blankSqlComments(DEFS.get(fn)?.stmt ?? "").replace(/\s+/g, " ");
-const MIG = blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations/20261029161347_declutter_porch_weekdays.sql"), "utf8")).replace(/\s+/g, " ");
+// The grants live beside the NEWEST definition of the setter (and the helper, defined in the same migration).
+const MIG = blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations", DEFS.get("declutter_set_porch_days")?.file ?? "missing"), "utf8")).replace(/\s+/g, " ");
 
 describe("porch days: offered and accepted share one rule", () => {
   it("reads the newest definitions (floors)", () => {
-    for (const fn of ["declutter_porch_days", "declutter_book_porch_day", "declutter_is_porch_day", "declutter_set_porch_days"]) {
+    for (const fn of ["declutter_porch_days", "declutter_book_porch_day", "declutter_is_porch_day", "declutter_set_porch_days", "declutter_order_is_porch_day"]) {
       expect(body(fn).length, fn).toBeGreaterThan(300);
     }
   });
 
-  it("both porch functions use declutter_is_porch_day and never read the pickup windows themselves", () => {
+  it("both porch functions use the one order rule (frozen place, else declutter_is_porch_day) and never read the pickup windows themselves", () => {
     for (const fn of ["declutter_porch_days", "declutter_book_porch_day"]) {
-      expect(body(fn), fn).toMatch(/public\.declutter_is_porch_day\(o\.seller_id, extract\(dow FROM/);
+      expect(body(fn), fn).toMatch(/public\.declutter_order_is_porch_day\(o\.id, extract\(dow FROM/);
       expect(body(fn), fn).not.toMatch(/declutter_pickup_windows/);
     }
-    expect(body("declutter_book_porch_day")).toMatch(/IF NOT public\.declutter_is_porch_day\(o\.seller_id, extract\(dow FROM p_day\)::smallint\) THEN RAISE EXCEPTION 'invalid_day'/);
+    expect(body("declutter_book_porch_day")).toMatch(/IF NOT public\.declutter_order_is_porch_day\(o\.id, extract\(dow FROM p_day\)::smallint\) THEN RAISE EXCEPTION 'invalid_day'/);
+    expect(body("declutter_order_is_porch_day")).toMatch(/ELSE COALESCE\(public\.declutter_is_porch_day\(\(SELECT o\.seller_id FROM public\.declutter_orders o WHERE o\.id = p_order_id\), p_dow\), false\)/);
+    expect(body("declutter_order_is_porch_day")).not.toMatch(/declutter_pickup_windows/);
   });
 
   it("the helper: the seller's picked days, else the pickup-time days; internal only", () => {

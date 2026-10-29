@@ -266,7 +266,7 @@ describe("Declutter slice 3 screens", () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer" } });
     fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
     // $30 + round($30 x 5%) + 70c = $30 + $2.20 = $32.20 (checkoutAmounts, the rule declutter_start_checkout charges).
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(cents))}</dd> | {formatPrice(cents)}</dd>
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /></dd> | {formatPrice(cents)}</dd>
     const bill = document.querySelector("[data-offer-bill]")!;
     expect(bill.textContent).toMatch(/Your offer\$30/);
     // Owner 2026-10-25 (issue #3672): the bill names what the buyer pays, never a fee line, name or number.

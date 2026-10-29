@@ -14,7 +14,7 @@ import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirst
 import { formatPrice } from "@/lib/declutter/distance";
 import { buyNowTotalCents } from "@/lib/declutter/money";
 
-export const SETUP_FEE_PENDING_WORDS = "+ any one-time setup fee";
+const SETUP_FEE_PENDING_WORDS = "+ any one-time setup fee";
 
 export function BuyerTotal({
   priceCents,

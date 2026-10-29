@@ -121,7 +121,7 @@ function OfferRow({ o }: { o: MyOffer }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const myTurn = o.status === "open" && o.awaiting === o.my_side;
-  const underFloor = o.my_side === "seller" && o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents;
+  const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents;
   // What accepting really sells for: least(offer, price now) (live declutter_respond_offer -> declutter_take_item).
   const takeCents = Math.min(o.amount_cents, o.current_price_cents);
   return (

@@ -12,7 +12,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { bookPorchDay, fetchPorchDays, type MyBooking } from "@/lib/declutter/handover";
+import { bookPorchDay, fetchMyHandover, fetchPorchDays, type MyBooking } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 /** "2026-10-29" -> a local date (never shifted by the device's time zone). */
@@ -65,6 +65,9 @@ export function PorchDayPanel({ orderId, side, booking, fallback }: {
   const days = useQuery({ queryKey: ["declutter", "porch-days", orderId], queryFn: () => fetchPorchDays(orderId), enabled: !timeBooked });
   const [pick, setPick] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
+  // Audit 1028 D1-5: once the seller's porch photo is in, it is out; the seller no longer moves the day.
+  const out = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId), enabled: side === "seller" && !!booked });
+  const putOut = side === "seller" && !!out.data?.set_out_at;
   const book = useMutation({
     mutationFn: (day: string) => bookPorchDay(orderId, day),
     onSuccess: (r) => {
@@ -96,7 +99,7 @@ export function PorchDayPanel({ orderId, side, booking, fallback }: {
       ) : side === "seller" ? (
         <p className="text-sm text-muted-foreground">Waiting for the buyer to pick a pickup day (within 7 days of paying).</p>
       ) : null}
-      {booked && !moving && !movedAlready && (
+      {booked && !moving && !movedAlready && !putOut && (
         <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={() => setMoving(true)}>
           Pick another day (once)
         </button>

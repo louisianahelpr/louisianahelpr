@@ -36,7 +36,7 @@ function useMyHandover(orderId: string) {
  * pickup booked for a time before days existed.
  */
 /** "today", "tomorrow", "on Thu, Oct 30". */
-function onDay(day: string): string {
+export function onDay(day: string): string {
   const w = porchDayWords(day);
   return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
 }

@@ -23,6 +23,7 @@ const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
 let autoFree: boolean | "not_deployed" = false;
 const stateReads = vi.hoisted(() => ({ n: 0 }));
+const autoFreeReads = vi.hoisted(() => ({ n: 0 }));
 const dropPct = vi.hoisted(() => ({ value: 5 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -35,7 +36,9 @@ vi.mock("@/lib/declutter/api", () => ({
   relistListing: async (...a: unknown[]) => { calls.push(["relist", ...a]); return "live"; },
   withdrawItem: async (...a: unknown[]) => { calls.push(["withdraw", ...a]); },
   markSoldElsewhere: async (...a: unknown[]) => { calls.push(["sold_elsewhere", ...a]); },
-  fetchAutoFree: async () => autoFree,
+  // The auto-free read resolves AFTER the manage-state read, as it did on a loaded CI runner (main Vitest
+  // run 40816183893, issue #3685): an absence asserted before it resolved saw the row's loading render.
+  fetchAutoFree: async () => { await new Promise((r) => setTimeout(r, 30)); const r = autoFree; autoFreeReads.n++; return r; },
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: dropPct.value }),
   setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
 }));
@@ -107,8 +110,11 @@ describe("Manage a listing (board 158)", () => {
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", true]));
     a.unmount();
     autoFree = "not_deployed";
+    const readsBefore = autoFreeReads.n;
     sheet();
     expect(await screen.findByText("Stop price drops")).toBeTruthy();
+    // Wait for the auto-free DATA ("not_deployed" resolved and React settled), then assert the absence.
+    await waitFor(() => expect(autoFreeReads.n).toBeGreaterThan(readsBefore));
     await act(async () => {});
     expect(screen.queryByText("Free on day 12")).toBeNull();
     autoFree = false;

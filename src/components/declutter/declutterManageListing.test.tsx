@@ -17,6 +17,11 @@
  * @mutate src/components/declutter/KeepUpRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
  * @mutate src/components/declutter/KeepUpRow.tsx |   if (!itemId \|\| state.data === "not_deployed") return null; |   if (!itemId) return null;
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               <KeepUpRow itemId={item.id} rowClassName={ROW} /> |
+ * Smart offers (d), owner 2026-10-29 (DeclutterOfferRules; backend proof src/test/pglite/declutterSmartOffers.pglite.mjs).
+ * @mutate src/components/declutter/DeclutterOfferRules.tsx | onCheckedChange={(v) => rules.mutate({ accepts: v, auto: v && auto })} | onCheckedChange={(v) => rules.mutate({ accepts: v, auto })}
+ * @mutate src/components/declutter/DeclutterOfferRules.tsx |   const on = acceptsOffers !== false; |   const on = true;
+ * @mutate src/components/declutter/DeclutterOfferRules.tsx |   const auto = priv.data?.auto_offers === true; |   const auto = false;
+ * @mutate src/components/declutter/DeclutterOfferRules.tsx | onClick={() => saveFloor.mutate(suggestion.floorCents)} | onClick={() => saveFloor.mutate(floorCents ?? 0)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -27,6 +32,7 @@ const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
 let autoFree: boolean | "not_deployed" = false;
 let keepUp: boolean | "not_deployed" = false;
+const offerRules = vi.hoisted(() => ({ auto: false }));
 const stateReads = vi.hoisted(() => ({ n: 0 }));
 const autoFreeReads = vi.hoisted(() => ({ n: 0 }));
 const dropPct = vi.hoisted(() => ({ value: 5 }));
@@ -48,6 +54,12 @@ vi.mock("@/lib/declutter/api", () => ({
   setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
   fetchKeepUp: async () => keepUp,
   setKeepUp: async (...a: unknown[]) => { calls.push(["keep_up", ...a]); return a[1]; },
+  fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "x", pickup_lat: 0, pickup_lng: 0, auto_offers: offerRules.auto }),
+  setOfferRules: async (...a: unknown[]) => { calls.push(["offer_rules", ...a]); },
+}));
+vi.mock("@/lib/declutter/aiReply", () => ({
+  requestSuggestedFloor: async (...a: unknown[]) => { calls.push(["suggest_floor", ...a]); return { floorCents: 2500, reason: "Similar lamps sold for $25 to $35 near you." }; },
+  suggestedReplyErrorMessage: () => "unavailable",
 }));
 
 import { ManageListingSheet, SellerListingPanel } from "./DeclutterManageListing";
@@ -69,6 +81,37 @@ beforeEach(() => {
   manage.drops_stopped = false;
   deployed = true;
   dropPct.value = 5;
+  offerRules.auto = false;
+});
+
+describe("Smart offers rows (owner 2026-10-29)", () => {
+  it("offers on: Accept offers, Lowest you'll take and Answer offers for me; turning offers off saves auto off too", async () => {
+    offerRules.auto = true;
+    sheet({ accepts_offers: true });
+    const accept = await screen.findByRole("switch", { name: "Accept offers" });
+    expect(accept.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText("Lowest you'll take")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Answer offers for me" }).getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(accept);
+    await waitFor(() => expect(calls).toContainEqual(["offer_rules", "i1", false, false]));
+  });
+
+  it("offers off: no lowest-price or auto row", async () => {
+    sheet({ accepts_offers: false });
+    const accept = await screen.findByRole("switch", { name: "Accept offers" });
+    expect(accept.getAttribute("aria-checked")).toBe("false");
+    expect(screen.queryByText("Lowest you'll take")).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Answer offers for me" })).toBeNull();
+  });
+
+  it("Claude's suggestion is saved only when the seller taps Use", async () => {
+    sheet({ accepts_offers: true });
+    fireEvent.click(await screen.findByRole("button", { name: "Suggest one" }));
+    expect(await screen.findByText(/Similar lamps sold/)).toBeTruthy();
+    expect(calls.some((c) => c[0] === "price")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Use $25" }));
+    await waitFor(() => expect(calls).toContainEqual(["price", "i1", 3800, 2500]));
+  });
 });
 
 describe("Manage a listing (board 158)", () => {

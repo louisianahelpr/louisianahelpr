@@ -61,3 +61,21 @@ async function replyFailure(fnError: unknown): Promise<Error & { status?: number
   const code = typeof sent?.error === "string" ? sent.error : status === 429 ? "rate_limited" : "";
   return Object.assign(new Error(code || "ai_unavailable"), status > 0 ? { status } : {});
 }
+
+/** Smart offers (c): Claude's "Lowest you'll take" for the caller's own item (declutter-ai-reply, mode "floor"). Nothing is saved. */
+export interface SuggestedFloor {
+  floorCents: number;
+  reason: string;
+}
+
+/** Throws Error(<code>) like requestSuggestedReply; the codes read through suggestedReplyErrorMessage's table. */
+export async function requestSuggestedFloor(itemId: string, priceCents?: number): Promise<SuggestedFloor> {
+  const { data, error } = await supabase.functions.invoke("declutter-ai-reply", {
+    body: { mode: "floor", itemId, ...(priceCents === undefined ? {} : { priceCents }) },
+    timeout: REPLY_TIMEOUT_MS,
+  });
+  if (error) throw await replyFailure(error);
+  const d = data as { floorCents?: unknown; reason?: unknown } | null;
+  if (!d || typeof d.floorCents !== "number" || !Number.isInteger(d.floorCents) || d.floorCents < 100) throw new Error("ai_unavailable");
+  return { floorCents: d.floorCents, reason: typeof d.reason === "string" ? d.reason : "" };
+}

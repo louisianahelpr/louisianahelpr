@@ -11,7 +11,9 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (item.status === "reserved" && myHold) { |   if (false) {
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |   return offers?.find((o) => o.item_id === itemId && o.my_side === "buyer" && o.status === "open") ?? null; |   return null;
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |   return cart?.find((l) => l.item_id === itemId && l.my_side === "buyer" && l.status === "in_cart") ?? null; |   return cart?.find((l) => l.item_id === itemId) ?? null;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {!myOffer && ( |         {true && (
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {!myOffer && !offersOff && ( |         {!offersOff && (
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const offersOff = item.accepts_offers === false; |   const offersOff = false;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {!myOffer && !offersOff && ( |         {!myOffer && (
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |       onChange();\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
@@ -202,5 +204,22 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
     state.setupFeeKnown = false;
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect((await screen.findAllByText("+ any one-time setup fee")).length).toBeGreaterThan(0);
+  });
+});
+
+// Smart offers (owner 2026-10-29): a seller who turned offers off sells Buy only. The item page shows no
+// "Make an offer" (panel or phone bar) and says so; an item read before the column existed counts as offers on.
+describe("offers off = Buy only (smart offers)", () => {
+  it("no Make an offer when the seller turned offers off", async () => {
+    show(<OfferPanel item={{ ...ITEM, accepts_offers: false }} userId="u1" />);
+    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
+    expect(screen.getByText("The seller isn't taking offers on this one.")).toBeTruthy();
+  });
+
+  it("offers on (or not yet known) keeps Make an offer", async () => {
+    show(<OfferPanel item={{ ...ITEM, accepts_offers: true }} userId="u1" />);
+    expect((await screen.findAllByRole("button", { name: "Make an offer" })).length).toBeGreaterThan(0);
+    expect(screen.queryByText("The seller isn't taking offers on this one.")).toBeNull();
   });
 });

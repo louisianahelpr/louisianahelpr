@@ -9,9 +9,10 @@
  *     problem photo would be refused until the write rule also allows the problem folder in the 24-hour window.
  *   - declutter_ask_refund(uuid, text, text): no photos until it takes p_photo_paths.
  *
- * @mutate src/lib/declutter/problemPhotos.ts | export const PROBLEM_FORM_PHOTOS_READY = false; | export const PROBLEM_FORM_PHOTOS_READY = true;
- * @mutate src/lib/declutter/problemPhotos.ts | export const REFUND_FORM_PHOTOS_READY = false; | export const REFUND_FORM_PHOTOS_READY = true;
- * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql | WHERE o.id = v_order AND o.status = 'paid' AND (o.buyer_id | WHERE o.id = v_order AND (o.status = 'paid' OR public.declutter_problem_window_open(o.id)) AND (o.buyer_id
+ * @mutate src/lib/declutter/problemPhotos.ts | export const PROBLEM_FORM_PHOTOS_READY = true; | export const PROBLEM_FORM_PHOTOS_READY = false;
+ * @mutate src/lib/declutter/problemPhotos.ts | export const REFUND_FORM_PHOTOS_READY = true; | export const REFUND_FORM_PHOTOS_READY = false;
+ * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
+ * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photo_paths text[] DEFAULT '{}') | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photos text[] DEFAULT '{}')
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  */

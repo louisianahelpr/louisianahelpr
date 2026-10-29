@@ -42,17 +42,19 @@ const SOURCES = trackedFiles("src").filter(
 
 describe("memberships are never shown or sold in the store app", () => {
   it("only useMembershipsOn reads the raw memberships switch", () => {
-    const raw = SOURCES.filter((f) => /useFeature\(\s*["']memberships["']\s*\)/.test(read(f)));
+    const raw = SOURCES.filter((f) => /useFeature(?:Status)?\(\s*["']memberships["']\s*\)/.test(read(f)));
     expect(raw).toEqual([HOOK]);
   });
 
   it("every membership surface reads useMembershipsOn (inventory floor)", () => {
-    const readers = SOURCES.filter((f) => f !== HOOK && /\buseMembershipsOn\(\s*\)/.test(read(f)));
+    const readers = SOURCES.filter((f) => f !== HOOK && /\buseMemberships(?:On|Status)\(\s*\)/.test(read(f)));
     // Measured 2026-10-21 (#23): five. AnalyticsUpgradePanel was deleted and the
     // Profile row gates on holding, or maybe still being billed for, a plan (mayStillBeBilled) instead of the switch.
     // 2026-10-27 (no-early-access-wait): seven. useDashboardData and useDashboardFilters read it to drop the
     // early-access wait while memberships are off.
-    expect(readers.length).toBe(7);
+    // 2026-10-29 (A3-C14): eight. MembershipPlansGate reads useMembershipsStatus so the
+    // Membership tab shows no plan prices while memberships are off.
+    expect(readers.length).toBe(8);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {

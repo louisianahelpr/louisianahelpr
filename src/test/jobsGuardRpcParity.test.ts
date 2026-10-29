@@ -56,7 +56,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 //   2. the "I'm on my way" gate back to being POSITIONAL (job_confirmed only),
 //      which is what let that derivation route around it.
 //
-// @mutate src/components/JobTracking.tsx | "revision_requested") {\n    atLeast(STATUS_IDX.assigned) | "revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed)
+// @mutate src/lib/jobProgressIndex.ts | "revision_requested") {\n    atLeast(STATUS_IDX.assigned) | "revision_requested") {\n    atLeast(STATUS_IDX.job_confirmed)
 // @mutate src/components/JobTracking.tsx | (nextStatus.key === "job_confirmed" \|\| nextStatus.key === "on_the_way") | (nextStatus.key === "job_confirmed")
 
 const ROOT = resolve(__dirname, "../..");
@@ -362,7 +362,8 @@ describe("jobs column guards ↔ the RPCs that must pass through them", () => {
    */
   describe("tracker CTA ↔ helper_mark_on_the_way", () => {
     const rpc = liveDefinition("helper_mark_on_the_way");
-    const tracker = readFileSync(resolve(ROOT, "src/components/JobTracking.tsx"), "utf8");
+    // deriveCurrentStatusIdx moved to src/lib/jobProgressIndex.ts (2026-10-29, bootReach); the CTA gates stay in JobTracking.tsx.
+    const tracker = readFileSync(resolve(ROOT, "src/components/JobTracking.tsx"), "utf8") + "\n" + readFileSync(resolve(ROOT, "src/lib/jobProgressIndex.ts"), "utf8");
 
     it("the server's floor is `helper_confirmed_at`, and nothing else about confirmation", () => {
       // Verified live on prod fncmgoasalhdgfwzhsqa, 2026-09-19, via

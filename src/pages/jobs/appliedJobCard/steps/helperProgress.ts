@@ -1,4 +1,4 @@
-import { deriveCurrentStatusIdx, STATUS_IDX } from "@/components/JobTracking";
+import { deriveCurrentStatusIdx, STATUS_IDX } from "@/lib/jobProgressIndex";
 import type { Job } from "../../../../components/job-card/activityConstants";
 
 /**

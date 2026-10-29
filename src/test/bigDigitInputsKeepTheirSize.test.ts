@@ -11,7 +11,7 @@
  * without a breakpoint prefix (a phone sees it). Its nearest enclosing JSX element must set a text-ds size at least
  * as big.
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx | <div className="flex min-w-0 items-baseline justify-center text-ds-40 text-[hsl(var(--burnt-sienna))]"> | <div className="flex min-w-0 items-baseline justify-center text-[hsl(var(--burnt-sienna))]">
+ * @mutate src/components/declutter/SellFormParts.tsx | <div className="flex min-w-0 items-baseline justify-center text-ds-40 text-[hsl(var(--burnt-sienna))]"> | <div className="flex min-w-0 items-baseline justify-center text-[hsl(var(--burnt-sienna))]">
  * @mutate src/components/quotes/QuotePriceStepper.tsx | <span className="inline-flex items-baseline text-ds-40 text-[hsl(var(--burnt-sienna))]"> | <span className="inline-flex items-baseline text-[hsl(var(--burnt-sienna))]">
  */
 import { readFileSync } from "node:fs";

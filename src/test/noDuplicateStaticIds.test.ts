@@ -9,7 +9,7 @@
  * Two ids in branches that never render together (an early return, a ternary)
  * are listed in KNOWN with a reason; the list is EXACT both ways.
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
+ * @mutate src/components/declutter/SellFormParts.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
  * @mutate src/components/profile/EarningsTab.tsx | <div id="earnings-bank-connect" | <div id="earnings-bank-account"
  * @mutate src/components/postjob/JobCategoryGroups.tsx | <section aria-label={`In ${open.label}`} | <section id="category-picker" aria-label={`In ${open.label}`}
  */

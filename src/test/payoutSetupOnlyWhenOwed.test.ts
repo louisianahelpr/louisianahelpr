@@ -66,7 +66,7 @@ describe("payout setup only when money is owed", () => {
   });
 
   it("the sell screens list without payouts and prompt only once a sale is owed", () => {
-    for (const p of ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterMoveView.tsx"]) {
+    for (const p of ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/SellOneScreen.tsx", "src/components/declutter/DeclutterMoveView.tsx"]) {
       const s = read(p);
       expect(s, p).not.toContain("Set up payouts before you list.");
       expect(s, p).toContain("<SellerPayoutPrompt />");

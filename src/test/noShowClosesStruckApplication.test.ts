@@ -12,8 +12,8 @@
  *
  * The body is read as the migrations leave it (effectiveDefs: the newest CREATE, any dollar-quote tag).
  *
- * @mutate supabase/migrations/20261029154727_no_show_closes_struck_application.sql |   UPDATE public.applications\n     SET status = 'rejected'\n   WHERE job_id = p_job_id\n     AND helper_id = v_helper_id | UPDATE public.applications\n     SET status = 'rejected'\n   WHERE false\n     AND helper_id = v_helper_id
- * @mutate supabase/migrations/20261029154727_no_show_closes_struck_application.sql |      AND helper_id = v_helper_id\n     AND status = 'accepted'; |      AND status = 'accepted';
+ * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |   UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE job_id = p_job_id\n     AND helper_id = v_helper_id | UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE false\n     AND helper_id = v_helper_id
+ * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |      AND helper_id = v_helper_id\n     AND status = 'accepted'; |      AND status = 'accepted';
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -31,7 +31,8 @@ describe("a no-show report closes the struck Helpr's application (A2-B14)", () =
   });
 
   it("closes exactly this Helpr's accepted application on this job, before the reopen", () => {
-    const m = sql.match(/UPDATE public\.applications\s+SET status = 'rejected'\s+WHERE ([^;]*);/);
+    // 20261029180706 adds the reason (closed_reason 'no_show', noShowClosesTheApplication.test.ts).
+    const m = sql.match(/UPDATE public\.applications\s+SET status = 'rejected'(?:,\s*closed_reason = '\w+')?\s+WHERE ([^;]*);/);
     expect(m, "an UPDATE public.applications ... SET status = 'rejected'").not.toBeNull();
     const where = m![1].replace(/\s+/g, " ");
     expect(where).toContain("job_id = p_job_id");

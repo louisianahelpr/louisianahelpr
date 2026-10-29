@@ -366,6 +366,7 @@ const makeApp = (over: Record<string, unknown>, jobOver: Record<string, unknown>
 const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   job_gone: { id: "app-1", job_id: "job-1", helper_id: HELPER, status: "pending", job: null } as unknown as AppliedApp,
   not_selected: makeApp({ status: "rejected" }, { status: "accepted", helper_id: "someone-else" }),
+  reported_no_show: makeApp({ status: "rejected", closed_reason: "no_show" }, { status: "open", helper_id: null }),
   cancelled: makeApp({ status: "pending" }, { status: "cancelled" }),
   applied: makeApp({ status: "pending" }, { status: "open", expires_at: ahead(48) }),
   offer: makeApp({ status: "pending" }, { status: "open", direct_offer_status: "pending", offered_to_helper_id: HELPER }),
@@ -950,7 +951,7 @@ describe("BOTH cards mount it, collapsed only", () => {
       // An OFFER card draws no strip either (owner, 2026-10-05: the strip
       // repeated the answer-by clock and "Confirm you'll be there" under
       // OfferedActions, which is on the collapsed card and says both).
-      const minimal = id === "not_selected" || id === "cancelled" || id === "job_gone";
+      const minimal = id === "not_selected" || id === "reported_no_show" || id === "cancelled" || id === "job_gone";
       const app = HELPER_FIXTURES[id];
       const offerCard = !minimal && !!app.job && deriveAppliedJobCardState(app, app.job, new Set(), new Set()).isOffered;
       renderApplied(app, false, trackingOf(id));

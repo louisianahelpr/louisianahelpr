@@ -1,24 +1,22 @@
--- A Helpr reported as a no-show is shown as a no-show, not "Selected" or "Declined".
+-- A Helpr reported as a no-show is shown as a no-show, not "Declined" or "You weren't picked".
 --
--- report_helper_no_show (newest body: 20261003193541) reopens the job and
--- clears jobs.helper_id, but never touched the reported Helpr's application:
--- it stayed status 'accepted' on an open job, so the poster's applicant list
--- (posterApplicantBadge) called them "Selected", and the Helpr's card had no
--- word for what happened. Read live 2026-10-29: pg_get_functiondef has no
--- "applications" in it, and applications_closed_reason_check allows
--- job_cancelled, party_blocked, offer_expired, not_confirmed.
+-- 20261029154727 (A2-B14) made report_helper_no_show close the struck Helpr's
+-- accepted application as 'rejected', with closed_reason NULL. A rejected
+-- application with no reason reads "Declined" on the poster's applicant list
+-- (posterApplicantBadge) and "You weren't picked" on the Helpr's card
+-- (deriveHelperWait): both false, nobody declined anyone.
 --
 -- This migration:
---   1. adds 'no_show' to applications_closed_reason_check;
---   2. restates report_helper_no_show VERBATIM from 20261003193541 with one
---      added UPDATE: the reported Helpr's accepted application becomes
---      rejected / closed_reason 'no_show' (badge "No-show",
---      src/pages/posts/postedJobs/applicantBadge.ts);
+--   1. adds 'no_show' to applications_closed_reason_check (newest before this:
+--      20261008205730; live constraint read 2026-10-29 matches it);
+--   2. restates report_helper_no_show VERBATIM from its newest body
+--      (20261029154727) with one change: that UPDATE also sets
+--      closed_reason = 'no_show';
 --   3. restates its grants (live proacl 2026-10-29: authenticated, service_role).
 --
 -- Triggers on that UPDATE (read live 2026-10-29): enforce_application_party_columns
 -- returns early for a definer RPC; notify_on_application's rejected branch needs
--- OLD.status = 'pending', so no "not selected" notice goes out.
+-- OLD.status = 'pending', so no notice goes out.
 --
 -- REPLAY-SAFETY: the constraint is dropped IF EXISTS and re-added; the function
 -- is CREATE OR REPLACE; both apply cleanly any number of times.
@@ -180,12 +178,17 @@ BEGIN
      AND user_id = v_helper_id  -- DH-006 this Helpr's row only
      AND reported_by IS NULL;
 
-  -- ADDED 20261029180706 (A3, closed_reason 'no_show'): this Helpr's own
-  -- application closes as a no-show. It stayed 'accepted' on the reopened job,
-  -- so the poster's applicant list called them "Selected", and once someone
-  -- else was hired it read like a decline. Accepted -> rejected sends no
-  -- notice (notify_on_application answers only pending -> rejected); the
-  -- client's own no-show notification is the one the Helpr gets.
+  -- ADDED 20261029154727 (audit 2026-10-29 A2-B14): the struck Helpr's
+  -- application closes with the booking, as helper_cancel_booking closes its
+  -- own. The reopen below cleared jobs.helper_id but left this row 'accepted',
+  -- so his Working tab listed the job under NEEDS YOU with "Accept job /
+  -- Decline" beside his Final warning, and an accept could have put him back
+  -- on the job he was just reported for. accepted -> rejected sends no notice
+  -- (notify_on_application speaks only for pending -> rejected); the client
+  -- already sends the one no-show notice.
+  -- CHANGED 20261029180706: the close says why (closed_reason 'no_show'), so
+  -- the poster's applicant badge reads "No-show" and the Helpr's own card
+  -- "Reported as a no-show", never "Declined" / "You weren't picked".
   UPDATE public.applications
      SET status = 'rejected',
          closed_reason = 'no_show'

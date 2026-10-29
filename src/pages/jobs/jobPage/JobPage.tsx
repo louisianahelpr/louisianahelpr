@@ -12,7 +12,7 @@
  * Every number is real or hidden (§1.5); no street address before a hire
  * (§1.6): the page prints the city only.
  */
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -207,6 +207,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* Helpr Guarantee (owner 2026-10-27): the poster's explainer and "Not done right"; the hired Helpr's answer. */}
           <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
+          {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
+          {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
           {primary && (
             <Button
               variant={"secondary" in primary && primary.secondary ? "outline" : "primary"}

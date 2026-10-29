@@ -670,6 +670,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
 export type HelperWait =
   | "job_gone"
   | "not_selected"
+  | "reported_no_show"
   | "cancelled"
   | "applied"
   | "offer"
@@ -715,6 +716,8 @@ export type HelperWait =
 export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   job_gone: { detail: "This job has closed" },
   not_selected: { detail: "You weren't picked" },
+  /* Closed by the poster's no-show report (closed_reason 'no_show', 20261029180706): nobody passed on them. */
+  reported_no_show: { detail: "The poster reported you didn't show up for this job" },
   /* The reason, when the job has one, follows as the line's `suffix`. */
   cancelled: { detail: "Cancelled" },
   applied: { detail: "They haven't replied yet" },
@@ -838,6 +841,9 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
   // as 'rejected' and reopens the job, so after it runs only this stamp says
   // the offer expired. Nobody passed on this Helpr.
   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired";
+  // The poster reported a no-show (report_helper_no_show closes the application with closed_reason
+  // 'no_show'): say so plainly, never "You weren't picked".
+  if (app.status === "rejected" && app.closed_reason === "no_show") return "reported_no_show";
   // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
   // applicant: let the job's own status speak.
   if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";

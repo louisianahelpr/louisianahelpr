@@ -59,6 +59,7 @@
  * reports coverage that does not exist. /legal's slot is carried by the browser
  * pass — see NOT_EXERCISED below.
  * @mutate src/pages/home/Dashboard.tsx | className="ml-auto" | className=""
+ * @mutate src/components/job-card/embeddedActivity.tsx | {searchOpen && <SearchTriggerSlot width="40px" />} | {null}
  * @mutate src/pages/home/Dashboard.tsx | data-feed-strip | data-feed-strip-renamed
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -167,6 +168,9 @@ function deriveExpandingSearchFiles(): string[] {
  *   components/profile/SavedHelpersTab.tsx            Profile ▸ Saved Helprs
  *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
  *   pages/info/Legal.tsx                                   policy search
+ *   components/job-card/embeddedActivity.tsx          Jobs > Posted / Working chip row
+ *                                                     (2026-10-29, audit F20: its
+ *                                                     open flag keeps only the lit chip)
  *   (PostsHeader / JobsHeader / JobListPage left 2026-10-19 with the old
  *    My Posts / My Jobs search, Q2205.)
  *
@@ -181,6 +185,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/dashboard/DashboardTitleBar.tsx",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx",
+  "components/job-card/embeddedActivity.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
   "pages/home/Dashboard.tsx",
@@ -217,7 +222,7 @@ describe("the inventory of expanding searches is derived, not declared", () => {
     const derived = deriveExpandingSearchFiles();
     // The floor. A broken walker, a renamed flag or a bad glob would otherwise
     // make every assertion below pass over nothing at all.
-    expect(derived.length).toBeGreaterThanOrEqual(8);
+    expect(derived.length).toBeGreaterThanOrEqual(9);
     expect(derived).toEqual(REVIEWED_EXPANDING_SEARCHES);
   });
 
@@ -474,6 +479,47 @@ describe("Saved Helprs search — one control, one place", () => {
   });
 });
 
+/* ─────────────────── Jobs > Posted / Working chip row ─────────────────── */
+
+/* Audit 2026-10-28 F20: the open field keeps only the lit chip on a phone. The field opens IN the
+   chip row, out of the magnifier, and the row holds the magnifier's 40px box while it is open. */
+describe("Posted / Working search — in flow, the slot held, one dismiss", () => {
+  async function mount() {
+    const { EmbeddedActivityHeader } = await import("@/components/job-card/embeddedActivity");
+    render(
+      <MemoryRouter>
+        <EmbeddedActivityHeader
+          header={<h1>Jobs</h1>}
+          tab="applied"
+          statusFilter="all"
+          counts={{ all: 3, needs_you: 1 }}
+          onFilter={vi.fn()}
+          search=""
+          onSearch={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  it("opening the field holds the magnifier's slot at the row's end, and closing gives it back", async () => {
+    setWebDesktop(false);
+    await mount();
+    expect(document.querySelector("[data-search-trigger-slot]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Search jobs you're working" }));
+    const field = screen.getByRole("searchbox", { name: "Search jobs you're working" });
+    const form = field.closest("form") as HTMLElement;
+    const slot = document.querySelector("[data-search-trigger-slot]");
+    expect(slot, "the open field must hold the magnifier's box").toBeTruthy();
+    expect(form.nextElementSibling, "the held box sits right after the field, where the magnifier was").toBe(slot);
+    assertFieldStaysInFlow(field, form.parentElement as HTMLElement);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close search" }));
+    expect(screen.queryByRole("searchbox", { name: "Search jobs you're working" })).toBeNull();
+    expect(document.querySelector("[data-search-trigger-slot]")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Search jobs you're working" }));
+  });
+});
+
 /* ───────────────────────── coverage floor ───────────────────────── */
 
 /**
@@ -483,6 +529,7 @@ describe("Saved Helprs search — one control, one place", () => {
  */
 const EXERCISED = [
   "components/dashboard/DashboardTitleBar.tsx",
+  "components/job-card/embeddedActivity.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
 ];

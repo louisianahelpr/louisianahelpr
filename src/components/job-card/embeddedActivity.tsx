@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
@@ -70,7 +71,15 @@ export function EmbeddedActivityHeader({
             onlyLit={searchOpen && !desktop}
             // Search is an ICON at the row's end, like Browse's (owner 2026-10-25: "i prefer the search not expanded"),
             // and it opens IN PLACE, leftward out of the icon (owner 2026-10-27: "search should just open where its at").
-            end={<InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill />}
+            // While the field is open the magnifier's 40px box (the trigger's h-10 w-10) is HELD at the row's end, as on every
+            // other expanding search (src/test/searchDismissAndOverlay.test.tsx): the field's X then sits beside the box the
+            // magnifier comes back to, never on it, so one tap on the X can never land on the reopened trigger.
+            end={
+              <>
+                <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill />
+                {searchOpen && <SearchTriggerSlot width="40px" />}
+              </>
+            }
           />
         </div>
       </div>

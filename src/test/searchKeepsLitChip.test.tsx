@@ -14,6 +14,11 @@
  * 134/134 beside a 138px / 193px field (below 160px the magnifier steps aside so "Search" stays whole). Every
  * chip is back after Escape; 1440 is unchanged.
  *
+ * Choice C (lead 2026-10-29): with the magnifier's 40px slot held at the row's end (searchDismissAndOverlay), the
+ * field fell to 90px at 320 with "Not picked · 19" lit and its input to 22px ("Sea"). So while the field is open on
+ * a phone the lone lit chip drops its count ("Not picked", "All"); every count is back when the field closes.
+ *
+ * @mutate src/components/sections/StatusBoxes.tsx | {count > 0 && !onlyLit && <span | {count > 0 && <span
  * @mutate src/components/job-card/embeddedActivity.tsx |             onlyLit={searchOpen && !desktop} |             onlyLit={false}
  * @mutate src/components/sections/StatusBoxes.tsx | {boxes.filter((b) => !onlyLit \|\| b.key === value).map( | {boxes.map(
  * @mutate src/components/sections/StatusBoxes.tsx | {(!onlyLit \|\| value === null) && chip(ALL, | {chip(ALL,
@@ -62,7 +67,7 @@ describe("Posted / Working: the open search keeps only the lit chip on a phone (
   it("open with nothing picked: All alone, whole (no scroller, no fade); the field fills the row", () => {
     renderHeader();
     open();
-    expect(chips()).toEqual(["All · 57"]);
+    expect(chips()).toEqual(["All"]);
     const row = classes(screen.getByRole("group", { name: "Filter by status" }));
     expect(row).toContain("flex-none");
     expect(row.join(" ")).not.toMatch(/mask-image|overflow-x-auto|pr-11/);
@@ -75,21 +80,35 @@ describe("Posted / Working: the open search keeps only the lit chip on a phone (
   it("open with a bucket picked: that chip alone, still lit", () => {
     renderHeader("waiting");
     open();
-    expect(chips()).toEqual(["Waiting · 3"]);
+    expect(chips()).toEqual(["Waiting"]);
     expect(screen.getByRole("button", { name: /Waiting/ }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("closing the field (Escape) brings every chip back", () => {
+  it("closing the field (Escape) brings every chip back, each with its count", () => {
     renderHeader();
     open();
     fireEvent.keyDown(screen.getByRole("searchbox", { name: "Search jobs you're working" }), { key: "Escape" });
     expect(chips().length).toBeGreaterThan(5);
+    expect(chips()[0]).toBe("All · 57");
+    expect(chips()).toContain("Waiting · 3");
+  });
+
+  it("choice C: the lone lit chip shows no count while the phone field is open; desktop keeps every count", () => {
+    renderHeader("waiting");
+    open();
+    const group = screen.getByRole("group", { name: "Filter by status" });
+    expect(group.querySelectorAll("[data-chip-count]").length).toBe(0);
+    cleanup();
+    env.desktop = true;
+    renderHeader("waiting");
+    open();
+    expect(screen.getByRole("group", { name: "Filter by status" }).querySelectorAll("[data-chip-count]").length).toBeGreaterThan(4);
   });
 
   it("arriving with words in ?q= opens the field, and the row already shows only the lit chip", () => {
     renderHeader("all", "AA5");
     expect(screen.getByRole("search", { name: "Search jobs you're working" })).toBeTruthy();
-    expect(chips()).toEqual(["All · 57"]);
+    expect(chips()).toEqual(["All"]);
   });
 
   it("desktop keeps every chip while the 260px pill is open", () => {

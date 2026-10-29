@@ -26,7 +26,7 @@
  * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd }) | embeddedHeader(isWebDesktop ? undefined : { end: phoneBrowseEnd })
  * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd })}\n    </div> | : { end: phoneBrowseEnd })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
- * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} | end={<InlineListSearch value="" onChange={() => {}}
+ * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} | <InlineListSearch value="" onChange={() => {}}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

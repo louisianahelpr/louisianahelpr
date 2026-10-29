@@ -66,8 +66,8 @@ export function StatusBoxes<K extends string>({
   /**
    * Show ONLY the lit chip (All when nothing is picked), at its own width, with no fade: while Posted / Working's
    * search field is open on a phone (lead 2026-10-28, audit F20). The open field took the row and left a sliver of
-   * cut chips ("Ne", "Waitir": 129px of scroller at 375, 80px at 320). The caller brings every chip back when the
-   * field closes.
+   * cut chips ("Ne", "Waitir": 129px of scroller at 375, 80px at 320). The lit chip drops its count meanwhile
+   * (lead's choice C). The caller brings every chip, and every count, back when the field closes.
    */
   onlyLit?: boolean;
 }) {
@@ -83,7 +83,9 @@ export function StatusBoxes<K extends string>({
       className={`${CHIP} shrink-0 whitespace-nowrap ${on ? CHIP_ON : CHIP_OFF}`}
     >
       <span data-chip-label="">{label}</span>
-      {count > 0 && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
+      {/* Beside the open phone search the lone lit chip drops its count, so the field keeps room for its word (lead's
+          choice C, audit 2026-10-28 F20: with "Not picked · 19" lit at 320 the input was 22px and read "Sea"). */}
+      {count > 0 && !onlyLit && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
     </button>
   );
   return (

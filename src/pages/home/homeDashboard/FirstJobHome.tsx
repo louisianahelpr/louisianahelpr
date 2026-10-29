@@ -23,7 +23,7 @@ const NEAR_CAP = 20;
 export const SKILLS_FOCUS_PATH = "/profile?tab=profile&focus=skills";
 
 interface FirstJobState {
-  /** The member has never applied to a job: the "first job" Home shows. */
+  /** No job history at all (never applied, posted, or worked one): the "first job" Home shows. */
   isNew: boolean;
   /** The job-match alerts are off on both channels (the alerts card shows only then). */
   alertsOff: boolean;
@@ -31,9 +31,15 @@ interface FirstJobState {
 
 /**
  * Board 189 (spec v2 §9.35, "New Helpr Home"): is this member still before
- * their first job (never applied)? Every account can do jobs (never
- * role-based), so this is about history, not a role. Unknown while loading or
- * on a failed read: the Home then shows its normal cards (null).
+ * their first job? Every account can do jobs (never role-based), so this is
+ * about history, not a role. Unknown while loading or on a failed read: the
+ * Home then shows its normal cards (null).
+ *
+ * A3-C20 (app audit 2026-10-29): "never applied" alone put "Get your first
+ * job" at the top of Home for a poster with 366 jobs. A member is new only
+ * with NO job history: no application, and no job they posted or were hired
+ * on (a direct offer has no application). RLS lets a member count both sides
+ * of their own jobs ("Users can view their own jobs").
  */
 export function useFirstJobState(userId: string | undefined): FirstJobState | null {
   const { data } = useQuery({
@@ -43,9 +49,14 @@ export function useFirstJobState(userId: string | undefined): FirstJobState | nu
       const apps = await supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", userId!);
       // A head-only count: unwrap() throws the read error (Q1182) and hands back the count.
       const appCount = unwrap({ data: apps.count, error: apps.error, status: apps.status });
+      const mine = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .or(`customer_id.eq.${userId},helper_id.eq.${userId}`);
+      const jobCount = unwrap({ data: mine.count, error: mine.error, status: mine.status });
       const prefs = unwrap(await supabase.from("notification_preferences").select("job_matches, email_job_matches").eq("user_id", userId!).maybeSingle());
       return {
-        isNew: (appCount ?? 0) === 0,
+        isNew: (appCount ?? 0) === 0 && (jobCount ?? 0) === 0,
         alertsOff: !!prefs && prefs.job_matches === false && prefs.email_job_matches === false,
       };
     },

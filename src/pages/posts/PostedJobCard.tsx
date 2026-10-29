@@ -11,7 +11,7 @@ import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
 import { JobRequestRows, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { CountdownRows, posterOfferClocks } from "./postedJobCard/posterOfferClocks";
 import { JobTracking } from "@/components/JobTracking";
-import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
+import { PosterStatusStrip, withClosedApplicants } from "./postedJobCard/PosterStatusStrip";
 import { withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
@@ -183,12 +183,20 @@ function PostedJobCardInner({
 
      The person tile sits directly above the action row, not in <JobTracking>; the V6 rule
      (nothing about the Helpr on a collapsed card) lives at `helperTile` above. */
+  // ONE line per card: the strip prints it, the face's one button (board 14) and the 8-step bar, closed and open (A2-B15), read it.
+  const cardLine = withClosedApplicants(posterStatusLine(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]), closedApplicantSummaries?.[job.id] ?? null);
+  const { faceAction, completionRequest } = usePosterFaceAction({
+    job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
+    pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
+    confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
+    onLoadApplications, onConfirmArrival, onReview, onTip, onNoShow, onCancel, onViewDispute,
+  });
   const trackerBlock = showsTracker ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
           so the tracker renders without a box of its own (same fix
           as HelperTrackerPanel; guard noNestedTrackerCard.test.ts). */}
-      <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} rescheduled={rescheduled} />
+      <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} rescheduled={rescheduled} progressCard={job.status === "open" ? { line: cardLine, face: faceAction } : undefined} />
     </div>
   ) : null;
 
@@ -281,15 +289,6 @@ function PostedJobCardInner({
                </JobCardMetaRow>
             </>
   );
-
-  // ONE line per card: the strip prints it, the face's one button (board 14) and the 8-step bar read it.
-  const cardLine = posterStatusLine(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]);
-  const { faceAction, completionRequest } = usePosterFaceAction({
-    job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
-    pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
-    confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
-    onLoadApplications, onConfirmArrival, onReview, onTip, onNoShow, onCancel, onViewDispute,
-  });
 
   return (
         /* The Helpr's tile, published to whichever JobStepCard this status mounts (jobCardPerson.tsx). The

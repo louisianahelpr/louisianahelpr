@@ -20,9 +20,9 @@ export function BackoutBanner({ job }: { job: object | null | undefined }) {
 /**
  * Board 144 (copy only): when the Helpr cancels a paid job, say where the
  * money is. The helper_cancelled notice is written by the record_backout_notice
- * trigger on any reopen of a confirmed job (helper_cancel_booking,
- * helper_abort_job, report_helper_no_show, settle_one_off_jobs_for_banned_account,
- * block_user_and_settle), and every one of those leaves payment_status alone
+ * trigger on a reopen of a confirmed job the poster did not make (helper_cancel_booking,
+ * helper_abort_job, settle_one_off_jobs_for_banned_account, a Helpr's
+ * block_user_and_settle; A2-B15), and every one of those leaves payment_status alone
  * (lh-money-escrow review, 2026-10-21). Shown only while the job's payment
  * really is held (`escrow`), read live from the job.
  */

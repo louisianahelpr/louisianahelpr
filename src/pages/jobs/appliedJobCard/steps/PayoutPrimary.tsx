@@ -74,7 +74,7 @@ export function PayoutUnlockNote({
   return (
     <JobStepRowSlot slot="note">
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Available in {minutesLeft} min — 30 minutes after arrival, to ensure quality.
+        Available in {minutesLeft} min — 30 minutes after you arrived, to ensure quality.
       </p>
     </JobStepRowSlot>
   );

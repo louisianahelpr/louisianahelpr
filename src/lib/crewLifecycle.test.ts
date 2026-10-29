@@ -34,10 +34,15 @@ describe("a crew member's step is read off their own roster row (Q1382)", () => 
     expect(crewMemberStatusLabel({ ...blank, poster_confirmed_arrival_at: T })).toBe("Working");
   });
 
-  it("the 30-minute floor counts from the poster's working confirm, else the arrival", () => {
+  // @mutate src/lib/crewLifecycle.ts | const from = doneFloorStart(slot.poster_confirmed_working_at, slot.helper_arrived_at); | const from = slot.poster_confirmed_working_at ?? slot.helper_arrived_at;
+  it("the 30-minute floor counts from the earlier of the arrival and the poster's working confirm", () => {
     const now = Date.parse(T);
     expect(crewMinutesUntilDone({ poster_confirmed_working_at: T, helper_arrived_at: null }, now)).toBe(30);
     expect(crewMinutesUntilDone({ poster_confirmed_working_at: null, helper_arrived_at: T }, now + 31 * 60_000)).toBe(0);
+    // Audit 2026-10-28 F12: the poster's later tap does not restart the member's clock; it counts from arrival.
+    const later = new Date(Date.parse(T) + 25 * 60_000).toISOString();
+    expect(crewMinutesUntilDone({ poster_confirmed_working_at: later, helper_arrived_at: T }, now + 31 * 60_000)).toBe(0);
+    expect(crewMinutesUntilDone({ poster_confirmed_working_at: later, helper_arrived_at: T }, now + 20 * 60_000)).toBe(10);
   });
 
   it("the member's view of the job carries their stamps, not the job's", () => {

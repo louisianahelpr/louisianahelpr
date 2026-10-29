@@ -1,8 +1,22 @@
 import { useEffect, useState } from "react";
 
-/** The server's completion floor: COALESCE(poster_confirmed_working_at,
- *  helper_arrived_at) + 30 min (rpc_helper_mark_done). */
+/** The server's completion floor: LEAST(poster_confirmed_working_at,
+ *  helper_arrived_at) + 30 min (rpc_helper_mark_done and both completion
+ *  triggers, migration *_done_floor_from_arrival). */
 const DONE_FLOOR_MS = 30 * 60_000;
+
+/**
+ * When the 30-minute floor starts: the EARLIER of the Helpr's arrival and the
+ * poster's "Confirm they're working", ignoring a missing one (SQL LEAST). The
+ * poster's confirm comes after the Helpr starts working, so in practice this is
+ * the arrival: a late confirm never restarts the clock (audit 2026-10-28 F12).
+ * Null when neither is stamped (no floor). Every client copy reads this.
+ */
+export function doneFloorStart(posterConfirmedWorkingAt: string | null | undefined, arrivedAt: string | null | undefined): string | null {
+  const stamps = [posterConfirmedWorkingAt, arrivedAt].filter((t): t is string => !!t && Number.isFinite(Date.parse(t)));
+  if (stamps.length === 0) return null;
+  return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a));
+}
 
 /**
  * Is Mark job complete still inside its first 30 minutes? Re-renders the

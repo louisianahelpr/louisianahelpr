@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { doneFloorStart } from "@/components/job-card/useDoneFloor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { rpcErrorCode, rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -87,10 +88,10 @@ export function ActiveJobSection({
   // away and came back. The unlock moment is a fixed point in time, so compute
   // it once and re-render on it — and only while the gate is actually closed.
   const payoutUnlocksAt = (() => {
-    // The floor measures from the poster's working confirmation when it
-    // exists, else from the helper's own arrival stamp — a ghosting poster
-    // must not be able to hold the clock at zero.
-    const workingStart = job.poster_confirmed_working_at ?? job.helper_arrived_at;
+    // The floor measures from the Helpr's own arrival (doneFloorStart, the
+    // server's LEAST): neither a ghosting poster nor a late "Confirm they're
+    // working" can hold or restart the clock (audit 2026-10-28 F12).
+    const workingStart = doneFloorStart(job.poster_confirmed_working_at, job.helper_arrived_at);
     return workingStart ? new Date(workingStart).getTime() + MIN_WORK_MS : null;
   })();
   const [now, setNow] = useState(() => Date.now());

@@ -10,6 +10,11 @@
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
  *
+ * Audit 1028 part 2, D2-13: the Ask refusal shows under the box (role="alert", tied to the box), never as a toast over it.
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>} |
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |   const askError = ask.isError ? declutterErrorMessage(ask.error) : null; |   const askError = null; void ask.error;
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | onChange={(e) => { setQuestion(e.target.value); if (ask.isError) ask.reset(); }} | onChange={(e) => setQuestion(e.target.value)}
+ *
  * Suggested reply (owner 2026-10-29, builder 26 feature 1): Claude's draft shows in the seller's sheet; Send posts
  * exactly it, Edit only fills the box, nothing is ever posted without a tap, and a reply with a blank cannot be sent.
  * @mutate src/components/declutter/DeclutterQuestions.tsx |                 onSend={(t) => send.mutate({ id: q.id, text: t })} |                 onSend={() => send.mutate({ id: q.id, text: "" })}
@@ -20,13 +25,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const calls = { answer: [] as [string, string][], ask: [] as [string, string][] };
+const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null };
+const toasts = vi.hoisted(() => ({ error: [] as unknown[] }));
+vi.mock("sonner", () => ({ toast: { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } } }));
 const state = { questions: [] as unknown[], seller: { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null } as unknown };
 
 vi.mock("@/lib/declutter/api", () => ({
   fetchQuestions: async () => state.questions,
   fetchSellerCard: async () => state.seller,
-  askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); return "q9"; },
+  askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); if (calls.askRefusal) throw calls.askRefusal; return "q9"; },
   answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); return "2026-10-20"; },
 }));
 
@@ -62,6 +69,8 @@ beforeEach(() => {
   state.seller = { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null };
   calls.answer = [];
   calls.ask = [];
+  calls.askRefusal = null;
+  toasts.error = [];
   suggest.calls = [];
   suggest.result = { reply: "Yes, it fits with the back seats down.", needsSeller: false };
 });
@@ -84,7 +93,8 @@ describe("board 162: public questions", () => {
     expect(within(cards[1]).getByText("Asked today · waiting for Marie")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Ask about size, condition…")).toBeInTheDocument();
     expect(screen.getByText(/^Everyone can see questions and answers\./)).toBeInTheDocument();
-    const note = screen.getByText(/Contact info is hidden/);
+    // D2-13: contact info is refused, not hidden.
+    const note = screen.getByText(/Contact info is not allowed\./);
     expect(note.textContent).not.toMatch(/message/i);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
   });
@@ -101,6 +111,23 @@ describe("board 162: public questions", () => {
     fireEvent.change(await screen.findByLabelText("Ask a question"), { target: { value: "  Is it oak?  " } });
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
     await waitFor(() => expect(calls.ask).toEqual([["i1", "Is it oak?"]]));
+  });
+
+  it("D2-13: a refused question says why under the box (no toast over it); typing again clears it", async () => {
+    calls.askRefusal = Object.assign(new Error("contact_info_detected"), { userMessage: "Phone number detected. Keep contact info off Declutter." });
+    renderIt({ isSeller: false, canAsk: true });
+    const box = await screen.findByLabelText("Ask a question");
+    fireEvent.change(box, { target: { value: "Call me 225 555 0100" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Phone number detected. Keep contact info off Declutter.");
+    expect(box.getAttribute("aria-describedby")).toBe(alert.id);
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(toasts.error).toEqual([]);
+    expect(screen.getByRole("button", { name: "Ask" })).not.toBeDisabled();
+    fireEvent.change(box, { target: { value: "Is it oak?" } });
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(box.getAttribute("aria-invalid")).toBeNull();
   });
 
   it("seller: Answer opens 'Answer publicly' with the question, and Post answer sends the answer", async () => {

@@ -23,8 +23,19 @@
  * before RLS runs, which the send path does not attribute here.) So the
  * control question "may I reach the poster?" separates them, entirely on the
  * server's clock and data: restricted = gate(receiver) false AND
- * gate(poster) true. The poster itself, and ownerless jobs, are never
- * restricted by this rule.
+ * gate(poster) true. Ownerless jobs are never restricted by this rule.
+ *
+ * THE POSTER TOO (A3-B3, app audit 2026-10-29). The same gate refuses the
+ * POSTER when the person in the thread is no longer anyone on the job: no
+ * application, no offer, not hired, not on the crew (and not "off the job" in
+ * is_off_job's sense, i.e. they never applied or were offered; that case has
+ * its own notice, src/lib/offJobGate.ts). The poster's thread kept a live
+ * composer, every send bounced with RLS 42501, and the bubble said "tap to
+ * retry", which could never work. The control question works for the poster
+ * unchanged: gate(poster) asks whether the poster may reach themself on their
+ * own job, which is true exactly when the poster can send at all (not banned,
+ * thread open, under the 30/hour cap). So the poster's thread closes up front
+ * on the server's own answer, with its own one-line reason.
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +46,21 @@ export const RECIPIENT_RESTRICTED_NOTICE =
   "You can't send messages in this conversation. On this job, only the person who posted it can message applicants and anyone with a pending offer. You can still read everything here.";
 export const RECIPIENT_RESTRICTED_TOAST =
   "Only the person who posted this job can message them, so the message wasn't sent.";
+
+/** The poster's version: the person in the thread is no longer on this job. */
+export const RECIPIENT_NOT_ON_JOB_NOTICE =
+  "You can't send messages in this conversation: this person hasn't applied, been offered or been hired for this job. You can still read everything here.";
+export const RECIPIENT_NOT_ON_JOB_TOAST =
+  "This person isn't on this job, so the message wasn't sent.";
+
+/** The one-line reason the composer shows, for the poster or anyone else. */
+export function recipientRestrictedNotice(viewerIsPoster: boolean): string {
+  return viewerIsPoster ? RECIPIENT_NOT_ON_JOB_NOTICE : RECIPIENT_RESTRICTED_NOTICE;
+}
+/** The toast a refused send shows, for the poster or anyone else. */
+export function recipientRestrictedToast(viewerIsPoster: boolean): string {
+  return viewerIsPoster ? RECIPIENT_NOT_ON_JOB_TOAST : RECIPIENT_RESTRICTED_TOAST;
+}
 
 /** The server gate's answer, or null when it could not be asked. */
 async function askGate(jobId: string, receiverId: string): Promise<boolean | null> {
@@ -65,15 +91,15 @@ export async function fetchRecipientRestricted(
   posterId: string | null | undefined,
 ): Promise<boolean> {
   if (!jobId || !receiverId || !userId || !posterId) return false;
-  if (userId === posterId || receiverId === posterId) return false;
+  if (receiverId === posterId) return false;
   if ((await askGate(jobId, receiverId)) !== false) return false;
   return (await askGate(jobId, posterId)) === true;
 }
 
 /**
  * Whether the open thread is read-only for this viewer under the receiver
- * rule. Never asked for the poster (the poster reaches every party of its own
- * job), nor while `skip` (another notice already owns the dock). A refusal the
+ * rule, the poster included (A3-B3). Not asked while `skip` (another notice
+ * already owns the dock). A refusal the
  * send path recorded on the open conversation wins immediately; reopening the
  * thread from the inbox asks the server again.
  */
@@ -89,12 +115,11 @@ export function useRecipientRestricted({
   const jobId = activeConvo?.jobId ?? "";
   const otherUserId = activeConvo?.otherUserId ?? "";
   const posterId = activeConvo?.posterId ?? null;
-  const viewerIsPoster = activeConvo?.viewerIsPoster === true;
   const key = `${jobId}|${otherUserId}`;
   const [answer, setAnswer] = useState<{ key: string; restricted: boolean } | null>(null);
 
   useEffect(() => {
-    if (skip || viewerIsPoster || !userId || !jobId || !otherUserId || !posterId) return;
+    if (skip || !userId || !jobId || !otherUserId || !posterId) return;
     let cancelled = false;
     fetchRecipientRestricted(jobId, otherUserId, userId, posterId).then(
       (restricted) => {
@@ -105,9 +130,9 @@ export function useRecipientRestricted({
     return () => {
       cancelled = true;
     };
-  }, [skip, viewerIsPoster, userId, jobId, otherUserId, posterId, key]);
+  }, [skip, userId, jobId, otherUserId, posterId, key]);
 
-  if (skip || viewerIsPoster) return false;
+  if (skip) return false;
   if (activeConvo?.recipientRestricted) return true;
   return answer?.key === key && answer.restricted;
 }

@@ -143,6 +143,8 @@ vi.mock("@/lib/recipientGate", () => ({
   useRecipientRestricted: () => false,
   RECIPIENT_RESTRICTED_TOAST: "",
   RECIPIENT_RESTRICTED_NOTICE: "",
+  recipientRestrictedNotice: () => "",
+  recipientRestrictedToast: () => "",
   fetchRecipientRestricted: vi.fn(async () => false),
 }));
 

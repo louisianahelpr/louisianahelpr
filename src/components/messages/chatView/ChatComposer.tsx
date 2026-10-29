@@ -4,7 +4,7 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { threadClosedCopy } from "@/lib/messagingLockout";
-import { RECIPIENT_RESTRICTED_NOTICE } from "@/lib/recipientGate";
+import { recipientRestrictedNotice } from "@/lib/recipientGate";
 import { offJobNotice, type OffJobState } from "@/lib/offJobGate";
 import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
 import type { Conversation, Message } from "../types";
@@ -296,7 +296,9 @@ export function ChatComposer({
   }
   if (recipientRestricted) {
     /* Receiver gate — only the poster may message applicants and an offered
-       Helpr (can_send_message_to_in_job, 20260914210443 + 20260914215014).
+       Helpr, and nobody may message someone who is no longer anyone on the
+       job, the poster included (can_send_message_to_in_job, 20260914210443 +
+       20260914215014; A3-B3).
        Server-derived, same read-only notice as the lockout, so an existing
        thread never offers a send RLS will refuse. */
     return (
@@ -315,7 +317,7 @@ export function ChatComposer({
         >
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            {RECIPIENT_RESTRICTED_NOTICE}
+            {recipientRestrictedNotice(activeConvo.viewerIsPoster === true)}
           </p>
         </div>
       </div>

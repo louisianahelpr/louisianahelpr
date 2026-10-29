@@ -281,7 +281,7 @@ export function ActiveJobSection({
       <JobActionChip
         key="report"
         icon={AlertTriangle}
-        label="Report a Problem"
+        label="Report a problem"
         ariaLabel="Report a problem — open a dispute about this job"
         tone="danger"
         onClick={() => {

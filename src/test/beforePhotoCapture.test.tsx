@@ -91,6 +91,8 @@ import type { ReactElement } from "react";
 // shows and SURVIVED (vacuity push run 38181478413). The gate the row really
 // applies is `photoIsPrimary`; putting Start working back must turn this red.
 // @mutate src/components/JobTracking.tsx | const photoIsPrimary = needsBeforePhoto \|\| needsProof; | const photoIsPrimary = needsProof;
+// F21 (audit 2026-10-28): the photo primary is sentence case ("Take before photo", was "Take Before photo").
+// @mutate src/components/job-card/photoPrimaryLabel.ts |   return `Take ${label.charAt(0).toLowerCase()}${label.slice(1)}`; |   return `Take ${label}`;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -249,21 +251,21 @@ const primary = (container: HTMLElement) => {
 };
 
 describe("the photo capture is a control IN the action row", () => {
-  it("on site, before photo owed: the PRIMARY is Take Before photo (owner, 2026-10-08: photo first)", async () => {
+  it("on site, before photo owed: the PRIMARY is Take before photo (owner, 2026-10-08: photo first)", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Take Before photo/);
+    expect(cta?.textContent?.trim()).toMatch(/Take before photo/);
     expect(cta?.disabled).toBeFalsy();
     // Start working is not drawn until the photo is in.
     expect(within(row(container)).queryByRole("button", { name: /Start working/ })).toBeNull();
     expect(container.textContent).not.toMatch(/Add a before photo/);
   });
-  it("working, after photo owed: the PRIMARY is Take After photo", async () => {
+  it("working, after photo owed: the PRIMARY is Take after photo", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
-    expect(primary(container)?.textContent?.trim()).toMatch(/Take After photo/);
+    expect(primary(container)?.textContent?.trim()).toMatch(/Take after photo/);
     expect(within(row(container)).queryByRole("button", { name: /Mark job complete/ })).toBeNull();
   });
   it("the capture control is NAMED for which photo, so it cannot read as the Photos gallery chip", async () => {
@@ -271,7 +273,7 @@ describe("the photo capture is a control IN the action row", () => {
     const names = [...row(container).querySelectorAll("button, a[href]")].map(
       (b) => (b.getAttribute("aria-label") || b.textContent || "").trim(),
     );
-    expect(names.some((n) => /Before photo\b/.test(n))).toBe(true);
+    expect(names.some((n) => /before photo\b/i.test(n))).toBe(true);
     expect(names.some((n) => /^Photos\b/.test(n))).toBe(false);
   });
   it("no control at all when the poster does not require photos", async () => {
@@ -298,7 +300,7 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
   it("a missing proof photo replaces Mark job complete with the photo itself (photo first, owner 2026-10-08)", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take After photo/);
+    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take after photo/);
     // The gate is still the server's (enforce_helper_completion_gates); the card
     // simply never offers the refused tap.
     expect(requiredProof({ require_photo_proof: true }).reason.length).toBeGreaterThan(0);
@@ -353,13 +355,13 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     );
   });
 
-  it("Start working is not offered while the before photo is missing; Take Before photo is", async () => {
+  it("Start working is not offered while the before photo is missing; Take before photo is", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take Before photo/);
+    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take before photo/);
     expect(
       within(row(container)).queryByRole("button", { name: /Start working/ }),
       "Start working is on the row while the before photo is still owed",

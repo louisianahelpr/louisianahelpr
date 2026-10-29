@@ -17,6 +17,8 @@
  * @mutate src/components/job-card/JobStepCard.tsx | const moreChips = [...moreOnly, ...rowChips.overflow]; | const moreChips = [...rowChips.overflow];
  * @mutate src/components/job-card/JobStepCard.tsx | const chips = allChips.filter((c) => !isMoreOnly(c)); | const chips = allChips;
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | key="report" | key="report-problem"
+ * F21 (audit 2026-10-28): the chip is sentence case, "Report a problem" (was "Report a Problem").
+ * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx |         label="Report a problem" |         label="Report a Problem"
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -44,7 +46,7 @@ function card(side: "helper" | "poster", key: string, label: string) {
 
 describe("Report a Problem / Dispute are only reachable through More", () => {
   for (const [side, key, label] of [
-    ["helper", "report", "Report a Problem"],
+    ["helper", "report", "Report a problem"],
     ["poster", "dispute", "Dispute"],
   ] as const) {
     it(`${side} card: ${label} is not on the row, and is inside More`, () => {
@@ -69,7 +71,7 @@ describe("every Report a Problem / Dispute chip on either card is keyed into Mor
     for (const name of readdirSync(resolve(ROOT, dir))) {
       if (!name.endsWith(".tsx") || name.includes(".test.")) continue;
       const src = readFileSync(resolve(ROOT, dir, name), "utf8");
-      for (const m of src.matchAll(/<JobActionChip\b[^>]*?label="(Report a Problem|Dispute)"/gs)) {
+      for (const m of src.matchAll(/<JobActionChip\b[^>]*?label="(Report a problem|Dispute)"/gs)) {
         const key = /key="([^"]+)"/.exec(m[0])?.[1] ?? null;
         found.push({ file: `${dir}/${name}`, key });
       }

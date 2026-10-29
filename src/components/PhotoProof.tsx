@@ -27,6 +27,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, JobStepPrimaryButton, jobActionChipStyle } from "@/components/job-card/JobActionRow";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { photoPrimaryLabel } from "@/components/job-card/photoPrimaryLabel";
 
 type PhotoProofProps = {
   jobId: string;
@@ -249,7 +250,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   return (
     <>
       {chip && asPrimary && !hasPhotos ? (
-        <JobStepPrimaryButton icon={Camera} label={`Take ${triggerText}`} onClick={() => setOpen(true)} />
+        <JobStepPrimaryButton icon={Camera} label={photoPrimaryLabel(triggerText)} onClick={() => setOpen(true)} />
       ) : chip ? (
         /* THE ROW CONTROL, `edit` tone (distinct from the gallery `Photos` chip
            and the primary); `data-job-action-chip` lets the 320px density gate

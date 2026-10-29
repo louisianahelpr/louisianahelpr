@@ -40,7 +40,7 @@ vi.mock("@/lib/haptics", () => ({
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(),
 }));
 // Uploaders and proof galleries are content (the `ask`), not the row's moves.
-vi.mock("@/components/PhotoProof", () => ({
+vi.mock("@/components/PhotoProof", async () => ({
   PhotoProofGroup: () => <div data-testid="photo-proof" />,
   // The gallery the step cards' `Photos` chip opens (owner item 10). Closed,
   // portalled and contributing no control — stubbed to nothing so the row's
@@ -51,9 +51,12 @@ vi.mock("@/components/PhotoProof", () => ({
   // "before and after buttons should also be on the same lines as the other
   // buttons"). NOT stubbed to null: it is one of the row's controls and the
   // per-case floors below count it.
-  // asPrimary: the real one draws "Take <label>" as the row's glossy primary.
-  PhotoProofCaptureChip: ({ label, asPrimary }: { label: string; asPrimary?: boolean }) =>
-    asPrimary ? <button type="button" className="btn-grad-primary">{`Take ${label}`}</button> : <button type="button">{label}</button>,
+  // asPrimary: the real one draws "Take <label>" (photoPrimaryLabel) as the row's glossy primary.
+  PhotoProofCaptureChip: await (async () => {
+    const { photoPrimaryLabel } = await import("@/components/job-card/photoPrimaryLabel");
+    return ({ label, asPrimary }: { label: string; asPrimary?: boolean }) =>
+      asPrimary ? <button type="button" className="btn-grad-primary">{photoPrimaryLabel(label)}</button> : <button type="button">{label}</button>;
+  })(),
 }));
 
 function makeSupabase() {
@@ -473,11 +476,11 @@ const CASES: Array<{
        ABOVE the row — the block in the owner's screenshot. Four controls:
        Message · After photo · More (Report a Problem, Dispute and SOS) + the
        disabled primary. */
-    name: "Jobs · Working, after photo still owed (photo first: Take After photo is the primary)",
+    name: "Jobs · Working, after photo still owed (photo first: Take after photo is the primary)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
     minControls: 3,
     maxControls: 4,
-    primary: ["Take After photo"],
+    primary: ["Take after photo"],
   },
   {
     name: "Jobs · Submitted (Message · Report a Problem, no primary)",

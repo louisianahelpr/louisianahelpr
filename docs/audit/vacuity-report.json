@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T20:53:31.774Z",
-  "guards": 2673,
-  "registered": 2672,
+  "generated": "2026-10-29T21:26:18.491Z",
+  "guards": 2677,
+  "registered": 2676,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
@@ -9,6 +9,7 @@
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/pages/jobs/jobPage/viewerState.test.ts",
+    "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",

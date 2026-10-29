@@ -74,7 +74,8 @@ function unknownZipBranch(file: string, flag: string): ts.BinaryExpression | und
   return hit?.expression as ts.BinaryExpression | undefined;
 }
 
-/** A live `useParishForZip(zipCode)` call — not a comment quoting one. */
+/** A live `useParishForZip(zipCode, ...)` call — not a comment quoting one. The three ZIP fields also pass
+ *  their town and its setter (A3-I1: a recognised ZIP fills an empty town), so the ZIP is the first argument. */
 const readsParishHook = (file: string) =>
   !!find(
     parse(file),
@@ -82,7 +83,7 @@ const readsParishHook = (file: string) =>
       ts.isCallExpression(n) &&
       ts.isIdentifier(n.expression) &&
       n.expression.text === "useParishForZip" &&
-      n.arguments.length === 1 &&
+      n.arguments.length >= 1 &&
       ts.isIdentifier(n.arguments[0]) &&
       n.arguments[0].text === "zipCode",
   );

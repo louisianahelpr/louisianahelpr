@@ -425,8 +425,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
               once, here, instead of twice. */}
           <DialogBody>
             <p>
-              Goes straight to the Helpr — no platform cut. Most people tip 10–15%
-              for great work.
+              {/* F30 (audit 2026-10-28): "no platform cut" while the poster pays a little more than the tip.
+                  The Helpr does get the whole tip (create-payment: a destination charge whose application fee is
+                  only the added fee); owner rule #20, words only, for the rest. */}
+              Your Helpr gets the whole tip. Includes a small Louisiana Helpr service fee. Most people tip
+              10–15% for great work.
             </p>
           </DialogBody>
           <DialogFooter>

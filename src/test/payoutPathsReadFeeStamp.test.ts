@@ -230,6 +230,9 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       // The home Live now take-home (lead-prices-1, 2026-10-25): names the pay
       // inputs and the stamp, priced with computeNet like the /browse card.
       "src/components/landing/LiveJobsSection.tsx",
+      // The chat job card's Helpr take-home (audit 2026-10-28 F2): names the pay
+      // inputs and the stamp (helper_fee_flat_cents), priced by useHelprTakeHome.
+      "src/components/messages/chatView/DealCard.tsx",
       "src/components/profile/EarningsForecastCard.tsx",
       "src/hooks/useDashboardData.ts",
       "src/lib/guestJobsQuery.ts",

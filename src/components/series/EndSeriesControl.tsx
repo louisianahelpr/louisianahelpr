@@ -79,6 +79,8 @@ export function EndSeriesControl({
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: queryKeys.activity.posted(userId) }),
           queryClient.invalidateQueries({ queryKey: queryKeys.activity.applied(userId) }),
+          // The job's own page (/jobs/:id, useJobPage) carries Leave series too (A2-C42).
+          queryClient.invalidateQueries({ queryKey: [...queryKeys.jobs.all, "page", jobId] }),
         ]);
       }
     } catch (err) {

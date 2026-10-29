@@ -71,7 +71,9 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
   notifications: {
     icon: "🔔",
     title: "Notifications",
-    body: "Get notified when a Helpr applies, sends a message, or marks your job complete. You can change what you receive anytime in Settings.",
+    // For both sides: Browse asks a member looking for work too, so it can't speak only to posters
+    // (audit 2026-10-29 A2-C24).
+    body: "Get notified about new jobs near you, messages, and updates on jobs you've posted or are working. You can change what you receive anytime in Settings.",
     cta: "Turn On Notifications",
   },
 };

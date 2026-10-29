@@ -130,8 +130,10 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
             )}
             <span data-step-seg="" className={`block h-1.5 rounded-full ${BAR[s]} ${pulses && i === stage ? "step-current-pulse" : ""}`} />
             <span className={`mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight ${TEXT[s]}`}>
-              {s === "you" && <Hand className="h-3 w-3 shrink-0" />}
-              {s === "them" && <Hourglass className="h-3 w-3 shrink-0" />}
+              {/* `job-step-cur-icon`: a tracker under 260px wide (/payment-success and job cards at 320) drops it so every word
+                  fits; the amber fill and the bold word still mark the current step (index.css, audit F17). */}
+              {s === "you" && <Hand className="job-step-cur-icon h-3 w-3 shrink-0" />}
+              {s === "them" && <Hourglass className="job-step-cur-icon h-3 w-3 shrink-0" />}
               {/* From 640px only: at 375 the word ("No-show") needs the whole column; the fill, the bold word and
                   the status line above it carry the signal there. */}
               {(s === "problem" || s === "alarm") && <AlertTriangle className="job-step-wide h-3 w-3 shrink-0" />}

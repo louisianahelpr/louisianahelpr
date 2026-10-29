@@ -178,14 +178,14 @@ describe("PaymentSuccess", () => {
       jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
       cardHoldRead = { data: [{ state: "held", amount_cents: 12600 }], error: null };
       renderAt();
-      await screen.findByText(/your card is on hold for \$126\.00\. you're only charged when you hire someone/i);
+      await screen.findByText(/your card is on hold for \$126\. you're only charged when you hire someone/i);
       expect(screen.queryByText(/held securely/i)).toBeNull();
     });
     it("a far-out job's saved card says when the hold comes", async () => {
       jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
       cardHoldRead = { data: [{ state: "scheduled", amount_cents: 12600 }], error: null };
       renderAt();
-      await screen.findByText(/your card is saved\. we'll hold \$126\.00 about 4 days before the job/i);
+      await screen.findByText(/your card is saved\. we'll hold \$126 about 4 days before the job/i);
     });
     it("an unreadable hold names no amount and claims no hold", async () => {
       jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };

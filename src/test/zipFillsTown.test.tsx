@@ -8,11 +8,13 @@
  * Applies to every ZIP + town pair: Signup, CompleteProfile, ProfileEditForm.
  *
  * @mutate src/hooks/useParishForZip.ts |     if (!town.trim()) setTown(city); |     setTown(city);
- * @mutate src/hooks/useParishForZip.ts |     if (!city \|\| filledFor.current === city) return; |     if (!city) return;
+ * @mutate src/hooks/useParishForZip.ts |     if (!setTown \|\| !city \|\| filledFor.current === city) return; |     if (!setTown \|\| !city) return;
+ * @mutate src/hooks/useParishForZip.ts |   useZipFillsTown(zipCode, town ?? "", setTown); |   useZipFillsTown(zipCode, town ?? "", undefined);
+ * @mutate src/hooks/useParishForZip.ts |     if (fills) void resolveCityByZip | void resolveCityByZip
  * @mutate src/lib/parishLookup.ts |     .select("city") |     .select("parish")
- * @mutate src/pages/auth/Signup.tsx |   useZipFillsTown(zipCode, location, setLocation); |   void location;
- * @mutate src/pages/auth/CompleteProfile.tsx |   useZipFillsTown(zipCode, location, setLocation); |   void location;
- * @mutate src/components/profile/ProfileEditForm.tsx |   useZipFillsTown(zipCode, location, setLocation); |   void location;
+ * @mutate src/pages/auth/Signup.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
+ * @mutate src/pages/auth/CompleteProfile.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
+ * @mutate src/components/profile/ProfileEditForm.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
@@ -21,10 +23,12 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
-const rows = vi.hoisted(() => ({ byZip: { "70808": "Baton Rouge", "70560": "New Iberia" } as Record<string, string> }));
+const rows = vi.hoisted(() => ({ byZip: { "70808": "Baton Rouge", "70560": "New Iberia" } as Record<string, string>, cityReads: 0 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    rpc: async () => ({ data: "East Baton Rouge", error: null }),
     from: (table: string) => {
+      if (table === "louisiana_zip_parishes") rows.cityReads++;
       let zip = "";
       let col = "";
       const q = {
@@ -41,16 +45,27 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { useZipFillsTown } from "@/hooks/useParishForZip";
+import { useParishForZip } from "@/hooks/useParishForZip";
 
+// The forms' own call: useParishForZip(zipCode, location, setLocation).
 function useForm(initialTown: string) {
   const [zip, setZip] = useState("");
   const [town, setTown] = useState(initialTown);
-  useZipFillsTown(zip, town, setTown);
-  return { zip, setZip, town, setTown };
+  const { parish } = useParishForZip(zip, town, setTown);
+  return { zip, setZip, town, setTown, parish };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  rows.cityReads = 0;
+});
+
+it("a caller with no town to fill (Profile.tsx) reads the parish and sends no town read", async () => {
+  const { result, rerender } = renderHook(({ zip }) => useParishForZip(zip), { initialProps: { zip: "" } });
+  rerender({ zip: "70808" });
+  await waitFor(() => expect(result.current.parish).toBe("East Baton Rouge"));
+  expect(rows.cityReads).toBe(0);
+});
 
 describe("A3-I1: a recognised ZIP fills an empty town", () => {
   it("fills the empty City with the ZIP's town", async () => {
@@ -88,7 +103,7 @@ describe("A3-I1: a recognised ZIP fills an empty town", () => {
     expect(FILES.length).toBeGreaterThan(2);
     for (const f of FILES) {
       const src = blankComments(readFileSync(resolve(__dirname, "../..", f), "utf8"));
-      expect(src, f).toMatch(/useZipFillsTown\(zipCode, location, setLocation\);/);
+      expect(src, f).toMatch(/useParishForZip\(zipCode, location, setLocation\);/);
     }
   });
 });

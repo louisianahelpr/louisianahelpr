@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
-import { useParishForZip, useZipFillsTown, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
+import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { SKILL_GROUPS } from "@/lib/jobCategoryGroups";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -110,9 +110,7 @@ export function ProfileEditForm({
   // warning). The parish itself is NOT shown here any more (owner, 2026-09-14,
   // VN-38: "remove parish vermilion from edit profile"); Profile.tsx still
   // looks it up and saves it with the ZIP.
-  const { parish: zipParish, unknownZip } = useParishForZip(zipCode);
-  // A3-I1: a recognised ZIP fills an empty town with the ZIP's town (never replaces a typed one).
-  useZipFillsTown(zipCode, location, setLocation);
+  const { parish: zipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
   // Recognised, not merely five digits — an unknown ZIP shows its own warning.
   const zipValid = zipCode.length === 5 && !unknownZip && !!zipParish;
 

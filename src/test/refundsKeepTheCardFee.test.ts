@@ -533,7 +533,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_mark_order_paid: "20261028210552_declutter_sale_notices_name_inline.sql c653dda18a5645b1",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
-      declutter_notice_type: "20261028171944_declutter_notice_copy.sql 6d3bd29e5202e869",
+      // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
+      declutter_notice_type: "20261029194046_declutter_auto_offer_notice_kinds.sql 434895227e0fa7a1",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).

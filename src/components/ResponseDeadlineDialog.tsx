@@ -15,9 +15,8 @@ import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
 import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { MessageSquare, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
-import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { userFacingError } from "@/lib/userFacingError";
-import { offerResponseDeadline, JOB_STARTS_TOO_SOON_COPY } from "@/lib/offerDeadline";
+import { offerResponseDeadline, jobOfferCutoff, JOB_STARTS_TOO_SOON_COPY, OFFER_MAX_WINDOW_HOURS } from "@/lib/offerDeadline";
 import { UserAvatar } from "@/components/UserAvatar";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
@@ -62,6 +61,20 @@ const deadlineOptions = [
   { value: "48", label: "48 hours" },
 ];
 
+/**
+ * The windows a poster can pick, as the server will apply them (F16, audit 2026-10-28). The server
+ * sets min(chosen, 48 h, the start) (offerResponseDeadline), so a window that runs past the start
+ * was never really on offer: listing "24 hours" for a job 10 hours out showed two deadlines for one
+ * offer. Only the windows that end before the start are listed, and when the start cuts any of
+ * them off, one "Until it starts, <time>" choice stands for all of those. It sends 48, which the
+ * server reads as "until the start".
+ */
+function deadlineChoices(hoursLeft: number, startLabel: string | null) {
+  const fit = deadlineOptions.filter((o) => Number(o.value) < hoursLeft);
+  if (fit.length === deadlineOptions.length || !startLabel) return fit.length ? fit : deadlineOptions;
+  return [...fit, { value: String(OFFER_MAX_WINDOW_HOURS), label: `Until it starts, ${startLabel}` }];
+}
+
 export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job: postedJob, helper, suggestedTime }: Props) => {
   // Hiring someone who suggested another day/time agrees to it, so everything below (the
   // "when" line, the answer-by clamp to the start) reads the job as it will be once hired.
@@ -85,7 +98,17 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   const funded = !job?.payment_status || ["escrow", "payout_pending", "released"].includes(job.payment_status);
   const them = first === "Helpr" ? "your Helpr" : first;
   const when = job?.date_needed ? [formatJobDate(job.date_needed), jobStartTimeLabel(job.start_time, job.is_flexible_schedule)].filter(Boolean).join(" · ") : null;
-  const [hours, setHours] = useState("24");
+  // The job's start (or the end of its day), and the windows that end before it.
+  const cutoff = job ? jobOfferCutoff(job.date_needed, job.start_time) : null;
+  const startLabel = cutoff
+    ? cutoff.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })
+    : null;
+  const hoursLeft = cutoff ? (cutoff.getTime() - Date.now()) / 3_600_000 : Infinity;
+  const options = deadlineChoices(hoursLeft, startLabel);
+  // 24 hours when it fits before the start; otherwise the last choice ("Until it starts").
+  const defaultHours = options.some((o) => o.value === "24") ? "24" : options[options.length - 1].value;
+  const [picked, setHours] = useState<string | null>(null);
+  const hours = picked && options.some((o) => o.value === picked) ? picked : defaultHours;
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // The failure reason, rendered INSIDE the dialog. onConfirm throws on any
@@ -96,11 +119,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
   const selectedLabel =
-    deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
+    options.find((o) => o.value === hours)?.label ?? `${hours} hours`;
   const planned = job ? offerResponseDeadline(parseInt(hours), job) : null;
-  const startLabel = planned?.cutoff
-    ? planned.cutoff.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })
-    : null;
+  // Sentence start: "Hallie can…", "Your Helpr can…".
+  const They = them.charAt(0).toUpperCase() + them.slice(1);
 
   // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
   const sendingRef = useRef(false);
@@ -244,7 +266,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {deadlineOptions.map((opt) => (
+                {options.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -257,9 +279,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                 JOB_STARTS_TOO_SOON_COPY
               ) : planned?.cappedByStart && startLabel ? (
                 <>
-                  Your job starts{" "}
+                  They have until the job starts,{" "}
                   <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{startLabel}</span>
-                  , so they have until then to respond. If they don't, the job will be reopened automatically.
+                  , to respond. If they don't, the job will be reopened automatically.
                 </>
               ) : (
                 <>
@@ -287,31 +309,12 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             />
           </div>
 
-          {/* The policy notice: neutral (lead 2026-10-21: rust is for money only; this is a rule, not an amount).
-              The icon is the lucide stroke glyph the rest of the app uses —
-              this was the last raw ⚠️ emoji standing in for one. */}
-          <div
-            className="rounded-ds-sm border border-border bg-muted/40 p-3"
-          >
-            <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              <span
-                className="inline-flex items-center gap-1.5 font-semibold align-[-2px]"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
-                Denial policy:
-              </span>{" "}
-              Declining an offer, or not answering it, is never a strike. Helprs who back out after accepting face escalating consequences:
-            </p>
-            {/* Rungs come from the shared ladder statement so this list can
-                never again disagree with what the RPC actually applies —
-                it did (every rung here was off by one). */}
-            <ul className="text-ds-11 mt-1 space-y-0.5 list-disc pl-4" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              {RELIABILITY_LADDER_RUNGS.map((rung) => (
-                <li key={rung}>{rung}</li>
-              ))}
-            </ul>
-          </div>
+          {/* F16 (audit 2026-10-28): this was the Helpr strike ladder under "Denial policy", rules about
+              the other person's account on the poster's money screen. What the poster needs is that an
+              unanswered or refused offer costs the Helpr nothing (Q1281), so it is no surprise. */}
+          <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-no-strike="">
+            {They} can turn this down or not answer, and it never counts against them.
+          </p>
           {/* Inline failure block in the destructive tokens (text on --destructive-ink), so a refusal
               reads in the dialog instead of a toast lost behind it. */}
           {errorMessage && (

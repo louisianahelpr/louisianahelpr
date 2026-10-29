@@ -30,7 +30,7 @@
  * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Backing out now counts against your account."
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | "If you don't answer in time, the job reopens to everyone. No strike." | "No answer counts the same as declining, and the job reopens to everyone."
- * @mutate src/components/ResponseDeadlineDialog.tsx | Declining an offer, or not answering it, is never a strike. Helprs who back out after accepting face | Helprs who decline jobs repeatedly will face
+ * @mutate src/components/ResponseDeadlineDialog.tsx | {They} can turn this down or not answer, and it never counts against them. | {They} will face consequences for declining jobs repeatedly.
  * @mutate src/pages/info/legal/CommunitySection.tsx | <li>Declining an offer, or letting one expire, does not count. Only backing out <em>after</em> you accept does.</li> | <li>Declining multiple offers counts.</li>
  */
 import { describe, it, expect } from "vitest";
@@ -156,7 +156,7 @@ describe("the app says an offer is free to refuse (Q1281)", () => {
 
   it("the poster's deadline dialog and the community rules say the same", () => {
     expect(src("src/components/ResponseDeadlineDialog.tsx")).toContain(
-      "Declining an offer, or not answering it, is never a strike. Helprs who back out after accepting face escalating consequences:",
+      "{They} can turn this down or not answer, and it never counts against them.",
     );
     const legal = src("src/pages/info/legal/CommunitySection.tsx");
     expect(legal).toContain("<li>Declining an offer, or letting one expire, does not count. Only backing out <em>after</em> you accept does.</li>");

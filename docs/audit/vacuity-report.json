@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T17:14:24.275Z",
-  "guards": 2654,
-  "registered": 2653,
+  "generated": "2026-10-29T18:28:01.849Z",
+  "guards": 2658,
+  "registered": 2657,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
@@ -243,7 +243,9 @@
         "src/test/applyAndPostAskNoProfileDetails.test.tsx",
         "src/pages/post-job/checkoutTaxNote.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx",
-        "src/pages/post-job/reviewTotalSaysItOnce.test.tsx"
+        "src/pages/post-job/reviewDesktopRail.test.tsx",
+        "src/pages/post-job/reviewTotalSaysItOnce.test.tsx",
+        "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"

@@ -17,6 +17,7 @@ import { PROOF_PHOTO_TYPES, isAllowedUploadType } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "./errorCopy";
 import { GUARANTEE_RULES } from "./rules";
+import { sameDayStartTime } from "@/lib/sameDayJob";
 
 /** An RPC refusal in plain words (the code's copy), else a generic line; the original is reported, never dropped. */
 class GuaranteeError extends Error {}
@@ -143,14 +144,20 @@ export async function posterAnswerGuarantee(claimId: string, fixed: boolean, not
   return data as string;
 }
 
-/** The days the Helpr may pick: today and the next 3, as YYYY-MM-DD in Louisiana time. */
+/**
+ * The days the Helpr may pick: today and the next 3, as YYYY-MM-DD in Louisiana time (the server's window,
+ * rpc_guarantee_helpr_answer). TODAY ONLY WHILE A VISIT TODAY IS STILL POSSIBLE (audit 2026-10-28 F31: at
+ * 11:20 PM the picker still offered that day): the app's own same-day rule, sameDayStartTime (2 hours' notice,
+ * a start by 9:00 PM), the one "Need it today" uses when posting.
+ */
 export function fixDateChoices(now: Date = new Date()): string[] {
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" });
   const [y, m, d] = fmt.format(now).split("-").map(Number);
-  return Array.from({ length: GUARANTEE_RULES.fixWithinDays + 1 }, (_, i) => {
+  const days = Array.from({ length: GUARANTEE_RULES.fixWithinDays + 1 }, (_, i) => {
     const day = new Date(Date.UTC(y, m - 1, d + i));
     return day.toISOString().slice(0, 10);
   });
+  return sameDayStartTime(now) === null ? days.slice(1) : days;
 }
 
 /** "Thu, Oct 29" for a YYYY-MM-DD (pinned to UTC so the day never slides). */

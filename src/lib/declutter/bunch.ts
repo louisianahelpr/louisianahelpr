@@ -88,7 +88,7 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
 }
 
 /** Ask the photo tool to sort one batch. Smaller copies, cleaned (no location data), sent once and never kept. */
-export async function askGroup(files: File[]): Promise<GroupAnswer> {
+async function askGroup(files: File[]): Promise<GroupAnswer> {
   const photos: string[] = [];
   for (const f of files) photos.push(await blobToBase64(await cleanListingPhoto(f, 1024, 0.7)));
   const data = (await invokeAiBody({ mode: "group", photos }, GROUP_TIMEOUT_MS)) as GroupAnswer | null;

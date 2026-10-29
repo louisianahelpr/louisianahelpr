@@ -31,7 +31,7 @@ import { geocodeAddress } from "@/lib/geocode";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  BUNCH_MAX_PHOTOS, bunchItemProblem, dropItem, groupPhotos, listBunch, mergeItems, movePhoto, splitItem,
+  BUNCH_MAX_PHOTOS, bunchItemProblem, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, splitItem,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -133,7 +133,7 @@ export default function BunchFlow() {
     for (const p of added) urls.current.set(p.key, URL.createObjectURL(p.file));
     setPhotos((ps) => [...ps, ...added]);
     setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
-    setSorting({ done: 0, total: Math.ceil(added.length / 8) });
+    setSorting({ done: 0, total: Math.ceil(added.length / GROUP_BATCH) });
     try {
       const res = await groupPhotos(added, (done, total) => setSorting({ done, total }));
       setItems((its) => [...its, ...res.items]);

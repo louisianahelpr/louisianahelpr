@@ -158,7 +158,7 @@ export function sanitizeRoom(raw: unknown): DeclutterDraft[] {
  * under GROUP_MAX_TOTAL_BYTES. The photos are only passed to the model.
  */
 export const GROUP_MAX_PHOTOS = 8;
-export const GROUP_MAX_TOTAL_BYTES = 6_000_000;
+const GROUP_MAX_TOTAL_BYTES = 6_000_000;
 
 /** The photos as the app sent them, or null when any is not a valid photo or there are too many or too much. */
 export function groupPhotosFromBody(raw: unknown): string[] | null {

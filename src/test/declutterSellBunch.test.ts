@@ -113,7 +113,7 @@ describe("listBunch", () => {
         return "ph";
       }),
       setHandovers: vi.fn(async (_id, w) => w),
-      publishMany: vi.fn(async (ids) => ids.map((id) => (id === "id3" ? { id, error: new Error("setup_fee_required") } : { id, status: "live" as const }))),
+      publishMany: vi.fn(async (ids: string[]) => ids.map((id: string) => (id === "id3" ? { id, error: new Error("setup_fee_required") } : { id, status: "live" as const }))),
     };
     const items = [
       item("ok", ["a"]),

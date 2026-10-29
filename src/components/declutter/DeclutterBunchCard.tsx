@@ -17,7 +17,7 @@ import PriceHint from "./DeclutterPriceHint";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
-export interface BunchCardProps {
+interface BunchCardProps {
   item: BunchItem;
   index: number;
   /** The other items, for "Move to" and "Merge into": key and the name the seller sees. */

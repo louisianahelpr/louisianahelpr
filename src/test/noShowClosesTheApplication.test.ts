@@ -18,8 +18,8 @@
  * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |          closed_reason = 'no_show'\n |          closed_reason = NULL\n
  * @mutate src/pages/posts/postedJobs/applicantBadge.ts |   no_show: "No-show", |   no_show: "Declined",
  * @mutate src/components/job-card/jobStatusLine.ts |   if (app.status === "rejected" && app.closed_reason === "no_show") return "reported_no_show"; |
- * @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts |   if (app.closed_reason === "no_show") return "The poster reported you didn't show up for this job"; |
- * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.closed_reason === "no_show") return { action: { kind: "none" }, status: "The poster reported you didn't show up for this job" }; |
+ * @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts |   if (app.closed_reason === "no_show") return "This job was reported as a no-show"; |
+ * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.closed_reason === "no_show") return { action: { kind: "none" }, status: "This job was reported as a no-show" }; |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" | {false && <Link to="/rules#strikes-bans"
  */
 import { describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ import { HELPER_STEP } from "@/components/tracker/jobStepFromWait";
 
 const ROOT = resolve(__dirname, "../..");
 const MIG = join(ROOT, "supabase", "migrations");
-const SAID = "The poster reported you didn't show up for this job";
+const SAID = "This job was reported as a no-show";
 
 describe("a no-show report closes the reported Helpr's application as a no-show", () => {
   const defs = effectiveDefs(MIG);

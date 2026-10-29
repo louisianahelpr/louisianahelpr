@@ -3,9 +3,9 @@
  * on it can pick them up" on a one-Helpr series, where nobody else is on it. The sentence now follows the
  * series terms (series_split_ok): only a split series has other Helprs to pick the dates up.
  *
- * @mutate src/components/series/EndSeriesControl.tsx | ${splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : | ${true ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" :
+ * @mutate src/components/series/EndSeriesControl.tsx | ${endSentence(splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : | ${endSentence(true ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" :
  * @mutate src/components/series/JobSeriesCardControls.tsx | mode="leave" splitOk={!!job.series_split_ok} /> | mode="leave" />
- * @mutate src/components/series/SeriesDatesPanel.tsx | description={`They go back to the series: ${splitOk ? | description={`They go back to the series: ${true ?
+ * @mutate src/components/series/SeriesDatesPanel.tsx | description={`They go back to the series: ${endSentence(splitOk ? | description={`They go back to the series: ${endSentence(true ?
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -43,6 +43,6 @@ describe("Leaving a series names who can pick the dates up (A2-C42)", () => {
   it("the Helpr card passes the series terms, and the Give up dialog follows them too", () => {
     const read = (f: string) => blankComments(readFileSync(resolve(__dirname, "../../..", f), "utf8"));
     expect(read("src/components/series/JobSeriesCardControls.tsx")).toMatch(/mode="leave" splitOk=\{!!job\.series_split_ok\}/);
-    expect(read("src/components/series/SeriesDatesPanel.tsx")).toMatch(/They go back to the series: \$\{splitOk \?/);
+    expect(read("src/components/series/SeriesDatesPanel.tsx")).toMatch(/They go back to the series: \$\{endSentence\(splitOk \?/);
   });
 });

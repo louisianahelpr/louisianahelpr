@@ -299,7 +299,7 @@ export function SeriesDatesPanel({
           if (!busy) setConfirmGiveUp(next);
         }}
         title={`Give up ${pickedMine.length} date${pickedMine.length === 1 ? "" : "s"} on "${jobTitle ?? "this series"}"?`}
-        description={`They go back to the series: ${splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : "the person who posted it can offer them to someone new"}. Giving up a date that starts within 24 hours counts as a reliability strike, the same as a late cancel.`}
+        description={`They go back to the series: ${endSentence(splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : "the person who posted it can offer them to someone new")} Giving up a date that starts within 24 hours counts as a reliability strike, the same as a late cancel.`}
         primaryLabel={busy ? "Giving up…" : "Give up"}
         primaryTone="sienna"
         primaryHaptic="warning"

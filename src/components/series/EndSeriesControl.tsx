@@ -7,6 +7,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
+import { endSentence } from "@/lib/utils";
 
 /**
  * "End series" — the way out of a recurring series for BOTH parties: the
@@ -125,7 +126,7 @@ export function EndSeriesControl({
         title={mode === "leave" ? `Leave "${jobTitle ?? "this series"}"?` : `End "${jobTitle ?? "this series"}"?`}
         description={
           mode === "leave"
-            ? `Your upcoming dates that aren't booked yet go back to the series: ${splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : "the person who posted it can offer them to someone new"}. Giving up a date that starts within 24 hours counts as a reliability strike. Visits already booked stay yours; cancel one from its own card.`
+            ? `Your upcoming dates that aren't booked yet go back to the series: ${endSentence(splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : "the person who posted it can offer them to someone new")} Giving up a date that starts within 24 hours counts as a reliability strike. Visits already booked stay yours; cancel one from its own card.`
             : "No new visits will be booked or charged. Visits already booked stay on the calendar, and each can still be cancelled from its own card. This can't be undone."
         }
         primaryLabel={ending ? (mode === "leave" ? "Leaving…" : "Ending…") : mode === "leave" ? "Leave series" : "End series"}

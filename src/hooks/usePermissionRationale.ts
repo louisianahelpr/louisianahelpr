@@ -89,15 +89,20 @@ const setState = (next: State) => {
   listeners.forEach((fn) => fn(next));
 };
 
-// Session-scoped record of which permission kinds have already shown
-// the rationale dialog AND been confirmed. We only short-circuit on
-// confirm — if the user said "Not now," we'll show the dialog again
-// on the next ask so they can change their mind.
-const SESSION_KEY = "__helpr_rationale_confirmed";
+// Record of which permission kinds have already shown the rationale dialog
+// AND been confirmed, kept on the DEVICE (localStorage), not the tab. Audit
+// 2026-10-28 part 4, F13 + F34: a Helpr's day-of steps (on my way, arrived,
+// done) each read the location, and with a per-tab record the "Location"
+// explainer came back on every step once the app had been reopened, four
+// times in one job, ending on "Mark Complete". It explains the OS prompt the
+// first time it is needed; after a yes the OS remembers the answer itself.
+// We only short-circuit on confirm: if the user said "Not now," we show the
+// dialog again on the next ask so they can change their mind.
+const CONFIRMED_KEY = "__helpr_rationale_confirmed";
 
 function readConfirmedSet(): Set<PermissionKind> {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(CONFIRMED_KEY);
     if (!raw) return new Set();
     return new Set(JSON.parse(raw) as PermissionKind[]);
   } catch {
@@ -129,9 +134,9 @@ function markConfirmed(kind: PermissionKind) {
   try {
     const set = readConfirmedSet();
     set.add(kind);
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(Array.from(set)));
+    localStorage.setItem(CONFIRMED_KEY, JSON.stringify(Array.from(set)));
   } catch {
-    // sessionStorage unavailable in private mode / SSR — ignore.
+    // localStorage unavailable in private mode / SSR — ignore.
   }
 }
 
@@ -140,7 +145,7 @@ function markConfirmed(kind: PermissionKind) {
  * Returns `request(kind, onGranted)` — shows rationale on first ask,
  * then on confirm runs the actual native API call (which triggers
  * the OS prompt). Subsequent asks for the same kind in the same
- * session skip the rationale (user has already opted in once).
+ * device skip the rationale (user has already opted in once).
  */
 export function usePermissionRationale() {
   const request = useCallback(
@@ -148,7 +153,7 @@ export function usePermissionRationale() {
       kind: PermissionKind,
       runNativeCall: () => Promise<void> | void,
     ): Promise<boolean> => {
-      // Already confirmed this kind in this session — skip the dialog
+      // Already confirmed this kind on this device — skip the dialog
       // and go straight to the native call.
       if (readConfirmedSet().has(kind)) {
         try {

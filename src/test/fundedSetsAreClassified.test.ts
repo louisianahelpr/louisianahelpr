@@ -20,7 +20,7 @@
  *
  * @mutate supabase/functions/expiring-jobs-push/index.ts |       .in("payment_status", LISTED_FOR_FINAL) |       .eq("payment_status", "escrow")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | (job.payment_status === "escrow" \|\| job.payment_status === "held") | job.payment_status === "escrow"
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND (payment_status = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text])) AND (offered_to_helper_id | AND (payment_status = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])) AND (offered_to_helper_id
+ * @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql | AND (payment_status = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text])) AND (offered_to_helper_id | AND (payment_status = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])) AND (offered_to_helper_id
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | IF NOT public.job_payment_is_listed(v_payment_status) THEN | IF NOT public.job_payment_is_funded(v_payment_status) THEN
  * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending,held)"; |   "payment_status.in.(escrow,payout_pending)";
  * @mutate supabase/functions/instant-job-match/index.ts |     const FUNDED_PAYMENT_STATUSES = [...LISTED_PAYMENT_STATUSES]; |     const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];

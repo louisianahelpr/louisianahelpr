@@ -25,9 +25,9 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     helper_fee_percent\n   FROM jobs |     helper_fee_percent,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql |     scope_video_url\n   FROM jobs |     scope_video_url,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -116,6 +116,10 @@ const PINNED_COLUMNS = [
   // the 5% promise, new ones carry 10%), so the card's take-home matches checkout.
   // A number fixed at posting; nothing personal.
   "helper_fee_percent",
+  // 20261029194021 (A2-B6): the poster's scope video, a public URL in the same
+  // public job-photos bucket as `photos`, shown for the same reason. The
+  // poster's own picture of the work; no address, no coordinates.
+  "scope_video_url",
 ];
 
 /** Live jobs SELECT policies, replayed from the ledger. */

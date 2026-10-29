@@ -16,6 +16,7 @@
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |               ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1` |               ? `/posts?highlight=${encodeURIComponent(job.id)}`
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {hasVideo && <ScopeVideo url={job.scope_video_url} />} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
@@ -209,6 +210,22 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     state.job = row({ photos: ["https://example.test/a.jpg"] });
     renderPage();
     expect(document.querySelector("[data-job-photos]")).not.toBeNull();
+  });
+
+  // A2-B6: the poster's scope video was stored and shown nowhere. The Helpr and the poster both see it; no video, no player.
+  it("shows the scope video to the Helpr and the poster, and nothing when the job has none", () => {
+    const VIDEO = "https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1/object/public/job-photos/x/scope-video.mp4";
+    state.job = row();
+    const first = renderPage();
+    expect(document.querySelector("video")).toBeNull();
+    first.unmount();
+    for (const customer_id of [POSTER, ME]) {
+      state.job = row({ customer_id, scope_video_url: VIDEO });
+      const { unmount } = renderPage();
+      const v = document.querySelector("video[data-scope-video]") as HTMLVideoElement | null;
+      expect(v?.getAttribute("src"), customer_id === ME ? "poster" : "Helpr").toBe(VIDEO);
+      unmount();
+    }
   });
 
   // Owner bug 2026-10-21: a member who already applied saw "Apply". Now: the applied state and View application.

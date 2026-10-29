@@ -20,6 +20,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { ScopeVideo } from "@/components/jobs/ScopeVideo";
+import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCity } from "@/lib/locationUtils";
@@ -103,6 +105,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   const { job, party } = q.data;
   const hasPhoto = (job.photos ?? []).some((u) => !!u);
+  const hasVideo = !!safeScopeVideoUrl(job.scope_video_url);
   // A crew member is hired through the roster (helper_id is null on a crew job, A2-B8): street, tracker, Working card.
   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) || onCrew);
   const eyebrow = jobEyebrow(job.category);
@@ -242,8 +245,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         {isPoster && open && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
           <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
         )}
-        {(job.description?.trim() || (!isPoster && job.customer_id)) && (
+        {(job.description?.trim() || hasVideo || (!isPoster && job.customer_id)) && (
           <div className={`space-y-4 lg:col-start-1 ${hasPhoto ? "lg:row-start-2" : "lg:row-start-1"}`}>
+            {/* The poster's scope video (A2-B6), for the poster and the Helpr alike; nothing when there is none. */}
+            {hasVideo && <ScopeVideo url={job.scope_video_url} />}
             {job.description?.trim() && (
               <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
                 <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>

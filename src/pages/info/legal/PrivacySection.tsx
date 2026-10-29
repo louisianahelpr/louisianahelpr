@@ -13,6 +13,7 @@ import {
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
 import { DataExportCard, DATA_EXPORT_ANCHOR } from "./DataExportCard";
+import { PROFILE_NEVER_SHOWS, PROFILE_SHOWS } from "./profileVisibility";
 
 /** The row whose "Download your data" link points at the export card. */
 const PORTABILITY_ROW_TITLE = "Deletion & portability";
@@ -131,7 +132,18 @@ export const PrivacyContent = () => (
       <PolicyRowItem
         icon={Users}
         title="With other users"
-        body={<p>Your first name, profile photo, ratings, and reviews are visible to other neighbors. Full contact details are only shared after a job is confirmed.</p>}
+        // A3-C18 (owner 2026-10-29): exactly what another signed-in member sees
+        // on your profile; read from get_safe_profiles and src/pages/user/
+        // (profileVisibility.ts says which line comes from where).
+        body={
+          <>
+            <p>Other signed-in members who open your profile can see:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              {PROFILE_SHOWS.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            <p>{PROFILE_NEVER_SHOWS} Full contact details are only shared after a job is confirmed.</p>
+          </>
+        }
       />
       <PolicyRowItem
         icon={Wallet}
@@ -283,7 +295,7 @@ export const PrivacyContent = () => (
             We never sell your data.
           </p>
           <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
+            Other members see your first name and last initial, photo, area, profile, badges, reviews and job record, never your surname, contact details or address. ID documents stay encrypted and are accessed only during verification.
           </p>
         </div>
       </div>

@@ -55,7 +55,7 @@ function useCreateRows() {
  * v2 §6): "What are we doing?" and ONE ROW PER SECTION in the member's
  * Customize order: the section's icon and name, its main action (olive) and a
  * second action (outline) when one really exists. A section closed to the
- * viewer shows its row greyed with "Opening soon" and no actions; it never
+ * viewer shows its row greyed with "Coming soon" and no actions; it never
  * routes into a closed section. "Or describe it" opens the AI job builder; it
  * is a Jobs action, so it sits INSIDE the Jobs row as a small link under "Post
  * a job" (owner 2026-10-21: it used to sit under the whole menu, below

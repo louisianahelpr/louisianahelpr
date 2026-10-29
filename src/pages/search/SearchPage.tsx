@@ -28,7 +28,7 @@ import { likePattern, type SearchSection } from "./searchQuery";
  * the same visibility rules as Jobs Browse), Declutter from `declutter_items`
  * (live or reserved, RLS and the 'declutter' switch decide, as on Declutter
  * Browse). Counts are the database's exact counts, shown only when > 0.
- * Shops and Homes read "Opening soon" while their switch is off for this
+ * Shops and Homes read "Coming soon" while their switch is off for this
  * member; nothing there is searched until it opens.
  *
  * NO ADDRESS (spec v2 §1.6): a job shows its parish, an item its area label.
@@ -130,7 +130,7 @@ function SoonRow({ name }: { name: string }) {
     <div className="flex items-center justify-between gap-3 rounded-2xl px-4 min-h-[52px]" style={{ background: "hsl(var(--card))" }}>
       <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>{name}</span>
       <span className="font-sans font-semibold text-ds-11 rounded-full px-2.5 py-1" style={{ background: "hsl(var(--sand))", color: "hsl(var(--olivewood))" }}>
-        Opening soon
+        Coming soon
       </span>
     </div>
   );
@@ -146,7 +146,7 @@ export default function SearchPage() {
   const [section, setSection] = useState<SearchSection>("all");
 
   const { user } = useCurrentUser();
-  // A switch reads false until its answer arrives; "Opening soon" waits for
+  // A switch reads false until its answer arrives; "Coming soon" waits for
   // the settled answer so a slow read never says a section is closed.
   const declutter = useFeatureStatus("declutter");
   const shops = useFeatureStatus("shops");

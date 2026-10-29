@@ -1,6 +1,6 @@
 /**
  * Customize sections = board 90 (2026-10-20): Home and Messages in an ALWAYS ON
- * group, each section with its both-sides line and a switch, "Opening soon"
+ * group, each section with its both-sides line and a switch, "Coming soon"
  * (no switch) while a section is closed to the viewer, and a Done button in the
  * shared sheet footer. The copy never says "drag" (reorder is the arrows).
  *

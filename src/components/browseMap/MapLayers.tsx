@@ -9,6 +9,9 @@
 
 import { Crosshair } from "lucide-react";
 import { LA_STATE_BOUNDS, type MapJob } from "./config";
+import type { BusyCircle } from "@/lib/busyAreas";
+
+const METERS_PER_DEGREE_LAT = 111_320;
 import {
   regionFromBounds,
   type MKCoordinateRegion,
@@ -65,6 +68,8 @@ export function fitToPins(
   animate = false,
   /** Height of the pane strip the dock/FAB covers, in CSS px. */
   bottomInsetPx = 0,
+  /** "Busy right now" circles (Q2435): framed whole, not cut at the edge (A2-L14). */
+  circles: ReadonlyArray<BusyCircle> = [],
 ) {
   const paneHeight = map.element?.clientHeight ?? 0;
   const inset = (r: MKCoordinateRegion) => insetRegionBottom(mk, r, paneHeight, bottomInsetPx);
@@ -94,6 +99,19 @@ export function fitToPins(
     north = Math.max(north, lat);
     west = Math.min(west, lng);
     east = Math.max(east, lng);
+  }
+  // A2-L14: the busy-area circles are drawn at parish centroids with a 5-20 km
+  // radius, so a frame around the pins alone cut the busiest one off at the
+  // pane's edge (1440, audit 2026-10-28). Grow the bounds to each circle's
+  // full extent; the 1.25 pad below then applies to the whole picture.
+  for (const c of circles) {
+    if (!(c.radiusMeters > 0)) continue;
+    const dLat = c.radiusMeters / METERS_PER_DEGREE_LAT;
+    const dLng = c.radiusMeters / (METERS_PER_DEGREE_LAT * Math.max(Math.cos((c.lat * Math.PI) / 180), 0.1));
+    south = Math.min(south, c.lat - dLat);
+    north = Math.max(north, c.lat + dLat);
+    west = Math.min(west, c.lng - dLng);
+    east = Math.max(east, c.lng + dLng);
   }
   // maxZoom 13 under Leaflet — i.e. never zoom TIGHTER than ~0.06°, so a
   // pair of pins on the same street doesn't slam the camera to rooftop level.

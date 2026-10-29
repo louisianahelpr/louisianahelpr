@@ -65,6 +65,7 @@ import {
   type MKMap,
 } from "./browseMap/mapkitRuntime";
 import { useBusyAreaShading, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
+import { busyAreaCircles, busyAreas } from "@/lib/busyAreas";
 
 interface BrowseMapProps {
   /**
@@ -594,7 +595,8 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     const mk = getMapKit();
     const map = mapRef.current;
     if (!mk || !map) return;
-    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0);
+    // With the busy-area circles, so the busiest is never cut at the edge (A2-L14).
+    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas));
   }, [visibleJobs, mapReady]);
 
   // Desktop split-view hover sync: scale the pin whose feed card the pointer

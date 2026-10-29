@@ -1,4 +1,4 @@
-import { busyCircleOpacity, busyCircleRadiusMeters, type BusyArea } from "@/lib/busyAreas";
+import { busyAreaCircles, busyCircleOpacity, type BusyArea } from "@/lib/busyAreas";
 import type { MKMap, MapKitRuntime } from "@/components/browseMap/mapkitRuntime";
 
 type Overlay = Parameters<MKMap["addOverlays"]>[0][number];
@@ -23,9 +23,11 @@ export function drawBusyAreas(mk: MapKitRuntime, map: MKMap, areas: readonly Bus
   const max = areas.reduce((m, a) => Math.max(m, a.total), 0);
   if (max === 0) return [];
   const color = busyColor();
+  // The same geometry the Browse map frames (busyAreaCircles, A2-L14).
+  const circles = busyAreaCircles(areas);
   const overlays = areas.map(
-    (a) =>
-      new mk.CircleOverlay(new mk.Coordinate(a.center.lat, a.center.lng), busyCircleRadiusMeters(a.total, max), {
+    (a, i) =>
+      new mk.CircleOverlay(new mk.Coordinate(circles[i].lat, circles[i].lng), circles[i].radiusMeters, {
         style: new mk.Style({ fillColor: color, fillOpacity: busyCircleOpacity(a.total, max), strokeColor: color, strokeOpacity: 0.55, lineWidth: 1 }),
         enabled: false,
       }),

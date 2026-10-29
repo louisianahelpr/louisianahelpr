@@ -77,6 +77,20 @@ export function busyCircleRadiusMeters(total: number, maxTotal: number): number 
   return Math.round(5000 + 15000 * Math.sqrt(Math.min(total, maxTotal) / maxTotal));
 }
 
+/** A busy circle as ground geometry, so the map can frame its full extent (A2-L14). */
+export interface BusyCircle {
+  lat: number;
+  lng: number;
+  radiusMeters: number;
+}
+
+/** The circles drawBusyAreas paints, as plain geometry (same centre, same radius). */
+export function busyAreaCircles(areas: readonly BusyArea[]): BusyCircle[] {
+  const max = areas.reduce((m, a) => Math.max(m, a.total), 0);
+  if (max === 0) return [];
+  return areas.map((a) => ({ lat: a.center.lat, lng: a.center.lng, radiusMeters: busyCircleRadiusMeters(a.total, max) }));
+}
+
 /** Shade 0.3 (quiet) to 0.65 (busiest), so busier parishes read darker. */
 export function busyCircleOpacity(total: number, maxTotal: number): number {
   if (!(total > 0) || !(maxTotal > 0)) return 0;

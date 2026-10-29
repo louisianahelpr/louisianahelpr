@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { useFeature } from "@/hooks/useFeature";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
+import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 
 /**
  * The section tabs (owner, 2026-10-18, option 1A): Declutter, Shops and Homes,
@@ -24,6 +25,15 @@ export function useSectionTabs() {
   // signed out, so a signed-out page and a member with nothing live never ask.
   const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals);
   return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
+}
+
+/**
+ * The sections OPEN to this viewer, in config order: Jobs always (it has no
+ * switch), and each section whose switch is on (A3-C13).
+ */
+export function useOpenSectionKeys(): SectionKey[] {
+  const live = useSectionTabs();
+  return SECTIONS.filter((s) => s.feature === null || !!live.find((t) => t.path === s.path)?.on).map((s) => s.key);
 }
 
 /**

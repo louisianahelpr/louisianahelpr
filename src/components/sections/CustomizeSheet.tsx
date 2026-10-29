@@ -2,10 +2,10 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { useOpenSectionKeys, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 import { sectionByKey } from "./sectionsConfig";
-import { useSectionPrefs } from "./useSectionPrefs";
+import { KEEP_ONE_OPEN_TOAST, useSectionPrefs } from "./useSectionPrefs";
 import { SoonPill } from "@/components/sections/SoonPill";
 
 /**
@@ -19,6 +19,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { prefs, setHidden, move } = useSectionPrefs();
   const live = useSectionTabs();
+  const openKeys = useOpenSectionKeys();
   const row = "flex items-center gap-2 px-4 py-2 rounded-2xl border border-border/60";
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -61,7 +62,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                     aria-label={`Show ${s.label}`}
                     data-section-toggle={key}
                     onCheckedChange={(next) => {
-                      if (!setHidden(key, !next)) toast("Keep at least one section on", { id: "customize-last" });
+                      if (!setHidden(key, !next, openKeys)) toast(KEEP_ONE_OPEN_TOAST, { id: "customize-last" });
                     }}
                   />
                 ) : (

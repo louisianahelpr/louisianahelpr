@@ -7,8 +7,8 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { Switch } from "@/components/ui/switch";
 import { useDarkMode, type Theme } from "@/hooks/useDarkMode";
-import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { KEEP_ONE_OPEN_TOAST, useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { useOpenSectionKeys, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import type { MenuItem, Profile } from "@/components/profile/profileLanding/types";
@@ -152,6 +152,7 @@ export function SettingsTab({
   const { theme } = useDarkMode();
   const { prefs, setHidden } = useSectionPrefs();
   const live = useSectionTabs();
+  const openKeys = useOpenSectionKeys();
   const { menuGroups } = useProfileLandingDerived({ profile });
   const byKey = new Map<string, MenuItem>(menuGroups.flatMap((g) => g.items).map((i) => [i.key, i]));
   const open = (item: MenuItem) => (item.href ? navigate(item.href) : onSelectTab(item.key));
@@ -192,7 +193,7 @@ export function SettingsTab({
                     checked={!prefs.hidden.includes(s.key)}
                     aria-label={`Show ${s.label}`}
                     onCheckedChange={(next) => {
-                      if (!setHidden(s.key, !next)) toast("Keep at least one section on", { id: "customize-last" });
+                      if (!setHidden(s.key, !next, openKeys)) toast(KEEP_ONE_OPEN_TOAST, { id: "customize-last" });
                     }}
                   />
                 ) : (

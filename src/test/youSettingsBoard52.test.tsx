@@ -66,7 +66,7 @@ describe("You › Settings, board 52", () => {
     expect(shops.textContent).toContain("Coming soon");
     expect(shops.textContent).toContain("Soon");
     fireEvent.click(within(sections).getByRole("switch", { name: "Show Declutter" }));
-    expect(setHidden).toHaveBeenCalledWith("declutter", true);
+    expect(setHidden).toHaveBeenCalledWith("declutter", true, ["jobs", "declutter"]);
   });
 
   it("rows open their tabs and Log out asks to log out", () => {

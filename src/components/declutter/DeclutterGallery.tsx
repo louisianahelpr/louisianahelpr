@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { FallbackImg } from "./FallbackImg";
 
 const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
 // Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
@@ -62,11 +63,12 @@ export function DeclutterGallery({ urls, category, title, icon, shape = "item" }
               aria-label={`Open photo ${i + 1} of ${urls.length} full screen`}
               onClick={() => setOpen(i)}
             >
-              <img
+              <FallbackImg
                 src={url}
                 alt={`Photo ${i + 1} of ${urls.length}`}
                 loading={i === 0 ? "eager" : "lazy"}
                 className="h-full w-full object-cover"
+                fallback={<span aria-hidden className="block h-full w-full bg-photo-empty" />}
               />
             </button>
           ))}

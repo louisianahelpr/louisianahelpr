@@ -22,6 +22,7 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchSellerMovingSale, louisianaToday, movingSaleWhen } from "@/lib/declutter/movingSale";
+import { FallbackImg } from "./FallbackImg";
 
 const SHOWN = 6;
 
@@ -99,7 +100,8 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
             >
               <div className="aspect-square overflow-hidden rounded-xl bg-photo-empty">
                 {cover.get(it.id) ? (
-                  <img src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  <FallbackImg src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover"
+                    fallback={<PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" />} />
                 ) : (
                   <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" />
                 )}

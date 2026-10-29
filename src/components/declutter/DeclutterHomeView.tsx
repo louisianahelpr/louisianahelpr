@@ -72,6 +72,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
+import { FallbackImg } from "./FallbackImg";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -145,7 +146,7 @@ function ListingThumb({ path, category }: { path: string | undefined; category: 
   return (
     <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-photo-empty" data-listing-thumb="">
       <PhotoPlaceholder icon={categoryIcon(category)} seed={category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" />
-      {path && <img src={photoPublicUrl(path)} alt="" loading="lazy" className="relative h-full w-full object-cover" />}
+      {path && <FallbackImg src={photoPublicUrl(path)} alt="" loading="lazy" className="relative h-full w-full object-cover" />}
     </span>
   );
 }

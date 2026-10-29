@@ -24,6 +24,7 @@ import { copyToClipboard, shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { FallbackImg } from "./FallbackImg";
 
 export interface ShareableListing {
   id: string;
@@ -95,7 +96,8 @@ export function ListingLinkCard({ item }: { item: ShareableListing }) {
     <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-card p-3" data-link-card="" role="group" aria-label="Preview of the link">
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
         {cover ? (
-          <img src={cover} alt="" className="h-full w-full object-cover" />
+          <FallbackImg src={cover} alt="" className="h-full w-full object-cover"
+            fallback={<PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" />} />
         ) : (
           <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" />
         )}

@@ -26,6 +26,8 @@ import { TAB_TITLES } from "@/pages/profile/types";
  * owed it paid back, and the bank it went to.
  */
 
+const NO_PAYOUTS_YET = "No payouts yet. When Stripe sends money to your bank, it shows here.";
+
 interface PayoutLine {
   kind: string;
   label: string;
@@ -198,11 +200,17 @@ export default function PayoutHistory({ onBack }: { onBack?: () => void }) {
           retryDisabled={refreshing}
         />
       ) : !stripeData?.connected && setupPaused ? (
-        <PayoutSetupPausedNotice compact />
+        // The notice speaks only for "not hired yet" and is silent while setup is switched off for
+        // everyone (owner 2026-10-25), so the tab says what it holds itself: alone, it rendered only
+        // its title (ui-sweep BLANK_SCREEN, nightly-red #3491). Guard: payoutHistoryNotConnected.test.tsx.
+        <>
+          <PayoutSetupPausedNotice compact />
+          <p className="text-ds-13 px-1" style={quiet}>{NO_PAYOUTS_YET}</p>
+        </>
       ) : !stripeData?.connected ? (
         <p className="text-ds-13 px-1" style={quiet}>Set up payouts on the Money page and your bank payouts will show here.</p>
       ) : payouts.length === 0 ? (
-        <p className="text-ds-13 px-1" style={quiet}>No payouts yet. When Stripe sends money to your bank, it shows here.</p>
+        <p className="text-ds-13 px-1" style={quiet}>{NO_PAYOUTS_YET}</p>
       ) : (
         <div className="space-y-2">
           {payouts.map((p) => <PayoutRow key={p.id} p={p} onOpen={() => openPayout(p.id)} />)}

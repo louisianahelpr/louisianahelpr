@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { authUserChangedFrom } from "@/lib/authUserChanged";
 import { queryKeys } from "@/lib/queryKeys";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
@@ -152,6 +153,13 @@ interface CurrentUser {
   profileQuery?: { status: "pending" | "error" | "success"; fetchStatus: "fetching" | "paused" | "idle" };
 }
 
+/** The admin-role lookup stopped because its user signed out (A3-L10). */
+class SignedOutDuringLookup extends Error {
+  constructor() {
+    super("signed out during the admin-role lookup");
+  }
+}
+
 const fetchCurrentUser = async (
   userId: string,
 ): Promise<{ profile: Profile | null; isAdmin: boolean; adminCheckFailed: boolean }> => {
@@ -218,6 +226,10 @@ const fetchCurrentUser = async (
         if (attempt > 0) {
           await new Promise((resolve) => window.setTimeout(resolve, ADMIN_ROLE_RETRY_DELAY_MS * attempt));
         }
+        // A3-L10: this user signed out (or another signed in) while a retry
+        // waited. The answer is for nobody now, and the read would go out as
+        // anon: stop. Its result is discarded with the sign-out's cache wipe.
+        if (authUserChangedFrom(userId)) throw new SignedOutDuringLookup();
         try {
           return await readAdminRoleOnce();
         } catch (err) {
@@ -228,8 +240,9 @@ const fetchCurrentUser = async (
     })(),
   ).catch((err): { ok: false; isAdmin: false } => {
     // Loud on purpose: this used to vanish without a trace, which is most of
-    // why it took a two-lane outage to find.
-    console.error("[auth] admin role lookup failed — role state is UNKNOWN, not 'not admin':", err);
+    // why it took a two-lane outage to find. A lookup stopped by sign-out is
+    // not a failure: still "unknown", but nothing to log.
+    if (!(err instanceof SignedOutDuringLookup)) console.error("[auth] admin role lookup failed — role state is UNKNOWN, not 'not admin':", err);
     return { ok: false, isAdmin: false };
   });
 

@@ -28,9 +28,9 @@ import { toneBadgeClasses } from "@/components/admin/tones";
  * 2. POSSIBLE MATCHES. A new or changed account whose name, phone (same last
  *    7 digits, Q1416) or ID (same name + date of birth with another document,
  *    Q1416) matches a banned account's. A doubt check, never a ban. Kept in admin-only
- *    ban_evasion_matches, never in fraud_flags: those are exported to the
- *    person, and a flag appearing after they typed a name would tell them the
- *    name belongs to a banned account.
+ *    ban_evasion_matches, never in fraud_flags: those were exported to the
+ *    person until A3-I6 (2026-10-29), and a flag appearing after they typed a
+ *    name would tell them the name belongs to a banned account.
  */
 
 /** The soft (doubt-check) match kinds and how each is named to an admin. */

@@ -89,13 +89,11 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_match_queue: { by: ["user_id"] },
   match_digest_queue: { by: ["user_id"] },
   parish_match_alert_queue: { by: ["user_id"] },
-  ops_alert_admin_subjects: { by: ["user_id"] },
   favorite_helpers: { by: ["customer_id"] },
   helper_availability: { by: ["helper_id"] },
   helper_credentials: { by: ["user_id"] },
   helper_verifications: { by: ["user_id"] },
   verification_checks: { by: ["user_id"] },
-  verification_exceptions: { by: ["user_id"] },
   helper_w9_records: { by: ["helper_id"] },
   instant_payouts: { by: ["helper_id"] },
   payout_transfers: { by: ["helper_id"] },
@@ -132,7 +130,6 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_watchlist: { by: ["user_id"] },
   declutter_tax_attestations: { by: ["seller_id"] },
   declutter_strikes: { by: ["user_id"] },
-  declutter_seller_flags: { by: ["user_id"] },
   // Wanted posts (20261016053541). declutter_wanted_matches has no person column.
   declutter_wanted: { by: ["user_id"] },
   // "Suggest a category" (20261015051141 + 20261015052622, I1).
@@ -242,10 +239,6 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   thread_pins: { by: ["user_id"] },
   nps_responses: { by: ["user_id"] },
   analytics_events: { by: ["user_id"] },
-  error_logs: { by: ["user_id"] },
-  admin_user_notes: { by: ["user_id"] },
-  fraud_flags: { by: ["user_id"] },
-  helper_shadowbans: { by: ["helper_id"] },
   payout_holds: { by: ["helper_id"] },
   application_rate_log: { by: ["applicant_id"] },
   profile_search_rate_log: { by: ["searcher_id"] },
@@ -537,7 +530,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "rental_rent_payments.reported_by": { reason: "which side entered a rent payment ('tenant' or 'landlord'), not a person id; the table is keyed by tenancy_id and holds no person column (20261019073106)" },
   "rental_tenancies.ended_by": { reason: "which side ended the tenancy ('tenant' or 'landlord'), not a person id; the tenancy is exported by its landlord_id and tenant_id (20261019073106)" },
   "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261017205605, with this staff id dropped)", stripped: true },
-  "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the flag is the member's (the flag is exported by declutter_seller_flags.user_id, 20261014200728, with this staff id dropped)" },
+  "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the whole table stays out of the export (A3-I6)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.
   "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },
@@ -554,10 +547,24 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // user as sender (their reply) or receiver (staff's message), so the
   // messages export (by sender_id / receiver_id) already carries all of them.
   "messages.team_thread_user_id": { reason: "team-thread key; every row in a user's team thread has that user as sender_id or receiver_id, both already exported" },
-  // Staff-only records and ban-evasion data. Staff notes, fraud flags and
-  // shadowbans ABOUT the person are exported (owner, 2026-09-26, Q290); what
-  // stays out is who on staff wrote or applied them, and records that are the
-  // staff's own rather than the person's.
+  // Staff-only records and ban-evasion data. Owner 2026-10-29 (A3-I6): the
+  // data export LEAVES OUT the moderation tables (reversing the 2026-09-26
+  // Q290 choice to export staff notes, fraud flags and shadowbans). Law relied
+  // on, per row below: CCPA regs, Cal. Code Regs. tit. 11, s. 7024(d) (no
+  // disclosure of specific pieces that creates a substantial, articulable and
+  // unreasonable risk to the account's or the business's security); GDPR
+  // Art. 23(1)(d)/(j) (access may be restricted for preventing and detecting
+  // crime and enforcing civil claims) and Art. 15(4) (the copy must not harm
+  // others' rights). Louisiana has no general consumer-access statute.
+  // What the member is TOLD stays exported: user_bans, user_violations,
+  // strikes, payout_holds, their own reports.
+  "admin_user_notes.user_id": { reason: "A3-I6 (owner 2026-10-29): staff notes about the member, a moderation tool; often quote other members' reports, so GDPR Art. 15(4) and Art. 23(1)(d), and Cal. Code Regs. tit. 11, s. 7024(d); deleted with the account (ON DELETE CASCADE)" },
+  "fraud_flags.user_id": { reason: "A3-I6 (owner 2026-10-29): automatic and staff fraud signals; showing a member which signal flagged them teaches evasion, Cal. Code Regs. tit. 11, s. 7024(d) and GDPR Art. 23(1)(d)" },
+  "helper_shadowbans.helper_id": { reason: "A3-I6 (owner 2026-10-29): whether a Helpr is quietly hidden from search, a moderation tool that works only while unannounced, Cal. Code Regs. tit. 11, s. 7024(d) and GDPR Art. 23(1)(d)" },
+  "declutter_seller_flags.user_id": { reason: "A3-I6 (owner 2026-10-29, lead-confirmed): flags against a seller (business-like seller review), a moderation tool, Cal. Code Regs. tit. 11, s. 7024(d) and GDPR Art. 23(1)(d)" },
+  "ops_alert_admin_subjects.user_id": { reason: "A3-I6 (owner 2026-10-29, lead-confirmed): which staff alerts were about the member, an admin tool, Cal. Code Regs. tit. 11, s. 7024(d) and GDPR Art. 23(1)(d)" },
+  "verification_exceptions.user_id": { reason: "A3-I6 (owner 2026-10-29, lead-confirmed): staff decisions on the member's ID checks, a fraud-prevention tool, Cal. Code Regs. tit. 11, s. 7024(d) and GDPR Art. 23(1)(d); the ID check result itself is exported in verification_checks" },
+  "error_logs.user_id": { reason: "A3-I6 (owner 2026-10-29): the app's crash and error diagnostics (stack traces, URLs, screen names) describing Helpr's own systems, Cal. Code Regs. tit. 11, s. 7024(d) (security of the business's systems); scrubbed of tokens on write (src/lib/errorLogger.ts)" },
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
   "support_replies.admin_id": { reason: "the staff member who answered a support ticket (20261023200521); the member's copy of the reply is their own notification row, exported with their notifications, and the send is in admin_audit_log" },
   "job_approval_escalations.resolved_by": { reason: "the staff member who closed a job waiting on approval (20261023143240); the job is the poster's and the Helpr's, exported with their jobs, and the close is in admin_audit_log" },
@@ -570,10 +577,10 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_refund_claims.actor_user_id": { reason: "Q1323: server lock marker naming who started an in-flight refund claim; deleted when the claim is put back, holds none of the person's own data" },
   "crew_confirm_pending.helper_id": { reason: "20261007011530: transient state of one crew Confirm waiting on payout setup (deleted when it completes or the spot is removed); holds no content, only the job, slot and person ids the export already carries through group_job_helpers" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
-  "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
+  "admin_user_notes.admin_id": { reason: "the staff member who wrote the note; the whole table stays out of the export (A3-I6)" },
   "declutter_handover_talks.opened_by": { reason: "Q2462 (20261028235249): which side opened the talk; always the buyer or the seller of that row (CHECK opened_by = buyer_id OR seller_id), so the row is already exported to both by buyer_id/seller_id" },
   "declutter_donation_partners.created_by": { reason: "Q2428 (20261027222743): the admin who added a partner charity; staff curation, not member data; each save is also in admin_audit_log" },
-  "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
+  "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban; the whole table stays out of the export (A3-I6)" },
   "category_suggestions.reviewed_by": { reason: "I1: the staff member who approved or declined the suggestion", stripped: true },
   "payout_holds.held_by": { reason: "Q764: the staff member who placed the payout hold", stripped: true },
   "payout_holds.denied_by": { reason: "Q764: the staff member who recorded the denial", stripped: true },
@@ -628,7 +635,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "disputes.decided_by": { reason: "staff decider id", stripped: true },
   "crew_dispute_member_outcomes.decided_by": { reason: "staff decider id", stripped: true },
   "helper_verifications.changed_by": { reason: "staff reviewer id", stripped: true },
-  "verification_exceptions.assigned_to": { reason: "staff assignee id", stripped: true },
+  "verification_exceptions.assigned_to": { reason: "staff assignee id; the whole table stays out of the export (A3-I6)" },
   "reports.assigned_to": { reason: "staff assignee id", stripped: true },
   "payout_transfers.initiated_by": { reason: "who pressed release: staff or a function", stripped: true },
   "payout_transfers.initiated_by_user_id": { reason: "who pressed release: staff or a function", stripped: true },

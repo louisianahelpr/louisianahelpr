@@ -226,7 +226,7 @@ export const PrivacyContent = () => (
                 in-page hash link, not a route, so it works on the public
                 /privacy page and in the Profile Legal tab's Privacy panel
                 alike without bouncing a signed-in reader out of the app. */}
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below.</p>
+            <p><strong className="text-foreground">Data portability:</strong> Download a copy of your data (profile, jobs, applications, reviews, messages, payments and more) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below. It leaves out our internal safety and moderation records (fraud and ID-check reviews, flags, staff notes, admin alerts and error logs), as California&rsquo;s privacy rules allow where sharing them would put accounts or our systems at risk (Cal. Code Regs. tit. 11, &sect; 7024(d)).</p>
           </>
         }
       />

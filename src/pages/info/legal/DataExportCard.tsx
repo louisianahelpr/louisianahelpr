@@ -126,7 +126,7 @@ export function DataExportCard() {
               Download your data
             </h2>
             <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-              Get a copy of everything your Helpr account holds — profile, jobs, messages, payments, reviews, settings, and links to your uploaded files — as a single JSON file.
+              Get a copy of what your Helpr account holds — profile, jobs, messages, payments, reviews, settings, and links to your uploaded files — as a single JSON file.
             </p>
           </div>
         </div>

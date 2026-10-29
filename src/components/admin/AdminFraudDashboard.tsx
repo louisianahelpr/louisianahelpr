@@ -75,8 +75,9 @@ const FLAG_TYPES = [
   // that carries the detail: the person is told nothing but "this account
   // can't be created", deliberately, so the refusal is not a lookup oracle.
   { value: "ban_evasion_attempt", label: "Ban Evasion Attempt" },
-  // Q1324 name matches are NOT fraud flags (fraud_flags are exported to the
-  // person): they are listed by AdminBanEvasionReview from ban_evasion_matches.
+  // Q1324 name matches are NOT fraud flags (fraud_flags were exported to the
+  // person until A3-I6, 2026-10-29): they are listed by AdminBanEvasionReview
+  // from ban_evasion_matches.
 ];
 
 const AdminFraudDashboard = () => {

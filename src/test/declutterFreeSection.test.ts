@@ -96,7 +96,8 @@ describe("the Declutter Free section", () => {
     const freeUi = read("src/components/declutter/DeclutterFreeClaim.tsx");
     expect(freeUi).toContain('(porchOk ? (["porch", "pickup_home"] as FreeHandover[]) : (["pickup_home"] as FreeHandover[])).filter((h) => wayAllowed(ways, h))');
     expect(freeUi).not.toMatch(/delivery"|seller_delivery/);
-    const sell = read("src/components/declutter/DeclutterSellView.tsx");
+    // The sell flow's state and server calls (a new listing's one screen and a draft's steps share them).
+    const sell = read("src/components/declutter/useSellFlowState.ts");
     expect(sell).toContain("priceCents: form.free ? 0 : dollarsToCents(form.price)!");
   });
 

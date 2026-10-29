@@ -7,7 +7,7 @@
  * makes it LEAST (the earlier stamp; in practice the arrival). The client rule is
  * one function, doneFloorStart, and the copy names the arrival.
  *
- * @mutate src/components/job-card/useDoneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
+ * @mutate src/lib/doneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx |     const workingStart = doneFloorStart(job.poster_confirmed_working_at, job.helper_arrived_at); |     const workingStart = job.poster_confirmed_working_at ?? job.helper_arrived_at;
  * @mutate src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx | 30 minutes after you arrived, to ensure quality. | 30 minutes after work started, to ensure quality.
  * @mutate src/lib/lifecycleErrors.ts |     completion_min_work_time: "You can mark it done 30 minutes after you arrived.", |     completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
@@ -15,7 +15,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { doneFloorStart } from "@/components/job-card/useDoneFloor";
+import { doneFloorStart } from "@/lib/doneFloor";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { blankComments } from "./helpers/blankNonCode";
 

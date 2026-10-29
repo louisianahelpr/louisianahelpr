@@ -92,7 +92,7 @@ import { JobTracking } from "./JobTracking";
  * restarts it, audit 2026-10-28 F12); the tracker's Done CTA is disabled until
  * then, never live-then-toast.
  *
- * @mutate src/components/job-card/useDoneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
+ * @mutate src/lib/doneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
  * @mutate src/components/JobTracking.tsx |   const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt)); |   const doneFloorActive = useDoneFloorActive(posterConfirmedWorkingAt ?? jobStamps.arrivedAt);
  * @mutate src/components/JobTracking.tsx |         const doneTooEarly = isDoneStep && doneFloorActive; |         const doneTooEarly = false;
  * @mutate src/components/job-card/useDoneFloor.ts |   return unlocksAt !== null && now < unlocksAt; |   return false;

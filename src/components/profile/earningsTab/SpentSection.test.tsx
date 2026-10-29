@@ -237,7 +237,9 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     const group = await screen.findByRole("radiogroup", { name: "Spend date range" });
     expect(group.className).toMatch(/overflow-x-auto/);
     expect(group.className).not.toMatch(/flex-wrap/);
-    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["Lifetime", "This week", "This month", "This year"]);
+    // Each pill answers to its full name; the words it shows swap with the track's width (P4-3).
+    const radios = within(group).getAllByRole("radio");
+    expect(["Lifetime", "This week", "This month", "This year"].map((name) => within(group).getByRole("radio", { name }))).toEqual(radios);
   });
 
   it("lists the jobs paid for in the selected range, newest first, each with its own amount", async () => {

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T19:08:16.426Z",
-  "guards": 2666,
-  "registered": 2665,
+  "generated": "2026-10-29T19:59:15.428Z",
+  "guards": 2672,
+  "registered": 2671,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
@@ -132,6 +132,16 @@
       ]
     },
     {
+      "module": "src/components/declutter/SellHandoverChoices.tsx",
+      "tests": [
+        "src/components/declutter/sellPorchDays.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterBunchView.tsx",
+        "src/components/declutter/SellFormParts.tsx"
+      ]
+    },
+    {
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -244,6 +254,7 @@
         "src/pages/post-job/checkoutTaxNote.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx",
         "src/pages/post-job/reviewDesktopRail.test.tsx",
+        "src/pages/post-job/reviewNamesVisitsAndCrew.test.tsx",
         "src/pages/post-job/reviewTotalSaysItOnce.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
@@ -15,6 +15,42 @@ import { posterPaidDollars } from "@/lib/posterJobCost";
  *  - chargedCents  what they were charged as the poster (posterPaidDollars on captured jobs).
  */
 export interface MemberMoney { paidOutCents: number; heldCents: number; chargedCents: number }
+
+/**
+ * Audit 2026-10-28 P5-10: the jobs reads behind "N completed" and the money
+ * chips put every listed member into ONE `or=(helper_id.eq.<id>,customer_id.eq.<id>,…)`
+ * filter, which PostgREST reads from the URL: for 243 members that is ~25 KB
+ * and the request came back 400 Bad Request, so neither summary ever loaded.
+ * The ids now go out JOBS_OR_CHUNK at a time (each URL a few KB) and the rows
+ * are merged, one row per job id (a job whose Helpr and poster sit in two
+ * chunks comes back twice).
+ */
+export const JOBS_OR_CHUNK = 50;
+
+function chunkIds(ids: readonly string[], size = JOBS_OR_CHUNK): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+/** The PostgREST `or` filter naming jobs where any of these members is the Helpr or the poster. */
+const jobPartiesFilter = (ids: readonly string[]) => ids.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(",");
+
+/** Run one jobs read per chunk of ids and merge the rows by job id; the first failed chunk fails the whole read. */
+async function readJobsForParties<T extends { id: string }>(
+  userIds: readonly string[],
+  read: (orFilter: string) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<{ data: T[] | null; error: unknown }> {
+  const results = await Promise.all(chunkIds(userIds).map((ids) => read(jobPartiesFilter(ids))));
+  const failed = results.find((r) => r.error);
+  if (failed) return { data: null, error: failed.error };
+  const byId = new Map<string, T>();
+  for (const r of results) for (const row of r.data ?? []) byId.set(row.id, row);
+  return { data: [...byId.values()], error: null };
+}
+
+/** Which per-member summaries failed to load (shown as an inline error with Try again, never console-only). */
+export type SummaryFailure = "jobs completed" | "money";
 
 /**
  * Per-user supplemental data for the admin user list — ratings, strikes,
@@ -58,6 +94,11 @@ export function useAdminUserSummaries() {
   const [jobsCompletedSummary, setJobsCompletedSummary] = useState<Record<string, number>>({});
   // Per-user open reports/disputes count (filed against them)
   const [openReportsSummary, setOpenReportsSummary] = useState<Record<string, number>>({});
+  // The summaries whose read failed, and the ids they were for (so Try again re-reads just those).
+  const [summaryFailures, setSummaryFailures] = useState<SummaryFailure[]>([]);
+  const lastIds = useRef<string[]>([]);
+  const markFailed = (name: SummaryFailure, failed: boolean) =>
+    setSummaryFailures((cur) => (failed ? (cur.includes(name) ? cur : [...cur, name]) : cur.filter((n) => n !== name)));
 
   const loadRatingSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
@@ -87,11 +128,12 @@ export function useAdminUserSummaries() {
 
   const loadJobsCompletedSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    const { data, error } = await supabase
+    const { data, error } = await readJobsForParties(userIds, (orFilter) => supabase
       .from("jobs")
-      .select("helper_id, customer_id, status")
-      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
-      .eq("status", "completed");
+      .select("id, helper_id, customer_id, status")
+      .or(orFilter)
+      .eq("status", "completed"));
+    markFailed("jobs completed", !!error);
     if (error) { console.error("[useAdminUserSummaries] loadJobsCompletedSummary:", error); return; }
     if (!data) return;
     const counts: Record<string, number> = {};
@@ -134,11 +176,11 @@ export function useAdminUserSummaries() {
   const loadPaySummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
     const [{ data, error }, giftCardPaid, transfers, crew] = await Promise.all([
-      supabase
+      readJobsForParties(userIds, (orFilter) => supabase
         .from("jobs")
         .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, status, payment_status")
-        .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
-        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]),
+        .or(orFilter)
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])),
       loadGiftCardPaidJobIds(),
       // What Stripe really sent each Helpr (admins read every transfer).
       supabase.from("payout_transfers").select("helper_id, amount_cents, job_id").in("helper_id", userIds).eq("status", "paid"),
@@ -146,6 +188,7 @@ export function useAdminUserSummaries() {
       supabase.from("group_job_helpers").select("helper_id, job_id, share_cents, jobs(budget, helpers_needed, is_group_job, payment_status, stripe_payment_intent_id)").in("helper_id", userIds),
     ]);
     const failed = error ?? giftCardPaid.error ?? transfers.error ?? crew.error;
+    markFailed("money", !!failed);
     if (failed || !data) {
       if (failed) console.error("[useAdminUserSummaries] loadPaySummary:", failed);
       setMoneySummary(null); // unknown, so no chip claims a total
@@ -310,6 +353,7 @@ export function useAdminUserSummaries() {
    * detection.
    */
   const loadSummaries = (userIds: string[], profiles: Profile[]) => {
+    lastIds.current = userIds;
     setSummariesSettled(false);
     void Promise.allSettled([
       loadNotesSummary(userIds),
@@ -322,7 +366,16 @@ export function useAdminUserSummaries() {
     ]).then(() => setSummariesSettled(true));
   };
 
+  /** Try again: re-read only the summaries that failed, for the same members. */
+  const retryFailedSummaries = () => {
+    const ids = lastIds.current;
+    if (summaryFailures.includes("jobs completed")) void loadJobsCompletedSummary(ids);
+    if (summaryFailures.includes("money")) void loadPaySummary(ids);
+  };
+
   return {
+    summaryFailures,
+    retryFailedSummaries,
     notesSummary,
     strikesSummary,
     lastLoginSummary,

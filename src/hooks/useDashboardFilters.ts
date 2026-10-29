@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { categoryFilterMatches } from "@/lib/jobCategoryGroups";
+import { categoriesMatchingSearch } from "@/lib/jobCategories";
 import { useSearchParams } from "react-router-dom";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -301,6 +302,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   }, []);
 
   const whenRange = useMemo(() => jobWhenRange(jobWhen), [jobWhen]);
+  const searchCategories = useMemo<string[]>(() => categoriesMatchingSearch(searchQuery), [searchQuery]);
 
   const filteredJobs = useMemo(() => browsableJobs
     .filter((job) => {
@@ -328,7 +330,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       if (urgentOnly && !job.is_urgent) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
+        // The category it sits under counts too ("yard" finds "Yard work", A2-C22), the same set the count asks for.
+        if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q) && !searchCategories.includes(job.category)) return false;
       }
       // A group id (the filter sheet's 8 groups) or one legacy category value.
       if (!categoryFilterMatches(selectedCategory, job.category)) return false;
@@ -454,7 +457,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, whenRange, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions, membershipsOn]);
+    }), [browsableJobs, userId, searchQuery, searchCategories, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, whenRange, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions, membershipsOn]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse

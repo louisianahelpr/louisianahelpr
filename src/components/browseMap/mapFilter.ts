@@ -35,6 +35,7 @@
 import { haversineMiles } from "@/lib/geo";
 import { jobMatchesWhen } from "@/lib/jobWhenFilter";
 import { categoryFilterMatches } from "@/lib/jobCategoryGroups";
+import { categoriesMatchingSearch } from "@/lib/jobCategories";
 import type { MapJob } from "./config";
 
 export interface MapJobFilterInput {
@@ -120,13 +121,15 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
   const min = f.minBudget ? parseFloat(f.minBudget) : null;
   const max = f.maxBudget ? parseFloat(f.maxBudget) : null;
   const q = f.searchQuery.trim().toLowerCase();
+  const searchCategories: string[] = categoriesMatchingSearch(f.searchQuery);
   const now = Date.now();
 
   return (job) => {
     if (!categoryFilterMatches(f.selectedCategory, job.category)) return false;
     // Title only — the map RPC doesn't return `description`, so a query that
     // matches only a job's body text will match in the list and not here.
-    if (q && !job.title.toLowerCase().includes(q)) return false;
+    // The category it sits under matches too, as in the list (A2-C22: "yard" finds "Yard work").
+    if (q && !job.title.toLowerCase().includes(q) && !searchCategories.includes(job.category)) return false;
     if (min !== null && !Number.isNaN(min) && Number(job.budget) < min) return false;
     if (max !== null && !Number.isNaN(max) && Number(job.budget) > max) return false;
     if (f.urgentOnly && !job.is_urgent) return false;

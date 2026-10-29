@@ -4,6 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobWhenRange } from "@/lib/jobWhenFilter";
 import { categoriesForFilter } from "@/lib/jobCategoryGroups";
+import { categoriesMatchingSearch } from "@/lib/jobCategories";
 
 // True total of jobs matching the current Browse filters — NOT "how many
 // have loaded into memory so far."
@@ -179,7 +180,9 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
       if (boostedOnly) query = query.gt("boost_expires_at", now.toISOString());
       if (searchQuery.trim()) {
         const q = escapeIlike(searchQuery.trim());
-        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+        // The category a job sits under matches too ("yard" counts "Yard work", A2-C22), as the list does.
+        const cats = categoriesMatchingSearch(searchQuery);
+        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%${cats.length ? `,category.in.(${cats.join(",")})` : ""}`);
       }
       if (expiresWithin) {
         const hoursMap: Record<string, number> = { "24h": 24, "3d": 72, "7d": 168 };

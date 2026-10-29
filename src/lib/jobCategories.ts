@@ -71,6 +71,18 @@ export function skillChipLabel(value: JobCategory): string {
   return value === "moving" ? "Moving help" : value === "events" ? "Event help" : JOB_CATEGORY_LABELS[value];
 }
 
+/**
+ * The categories whose shown name contains the typed search (case-insensitive), so Browse's search finds a job by
+ * the category it sits under, not only by its title and description (audit 2026-10-28 A2-C22: "yard" found nothing
+ * though the job was under "Yard work"). The list (useDashboardFilters) and its server count (useDashboardJobsCount)
+ * both read this one helper, so they agree. Guard: src/test/browseSearchMatchesCategory.test.ts.
+ */
+export function categoriesMatchingSearch(query: string): JobCategory[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return JOB_CATEGORY_VALUES.filter((c) => JOB_CATEGORY_LABELS[c].toLowerCase().includes(q));
+}
+
 /** Label for a category value, falling back to the raw value. */
 export function jobCategoryLabel(value: string): string {
   return JOB_CATEGORY_LABELS[value as JobCategory] ?? formatCategory(value);

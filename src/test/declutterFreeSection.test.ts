@@ -12,9 +12,9 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
- * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
@@ -43,7 +43,8 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_take_item").file).toContain("20261030064929_declutter_buy_now_no_strike.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
-    expect(newestFunction("declutter_checkout_free").file).toContain("20261028235247_declutter_handover_choices.sql");
+    // Then D-NEW14 porch places (20261029224749: porch_place_needed and the frozen place, insertion only).
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261029224749_declutter_porch_places.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).

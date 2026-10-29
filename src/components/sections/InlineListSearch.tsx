@@ -16,15 +16,31 @@ import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "./search
  * It filters the tab's own list (Posted / Working: useActivityFilters' searchQuery, mirrored to ?q=),
  * the same way Browse's field filters the feed. Guard: src/test/jobsSearchOpensInPlace.test.tsx.
  */
-export function InlineListSearch({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+export function InlineListSearch({ value, onChange, label, onOpenChange, fill = false }: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  /** Told when the field opens and closes (Posted / Working: the chip row keeps only its lit chip while it is open). */
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * Phone only: the open field takes exactly the row's free width (`min-w-0 flex-1`) instead of its fixed
+   * `clamp(200px,55vw,320px)`, for a row whose other control shrinks to make room (Posted / Working, audit
+   * 2026-10-28 F20). It never pushes past the row: with "Not picked · 19" lit at 320 it gets 134px, still room
+   * for "Search" and its X. Desktop keeps its 260px pill.
+   */
+  fill?: boolean;
+}) {
   // Open on arrival when the address already carries words (?q=), so a filtered list always shows its field.
   const [open, setOpen] = useState(() => value.trim().length > 0);
   const desktop = useIsWebDesktop();
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const reopenFocus = useRef(false);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   useEffect(() => {
+    onOpenChangeRef.current?.(open);
     if (open) inputRef.current?.focus();
     else if (reopenFocus.current) {
       reopenFocus.current = false;
@@ -74,10 +90,11 @@ export function InlineListSearch({ value, onChange, label }: { value: string; on
         desktop
           ? // The desktop pill (owner 2026-10-28, the mock-up's "Today" row; searchPill.ts).
             `${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} min-w-0 shrink flex items-center gap-2 pl-3.5 pr-1 focus-within:border-[hsl(var(--bark)/0.55)]`
-          : "h-10 w-[clamp(200px,55vw,320px)] shrink-0 flex items-center gap-1.5 pl-3 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring"
+          : `h-10 ${fill ? "search-fill min-w-0 flex-1" : "w-[clamp(200px,55vw,320px)] shrink-0"} flex items-center gap-1.5 pl-3 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring`
       }
     >
-      <Search className="w-[18px] h-[18px] shrink-0 text-muted-foreground" aria-hidden />
+      {/* `search-fill-glyph`: below a 160px filling field the magnifier steps aside so "Search" stays whole (index.css). */}
+      <Search className={`w-[18px] h-[18px] shrink-0 text-muted-foreground ${fill && !desktop ? "search-fill-glyph" : ""}`} aria-hidden />
       <input
         ref={inputRef}
         type="search"

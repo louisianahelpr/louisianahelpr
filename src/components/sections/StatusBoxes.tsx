@@ -54,6 +54,7 @@ export function StatusBoxes<K extends string>({
   onToggle,
   allCount,
   end,
+  onlyLit = false,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
@@ -62,6 +63,13 @@ export function StatusBoxes<K extends string>({
   allCount?: number;
   /** A control pinned at the row's end, outside the sideways scroll (Jobs: the search icon, owner 2026-10-25). */
   end?: ReactNode;
+  /**
+   * Show ONLY the lit chip (All when nothing is picked), at its own width, with no fade: while Posted / Working's
+   * search field is open on a phone (lead 2026-10-28, audit F20). The open field took the row and left a sliver of
+   * cut chips ("Ne", "Waitir": 129px of scroller at 375, 80px at 320). The caller brings every chip back when the
+   * field closes.
+   */
+  onlyLit?: boolean;
 }) {
   const active = boxes.find((b) => b.key === value);
   const chip = (key: string, label: string, count: number, on: boolean, onClick: () => void) => (
@@ -85,12 +93,17 @@ export function StatusBoxes<K extends string>({
         // With a control at the end, the row softly fades over its last 44px (one icon wide), so the chip that runs
         // under it reads as "more", never as clipped; the same 44px of end padding lets the last chip scroll fully
         // clear of the fade (lead, 390, 2026-10-25).
-        className={`-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : "px-1"}`}
+        className={
+          onlyLit
+            ? // One chip at its own width; the open field beside it takes the rest of the row.
+              "-mx-1 flex flex-none gap-2 px-1 pb-0.5"
+            : `-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : "px-1"}`
+        }
         role="group"
         aria-label="Filter by status"
       >
-        {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
-        {boxes.map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
+        {(!onlyLit || value === null) && chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
+        {boxes.filter((b) => !onlyLit || b.key === value).map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
       </div>
       {end}
       </div>

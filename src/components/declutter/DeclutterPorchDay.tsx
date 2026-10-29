@@ -52,12 +52,14 @@ export function noShowFrom(booking: Pick<MyBooking, "slot_start" | "pickup_day">
 
 type Booking = MyBooking & { buyer_reschedules?: number; seller_reschedules?: number };
 
-export function PorchDayPanel({ orderId, side, booking, fallback }: {
+export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
   orderId: string;
   side: "buyer" | "seller";
   booking: Booking | null;
   /** The time picker: before the server knows days, and for a pickup already booked for a time. */
   fallback: ReactNode;
+  /** The buyer's way out when the seller has no pickup days left (the only "Report a problem" before a day is booked, D2-9). */
+  noDays?: ReactNode;
 }) {
   const qc = useQueryClient();
   const booked = booking?.slot_start ? booking.pickup_day ?? null : null;
@@ -108,7 +110,10 @@ export function PorchDayPanel({ orderId, side, booking, fallback }: {
         <fieldset className="space-y-2">
           <legend className="text-xs font-medium">{booked ? "Pick another day" : "Pick a pickup day"}</legend>
           {(days.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">The seller has no pickup days left before your 7-day pickup deadline. Report a problem below and we'll sort it out.</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">The seller has no pickup days left before your 7-day pickup deadline. Report a problem and we'll sort it out.</p>
+              {side === "buyer" && !booked && noDays}
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup days">
               {(days.data ?? []).filter((d) => d !== booked).map((d) => (

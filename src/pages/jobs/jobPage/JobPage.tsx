@@ -71,7 +71,7 @@ const CARD = "rounded-2xl border border-border bg-card";
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
-  const { job: q, applicants, isPoster, myApplication, tracking } = useJobPage(id, userId);
+  const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
   const trackingStatus = tracking.data ?? null;
   // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
   const posterId = q.data?.job.customer_id ?? null;
@@ -110,7 +110,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   const { job, party } = q.data;
   const hasPhoto = (job.photos ?? []).some((u) => !!u);
-  const isHired = !isPoster && !!job.helper_id && job.helper_id === userId;
+  // A crew member is hired through the roster (helper_id is null on a crew job, A2-B8): street, tracker, Working card.
+  const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) || onCrew);
   const category = sentenceCaseLabel(categoryLabels[job.category] ?? formatCategory(job.category));
   const group = groupLabel(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
@@ -123,7 +124,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const canApply = !isPoster && !party && open;
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
-  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst });
+  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew });
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;

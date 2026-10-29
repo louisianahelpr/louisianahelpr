@@ -34,6 +34,8 @@
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     showStreet && hasStreetAddress(job.location) ? job.location : job.location |     job.location
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? "")); |   const meta = metaLine(job, !isPoster);
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew }); | myApplication: myApplication.data, posterFirst });
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -55,6 +57,7 @@ const state = {
   cardHold: false,
   /** The job's latest job_tracking.status (useJobPage's tracking read). */
   tracking: null as string | null,
+  onCrew: false,
 };
 
 vi.mock("./useJobPage", () => ({
@@ -64,6 +67,7 @@ vi.mock("./useJobPage", () => ({
     isPoster: !!state.job && state.job.customer_id === userId,
     myApplication: { data: state.myApplication },
     tracking: { data: state.tracking },
+    onCrew: state.onCrew,
   }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
@@ -181,6 +185,7 @@ function renderPage(userId = ME) {
 }
 
 beforeEach(() => {
+  state.onCrew = false;
   state.job = null;
   state.party = false;
   state.applicants = { total: 0, pending: 0 };
@@ -550,5 +555,31 @@ describe("board 57: the poster's open job with no applicants", () => {
     renderPage();
     expect(await screen.findByText("2 applicants")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
+  });
+});
+
+// Audit 2026-10-28 A2-B8: a crew job's helper_id is null, so a member on its roster (group_job_helpers) read as
+// "not hired": "This job is no longer available" and the city only. The roster read (useJobPage onCrew) makes them hired.
+describe("a crew member's own job page (A2-B8)", () => {
+  it("shows the street, the Working card and the tracker, never 'no longer available'", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: "4412 Highland Rd, Baton Rouge, LA 70808" });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Open in working" })).toBeTruthy();
+    expect(screen.queryByText("This job is no longer available")).toBeNull();
+    expect(document.querySelector("[data-job-meta]")?.textContent).toContain("4412 Highland Rd");
+    expect(screen.queryByText(/street address is shared once/)).toBeNull();
+    expect(document.querySelector("[data-job-tracker]")).not.toBeNull();
+  });
+
+  it("an applicant NOT on the crew still reads as closed out", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: null });
+    state.party = false;
+    state.myApplication = { status: "rejected", closed_reason: null };
+    renderPage();
+    expect(await screen.findByText("Not selected this time")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
   });
 });

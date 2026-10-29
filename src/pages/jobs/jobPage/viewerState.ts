@@ -19,8 +19,12 @@ export function jobPageViewerState(o: {
   myApplication: { status: string; closed_reason: string | null } | null | undefined;
   /** The poster's first name, for "Waiting on Lexi". */
   posterFirst: string | null;
+  /** On this crew job's roster (group_job_helpers): hired, though a crew job's helper_id is null (A2-B8). */
+  onCrew?: boolean;
 }): { action: ViewerAction; status: string | null } {
   if (o.isPoster) return { action: { kind: "manage" }, status: null };
+  // A crew member is hired the moment they are on the roster: their Working card, never "no longer available".
+  if (o.onCrew) return { action: { kind: "open_working" }, status: null };
   const them = o.posterFirst || "the person who posted it";
   const mineAssigned = !!o.userId && o.job.helper_id === o.userId;
   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") {

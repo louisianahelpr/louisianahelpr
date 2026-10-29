@@ -3,8 +3,14 @@
  * state, pinned: not applied, applied, offered, hired, declined, cancelled, filled/closed, own job.
  * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.status === "pending" && o.job.status === "open") return |     if (false) return
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") { |   if (false) {
+ * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (o.onCrew) return { action: { kind: "open_working" }, status: null }; |
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |   return { job, applicants, isPoster, myApplication, onCrew: onCrew.data === true }; |   return { job, applicants, isPoster, myApplication, onCrew: false };
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | .from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId) | .from("group_job_helpers").select("id").eq("job_id", jobId)
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { jobPageViewerState } from "./viewerState";
 
 const ME = "me";
@@ -23,10 +29,18 @@ describe("job page: what each viewer is offered", () => {
     ["filled by someone else", run({ status: "accepted", helper_id: "other", helper_confirmed_at: "t" }, { status: "pending", closed_reason: null }), "none", "This job is no longer available"],
     ["closed, never applied", run({ status: "completed", helper_id: "other" }, null), "none", "This job is no longer available"],
     ["own job", run(open, null, true), "manage", null],
+    // A2-B8: a crew job's helper_id is null; the roster (group_job_helpers) says the viewer is hired.
+    ["on a crew (helper_id null)", jobPageViewerState({ isPoster: false, userId: ME, job: { status: "in_progress", helper_id: null }, myApplication: { status: "accepted", closed_reason: null }, posterFirst: "Lexi", onCrew: true }), "open_working", null],
   ];
   it.each(table)("%s", (_name, got, kind, status) => {
     expect(got.action.kind).toBe(kind);
     expect(got.status).toBe(status);
+  });
+  it("A2-B8: the page's data hook reads the viewer's OWN roster row on a crew job and hands it to the page", () => {
+    const hook = blankComments(readFileSync(resolve(__dirname, "useJobPage.ts"), "utf8"));
+    expect(hook).toContain('.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId)');
+    expect(hook).toMatch(/enabled: !!job\.data && !isPoster && !!userId && job\.data\.job\.is_group_job === true/);
+    expect(hook).toContain("onCrew: onCrew.data === true }");
   });
   it("an applied member is never offered Apply", () => {
     expect(table.filter(([n]) => n !== "not applied, open").every(([, g]) => g.action.kind !== "apply")).toBe(true);

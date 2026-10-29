@@ -115,6 +115,19 @@ async function fetchMyApplication(jobId: string, userId: string): Promise<MyAppl
   return row ?? null;
 }
 
+/**
+ * Whether the viewer is on this crew job's roster (group_job_helpers). A crew job has no one `helper_id` (null), so
+ * "hired" cannot be read from it: a member's own job page said "This job is no longer available" and printed the
+ * city only (audit 2026-10-28 A2-B8). The member's own roster row is readable to them (RLS "Admins and job
+ * participants can view group helpers"), and user_may_see_job_address already gives them the street.
+ */
+async function fetchOnCrew(jobId: string, userId: string): Promise<boolean> {
+  const row = unwrap(
+    await supabase.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
+  ) as { id: string } | null;
+  return !!row;
+}
+
 /** Applicants on the poster's own job: everyone who applied, and those still waiting on a decision. */
 async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number }> {
   const rows = unwrap(await supabase.from("applications").select("status").eq("job_id", jobId)) ?? [];
@@ -156,5 +169,11 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!job.data?.party && !!job.data.job.helper_id,
     staleTime: 30 * 1000,
   });
-  return { job, applicants, isPoster, myApplication, tracking };
+  const onCrew = useQuery({
+    queryKey: [...queryKeys.jobs.all, "page-on-crew", id ?? "", userId ?? ""],
+    queryFn: () => fetchOnCrew(id!, userId!),
+    enabled: !!job.data && !isPoster && !!userId && job.data.job.is_group_job === true,
+    staleTime: 30 * 1000,
+  });
+  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data === true };
 }

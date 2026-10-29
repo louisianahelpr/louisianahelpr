@@ -546,7 +546,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Owner 2026-10-28: "make porch just pick a day but they also need to know once it's on the porch so they don't show
   // up and it's not there". The buyer picks one of the seller's days; until the porch photo the card says not to go.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "porch"\n            ? <PorchDayPanel | {false\n            ? <PorchDayPanel
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : order.handover === "porch"\n            ? <PorchDayPanel |           {problem ? null : false\n            ? <PorchDayPanel
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return "Not out yet. We'll tell you when it's on the porch. Don't go before then."; |       return "Booked. Pick it up on your day.";
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? "It's out. Pick it up today." | return porchDayIsNow(day) ? "It's out. Pick it up at your pickup time."
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "seller" && !booking.pickup_day && ( |       {order.side === "seller" && (
@@ -741,7 +741,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending | who={who} pending
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && ( |           {order.side === "seller" && payout && (
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && <p | {order.side === "seller" && payout && <p
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${free ? "." : "; they're paid 24 hours later."} | you have it${"; they're paid 24 hours later."}
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (free && at === 0) return |   if (false && at === 0) return
 describe("#6: a free claim never reads like a paid order", () => {

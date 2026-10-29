@@ -23,7 +23,6 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
-  fetchMyItems,
   fetchMySales,
   fetchPhotos,
   fetchDropStates,
@@ -73,6 +72,7 @@ import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import { FallbackImg } from "./FallbackImg";
+import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -157,7 +157,9 @@ const PAST: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_e
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
+  // Audit 1028 D1-8: read again while a listing waits for review, and on every new notice (an approval sends one).
+  const mine = useQuery(myItemsQuery(userId));
+  useMyItemsFollowNotices(userId);
   // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
   const mineIds = (mine.data ?? []).filter((i) => !PAST.has(i.status)).map((i) => i.id);
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });

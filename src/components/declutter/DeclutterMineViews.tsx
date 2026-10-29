@@ -33,7 +33,8 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { fetchMyItems, fetchMyOffers } from "@/lib/declutter/api";
+import { fetchMyOffers } from "@/lib/declutter/api";
+import { myItemsQuery } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
 import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
@@ -102,7 +103,7 @@ type SellingGroup = (typeof SELLING)[number];
 export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode }) {
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
-  const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
+  const mine = useQuery(myItemsQuery(userId));
   const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).

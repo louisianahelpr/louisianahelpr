@@ -77,7 +77,7 @@ export const UNKNOWN_ZIP_MESSAGE =
  * Signup, CompleteProfile, ProfileEditForm, through useParishForZip's town
  * arguments (one line in each form, so none of them grows).
  */
-export function useZipFillsTown(zipCode: string, town: string, setTown: ((town: string) => void) | undefined): void {
+function useZipFillsTown(zipCode: string, town: string, setTown: ((town: string) => void) | undefined): void {
   const filledFor = useRef<string | null>(null);
   const [city, setCity] = useState<string | null>(null);
   const fills = !!setTown;

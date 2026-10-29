@@ -109,7 +109,6 @@ const Signup = () => {
   // Live parish resolution from the ZIP, shared with CompleteProfile and
   // ProfileEditForm — resolved as the user types so both hints below can
   // render before submit, not just at it.
-  // A3-I1: a recognised ZIP fills an empty town with the ZIP's town (never replaces a typed one).
   const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
   const cityZipMismatch = cityZipMismatchHint(location, resolvedZipParish);
   // Referral code is captured only from the `?ref=` deep link now (the manual

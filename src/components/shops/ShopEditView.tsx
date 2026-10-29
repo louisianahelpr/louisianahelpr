@@ -10,9 +10,10 @@
  * into the text.
  *
  * Who may save is decided on the server (18+, not banned, fewer than 3
- * Shops strikes (per section, owner 2026-10-18), payout setup finished: L3,
- * L82); this screen
- * shows the server's words when it refuses.
+ * Shops strikes (per section, owner 2026-10-18): L82); this screen shows the
+ * server's words when it refuses. Payout setup is NOT a gate: it happens only
+ * when a sale is owed (owner 2026-10-27, migration 20261027163240), so the
+ * intro says so (audit 2026-10-28 P5-1).
  */
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -233,7 +234,7 @@ export default function ShopEditView() {
       <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
         {!myId.data && (
           <p className="text-sm text-muted-foreground">
-            A shop is free, and it is also your business profile. You need to be 18 or older and have payouts set up.
+            A shop is free, and it is also your business profile. You need to be 18 or older. You set up payouts when you make your first sale.
           </p>
         )}
         <div className="space-y-1.5">

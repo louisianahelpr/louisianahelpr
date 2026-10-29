@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1008,
+    "calls": 1009,
     "files": 269,
-    "rendering": 852,
+    "rendering": 853,
     "suppressedByPolicy": 156,
     "byKind": {
       "confirmConsequential": 29,
       "errorToast": 6,
       "successToast": 1,
       "toast": 72,
-      "toast.error": 710,
+      "toast.error": 711,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,7 +18,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 453,
+      "literal": 454,
       "template": 103,
       "dynamic": 502,
       "jsx": 0
@@ -132,7 +132,7 @@
         "branches": [
           {
             "form": "literal",
-            "text": "Job cancelled. The hold on your card is released, and your card was not charged."
+            "text": "Job cancelled. Your card was not charged, and the hold on it is let go within about 10 minutes."
           },
           {
             "form": "dynamic",
@@ -2009,7 +2009,7 @@
     },
     {
       "file": "src/components/admin/AdminFraudDashboard.tsx",
-      "line": 152,
+      "line": 153,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9002,7 +9002,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 121,
+      "line": 125,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -9012,7 +9012,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 125,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9683,7 +9683,17 @@
     },
     {
       "file": "src/hooks/useDeleteAccount.ts",
-      "line": 125,
+      "line": 123,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't check it's you — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useDeleteAccount.ts",
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11821,7 +11831,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 152,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11831,7 +11841,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 201,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11851,7 +11861,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 274,
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11861,7 +11871,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 436,
+      "line": 440,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

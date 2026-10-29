@@ -4,7 +4,8 @@ import { useApplyTakeHome } from "./applyTakeHome";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
 // bonus, take-home. Whole-dollar rounding is right for a headline price and
 // wrong for the lines that justify it, where the column has to add up.
-import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
+import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -54,7 +55,7 @@ export function ApplyEarningsBreakdown({
 
       {firstPayoutFee > 0 && (
         <p className="mt-1.5 font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-testid="apply-setup-fee-line">
-          After the one-time ${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.
+          {setupFeeWords(firstPayoutFee)}
         </p>
       )}
 

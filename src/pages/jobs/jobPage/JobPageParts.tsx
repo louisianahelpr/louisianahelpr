@@ -6,6 +6,7 @@
  */
 import { Link } from "react-router-dom";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -126,7 +127,7 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   // only the take-home (and the one-time setup fee on the payout it comes out of).
   const lines = [
     helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
-    firstPayoutFee > 0 && job.status !== "disputed" ? `After the one-time $${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.` : null,
+    firstPayoutFee > 0 && job.status !== "disputed" ? setupFeeWords(firstPayoutFee) : null,
   ].filter(Boolean);
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>

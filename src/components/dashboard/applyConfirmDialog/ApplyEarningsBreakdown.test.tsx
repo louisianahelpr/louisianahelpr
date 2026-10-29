@@ -56,7 +56,7 @@ describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => 
     // $100 budget − 10% = $90, − $2 one-time fee = $88.
     expect(screen.getByText("$88")).toBeInTheDocument();
     expect(screen.queryByText("$90")).not.toBeInTheDocument();
-    expect(screen.getByTestId("apply-setup-fee-line").textContent).toBe("After the one-time $2 setup fee, taken from your first payout.");
+    expect(screen.getByTestId("apply-setup-fee-line").textContent).toBe("Includes the one-time $2 setup fee, taken from your first payout.");
     expect(text()).not.toMatch(NO_FEE_WORDS);
   });
 

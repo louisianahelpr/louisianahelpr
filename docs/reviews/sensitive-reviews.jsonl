@@ -200,3 +200,18 @@
 {"sha":"6c2259e35f102adce3714af0eb983d32515c5b3b","reviewer":"lh-money-escrow","verdict":"approve (lead: notices only; a transaction-local marker skips 'Enjoy your item' on the damage path)","date":"2026-10-29"}
 {"sha":"fd736c2b00674bcf4d15f2d58c977a992f77cd93","reviewer":"code-review","verdict":"approve (lead: route stop place wording only)","date":"2026-10-29"}
 {"sha":"1fba2d3c453f472f2e713cebce267f0ffa0d0944","reviewer":"lh-silent-failure","verdict":"approve (lead: the queue's outcome updates the pending send-log row; no email is dropped)","date":"2026-10-29"}
+{"sha":"7efa368a072303e73b8d87fd30dc719d5a5fb75b","reviewer":"lh-money-escrow","verdict":"approve (lead: buyer's own in_cart line FOR UPDATE; refuses while a Stripe page can be paid; unpaid order superseded so late payment refunds; no strike per owner)","date":"2026-10-29"}
+{"sha":"e0bc87b14178b6acf63c5a93a00f94156d9c795e","reviewer":"code-review","verdict":"approve (lead: screen-only change; no money or access change)","date":"2026-10-29"}
+{"sha":"622b6917309e1cbd105f96c5257492284bf73eb4","reviewer":"lh-money-escrow","verdict":"approve (lead: pick-a-day; auto-pay waits for the chosen day; restated from effective bodies)","date":"2026-10-29"}
+{"sha":"ac3db90901b739d7bcc7bac8f80015bbcc343b7e","reviewer":"lh-money-escrow","verdict":"approve (lead: notice copy and links only; no money moves)","date":"2026-10-29"}
+{"sha":"52ae928482ea46895cbe6372d3f0b3114d07142c","reviewer":"lh-money-escrow","verdict":"approve (lead: notice copy and links only; no money moves)","date":"2026-10-29"}
+{"sha":"e974d743171853a5cbc79b6f8bb1f46d99f725e1","reviewer":"lh-authz-rls","verdict":"approve (lead: owner-only FOR UPDATE, ban+feature checks, anon revoked)","date":"2026-10-29"}
+{"sha":"dfacaf351303fee1a1badc625d354e502db7e55c","reviewer":"lh-authz-rls","verdict":"approve (lead: windows only; order read limited to paid buyer, seller, assigned Helpr)","date":"2026-10-29"}
+{"sha":"6cf367be2c3b1bbe39ba9d96623cc62f4bdf07f7","reviewer":"lh-authz-rls","verdict":"approve (lead: ids only, one bit per live listing)","date":"2026-10-29"}
+{"sha":"7ade441f2de4e4400401d5e5e48eec1fd071b42c","reviewer":"lh-money-escrow","verdict":"approve (lead: only blocks the buyer's early confirm on seller delivery)","date":"2026-10-29"}
+{"sha":"1dee29fb1224fc5fdf8526ffdce43fff82c6ddb0","reviewer":"lh-money-escrow","verdict":"approve (lead: notice copy and links only; no money moves)","date":"2026-10-29"}
+{"sha":"87a1a67645c5cc37220dc4aea47c18062ea9205d","reviewer":"lh-authz-rls","verdict":"approve (lead: one count only; sign-in + switch; test sellers hidden)","date":"2026-10-29"}
+{"sha":"03d7c9eabf8f18505dd41e39e6a64b78c4a73855","reviewer":"code-review","verdict":"approve (lead: screen-only change; no money or access change)","date":"2026-10-29"}
+{"sha":"bf7a8e4ada8014245f8ef33ad47bc5c7cb72aa69","reviewer":"lh-authz-rls","verdict":"approve (lead: additive category and size on the buyer's own order read)","date":"2026-10-29"}
+{"sha":"c1d21a552b9ecf3ee076e844ff8fbd1cedea9ec0","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only, has_role first; short names only)","date":"2026-10-29"}
+{"sha":"2f686734dcbb9610dd8e670bfdd9299c1ab46fad","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only, has_role first; short names only)","date":"2026-10-29"}

@@ -288,7 +288,8 @@ export function ProfileEditForm({
               </span>
             ) : (
               <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
-                {bio.trim().length}/20 min
+                {/* The old counter ended in "min" and read as minutes (audit 2026-10-29 A3-C5): name the unit. */}
+                {bio.trim().length} of 20 characters
               </span>
             )}
           </div>

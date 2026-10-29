@@ -15,7 +15,7 @@
  * notices that can go to either side (a strike, a counteroffer, a declined counter) follow the side the function
  * knows. Shown RED with 20261028223036 removed (3 of 4 tests). Backend proof: src/test/pglite/declutterNoticeLinksTabs.pglite.mjs.
  */
-// @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | v_item.o_title),\n    '/declutter?tab=selling', v_uid); | v_item.o_title),\n    '/declutter?view=offers', v_uid);
+// @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql | v_item.o_title),\n    '/declutter?tab=selling', v_uid); | v_item.o_title),\n    '/declutter?view=offers', v_uid);
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=buying', v_uid); | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=selling', v_uid);
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | '/declutter?tab=' \|\| CASE WHEN p_side = 'seller' THEN 'selling' ELSE 'buying' END | '/declutter?view=offers'
 // @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=selling' | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart'

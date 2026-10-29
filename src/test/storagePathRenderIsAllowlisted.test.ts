@@ -46,7 +46,7 @@ export function unsafeBranches(source: string): string[] {
     } else {
       body = source.slice(start, source.indexOf(";", start) + 1);
     }
-    const drops = /^\{?\s*(return\s+(null|undefined|false)?\s*;|throw\b)/.test(body.trim());
+    const drops = /^\{?\s*(return(\s+(null|undefined|false))?\s*;|throw\b)/.test(body.trim());
     if (!drops && !/\b(safe|openable)DocumentUrl\(/.test(body)) out.push(body.trim().split("\n")[0]);
   }
   return out;

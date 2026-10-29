@@ -71,6 +71,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel, useSellAiDraft } from "./SellAiDraft";
+import { LastSetupNote, useLastListingSetup } from "./SellLastSetup";
 import { HANDOVER_CHOICE, SellHandoverChoices, handoverSummary } from "./SellHandoverChoices";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, sellStepProblem, type FormState } from "./sellForm";
@@ -180,6 +181,7 @@ export default function SellFlow() {
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
   const resumedEmpty = !!itemId && loadedFor.current === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
   const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty });
+  const usedLastSetup = useLastListingSetup(itemId ? undefined : user?.id, { setForm, setWays, setCoords });
   const problem = useMemo(() => formProblem(form), [form]);
   const keepUp = useKeepUp(itemId);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -491,6 +493,7 @@ export default function SellFlow() {
       {step === 4 && (
         <section className="space-y-4" aria-labelledby="sell-step">
           <StepHead title="How can buyers get it?" sub="Choose the ways you're happy with. Buyers only see these." />
+          {usedLastSetup && <LastSetupNote />}
           <SellHandoverChoices ways={ways} setWays={setWays} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} />
           {/* Owner 2026-10-28: no "Area buyers see" field; buyers see the town the server works out from this
               address (declutter_town_for_pickup), and the seller can fill it from where they are. */}

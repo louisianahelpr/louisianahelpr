@@ -107,6 +107,8 @@ vi.mock("@/lib/declutter/haulAway", () => ({
   cancelHaulAway: async () => "live",
   HAUL_AWAY_CLIENT_ERROR_COPY: { haul_away_job_stuck: "stuck" },
 }));
+// The sell form's "remember my setup" read (SellLastSetup.tsx; its own test is declutterSellLastSetup): no earlier listing.
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),

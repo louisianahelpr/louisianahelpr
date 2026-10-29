@@ -58,6 +58,8 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
+// No earlier listing: the form starts blank (the last-setup prefill has its own test, declutterSellLastSetup).
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,

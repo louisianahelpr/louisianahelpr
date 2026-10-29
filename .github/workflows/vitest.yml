@@ -136,21 +136,33 @@ jobs:
           echo "shards: $SHARDS"
           test "$SHARDS" = "success"
 
-  coverage:
+  coverage-shard:
     # Q184 (owner, 2026-09-27): a line-coverage floor for src/lib + src/hooks.
-    # Its own job, in parallel, because v8 instrumentation slows the suite by
+    # Its own jobs, in parallel, because v8 instrumentation slows the suite by
     # ~30% (measured on run 36349571652: 1106s vs 846s) and pushed two 20s
-    # tests past their timeout. Test FAILURES are the job above's to report;
-    # this job's verdict is the floor, so the run step may fail (continue-on-
+    # tests past their timeout. Test FAILURES are the Vitest shards' to report;
+    # these jobs' verdict is the floor, so the run step may fail (continue-on-
     # error) but coverage is still written (reportOnFailure in vitest.config.ts)
     # and the floor step fails closed when the summary is missing.
-    name: Coverage floor
+    #
+    # SHARDED 2026-10-29 (issue #3685). History: 35 min, then 45 (2026-10-15,
+    # test step 1673-2050 s). The one unsharded job then outgrew 45: on main,
+    # 9 of the 10 runs 40767328047..40826566218 were cancelled at 44.9-45.4 min
+    # with every Vitest shard green; one finished (40809041129, test step
+    # 37.0 min). Cancelled run 40826566218 had printed 17014 test dots of the
+    # 21915 a finished run prints, so a whole run needs about 58 min on such a
+    # runner. Four shards each write a blob report carrying their coverage; the
+    # "Coverage floor" job below merges them (vitest --merge-reports) and runs
+    # the floor on the WHOLE suite's coverage. A local trial merged two shards'
+    # blobs to exactly the unsharded run's figure (132/12481 lines).
+    name: Coverage shard ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    # 45, was 35 (2026-10-15). Measured test step: 1673 s on main run
-    # 38655704203 (job 28.3 min), 2050 s on run 38669954504 (job 34.6 min of
-    # 35). Main's red run 38659872759 also ran 34.6 min before its heap crash.
-    # One slow runner from a cancelled, never-green floor; the suite grows.
-    timeout-minutes: 45
+    # 30: a quarter of a ~58-minute run plus install, with headroom.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Checkout
@@ -191,9 +203,102 @@ jobs:
 
       - name: Run Vitest with coverage
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
-        id: vitest_cov
+        id: shard_cov
         continue-on-error: true
-        run: npx vitest run --reporter=dot --coverage --testTimeout=60000
+        run: npx vitest run --reporter=dot --reporter=blob --outputFile.blob=coverage-blobs/blob-${{ matrix.shard }}-4.json --coverage --testTimeout=60000 --shard=${{ matrix.shard }}/4
+
+      # Fails closed: a shard that wrote no blob (it crashed before reporting)
+      # must never merge into a partial, lower coverage figure. The test
+      # outcome is printed; its pass/fail verdict is the Vitest shards' job.
+      - name: Blob written
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        env:
+          TESTS_OUTCOME: ${{ steps.shard_cov.outcome }}
+        run: |
+          echo "coverage shard test run outcome: $TESTS_OUTCOME"
+          test -s coverage-blobs/blob-${{ matrix.shard }}-4.json
+
+      - name: Upload blob
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-blob-${{ matrix.shard }}
+          path: coverage-blobs/blob-${{ matrix.shard }}-4.json
+          retention-days: 3
+          if-no-files-found: error
+
+  coverage:
+    # The check name stays "Coverage floor" (scripts/land-queue.mjs gates on
+    # it). It merges the four coverage shards' blobs and floors the whole suite.
+    name: Coverage floor
+    needs: coverage-shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      # Same scope as the shards: a docs-only PR ran no coverage, so there is
+      # nothing to merge or floor. Guard: src/test/docsOnlyFastPath.test.ts.
+      - name: Scope (docs-only PR?)
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            CHANGED_FILES=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path')
+            export CHANGED_FILES
+            node scripts/ci/docs-only-tests.mjs > scope.json
+          else
+            echo '{"docsOnly":false,"files":[]}' > scope.json
+          fi
+          echo "docs_only=$(node -p 'require("./scope.json").docsOnly')" >> "$GITHUB_OUTPUT"
+
+      # A coverage shard that failed, was cancelled or was skipped fails the
+      # floor: its coverage is missing, so a merged figure would be partial.
+      - name: Every coverage shard finished
+        env:
+          COV_SHARDS: ${{ needs.coverage-shard.result }}
+        run: |
+          echo "coverage shards: $COV_SHARDS"
+          test "$COV_SHARDS" = "success"
+
+      - name: Install dependencies
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Download blobs
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-blob-*
+          merge-multiple: true
+          path: coverage-blobs
+
+      - name: All four blobs arrived
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        run: |
+          ls -l coverage-blobs
+          test "$(ls coverage-blobs/blob-*-4.json | wc -l)" -eq 4
+
+      - name: Merge shard coverage
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        id: vitest_cov
+        # The merge replays the shards' results, so a failed test makes it exit
+        # non-zero; the coverage summary is still written and the floor reads it.
+        continue-on-error: true
+        run: npx vitest --merge-reports=coverage-blobs --reporter=dot --coverage
 
       - name: Coverage floor (Q184)
         if: ${{ steps.scope.outputs.docs_only != 'true' }}

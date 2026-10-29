@@ -46,9 +46,12 @@ describe("coverage floor (Q184)", () => {
     expect(compareFloors(empty, { "src/nope/": 0 }).join()).toMatch(/no files measured/);
   });
 
-  it("vitest.yml runs vitest with --coverage, then the floor check", () => {
+  // 2026-10-29 (issue #3685): the coverage run is sharded; each shard writes a blob report with its
+  // coverage and the floor job merges them, so the floor still reads the whole suite.
+  it("vitest.yml runs vitest with --coverage (sharded, merged), then the floor check", () => {
     const wf = readFileSync(".github/workflows/vitest.yml", "utf8");
-    expect(wf).toMatch(/npx vitest run --reporter=dot --coverage/);
+    expect(wf).toMatch(/npx vitest run --reporter=dot --reporter=blob [^\n]*--coverage [^\n]*--shard=\$\{\{ matrix\.shard \}\}\/4/);
+    expect(wf).toMatch(/npx vitest --merge-reports=coverage-blobs [^\n]*--coverage/);
     expect(cfg0()).toMatch(/reportOnFailure: true/);
     expect(wf).toMatch(/run: node scripts\/check-coverage-floor\.mjs/);
     const cfg = readFileSync("vitest.config.ts", "utf8");

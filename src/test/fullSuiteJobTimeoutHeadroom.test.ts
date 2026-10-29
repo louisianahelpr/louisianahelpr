@@ -26,7 +26,8 @@ function runsFullSuite(run: string): boolean {
     if (/^npm (run )?test\s*$/.test(line)) return true;
     // A `--shard=${{ matrix.shard }}/4` slice counts: each shard is a hosted job
     // of the same suite and needs the same headroom (vitest.yml, 2026-10-04).
-    const m = line.replace(/\$\{\{[^}]*\}\}/g, "N").match(/^(?:npx )?vitest run((?:\s+-{1,2}[\w][\w-]*(?:=\S+)?)*)\s*$/);
+    const m = line.replace(/\$\{\{[^}]*\}\}/g, "N").match(/^(?:npx )?vitest run((?:\s+-{1,2}[\w][\w.-]*(?:=\S+)?)*)\s*$/);
+    // Dotted flags (`--outputFile.blob=...`, the coverage shards' blob report, 2026-10-29) count too.
     if (m) return true;
   }
   return false;
@@ -49,10 +50,10 @@ describe("full-suite vitest jobs have timeout headroom", () => {
   const jobs = fullSuiteJobs();
 
   // 2026-10-04: test.yml no longer runs the suite (vitest.yml runs it, sharded):
-  // vitest.yml#vitest-shard and vitest.yml#coverage.
-  it("finds the full-suite jobs (floor: vitest.yml's shards and coverage, 2026-10-04)", () => {
+  // vitest.yml#vitest-shard and, since 2026-10-29 (issue #3685), vitest.yml#coverage-shard.
+  it("finds the full-suite jobs (floor: vitest.yml's shards and coverage shards, 2026-10-29)", () => {
     expect(jobs.length).toBeGreaterThanOrEqual(2);
-    expect(jobs.map((j) => j.job)).toEqual(expect.arrayContaining(["vitest.yml#vitest-shard", "vitest.yml#coverage"]));
+    expect(jobs.map((j) => j.job)).toEqual(expect.arrayContaining(["vitest.yml#vitest-shard", "vitest.yml#coverage-shard"]));
   });
 
   it(`every one allows at least ${MIN_MINUTES} minutes (the default 360 counts as enough)`, () => {
@@ -63,6 +64,7 @@ describe("full-suite vitest jobs have timeout headroom", () => {
   it("the matcher recognises the full-suite forms and ignores scoped runs", () => {
     expect(runsFullSuite("npm test")).toBe(true);
     expect(runsFullSuite("npx vitest run --reporter=default")).toBe(true);
+    expect(runsFullSuite("npx vitest run --reporter=blob --outputFile.blob=b/blob-1-4.json --coverage --shard=1/4")).toBe(true);
     expect(runsFullSuite("npx vitest run src/test/foo.test.ts")).toBe(false);
   });
 });

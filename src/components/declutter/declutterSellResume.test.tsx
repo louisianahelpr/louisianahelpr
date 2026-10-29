@@ -8,13 +8,13 @@
  * A1-B3: ticking "I'll deliver" with "I can deliver" off says so on step 4.
  * The API is stubbed: this checks what the screen does with the answers.
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx | autoFillEmpty: resumedEmpty | autoFillEmpty: false
+ * @mutate src/components/declutter/useSellFlowState.ts | autoFillEmpty: resumedEmpty | autoFillEmpty: false
  * @mutate src/components/declutter/SellAiDraft.tsx |     title: current.title.trim() ? current.title : d.title, |     title: d.title,
  * @mutate src/components/declutter/SellAiDraft.tsx |     description: current.description.trim() ? current.description : d.description, |     description: current.description,
  * @mutate src/components/declutter/SellAiDraft.tsx |     category: current.category === "other" ? d.category : current.category, |     category: d.category,
- * @mutate src/components/declutter/DeclutterSellView.tsx | photoCount > 0 && (!form.title.trim() \|\| !form.description.trim()) | photoCount > 0
+ * @mutate src/components/declutter/useSellFlowState.ts | photoCount > 0 && (!form.title.trim() \|\| !form.description.trim()) | photoCount > 0
  * @mutate src/components/declutter/SellAiDraft.tsx |     price: !current.price.trim() && typeof d.priceDollars | price: typeof d.priceDollars
- * @mutate src/components/declutter/DeclutterSellView.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
+ * @mutate src/components/declutter/SellFormParts.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
  * @mutate src/components/declutter/SellDeliveryOffNotice.tsx |   if (!on \|\| !ticked \|\| !mine.data \|\| mine.data.enabled) return null; |   return null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

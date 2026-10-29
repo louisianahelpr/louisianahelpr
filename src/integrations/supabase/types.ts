@@ -2676,6 +2676,9 @@ export type Database = {
       }
       declutter_problems: {
         Row: {
+          other_side_at: string | null
+          other_side_note: string | null
+          other_side_photo_paths: string[]
           admin_note: string | null
           created_at: string
           decided_at: string | null
@@ -2694,6 +2697,9 @@ export type Database = {
           strike_given: boolean
         }
         Insert: {
+          other_side_at?: string | null
+          other_side_note?: string | null
+          other_side_photo_paths?: string[]
           admin_note?: string | null
           created_at?: string
           decided_at?: string | null
@@ -2712,6 +2718,9 @@ export type Database = {
           strike_given?: boolean
         }
         Update: {
+          other_side_at?: string | null
+          other_side_note?: string | null
+          other_side_photo_paths?: string[]
           admin_note?: string | null
           created_at?: string
           decided_at?: string | null
@@ -2782,6 +2791,7 @@ export type Database = {
       }
       declutter_refund_requests: {
         Row: {
+          photo_paths: string[]
           answer_by: string
           created_at: string
           declined_at: string | null
@@ -2803,6 +2813,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          photo_paths?: string[]
           answer_by: string
           created_at?: string
           declined_at?: string | null
@@ -2824,6 +2835,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          photo_paths?: string[]
           answer_by?: string
           created_at?: string
           declined_at?: string | null
@@ -13836,7 +13848,12 @@ export type Database = {
         Returns: string
       }
       declutter_ask_refund: {
-        Args: { p_note: string; p_order_id: string; p_reason: string }
+        Args: {
+          p_note: string
+          p_order_id: string
+          p_photo_paths?: string[]
+          p_reason: string
+        }
         Returns: Json
       }
       declutter_assert_can_draft_from_photos: { Args: never; Returns: undefined }
@@ -14431,6 +14448,10 @@ export type Database = {
       }
       declutter_price_text: { Args: { p_cents: number }; Returns: string }
       declutter_price_words: { Args: { p_text: string }; Returns: string }
+      declutter_problem_add_side: {
+        Args: { p_note: string; p_photo_paths?: string[]; p_problem_id: string }
+        Returns: Json
+      }
       declutter_problem_window_open: { Args: { p_order_id: string }; Returns: boolean }
       declutter_propose_delivery_time: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }

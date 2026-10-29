@@ -35,6 +35,8 @@ interface RefundRequest {
   created_at: string;
   /** D2-5 (20261029224147): the request ended with Louisiana Helpr's decision, not the seller's answer. Absent before that migration. */
   admin_decided?: boolean;
+  /** D2-3 (20261029225634): the buyer's photos (declutter-handover paths, up to 3). Absent before that migration. */
+  photo_paths?: string[];
 }
 
 export interface RefundRequestView {
@@ -74,9 +76,11 @@ export async function fetchRefundRequestView(orderId: string): Promise<RefundReq
 }
 
 /** The buyer asks, within 24 hours of the handover. */
-export async function askRefund(orderId: string, reason: RefundReason, note: string): Promise<{ result: string }> {
+export async function askRefund(orderId: string, reason: RefundReason, note: string, photoPaths: string[] = []): Promise<{ result: string }> {
+  // D2-3 (20261029225634): photos go only when chosen, so the call works before that migration reaches prod.
+  const base = { p_order_id: orderId, p_reason: reason, p_note: note };
   return rpcData(
-    await supabase.rpc("declutter_ask_refund", { p_order_id: orderId, p_reason: reason, p_note: note }),
+    await supabase.rpc("declutter_ask_refund", photoPaths.length ? { ...base, p_photo_paths: [...photoPaths] } : base),
     (e) => rpcErrorMessage("declutter_ask_refund", e),
   ) as unknown as { result: string };
 }

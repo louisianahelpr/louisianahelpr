@@ -255,6 +255,37 @@ export async function reportProblem(orderId: string, reason: ProblemReason, note
   ) as string;
 }
 
+/** D2-3 (20261029225634): an order's newest problem as either side reads it (RLS: the two sides and admins). */
+export interface OrderProblem {
+  id: string;
+  reporter_side: "buyer" | "seller" | "helpr";
+  reason: ProblemReason;
+  note: string;
+  photo_paths: string[];
+  status: "open" | "decided";
+  created_at: string;
+  /** The other side's words and photos; absent before 20261029225634 reaches prod. */
+  other_side_note?: string | null;
+  other_side_photo_paths?: string[];
+  other_side_at?: string | null;
+}
+
+export async function fetchOrderProblem(orderId: string): Promise<OrderProblem | null> {
+  const rows = unwrap(
+    // "*": the other side's columns (20261029225634) are read when they exist, and the read never fails before.
+    await supabase.from("declutter_problems").select("*").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1),
+  );
+  return ((rows ?? [])[0] ?? null) as OrderProblem | null;
+}
+
+/** D2-3: the OTHER side of the sale adds their words (and up to 3 problem-folder photos) to an open problem. */
+export async function addProblemSide(problemId: string, note: string, photoPaths: string[] = []): Promise<{ result: "added"; problem_id: string }> {
+  return rpcData(
+    await supabase.rpc("declutter_problem_add_side", { p_problem_id: problemId, p_note: note, p_photo_paths: photoPaths }),
+    (e) => rpcErrorMessage("declutter_problem_add_side", e),
+  ) as unknown as { result: "added"; problem_id: string };
+}
+
 /** A review after the handover (row 45), both ways, blind until both or 14 days. */
 /**
  * Q2265: `tags` go only when chosen, so the call works before and after migration 20261021023530. Before it

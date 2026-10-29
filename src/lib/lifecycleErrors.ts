@@ -694,8 +694,24 @@ export const RPC_ERROR_COPY = {
     note_required: DC.note_required,
     order_not_paid: DC.order_not_paid,
     photo_not_uploaded: DC.photo_not_uploaded,
+    // D2-3 (20261029225634): a second report is refused, never dropped.
+    problem_already_open: DC.problem_already_open,
+    problem_already_reported: DC.problem_already_reported,
     sale_final: DC.sale_final,
     too_many_photos: DC.too_many_photos,
+  },
+  // D2-3 (20261029225634): the other side adds theirs to an open problem.
+  declutter_problem_add_side: {
+    account_restricted: DC.account_restricted,
+    // declutter_lock_order: the order behind the problem is gone.
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    problem_already_decided: DC.problem_already_decided,
+    problem_not_found: DC.problem_not_found,
+    problem_side_is_yours: DC.problem_side_is_yours,
+    too_many_problem_photos: DC.too_many_problem_photos,
   },
   // Board 141, Declutter side (20261026155251): a refund request after the handover.
   declutter_refund_request_view: {
@@ -710,10 +726,12 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
     problem_open: DC.problem_open,
     refund_already_asked: DC.refund_already_asked,
     refund_before_handover: DC.refund_before_handover,
     refund_window_over: DC.refund_window_over,
+    too_many_problem_photos: DC.too_many_problem_photos,
   },
   declutter_answer_refund: {
     account_restricted: DC.account_restricted,

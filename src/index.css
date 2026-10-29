@@ -3372,6 +3372,21 @@ button,
   .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
 }
 
+/* THE MONEY RANGE ROW SIZES ITS WORDS TO ITS OWN TRACK (audit 2026-10-28 P4-3; EarningsRangeToggle.tsx). The
+   four full names ("Lifetime / This week / This month / This year") need a 324px track at the default text size;
+   the Earned and Spent cards give it 299px at 375 and 244px at 320, so "This year" was cut to "This ye". Below a
+   324px track each pill shows its short word ("Week", "Month", "Year") with 8px sides instead of 12px (the short
+   row measured 247px in the 244px track at 320 with 12px sides, 244px with 10px); from 324px, the full names and 12px sides.
+   Guard: src/test/moneyRangeChipsFit.test.tsx. */
+.range-cq { container-type: inline-size; }
+.range-label-full { display: none; }
+.range-cq .segmented-option { padding-left: 0.5rem; padding-right: 0.5rem; }
+@container (min-width: 324px) {
+  .range-label-short { display: none; }
+  .range-label-full { display: inline; }
+  .range-cq .segmented-option { padding-left: 0.75rem; padding-right: 0.75rem; }
+}
+
 /* POST A JOB SIZES ITS GRIDS TO ITS OWN COLUMN, not the screen (lead, 2026-10-25). At 1180 the desktop
    rail, the step list and the "What Helprs will see" card leave the form about 370px, but a screen breakpoint
    (lg / md) gave it three category tiles ("Handym…", "Assembl…", a sub-line run out of its tile) and a 155px

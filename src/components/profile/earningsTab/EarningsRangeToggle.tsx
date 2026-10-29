@@ -16,12 +16,37 @@ import { SegmentedControl, type SegmentedOption } from "@/components/ui/Segmente
  */
 export type EarningsRange = "lifetime" | "week" | "month" | "year";
 
-const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = [
-  { value: "lifetime", label: "Lifetime" },
-  { value: "week", label: "This week" },
-  { value: "month", label: "This month" },
-  { value: "year", label: "This year" },
+/**
+ * Each option's full name, and the short word it shows when the row is too
+ * narrow for the full names (audit 2026-10-28 P4-3: at 375 the four full names
+ * need a 324px track in a 299px card, so "This year" was cut to "This ye" at
+ * the scroll edge). `.range-cq` in src/index.css swaps them by the TRACK's own
+ * width, so a phone gets "Lifetime / Week / Month / Year" in one row with
+ * nothing cut, and a card wide enough keeps the full names. The full name is
+ * always the option's accessible name.
+ */
+const RANGES: { value: EarningsRange; label: string; short: string }[] = [
+  { value: "lifetime", label: "Lifetime", short: "Lifetime" },
+  { value: "week", label: "This week", short: "Week" },
+  { value: "month", label: "This month", short: "Month" },
+  { value: "year", label: "This year", short: "Year" },
 ];
+
+const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = RANGES.map(({ value, label, short }) => ({
+  value,
+  ariaLabel: label,
+  label:
+    label === short ? (
+      label
+    ) : (
+      <>
+        <span className="range-label-full">{label}</span>
+        <span className="range-label-short" aria-hidden>
+          {short}
+        </span>
+      </>
+    ),
+}));
 
 /**
  * Rendered INSIDE <EarningsSummaryCard />, not floating above the wallet.
@@ -46,17 +71,20 @@ export function EarningsRangeToggle({
   ariaLabel?: string;
 }) {
   return (
-    <SegmentedControl
-      ariaLabel={ariaLabel}
-      /* ONE ROW THAT SCROLLS SIDEWAYS (owner, 2026-10-01: "make lifetime week
-         month year scroll left and right"). The four options need ~331px and
-         the card is ~303px wide at 375, so they used to wrap 2x2. Each pill
-         keeps its full label (`min-w-fit`) and the row scrolls instead. */
-      layout="row"
-      className="overflow-x-auto scrollbar-hide"
-      options={RANGE_OPTIONS}
-      value={value}
-      onChange={onChange}
-    />
+    <div className="range-cq">
+      <SegmentedControl
+        ariaLabel={ariaLabel}
+        /* ONE ROW (owner, 2026-10-01: "make lifetime week month year scroll
+           left and right"; they used to wrap 2x2). Below a 324px track the
+           pills show their short words and fit at 320 and 375 (P4-3); the
+           row still scrolls sideways when a larger text size (Senior Mode)
+           outgrows even those, and no pill's word is ever cut (`min-w-fit`). */
+        layout="row"
+        className="overflow-x-auto scrollbar-hide"
+        options={RANGE_OPTIONS}
+        value={value}
+        onChange={onChange}
+      />
+    </div>
   );
 }

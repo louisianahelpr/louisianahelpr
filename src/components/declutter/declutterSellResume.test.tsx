@@ -101,6 +101,10 @@ describe("a resumed draft", () => {
 
   it("with photos and empty details: Claude drafts it by itself and fills ONLY the empty fields", async () => {
     open();
+    // The auto-draft fires only after the draft, its private row and its photos have all loaded and the form has
+    // re-rendered (four renders, then the effect). On a loaded CI runner that chain outran findBy's 1 s default
+    // (measured: 2 of 2 red under load, 6 of 6 green idle), so wait on the trigger itself, with room.
+    await waitFor(() => expect(api.requestAiDraft).toHaveBeenCalledTimes(1), { timeout: 5_000 });
     expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
     expect(api.requestAiDraft).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -116,6 +120,8 @@ describe("a resumed draft", () => {
   it("a category the seller picked stays theirs while Claude fills the empty details", async () => {
     saved.category = "kitchen";
     open();
+    // Same trigger wait as above (CI load).
+    await waitFor(() => expect(api.requestAiDraft).toHaveBeenCalledTimes(1), { timeout: 5_000 });
     await screen.findByText("Claude wrote your listing");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByLabelText(/Anything else/)).toHaveValue(DRAFT.description);

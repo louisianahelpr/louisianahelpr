@@ -219,3 +219,6 @@
 {"sha":"61b7b4ebd77e56e74c46c533f83a21772826a8b0","reviewer":"lh-money-escrow","verdict":"approve (lead: notices only on the damage path)","date":"2026-10-29"}
 {"sha":"772f5b4e661fcb0dffa2a6c2d85ed4d278d1a0d0","reviewer":"code-review","verdict":"approve (lead: route stop wording only)","date":"2026-10-29"}
 {"sha":"adc90b080ad8676d54ff92f2e3fa660fa94f03df","reviewer":"lh-silent-failure","verdict":"approve (lead: queue outcome updates the pending send-log row)","date":"2026-10-29"}
+{"sha":"f5799636665775abb268ffab7930c30a023f2cdb","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}
+{"sha":"e2e30063827cdcf95956634af12b46a4b7b3edf8","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}
+{"sha":"e0b0392961d1b50561dfc49e8a569fc27cc753c0","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}

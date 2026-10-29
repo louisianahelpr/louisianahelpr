@@ -127,6 +127,9 @@ const h = vi.hoisted(() => {
 vi.mock("@/integrations/supabase/client", () => ({ supabase: h.supabase }));
 // PaymentSuccess's one-time "Add your phone" ask reads React Query (src/test/smsPhonePrompt.test.ts covers it).
 vi.mock("@/components/notificationPreferences/SmsPhonePrompt", () => ({ SmsPhonePrompt: () => null }));
+// Its "Live now" line reads the memberships switch through React Query too (audit 2026-10-28 F15;
+// src/test/liveNowCaptionFollowsDelay.test.tsx covers it): off, as for every member today.
+vi.mock("@/hooks/useMembershipsOn", () => ({ useMembershipsOn: () => false }));
 vi.mock("@/lib/restInsert", () => ({
   postRows: async (table: string, _cols: readonly string[], rowsFor: (asUser: boolean) => unknown[]) => {
     if (table === "analytics_events") {

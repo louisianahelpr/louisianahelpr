@@ -130,4 +130,4 @@ describe("Q1205 layer 3: the client never UPDATEs the marker", () => {
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.direct_offer_status IS DISTINCT FROM OLD.direct_offer_status THEN | IF false THEN
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.direct_offer_expires_at IS DISTINCT FROM OLD.direct_offer_expires_at THEN | IF false THEN
 // Layer 3: a client PATCH of the marker planted.
-// @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | .update({ poster_confirmed_arrival_at: arrivedAt }) | .update({ poster_confirmed_arrival_at: arrivedAt, direct_offer_status: "pending" })
+// @mutate src/lib/posterArrival.ts | .update({ poster_confirmed_arrival_at: arrivedAt }) | .update({ poster_confirmed_arrival_at: arrivedAt, direct_offer_status: "pending" })

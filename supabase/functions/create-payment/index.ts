@@ -1222,9 +1222,9 @@ serve(async (req) => {
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: `Helpr Job: ${job.title}`,
-              description: laborTaxable
-                ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
-                : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
+              // Payer-facing words only (audit 2026-10-29 A2-C28): no category slug, no tax terms;
+              // the tax treatment rides on tax_code below.
+              description: "Held safely and paid to your Helpr once you both confirm the job is done.",
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
               tax_code: laborTaxCode(job.category),

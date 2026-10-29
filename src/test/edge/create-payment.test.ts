@@ -899,6 +899,10 @@ describe("create-payment edge function", () => {
       expect(args.line_items[0].price_data.product_data.tax_code).toBe(
         "txcd_20080005",
       );
+      // A2-C28: the payer reads plain words on Stripe Checkout, never the slug or tax terms.
+      const desc = args.line_items[0].price_data.product_data.description;
+      expect(desc).toBe("Held safely and paid to your Helpr once you both confirm the job is done.");
+      expect(desc).not.toMatch(/assembly|escrow|taxable|exempt/i);
     });
 
     // ME-043: every line carries a tax code and tax behaviour; the labor code

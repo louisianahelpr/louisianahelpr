@@ -105,6 +105,7 @@ export const POSTER_STEP: Record<PosterWait, Entry> = {
 export const HELPER_STEP: Record<HelperWait, Entry> = {
   job_gone: at(null),
   not_selected: at(null),
+  reported_no_show: at(null, "problem", "No-show"),
   cancelled: CANCELLED,
   applied: at(0),
   offer: at(1),

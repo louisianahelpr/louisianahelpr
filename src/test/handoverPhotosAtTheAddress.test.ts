@@ -8,13 +8,14 @@
  * RPC without a place check, or one checked against the wrong place, fails here.
  * Backend proof: src/test/pglite/declutterHandoverPhotosAtAddress.pglite.mjs (3x; RED without it and on 11 plants).
  */
-// @mutate supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql |     v_m := public.helpr_task_distance_m(p_lat, p_lng, d.dropoff_lat, d.dropoff_lng); |     v_m := 0;
-// @mutate supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql |       SELECT public.helpr_task_distance_m(p_lat, p_lng, m.spot_lat, m.spot_lng) INTO v_m |       SELECT 0 INTO v_m
-// @mutate supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql |   IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1) |   IF v_side = 'seller' THEN RETURN jsonb_build_object('result', 'set_out'); END IF;\n  IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1)
-// @mutate supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql | DROP FUNCTION IF EXISTS public.declutter_seller_picked_up(uuid, text);\nCREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text,\n  p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text)
+// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |     v_m := public.helpr_task_distance_m(p_lat, p_lng, d.dropoff_lat, d.dropoff_lng); |     v_m := 0;
+// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |       SELECT public.helpr_task_distance_m(p_lat, p_lng, m.spot_lat, m.spot_lng) INTO v_m |       SELECT 0 INTO v_m
+// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1) |   IF v_side = 'seller' THEN RETURN jsonb_build_object('result', 'set_out'); END IF;\n  IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1)
+// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text,\n  p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text)
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
@@ -87,8 +88,13 @@ describe("every Declutter handover photo is taken at the right address", () => {
       const head = (DEFS.get(name)?.stmt ?? "").slice(0, 400);
       expect(head, name).toMatch(/p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL/);
     }
-    const mig = blankSqlComments(readFileSync(resolve(__dirname, "../../supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql"), "utf8"));
-    expect(mig).toContain("DROP FUNCTION IF EXISTS public.declutter_seller_picked_up(uuid, text);");
-    expect(mig).toContain("DROP FUNCTION IF EXISTS public.declutter_seller_delivered(uuid, text);");
+    // The two-argument forms are dropped by some migration after their last CREATE (20261028235709 today).
+    const dir = resolve(__dirname, "../../supabase/migrations");
+    const sql = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().map((f) => blankSqlComments(readFileSync(resolve(dir, f), "utf8"))).join("\n");
+    for (const name of ["declutter_seller_picked_up", "declutter_seller_delivered"]) {
+      const lastCreate2 = sql.lastIndexOf(`FUNCTION public.${name}(p_order_id uuid, p_photo_path text)`);
+      const drop = sql.lastIndexOf(`DROP FUNCTION IF EXISTS public.${name}(uuid, text);`);
+      expect(drop, name).toBeGreaterThan(lastCreate2);
+    }
   });
 });

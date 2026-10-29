@@ -40,7 +40,7 @@
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); |   RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', NULL, NULL, NULL);
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     AND now() > d.slot_start - make_interval(hours => (public.declutter_seller_delivery_rules() ->> 'buyer_cancel_hours')::integer) THEN |     AND false THEN
- * @mutate supabase/migrations/20261028235709_declutter_handover_photos_at_the_address.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR | IF (false) OR
+ * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR | IF (false) OR
  * @mutate src/lib/declutter/sellerDelivery.ts |   slot_minutes: 60, |   slot_minutes: 30,
  * @mutate src/lib/declutter/sellerDelivery.ts |   const premiumCents = Math.round((Math.max(0, itemsCents) + Math.max(0, rateCents)) * 0.05) + 70; |   const premiumCents = Math.round(Math.max(0, itemsCents) * 0.05) + 70;
  * @mutate supabase/functions/declutter-checkout/index.ts |     : handover === "seller_delivery" ? Number.isInteger(deliveryCents) && deliveryCents >= 0 |     : handover === "seller_delivery" ? deliveryCents > 0

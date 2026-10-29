@@ -628,6 +628,7 @@ export const RPC_ERROR_COPY = {
     not_booked_yet: DC.not_booked_yet,
     order_not_paid: DC.order_not_paid,
     photo_not_uploaded: DC.photo_not_uploaded,
+    photo_too_old: DC.photo_too_old,
     problem_open: DC.problem_open,
   },
   declutter_porch_note: {
@@ -657,6 +658,7 @@ export const RPC_ERROR_COPY = {
     not_booked_yet: DC.not_booked_yet,
     order_not_paid: DC.order_not_paid,
     photo_not_uploaded: DC.photo_not_uploaded,
+    photo_too_old: DC.photo_too_old,
     problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,
   },

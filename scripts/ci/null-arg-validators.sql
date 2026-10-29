@@ -120,7 +120,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
   ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261017055505)'),
   ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017055505)'),
-  ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261017055505)'),
+  ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261017055505; a stale one raises photo_too_old, 20261029002010)'),
+  ('handover_photo_is_fresh',       'allow',    'TRUE = this storage object was uploaded in the last 10 minutes: a live handover photo (20261029002010)'),
   ('helpr_task_same_stripe_mode',   'allow',    'TRUE = the two members are the same Stripe kind (test vs real): the Helpr may take the task (20261017055505)'),
   ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261017055505)'),
   ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261017055505)'),
@@ -274,6 +275,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('helpr_task_source_slot_ok',     NULL, ARRAY['''declutter_delivery''', '''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2,3]),
   -- B uploaded p.jpg for task T (the 'objects' step).
   ('helpr_task_photo_ok',           NULL, ARRAY['''00000000-0000-4000-8140-000000000601''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid', '''00000000-0000-4000-8140-00000000000b/task/00000000-0000-4000-8140-000000000601/p.jpg'''], ARRAY[1,2,3]),
+  -- The same object, uploaded just now by the fixture (anti-lying #2, 20261029002010).
+  ('handover_photo_is_fresh',       NULL, ARRAY['''helpr-tasks''', '''00000000-0000-4000-8140-00000000000b/task/00000000-0000-4000-8140-000000000601/p.jpg'''], ARRAY[1,2]),
   -- D is an admin, so reading a well-formed helpr-tasks path is TRUE for D (no task row needed).
   -- Q1929: O is B's paid delivery order (the 'delivery' step); the task is built in place (jsonb_populate_record):
   -- open, an hour of window left, its source O (not held), so the non-NULL call with 0 minutes is TRUE.

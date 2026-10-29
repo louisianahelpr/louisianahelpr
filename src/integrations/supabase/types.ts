@@ -15709,6 +15709,10 @@ export type Database = {
         Args: { _job_id: string; _user_id: string }
         Returns: string
       }
+      handover_photo_is_fresh: {
+        Args: { p_bucket: string; p_path: string }
+        Returns: boolean
+      }
       has_pre_verification_wipe: { Args: never; Returns: boolean }
       has_role: {
         Args: {

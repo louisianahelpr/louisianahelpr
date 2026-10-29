@@ -2505,6 +2505,45 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_order_porch_places: {
+        Row: {
+          address: string | null
+          area: string | null
+          frozen_at: string
+          label: string | null
+          lat: number | null
+          lng: number | null
+          order_id: string
+          place_id: string | null
+          seller_id: string | null
+          weekdays: number[]
+        }
+        Insert: {
+          address?: string | null
+          area?: string | null
+          frozen_at?: string
+          label?: string | null
+          lat?: number | null
+          lng?: number | null
+          order_id: string
+          place_id?: string | null
+          seller_id?: string | null
+          weekdays: number[]
+        }
+        Update: {
+          address?: string | null
+          area?: string | null
+          frozen_at?: string
+          label?: string | null
+          lat?: number | null
+          lng?: number | null
+          order_id?: string
+          place_id?: string | null
+          seller_id?: string | null
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       declutter_order_talk_messages: {
         Row: {
           body: string
@@ -2772,6 +2811,69 @@ export type Database = {
           created_at?: string
           id?: number
           salt?: string
+        }
+        Relationships: []
+      }
+      declutter_porch_place_choices: {
+        Row: {
+          buyer_id: string
+          chosen_at: string
+          place_id: string
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          chosen_at?: string
+          place_id: string
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          chosen_at?: string
+          place_id?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
+      declutter_porch_places: {
+        Row: {
+          address: string
+          area: string
+          created_at: string
+          id: string
+          label: string
+          lat: number
+          lng: number
+          position: number
+          seller_id: string
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          address: string
+          area: string
+          created_at?: string
+          id?: string
+          label: string
+          lat: number
+          lng: number
+          position: number
+          seller_id: string
+          updated_at?: string
+          weekdays: number[]
+        }
+        Update: {
+          address?: string
+          area?: string
+          created_at?: string
+          id?: string
+          label?: string
+          lat?: number
+          lng?: number
+          position?: number
+          seller_id?: string
+          updated_at?: string
+          weekdays?: number[]
         }
         Relationships: []
       }
@@ -14875,6 +14977,29 @@ export type Database = {
         }[]
       }
       declutter_my_porch_days: { Args: never; Returns: number[] }
+      declutter_my_porch_places: {
+        Args: never
+        Returns: { address: string; area: string; id: string; label: string; lat: number; lng: number; position: number; weekdays: number[] }[]
+      }
+      declutter_save_porch_place: {
+        Args: { p_address: string; p_area: string; p_label: string; p_lat: number; p_lng: number; p_place_id: string; p_weekdays: number[] }
+        Returns: string
+      }
+      declutter_delete_porch_place: { Args: { p_place_id: string }; Returns: string }
+      declutter_seller_porch_places: {
+        Args: { p_seller_id: string }
+        Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[] }[]
+      }
+      declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
+      declutter_order_place: {
+        Args: { p_order_id: string }
+        Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]
+      }
+      declutter_order_pickup_points: {
+        Args: { p_order_id: string }
+        Returns: { address: string; lat: number; lng: number }[]
+      }
+      declutter_order_is_porch_day: { Args: { p_dow: number; p_order_id: string }; Returns: boolean }
       declutter_my_seller_delivery: { Args: never; Returns: Json }
       declutter_my_wanted: {
         Args: never

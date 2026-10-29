@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
 import { Repeat, Rocket, Zap, Bookmark, Flag, Star } from "lucide-react";
 import { categoryLabels } from "@/components/job-card/activityConstants";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, seriesSummary } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCity } from "@/lib/locationUtils";
@@ -842,7 +842,7 @@ const JobDetailDialog = ({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-ds-12 font-semibold border" style={{ color: "hsl(var(--sage-ink))", borderColor: "hsl(var(--bark) / 0.45)" }}>
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
-                {recurrenceShapeLabel(job as Parameters<typeof recurrenceShapeLabel>[0])}
+                {seriesSummary(job as Parameters<typeof seriesSummary>[0]) ?? recurrenceShapeLabel(job as Parameters<typeof recurrenceShapeLabel>[0])}
               </span>
               {/* The series terms, before applying (Q407 4). */}
               {!(job as { parent_job_id?: string | null }).parent_job_id && (

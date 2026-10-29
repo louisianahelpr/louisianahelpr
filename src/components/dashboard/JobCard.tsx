@@ -9,7 +9,7 @@ import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { isTodayJob } from "@/lib/sameDayJob";
 import { useExpiryClock } from "@/lib/useExpiryClock";
-import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPrice, formatPriceFloor, formatRecurrenceInterval, seriesSummary } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
@@ -726,7 +726,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 <span className="shrink-0 hidden [@media(min-width:400px)]:flex items-center gap-1">
                   <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                   <span className="font-sans">
-                    {job.recurrence_interval || "Recurring"}
+                    {seriesSummary(job) ?? formatRecurrenceInterval(job.recurrence_interval)}
                   </span>
                 </span>
               </>

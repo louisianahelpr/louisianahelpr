@@ -175,13 +175,14 @@ export async function porchPhoto(
  * admins can read it, through a signed URL (storage createSignedUrl).
  */
 const DECLUTTER_HANDOVER_BUCKET = "declutter-handover";
-export async function uploadHandoverPhoto(userId: string, orderId: string, file: File): Promise<string> {
-  // Live camera only (20261029002010): a photo taken more than 10 minutes ago is refused before it is uploaded.
-  assertLivePhoto(file);
+/** Clean a photo (metadata stripped, shrunk) into the one type the handover bucket's uploads use, or refuse it. */
+async function cleanHandoverPhoto(file: File): Promise<File> {
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
-  const path = `${userId}/declutter/handover/${orderId}/${nonce}.jpg`;
+  return cleaned;
+}
+/** Upload a cleaned photo to `path` in the private handover bucket: immutable, never overwriting. */
+async function putHandoverPhoto(path: string, cleaned: File): Promise<string> {
   const { error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).upload(path, cleaned, {
     contentType: "image/jpeg",
     upsert: false,
@@ -189,6 +190,15 @@ export async function uploadHandoverPhoto(userId: string, orderId: string, file:
   });
   if (error) throw new Error("photo_not_uploaded");
   return path;
+}
+const photoNonce = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()));
+export async function uploadHandoverPhoto(userId: string, orderId: string, file: File): Promise<string> {
+  // Live camera only (20261029002010): a photo taken more than 10 minutes ago is refused before it is uploaded.
+  assertLivePhoto(file);
+  const cleaned = await cleanHandoverPhoto(file);
+  const nonce = photoNonce();
+  const path = `${userId}/declutter/handover/${orderId}/${nonce}.jpg`;
+  return putHandoverPhoto(path, cleaned);
 }
 
 /**
@@ -219,17 +229,8 @@ export async function uploadProblemPhoto(orderId: string, file: File): Promise<s
   const { data: auth } = await supabase.auth.getSession();
   const uid = auth.session?.user.id;
   if (!uid) throw new Error("not_authenticated");
-  const cleaned = await cleanListingPhoto(file);
-  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
-  const path = `${uid}/declutter/problem/${orderId}/${nonce}.jpg`;
-  const { error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).upload(path, cleaned, {
-    contentType: "image/jpeg",
-    upsert: false,
-    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
-  });
-  if (error) throw new Error("photo_not_uploaded");
-  return path;
+  const problemPhoto = await cleanHandoverPhoto(file);
+  return putHandoverPhoto(`${uid}/declutter/problem/${orderId}/${photoNonce()}.jpg`, problemPhoto);
 }
 
 /** Boards 71/72/159: where the handover stands, for either side (declutter_my_handover; never a code). */

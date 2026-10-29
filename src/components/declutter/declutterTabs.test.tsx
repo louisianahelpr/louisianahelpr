@@ -139,6 +139,8 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyBookings: async () => state.bookings,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
+  // Audit 1b D2-2: no open problem on these orders (the cards' problem note has its own tests).
+  fetchOpenProblems: async () => [],
 }));
 // Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));

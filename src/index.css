@@ -4748,8 +4748,14 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
   position: fixed; left: 0; right: 0; top: 0; z-index: 60;
   padding-top: var(--safe-area-top, 0px);
   height: calc(44px + var(--safe-area-top, 0px));
-  display: flex; align-items: center; justify-content: center;
-  font: 600 17px/1 Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
+  /* ONE line, cut with an ellipsis (audit A1-L1, 2026-10-29): a long Declutter item title wrapped to two lines
+     left-aligned across the whole width at 375, over the back, share and watch buttons, its 2nd line clipped.
+     A block, not flex: text-overflow never applies to a flex container's anonymous text item. The side padding
+     keeps the title clear of where the page's back button and two icon buttons sit. */
+  display: block; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-left: 3.5rem; padding-right: 3.5rem;
+  font: 600 17px/44px Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
   color: hsl(var(--foreground));
   /* OPAQUE (lead 2026-10-20): at 0.88 + blur the page title and content showed
      through on scroll (Declutter deliveries, Post a job at 375). */

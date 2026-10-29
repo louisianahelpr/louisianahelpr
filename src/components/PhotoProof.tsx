@@ -28,6 +28,7 @@ import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, JobStepPrimaryButton, jobActionChipStyle } from "@/components/job-card/JobActionRow";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { photoPrimaryLabel } from "@/components/job-card/photoPrimaryLabel";
+import { proofPhotoLinkName } from "./proofPhotoLinkName";
 
 type PhotoProofProps = {
   jobId: string;
@@ -423,16 +424,6 @@ type PhotoProofGroupProps = {
 };
 
 export { PhotoProofRequirementNote, POSTER_PROOF_MISSING_NOTE } from "./PhotoProofRequirementNote";
-
-/**
- * What a proof thumbnail's link is called (F36, app audit 2026-10-28: the approve sheet's photo links were read
- * out by their signed storage URL). "Before photo", or "Before photo 2" when there are several; the image inside
- * is then decorative (alt=""), so the name is said once.
- */
-function proofPhotoLinkName(type: "before" | "after", index: number, count: number): string {
-  const base = type === "before" ? "Before photo" : "After photo";
-  return count > 1 ? `${base} ${index + 1}` : base;
-}
 
 export const PhotoProofGroup = ({
   jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,

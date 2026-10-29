@@ -2,7 +2,6 @@
 // send-push-notification edge function (PR #446).
 import { useEffect, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useFeature } from "@/hooks/useFeature";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
@@ -26,8 +25,6 @@ import { NotificationPrefsLoadFailed } from "./notificationPreferences/Notificat
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
 const NotificationPreferences = () => {
-  // Quotes is behind its switch: no reminder row for a feature the member can't use (audit 2026-10-29 A3-C15).
-  const quotesOn = useFeature("quotes");
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   // Tracks WHICH toggle is in flight (not just whether *something* is
   // saving) so the inline spinner can render next to the actual switch
@@ -753,7 +750,6 @@ const NotificationPreferences = () => {
         </div>
       </div>
 
-      {quotesOn && (
       <QuoteRemindersRow
         loaded={loaded}
         savingKey={savingKey}
@@ -763,7 +759,6 @@ const NotificationPreferences = () => {
         dimmed={!emailMasterEnabled}
         saving={saving}
       />
-      )}
 
       {/* Test button — proves push + email + in-app end-to-end (see
           sendTestPush above). Zero registered push devices no longer

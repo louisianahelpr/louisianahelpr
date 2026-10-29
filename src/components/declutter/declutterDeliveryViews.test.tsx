@@ -193,10 +193,12 @@ describe("OrderDeliveryPanel: a tip for the delivery Helpr (Q2453)", () => {
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText("Add a tip for Hank?")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^\$10/ }));
-    // tipChargeBreakdown(1000): $10.61 charged, the whole $10.00 to the Helpr; no fee line.
+    // tipChargeBreakdown(1000): $10.61 charged, the whole $10.00 to the Helpr; the fee in words only.
     expect(screen.getByText("$10.61")).toBeInTheDocument();
     expect(screen.getByText(/Hank receives the whole \$10\.00 tip/)).toBeInTheDocument();
-    expect(screen.queryByText(/fee/i)).toBeNull();
+    // Owner rule #20 (2026-10-28, "Words only"; F30): the fee is named in words, never as a figure or a line.
+    expect(screen.getByText("Includes a small Louisiana Helpr service fee.")).toBeInTheDocument();
+    expect(screen.queryByText(/fee[^.]*\$|\$[^.]*fee/i)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Tip $10.00" }));
     await waitFor(() => expect(state.calls[0]?.slice(0, 3)).toEqual(["tip", "t1", 1000]));
     expect(String(state.calls[0]?.[3])).toMatch(/^[0-9a-f-]{36}$/);

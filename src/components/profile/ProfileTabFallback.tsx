@@ -139,6 +139,9 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   saved_helpers: [{ h: 344, media: 1 }],
   // Q2275 (board 91): intro line, the list, Pause all alerts (375, poster-e2e with one saved search, 2026-10-21).
   saved_searches: [{ h: 36 }, { h: 72 }, { h: 60 }],
+  // A3-C16: the intro line, two lines at 375 (customer-e2e with no blocks, 2026-10-29; it drew the two-card
+  // default and collapsed 706px). Someone with blocks gets their list below it, growing down, never collapsing.
+  blocked: [{ h: 40 }],
   analytics: [{ h: 481 }],
   // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).

@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { useFeature } from "@/hooks/useFeature";
 import { SwitchSlot } from "./SwitchSlot";
 
 /**
@@ -25,6 +26,9 @@ export function QuoteRemindersRow({
   dimmed: boolean;
   saving: boolean;
 }) {
+  // Quotes is behind its switch: no reminder row for a feature the member can't use (audit 2026-10-29 A3-C15).
+  const quotesOn = useFeature("quotes");
+  if (!quotesOn) return null;
   return (
     <div
       className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${dimmed ? "opacity-85" : ""} ${saving ? "opacity-80 cursor-wait" : ""}`}

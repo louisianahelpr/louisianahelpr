@@ -233,7 +233,7 @@ async function driveSignup(): Promise<string | undefined> {
   fireEvent.change(document.getElementById("zipCode")!, { target: { value: "70112" } });
   // No phone or birthday on step 2 since 2026-10-09 (asked later); step 1's
   // 18+ box above is the age gate.
-  fireEvent.click(await screen.findByRole("button", { name: /create account/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /^create account$/i }));
   await waitFor(() => expect(h.state.invokeCalls.some((c) => c.name === "complete-signup")).toBe(true), { timeout: 4000 });
   return undefined;
 }

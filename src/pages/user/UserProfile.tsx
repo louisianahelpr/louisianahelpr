@@ -11,8 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Crown, MoreVertical, Flag, Ban, UserX, Pencil } from "lucide-react";
-import { EDIT_PROFILE_PATH } from "@/components/profile/profileLanding/YouCard";
+import { Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -34,6 +33,7 @@ import { SellingNowRow } from "@/components/declutter/SellingNowRow";
 import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfileSection";
 import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
+import { OwnProfileEditButton } from "./OwnProfileEditButton";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
@@ -159,9 +159,7 @@ const UserProfile = () => {
   //
   // The own-profile view is titled by what it is: there the subject is not a
   // stranger to identify, it is the preview itself, and the whole screen
-  // exists to answer "what do others see?". It read "Profile Review", and the
-  // "How others see you" eyebrow never paints (PageHeader retired eyebrows),
-  // so at 375 nothing said it was a preview (app audit A3-C7, 2026-10-29).
+  // exists to answer "what do others see?" (app audit A3-C7: "Profile Review" never said so at 375).
   const headerTitle = isOwnProfile ? OWN_PROFILE_TITLE : "Profile";
 
   // The BROWSER TAB still names the person — a tab strip with four identical
@@ -484,20 +482,7 @@ const UserProfile = () => {
               </DropdownMenu>
             </>
           ) : isOwnProfile ? (
-            // Your own preview opens Edit profile in one tap (app audit A3-C6, 2026-10-29).
-            <Button
-              variant="ghost"
-              type="button"
-              data-testid="own-profile-edit"
-              aria-label="Edit profile"
-              onClick={() => navigate(EDIT_PROFILE_PATH)}
-              className="rounded-full h-10 min-w-10 px-2 sm:px-3 shrink-0 gap-1.5 text-ds-14 font-bold"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <Pencil className="w-4 h-4" aria-hidden />
-              {/* Icon only on a phone, so "How others see you" stays whole at 375. */}
-              <span className="max-sm:hidden">Edit</span>
-            </Button>
+            <OwnProfileEditButton />
           ) : null
         }
       />
@@ -790,11 +775,7 @@ const UserProfile = () => {
 
         </div>
 
-        {/* Every member can be invited, a new one included (app audit A3-C9,
-            2026-10-29). It showed only for someone with work on record, so a
-            new member who joined to help could never be offered a first job
-            from their profile; every account posts and does jobs (CLAUDE.md:
-            never role-based). The direct-offer form is the same either way. */}
+        {/* Every member can be invited, a new one included: every account posts and does jobs (app audit A3-C9). */}
         {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />}
       </div>
 

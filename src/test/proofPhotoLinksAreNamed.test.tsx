@@ -8,7 +8,7 @@
  *
  * @mutate src/components/PhotoProof.tsx | rel="noopener noreferrer" aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}> | rel="noopener noreferrer">
  * @mutate src/components/PhotoProof.tsx | rel="noopener noreferrer" aria-label={proofPhotoLinkName("after", i, afterUrls.length)}> | rel="noopener noreferrer">
- * @mutate src/components/PhotoProof.tsx |   return count > 1 ? `${base} ${index + 1}` : base; |   return base;
+ * @mutate src/components/proofPhotoLinkName.ts |   return count > 1 ? `${base} ${index + 1}` : base; |   return base;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

@@ -1099,7 +1099,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     reviewsTotalCount,
     loadMoreReviews,
     postedJobs,
-    workedJobs,
     completedWorkedJobs,
     completedWorkedCount,
     badgeStats,

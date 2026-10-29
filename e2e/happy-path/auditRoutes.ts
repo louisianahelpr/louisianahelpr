@@ -396,6 +396,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
   // the path now renders NotFound, which `not-found` already covers once.
   { name: "pets", url: "/profile?tab=pets" },
+  // Settings › Your account › Blocked people (app audit A3-C16, 2026-10-29).
+  { name: "profile-blocked", url: "/profile?tab=blocked" },
   // The alias rows for /activity, /availability, /earnings, /gift-card,
   // /saved-helprs, /saved-helpers, /schedule and /settings went with their
   // routes (Q194, 2026-09-23): every link now names the tab directly, and each

@@ -29723,6 +29723,205 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
       "requests": 25
+    },
+    {
+      "url": "/profile?tab=blocked",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4397",
+      "capturedAt": 2447,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=blocked",
+      "loadingPng": "/Users/lexilombas/.lh-shots/lander-loading/customer_profile_tab_blocked.loading.png",
+      "loading": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 108
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 68,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 12,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 1,
+            "text": "Blocked people"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/lander-loading/customer_profile_tab_blocked.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "testid:blocked-people-tab": {
+            "y": 0,
+            "h": 105.7
+          },
+          "div[data-testid=\"blocked-people-tab\"] > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 105.7
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 12,
+            "textLeaves": 2,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 0,
+            "text": "Blocked peopleYou haven't blocked anyone. You can block someone from the menu on their profile."
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 108
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 105.7
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -2.3,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            68,
+            68
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            1
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -2.3,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 32
     }
   ],
   "merged": [
@@ -29957,6 +30156,14 @@
       "base": "http://localhost:5841",
       "surfaces": [
         "helper /helprs"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-29T15:03:28.331Z",
+      "base": "http://127.0.0.1:4397",
+      "surfaces": [
+        "customer /profile?tab=blocked"
       ],
       "replaced": []
     }

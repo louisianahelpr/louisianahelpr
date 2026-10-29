@@ -131,7 +131,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // them to confirm the Helpr arrived, the button here does it (F14), instead of sending them to the card.
   const posterWait = isPoster ? posterStatusLine(job as unknown as Job, pending).id : null;
   // The hired Helpr (F26): the Working card's own next-step button, plus Message and the street address.
-  const messagePoster = () => navigate(`/messages?jobId=${encodeURIComponent(job.id)}&userId=${encodeURIComponent(job.customer_id ?? "")}`);
+  const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const hiredFace = isHired && viewer.action.kind === "open_working"
     ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, open: () => navigate(highlight), message: messagePoster })
     : null;

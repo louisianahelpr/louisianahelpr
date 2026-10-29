@@ -88,7 +88,11 @@ describe("Settings › Blocked people", () => {
     renderTab();
     fireEvent.click(await screen.findByRole("button", { name: "Unblock Hallie H." }));
     await waitFor(() => expect(unblockUser).toHaveBeenCalledWith(ME, "hallie-1"));
-    await waitFor(() => expect(screen.queryByText("Hallie H.")).toBeNull());
+    // The list re-read after the unblock: the other block is still there, Hallie's row is gone.
+    await waitFor(() => {
+      expect(screen.getByText("A deleted account")).toBeTruthy();
+      expect(screen.queryByText("Hallie H.")).toBeNull();
+    });
   });
 
   it("says how to block someone when the list is empty", async () => {

@@ -48,8 +48,12 @@ import {
   uploadHandoverPhoto,
   type MyBooking,
   type MyPayout,
+  type OpenProblem,
   type ProblemReason,
 } from "@/lib/declutter/handover";
+import { ProblemOpenNote } from "./DeclutterProblemOpen";
+import { payoutLine } from "./declutterPayoutWords";
+import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
@@ -58,9 +62,8 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { payoutBreakdown, payoutStatusWords } from "@/lib/declutter/payoutWords";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
-import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
@@ -122,6 +125,7 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
   void qc.invalidateQueries({ queryKey: ["declutter", "bookings"] });
   void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
+  void qc.invalidateQueries({ queryKey: ["declutter", "problems"] });
 }
 
 /**
@@ -149,6 +153,8 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     queryFn: () => fetchMyPayouts(userId),
     enabled: !!userId && orders.some((o) => o.side === "seller"),
   });
+  // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
+  const problems = useOpenProblems(ids);
   const shown = show ? orders.filter((o) => show(o.orderId)) : orders;
   if (shown.length === 0 || !userId) return null;
   if (bookings.isError) {
@@ -165,14 +171,14 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           userId={userId}
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
+          problem={problems.get(o.orderId) ?? null}
         />
       ))}
     </section>
   );
 }
 
-
-function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView }) {
+function OrderCard({ order, userId, booking, payout, view, problem }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -208,6 +214,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
+      {problem && <ProblemOpenNote problem={problem} side={order.side} />}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
@@ -219,20 +226,16 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           slot={booking?.slot_start ?? null}
           day={booking?.pickup_day ?? null}
           itemsCents={items}
+          problemOpen={!!problem}
         />
       )}
       {done ? (
         <>
           {(order.handover === "delivery" || order.handover === "seller_delivery") && <p className="text-sm font-medium">Handed over.</p>}
-          {order.side === "seller" && payout && items > 0 && (
-            <p className="text-sm">
-              {formatPrice(payout.amount_cents)}
-              {payoutBreakdown(payout)}. {payoutStatusWords(payout)}
-            </p>
-          )}
+          {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
-              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
+              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
             </Suspense>
           )}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
@@ -243,7 +246,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           <Suspense fallback={<HelprSpinner />}>
             <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
           </Suspense>
-          <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />
+          {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
       ) : order.handover === "delivery" ? (
         <>
@@ -251,14 +254,15 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
-          <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" />
+          {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" />}
         </>
       ) : (
         <>
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
-          {order.handover === "porch"
+          {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
+          {problem ? null : order.handover === "porch"
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
             : <BookingPanel order={order} booking={booking} />}
@@ -267,10 +271,10 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
-          {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
-          {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). */}
-          <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
-            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />
+          {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
+          {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
+          {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
+            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}

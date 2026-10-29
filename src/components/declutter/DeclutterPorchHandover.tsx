@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
+import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 
 type Pickup = "porch" | "pickup_home";
 
@@ -70,6 +71,7 @@ export function PickupStatus({
   slot,
   day = null,
   itemsCents,
+  problemOpen = false,
 }: {
   orderId: string;
   handover: Pickup;
@@ -80,6 +82,8 @@ export function PickupStatus({
   day?: string | null;
   /** The items' price: what the seller keeps. */
   itemsCents: number;
+  /** Audit 1b D2-2: a problem is open, so the order is on hold and the money is held until Louisiana Helpr decides. */
+  problemOpen?: boolean;
 }) {
   const h = useMyHandover(orderId);
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
@@ -102,13 +106,15 @@ export function PickupStatus({
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
       : done
         ? null
+        : problemOpen
+          ? <>Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
         // after the handover, with no refund request open; 20261026155251). It holds for every pickup kind.
         : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{standing(handover, side, at, day, free)}</p>
+      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
       {money && (
         // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
         <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>

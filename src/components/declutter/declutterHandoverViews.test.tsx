@@ -38,11 +38,14 @@ const state = {
   porchDays: null as string[] | null,
   /** A1-B2: declutter_my_paid_cents per order (the card charge); absent = no answer yet. */
   paid: {} as Record<string, number>,
+  /** Audit 1b D2-2: the open problems both sides read (declutter_problems, status open). */
+  problems: [] as unknown[],
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.features.includes(key) }));
 // Board 141's refund panel has its own test; here a stub says whether the card offers it.
-vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => <p>Refund panel</p> }));
+// It renders the problem form the card hands it, so the card's choice to hand one (D2-2) is visible here.
+vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: ({ problemForm }: { problemForm: import("react").ReactNode }) => <div><p>Refund panel</p>{problemForm}</div> }));
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
 vi.mock("@/components/DateTimeField", () => ({
@@ -60,6 +63,7 @@ vi.mock("@/lib/declutter/paidCents", () => ({
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
+  fetchOpenProblems: async () => state.problems,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, ...state.handover }),
   handoverPhotoUrl: async (path: string) => `https://signed.test/${path}`,
   fetchOrderPickupWindows: async () => state.windows,
@@ -956,5 +960,91 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
     await screen.findByLabelText("What went wrong?");
     expect(options()).toEqual(["It isn't as described", "It's damaged", "I felt unsafe", "Something else"]);
+  });
+});
+
+// Audit 1b D2-2 (1b-problem-after-375, 1b-s-order-afterprob-p1-1440): after "Report a problem" neither card said a
+// problem was open. The buyer was still asked to pick a day, offered "Book" and a second "Report a problem"; the
+// seller was still told "You get $12 once the sale is final" while the money was held.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && <ProblemOpenNote problem={problem} side={order.side} />} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : order.handover === "porch" |           {false ? null : order.handover === "porch"
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen} |           {<ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {booking?.slot_start && !problem && <NoShowButton | {booking?.slot_start && <NoShowButton
+// @mutate src/components/declutter/declutterPayoutWords.ts | problemOpen && payout.status === "pending" ? PAYOUT_HELD | false ? PAYOUT_HELD
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD | {false ? PROBLEM_ON_HOLD
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           problemOpen={!!problem} |
+describe("D2-2: an open problem shows on both cards", () => {
+  const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
+  beforeEach(() => {
+    state.bookings = [];
+    state.payouts = [];
+    state.calls = [];
+    state.handover = null;
+    state.porchDays = null;
+    state.windows = null;
+    state.problems = [];
+    state.features = ["declutter_refund_requests"];
+  });
+
+  it("the buyer: told a problem is open with its reason, and offered no booking and no second report", async () => {
+    // Before: the same card books and reports.
+    const before = show([line({ handover: "pickup_home" })]);
+    expect(await screen.findByRole("button", { name: "Book" })).toBeInTheDocument();
+    expect(screen.queryByText("Problem reported: Louisiana Helpr is looking.")).toBeNull();
+    before.unmount();
+    state.problems = [damaged];
+    show([line({ handover: "pickup_home" })]);
+    expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
+    expect(screen.getByText(/Damaged, reported by you\. Nobody is paid until they decide\./)).toBeInTheDocument();
+    expect(screen.getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
+    expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("the seller: the reason and who reported it, and the money is held, not 'once the sale is final'", async () => {
+    state.problems = [damaged];
+    state.bookings = [slot(-120)];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
+    expect(screen.getByText(/Damaged, reported by the buyer\. Your money is held until they decide\./)).toBeInTheDocument();
+    expect((await screen.findByText(/is held while Louisiana Helpr looks at the problem/)).textContent)
+      .toBe("Your $40 is held while Louisiana Helpr looks at the problem.");
+    expect(screen.queryByText(/once the sale is final/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("a booked pickup: no They didn't show while a problem is open (the server refuses it: problem_open)", async () => {
+    state.bookings = [slot(20)];
+    const before = show([line()]);
+    expect(await screen.findByRole("button", { name: "They didn't show" })).toBeInTheDocument();
+    before.unmount();
+    state.problems = [damaged];
+    show([line()]);
+    await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+    expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
+  });
+
+  it("handed over: the payout says it is held, and the refund panel gets no second report", async () => {
+    state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
+    state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];
+    const before = show([line({ order_status: "handed_over" })]);
+    await screen.findByText("Refund panel");
+    expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+    before.unmount();
+    state.problems = [damaged];
+    const buyer = show([line({ order_status: "handed_over" })]);
+    expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
+    expect(screen.getByText("Refund panel")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+    buyer.unmount();
+    show([line({ order_status: "handed_over", my_side: "seller" })]);
+    expect(await screen.findByText(/It's held while Louisiana Helpr looks at the problem\./)).toBeInTheDocument();
+    expect(screen.queryByText(/We send it once the sale is final/)).toBeNull();
   });
 });

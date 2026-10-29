@@ -13,11 +13,11 @@ import { TAB_TITLES } from "@/pages/profile/types";
 const card = { background: "hsl(var(--card))" } as const;
 
 /** Shown for someone you blocked whose profile is gone (deleted or removed). */
-export const GONE_NAME = "A deleted account";
+const GONE_NAME = "A deleted account";
 
 export type BlockedPerson = { id: string; name: string };
 
-export const blockedPeopleKey = (me: string) => ["settings-blocked-people", me] as const;
+const blockedPeopleKey = (me: string) => ["settings-blocked-people", me] as const;
 
 /**
  * The people this member blocked, newest first, named the way the rest of
@@ -25,7 +25,7 @@ export const blockedPeopleKey = (me: string) => ["settings-blocked-people", me] 
  * own rows: user_blocks RLS lets a member read rows they are part of, and this
  * asks for blocker_id = me.
  */
-export async function fetchBlockedPeople(me: string): Promise<BlockedPerson[]> {
+async function fetchBlockedPeople(me: string): Promise<BlockedPerson[]> {
   const rows = unwrap(
     await supabase
       .from("user_blocks")

@@ -30,6 +30,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 import { usePayoutSetupBlock, usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { usePayoutSourcesLine } from "@/components/payouts/payoutSourcesLine";
 
 /** Board 87, "Where should we send your money?": what adding a bank involves, said before the tap. */
 const PAYOUT_START_POINTS = [
@@ -55,6 +56,7 @@ export function PayoutSetupForm({ onSettled }: {
   // account. While paused this form shows the notice in place of every setup
   // control, and the handlers below never call stripe-connect.
   const setupPaused = usePayoutSetupPaused();
+  const payoutSources = usePayoutSourcesLine();
   const setupBlock = usePayoutSetupBlock();
 
   // Both fetchers + their persistence policy live in src/lib/payoutSetupQueries.ts
@@ -375,7 +377,7 @@ export function PayoutSetupForm({ onSettled }: {
               Where should we send your money?
             </p>
             <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
+              {payoutSources}
             </p>
             <ul data-payout-start-list className="mt-2 space-y-1">
               {PAYOUT_START_POINTS.map((t) => (

@@ -15,6 +15,7 @@
  */
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const payoutSetup = withHeader && !profile?.stripe_account_id; | const payoutSetup = false;
 // @mutate src/components/profile/EarningsTab.tsx | {!hasStripeAccount && (stripeLoading \|\| (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />} | {false && <EarningsPayoutSetupSkeleton />}
+// @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |                   {payoutSources} |                   Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const wallet = !!profile?.stripe_account_id; | const wallet = false;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -26,6 +27,10 @@ let mockProfile: { stripe_account_id: string | null } | undefined;
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: mockProfile, loading: false }),
 }));
+
+// The connect block's line names only the sections live for the viewer (audit 2026-10-28 P4-1).
+let featuresOn: Record<string, boolean> = {};
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => featuresOn[k] === true }));
 
 import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 
@@ -41,6 +46,19 @@ const renderSkeleton = (props: { withHeader?: boolean } = {}) =>
 describe("Earnings skeleton is data-aware (Q429)", () => {
   beforeEach(() => {
     mockProfile = undefined;
+    featuresOn = {};
+  });
+
+  it("names Declutter and your shop on the connect block only while their switch is on for the viewer", () => {
+    mockProfile = { stripe_account_id: null };
+    const block = () => (screen.getByTestId("earnings-payout-setup-skeleton").textContent ?? "").replace(/\s+/g, " ");
+    renderSkeleton();
+    expect(block()).toContain("Add a bank once. Every payout from Jobs goes there.");
+    expect(block()).not.toMatch(/Declutter|your shop/);
+    cleanup();
+    featuresOn = { declutter: true, shops: true };
+    renderSkeleton();
+    expect(block()).toContain("Add a bank once. Every payout from Jobs, Declutter and your shop goes there.");
   });
 
   it("draws the connect block when the profile has no Stripe account", () => {

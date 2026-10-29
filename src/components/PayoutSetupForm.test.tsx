@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PayoutSetupForm } from "./PayoutSetupForm";
 
@@ -37,6 +37,10 @@ const requireBiometricMock = vi.fn<(reason: string, options?: unknown) => Promis
 // this file tests the setup flow itself; the paused state is
 // src/components/payouts/payoutSetupPaused.test.tsx.
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false, usePayoutSetupBlock: () => null }));
+// The payout line names only the sections whose switch is on for the viewer
+// (audit 2026-10-28 P4-1); each START case sets the switches it means.
+let featuresOn: Record<string, boolean> = {};
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => featuresOn[k] === true }));
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (...args: unknown[]) =>
     (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),
@@ -170,6 +174,7 @@ beforeEach(() => {
   requireBiometricMock.mockResolvedValue(true);
   statusFixture = CONNECTED_INCOMPLETE;
   methodsFixture = [];
+  featuresOn = {};
 });
 
 describe("PayoutSetupForm — the gate on starting/continuing Stripe onboarding", () => {
@@ -363,6 +368,8 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
  * DIDN'T CONNECT (sent, Stripe wants more). The control labels are unchanged: each opens live Stripe
  * and the press sweep's never-press list names them.
  */
+// @mutate src/components/PayoutSetupForm.tsx |               {payoutSources} |               Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
+// @mutate src/components/payouts/payoutSourcesLine.ts |   if (shops) names.push("your shop"); |   names.push("your shop");
 // @mutate src/components/PayoutSetupForm.tsx |   const checking = !!status?.connected && !!status?.details_submitted && !status?.payouts_enabled && (status?.requirements?.length ?? 0) === 0; |   const checking = false;
 // @mutate src/components/PayoutSetupForm.tsx |   const didNotConnect = !!needsMoreInfo && !!status?.details_submitted; |   const didNotConnect = false;
 // @mutate src/components/PayoutSetupForm.tsx |                 Bank ending {payoutBank.last4}. |                 Bank ending.
@@ -374,9 +381,28 @@ describe("PayoutSetupForm, board 87's four states", () => {
     statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, requirements: [] };
     renderForm();
     await screen.findByText("Where should we send your money?");
-    expect(text()).toContain("Add a bank once. Every payout from Jobs, Declutter and your shop goes there.");
+    expect(text()).toContain("Add a bank once. Every payout from Jobs goes there.");
     expect(text()).toContain("Handled by our payments partner. Helpr never sees your login");
     expect(screen.getByRole("button", { name: /Set up payouts with Stripe/ })).toBeInTheDocument();
+  });
+
+  // Audit 2026-10-28 P4-1: the line named Jobs, Declutter and your shop for
+  // every member while Declutter and Shops were still hidden from them.
+  it("START: names Declutter and your shop only while their switch is on for the viewer", async () => {
+    statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, requirements: [] };
+    renderForm();
+    await screen.findByText("Where should we send your money?");
+    expect(text()).not.toMatch(/Declutter|your shop/);
+    cleanup();
+    featuresOn = { declutter: true };
+    renderForm();
+    await screen.findByText("Where should we send your money?");
+    expect(text()).toContain("Add a bank once. Every payout from Jobs and Declutter goes there.");
+    cleanup();
+    featuresOn = { declutter: true, shops: true };
+    renderForm();
+    await screen.findByText("Where should we send your money?");
+    expect(text()).toContain("Add a bank once. Every payout from Jobs, Declutter and your shop goes there.");
   });
 
   it("CHECKING: everything sent, payouts not on yet: says so and offers nothing to press", async () => {

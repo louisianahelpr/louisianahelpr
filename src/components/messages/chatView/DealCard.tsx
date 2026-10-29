@@ -231,7 +231,8 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     navigate(
       viewerIsPoster
         ? `/jobs?tab=posted&highlight=${job.id}&manage=1`
-        : `/jobs?tab=working&highlight=${job.id}`,
+        // Working's `?highlight=` is an application id; `?job=` names the job and `open=1` opens its card (F10).
+        : `/jobs?tab=working&job=${job.id}&open=1`,
     );
 
   return (

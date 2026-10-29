@@ -20,11 +20,12 @@ import { posterStatusLine, POSTER_WAIT } from "@/components/job-card/jobStatusLi
 import { POSTER_STEP } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import type { Job } from "@/components/job-card/activityConstants";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 
 const NOW = new Date("2026-10-29T15:40:00Z"); // 10:40 CT, 25 minutes after a 10:15 start
 const base = {
   id: "job-1", customer_id: "poster-1", helper_id: "eli-1", title: "Mow", status: "in_progress",
-  payment_status: "held", date_needed: "2026-10-29", start_time: "10:15:00", is_flexible_schedule: false,
+  payment_status: "held", date_needed: jobLocalDateISO(0, NOW), start_time: "10:15:00", is_flexible_schedule: false,
   helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: null, poster_confirmed_at: null,
   helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_arrival_at: null, poster_confirmed_working_at: null,
   helper_completed_at: null, is_group_job: false,

@@ -120,6 +120,9 @@ vi.mock("@/lib/declutter/haulAway", () => ({
 }));
 // The handover chat (#3730): Selling's "Agree a handover" reads the member's open chats; none here.
 vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async () => [], openHandoverTalk: async () => "t1" }));
+// A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
+// what this file checks, so no figure is answered here.
+vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (

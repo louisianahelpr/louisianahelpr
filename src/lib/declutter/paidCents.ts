@@ -12,11 +12,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export async function fetchMyPaidCents(orderIds: string[]): Promise<Map<string, number> | null> {
   if (orderIds.length === 0) return new Map();
   const res = await supabase.rpc("declutter_my_paid_cents", { p_order_ids: orderIds });
   if (res.error && isMissingRpcNamed(res.error, "declutter_my_paid_cents")) return null;
-  const rows = (unwrap(res) ?? []) as { order_id: string; paid_cents: number }[];
+  let rows: { order_id: string; paid_cents: number }[];
+  try {
+    rows = (unwrap(res) ?? []) as { order_id: string; paid_cents: number }[];
+  } catch (thrown) {
+    // The words ride on the error (userMessage), so any screen that shows the failure says the code's own sentence.
+    const e = thrown as Error & { userMessage?: string };
+    const words = rpcErrorMessage("declutter_my_paid_cents", thrown);
+    if (words && Object.isExtensible(e)) e.userMessage = words;
+    throw e;
+  }
   return new Map(rows.map((r) => [r.order_id, Number(r.paid_cents)]));
 }

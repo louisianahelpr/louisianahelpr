@@ -572,6 +572,12 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // A1-B2 (20261029161237): what the buyer's card was charged, read for at most 200 of their own orders at once.
+  declutter_my_paid_cents: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    too_many_orders: "There are too many orders to total at once. Open an order to see what you paid for it.",
+  },
   declutter_confirm_handover: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,

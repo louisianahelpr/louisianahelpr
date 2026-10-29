@@ -7,8 +7,8 @@
  * PGlite proof src/test/pglite/declutterListingRounds.pglite.mjs.
  *
  * @mutate supabase/migrations/20261028164424_declutter_listing_rounds.sql |     NEW.listed_until := now() + interval '30 days'; |     NEW.listed_until := now() + interval '60 days';
- * @mutate supabase/migrations/20261028164424_declutter_listing_rounds.sql |       IF r.relist_count < 3 THEN |       IF r.relist_count < 5 THEN
- * @mutate supabase/migrations/20261028164424_declutter_listing_rounds.sql |        AND i.listed_until <= now() + interval '3 days' |        AND i.listed_until <= now() + interval '1 hour'
+ * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql |       ELSIF r.relist_count < 3 THEN |       ELSIF r.relist_count < 5 THEN
+ * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql |        AND i.listed_until <= now() + interval '3 days' |        AND i.listed_until <= now() + interval '1 hour'
  * @mutate supabase/migrations/20261028164424_declutter_listing_rounds.sql |     PERFORM cron.schedule('declutter-listing-rounds', '31 * * * *', |     PERFORM cron.schedule('declutter-listing-rounds-off', '31 * * * *',
  * @mutate src/components/declutter/DeclutterSellSteps.tsx |   "30 days. If it hasn't sold, it goes back up by itself up to 3 more times (about 4 months). We'll remind you before each round ends."; |   "Until it sells or you take it down.";
  */

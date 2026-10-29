@@ -52,11 +52,7 @@ import {
   unsupportedMapFilters,
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
-import {
-  fitToPins,
-  laRegion,
-  MyLocationControl,
-} from "./browseMap/MapLayers";
+import { laRegion, MyLocationControl } from "./browseMap/MapLayers";
 import {
   colorSchemeFor,
   getMapKit,
@@ -64,8 +60,7 @@ import {
   type MKAnnotation,
   type MKMap,
 } from "./browseMap/mapkitRuntime";
-import { useBusyAreaShading, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
-import { busyAreaCircles, busyAreas } from "@/lib/busyAreas";
+import { useBusyAreaShading, useFitPinsOnChange, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
 
 interface BrowseMapProps {
   /**
@@ -589,15 +584,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     };
   }, [visibleJobs, mapReady, syncPinFocusability]);
 
-  // Frame the pins whenever the visible set changes (FitToPins' old job), with
-  // the dock band excluded so an auto-framed pin is never parked underneath it.
-  useEffect(() => {
-    const mk = getMapKit();
-    const map = mapRef.current;
-    if (!mk || !map) return;
-    // With the busy-area circles, so the busiest is never cut at the edge (A2-L14).
-    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas));
-  }, [visibleJobs, mapReady]);
+  useFitPinsOnChange(mapRef, mapReady, visibleJobs, clearanceProbeRef); // frames pins + busy circles, above the dock band
 
   // Desktop split-view hover sync: scale the pin whose feed card the pointer
   // is over. Pin elements are plain DOM nodes tagged with `data-job-id` (see

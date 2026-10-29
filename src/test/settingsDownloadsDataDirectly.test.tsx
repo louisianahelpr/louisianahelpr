@@ -66,7 +66,9 @@ describe("A3-I4: Settings › Download my data downloads directly", () => {
     expect(invoke).toHaveBeenCalledWith("export-my-data");
     expect(blobs[0].type).toBe("application/json");
     expect(screen.getByTestId("where").textContent).toBe("/profile?tab=settings");
-    await waitFor(() => expect(row.getAttribute("aria-busy")).toBeNull());
+    // The row was busy (asserted above); it goes back to its resting line once the file is out.
+    await waitFor(() => expect(row.textContent).toMatch(/A copy of what Helpr holds about you/));
+    expect(row.getAttribute("aria-busy")).toBeNull();
   });
 
   it("the Privacy policy's card and the Settings row share one export (useDataExport)", () => {

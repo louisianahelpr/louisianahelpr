@@ -121,7 +121,8 @@ describe("Sell it for me: the entry", () => {
   it("sits on the Selling tab (with the listings, so the empty state shows it) and on Sell an item for a new listing", () => {
     const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
     // Owner 2026-10-28: under the listings, a row in "More ways to sell" beside Moving out sale (so the empty state shows it too).
-    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellItForMeEntry grouped \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);
+    // Owner 2026-10-29: "Sell a bunch" (DeclutterBunchEntry) is the first row of that card, so the run is named in full.
+    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellBunchEntry \/>\s*<SellItForMeEntry grouped \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);
     const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellView.tsx"), "utf8"));
     expect(sell).toMatch(/\{!itemId && <SellItForMeEntry \/>\}/);
   });

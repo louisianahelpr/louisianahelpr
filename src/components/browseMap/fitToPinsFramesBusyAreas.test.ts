@@ -11,7 +11,7 @@
  * not the camera.)
  *
  * @mutate src/components/browseMap/MapLayers.tsx |   for (const c of circles) { |   for (const c of circles.slice(0, 0)) {
- * @mutate src/components/BrowseMap.tsx | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas)); | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0);
+ * @mutate src/components/browseMap/useMapLayersSync.ts | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas)); | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0);
  * @mutate src/lib/busyAreas.ts |   return areas.map((a) => ({ lat: a.center.lat, lng: a.center.lng, radiusMeters: busyCircleRadiusMeters(a.total, max) })); |   return [];
  */
 import { describe, it, expect } from "vitest";
@@ -73,7 +73,11 @@ describe("A2-L14: the Browse map frame includes the busy-area circles", () => {
   });
 
   it("BrowseMap hands the busy circles to the fit", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "../BrowseMap.tsx"), "utf8"));
-    expect(src).toMatch(/fitToPins\([^;]*busyAreaCircles\(busyAreas\(visibleJobs, \[\]\)\.areas\)\)/);
+    // The fit effect lives in useFitPinsOnChange (lifted out of BrowseMap.tsx for componentSizeRatchet); BrowseMap calls it.
+    const hook = blankComments(readFileSync(resolve(__dirname, "useMapLayersSync.ts"), "utf8"));
+    expect(hook).toMatch(/fitToPins\([^;]*busyAreaCircles\(busyAreas\(visibleJobs, \[\]\)\.areas\)\)/);
+    const map = blankComments(readFileSync(resolve(__dirname, "../BrowseMap.tsx"), "utf8"));
+    expect(map).toMatch(/useFitPinsOnChange\(mapRef, mapReady, visibleJobs, clearanceProbeRef\);/);
+    expect(map).not.toMatch(/fitToPins\(mk, map, visibleJobs/);
   });
 });

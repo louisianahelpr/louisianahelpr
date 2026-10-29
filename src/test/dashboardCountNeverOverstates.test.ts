@@ -1,5 +1,6 @@
 /**
  * @mutate src/hooks/useDashboardFilters.ts | totalMatchingCount: clientOnlyNarrowing ? null : totalMatchingCount, | totalMatchingCount,
+ * @mutate src/hooks/useDashboardFilters.ts |     nearbyApplied \|\| matchAvailability; |     matchAvailability;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -15,7 +16,13 @@ describe("dashboard header count (BD-008)", () => {
   });
   it("counts both client-only filters as narrowing", () => {
     const def = src.match(/const clientOnlyNarrowing =([^;]+);/)?.[1] ?? "";
-    expect(def).toMatch(/nearbyMiles !== null/);
+    // The radius counts once it actually runs (nearbyApplied, A2-B5): a picked radius with no location keeps every
+    // job, so the server count is still the rendered set; an applied one (a fix or the parish centre) narrows it.
+    expect(def).toMatch(/\bnearbyApplied\b/);
     expect(def).toMatch(/matchAvailability/);
+    const applied = src.match(/const nearbyApplied =([^;]+);/)?.[1] ?? "";
+    expect(applied.replace(/\s+/g, " ").trim()).toBe("nearbyMiles !== null && !nearbyUnavailable");
+    const unavailable = src.match(/const nearbyUnavailable =([^;]+);/)?.[1] ?? "";
+    expect(unavailable.replace(/\s+/g, " ").trim()).toBe('nearbyMiles !== null && userLoc.status !== "ready"');
   });
 });

@@ -35,22 +35,29 @@ export function suggestedReplyErrorMessage(err: unknown): string {
 /** The suggestion for one unanswered question on the caller's own listing. Throws Error(<code>). */
 export async function requestSuggestedReply(questionId: string): Promise<SuggestedReply> {
   const { data, error } = await supabase.functions.invoke("declutter-ai-reply", { body: { questionId }, timeout: REPLY_TIMEOUT_MS });
-  if (error) {
-    const aborted = (error as { name?: unknown }).name === "AbortError" || (error as { context?: { name?: unknown } }).context?.name === "AbortError";
-    if (aborted) throw new Error("ai_timed_out");
-    const ctx = (error as { context?: Response }).context;
-    const status = ctx && typeof ctx.status === "number" ? ctx.status : 0;
-    const body: { error?: unknown } | null = ctx && typeof ctx.json === "function"
-      ? await ctx.json().catch((parseErr: unknown) => {
-          // A body that is not JSON carries no code: it reads as unavailable.
-          console.warn("[declutter] suggested reply error body was not JSON", parseErr);
-          return null;
-        })
-      : null;
-    const code = typeof body?.error === "string" ? body.error : status === 429 ? "rate_limited" : "";
-    throw new Error(code || "ai_unavailable");
-  }
+  if (error) throw await replyFailure(error);
   const d = data as { reply?: unknown; needsSeller?: unknown } | null;
   if (!d || typeof d.reply !== "string" || !d.reply.trim()) throw new Error("ai_unavailable");
   return { reply: d.reply, needsSeller: d.needsSeller === true };
+}
+
+/**
+ * The Error(<code>) a failed call throws. The code comes from the edge function's own JSON body (not a Supabase
+ * result), and the HTTP status rides on the error so the read-retry policy (src/lib/queryRetry.ts) can tell a
+ * refusal from a failing server (Q1182).
+ */
+async function replyFailure(fnError: unknown): Promise<Error & { status?: number }> {
+  const aborted = (fnError as { name?: unknown }).name === "AbortError" || (fnError as { context?: { name?: unknown } }).context?.name === "AbortError";
+  if (aborted) return new Error("ai_timed_out");
+  const ctx = (fnError as { context?: Response }).context;
+  const status = ctx && typeof ctx.status === "number" ? ctx.status : 0;
+  const sent: { error?: unknown } | null = ctx && typeof ctx.json === "function"
+    ? await ctx.json().catch((parseErr: unknown) => {
+        // A body that is not JSON carries no code: it reads as unavailable.
+        console.warn("[declutter] suggested reply error body was not JSON", parseErr);
+        return null;
+      })
+    : null;
+  const code = typeof sent?.error === "string" ? sent.error : status === 429 ? "rate_limited" : "";
+  return Object.assign(new Error(code || "ai_unavailable"), status > 0 ? { status } : {});
 }

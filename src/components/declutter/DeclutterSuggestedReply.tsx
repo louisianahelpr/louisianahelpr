@@ -36,11 +36,13 @@ export function DeclutterSuggestedReply({
       </div>
     );
   }
+  // A failed suggestion says why and offers one more try (a tap, never automatic: each try is a model call).
   if (s.isError) {
     return (
-      <p className="text-ds-13 text-muted-foreground" data-suggested-reply="error">
-        {suggestedReplyErrorMessage(s.error)}
-      </p>
+      <div className="flex flex-wrap items-center gap-2" data-suggested-reply="error">
+        <p className="min-w-0 flex-1 text-ds-13 text-muted-foreground">{suggestedReplyErrorMessage(s.error)}</p>
+        <Button type="button" size="sm" variant="outline" disabled={s.isFetching} onClick={() => void s.refetch()}>Try again</Button>
+      </div>
     );
   }
   const { reply, needsSeller } = s.data;

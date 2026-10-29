@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { report } from "@/lib/errorLogger";
-import { busyAreas } from "@/lib/busyAreas";
+import { busyAreaCircles, busyAreas } from "@/lib/busyAreas";
 import { drawBusyAreas } from "@/components/busyAreas/busyAreaOverlays";
 import { colorSchemeFor, getMapKit, type MKMap } from "./mapkitRuntime";
-import { readIsDark } from "./config";
+import { readIsDark, type MapJob } from "./config";
+import { fitToPins } from "./MapLayers";
 
 /**
  * Two map-wide layers BrowseMap keeps in step with the page, lifted out of
@@ -52,4 +53,24 @@ export function useBusyAreaShading(mapRef: RefObject<MKMap | null>, mapReady: bo
       report(e instanceof Error ? e : new Error("busy-area shading failed"), { tags: { source: "BrowseMap.busyAreas" } });
     }
   }, [jobs, mapReady, mapRef]);
+}
+
+/**
+ * Frame the pins whenever the visible set changes (FitToPins' old job), with
+ * the dock band excluded so an auto-framed pin is never parked underneath it.
+ * Lifted out of BrowseMap.tsx (componentSizeRatchet) when A2-L14 added the circles.
+ */
+export function useFitPinsOnChange(
+  mapRef: RefObject<MKMap | null>,
+  mapReady: boolean,
+  visibleJobs: ReadonlyArray<Pick<MapJob, "latitude" | "longitude" | "parish">>,
+  clearanceProbeRef: RefObject<HTMLDivElement | null>,
+) {
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    // With the busy-area circles, so the busiest is never cut at the edge (A2-L14).
+    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas));
+  }, [visibleJobs, mapReady, mapRef, clearanceProbeRef]);
 }

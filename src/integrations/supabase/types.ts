@@ -1972,6 +1972,7 @@ export type Database = {
           drops_stopped: boolean
           floor_price_cents: number
           item_id: string
+          keep_up_until_sold: boolean
           move_out_on: string | null
           sale_name: string | null
           sale_starts_on: string | null
@@ -1990,6 +1991,7 @@ export type Database = {
           drops_stopped?: boolean
           floor_price_cents: number
           item_id: string
+          keep_up_until_sold?: boolean
           move_out_on?: string | null
           sale_name?: string | null
           sale_starts_on?: string | null
@@ -2008,6 +2010,7 @@ export type Database = {
           drops_stopped?: boolean
           floor_price_cents?: number
           item_id?: string
+          keep_up_until_sold?: boolean
           move_out_on?: string | null
           sale_name?: string | null
           sale_starts_on?: string | null
@@ -14082,6 +14085,7 @@ export type Database = {
         }[]
       }
       declutter_keep_up_state: { Args: { p_item_id: string }; Returns: boolean }
+      declutter_keeps_up: { Args: { p_item_id: string }; Returns: boolean }
       declutter_leave_review: {
         Args: {
           p_comment: string

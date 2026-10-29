@@ -67,6 +67,8 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 // re-run every effect keyed on it.
 const account: { user: { id: string }; profile: Record<string, unknown>; isLoading: boolean } = { user: { id: "u1" }, profile: {}, isLoading: false };
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => account }));
+// The item page's Buy now / offer panel adds the one-time setup fee (b28, the live platform setting): none owed here.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeKnown: () => true }));
 vi.mock("@/lib/persistUserLocation", () => ({ persistUserLocation: async () => undefined }));
 // A ZIP on file whose lookup fails (network or an unknown ZIP): no area.
 vi.mock("@/lib/parishLookup", () => ({ resolveParishByZip: async (zip: string) => ({ status: "lookup-failed", zip }) }));

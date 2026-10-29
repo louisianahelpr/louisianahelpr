@@ -126,6 +126,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterSellPhotos.tsx": { bucket: "job-photos" },
   // Room photos (moving-out mode) are never stored: cleaned to JPEG and sent to the photo tool only; held to the listing photos' bucket so it offers nothing a listing photo could not be.
   "src/components/declutter/DeclutterMoveView.tsx": { bucket: "job-photos" },
+  // Sell a bunch (owner 2026-10-29): the photos go up as listing photos through addPhoto (src/lib/declutter/bunch.ts listBunch).
+  "src/components/declutter/DeclutterBunchView.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   // Seller delivery (20261027153244): the drop-off photo goes up through uploadHandoverPhoto, the handover bucket.
   "src/components/declutter/SellerDeliveryOrder.tsx": { bucket: "declutter-handover" },

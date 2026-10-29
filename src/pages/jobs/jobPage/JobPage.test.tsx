@@ -22,7 +22,8 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && job.location && ( |             {false && job.location && (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: () => void apply.flow.handleApplyRequest(job.id) } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
+ * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const line = job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : | const line =
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire someone.", |
@@ -74,6 +75,29 @@ const faceRequests = vi.hoisted(() => [] as unknown[][]);
 vi.mock("@/components/job-card/faceActionRequest", async (orig) => ({
   ...(await orig<typeof import("@/components/job-card/faceActionRequest")>()),
   requestFaceAction: (...a: unknown[]) => { faceRequests.push(a); },
+}));
+// F9: Apply runs Home's flow on this page. A small stateful stand-in for useApplyFlow (its own behaviour is
+// Home's tests) and a stub sheet that prints what it was handed.
+const applyRequests = vi.hoisted(() => [] as string[]);
+vi.mock("@/pages/home/useApplyFlow", async () => {
+  const { useState } = await import("react");
+  return {
+    useApplyFlow: () => {
+      const [id, setId] = useState<string | null>(null);
+      return {
+        confirmApplyJobId: id, setConfirmApplyJobId: setId,
+        handleApplyRequest: async (jobId: string) => { applyRequests.push(jobId); setId(jobId); return true; },
+        handleApplyConfirm: vi.fn(), applyMessage: "", setApplyMessage: vi.fn(), applyFiles: [], setApplyFiles: vi.fn(),
+        applyLoading: false, applyTimeSuggestion: null, setApplyTimeSuggestion: vi.fn(),
+        applicationSent: null, closeApplicationSent: vi.fn(), viewApplication: vi.fn(),
+      };
+    },
+  };
+});
+vi.mock("@/components/dashboard/ApplyConfirmDialog", () => ({
+  ApplyConfirmDialog: ({ confirmApplyJob }: { confirmApplyJob: { title: string; posterName?: string } }) => (
+    <div data-testid="apply-sheet">{`${confirmApplyJob.title} · ${confirmApplyJob.posterName}`}</div>
+  ),
 }));
 // A booked ("accepted") job asks whether its slot was moved; no move on these fixtures.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
@@ -163,6 +187,7 @@ beforeEach(() => {
   state.myApplication = null;
   state.tracking = null;
   faceRequests.length = 0;
+  applyRequests.length = 0;
   state.owed = 0;
   state.cardHold = false;
 });
@@ -190,7 +215,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.getByTestId("where").textContent).toContain("/jobs?tab=working");
   });
 
-  it("shows the real take-home (no fee named), the city only, and Apply opens the quick-apply sheet", () => {
+  it("shows the real take-home (no fee named), the city only, and Apply opens the apply sheet on the page", async () => {
     state.job = row();
     renderPage();
     // $90 - (5% of $90 + 70c) = $84.80, floored to whole dollars on the headline (owner, 2026-08-19).
@@ -205,7 +230,12 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     // A Helpr browsing an open job is not on it yet: no tracker.
     expect(document.querySelector("[data-job-tracker]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
-    expect(screen.getByTestId("where").textContent).toBe(`/home?quickApply=${row().id}`);
+    // F9: the apply sheet opens over THIS page (Home's flow, useApplyFlow), not /home?quickApply.
+    const sheet = await screen.findByTestId("apply-sheet");
+    expect(screen.queryByTestId("where")).toBeNull();
+    expect(applyRequests).toEqual([row().id]);
+    // F8 on this path: the sheet names the poster the way the page's poster card does, never "a neighbor".
+    expect(sheet.textContent).toBe(`${row().title} · Rhonda D.`);
   });
 
   it("an unstamped (older) job shows the take-home at the viewer's own tier rate", () => {

@@ -40,6 +40,7 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
+import { PageApplySheet, usePageApply } from "./PageApplySheet";
 
 function groupLabel(category: string): string | null {
   const id = jobCategoryGroupOf(category);
@@ -77,6 +78,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
+  const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
 
   if (q.isPending) {
     return (
@@ -157,7 +159,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         : viewer.action.kind === "view_application"
           ? { label: "View application", go: () => navigate(highlight) }
           : viewer.action.kind === "apply" && canApply
-            ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
+            // The apply sheet opens over THIS page (F9), the flow Home runs (PageApplySheet).
+            ? { label: "Apply", go: () => void apply.flow.handleApplyRequest(job.id) }
             : null;
 
   return (
@@ -254,6 +257,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
       </div>
+      {!isPoster && <PageApplySheet apply={apply} />}
     </AppPage>
   );
 }

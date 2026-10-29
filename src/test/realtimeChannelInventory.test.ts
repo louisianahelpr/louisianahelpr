@@ -136,8 +136,9 @@ const key = (b: Binding) => `${b.file} | ${b.channel} | ${b.table} ${b.event} | 
  */
 // @two-way src/test/realtimeChannelInventory.test.ts:expect(all().map(key).sort()).toEqual(
 const CHANNEL_INVENTORY = [
-  "components/JobTracking.tsx | tracking-${jobId} | job_tracking * | job_id=eq.${jobId}",
-  "components/JobTracking.tsx | tracking-${jobId} | jobs UPDATE | id=eq.${jobId}",
+  // The job's one shared channel (JobTracking's tracker and the chat's job card, audit 2026-10-28 F1).
+  "lib/jobRealtimeBus.ts | tracking-${jobId} | job_tracking * | job_id=eq.${jobId}",
+  "lib/jobRealtimeBus.ts | tracking-${jobId} | jobs UPDATE | id=eq.${jobId}",
   "components/messages/useMessageReactions.ts | message_reactions:${jobId} | message_reactions * | job_id=eq.${jobId}",
   "hooks/useActivityData.ts | activity-realtime | job_tracking * | helper_id=eq.${userId}",
   "hooks/useActivityData.ts | activity-realtime | jobs * | helper_id=eq.${userId}",
@@ -306,7 +307,7 @@ describe("realtime channel inventory (Q105)", () => {
     const sf = parse(file);
     const effects: ts.CallExpression[] = [];
     visit(sf, (n) => {
-      if (ts.isCallExpression(n) && /^use(Layout)?Effect$/.test(n.expression.getText(sf)) && /subscribeWithRecovery\(/.test(n.getText(sf))) {
+      if (ts.isCallExpression(n) && /^use(Layout)?Effect$/.test(n.expression.getText(sf)) && /subscribeJobRealtime\(/.test(n.getText(sf))) {
         effects.push(n);
       }
     });
@@ -314,7 +315,8 @@ describe("realtime channel inventory (Q105)", () => {
     const [body, deps] = effects[0].arguments;
     const text = body.getText(sf);
     const bail = /\bif\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*return\s*;/g;
-    const subAt = text.indexOf("subscribeWithRecovery(");
+    const subAt = text.indexOf("subscribeJobRealtime(");
+    expect(subAt, "JobTracking subscribes through the job's shared channel").toBeGreaterThan(0);
     const guards = [...text.matchAll(bail)].filter((m) => m.index! < subAt).map((m) => m[1]);
     const terminal = guards.find((id) => {
       const decl = new RegExp(`const\\s+${id}\\s*=\\s*([^;]+);`).exec(sf.getText())?.[1] ?? "";

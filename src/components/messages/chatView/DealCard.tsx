@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -11,6 +12,9 @@ import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { JobProgress } from "@/components/tracker/JobProgress";
+import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
+import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
+import type { Job } from "@/components/job-card/activityConstants";
 
 /**
  * The deal-room chat's pinned card (board 2; chat halves of 59, 61, 62, 63).
@@ -25,9 +29,15 @@ import { JobProgress } from "@/components/tracker/JobProgress";
  * ONE BUTTON, AND IT ONLY OPENS THE JOB: the job's own card on Posted or
  * Working, where the tracker's controls and their gates decide. The card
  * never writes, so it can never offer a step the tracker would refuse.
+ *
+ * THE WORKING CARD'S OWN STATE (audit 2026-10-28, F1): the photo columns and the job's latest tracking row are
+ * read too, because the card's line hangs on them (the owed before/after photo; Start working vs Mark done:
+ * helperCardLine / helperProgress). Without them every arrived job read "Take the before photo" forever. A
+ * realtime binding on this job's row and its tracking rows refetches the card, so it moves with the Working
+ * card instead of waiting for a remount. Guard: src/test/dealCardReadsTheLiveJob.test.tsx.
  */
 const COLS =
-  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute,helper_confirmed_at,helper_dayof_confirmed_at,poster_confirmed_at,poster_completed_at";
+  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute,helper_confirmed_at,helper_dayof_confirmed_at,poster_confirmed_at,poster_completed_at,require_photo_proof,proof_before_urls,proof_after_urls,is_group_job";
 
 type DealRow = ProgressJob & {
   id: string;
@@ -77,9 +87,39 @@ function useDealCard(convo: Conversation, userId: string) {
         ) as { status: string } | null;
         application = row?.status ?? null;
       }
-      return { job, application };
+      // The tracking row says whether work has started (helperProgress): read only for the hired pair, the two
+      // people the row is about.
+      let trackingStatus: string | null = null;
+      if (isHiredPairThread(job, convo, userId)) {
+        const t = unwrap(
+          await supabase
+            .from("job_tracking")
+            .select("status")
+            .eq("job_id", convo.jobId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ) as { status: string | null } | null;
+        trackingStatus = t?.status ?? null;
+      }
+      return { job, application, trackingStatus };
     },
   });
+}
+
+const DEAL_TERMINAL = new Set(["completed", "cancelled", "expired"]);
+
+/** Refetch the deal card when its job row or tracking rows change (the Working card's own channel shape). */
+function useDealCardLive(jobId: string | null | undefined, status: string | null | undefined): void {
+  const queryClient = useQueryClient();
+  const live = !!jobId && !!status && !DEAL_TERMINAL.has(status);
+  useEffect(() => {
+    if (!live || !jobId) return;
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: ["deal-card", jobId] });
+    // The job's ONE shared channel, the tracker's own (src/lib/jobRealtimeBus.ts): no second subscription.
+    const offs = (["job", "tracking"] as const).map((topic) => subscribeJobRealtime(jobId, topic, refresh, { onRecovered: refresh }));
+    return () => { for (const off of offs) off(); };
+  }, [jobId, live, queryClient]);
 }
 
 /**
@@ -144,6 +184,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
   const navigate = useNavigate();
   const { data } = useDealCard(convo, userId);
   const rescheduled = useJobRescheduled(data?.job.id, data?.job.status === "accepted");
+  useDealCardLive(data?.job.id, data?.job.status);
   if (!data) return null;
   const { job, application } = data;
   const viewerIsPoster = !!convo.viewerIsPoster;
@@ -155,6 +196,9 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     threadHelprId: viewerIsPoster ? convo.otherUserId : userId,
     application,
     rescheduled,
+    // The Working card's progress (AppliedJobCard: helperCardLine reads helperProgress off the tracking row).
+    workUnderway: helperProgress(job as unknown as Job, data.trackingStatus).workUnderway,
+    tracking: data.trackingStatus ? { status: data.trackingStatus } : null,
   });
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? formatJobDate(job.date_needed) : null, clock(job.start_time)].filter(Boolean).join(" · ");

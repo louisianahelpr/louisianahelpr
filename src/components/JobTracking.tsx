@@ -6,7 +6,7 @@ import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
-import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
+import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { haversineMiles } from "@/lib/geo";
@@ -643,46 +643,42 @@ export function JobTracking({
     // (revision_requested, disputed) can still change and keep theirs.
     if (jobTerminal) return;
 
-    const sub = subscribeWithRecovery(
-      (name) => supabase
-      .channel(name)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "job_tracking", filter: `job_id=eq.${jobId}` },
-        (payload) => {
-          if (payload.new && typeof payload.new === "object" && "id" in payload.new) {
-            setTracking(payload.new as unknown as TrackingData);
-          }
+    // The job's ONE shared channel (src/lib/jobRealtimeBus.ts): the chat's job card listens on it too.
+    // The tracker is a progress bar driven ENTIRELY by other people's writes. A dead channel freezes it
+    // mid-job on a step that has already been passed, which reads as "the helper has stopped" rather than
+    // "we lost the socket", so re-read the row the moment we are back.
+    const offTracking = subscribeJobRealtime(
+      jobId,
+      "tracking",
+      (payload) => {
+        if (payload.new && typeof payload.new === "object" && "id" in payload.new) {
+          setTracking(payload.new as unknown as TrackingData);
         }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
-        (payload) => {
-          if (payload.new && typeof payload.new === "object") {
-            const updated = payload.new as Partial<Tables<"jobs">>;
-            if (updated.helper_confirmed_at !== undefined) setHelperConfirmedAt(updated.helper_confirmed_at);
-            if (updated.poster_confirmed_at !== undefined) setPosterConfirmedAt(updated.poster_confirmed_at);
-            setJobStamps((prev) => ({
-              onTheWayAt: updated.helper_on_the_way_at !== undefined ? updated.helper_on_the_way_at : prev.onTheWayAt,
-              arrivedAt: updated.helper_arrived_at !== undefined ? updated.helper_arrived_at : prev.arrivedAt,
-              arrivalVerifiedAt: updated.helper_arrival_verified_at !== undefined ? updated.helper_arrival_verified_at : prev.arrivalVerifiedAt,
-              posterConfirmedArrivalAt: updated.poster_confirmed_arrival_at !== undefined ? updated.poster_confirmed_arrival_at : prev.posterConfirmedArrivalAt,
-              nearMissAt: updated.helper_arrival_near_miss_at !== undefined ? updated.helper_arrival_near_miss_at : prev.nearMissAt,
-              helperCompletedAt: updated.helper_completed_at !== undefined ? updated.helper_completed_at : prev.helperCompletedAt,
-              posterCompletedAt: updated.poster_completed_at !== undefined ? updated.poster_completed_at : prev.posterCompletedAt,
-            }));
-          }
+      },
+      { onRecovered: () => void loadTracking() },
+    );
+    const offJob = subscribeJobRealtime(
+      jobId,
+      "job",
+      (payload) => {
+        if (payload.new && typeof payload.new === "object") {
+          const updated = payload.new as Partial<Tables<"jobs">>;
+          if (updated.helper_confirmed_at !== undefined) setHelperConfirmedAt(updated.helper_confirmed_at);
+          if (updated.poster_confirmed_at !== undefined) setPosterConfirmedAt(updated.poster_confirmed_at);
+          setJobStamps((prev) => ({
+            onTheWayAt: updated.helper_on_the_way_at !== undefined ? updated.helper_on_the_way_at : prev.onTheWayAt,
+            arrivedAt: updated.helper_arrived_at !== undefined ? updated.helper_arrived_at : prev.arrivedAt,
+            arrivalVerifiedAt: updated.helper_arrival_verified_at !== undefined ? updated.helper_arrival_verified_at : prev.arrivalVerifiedAt,
+            posterConfirmedArrivalAt: updated.poster_confirmed_arrival_at !== undefined ? updated.poster_confirmed_arrival_at : prev.posterConfirmedArrivalAt,
+            nearMissAt: updated.helper_arrival_near_miss_at !== undefined ? updated.helper_arrival_near_miss_at : prev.nearMissAt,
+            helperCompletedAt: updated.helper_completed_at !== undefined ? updated.helper_completed_at : prev.helperCompletedAt,
+            posterCompletedAt: updated.poster_completed_at !== undefined ? updated.poster_completed_at : prev.posterCompletedAt,
+          }));
         }
-      ),
-      // The tracker is a progress bar driven ENTIRELY by other people's writes.
-      // A dead channel freezes it mid-job on a step that has already been
-      // passed, which reads as "the helper has stopped" rather than "we lost
-      // the socket" — so re-read the row the moment we are back.
-      { name: `tracking-${jobId}`, onRecovered: () => void loadTracking() },
+      },
     );
 
-    return () => { sub.close(); };
+    return () => { offTracking(); offJob(); };
     // `initialTracking` is read once when the effect runs to decide whether
     // to skip the fallback fetch. Subsequent prop changes flow through the
     // sync-effect above, not here — so it intentionally stays out of deps.

@@ -1,3 +1,5 @@
+import { recurringVisitDates } from "@/lib/recurringSchedule";
+
 /**
  * Shared price/currency formatting helpers.
  *
@@ -185,4 +187,30 @@ export function wrappedSeasonLabel(now: Date = new Date()): {
   const isYearEnd = now.getMonth() === 11; // December
   const noun = isYearEnd ? "Wrapped" : "so far";
   return { year, isYearEnd, noun, title: `${year} ${noun}` };
+}
+
+/** The series fields every job row (and the open_jobs_browse view) carries. */
+export interface SeriesFields {
+  date_needed?: string | null;
+  recurrence_interval?: string | null;
+  recurrence_days?: readonly number[] | null;
+  recurrence_weeks?: number | null;
+  recurrence_end_date?: string | null;
+}
+
+/**
+ * "Weekly · 4 visits until Nov 21": what a Repeats job asks of a Helpr, in one line (audit 2026-10-29 A2-C41:
+ * the browse card, the apply sheet, "Application sent" and the poster's Hire dialog showed one date, so a Helpr
+ * agreed to four visits having seen one). The visits are counted by the same rule the post saved them with
+ * (recurringVisitDates: the first visit is date_needed). Null for a one-time job.
+ */
+export function seriesSummary(job: SeriesFields): string | null {
+  const days = job.recurrence_days ?? [];
+  if (!job.date_needed || days.length === 0) return null;
+  const visits = recurringVisitDates(job.date_needed, days, job.recurrence_weeks ?? 0);
+  const last = visits[visits.length - 1] ?? job.recurrence_end_date ?? null;
+  const label = formatRecurrenceInterval(job.recurrence_interval);
+  const count = visits.length > 0 ? ` · ${visits.length} visit${visits.length === 1 ? "" : "s"}` : "";
+  const until = last ? ` until ${formatShortDate(last)}` : "";
+  return `${label}${count}${until}`;
 }

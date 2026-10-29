@@ -48,7 +48,10 @@ describe("Create account matches board 55", () => {
     expect(step1).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
     expect(step1).not.toMatch(/apple-touch-icon/);
     expect(step1).toContain(">Create your account</h1>");
-    expect(step1).toContain('"One account to hire, help, buy and sell."');
+    // A3-L6 (2026-10-29): buying and selling (Declutter, Shops) still say "Coming soon" to members,
+    // so the subhead promises only what is open, in the landing hero's words.
+    expect(step1).toContain('"One account to hire help or find work."');
+    expect(step1).not.toMatch(/buy and sell/);
     expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");
     expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);
   });

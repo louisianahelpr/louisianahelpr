@@ -201,7 +201,7 @@ export function SignupStep1({
           <HelprMark to="/" size="lg" emblemOnly />
         </div>
         <h1 className="text-page-title text-foreground">Create your account</h1>
-        <p className="text-ds-14 text-muted-foreground">{subtitle ?? "One account to hire, help, buy and sell."}</p>
+        <p className="text-ds-14 text-muted-foreground">{subtitle ?? "One account to hire help or find work."}</p>
       </div>
 
       <section className="space-y-3.5">

@@ -17,7 +17,7 @@ import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
-import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
+import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -1002,6 +1002,8 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
     const f = firstName(n);
     if (job.helper_dayof_confirmed_at) return job.poster_confirmed_at ? `${f} confirmed · taps On my way when leaving` : `${f} confirmed`;
     if (!job.date_needed || Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`;
+    // A2-C40: past the start the confirm deadline is gone; never "confirm by" a time already passed.
+    if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return `It's start time. ${f} hasn't confirmed`;
     return `Waiting on ${f} to confirm by ${dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null))}`;
   },
   confirm_still_on: (n, job) =>

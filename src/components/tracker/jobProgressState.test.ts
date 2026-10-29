@@ -9,6 +9,8 @@
 // @mutate src/components/tracker/jobStepFromWait.ts |   confirm_booking: at(1), |   confirm_booking: at(2),
 // @mutate src/components/tracker/jobStepFromWait.ts |   confirm_still_on: at(3), |   confirm_still_on: at(2),
 // @mutate src/components/tracker/jobStepFromWait.ts |   approve: at(7), |   approve: at(6),
+// @mutate src/components/tracker/jobProgressState.ts |       if (poster && !posterIn && now >= posterConfirmClosesMs(job.date_needed, job.start_time)) { |       if (false) {
+// @mutate src/components/job-card/jobStatusLine.ts |     if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return | if (false) return
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -55,6 +57,17 @@ describe("jobProgress (the one tracker)", () => {
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-23", start_time: "09:00" };
     expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms the day before. Opens Thu 12:00 AM" });
     expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm the day before. Opens Thu 12:00 AM" });
+  });
+
+  // A2-C40 (audit 2026-10-29, AA9 1a): between the start and the next auto-start sweep (up to 15 min) the
+  // poster's line said "Tap I'm still on to confirm" while JobConfirmation had already hidden that button.
+  it("past the start, an unconfirmed poster is never told to tap I'm still on (A2-C40)", () => {
+    // NOW is Wed 10:00 AM Louisiana; the job started Wed 9:00 AM.
+    const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-21", start_time: "09:00" };
+    expect(poster(j)).toMatchObject({ stage: 3, next: "It's start time. Jolie hasn't confirmed" });
+    expect(poster({ ...j, helper_dayof_confirmed_at: "t" }).next).not.toMatch(/Tap I'm still on|confirm by/);
+    // Vacuity floor: an hour before the start the ask (and its button) is still there.
+    expect(poster({ ...j, start_time: "11:00" })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Tap I'm still on to confirm" });
   });
 
   it("window open: who still owes the confirm, and by when", () => {

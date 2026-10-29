@@ -1,4 +1,4 @@
-import { parseLocalDate } from "@/lib/dateUtils";
+import { jobStartDateTime, parseLocalDate } from "@/lib/dateUtils";
 import { jobLocalMidnightMs, JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 
 export { JOB_TIMEZONE };
@@ -246,4 +246,13 @@ export function jobDayHasEnded(dateNeeded: string | null | undefined, nowMs: num
 export function jobDayStart(dateNeeded: string): Date {
   const ms = jobDateMs(dateNeeded);
   return ms === null ? parseLocalDate(dateNeeded) : new Date(ms);
+}
+
+/**
+ * When the POSTER's "I'm still on" closes: the job's start (owner, 2026-10-08, Q1566), or the end of the job
+ * day with no start time. One rule for the confirm card (JobConfirmation hides its button here) and the
+ * tracker's line (A2-C40: past this, the line asked the poster to tap a button that was gone).
+ */
+export function posterConfirmClosesMs(dateNeeded: string, startTime: string | null | undefined): number {
+  return ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDayStart(dateNeeded).getTime() + 24 * 3_600_000)).getTime();
 }

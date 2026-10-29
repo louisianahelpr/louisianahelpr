@@ -46,6 +46,11 @@ function shiftYmd(ymd: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** "4 visits" before any visit is done, then "2 of 4 done" (lead decision 2026-10-29, A2-C42). */
+export function seriesProgress(done: number, total: number): string {
+  return done > 0 ? `${Math.min(done, total)} of ${total} done` : `${total} visit${total === 1 ? "" : "s"}`;
+}
+
 export function SeriesStrip({
   jobId,
   recurrenceDays,
@@ -87,6 +92,23 @@ export function SeriesStrip({
     },
   });
 
+  // Visits DONE (lead decision 2026-10-29, A2-C42): completed visit rows (the parent is the first visit), never
+  // rows created; "1/4 visits" before any visit read as one already done.
+  const { data: doneCount } = useQuery({
+    queryKey: ["series-done", jobId],
+    enabled: isSeries,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const result = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .or(`id.eq.${jobId},parent_job_id.eq.${jobId}`)
+        .eq("status", "completed");
+      unwrap(result);
+      return result.count ?? 0;
+    },
+  });
+
   if (!isSeries || !dateNeeded) return null;
 
   const allDates = recurringVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!);
@@ -97,7 +119,6 @@ export function SeriesStrip({
   // schedule's dates through series_ended_on, which would count a gap the
   // cron failed to fund earlier as a visit still to come.
   const total = seriesEndedOn ? createdVisits : allDates.length;
-  const created = Math.min(total, createdVisits);
   // Today in America/Chicago. The cron runs at 06:06 UTC (00:06 CST / 01:06
   // CDT), so the run for date D happens early on Chicago day D: a charge dated
   // today has run, one dated tomorrow has not. The UTC date runs ahead of that
@@ -129,7 +150,7 @@ export function SeriesStrip({
         <RefreshCw className="w-3 h-3 shrink-0" aria-hidden />
         <span className="truncate">
           <span className="font-semibold">{dayList} × {recurrenceWeeks} wk{recurrenceWeeks === 1 ? "" : "s"}</span>
-          {" · "}{created}/{total} visits
+          {" · "}{seriesProgress(doneCount ?? 0, total)}
           {seriesEndedOn
             ? " · ended, no new visits"
             : next

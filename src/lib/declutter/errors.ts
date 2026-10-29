@@ -189,6 +189,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_delivery_fee: "This order has no delivery to refund.",
   not_a_delivery_in_transit: "Only a delivery the Helpr picked up can be decided as damaged in delivery.",
   delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
+  // AL-5 (20261029000048): "The report was false" goes against whoever reported it.
+  false_report_mismatch: "A false report goes against the person who reported it: their side is at fault, and the decision goes the other way. A Helpr's report can't be marked false here.",
   task_not_found: "This delivery isn't available.",
   // Tips on deliveries (20261028014848, Q2453).
   invalid_tip: "Tips are $3 to $1,000.",

@@ -164,6 +164,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     already_refunded: DC.already_refunded,
     delivery_decision_needed: DC.delivery_decision_needed,
     delivery_not_done: DC.delivery_not_done,
+    false_report_mismatch: DC.false_report_mismatch,
     invalid_amount: DC.invalid_amount,
     invalid_decision: DC.invalid_decision,
     invalid_method: DC.invalid_method,

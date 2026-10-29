@@ -129,7 +129,9 @@ export function LiveJobsSection() {
       className="px-5 sm:px-8 lg:px-12 py-12 lg:py-20"
       style={{ background: "var(--lp-surface)" }}
     >
-      <div className="mx-auto w-full max-w-[1120px] flex flex-col gap-6 lg:gap-8">
+      {/* max-w-6xl, the measure every other landing section uses (SectionsShowcase, HowItWorks): at
+          1440 this section's left edge sat at x=160 against their 144 (audit 2026-10-28 P5-6). */}
+      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid="landing-live-jobs-measure">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="flex flex-col gap-2">
             <span className="inline-flex items-center gap-2 text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
@@ -171,7 +173,13 @@ export function LiveJobsSection() {
           </p>
         )}
         {state.kind === "ok" && state.jobs.length > 0 && (
-          <ul className="grid gap-3 lg:gap-5 lg:grid-cols-4">
+          // As many columns as there are jobs (at most 4): two jobs used to sit in a four-wide row
+          // with its right half empty (audit 2026-10-28 P5-6).
+          <ul
+            className="grid gap-3 lg:gap-5 lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]"
+            style={{ "--live-n": Math.min(state.jobs.length, LIVE_JOBS_LIMIT) } as React.CSSProperties}
+            data-testid="landing-live-jobs-list"
+          >
             {state.jobs.map((j, i) => {
               const date = liveJobDate(j.date_needed);
               const where = [j.parish ? `${j.parish} Parish` : null, date].filter(Boolean).join(" · ");

@@ -50,8 +50,10 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
             </p>
           )}
         </div>
-        <button type="button" onClick={onToggle} aria-expanded={open} className="min-h-11 shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
-          {verb}<span className="sr-only"> {FIELD_WORD[field]}</span>
+        {/* The name says which field ("Edit price"): an sr-only span's leading space is dropped from the computed name
+            (it read "Editprice"), so the name is set whole; it starts with the visible word (labelInName). */}
+        <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${FIELD_WORD[field]}`} className="min-h-11 shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+          {verb}
         </button>
       </div>
       {open && children}

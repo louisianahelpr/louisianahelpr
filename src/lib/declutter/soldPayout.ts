@@ -14,9 +14,12 @@ export function soldPayoutWords(
   payout: Pick<MyPayout, "status" | "executed_at"> | null | undefined,
   // "Oct 29" never breaks across lines (a no-break space).
   formatDay: (iso: string) => string = (iso) => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0"),
+  /** Audit 1b D2-2: the order has an open problem, so the money is held until Louisiana Helpr decides. */
+  problemOpen = false,
 ): string | null {
   // A free item is claimed, never paid out; an unread sale has no words yet.
   if (saleCents === undefined || saleCents === 0) return null;
+  if (problemOpen && payout?.status !== "succeeded") return "Held while Louisiana Helpr looks at a problem";
   if (status === "sold") return "Paid 24 hours after the handover";
   if (!payout) return null;
   switch (payout.status) {

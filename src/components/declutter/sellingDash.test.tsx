@@ -51,11 +51,14 @@ const state = {
   cart: [] as unknown[],
   sales: new Map<string, { cents: number; orderId: string | null }>(),
   payouts: [] as unknown[],
+  /** Audit 1b D2-2: open problems on the seller's orders. */
+  problems: [] as unknown[],
 };
 
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyPayouts: async () => state.payouts,
+  fetchOpenProblems: async () => state.problems,
 }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
@@ -547,6 +550,20 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
     for (const t of ["Blue enamel mug", "Oak desk", "Floor lamp"]) expect(statusOf(container, t)).not.toMatch(/\$|fee/i);
   });
 
+  // Audit 1b D2-2 (1b-s-order-afterprob-p1-1440): the row said "Sold · Paid 24 hours after the handover" while a
+  // problem held the money. The row reads the order's open problem by the sale's order id.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
+  it("an open problem: the sold row says the money is held; another sale's row is unchanged (D2-2)", async () => {
+    state.mine = [{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }];
+    state.sales = new Map([["a3", { cents: 2000, orderId: "o3" }], ["a6", { cents: 2500, orderId: "o6" }]]);
+    state.payouts = [];
+    state.problems = [{ id: "p1", order_id: "o3", reporter_side: "buyer", reason: "damaged" }];
+    const { container } = at("/declutter?tab=selling");
+    await waitFor(() => expect(statusOf(container, "Floor lamp")).toBe("Sold · Held while Louisiana Helpr looks at a problem"));
+    expect(statusOf(container, "Side table")).toBe("Sold · Paid 24 hours after the handover");
+    state.problems = [];
+  });
+
   it("every payout status has words; a free item or an unread sale has none", async () => {
     const { soldPayoutWords } = await import("@/lib/declutter/soldPayout");
     const day = () => "Oct 29";
@@ -558,5 +575,18 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
     expect(soldPayoutWords("completed", 0, { status: "nothing_due", executed_at: null }, day)).toBeNull();
     expect(soldPayoutWords("sold", 0, null, day)).toBeNull();
     expect(soldPayoutWords("completed", undefined, null, day)).toBeNull();
+  });
+
+  // Audit 1b D2-2: the listing row said "Sold · Paid 24 hours after the handover" while a problem held the money.
+  // @mutate src/lib/declutter/soldPayout.ts |   if (problemOpen && payout?.status !== "succeeded") return | if (false) return
+  it("an open problem: the row says the money is held, until it was paid out (D2-2)", async () => {
+    const { soldPayoutWords } = await import("@/lib/declutter/soldPayout");
+    const day = () => "Oct 29";
+    const held = "Held while Louisiana Helpr looks at a problem";
+    expect(soldPayoutWords("sold", 3200, null, day, true)).toBe(held);
+    expect(soldPayoutWords("completed", 3200, { status: "pending", executed_at: null }, day, true)).toBe(held);
+    expect(soldPayoutWords("completed", 3200, { status: "succeeded", executed_at: "2026-10-29T15:00:00Z" }, day, true)).toBe("Paid out Oct 29");
+    expect(soldPayoutWords("sold", 0, null, day, true)).toBeNull();
+    expect(soldPayoutWords("sold", 3200, null, day)).toBe("Paid 24 hours after the handover");
   });
 });

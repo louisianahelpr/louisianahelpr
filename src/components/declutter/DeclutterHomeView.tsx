@@ -73,6 +73,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import { FallbackImg } from "./FallbackImg";
 import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
+import { useOpenProblems } from "./useOpenProblems";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -117,11 +118,11 @@ const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   rejected: "Not approved. Open it to see why.",
 };
 
-function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null): string {
+function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): string {
   if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
   const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
-  // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts).
-  const paid = item.status === "sold" || item.status === "completed" ? soldPayoutWords(item.status, saleCents, payout) : null;
+  // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts); D2-2: held while a problem is open.
+  const paid = item.status === "sold" || item.status === "completed" ? soldPayoutWords(item.status, saleCents, payout, undefined, problemOpen) : null;
   return paid ? `${base} · ${paid}` : base;
 }
 
@@ -173,6 +174,12 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const payoutOf = (itemId: string) => {
     const orderId = sales.data?.get(itemId)?.orderId;
     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null;
+  };
+  // Audit 1b D2-2: a sold listing whose order has an open problem says the money is held.
+  const problems = useOpenProblems([...(sales.data?.values() ?? [])].map((s) => s.orderId).filter((id): id is string => !!id), anySold);
+  const problemOn = (itemId: string) => {
+    const orderId = sales.data?.get(itemId)?.orderId;
+    return !!orderId && problems.has(orderId);
   };
   // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch,
   // read by DeclutterHome so the page lands once (Q?declutter-settle).
@@ -290,7 +297,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     data-listing-status={item.status}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
                   >
-                    {drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))}
+                    {drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id))}
                   </p>
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />

@@ -304,6 +304,25 @@ export async function addProblemSide(problemId: string, note: string, photoPaths
   ) as unknown as { result: "added"; problem_id: string };
 }
 
+/** Audit 1b D2-2: an order's open problem, as both sides see it on their order card. */
+export interface OpenProblem {
+  id: string;
+  order_id: string;
+  reporter_side: "buyer" | "seller";
+  reason: ProblemReason;
+}
+
+/**
+ * Audit 1b D2-2: the open problems on these orders. Both sides read their own orders' problems
+ * (RLS "declutter problems: the two sides and admins read", 20261015042253; column grant without decided_by).
+ */
+export async function fetchOpenProblems(orderIds: string[]): Promise<OpenProblem[]> {
+  if (!orderIds.length) return [];
+  const q = supabase.from("declutter_problems").select("id, order_id, reporter_side, reason");
+  const rows = unwrap(await q.in("order_id", orderIds).eq("status", "open"));
+  return (rows ?? []) as OpenProblem[];
+}
+
 /** A review after the handover (row 45), both ways, blind until both or 14 days. */
 /**
  * Q2265: `tags` go only when chosen, so the call works before and after migration 20261021023530. Before it

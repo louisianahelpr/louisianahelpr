@@ -6,7 +6,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatPriceFloor } from "@/lib/format";
 import type { FlatFeeStamp } from "@/lib/helprFlatFee";
 
-type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
+export type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
   budget: number;
   urgent_fee?: number | null;
   status?: string | null;
@@ -20,9 +20,11 @@ type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
  * (helperShareCount), and the one-time setup fee from a first payout (never on
  * a disputed job, which settles by the split). Audit #62 (2026-10-21): the quick
  * view and the "Application sent" sheet showed "$103" beside "posted at $120"
- * from a different path; they now read this one.
+ * from a different path; they now read this one. The chat's pinned job card
+ * (DealCard) reads it too (audit 2026-10-28 F2: it showed the Helpr "$40 held
+ * safely" while every other Helpr screen showed $33).
  */
-function useHelprTakeHome(job: TakeHomeJob): { net: number; helpers: number } {
+export function useHelprTakeHome(job: TakeHomeJob): { net: number; helpers: number } {
   const firstPayoutFee = useFirstPayoutFeeDollars();
   const { profile } = useCurrentUser();
   const helpers = helperShareCount(job);

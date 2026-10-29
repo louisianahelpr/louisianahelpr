@@ -30,6 +30,9 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// The Helpr's take-home on the card (F2, useHelprTakeHome) reads the viewer's profile and setup fee; not what this file checks.
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, profile: null, isLoading: false }) }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 }));
 vi.mock("@/integrations/supabase/client", () => {
   const from = (table: string) => {
     let cols: string[] | null = null;

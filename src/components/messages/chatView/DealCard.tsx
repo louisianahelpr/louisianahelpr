@@ -7,7 +7,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { youCardFacts } from "@/components/profile/profileLanding/YouCard";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { useHelprTakeHome, type TakeHomeJob } from "@/components/dashboard/helprTakeHome";
 import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
@@ -37,7 +38,7 @@ import type { Job } from "@/components/job-card/activityConstants";
  * card instead of waiting for a remount. Guard: src/test/dealCardReadsTheLiveJob.test.tsx.
  */
 const COLS =
-  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute,helper_confirmed_at,helper_dayof_confirmed_at,poster_confirmed_at,poster_completed_at,require_photo_proof,proof_before_urls,proof_after_urls,is_group_job";
+  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute,helper_confirmed_at,helper_dayof_confirmed_at,poster_confirmed_at,urgent_fee,helpers_needed,helper_fee_flat_cents,helper_fee_percent,poster_completed_at,require_photo_proof,proof_before_urls,proof_after_urls,is_group_job";
 
 type DealRow = ProgressJob & {
   id: string;
@@ -48,7 +49,30 @@ type DealRow = ProgressJob & {
   budget: number | null;
   parish: string | null;
   poster_completed_at?: string | null;
+  // The take-home's inputs (helprTakeHome.tsx): the same columns the job page reads.
+  urgent_fee?: number | null;
+  helpers_needed?: number | null;
+  is_group_job?: boolean | null;
+  helper_fee_flat_cents?: number | null;
+  helper_fee_percent?: number | null;
 };
+
+/**
+ * The Helpr's figure: their take-home, from the one computation every other
+ * Helpr screen uses (useHelprTakeHome), never the job price (audit 2026-10-28
+ * F2: the card said "$40 held safely" beside the Working card's $33). A
+ * component of its own so the hook runs only on the Helpr's side.
+ */
+function HelprDealPrice({ job }: { job: TakeHomeJob }) {
+  const { net } = useHelprTakeHome(job);
+  if (!(net > 0)) return null;
+  return (
+    <div className="shrink-0 text-right" data-deal-take-home="">
+      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPriceFloor(net)}</p>
+      <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>
+    </div>
+  );
+}
 
 function clock(t: string | null): string | null {
   if (!t) return null;
@@ -225,7 +249,10 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
           <p className="font-sans font-semibold text-ds-14 leading-snug line-clamp-2 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>{job.title}</p>
           {meta && <p className="font-sans text-ds-12 text-muted-foreground truncate">{meta}</p>}
         </div>
-        {typeof job.budget === "number" && job.budget > 0 && (
+        {typeof job.budget === "number" && job.budget > 0 && !viewerIsPoster && (
+          <HelprDealPrice job={{ ...job, budget: job.budget }} />
+        )}
+        {typeof job.budget === "number" && job.budget > 0 && viewerIsPoster && (
           <div className="shrink-0 text-right">
             <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPrice(job.budget)}</p>
             {stage.held && <p className="font-sans text-ds-11 text-muted-foreground">held safely</p>}

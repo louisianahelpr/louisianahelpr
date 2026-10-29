@@ -19,9 +19,10 @@ const rows = vi.hoisted(() => ({ data: [] as unknown[] }));
 vi.mock("@/lib/jobColumns", () => ({ readJobsAheadOfDb: async () => ({ data: rows.data, error: null }) }));
 
 import { LiveJobsSection } from "./LiveJobsSection";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const job = (n: number) => ({
-  id: `j${n}`, title: `Job ${n}`, budget: 50, date_needed: "2026-11-01", parish: "Iberia", category: null,
+  id: `j${n}`, title: `Job ${n}`, budget: 50, date_needed: jobLocalDateISO(4), parish: "Iberia", category: null,
   pricing_mode: "fixed", urgent_fee: 0, helpers_needed: 1, is_group_job: false, helper_fee_flat_cents: null, helper_fee_percent: null,
 });
 

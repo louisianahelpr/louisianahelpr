@@ -210,7 +210,8 @@ export function SettingsTab({
       </Group>
 
       <Group title="Your account">
-        <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, name, about you" onClick={() => onSelectTab("profile")} />
+        {/* Only what Edit profile can change (app audit A3-C4: the name is shown there, not editable). Guard: src/test/settingsProfileHintMatchesForm.test.ts. */}
+        <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, about you, what you help with" onClick={() => onSelectTab("profile")} />
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />

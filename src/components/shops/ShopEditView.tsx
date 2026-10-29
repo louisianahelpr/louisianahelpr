@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { confirmConsequential } from "@/lib/toastPolicy";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,7 +177,11 @@ export default function ShopEditView() {
       return id;
     },
     onSuccess: (id) => {
-      toast.success(myId.data ? "Your shop is saved." : "Your shop is open.");
+      // Opening a shop puts it in front of every member, so it is confirmed through the one
+      // channel the toast policy lets render (audit 2026-10-28 P5-9: toast.success is a no-op
+      // at boot, so "Your shop is open." never showed). A later save stays silent: the form is the answer.
+      if (myId.data) toast.success("Your shop is saved.");
+      else confirmConsequential("Your shop is open.");
       void qc.invalidateQueries({ queryKey: ["shops"] });
       navigate(`/shops/${id}`);
     },

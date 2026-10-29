@@ -22,7 +22,9 @@
  * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
  * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
- * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) return "You're working"; |   if (!c.viewerIsPoster) return "You're working";
+ * @mutate src/components/messages/messageSections.ts |   if (c.viewerIsAssignedHelper) return c.jobStatus |   if (!c.viewerIsPoster) return c.jobStatus
+ * F24 (audit 2026-10-28): one status per row; a finished job's thread drops "You're working".
+ * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working"; | false ? null : "You're working";
  * @mutate src/pages/messages/useMessageSections.tsx |     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" }, |     { value: "unread", label: `Unread · ${unread}` },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
@@ -71,6 +73,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 import { coerceInboxFilter, messageSectionTabs, threadRoleCaption, threadsForFilter, threadsForSection } from "@/components/messages/messageSections";
 import { useMessageSections } from "@/pages/messages/useMessageSections";
 import { ConversationList } from "@/components/messages/ConversationList";
+import { ConversationRow } from "@/components/messages/ConversationRow";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
 // need the app's providers, and this file tests the list, not the bar.
 vi.mock("@/components/sections/AppTopBar", () => ({
@@ -128,6 +131,24 @@ describe("the rule: one inbox, filtered by chips", () => {
     expect(threadRoleCaption({ viewerIsAssignedHelper: true })).toBe("You're working");
     expect(threadRoleCaption({})).toBeNull();
     expect(threadRoleCaption({ teamThread: { userId: "me", viewerIsStaff: false } })).toBeNull();
+  });
+
+  it("F24: one status per row: a finished job's thread never says You're working beside its status chip", () => {
+    const live = ["accepted", "in_progress", "revision_requested", "disputed"];
+    // Inventory floor: the live states still carry the caption.
+    expect(live.length).toBeGreaterThan(3);
+    for (const s of live) expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: s }), s).toBe("You're working");
+    for (const s of ["completed", "cancelled"]) expect(threadRoleCaption({ viewerIsAssignedHelper: true, jobStatus: s }), s).toBeNull();
+    // The poster's caption is a side, not a status: it stays.
+    expect(threadRoleCaption({ viewerIsPoster: true, jobStatus: "completed" })).toBe("Your job");
+  });
+
+  it("F24: the rendered row of a completed job the viewer worked shows Completed and no You're working", () => {
+    render(<ConversationRow convo={convo({ jobStatus: "completed", viewerIsAssignedHelper: true })} currentUserId="me" openConvo={() => {}} />);
+    expect(screen.getByTestId("row-status-chip").textContent).toBe("Completed");
+    const caption = document.querySelector("[data-thread-caption]")?.textContent ?? "";
+    expect(caption).toContain("Mow the lawn");
+    expect(caption, "two statuses on one row").not.toContain("You're working");
   });
 });
 

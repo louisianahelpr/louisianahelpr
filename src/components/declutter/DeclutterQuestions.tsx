@@ -161,6 +161,8 @@ export function DeclutterQuestions({
   const [question, setQuestion] = useState("");
   const [answering, setAnswering] = useState<DeclutterQuestion | null>(null);
   const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId) });
+  // Audit 1028 part 2, D2-13: a refusal (a phone number or email in the question, say) shows under the box, not in a
+  // toast that sat on top of the box and the Ask button for 20+ seconds at 375. Typing again clears it.
   const ask = useMutation({
     mutationFn: (text: string) => askQuestion(itemId, text),
     onSuccess: () => {
@@ -168,8 +170,8 @@ export function DeclutterQuestions({
       toast.success("Question posted. The answer will show here.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const askError = ask.isError ? declutterErrorMessage(ask.error) : null;
   const list = questions.data ?? [];
   const text = question.trim();
 
@@ -204,8 +206,10 @@ export function DeclutterQuestions({
               className={field}
               value={question}
               maxLength={500}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => { setQuestion(e.target.value); if (ask.isError) ask.reset(); }}
               placeholder="Ask about size, condition…"
+              aria-invalid={askError ? true : undefined}
+              aria-describedby={askError ? "declutter-question-error" : undefined}
             />
             {/* Outline: Buy now is the item page's one filled button (Declutter audit 2026-10-28: two olive buttons, Buy now
                 and Ask, competed). Guard: declutterItemPage.test.tsx "one filled button". */}
@@ -213,7 +217,8 @@ export function DeclutterQuestions({
               Ask
             </Button>
           </div>
-          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is hidden.{free ? "" : " Want to make a deal? Make an offer."}</p>
+          {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
+          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? "" : " Want to make a deal? Make an offer."}</p>
         </form>
       )}
       {isSeller && <AnswerSheet q={answering} itemId={itemId} onClose={() => setAnswering(null)} />}

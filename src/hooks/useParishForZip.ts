@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { resolveParishByZip, type ParishResolution } from "@/lib/parishLookup";
+import { useEffect, useRef, useState } from "react";
+import { resolveCityByZip, resolveParishByZip, type ParishResolution } from "@/lib/parishLookup";
 
 /**
  * Resolves a ZIP field's parish as the user types, and says which of the four
@@ -62,3 +62,26 @@ export function useParishForZip(zipCode: string): ZipParishState {
 export const UNKNOWN_ZIP_MESSAGE =
   "We don't recognise that as a Louisiana ZIP code. Jobs are matched by parish, " +
   "so double-check it — otherwise nearby work won't reach you.";
+
+/**
+ * A3-I1 (app audit 2026-10-28): a recognised ZIP fills an EMPTY town field
+ * (City at signup, Area on the profile) with the ZIP's town. A town the member
+ * typed is never replaced, and once a ZIP has filled the field, clearing it does
+ * not bring the town back for that same ZIP. Used by every ZIP + town form:
+ * Signup, CompleteProfile, ProfileEditForm.
+ */
+export function useZipFillsTown(zipCode: string, town: string, setTown: (town: string) => void): void {
+  const filledFor = useRef<string | null>(null);
+  const [city, setCity] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setCity(null);
+    void resolveCityByZip(zipCode).then((c) => { if (!cancelled) setCity(c); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
+  useEffect(() => {
+    if (!city || filledFor.current === city) return;
+    filledFor.current = city;
+    if (!town.trim()) setTown(city);
+  }, [city, town, setTown]);
+}

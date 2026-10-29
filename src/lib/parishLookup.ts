@@ -89,3 +89,31 @@ export async function lookupParishByZip(zip: string | null | undefined): Promise
   const result = await resolveParishByZip(zip);
   return result.status === "resolved" ? result.parish : null;
 }
+
+/**
+ * The town a Louisiana ZIP belongs to (A3-I1), or null when the ZIP is
+ * incomplete, unknown, or the read failed. public.louisiana_zip_parishes is
+ * readable by anyone ("Anyone can read zip parishes") and every row carries a
+ * city (720 of 720 on prod, 2026-10-29). Used only to fill an EMPTY town field,
+ * so a failed read just leaves the field as it was (and is reported).
+ */
+export async function resolveCityByZip(zip: string | null | undefined): Promise<string | null> {
+  const cleaned = (zip ?? "").replace(/\D/g, "").slice(0, 5);
+  if (cleaned.length !== 5) return null;
+  try {
+    const { data, error } = await supabase
+      .from("louisiana_zip_parishes")
+      .select("city")
+      .eq("zip_code", cleaned)
+      .maybeSingle();
+    if (error) {
+      report(error, { severity: "warning", tags: { source: "parishLookup.city" } });
+      return null;
+    }
+    const city = (data as { city?: string | null } | null)?.city?.trim();
+    return city || null;
+  } catch (err) {
+    report(err, { severity: "warning", tags: { source: "parishLookup.city" } });
+    return null;
+  }
+}

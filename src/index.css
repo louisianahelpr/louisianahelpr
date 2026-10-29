@@ -3361,13 +3361,20 @@ button,
    the way urgent-pulse hardcodes burnt-sienna). */
 /* THE 8-STEP TRACKER SIZES ITS WORDS TO ITS OWN WIDTH, not the screen's (JobProgress.tsx). With a viewport
    breakpoint the job page's 420px side panel at 1440 drew the full names and cut them ("Post...", "On the ..."):
-   below a 640px-wide tracker each step shows its short word ("Conf.", "Way"); from 640px, eight equal columns with
+   below a 640px-wide tracker the steps keep their uneven columns (full names from 368px, below); from 640px, eight equal columns with
    the full name, and the check on a done step and the alert on a problem step. */
+/* FULL NAMES FROM A 368px TRACKER (audit 2026-10-29 A2-L15): /payment-success (382px) and the job page's side panel
+   (~420px) at 1440 showed "Conf." / "Way" / "Arr." while the Posted list said the names. From 368px each step shows
+   its full name, breaking onto a second line at its space or soft hyphen ("On the" / "way", "Con-" / "firmed") when
+   its column is too narrow; the widest piece, "On the", is 38.1px at 11px and the narrowest column at 368px is 40px.
+   Guard: src/test/trackerFullWordsFromMidWidth.test.tsx. */
 .job-steps { container-type: inline-size; }
 .job-step-full, .job-step-wide { display: none; }
-@container (min-width: 640px) {
+@container (min-width: 368px) {
   .job-step-short { display: none; }
   .job-step-full { display: inline; }
+}
+@container (min-width: 640px) {
   .job-step-wide { display: block; }
   .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
 }

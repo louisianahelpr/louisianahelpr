@@ -1,6 +1,6 @@
 import { AlertTriangle, CalendarCheck, Check, CheckCircle2, Clock, FileText, Hand, Hourglass, MapPin, PartyPopper, Truck, Wrench, XCircle, type LucideIcon } from "lucide-react";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
-import { JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/components/tracker/jobProgressState";
+import { JOB_PROGRESS_DRAWN, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/components/tracker/jobProgressState";
 
 /**
  * THE job tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps, 2026-10-22): Posted · Offered · Hired ·
@@ -50,7 +50,7 @@ const TEXT: Record<StepState, string> = {
   todo: "text-muted-foreground",
 };
 
-/** A problem word short enough for its column at 375 (the full word shows from 640px and in the aria sentence). */
+/** A problem word short enough for its column at 375 (the full word shows from a 368px tracker and in the aria sentence). */
 const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", Dispute: "Issue" };
 
 /** "Oct 22, 3:00 PM": when a done step happened. */
@@ -139,7 +139,8 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
               {(s === "problem" || s === "alarm") && <AlertTriangle className="job-step-wide h-3 w-3 shrink-0" />}
               {s === "done" && <Check className="job-step-wide h-3 w-3 shrink-0" />}
               <span className="job-step-short truncate">{(s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_SHORT[i]}</span>
-              <span className="job-step-full truncate">{(s === "problem" || s === "alarm") && label ? label : full}</span>
+              {/* The full name may take two lines (a soft hyphen or its space), never an ellipsis (A2-L15). */}
+              <span className="job-step-full min-w-0 text-center">{(s === "problem" || s === "alarm") && label ? label : JOB_PROGRESS_DRAWN[i]}</span>
             </span>
           </>
         );

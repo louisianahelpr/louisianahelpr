@@ -113,7 +113,6 @@ const UserProfile = () => {
     reviewsTotalCount,
     loadMoreReviews,
     postedJobs,
-    workedJobs,
     completedWorkedJobs,
     completedWorkedCount,
     badgeStats,
@@ -475,16 +474,6 @@ const UserProfile = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {/* Only offer work to someone who shows evidence of DOING
-                      work. The unified user model (see useUserProfileData —
-                      "every user can apply OR post") means there is no helper
-                      role to gate on, so this gates on behaviour instead: has
-                      this person ever been the helper on a job?
-
-                      Without it the action rendered on every profile, including
-                      pure posters with 0 completed and 0 worked jobs — offering
-                      a job to someone with no signal they take work is a dead
-                      end for the poster and noise for the recipient. */}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
                     <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>
@@ -799,7 +788,12 @@ const UserProfile = () => {
 
         </div>
 
-        {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />}
+        {/* Every member can be invited, a new one included (app audit A3-C9,
+            2026-10-29). It showed only for someone with work on record, so a
+            new member who joined to help could never be offered a first job
+            from their profile; every account posts and does jobs (CLAUDE.md:
+            never role-based). The direct-offer form is the same either way. */}
+        {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />}
       </div>
 
       {showReport && userId && (

@@ -12,11 +12,13 @@
  * @mutate src/pages/user/UserProfile.tsx |             <ProfileHeroSkeleton /> |
  *
  * Board 40: "Selling now · N" (the seller's items for sale, two then See all), "Helps with" over the
- * skills, and the bottom bar "Invite to a job" on someone else's profile who has done work (it was the
- * ... menu's "Offer a job directly"; no Message button, owner).
+ * skills, and the bottom bar "Invite to a job" on everyone else's profile, a new member's too (app audit
+ * A3-C9, 2026-10-29: it needed work on record; it was the ... menu's "Offer a job directly"; no Message
+ * button, owner).
  * @mutate src/pages/user/UserProfile.tsx |           <SellingNowRow sellerId={userId!} /> |
  * @mutate src/components/declutter/SellingNowRow.tsx | const SELLING_NOW_FIRST = 2; | const SELLING_NOW_FIRST = 12;
- * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />} |
+ * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />} |
+ * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />} |         {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />}
  * @mutate src/pages/user/InviteToJobBar.tsx |         onClick={() => navigate(`/post-job?offerTo=${userId}`)} |         onClick={() => navigate(`/post-job`)}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -186,9 +188,10 @@ describe("board 40: selling now, helps with, invite to a job", () => {
     expect(navigatedTo).toBe("/post-job?offerTo=s1");
   });
 
-  it("no bar for someone with no work on record", () => {
+  it("a new member with no work on record gets the same bar (A3-C9)", () => {
     renderProfile();
-    expect(screen.queryByRole("button", { name: "Invite to a job" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Invite to a job" }));
+    expect(navigatedTo).toBe("/post-job?offerTo=s1");
   });
 });
 

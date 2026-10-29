@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  * off by default (the call is exactly the old one, no arguments), on sends
  * p_include_test: true.
  */
-// @mutate src/components/admin/settings/DeclutterReviewCard.tsx | useState(false);\n  const pending | useState(true);\n  const pending
+// @mutate src/components/admin/settings/DeclutterReviewCard.tsx | const [ownShowTest, setOwnShowTest] = useState(false); | const [ownShowTest, setOwnShowTest] = useState(true);
 // @mutate src/lib/declutter/api.ts | { p_include_test: includeTest } | { p_include_test: false }
 // @mutate src/components/admin/settings/DeclutterReviewCard.tsx | queryFn: async () => (await fetchPendingForAdmin(showTest)) | queryFn: async () => (await fetchPendingForAdmin())
 

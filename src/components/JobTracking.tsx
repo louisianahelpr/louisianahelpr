@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
-import { useDoneFloorActive } from "@/components/job-card/useDoneFloor";
+import { doneFloorStart, useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import { announceTransition } from "@/components/whatNext/HelperDoneWhatNext";
 import { TRANSITION_TOAST } from "@/components/job-card/trackerTransitionCopy";
 import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
@@ -383,7 +383,7 @@ export function JobTracking({
     helperCompletedAt: initialHelperCompletedAt ?? null,
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
-  const doneFloorActive = useDoneFloorActive(posterConfirmedWorkingAt ?? jobStamps.arrivedAt);
+  const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt));
   const { request: requestPermission } = usePermissionRationale();
   /** Mounted inside a job step card, the next-step CTA is THAT card's primary
    *  and renders in its one action row (owner, 2026-09-14, VN-21). */

@@ -38,7 +38,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  * properties CI can assert on every push without a Postgres.
  */
 
-// @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
+// @mutate supabase/migrations/20261029042735_done_floor_from_arrival.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
 // @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
@@ -167,7 +167,8 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     expect(gate).toMatch(/array_length\(NEW\.proof_after_urls, 1\)/);
     expect(gate).toContain("completion_requires_proof_photos");
     expect(gate).toMatch(
-      /COALESCE\(NEW\.poster_confirmed_working_at, NEW\.helper_arrived_at\)[\s\S]{0,120}interval '30 minutes'/,
+      // From the member's own arrival: LEAST, the earlier stamp (audit 2026-10-28 F12, 20261029042735).
+      /LEAST\(NEW\.poster_confirmed_working_at, NEW\.helper_arrived_at\)[\s\S]{0,120}interval '30 minutes'/,
     );
     expect(gate).toContain("completion_min_work_time");
   });

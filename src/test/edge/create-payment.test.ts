@@ -1570,7 +1570,7 @@ describe("create-payment edge function", () => {
             customer_id: POSTER.id,
             helper_id: HELPER.id,
             status: "in_progress",
-            // The window is anchored to poster_confirmed_working_at ?? helper_arrived_at,
+            // The window is anchored to the earlier of poster_confirmed_working_at and helper_arrived_at (F12),
             // matching enforce_helper_completion_gates and both clients. It used to be
             // anchored to helper_confirmed_at ?? updated_at — and because `jobs` carries
             // update_updated_at_column, that window restarted on every write to the row
@@ -1588,6 +1588,32 @@ describe("create-payment edge function", () => {
         }),
       );
       expect((await json(res)).error).toMatch(/at least 30 minutes/i);
+    });
+
+    // Audit 2026-10-28 F12 (20261029042735): the floor counts from the EARLIER stamp, so the poster's
+    // late "Confirm they're working" does not restart it. Arrived 40 min ago, poster tapped 5 min ago.
+    it("the 30-minute floor counts from the arrival, not a later poster 'working' tap", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "in_progress",
+            helper_arrived_at: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+            poster_confirmed_working_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          },
+        ],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "release", jobId: "job-1" },
+        }),
+      );
+      expect(String((await json(res)).error ?? "")).not.toMatch(/at least 30 minutes/i);
     });
 
     it("first party to confirm: marks not-both-done, no payout scheduled", async () => {

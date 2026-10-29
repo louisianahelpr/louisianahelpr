@@ -87,9 +87,13 @@ import { JobTracking } from "./JobTracking";
 /**
  * Owner, 2026-10-08: "mark job complete should be greyed out until its
  * available in the 30 min" / "if it's greyed then no toast is needed". The
- * server's floor is COALESCE(poster_confirmed_working_at, helper_arrived_at)
- * + 30 min; the tracker's Done CTA is disabled until then, never live-then-toast.
+ * server's floor is LEAST(poster_confirmed_working_at, helper_arrived_at)
+ * + 30 min (20261029042735: the Helpr's own arrival; a late poster tap no longer
+ * restarts it, audit 2026-10-28 F12); the tracker's Done CTA is disabled until
+ * then, never live-then-toast.
  *
+ * @mutate src/components/job-card/useDoneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
+ * @mutate src/components/JobTracking.tsx |   const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt)); |   const doneFloorActive = useDoneFloorActive(posterConfirmedWorkingAt ?? jobStamps.arrivedAt);
  * @mutate src/components/JobTracking.tsx |         const doneTooEarly = isDoneStep && doneFloorActive; |         const doneTooEarly = false;
  * @mutate src/components/job-card/useDoneFloor.ts |   return unlocksAt !== null && now < unlocksAt; |   return false;
  */
@@ -121,8 +125,13 @@ describe("Mark job complete is greyed for the first 30 minutes", () => {
     const btn = await screen.findByRole("button", { name: /mark job complete/i });
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
-  it("the poster's later 'working' tap restarts the floor, as the server counts it", async () => {
+  it("the poster's later 'working' tap does NOT restart the floor: it counts from the arrival, as the server does", async () => {
     renderWorkingAt(45, 5);
+    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+  });
+  it("10 minutes after arrival, with the poster's tap 5 minutes ago: still disabled", async () => {
+    renderWorkingAt(10, 5);
     const btn = await screen.findByRole("button", { name: /mark job complete/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
   });

@@ -13770,6 +13770,8 @@ export type Database = {
           note: string
           order_id: string
           order_status: string
+          other_side_note: string
+          other_side_photo_paths: string[]
           paid_at: string
           picked_up_at: string
           picked_up_distance_m: number
@@ -13778,6 +13780,7 @@ export type Database = {
           problem_id: string
           problem_photo_paths: string[]
           reason: string
+          refund_offer_cents: number
           reported_at: string
           reporter_side: string
           seller_id: string
@@ -13794,6 +13797,7 @@ export type Database = {
           p_false_report?: boolean
           p_fault: string
           p_note: string
+          p_part_cents?: number
           p_problem_id: string
           p_strike: boolean
         }

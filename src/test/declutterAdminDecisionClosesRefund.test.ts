@@ -13,9 +13,9 @@
  *     to use "Messages".
  * Backend proof: src/test/pglite/declutterAdminDecisionClosesRefund.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |      WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin'; |      WHERE false;
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |        SET status = CASE WHEN p_decision = 'refund_buyer' THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |           refund_id = CASE WHEN p_decision = 'refund_buyer' THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |      WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin'; |      WHERE false;
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |        SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |           refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
  * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.'\n | \n
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
  * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
@@ -33,10 +33,11 @@ describe("audit 1b #5/#12: Louisiana Helpr's decision ends the refund request; n
   it("decide_problem closes the to_admin request of the decided problem, agreed with the refund or declined", () => {
     const d = body("declutter_admin_decide_problem");
     expect(d.length).toBeGreaterThan(2000);
-    expect(d).toContain("UPDATE public.declutter_refund_requests SET status = CASE WHEN p_decision = 'refund_buyer' THEN 'agreed' ELSE 'declined' END,");
-    expect(d).toContain("refund_id = CASE WHEN p_decision = 'refund_buyer' THEN (v_out->>'refund_id')::uuid ELSE refund_id END");
-    expect(d).toContain("settled_at = CASE WHEN p_decision = 'refund_buyer' THEN now() ELSE settled_at END");
-    expect(d).toContain("declined_at = CASE WHEN p_decision = 'refund_buyer' THEN declined_at ELSE now() END");
+    // Every refund decision closes it as agreed: in full (refund_buyer) or in part (refund_part, D2-14 20261029231235).
+    expect(d).toContain("UPDATE public.declutter_refund_requests SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END,");
+    expect(d).toContain("refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END");
+    expect(d).toContain("settled_at = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN now() ELSE settled_at END");
+    expect(d).toContain("declined_at = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN declined_at ELSE now() END");
     expect(d).toContain("WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin';");
   });
 

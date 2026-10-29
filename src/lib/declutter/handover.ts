@@ -361,15 +361,18 @@ export async function fetchItemAddress(itemId: string): Promise<{ pickup_address
  */
 export async function adminDecideProblem(
   problemId: string,
-  decision: "refund_buyer" | "pay_seller",
+  decision: "refund_buyer" | "pay_seller" | "refund_part",
   fault: "seller" | "buyer" | "none",
   strike: boolean,
   note: string | null,
   falseReport = false,
+  /** D2-14 (20261029231235): exactly this much of the item price back; only with "refund_part". */
+  partCents: number | null = null,
 ): Promise<Record<string, unknown>> {
   const res = await supabase.rpc("declutter_admin_decide_problem", {
     p_problem_id: problemId, p_decision: decision, p_fault: fault, p_strike: strike, p_note: note as string,
     ...(falseReport ? { p_false_report: true } : {}),
+    ...(decision === "refund_part" && partCents !== null ? { p_part_cents: partCents } : {}),
   });
   // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
@@ -399,6 +402,8 @@ export async function adminDecideDeliveryDamage(problemId: string, note: string 
  */
 export interface AdminProblemDetail {
   handover: string | null;
+  /** The order's status ('paid', 'handed_over', ...): a part refund is offered only after the handover (D2-14). */
+  order_status?: string | null;
   items_cents: number | null;
   bundle_discount_cents: number | null;
   delivery_cents: number | null;
@@ -419,6 +424,10 @@ export interface AdminProblemDetail {
   confirmed_by: string | null;
   /** True when a Helpr carries this order: only then is "Damaged in delivery" a decision (audit2 SH2-4). */
   helpr_delivery: boolean | null;
+  /** D2-3 / D2-14 (20261029231235): the other side's words and photos, and the seller's last part offer. Absent before. */
+  other_side_note?: string | null;
+  other_side_photo_paths?: string[] | null;
+  refund_offer_cents?: number | null;
 }
 export interface AdminProblem {
   id: string;

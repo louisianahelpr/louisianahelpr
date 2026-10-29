@@ -351,11 +351,13 @@ export function GroupJobHelpers({
           ))}
         </ul>
       )}
-      {/* How a crew works, from the real rules: each member's share is released on its own confirm (Q407),
+      {/* How a crew works, from the real rules: ONE Approve & Pay pays every member on the roster their frozen share
+          (process-scheduled-payouts pays each group_job_helpers row its share_cents; no per-member confirm is read,
+          lead trace 2026-10-29, audit A2-B10; the old line said "Each Helpr is paid on their own when you confirm"),
           and a dropped spot can be refilled from the applicants (the sentence below says how). */}
       <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-ds-13 text-foreground" data-crew-how="">
         <p className="font-semibold">How crew jobs work</p>
-        <p className="text-muted-foreground">Each Helpr is paid on their own when you confirm. If someone drops out, the spot opens again for your applicants.</p>
+        <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. If someone drops out, the spot opens again for your applicants.</p>
       </div>
       {remaining > 0 && (
         <p className="text-ds-11 text-muted-foreground text-center">

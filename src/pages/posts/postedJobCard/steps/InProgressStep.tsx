@@ -145,6 +145,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
 
   const helperFirst = ((job.helper_id && helperNames?.[job.helper_id]) || "").trim().split(/\s+/)[0] || null;
+  // A crew job has no one `helper_id` (null): its words name the crew, never "your Helpr" or the deleted-account
+  // label (audit 2026-10-28 A2-B7 / A2-C35). Guard: src/test/crewCopyNamesTheCrew.test.tsx.
+  const crew = !!job.is_group_job;
   const messageHelpr = () => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages");
   // Offered only where the server would take it (a one-time, single-Helpr
   // job under way, money held); the chip itself stands down while a request
@@ -170,7 +173,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             ariaLabel={
               job.poster_completed_at
                 ? "Approved — you already released payment for this job"
-                : `${RELEASE_ACTION}: accept the work and release the money to your Helpr`
+                : `${RELEASE_ACTION}: accept the work and release the money to ${crew ? "your crew" : "your Helpr"}`
             }
             tone={job.poster_completed_at ? "done" : "primary"}
             disabled={completingJobId === job.id || !!job.poster_completed_at}
@@ -181,7 +184,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
         ) : (
           /* Nothing to confirm or approve yet (owner, 2026-10-21): talking to the Helpr. A confirmation box or
              the stalled box claims the slot over this the moment it applies; No-Show stays a chip in More. */
-          <JobStepPrimaryButton icon={MessageSquare} label={helperFirst ? `Message ${helperFirst}` : "Message your Helpr"} onClick={messageHelpr} />
+          <JobStepPrimaryButton icon={MessageSquare} label={helperFirst ? `Message ${helperFirst}` : crew ? "Message your crew" : "Message your Helpr"} onClick={messageHelpr} />
         )
       }
       primaryChipKey={showApprove ? undefined : "message"}
@@ -274,7 +277,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             key="photos"
             icon={Image}
             label="Photos"
-            ariaLabel="Photos — your Helpr's before and after proof photos; check these before you approve"
+            ariaLabel={`Photos — ${crew ? "your crew" : "your Helpr"}'s before and after proof photos; check these before you approve`}
             tone="neutral"
             onClick={() => setPhotosOpen(true)}
           />
@@ -359,7 +362,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             jobId={job.id}
             jobTitle={job.title}
             helperId={job.helper_id}
-            helperName={job.helper_id ? helperNames[job.helper_id] || "Helpr" : FORMER_MEMBER_LABEL /* Q369: helper deleted their account */}
+            helperName={crew ? "Your crew" : job.helper_id ? helperNames[job.helper_id] || "Helpr" : FORMER_MEMBER_LABEL /* Q369: helper deleted their account */}
             userId={userId}
             proofBeforeUrls={job.proof_before_urls || []}
             proofAfterUrls={job.proof_after_urls || []}

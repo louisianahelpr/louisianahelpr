@@ -98,6 +98,10 @@ export function CompletionChoiceSheet({
   onConfirm,
   onRevisionSubmitted,
 }: CompletionChoiceSheetProps) {
+  // Who the sheet is about. A crew job has no one `helper_id` (it is null), so naming that slot printed "Former
+  // member says it's done" (audit 2026-10-28 A2-B7): the crew is named instead. Guard: src/test/crewCopyNamesTheCrew.test.tsx.
+  const who = groupJob ? "Your crew" : helperName;
+  const whoMid = groupJob ? "your crew" : helperName;
   // THE PHOTOS AS THEY ARE NOW (owner, 2026-10-23: the poster SEES the before and after photos before approving;
   // report "ben also did not receive any before or after pictures", Mow two lawns 7c6deb77). The card hands the
   // sheet the list it loaded, which can predate the Helpr's photos; the sheet reads the job's own columns when it
@@ -296,12 +300,12 @@ export function CompletionChoiceSheet({
         {mode === "choice" ? (
           <>
             {/* Board 65: the Helpr's name, never he/she; the decision with its evidence on screen. */}
-            <SheetHero title={`${helperName} says it's done`} />
+            <SheetHero title={`${who} says it's done`} />
 
             {(beforeUrls.length > 0 || afterUrls.length > 0) && (
               <div className="space-y-1.5 mb-3" data-approve-photos="">
                 <p className="font-sans leading-snug text-ds-12 text-muted-foreground">
-                  {helperName}'s photos of the work.
+                  {who}'s photos of the work.
                 </p>
                 <PhotoProofGroup
                   jobId={jobId}
@@ -376,7 +380,7 @@ export function CompletionChoiceSheet({
               className="font-sans leading-relaxed text-ds-13 mb-4"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              {helperName} will be notified and can respond before the job closes.
+              {who} will be notified and can respond before the job closes.
             </p>
 
             <div className="space-y-3">
@@ -458,7 +462,7 @@ export function CompletionChoiceSheet({
                   className="font-sans leading-snug text-ds-12"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
-                  Payment stays held until you mark it complete. If {helperName} doesn't fix it, you can open a dispute.
+                  Payment stays held until you mark it complete. If {whoMid} doesn't fix it, you can open a dispute.
                 </p>
               </div>
 

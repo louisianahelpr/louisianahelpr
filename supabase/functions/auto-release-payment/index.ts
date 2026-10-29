@@ -671,8 +671,8 @@ serve(async (req) => {
           job_id: job.id,
           title: "Job complete",
           message: instantIds.has(job.id)
-            ? `"${job.title}" was approved by your Instant Release setting. Your Helpr is paid ${payDay}.`
-            : `"${job.title}" is complete. You approved it, so your Helpr is paid ${payDay}.`,
+            ? `"${job.title}" was approved by your Instant Release setting. ${job.is_group_job === true ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`
+            : `"${job.title}" is complete. You approved it, so ${job.is_group_job === true ? "every Helpr on your crew is" : "your Helpr is"} paid ${payDay}.`,
           type: "info", link: `/posts?job=${job.id}`,
         });
       }

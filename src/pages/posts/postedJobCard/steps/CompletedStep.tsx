@@ -93,6 +93,12 @@ export function CompletedStep({
   const crew = job.is_group_job === true;
   const nextCrewMember = crew ? meta?.crewToReview?.[0] : undefined;
   const reviewName = crew ? nextCrewMember?.name ?? "your crew" : helperName;
+  // The Review button on a crew names the crew it belongs to, not only the next member (audit 2026-10-28 A2-C35:
+  // its name read "leave a review for Eli" on a three-person crew). Guard: src/test/crewCopyNamesTheCrew.test.tsx.
+  const crewLeft = meta?.crewToReview?.length ?? 0;
+  const reviewAria = crew && nextCrewMember
+    ? `Review — review your crew, one at a time: ${nextCrewMember.name} next${crewLeft > 1 ? `, ${crewLeft} left` : ""}`
+    : `Review — leave a review for ${reviewName}`;
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
   // Q709(c), owner 2026-10-05: a crew is tipped member by member, ONE Tip per
   // member row, each showing "Tipped" once that member has been tipped (like
@@ -131,7 +137,7 @@ export function CompletedStep({
         (canReview && !hasReviewed) || offerTip ? (
           <>
             {canReview && !hasReviewed ? (
-              <JobStepPrimaryButton icon={Star} label="Review" ariaLabel={`Review — leave a review for ${reviewName}`} onClick={() => onReview(job)} />
+              <JobStepPrimaryButton icon={Star} label="Review" ariaLabel={reviewAria} onClick={() => onReview(job)} />
             ) : null}
             {offerTip ? (
               <JobStepPrimaryButton icon={DollarSign} label="Tip" ariaLabel={`Tip ${helperName}`} onClick={() => onTip(job.id, helperName)} />

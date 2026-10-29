@@ -1984,8 +1984,8 @@ serve(async (req) => {
             user_id: job.customer_id,
             title: forPoster ? "Helpr support approved your job" : "Job complete",
             message: forPoster
-              ? `You didn't answer, so Helpr support looked at "${job.title}" and approved it. Your Helpr is paid ${payDay}.`
-              : `Thanks for approving "${job.title}". Your Helpr is paid ${payDay}.`,
+              ? `You didn't answer, so Helpr support looked at "${job.title}" and approved it. ${isCrew ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`
+              : `Thanks for approving "${job.title}". ${isCrew ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`,
             type: "payment", link: `/posts?job=${job.id}`,
           });
         }

@@ -43,7 +43,7 @@
  * test accounts, admin-only and audited to change) is proved in PGlite:
  * src/test/pglite/payoutSetupSwitch.pglite.mjs (15 PASS; NEW_MIGRATION=skip 6 FAIL).
  *
- * @mutate src/components/PayoutSetupForm.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
+ * @mutate src/components/PayoutSetupForm.tsx |   const setupPaused = usePayoutSetupPaused();\n  const payoutSources = usePayoutSourcesLine();\n  const setupBlock = usePayoutSetupBlock();\n |   const payoutSources = usePayoutSourcesLine();\n
  * @mutate src/components/AwardGateDialog.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
  * @mutate src/components/jobDone/JobDoneSummary.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
  * @mutate src/components/series/SeriesDatesPanel.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n

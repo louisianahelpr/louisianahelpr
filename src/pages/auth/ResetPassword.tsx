@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Check, X, Circle, Eye, EyeOff } from "lucide-react";
+import { Loader2, Check, X, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { signOutOtherDevices } from "@/lib/authSignOut";
@@ -15,21 +15,10 @@ import { describeWeakPassword, isWeakPasswordError, resetPasswordError } from "@
 import {
   passwordProblem,
   unmetPasswordRules,
-  PASSWORD_RULES,
   PASSWORD_MIN_LENGTH,
 } from "./signup/signupHelpers";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
-// One password-rule chip of the live checklist. Module-level, not declared
-// inside the render body: a component declared inside another is a new type
-// every render, which remounts it each keystroke (see
-// src/test/noNestedComponentDefinitions.test.ts).
-const Req = ({ ok, label }: { ok: boolean; label: string }) => (
-  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
-    {label}
-  </span>
-);
 
 // How long a recovery fragment may take to become a session before the link
 // is treated as dead (OA-014). Token exchange is one round trip.
@@ -291,7 +280,12 @@ const ResetPassword = () => {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            {/* noValidate (app audit A3-L3, 2026-10-29): the browser's own
+                "Please fill out this field" bubble answered an empty or short
+                password before handleSubmit ran, so this screen never showed
+                its inline error the way sign-up does. Every rule is checked in
+                handleSubmit and named inline (submitError). */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-ds-13 font-sans font-medium">New password</Label>
               <div className="relative">
@@ -329,23 +323,11 @@ const ResetPassword = () => {
               </div>
               {/* The one shared strength meter (also on Sign up step 1). */}
               <PasswordStrengthMeter password={password} />
-              {/* The rules, ALL of them, stated before submission and ticked
-                  live — the same component the signup form renders, from the
-                  same PASSWORD_RULES array. The line here used to be static
-                  copy reading "At least 8 characters, 1 uppercase, 1 number":
-                  three of the five rules the Supabase project enforces, with
-                  the wrong number on the one it did state. A password that
-                  satisfied every word of it was refused by the server, which
-                  is the definition of a rule discovered by rejection. */}
-              {(() => {
-                return (
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                    {PASSWORD_RULES.map((rule) => (
-                      <Req key={rule.label} ok={rule.test(password)} label={rule.label} />
-                    ))}
-                  </div>
-                );
-              })()}
+              {/* No rules list under the password, the same as sign-up (owner
+                  2026-10-25: "remove the stuff under the password ... what's
+                  required"; app audit A3-L3 found this screen still listing all
+                  five up front). passwordProblem() names exactly what is
+                  missing, inline, after "Update password". */}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-ds-13 font-sans font-medium">Confirm password</Label>

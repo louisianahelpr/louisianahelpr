@@ -1840,7 +1840,7 @@ export function JobTracking({
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
                 title="Mark this job complete?"
                 description="This tells the person who posted this job that the work is finished and starts the clock on your payment."
-                primaryLabel="Mark Complete"
+                primaryLabel="Mark job complete"
                 primaryTone="bark"
                 primaryDisabled={updating}
                 onPrimary={(e) => {

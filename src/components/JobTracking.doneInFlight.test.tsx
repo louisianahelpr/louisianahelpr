@@ -15,7 +15,7 @@
 // _job_id it carries, poster_completed_at read back from its result, and the
 // finish-the-release path when the poster already confirmed.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, act, fireEvent, waitFor, within } from "@testing-library/react";
 
 type Call = { table: string; op: string; payload?: unknown; filters: Array<[string, string, unknown]>; select?: string };
 const calls: Call[] = [];
@@ -139,7 +139,7 @@ describe("JobTracking Done — one request per decision", () => {
   it("two same-frame clicks on 'Yes, I'm Done' call rpc_helper_mark_done once", async () => {
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    const confirm = await screen.findByRole("button", { name: /mark complete/i });
+    const confirm = within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i });
     act(() => {
       confirm.click();
       confirm.click();
@@ -155,7 +155,7 @@ describe("JobTracking Done — one request per decision", () => {
   it("Done goes through the RPC with the job id, and does not release when the poster hasn't confirmed", async () => {
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /mark complete/i }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i }));
     await waitFor(() => expect(doneRpcCalls()).toHaveLength(1));
     expect(doneRpcCalls()[0][1]).toEqual({ _job_id: "job-1" });
     expect(directStamps()).toHaveLength(0);
@@ -166,7 +166,7 @@ describe("JobTracking Done — one request per decision", () => {
     stampRow = { id: "job-1", poster_completed_at: AGO(0.1) };
     renderWorking();
     fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /mark complete/i }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
     expect(invokeMock).toHaveBeenCalledWith("create-payment", { body: { action: "release", jobId: "job-1" } });
   });

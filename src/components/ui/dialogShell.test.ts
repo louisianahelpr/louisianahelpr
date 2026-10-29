@@ -1083,7 +1083,7 @@ describe("Popup grammar — footer", () => {
       "I'm safe now",
       "Not Now",
       "Skip",
-      "No Thanks",
+      "No thanks",
       "Keep It On",
       "Keep the Job",
       // Q446 (owner, 2026-10-05): the one-account choice's other answer is a

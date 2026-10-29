@@ -424,6 +424,16 @@ type PhotoProofGroupProps = {
 
 export { PhotoProofRequirementNote, POSTER_PROOF_MISSING_NOTE } from "./PhotoProofRequirementNote";
 
+/**
+ * What a proof thumbnail's link is called (F36, app audit 2026-10-28: the approve sheet's photo links were read
+ * out by their signed storage URL). "Before photo", or "Before photo 2" when there are several; the image inside
+ * is then decorative (alt=""), so the name is said once.
+ */
+function proofPhotoLinkName(type: "before" | "after", index: number, count: number): string {
+  const base = type === "before" ? "Before photo" : "After photo";
+  return count > 1 ? `${base} ${index + 1}` : base;
+}
+
 export const PhotoProofGroup = ({
   jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,
 }: PhotoProofGroupProps) => {
@@ -477,8 +487,8 @@ export const PhotoProofGroup = ({
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
-                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
+                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
@@ -501,8 +511,8 @@ export const PhotoProofGroup = ({
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
-                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt={`After ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
+                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {afterUrls.length > 3 && (

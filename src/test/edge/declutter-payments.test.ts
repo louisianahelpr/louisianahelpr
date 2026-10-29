@@ -718,6 +718,39 @@ describe("declutter-checkout: pay", () => {
     expect(params.metadata).toMatchObject({ setup_fee_cents: "200" });
     expect(rpcs("declutter_attach_checkout_session")[0]?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_fee" });
   });
+  // Audit 1a #15 (2026-10-29): one page read "Pay Helpr", another "Declutter purchase". The purchase line
+  // always names what is being bought: the item's title, read from the order's own cart lines.
+  // @mutate supabase/functions/declutter-checkout/index.ts |       product_data: { name: purchaseName, tax_code: NONTAXABLE_TAX_CODE } } }, |       product_data: { name: "Declutter purchase", tax_code: NONTAXABLE_TAX_CODE } } },
+  // @mutate supabase/functions/declutter-checkout/index.ts |     .select("declutter_items(title)").eq("order_id", order.order_id); |     .select("declutter_items(title)").eq("order_id", "none");
+  it("audit 1a #15: the purchase line carries the item's own title, on a page with a setup fee line too", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.declutter_orders = { rows: [{ setup_fee_cents: 200 }] };
+    scenario.reads.declutter_cart_items = { rows: [{ declutter_items: { title: "Blue coffee mug" } }] };
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_name", url: "https://x/name", amount_total: 4800 });
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount])).toEqual([
+      ["Blue coffee mug", 4600], ["One-time account setup fee", 200],
+    ]);
+    const read = (scenario.readQueries ?? []).find((q) => q.table === "declutter_cart_items" && q.cols.includes("title"));
+    expect(read?.filters).toEqual([{ op: "eq", column: "order_id", value: ORDER }]);
+  });
+  it("audit 1a #15: a bundle names its first title and how many more", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.declutter_cart_items = { rows: [
+      { declutter_items: { title: "Lamp" } }, { declutter_items: { title: "Desk" } }, { declutter_items: { title: "Chair" } },
+    ] };
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_b", url: "https://x/b", amount_total: 4600 });
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items[0].price_data.product_data.name).toBe("Chair + 2 more items");
+  });
   // lh-silent-failure review of the Q2352 rebase #1: no order row is never read as "no setup fee".
   // @mutate supabase/functions/declutter-checkout/index.ts |   if (!feeErr && !feeRow) { |   if (false) {
   it("Q2352: the order's setup-fee read finding no row answers try again, and no page is made", async () => {

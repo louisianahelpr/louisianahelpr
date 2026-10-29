@@ -14,8 +14,8 @@
  * and do not count. The ones that already exist are listed EXACTLY (they predate this guard and the build renders
  * with them, measured 2026-10-23); a new one fails here, and the list only shrinks.
  *
- * @mutate src/lib/jobDate.ts | import { parseLocalDate } from "@/lib/dateUtils"; | import { parseLocalDate } from "@/lib/dateUtils";\nimport { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";\nvoid posterFaceAction;
- * @mutate src/lib/jobDate.ts | import { parseLocalDate } from "@/lib/dateUtils"; | import { parseLocalDate } from "@/lib/dateUtils";\nimport {\n  posterStatusLine,\n} from "../components/job-card/jobStatusLine";\nvoid posterStatusLine;
+ * @mutate src/lib/jobDate.ts | import { jobStartDateTime, parseLocalDate } from "@/lib/dateUtils"; | import { jobStartDateTime, parseLocalDate } from "@/lib/dateUtils";\nimport { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";\nvoid posterFaceAction;
+ * @mutate src/lib/jobDate.ts | import { jobStartDateTime, parseLocalDate } from "@/lib/dateUtils"; | import { jobStartDateTime, parseLocalDate } from "@/lib/dateUtils";\nimport {\n  posterStatusLine,\n} from "../components/job-card/jobStatusLine";\nvoid posterStatusLine;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

@@ -282,7 +282,9 @@ export function CheckoutStep({
                     doubt. */}
                 {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
               </p>
-              {budgetNum > 0 && (
+              {/* F18 (audit 2026-10-28): only when it says something the total does not. A plain
+                  $40 job read "$40.00" over "$40.00 budget", the same number twice. */}
+              {budgetNum > 0 && (hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)) && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
                   {/* Names what the total holds. F3 (owner 2026-10-14/15): there
@@ -704,7 +706,7 @@ export function CheckoutStep({
           className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-card cursor-pointer"
         >
           <span className="text-ds-13 text-foreground leading-snug">
-            <span className="font-semibold block">Save Card for Next Time</span>
+            <span className="font-semibold block">Save card for next time</span>
             <span className="text-ds-11 text-muted-foreground">
               Stripe stores it securely so you can one-tap next time you post.
             </span>

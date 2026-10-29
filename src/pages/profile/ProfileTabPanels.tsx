@@ -20,6 +20,7 @@ type ProfileTip = { amount: number; job_id: string; created_at: string };
 // Profile route chunk stays small — each is fetched the first time it shows.
 import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { MembershipPlansGate } from "@/components/profile/subscriptionTab/MembershipPlansGate";
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
 const ProfileEditForm = lazy(() => import("@/components/profile/ProfileEditForm").then(m => ({ default: m.ProfileEditForm })));
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
@@ -272,7 +273,10 @@ export const ProfileTabPanels = ({
 
       {tab === "subscription" && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
-          <SubscriptionTab profile={profile} user={user} onBack={onBackFromTab} />
+          {/* A3-C14: no plan prices while memberships are off (MembershipPlansGate). */}
+          <MembershipPlansGate profile={profile} onBack={onBackFromTab}>
+            <SubscriptionTab profile={profile} user={user} onBack={onBackFromTab} />
+          </MembershipPlansGate>
         </Suspense>
       )}
 

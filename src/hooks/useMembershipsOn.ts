@@ -1,4 +1,4 @@
-import { useFeature } from "@/hooks/useFeature";
+import { useFeature, useFeatureStatus } from "@/hooks/useFeature";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
@@ -21,4 +21,14 @@ export const MEMBERSHIPS_HIDDEN_IN_THIS_APP: boolean = isNativePlatform;
 export function useMembershipsOn(): boolean {
   const on = useFeature("memberships");
   return on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP;
+}
+
+/**
+ * useMembershipsOn plus whether the answer is in (useFeatureStatus), for the
+ * one place that must not paint the plans before it knows: the Membership tab
+ * (MembershipPlansGate, A3-C14). Native answers off at once.
+ */
+export function useMembershipsStatus(): { on: boolean; settled: boolean } {
+  const { on, settled } = useFeatureStatus("memberships");
+  return { on: on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP, settled: settled || MEMBERSHIPS_HIDDEN_IN_THIS_APP };
 }

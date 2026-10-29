@@ -16,7 +16,7 @@
  * intro says so (audit 2026-10-28 P5-1).
  */
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { confirmConsequential } from "@/lib/toastPolicy";
@@ -116,6 +116,8 @@ function PhotoPicker({ label, kind, onPick, busy }: { label: string; kind: ShopP
 
 export default function ShopEditView() {
   const navigate = useNavigate();
+  // The shop page's "Add an item" (an owner's empty shop) opens the item editor here.
+  const startAdding = useLocation().hash === "#add-item";
   const qc = useQueryClient();
   const { user } = useCurrentUser();
   const categories = useShopCategories();
@@ -390,7 +392,7 @@ export default function ShopEditView() {
       {/* FAQs (SH12): save on their own, like the pickup address. */}
       {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
-      {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
+      {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding={startAdding} />}
       {/* The app's own confirm, never window.confirm (off-brand and
           unreliable inside the iOS WebView; SecurityTab). */}
       <BrandConfirmDialog

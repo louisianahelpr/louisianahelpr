@@ -12,6 +12,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { rpcErrorMessage } from "./sellerDeliveryErrors";
+import { currentPosition } from "./position";
 
 /** The numbers the owner confirmed on 2026-10-22 (see the SQL function of the same name). */
 export const SELLER_DELIVERY_RULES = {
@@ -251,8 +252,26 @@ export async function fetchSellerDeliveryBooking(orderId: string): Promise<Selle
     (e) => rpcErrorMessage("declutter_seller_delivery_booking", e)) as unknown as SellerDeliveryBooking;
 }
 
-export async function markDelivered(orderId: string, photoPath: string): Promise<void> {
-  data(await supabase.rpc("declutter_seller_delivered", { p_order_id: orderId, p_photo_path: photoPath }),
+/** The device's position for the "left at your door" photo; refused location speaks of the buyer's address. */
+export async function deliveryPhotoPosition(): Promise<{ lat: number; lng: number }> {
+  try {
+    return await currentPosition();
+  } catch (e) {
+    const err = e as Error & { userMessage?: string };
+    const words = rpcErrorMessage("declutter_seller_delivered", err);
+    if (words && Object.isExtensible(err)) err.userMessage = words;
+    throw err;
+  }
+}
+
+/** With a photo, `where` is the device's position: it is taken at the buyer's door (20261028235709, within 200 m). */
+export async function markDelivered(orderId: string, photoPath: string, where: { lat: number; lng: number } | null = null): Promise<void> {
+  data(await supabase.rpc("declutter_seller_delivered", {
+    p_order_id: orderId,
+    p_photo_path: photoPath,
+    p_lat: (where?.lat ?? null) as number,
+    p_lng: (where?.lng ?? null) as number,
+  }),
     (e) => rpcErrorMessage("declutter_seller_delivered", e));
 }
 

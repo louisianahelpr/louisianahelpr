@@ -102,7 +102,10 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     before_delivery_time: S.before_delivery_time,
     item_not_found: DC.item_not_found,
+    // Anti-lying #1 (20261028235709): the photo is taken at the buyer's door.
+    location_required: "Turn on location so we can confirm you're at the buyer's address.",
     not_a_seller_delivery: S.not_a_seller_delivery,
+    not_at_dropoff: "Take the photo at the buyer's address.",
     not_authenticated: DC.not_authenticated,
     not_booked_yet: D.not_booked_yet,
     photo_not_uploaded: DC.photo_not_uploaded,

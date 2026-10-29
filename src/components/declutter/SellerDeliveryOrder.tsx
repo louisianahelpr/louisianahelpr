@@ -20,6 +20,7 @@ import {
   SELLER_DELIVERY_RULES,
   answerDeliveryTime,
   buyerCancelDelivery,
+  deliveryPhotoPosition,
   fetchDeliveryOpenTimes,
   fetchSellerDeliveryBooking,
   groupSlotsByDay,
@@ -95,7 +96,11 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
     ({ mutationFn: fn, onSuccess: (r: T) => { toast.success(typeof done === "string" ? done : done(r)); refresh(); },
        onError: (err: unknown) => toast.error(sellerDeliveryErrorMessage(err)) });
   const b = booking.data;
-  const delivered = useMutation(act(async () => markDelivered(orderId, photo ? await uploadHandoverPhoto(userId, orderId, photo) : ""),
+  // A photo is taken at the buyer's door (20261028235709): the position first, so a refusal uploads nothing.
+  const delivered = useMutation(act(async () => {
+    const where = photo ? await deliveryPhotoPosition() : null;
+    return markDelivered(orderId, photo ? await uploadHandoverPhoto(userId, orderId, photo) : "", where);
+  },
     b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in 24 hours." : "Marked delivered. You're paid when the buyer confirms, or in 24 hours."));
   const gotIt = useMutation(act(() => confirmHandover(orderId), "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(() => reportNotDelivered(orderId), "Sorry it didn't come. Everything you paid is coming back to your card."));
@@ -145,7 +150,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
       {can.markDelivered && (
         <div className="space-y-2">
           <label htmlFor={fileId} className="block text-xs font-medium">
-            {b.handoff === "leave" ? "Photo of the items at the door (needed)" : "Photo of the handover (optional)"}
+            {b.handoff === "leave" ? "Photo of the items at the buyer's door (needed, taken there)" : "Photo of the handover (optional, taken at the buyer's address)"}
           </label>
           <input id={fileId} type="file" accept="image/*" capture="environment" disabled={busy} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
           <button type="button" className={primary} disabled={busy || (b.handoff === "leave" && !photo)} onClick={() => delivered.mutate(undefined)}>

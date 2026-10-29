@@ -647,8 +647,12 @@ export const RPC_ERROR_COPY = {
     invalid_payout: DC.invalid_payout,
     invalid_status: DC.invalid_status,
     item_not_found: DC.item_not_found,
+    // Anti-lying #1 (20261028235709): a "Picked up" photo is taken where the handover is.
+    location_required: "Turn on location so we can confirm where you took the photo.",
     no_delivery_fee: DC.no_delivery_fee,
     not_a_door_pickup: DC.not_a_door_pickup,
+    not_at_meetup: DC.not_at_meetup,
+    not_at_pickup: DC.not_at_pickup,
     not_authenticated: DC.not_authenticated,
     not_booked_yet: DC.not_booked_yet,
     order_not_paid: DC.order_not_paid,

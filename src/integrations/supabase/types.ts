@@ -14403,7 +14403,15 @@ export type Database = {
       declutter_scrub_member: { Args: { p_user_id: string }; Returns: Json }
       declutter_seller_cancel_delivery: { Args: { p_order_id: string }; Returns: Json }
       declutter_seller_cancel_sale: { Args: { p_item_id: string }; Returns: number }
-      declutter_seller_delivered: { Args: { p_order_id: string; p_photo_path: string }; Returns: Json }
+      declutter_seller_delivered: {
+        Args: {
+          p_lat?: number
+          p_lng?: number
+          p_order_id: string
+          p_photo_path: string
+        }
+        Returns: Json
+      }
       declutter_seller_delivery_booking: { Args: { p_order_id: string }; Returns: Json }
       declutter_seller_delivery_check: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
       declutter_seller_delivery_offer: { Args: { p_seller_id: string }; Returns: Json }
@@ -14433,7 +14441,12 @@ export type Database = {
       }
       declutter_seller_out: { Args: { p_seller: string }; Returns: boolean }
       declutter_seller_picked_up: {
-        Args: { p_order_id: string; p_photo_path: string }
+        Args: {
+          p_lat?: number
+          p_lng?: number
+          p_order_id: string
+          p_photo_path: string
+        }
         Returns: Json
       }
       declutter_seller_out_fee_notice: {

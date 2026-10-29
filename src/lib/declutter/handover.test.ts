@@ -176,7 +176,7 @@ describe("writes send exactly the SQL's parameters", () => {
       ["declutter_book_pickup", { p_order_id: "o1", p_slot_start: "2026-10-20T15:00:00Z" }],
       ["declutter_set_porch_time", { p_order_id: "o1", p_mode: "until", p_until: "2026-10-20T18:00:00Z" }],
       ["declutter_confirm_handover", { p_order_id: "o1", p_method: "buyer", p_code: null }],
-      ["declutter_seller_picked_up", { p_order_id: "o1", p_photo_path: null }],
+      ["declutter_seller_picked_up", { p_order_id: "o1", p_photo_path: null, p_lat: null, p_lng: null }],
       ["declutter_porch_photo", { p_order_id: "o1", p_photo_path: "u1/declutter/handover/o1/a.jpg", p_lat: 30, p_lng: -92 }],
       ["declutter_porch_photo", { p_order_id: "o1", p_photo_path: "u1/declutter/handover/o1/b.jpg", p_lat: null, p_lng: null }],
       ["declutter_report_no_show", { p_order_id: "o1" }],

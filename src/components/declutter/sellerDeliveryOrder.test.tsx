@@ -34,6 +34,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   buyerCancelDelivery: async () => { state.calls.push("buyer_cancel"); },
   sellerCancelDelivery: async () => { state.calls.push("seller_cancel"); },
   fetchDeliveryOpenTimes: async () => [],
+  // Anti-lying #1 (20261028235709): the "left at your door" photo carries where it was taken.
+  deliveryPhotoPosition: async () => ({ lat: 30.5, lng: -91.15 }),
+  markDelivered: async (...a: unknown[]) => { state.calls.push(JSON.stringify(["delivered", ...a])); },
 }));
 
 import { SellerDeliveryOrderPanel } from "./SellerDeliveryOrder";
@@ -79,6 +82,18 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     expect(state.calls).toEqual([]);
     await askAndConfirm("Cancel order", /Cancel this order\?/, "Cancel order", "buyer_cancel");
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  // Anti-lying #1 (20261028235709): the seller's "left at your door" photo is sent with the device's position, which
+  // the server checks against the buyer's drop-off point.
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx |     const where = photo ? await deliveryPhotoPosition() : null; |     const where = null;
+  it("seller: the \"Delivered\" photo is sent with where it was taken", async () => {
+    state.booking = { ...BASE, side: "seller", slot_start: iso(-HOUR), slot_end: iso(0), dropoff_address: "500 Drop Rd" };
+    show();
+    const input = await screen.findByLabelText(/Photo of the items at the buyer's door/);
+    fireEvent.change(input, { target: { files: [new File(["x"], "door.jpg", { type: "image/jpeg" })] } });
+    fireEvent.click(screen.getByRole("button", { name: "Delivered" }));
+    await waitFor(() => expect(state.calls).toEqual([JSON.stringify(["delivered", "o", "p.jpg", { lat: 30.5, lng: -91.15 }])]));
   });
 
   it("#7: before the delivery day there is no I got it, only when it can be tapped", async () => {

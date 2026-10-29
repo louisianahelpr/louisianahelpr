@@ -1,10 +1,9 @@
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatPrice } from "@/lib/declutter/distance";
-import { buyNowTotalCents } from "@/lib/declutter/money";
+import { BuyerTotal } from "@/components/declutter/BuyerTotal";
 
-const Money = ({ cents }: { cents: number }) => (
-  <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(cents)}</span>
-);
+const MONEY = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
+const Money = ({ cents }: { cents: number }) => <span className={MONEY}>{formatPrice(cents)}</span>;
 
 /**
  * Board 79, "What next" after a Declutter offer, on the shared WhatNextSheet. The real rules
@@ -23,7 +22,7 @@ export function OfferSentWhatNext({ cents, onClose, onBrowse }: { cents: number 
       steps={cents === null ? [] : [
         { key: "offered", label: <>You offered <Money cents={cents} /></>, detail: "The seller has 48 hours to answer", state: "done" },
         { key: "answer", label: "The seller accepts, counters or says no", detail: "We'll let you know", state: "now" },
-        { key: "accepted", label: "If the seller accepts", detail: <>You have 48 hours to check out: <Money cents={buyNowTotalCents(cents)} /> for pickup</>, state: "later" },
+        { key: "accepted", label: "If the seller accepts", detail: <>You have 48 hours to check out: <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> for pickup</>, state: "later" },
         { key: "pickup", label: "Pick it up", detail: "Then the seller is paid", state: "later" },
       ]}
       primary={{ label: "Got it", acknowledge: true }}

@@ -23,6 +23,7 @@ import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 
 // UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
@@ -108,6 +109,8 @@ const AdminUsers = () => {
     openReportsSummary,
     summariesSettled,
     loadSummaries,
+    summaryFailures,
+    retryFailedSummaries,
   } = useAdminUserSummaries();
 
   // Filters
@@ -444,6 +447,18 @@ const AdminUsers = () => {
         )}
       </div>
 
+      {/* A summary that failed to load says so here, with Try again (audit 2026-10-28 P5-10: the
+          completed-jobs and money reads failed for every member and only the console knew). */}
+      {summaryFailures.length > 0 && (
+        <div className="mb-2" data-testid="admin-user-summaries-failed">
+          <ErrorState
+            variant="inline"
+            title={`Couldn't load ${summaryFailures.join(" and ")} for these members.`}
+            body="The rows below leave those chips off until it loads."
+            onRetry={retryFailedSummaries}
+          />
+        </div>
+      )}
       {filtered.length === 0 ? (
         <EmptyState
           variant="inline"

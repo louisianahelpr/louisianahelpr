@@ -1037,6 +1037,18 @@ export const RPC_ERROR_COPY = {
   declutter_my_offers: {
     not_authenticated: DC.not_authenticated,
   },
+  // Audit 1028 D1-1 (20261029205908): editing a live listing.
+  declutter_edit_listing: {
+    account_restricted: DC.account_restricted,
+    attestation_required: DC.attestation_required,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_handovers: DC.invalid_handovers,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_publish_item: {
     account_restricted: DC.account_restricted,
     attestation_required: DC.attestation_required,

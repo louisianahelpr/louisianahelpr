@@ -49,8 +49,9 @@ import { AutoFreeRow } from "./AutoFreeRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
 import { FallbackImg } from "./FallbackImg";
+import { DeclutterEditListing } from "./DeclutterEditListing";
 
-type View = "menu" | "price" | "sold" | "delete";
+type View = "menu" | "price" | "sold" | "delete" | "edit";
 
 const ROW =
   "flex w-full items-center gap-3 px-4 py-3.5 text-left min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
@@ -121,11 +122,20 @@ export function ManageListingSheet({
       }}
     >
       <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-manage-listing="">
-        <SheetHero title={view === "price" ? "Change price" : view === "sold" ? "Sold somewhere else?" : view === "delete" ? "Delete this listing?" : "Manage listing"} />
+        <SheetHero title={view === "edit" ? "Edit listing" : view === "price" ? "Change price" : view === "sold" ? "Sold somewhere else?" : view === "delete" ? "Delete this listing?" : "Manage listing"} />
         {view === "menu" && (
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+              {/* Audit 1028 D1-1: a live listing can be edited (declutter_edit_listing; the owner's review rule). */}
+              {item.status === "live" && (
+              <li>
+                <button type="button" className={ROW} onClick={() => setView("edit")} disabled={busy}>
+                  <RowText title="Edit listing">Title, description, category, condition, size, how buyers get it</RowText>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                </button>
+              </li>
+              )}
               {deployed && (<>
               {!free && (<>
               <li>
@@ -186,6 +196,7 @@ export function ManageListingSheet({
             </ul>
           </div>
         )}
+        {view === "edit" && <DeclutterEditListing item={item} onDone={close} />}
         {view === "price" && !manage && (
           state.isError ? (
             <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{declutterErrorMessage(state.error)}</p>

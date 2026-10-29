@@ -36,7 +36,7 @@ export const PrivacyContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
+        "We collect only what we need to match jobs and process payments — name, email, phone, location, usage data, and ID, if you choose to verify it.",
         "Stripe handles payments. We never store full card numbers.",
         "Delete your account or download your data yourself, anytime, from the Download your data card in this policy — no waiting on support.",
       ]}

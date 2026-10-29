@@ -5,7 +5,7 @@
 // Red first (2026-10-28) against origin/main 6b3206e2bd: the plain job's Total
 // row held "$40" twice, and the switch label read "Save Card for Next Time".
 //
-// @mutate src/components/postjob/CheckoutBudgetLine.tsx |   if (!(budgetNum > 0 && (hasGift \|\| Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)))) return null; |   if (!(budgetNum > 0)) return null;
+// @mutate src/components/postjob/CheckoutBudgetLine.tsx |   if (!(budgetNum > 0 && (hasGift \|\| Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)))) return crewLine; |   if (!(budgetNum > 0)) return crewLine;
 // @mutate src/components/postjob/CheckoutStep.tsx | <span className="font-semibold block">Save card for next time</span> | <span className="font-semibold block">Save Card for Next Time</span>
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

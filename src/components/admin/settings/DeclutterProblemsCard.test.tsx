@@ -34,6 +34,15 @@
  * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |       place: metres(c.helpr_dropoff_distance_m, "drop-off address"), helpr: true }); |       place: null, helpr: true });
  * @mutate src/components/admin/settings/DeclutterProblemCase.tsx |             slotStart: c.slot_start ?? c.pickup_day, |             slotStart: null,
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null} |
+ *
+ * D2-14 (owner 2026-10-29: allow partial): after the handover the admin can refund PART of the price, pre-filled with the
+ * seller's last part offer, never more than the item price; before the handover it is not offered. D2-3: the reporter's
+ * photos and the other side's words and photos are on the card.
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const [part, setPart] = useState(offer ? (offer / 100).toFixed(2) : ""); |   const [part, setPart] = useState("");
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const partOk = partCents !== null && itemsCents !== null && partCents < itemsCents; |   const partOk = partCents !== null;
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const canPart = row.detail?.order_status === "handed_over"; |   const canPart = true;
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | adminDecideProblem(...args, partCents) : | adminDecideProblem(...args, null) :
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.detail?.other_side_note ? ( |       {false ? (
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -154,8 +163,8 @@ describe("DeclutterProblemsCard: what the admin decides from (A2-13)", () => {
 });
 
 // AL-5 (20261029000048): a strike for a proven false report, as its own explicit question.
-// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, falseOn ? false : strike, note.trim() \|\| null, falseOn), |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, falseOn ? false : strike, note.trim() \|\| null, false),
-// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, | adminDecideProblem(row.id, decision, fault,
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | falseOn ? false : strike, note.trim() \|\| null, falseOn] as const; | falseOn ? false : strike, note.trim() \|\| null, false] as const;
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       const args = [row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, |       const args = [row.id, decision, fault,
 // @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |  disabled={decide.isPending \|\| (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button> |  disabled={decide.isPending}>Refund the buyer</Button>
 // @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {reporter ? (\n        <fieldset className="space-y-1"> |       {false ? (\n        <fieldset className="space-y-1">
 describe("DeclutterProblemsCard: a false report (AL-5)", () => {
@@ -277,5 +286,34 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     expect(seller.textContent).toContain(new Date("2026-10-16T09:30:00Z").toLocaleString());
     // The decide buttons stay on the same card.
     expect(screen.getByRole("button", { name: "Damaged in delivery" })).toBeInTheDocument();
+  });
+
+  it("D2-14: after the handover, a part refund pre-filled with the seller's offer sends exactly that many cents; never at or above the item price", async () => {
+    state.rows = [row("not_as_described", "buyer", [], detail({ order_status: "handed_over", refund_offer_cents: 500 }))];
+    show();
+    const box = await screen.findByLabelText("Or refund part of the price (the buyer keeps the item)");
+    expect((box as HTMLInputElement).value).toBe("5.00");
+    expect(screen.getByText(/^The seller offered \$5(\.00)?\.$/)).toBeInTheDocument();
+    fireEvent.change(box, { target: { value: "32" } });
+    expect(screen.getByRole("button", { name: "Refund part" })).toBeDisabled();
+    fireEvent.change(box, { target: { value: "7.25" } });
+    fireEvent.click(screen.getByRole("button", { name: "Refund part" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "refund_part", "none", false, null, false, 725]]));
+  });
+
+  it("D2-14: before the handover there is no part refund", async () => {
+    state.rows = [row("not_as_described", "buyer", [], detail({ order_status: "paid" }))];
+    show();
+    await screen.findByRole("button", { name: "Refund the buyer" });
+    expect(document.querySelector("[data-admin-part-refund]")).toBeNull();
+  });
+
+  it("D2-3: the buyer's photos and the seller's side, with its photos, are on the card", async () => {
+    state.rows = [row("damaged", "buyer", ["b1/declutter/problem/o1/a.jpg"], detail({ order_status: "handed_over",
+      other_side_note: "It left here in one piece.", other_side_photo_paths: ["s1/declutter/problem/o1/b.jpg"] }))];
+    show();
+    expect(await screen.findByAltText("The buyer's photo")).toHaveAttribute("src", "https://signed.test/b1/declutter/problem/o1/a.jpg");
+    expect(screen.getByText(/The seller's side:/).closest("p")?.textContent).toBe("The seller's side: It left here in one piece.");
+    expect(await screen.findByAltText("The other side's photo")).toHaveAttribute("src", "https://signed.test/s1/declutter/problem/o1/b.jpg");
   });
 });

@@ -134,15 +134,14 @@ export async function confirmHandover(orderId: string): Promise<HandoverResult> 
  * position, checked against the handover place (20261028235709: the pickup address, or the meeting spot).
  */
 export async function sellerPickedUp(orderId: string, photoPath: string | null, where: { lat: number; lng: number } | null = null): Promise<HandoverResult> {
-  return rpcData(
-    await supabase.rpc("declutter_seller_picked_up", {
-      p_order_id: orderId,
-      p_photo_path: photoPath as string,
-      p_lat: (where?.lat ?? null) as number,
-      p_lng: (where?.lng ?? null) as number,
-    }),
-    (e) => rpcErrorMessage("declutter_seller_picked_up", e),
-  ) as unknown as HandoverResult;
+  const res = await supabase.rpc("declutter_seller_picked_up", {
+    p_order_id: orderId,
+    p_photo_path: photoPath as string,
+    p_lat: (where?.lat ?? null) as number,
+    p_lng: (where?.lng ?? null) as number,
+  });
+  if (res.error) await discardRefusedHandoverPhoto(photoPath);
+  return rpcData(res, (e) => rpcErrorMessage("declutter_seller_picked_up", e)) as unknown as HandoverResult;
 }
 
 /**
@@ -156,15 +155,14 @@ export async function porchPhoto(
   photoPath: string,
   where: { lat: number; lng: number } | null,
 ): Promise<{ result: "set_out" | "picked_up" | "already_handed_over"; paid?: boolean; distance_m?: number }> {
-  return rpcData(
-    await supabase.rpc("declutter_porch_photo", {
-      p_order_id: orderId,
-      p_photo_path: photoPath,
-      p_lat: (where?.lat ?? null) as number,
-      p_lng: (where?.lng ?? null) as number,
-    }),
-    (e) => rpcErrorMessage("declutter_porch_photo", e),
-  ) as unknown as { result: "set_out" | "picked_up" | "already_handed_over"; paid?: boolean; distance_m?: number };
+  const res = await supabase.rpc("declutter_porch_photo", {
+    p_order_id: orderId,
+    p_photo_path: photoPath,
+    p_lat: (where?.lat ?? null) as number,
+    p_lng: (where?.lng ?? null) as number,
+  });
+  if (res.error) await discardRefusedHandoverPhoto(photoPath);
+  return rpcData(res, (e) => rpcErrorMessage("declutter_porch_photo", e)) as unknown as { result: "set_out" | "picked_up" | "already_handed_over"; paid?: boolean; distance_m?: number };
 }
 
 /**
@@ -191,6 +189,24 @@ export async function uploadHandoverPhoto(userId: string, orderId: string, file:
   });
   if (error) throw new Error("photo_not_uploaded");
   return path;
+}
+
+/**
+ * Declutter audit 1a #10: when a handover photo RPC (porch photo, seller "Picked up", seller "Delivered") refuses
+ * the photo it was given (wrong place, too old, before the booked day), remove the uploaded file so a photo of
+ * the member's home does not stay in storage. Best effort: it never throws and never replaces the RPC's own
+ * error. The storage policy (20261029222816) lets the uploader delete only their own handover-folder file while
+ * no handover row holds it, so a photo the RPC did attach is never removed here.
+ */
+export async function discardRefusedHandoverPhoto(path: string | null | undefined): Promise<void> {
+  if (!isStorageObjectPath(path)) return;
+  try {
+    const { error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).remove([path]);
+    if (error) console.warn("[declutter] refused handover photo not removed", error.message);
+  } catch (e) {
+    // Best effort: the member sees the RPC's refusal, never this cleanup's failure.
+    console.warn("[declutter] refused handover photo not removed", e instanceof Error ? e.message : String(e));
+  }
 }
 
 /** Boards 71/72/159: where the handover stands, for either side (declutter_my_handover; never a code). */

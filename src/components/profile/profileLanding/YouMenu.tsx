@@ -52,7 +52,8 @@ const ICON: Record<RowKey, ReactNode> = {
 
 /** The captions known before any data (the skeleton draws these too). Money's is data, so it is not here. */
 export const YOU_STATIC_CAPTIONS: Partial<Record<RowKey, string>> = {
-  notifications: "What we tell you, and how",
+  // Short enough to sit whole beside "Notifications" at 375 (it was cut, audit 2026-10-29 A3-L4).
+  notifications: "Alerts and email",
   settings: "Account, look, sections",
   support: "Help",
 };

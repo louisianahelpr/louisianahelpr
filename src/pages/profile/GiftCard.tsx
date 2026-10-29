@@ -47,7 +47,7 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { posterCardCostFeeCents } from "@/lib/posterFees";
-import { formatPrice } from "@/lib/format";
+import { giftChargeSentence } from "./giftCards/giftChargeSentence";
 import { formatName } from "@/lib/utils";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
@@ -677,9 +677,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   ${MIN_GIFT}–${MAX_GIFT} per gift card.{" "}
-                  {giftTotalCents == null
-                    ? "Your total is shown before you pay."
-                    : `You'll be charged $${formatPrice(giftTotalCents / 100)} in total.`}
+                  {giftChargeSentence(giftTotalCents)}
                 </p>
               </div>
 

@@ -445,7 +445,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     {hasHelper && <span className="text-ds-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job is for your Helpr&rsquo;s time, they set aside; you see the exact amount here before you confirm.
+                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside; you see the exact amount here before you confirm.
                   </p>
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                   {hasHelper && (

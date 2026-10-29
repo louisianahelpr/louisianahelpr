@@ -84,7 +84,8 @@ function DeclutterRefundSettled({ v }: { v: RefundRequestView }) {
   if (!r || r.refund_cents == null) return null;
   const sent = r.refund_status === "succeeded";
   return (
-    <p className="text-sm">
+    <p className="text-sm" data-refund-settled="">
+      {r.admin_decided && "Louisiana Helpr decided to refund the buyer. "}
       {v.side === "buyer"
         ? `${refundDollars(r.refund_cents)} ${sent ? "was refunded to your card" : "is coming back to your card"}.`
         : `The buyer got ${refundDollars(r.refund_cents)} back.`}
@@ -173,7 +174,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <div className="space-y-2" data-refund-returning="">
           <p className="text-sm">
             {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> Give the item back;
-            arrange it in Messages. Your refund is sent as soon as {who} confirms they have it.
+            message {who} from your order. Your refund is sent as soon as {who} confirms they have it.
           </p>
           {r.return_by && <p className="text-ds-12 text-muted-foreground">If {who} hasn't confirmed by {at(r.return_by)}, Louisiana Helpr decides.</p>}
         </div>
@@ -181,6 +182,8 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     case "agreed":
       return <DeclutterRefundSettled v={v} />;
     case "declined":
+      // D2-5: Louisiana Helpr decided for the seller; the seller never said no.
+      if (r.admin_decided) return <p className="text-sm" data-refund-admin-decided="">Louisiana Helpr decided: {who} keeps the payment, and the sale is final.</p>;
       return (
         <div className="space-y-2">
           <p className="text-sm">
@@ -245,6 +248,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     );
   }
   if (r.status === "offered") return <p className="text-sm">You offered {refundDollars(r.offer_cents ?? 0)}. Waiting for {who} to answer.</p>;
+  if (r.status === "declined" && r.admin_decided) return <p className="text-sm" data-refund-admin-decided="">Louisiana Helpr decided: you keep the payment, and the sale is final.</p>;
   if (r.status === "declined") return <p className="text-sm">You said no to the refund. {cap(who)} can still ask Louisiana Helpr to decide.</p>;
   if (r.status === "to_admin") return <p className="text-sm">Louisiana Helpr is looking at this refund request. Your payout waits until we decide.</p>;
   if (r.status === "withdrawn") return <p className="text-sm text-muted-foreground">{cap(who)} took back their refund request.</p>;

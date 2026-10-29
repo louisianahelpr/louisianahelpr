@@ -72,7 +72,8 @@ const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx")
  * names a field the poster still has to fill.
  */
 const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = "([^"]+)"/g)].map((m) => m[1]);
-const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review, then pay");
+// "Review" is Get quotes' ready state (A2-C32: it opens Review, then "Ask for quotes"), not a refusal.
+const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review, then pay" && l !== "Review");
 
 /**
  * FLOOR — the inventory must not be empty, and must not silently collapse to

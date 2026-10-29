@@ -395,7 +395,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
   // reads it once for both hooks): the quote below must say what it showed.
   const posterFeeOn = params.posterFeeOn === true;
 
-  const handleReview = (e: React.FormEvent) => {
+  /** `quotes`: Review opened from Get quotes (A2-C32): no price yet, so the budget checks do not apply. */
+  const handleReview = (e: React.FormEvent, opts: { quotes?: boolean } = {}) => {
     e.preventDefault();
     if (!title.trim()) { toast.error("Give your job a title."); scrollToField("title"); return; }
     // Upper bound too, not just presence. `maxLength` on the input guards
@@ -464,6 +465,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
     // checkout carrying a stale hidden budget and got charged for it.
+    if (opts.quotes) { setStep("checkout"); return; }
     if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}.`); scrollToField("custom-urgent-fee"); return; }

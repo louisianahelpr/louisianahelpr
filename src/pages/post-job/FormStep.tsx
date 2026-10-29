@@ -14,7 +14,7 @@ import { detailsBlocker } from "./detailsBlocker";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { usePrefillOpensDetails } from "./usePrefillOpensDetails";
 import { AgeGateNote } from "@/components/AgeGateNote";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
@@ -27,7 +27,6 @@ import {
   PriceModeChoice,
   QuoteRequestSection,
   type PriceMode,
-  type QuoteAskHandle,
 } from "@/components/quotes/PostJobQuoteChoice";
 
 interface FormStepProps {
@@ -61,15 +60,14 @@ export function FormStep({ form }: FormStepProps) {
   // form (priceMode stays "price", so QuoteRequestSection never mounts).
   const quotes = useFeatureStatus("quotes");
   const quotesOn = quotes.on;
-  const [priceModeRaw, setPriceMode] = useState<PriceMode>("price");
+  const priceModeRaw = form.priceMode;
+  const setPriceMode = form.setPriceMode;
   const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob;
   const quotesEligible = quotesOn && quotesShape;
   const priceMode: PriceMode = quotesEligible ? priceModeRaw : "price";
-  const quoteAsk = useRef<QuoteAskHandle>(null);
-  const [quoteSending, setQuoteSending] = useState(false);
   const askingQuotes = priceMode === "quotes";
   const submitDisabled = askingQuotes
-    ? !(form.detailsComplete && form.logisticsComplete) || underAge || quoteSending
+    ? !(form.detailsComplete && form.logisticsComplete) || underAge
     : atOpenJobLimit || !formReady || underAge;
 
   // Scanned once per render: the screen-2 gate, the back-to-fix button and
@@ -95,15 +93,16 @@ export function FormStep({ form }: FormStepProps) {
     // refuse the tap with a toast the poster could not see from down here.
     else submitLabel = "Pick a later start to continue";
   } else if (askingQuotes) {
-    submitLabel = quoteSending ? "Sending…" : "Ask for quotes";
+    // A2-C32 (lead option A): Get quotes has a Review too (7 of 7); "Ask for quotes" is on it.
+    submitLabel = "Review";
   } else if (!form.budgetComplete) {
     submitLabel = "Set a budget to continue";
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
   // When and where; the checkout step is Review (7 of 7, postJobScreens.ts). Every page stays mounted
-  // (hidden when not showing) so nothing typed is lost and the quote form's
-  // ref still answers on screen 4. The page lives in usePostJobForm so the
+  // (hidden when not showing) so nothing typed is lost; Get quotes' window lives in usePostJobForm so
+  // Review reads it (A2-C32). The page lives in usePostJobForm so the
   // header's back arrow steps back through it.
   const page = form.formPage ?? 1;
   const setPage = form.setFormPage;
@@ -224,23 +223,10 @@ export function FormStep({ form }: FormStepProps) {
             setPage?.(backTo.page);
             return;
           }
+          form.setQuoteReview(askingQuotes);
           if (!askingQuotes) return form.handleReview(e);
-          e.preventDefault();
-          if (submitDisabled) return;
-          void quoteAsk.current?.ask({
-            title: form.title,
-            description: form.description,
-            category: form.category,
-            streetAddress: form.streetAddress,
-            city: form.city,
-            addrState: form.addrState,
-            zipCode: form.zipCode,
-            dateNeeded: form.dateNeeded,
-            startTime: form.startTime,
-            isFlexibleSchedule: form.isFlexibleSchedule,
-            estimatedHours: form.estimatedHours,
-            parish: form.parish,
-          });
+          if (submitDisabled) { e.preventDefault(); return; }
+          form.handleReview(e, { quotes: true });
         }}
         className="space-y-4"
       >
@@ -301,7 +287,7 @@ export function FormStep({ form }: FormStepProps) {
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
         {askingQuotes ? (
-          <QuoteRequestSection ref={quoteAsk} stepNumber={3} onSendingChange={setQuoteSending} />
+          <QuoteRequestSection stepNumber={3} windowHours={form.quoteWindowHours} onWindowChange={form.setQuoteWindowHours} />
         ) : (
         <div>
           <BudgetSection

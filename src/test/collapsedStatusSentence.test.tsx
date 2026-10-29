@@ -247,6 +247,10 @@ const POSTER_FIXTURES: Record<
       poster_confirmed_arrival_at: ago(2), poster_confirmed_working_at: ago(1),
     }),
   },
+  /* auto-start-due-jobs turned it in_progress at the start; nobody set out or arrived (A2-B12). */
+  started_no_checkin: {
+    job: job({ status: "in_progress", helper_id: HELPER, date_needed: TODAY, helper_confirmed_at: ago(20) }),
+  },
   approve: {
     job: job({
       status: "in_progress", helper_id: HELPER, date_needed: TODAY,

@@ -85,6 +85,8 @@ export const POSTER_STEP: Record<PosterWait, Entry> = {
   overdue_not_arrived: NO_SHOW,
   overdue_no_show: NO_SHOW,
   overdue_unfinished: OVERDUE_AT(6),
+  // Lit from the stamps, never from the status (A2-B12): stuck() stops at the first step that never happened.
+  started_no_checkin: NO_SHOW,
   dispute: DISPUTE,
   dispute_escalated: DISPUTE,
   dispute_settling: DISPUTE,

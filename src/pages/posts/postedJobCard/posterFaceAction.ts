@@ -96,6 +96,8 @@ export function posterFaceAction(
     case "confirm_still_on":
       return { label: "I'm still on", onClick: h.confirm, tone: "primary" };
     case "overdue_no_show":
+    case "started_no_checkin":
+      // started_no_checkin: the start passed with no check-in (A2-B12), the same choice, on the face, not under More.
       return { label: "Report no-show", onClick: h.noShow, tone: "secondary" };
     case "overdue_unhired":
     case "overdue_unconfirmed":

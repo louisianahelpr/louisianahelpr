@@ -279,6 +279,7 @@ export type PosterWait =
   | "overdue_not_arrived"
   | "overdue_no_show"
   | "overdue_unfinished"
+  | "started_no_checkin"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -356,6 +357,10 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   overdue_not_arrived: { detail: "Your Helpr never arrived — cancel?" },
   overdue_no_show: { detail: "Your Helpr never arrived — No-Show?" },
   overdue_unfinished: { detail: "Waiting on your Helpr to finish", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
+  /* THE START TIME PASSED AND NOBODY CHECKED IN (audit 2026-10-29 A2-B12). auto-start-due-jobs turns every booked
+     job in_progress at its start, whether or not the Helpr set out or arrived; the card read "Eli is at the job",
+     the job page "Work is underway". The eyebrow says the start passed; what to do (wait, message, or report a no-show) is the poster's call. */
+  started_no_checkin: { detail: "Your Helpr hasn't checked in", eyebrow: "Start time passed", tone: "you" },
   /* THE OLD `DisputeOpenBadge`, VERBATIM — the words, the tone and the
      consequence line are unchanged, because this strip IS that badge
      generalised (owner: "similar to how dispute open displays"). The eyebrow
@@ -559,6 +564,10 @@ export function derivePosterWait(
       }
       if (job.status === "accepted" && !job.helper_confirmed_at) return "unconfirmed";
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
+      // In progress by the clock only (auto-start-due-jobs), with no arrival anyone recorded: not "at the job" (A2-B12).
+      if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) {
+        return "started_no_checkin";
+      }
       if (job.status === "in_progress") return "working";
       if (agreedJobStage(job, "poster", now) === "confirm_owed") return "confirm_still_on";
       return "confirmed";
@@ -1002,6 +1011,7 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
   overdue_not_arrived: (n) => `${firstName(n)} never arrived — cancel?`,
   overdue_no_show: (n) => `${firstName(n)} never arrived — No-Show?`,
   overdue_unfinished: (n) => `Waiting on ${firstName(n)} to finish`,
+  started_no_checkin: (n) => `${firstName(n)} hasn't checked in`,
 };
 const HELPER_NAMED: Partial<Record<HelperWait, (name: string) => string>> = {
   applied: (n) => `${n} hasn't replied yet`,

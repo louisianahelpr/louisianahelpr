@@ -28,7 +28,7 @@ import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import { CompleteProfileIntro } from "./completeProfile/CompleteProfileIntro";
-import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
+import { useParishForZip, useZipFillsTown, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
@@ -93,6 +93,8 @@ const CompleteProfile = () => {
   // Optional — mirrors the same field on Signup.tsx's email path (S-001).
   const [zipCode, setZipCode] = useState("");
   const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
+  // A3-I1: a recognised ZIP fills an empty town with the ZIP's town (never replaces a typed one).
+  useZipFillsTown(zipCode, location, setLocation);
   // Soft mismatch hint — see the identical comment in Signup.tsx.
   const cityZipMismatch = (() => {
     if (!resolvedZipParish) return null;

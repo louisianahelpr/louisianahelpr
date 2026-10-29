@@ -1,4 +1,5 @@
 import type { Profile } from "@/pages/profile/types";
+import { samePhone } from "@/lib/smsConsent";
 
 /** The text fields the Edit Profile save bar is driven by. */
 export interface ProfileEditValues {
@@ -20,7 +21,9 @@ export interface ProfileEditValues {
  */
 export function isProfileEditDirty(values: ProfileEditValues, profile: Profile | null): boolean {
   return (
-    values.phone !== (profile?.phone ?? "") ||
+    // Digits compared: the field shows "(504) 555-0199" for a stored
+    // "5045550199" (displayUsPhone, app audit A3-L5), the same number.
+    !samePhone(values.phone, profile?.phone) ||
     values.location !== (profile?.location ?? "") ||
     values.zipCode !== (profile?.zip_code ?? "") ||
     values.bio !== (profile?.bio ?? "") ||

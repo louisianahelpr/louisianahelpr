@@ -46,6 +46,24 @@ export function formatUsPhone(e164: string | null): string {
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : "";
 }
 
+/**
+ * A stored phone, as typed, shown the way people read one: "5045550199" ->
+ * "(504) 555-0199" (app audit A3-L5, 2026-10-29). Display only: what is stored
+ * is never rewritten. Anything that is not a valid US number (a half-typed
+ * one, a foreign one) is shown exactly as it is.
+ */
+export function displayUsPhone(raw: string | null | undefined): string {
+  const text = raw ?? "";
+  return formatUsPhone(normalizeUsPhone(text)) || text;
+}
+
+/** Two phone strings name the same number (digits compared; "(504) 555-0199" = "5045550199"). */
+export function samePhone(a: string | null | undefined, b: string | null | undefined): boolean {
+  const da = (a ?? "").replace(/\D/g, "");
+  const db = (b ?? "").replace(/\D/g, "");
+  return da === db;
+}
+
 export function parseSmsConsent(data: unknown): SmsConsent {
   const o = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : null);

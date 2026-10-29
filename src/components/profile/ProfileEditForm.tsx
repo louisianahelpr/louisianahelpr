@@ -1,5 +1,6 @@
 import { FieldError } from "@/components/ui/FieldError";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
+import { displayUsPhone } from "@/lib/smsConsent";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
@@ -206,7 +207,7 @@ export function ProfileEditForm({
             <div className={SHORT_FIELD_MEASURE}>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
-                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}

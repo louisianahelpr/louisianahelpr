@@ -69,7 +69,7 @@ const haulAwayLibOrNull = () => haulAwayLib().catch((err: unknown) => { report(e
  * A failed cleanup must be loud in monitoring, not a second exception thrown
  * over the first one.
  */
-async function cleanupOrphanJob(jobId: string): Promise<boolean> {
+async function cleanupOrphanJob(jobId: string, opts: { keptIsExpected?: boolean } = {}): Promise<boolean> {
   // Q?gift-paid-retry-photos: confirm the job is one its poster may delete
   // BEFORE touching its photos. A job whose payment answer was lost may be
   // funded by now (a gift card settles inside create-payment) or hold a live
@@ -92,6 +92,9 @@ async function cleanupOrphanJob(jobId: string): Promise<boolean> {
     const pay = row.payment_status ?? "unpaid";
     const deletable = row.status === "open" && ((pay === "unpaid" && row.stripe_session_id == null) || pay === "abandoned");
     if (!deletable) {
+      // A kept draft's earlier job whose checkout is still live (F25): keeping it is the expected
+      // answer there, not an incident; that checkout expires within the hour (Q770).
+      if (opts.keptIsExpected) return false;
       report(new Error("Orphan job cleanup skipped: the job is funded or has a live checkout, so it is kept with its photos"), {
         severity: "warning",
         tags: { source: "PostJob.orphanCleanup", kind: "kept_not_deletable" },
@@ -637,7 +640,19 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       if (staleId) await cleanupOrphanJob(staleId);
       attemptRef.current = null;
     }
-    if (!attemptRef.current) attemptRef.current = { key: crypto.randomUUID(), sig, jobId: null };
+    if (!attemptRef.current) {
+      // F25 (audit 2026-10-28, lead decision): a poster who backed out of checkout and picked the
+      // draft up again posts the edited job FRESH; the old row is never reused. The job the kept
+      // draft was last sent to checkout for (Q769) was never paid, so it is removed rather than
+      // left as a second job. cleanupOrphanJob keeps one that is funded or still has a live
+      // checkout (it may be paid at any moment, and the poster's DELETE policy refuses it too);
+      // that one stays until its checkout expires, and an unpaid job is never shown in Posts.
+      const priorDraftJob = safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY);
+      if (priorDraftJob && (await cleanupOrphanJob(priorDraftJob, { keptIsExpected: true }))) {
+        safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
+      }
+      attemptRef.current = { key: crypto.randomUUID(), sig, jobId: null };
+    }
     const attempt = attemptRef.current;
 
     if (attempt.jobId) {

@@ -181,11 +181,16 @@ export function useJobEntry(params: UseJobEntryParams) {
     setStep("form");
   };
 
-  /** "Load draft" — restore the saved draft, then enter the form. */
-  const loadDraftAndContinue = () => {
+  /**
+   * "Load draft" — restore the saved draft, then enter the form. Answers whether the draft names a
+   * category: the entry screen then opens it at Details (F25: it re-asked the category), as a
+   * template and the AI builder do. A draft saved before a category was picked starts at screen 1.
+   */
+  const loadDraftAndContinue = (): boolean => {
     track("post_job_entry_choice", { choice: "load_draft" });
     loadDraft();
     setStep("form");
+    return !!draft.category;
   };
 
   /**

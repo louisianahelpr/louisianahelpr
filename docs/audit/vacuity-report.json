@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T20:16:53.460Z",
-  "guards": 2669,
-  "registered": 2668,
+  "generated": "2026-10-29T20:42:26.583Z",
+  "guards": 2670,
+  "registered": 2669,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
@@ -241,6 +241,7 @@
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [
         "src/test/applyAndPostAskNoProfileDetails.test.tsx",
+        "src/test/scopeVideoShown.test.tsx",
         "src/pages/post-job/checkoutTaxNote.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx",
         "src/pages/post-job/reviewDesktopRail.test.tsx",

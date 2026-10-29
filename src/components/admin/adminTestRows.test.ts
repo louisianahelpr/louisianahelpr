@@ -39,7 +39,10 @@ describe("admin never shows test rows", () => {
 
   it("Disputes, Reports, Users and the restricted rail drop test rows", () => {
     const disputes = read("src/components/admin/AdminDisputes.tsx");
-    for (const s of disputes.match(/sales_tax_amount[^"]*"/g) ?? []) expect(s).toContain("is_seed");
+    const jobSelects = disputes.match(/sales_tax_amount[^"]*"/g) ?? [];
+    // Floor (vacuity, nightly-red #2894): 3 job selects measured 2026-10-29; none found would pass vacuously.
+    expect(jobSelects.length).toBeGreaterThan(2);
+    for (const s of jobSelects) expect(s).toContain("is_seed");
     expect(disputes).toContain("setDisputes(sorted.filter((j) => !j.is_seed));");
     expect(disputes).toContain("!unsettledJobIds.has(j.id) && !j.is_seed");
     expect(read("src/components/admin/AdminReports.tsx")).toContain("})).filter(r => !r.is_test);");

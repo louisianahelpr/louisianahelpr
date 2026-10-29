@@ -37,6 +37,8 @@ describe("a disabled primary looks disabled (deep audit #48)", () => {
 
   it("the rule has hand-rolled disabled primaries to cover", () => {
     const files = walkSource([join(ROOT, "src")]).filter((f) => f.endsWith(".tsx") && !/\.test\.|\/test\//.test(f));
+    // Floor (vacuity, nightly-red #2894): 886 non-test src .tsx files on 2026-10-29.
+    expect(files.length).toBeGreaterThan(500);
     let n = 0;
     for (const f of files) {
       const src = blankComments(readFileSync(f, "utf8"));

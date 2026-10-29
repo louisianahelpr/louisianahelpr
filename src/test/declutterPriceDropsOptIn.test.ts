@@ -17,7 +17,10 @@ const dir = join(process.cwd(), "supabase/migrations");
 describe("Declutter price drops are opt-in", () => {
   it("the newest default for declutter_items.drop_pct is 0 (off)", () => {
     let last: string | null = null;
-    for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql")).sort()) {
+    const migrations = readdirSync(dir).filter((n) => n.endsWith(".sql")).sort();
+    // Floor (vacuity, nightly-red #2894): 1379 migrations on 2026-10-29.
+    expect(migrations.length).toBeGreaterThan(1000);
+    for (const f of migrations) {
       const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
       const re = /drop_pct\s+(?:smallint[^;]*?)?(?:SET\s+)?DEFAULT\s+(\d+)/gi;
       for (const m of sql.matchAll(re)) last = m[1];

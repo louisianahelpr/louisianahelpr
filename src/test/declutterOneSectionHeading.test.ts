@@ -35,6 +35,8 @@ describe("Declutter section headings are one size", () => {
   it("every Declutter h2 is SectionHeading's size, but the listed page titles", () => {
     const other: Record<string, number> = {};
     let sections = 0;
+    // Floor (vacuity, nightly-red #2894): 82 Declutter .tsx files on 2026-10-29.
+    expect(files.length).toBeGreaterThan(50);
     for (const f of files) {
       for (const m of blankComments(readFileSync(f, "utf8")).matchAll(/<h2\b[^>]*\bclassName="([^"]*)"/g)) {
         const cls = m[1].trim();

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNextSheet";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
+import { fetchMyBookings } from "@/lib/declutter/handover";
 import { usePaySettling } from "./DeclutterPaySettling";
 import { useMyPaidCents } from "./useMyPaidCents";
 
@@ -16,6 +17,33 @@ export function justPaidOrder(lines: CartLine[]): CartLine[] | null {
   const mine = lines.filter((l) => l.my_side === "buyer" && l.status === "paid" && l.order_id && l.order_status === "paid");
   const ids = [...new Set(mine.map((l) => l.order_id))];
   return ids.length === 1 ? mine : null;
+}
+
+/**
+ * The steps between paying and "You confirm you got it", for the order's handover. `booked`: the pickup day or time is
+ * booked (declutter_bookings.slot_start). Seller delivery's time lives in its own booking, so it starts at the pick.
+ */
+function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextStep[] {
+  const book = (label: string, detail: string): WhatNextStep => ({ key: "book", label, detail, state: "now" });
+  const go = (label: string, detail: string, now: boolean): WhatNextStep => ({ key: "go", label, detail, state: now ? "now" : "later" });
+  switch (handover) {
+    case "delivery":
+      return [go("A local Helpr brings it", "You'll see when it's on the way", true)];
+    case "seller_delivery":
+      return [book("Pick a delivery time", "In Buying, from the seller's times"), go("The seller brings it", "At the time you picked", false)];
+    case "porch":
+      return booked
+        ? [go("Pick it up from the porch", "On your pickup day, once the seller posts the porch photo", true)]
+        : [book("Pick a pickup day", "In Buying, from the seller's porch days"), go("Pick it up from the porch", "Once the seller posts the porch photo", false)];
+    case "meetup":
+      return booked
+        ? [go("Meet at the safe spot", "At the time you booked", true)]
+        : [book("Book a time to meet", "In Buying, from the seller's times"), go("Meet at the safe spot", "At the time you booked", false)];
+    default:
+      return booked
+        ? [go("Pick it up", "At the time you booked", true)]
+        : [book("Book a pickup time", "In Buying, from the seller's times"), go("Pick it up", "At the time you booked", false)];
+  }
 }
 
 /**
@@ -40,14 +68,16 @@ export function BoughtWhatNext() {
   // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the sale's total_cents.
   const orderId = order?.[0]?.order_id ?? null;
   const paidCents = useMyPaidCents(orderId ? [orderId] : [], !!orderId);
-  if (!order) return null;
+  // The same key as the Buying card's booking read, so the card behind the sheet reads nothing again.
+  const booking = useQuery({ queryKey: ["declutter", "bookings", orderId ?? ""], queryFn: () => fetchMyBookings([orderId as string]), enabled: !!orderId });
+  // Wait for the booking answer; a failed read counts as not booked (a just-paid order has no day or time yet).
+  if (!order || booking.isLoading) return null;
   const close = () => { params.delete("paid"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];
   const total = orderId ? paidCents?.get(orderId) ?? null : null;
-  const handoverStep: WhatNextStep =
-    first.handover === "delivery" ? { key: "go", label: "A local Helpr brings it", detail: "You'll see when it's on the way", state: "now" }
-      : first.handover === "porch" ? { key: "go", label: "Pick it up from the porch", detail: "The seller sets it out for you", state: "now" }
-        : { key: "go", label: "Pick it up", detail: "Pick a time with the seller in Buying", state: "now" };
+  // Audit 1028 D1-3: the buyer's real next step comes first ("Pick a pickup day", "Book a time to meet"), never
+  // "Pick it up · Now" before a day or time is booked.
+  const handoverSteps = buyerSteps(first.handover, !!booking.data?.some((b) => b.order_id === orderId && b.slot_start));
   return (
     <WhatNextSheet
       open
@@ -56,7 +86,7 @@ export function BoughtWhatNext() {
       lead={total ? <>You paid <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(total)}</span>. The seller is paid once you have it.</> : "The seller is paid once you have it."}
       steps={[
         { key: "paid", label: "Paid", detail: "Today", state: "done" },
-        handoverStep,
+        ...handoverSteps,
         { key: "got", label: "You confirm you got it", detail: "Then the seller is paid", state: "later" },
       ]}
       primary={{ label: "Got it", acknowledge: true }}

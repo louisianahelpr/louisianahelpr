@@ -98,7 +98,8 @@ export function MeetupPanel({ orderId, side, slotStart }: { orderId: string; sid
             {here.isPending ? "Checking in…" : "I'm here"}
           </button>
         ) : (
-          <p className="text-ds-13 text-muted-foreground">{slotStart ? "You can tap \"I'm here\" from an hour before the meeting time." : "Book a time to meet first."}</p>
+          // Audit 1028 D1-13: only the buyer books the meeting time, so the seller is never told to book it.
+          <p className="text-ds-13 text-muted-foreground">{slotStart ? "You can tap \"I'm here\" from an hour before the meeting time." : side === "buyer" ? "Book a time to meet first." : "The buyer books the time; we'll tell you."}</p>
         )
       )}
     </section>

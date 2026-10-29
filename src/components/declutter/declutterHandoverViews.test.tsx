@@ -157,6 +157,18 @@ describe("Q2425: a safe-spot meetup order", () => {
     expect(screen.queryByRole("button", { name: "I'm here" })).toBeNull();
   });
 
+  // Audit 1028 D1-13: before a time is booked, only the buyer is told to book one; the seller waits to be told.
+  // @mutate src/components/declutter/DeclutterMeetup.tsx | : side === "buyer" ? "Book a time to meet first." : "The buyer books the time; we'll tell you."} | : "Book a time to meet first."}
+  it("no time booked yet: the buyer is told to book one, the seller that the buyer books it (D1-13)", async () => {
+    state.bookings = [];
+    const { unmount } = show([line({ handover: "meetup", my_side: "seller" })]);
+    expect(await screen.findByText("The buyer books the time; we'll tell you.")).toBeInTheDocument();
+    expect(screen.queryByText("Book a time to meet first.")).toBeNull();
+    unmount();
+    show([line({ handover: "meetup" })]);
+    expect(await screen.findByText("Book a time to meet first.")).toBeInTheDocument();
+  });
+
   it("at the meeting time the seller gets Picked up, as at the door", async () => {
     state.bookings = [slot(5)];
     show([line({ handover: "meetup", my_side: "seller" })]);
@@ -340,6 +352,31 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(within(noShow).getByText(/you get everything back\./)).toBeInTheDocument();
     fireEvent.click(within(noShow).getByRole("button", { name: "Report it" }));
     await waitFor(() => expect(state.calls).toContainEqual(["no_show", "o1"]));
+  });
+
+  // Audit 1028 D1-12 (1a-b-pday-booked-p1-375): "I got it" and "Report a problem" sat edge to edge. Two inline buttons
+  // that are neighbours in the card's stacked body share one line with no gap, so each action sits in its own block.
+  // A wrapper with no box of its own (display: contents, or a fragment) counts as its children.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return (\n    <div>\n      <button type="button" className={primary} disabled={confirm.isPending} |   return (\n    <div style={{ display: "contents" }}>\n      <button type="button" className={primary} disabled={confirm.isPending}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <div>\n      <button type="button" className={btn} disabled={report.isPending} |     <div style={{ display: "contents" }}>\n      <button type="button" className={btn} disabled={report.isPending}
+  it("no two action buttons sit edge to edge in the card body, either side (D1-12)", async () => {
+    const boxes = (el: Element): Element[] => (getComputedStyle(el).display === "contents" ? [...el.children].flatMap(boxes) : [el]);
+    let checked = 0;
+    // 5 minutes in: "I got it" / "Picked up" then "Report a problem"; 16 minutes in, "They didn't show" joins them.
+    for (const [side, minsIn] of [["buyer", 5], ["buyer", 16], ["seller", 5], ["seller", 16]] as const) {
+      state.bookings = [slot(minsIn)];
+      const { unmount } = show([line({ my_side: side })]);
+      await screen.findByRole("button", { name: side === "buyer" ? "I got it" : "Picked up" });
+      if (minsIn > 15) await screen.findByRole("button", { name: "They didn't show" });
+      const body = document.querySelector("[data-order-body]")!;
+      const kids = [...body.children].flatMap(boxes);
+      kids.forEach((el, i) => {
+        if (i > 0 && el.tagName === "BUTTON") expect(`${kids[i - 1].tagName} then ${el.textContent}`).not.toMatch(/^BUTTON then/);
+      });
+      checked += body.querySelectorAll("button").length;
+      unmount();
+    }
+    expect(checked).toBeGreaterThan(9);
   });
 
   it("Report a problem needs a note and sends the reason (rows 15, 67)", async () => {

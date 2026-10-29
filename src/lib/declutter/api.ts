@@ -656,8 +656,9 @@ async function invokeAi(itemId: string, mode: "draft" | "check", at: AiHintPoint
   return invokeAiBody(at ? { itemId, mode, at } : { itemId, mode });
 }
 
-async function invokeAiBody(body: Record<string, unknown>): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body, timeout: AI_TIMEOUT_MS });
+/** One call to the photo tool; `timeoutMs` is longer for Sell a bunch's grouping (lib/declutter/bunch.ts). */
+export async function invokeAiBody(body: Record<string, unknown>, timeoutMs = AI_TIMEOUT_MS): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body, timeout: timeoutMs });
   if (error) {
     // The client timeout aborted the request: before the answer's headers
     // (FunctionsFetchError around an AbortError) or while its body was read

@@ -1,7 +1,7 @@
 /**
  * Post a Job, chosen at the top of the form (owner Q1, Q4; moved to the top
  * as pills 2026-10-19): "Set a price" (today's flow: a budget, then Review &
- * Pay) or "Get quotes" (no price; members near you send
+ * Pay) or "Get quotes" (no price; Helprs near you send
  * theirs for 24 hours, 48 hours or 3 days, 48 hours by default). Shown only
  * while the hidden 'quotes' switch is on for the member, and only for a
  * one-time job with no direct offer (a series, a crew job or an offer to one
@@ -35,7 +35,7 @@ export type PriceMode = "price" | "quotes";
 /** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
 const PRICE_MODE_NEXT: Record<PriceMode, string> = {
   price: "You set the budget, then review and pay. Helprs apply at your price.",
-  quotes: "No price yet. Members near you send theirs; you pick one and pay only when you book.",
+  quotes: "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
 };
 
 /** What a member without the 'quotes' switch is told on tapping Get quotes (owner 2026-10-19). */
@@ -111,8 +111,7 @@ function QuoteWindowSection({
   return (
     <SectionCard stepNumber={stepNumber} title="Quotes" icon={CircleDollarSign} complete>
       <p className="text-sm text-muted-foreground">
-        Members near you send their price, a note and when they can do it. You pick one, counter, or set your own price
-        instead. Nothing is charged until you book.
+        Each quote comes with a note and when they can do it. You can pick one, counter, or set your own price instead.
       </p>
       <p className="mt-4 text-sm font-medium text-foreground" id="quote-window-label">
         Take quotes for

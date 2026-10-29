@@ -279,7 +279,7 @@ function RequestView({ id }: { id: string }) {
       )}
       {quotes.data.length === 0 ? (
         <QuotesNotice title={open ? "No quotes yet" : "No quotes"}>
-          {open ? "Members near you can send their price until the window closes. We'll let you know when one arrives." : null}
+          {open ? "Helprs near you can send their price until the window closes. We'll let you know when one arrives." : null}
         </QuotesNotice>
       ) : (
         <>

@@ -14260,6 +14260,13 @@ export type Database = {
           updated_at: string
         }[]
       }
+      declutter_my_paid_cents: {
+        Args: { p_order_ids: string[] }
+        Returns: {
+          order_id: string
+          paid_cents: number
+        }[]
+      }
       declutter_my_seller_delivery: { Args: never; Returns: Json }
       declutter_my_wanted: {
         Args: never

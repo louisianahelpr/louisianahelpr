@@ -36,6 +36,8 @@ const state = {
   features: [] as string[],
   /** Porch DAYS the buyer may pick (declutter_porch_days); null = the migration is not live (the time picker). */
   porchDays: null as string[] | null,
+  /** A1-B2: declutter_my_paid_cents per order (the card charge); absent = no answer yet. */
+  paid: {} as Record<string, number>,
 };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.features.includes(key) }));
@@ -52,6 +54,9 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 // Anti-lying #1 (20261028235709): every handover photo carries the device's position (the server checks the place).
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.45, lng: -91.15 }) }));
+vi.mock("@/lib/declutter/paidCents", () => ({
+  fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
+}));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
@@ -354,13 +359,17 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   // Boards 71/72: the one tracker, where it stands, and the money note, from the real handover row.
+  // A1-B2: "what the buyer paid" is the card charge (declutter_my_paid_cents): here a first purchase, $42.70 sale + the
+  // $2 setup fee = $44.70, never the line's total_cents.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null; |   const totalCents = itemsCents + 270;
   it("board 71: porch, the buyer: On the porch once the seller's photo is in, the photo shown, what the buyer paid", async () => {
+    state.paid = { o1: 4470 };
     state.bookings = [slot(-120)];
     state.handover = { set_out_at: "2026-10-20T15:00:00Z", set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByRole("list", { name: "Step 3 of 4: On the porch" })).toBeInTheDocument();
     expect(screen.getByText("It's out. Pick it up at your pickup time.")).toBeInTheDocument();
-    expect(screen.getByText(/You paid/).textContent).toMatch(/You paid \$42\.70\. The seller is paid after you pick it up\./);
+    expect((await screen.findByText(/You paid/)).textContent).toMatch(/You paid \$44\.70\. The seller is paid after you pick it up\./);
     expect(await screen.findByAltText("Where the item was left")).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o1/out.jpg");
   });
 

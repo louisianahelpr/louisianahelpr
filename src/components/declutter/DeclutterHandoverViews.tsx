@@ -232,7 +232,6 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           slot={booking?.slot_start ?? null}
           day={booking?.pickup_day ?? null}
           itemsCents={items}
-          totalCents={order.lines[0]?.total_cents ?? null}
         />
       )}
       {done ? (

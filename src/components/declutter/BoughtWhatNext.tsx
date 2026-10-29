@@ -5,6 +5,7 @@ import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNext
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { usePaySettling } from "./DeclutterPaySettling";
+import { useMyPaidCents } from "./useMyPaidCents";
 
 /**
  * The one order a ?paid=1 return is about, or null when that is not certain. The checkout
@@ -19,7 +20,7 @@ export function justPaidOrder(lines: CartLine[]): CartLine[] | null {
 
 /**
  * Board 82, "What next" after buying, on the shared WhatNextSheet, opened on the Buying tab
- * when the checkout returns (?paid=1). The amount is the order's own frozen total; the
+ * when the checkout returns (?paid=1). The amount is what the card was charged (useMyPaidCents); the
  * steps follow the order's handover (pickup at home, porch, or Helpr delivery). Shipping
  * does not exist yet, so the board's "ships it / tracking" steps are not shown.
  */
@@ -36,10 +37,13 @@ export function BoughtWhatNext() {
   const fresh = !!cart.data && cart.dataUpdatedAt >= since && !settling.settling;
   const lines = fresh ? cart.data.filter((l) => settling.sellerId === null || l.seller_id === settling.sellerId) : null;
   const order = paid && lines ? justPaidOrder(lines) : null;
+  // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the sale's total_cents.
+  const orderId = order?.[0]?.order_id ?? null;
+  const paidCents = useMyPaidCents(orderId ? [orderId] : [], !!orderId);
   if (!order) return null;
   const close = () => { params.delete("paid"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];
-  const total = first.total_cents;
+  const total = orderId ? paidCents?.get(orderId) ?? null : null;
   const handoverStep: WhatNextStep =
     first.handover === "delivery" ? { key: "go", label: "A local Helpr brings it", detail: "You'll see when it's on the way", state: "now" }
       : first.handover === "porch" ? { key: "go", label: "Pick it up from the porch", detail: "The seller sets it out for you", state: "now" }

@@ -1,9 +1,11 @@
 /**
  * Board 82, "What next" after buying: opens on the Buying tab when checkout returns
  * (?paid=1), only when exactly one paid order is in its handover (the return names no
- * order, so it never guesses). The amount is the order's own total_cents (the whole charge:
- * the delivery-damage refund returns all of it, migration 20261017055505).
+ * order, so it never guesses). The amount is what the card was charged (A1-B2, prod 2026-10-29: the sheet said
+ * "You paid $32.20" after a $34.20 charge): declutter_my_paid_cents, the sale's total_cents plus a first purchase's
+ * one-time setup fee that stood, never total_cents alone.
  *
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |   const total = orderId ? paidCents?.get(orderId) ?? null : null; |   const total = first.total_cents;
  * @mutate src/components/declutter/BoughtWhatNext.tsx |   return ids.length === 1 ? mine : null; |   return mine.length ? mine : null;
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
  */
@@ -19,6 +21,10 @@ import type { CartLine } from "@/lib/declutter/api";
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 let cart: Partial<CartLine>[] = [];
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => cart }));
+let paid: Record<string, number> = {};
+vi.mock("@/lib/declutter/paidCents", () => ({
+  fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in paid).map((id) => [id, paid[id]])),
+}));
 const line = (o: Partial<CartLine>): Partial<CartLine> => ({ my_side: "buyer", status: "paid", order_status: "paid", order_id: "o1", item_title: "Box fan", total_cents: 2527, handover: "porch", ...o });
 
 function at(search: string) {
@@ -29,12 +35,22 @@ function at(search: string) {
 describe("board 82: after buying", () => {
   it("one paid order: the item, the real total in rust, and its handover step", async () => {
     cart = [line({})];
+    paid = { o1: 2527 };
     at("?paid=1&tab=buying");
     expect(await screen.findByRole("heading", { name: "You bought Box fan" })).toBeTruthy();
+    expect(await screen.findByText("$25.27")).toBeTruthy();
     const text = screen.getByTestId("what-next-sheet").textContent ?? "";
     expect(text).toContain("You paid $25.27");
     expect(text).toContain("Pick it up from the porch");
     expect(text).not.toMatch(/ships|tracking/i);
+  });
+
+  it("A1-B2: a first purchase says the card charge, setup fee included ($27.27), never the sale's $25.27", async () => {
+    cart = [line({})];
+    paid = { o1: 2727 };
+    at("?paid=1&tab=buying");
+    expect(await screen.findByText("$27.27")).toBeTruthy();
+    expect(screen.getByTestId("what-next-sheet").textContent).not.toContain("$25.27");
   });
 
   it("two paid orders, or no ?paid=1: no sheet (never a guess)", () => {

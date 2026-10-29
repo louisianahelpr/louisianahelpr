@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
+import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 
 type Pickup = "porch" | "pickup_home";
@@ -69,7 +70,6 @@ export function PickupStatus({
   slot,
   day = null,
   itemsCents,
-  totalCents,
 }: {
   orderId: string;
   handover: Pickup;
@@ -80,13 +80,14 @@ export function PickupStatus({
   day?: string | null;
   /** The items' price: what the seller keeps. */
   itemsCents: number;
-  /** The order's total charge: what the buyer paid. Null hides the buyer's figure. */
-  totalCents: number | null;
 }) {
   const h = useMyHandover(orderId);
-  if (h.isError) return null;
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
+  // A1-B2: the buyer's "You paid" is the card charge (the sale plus a first purchase's setup fee), read for the buyer
+  // only; until it is in, no figure.
+  const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null;
+  if (h.isError) return null;
   // The one Declutter order tracker (OrderSteps), from the real rows: the booking, the porch photo, the pickup.
   const facts: OrderFacts = {
     handover, side, free, booked: !!slot,

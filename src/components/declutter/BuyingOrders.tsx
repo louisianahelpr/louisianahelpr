@@ -18,6 +18,7 @@ import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } fro
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice } from "@/lib/declutter/distance";
+import { useMyPaidCents } from "./useMyPaidCents";
 import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -147,6 +148,8 @@ export function useBuyingTracker(): BuyingTracker {
   const ids = orders.map((o) => o.orderId);
   // The same keys as the order card's panels, so a card that opens reads nothing again.
   const bookings = useQuery({ queryKey: ["declutter", "bookings", ids.join(",")], queryFn: () => fetchMyBookings(ids), enabled: ids.length > 0 });
+  // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the line's total_cents.
+  const paidCents = useMyPaidCents(ids);
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
@@ -177,7 +180,7 @@ export function useBuyingTracker(): BuyingTracker {
     counts[bucket]++;
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null : slot;
     const when = whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
-    const total = o.lines[0]?.total_cents ?? null;
+    const total = paidCents?.get(o.orderId) ?? null;
     views.set(o.orderId, {
       orderId: o.orderId,
       facts,

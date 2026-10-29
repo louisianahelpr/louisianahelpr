@@ -7,6 +7,8 @@
  *   - collapsed, it shows at most ONE primary button, and that button is the buyer's next action (none when the order
  *     waits on someone else or the clock); pressing it opens the card at that action;
  *   - a free order never reads like a paid one ("You paid $0", #6).
+ *   - A1-B2: "You paid" is the card charge (declutter_my_paid_cents), never the line's total_cents.
+ * @mutate src/components/declutter/BuyingOrders.tsx |     const total = paidCents?.get(o.orderId) ?? null; |     const total = o.lines[0]?.total_cents ?? null;
  *
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt }; |       return { ...base, booked: !!rows.slotStart, out: !!rows.slotStart, pickedUp: tookIt };
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at }; |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
@@ -24,6 +26,8 @@ const iso = (hours: number) => new Date(NOW + hours * 3_600_000).toISOString();
 
 const state = {
   cart: [] as Record<string, unknown>[],
+  /** A1-B2: declutter_my_paid_cents, the card charge per order (sale + a setup fee that stood); absent = no answer. */
+  paid: {} as Record<string, number>,
   bookings: [] as Record<string, unknown>[],
   handovers: {} as Record<string, Record<string, unknown>>,
   sd: {} as Record<string, Record<string, unknown>>,
@@ -40,6 +44,9 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
+vi.mock("@/lib/declutter/paidCents", () => ({
+  fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
+}));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
@@ -131,6 +138,7 @@ const CASES: Case[] = [
 
 function load(cases: Case[]) {
   state.cart = cases.map((c) => line(c.id, c.line));
+  state.paid = Object.fromEntries(state.cart.map((l) => [l.order_id as string, l.total_cents as number]));
   state.bookings = cases.filter((c) => c.slot).map((c) => ({ order_id: c.id, slot_start: c.slot, slot_end: c.slot, porch_mode: null, porch_until: null }));
   state.handovers = Object.fromEntries(cases.filter((c) => c.handover).map((c) => [c.id, c.handover!]));
   state.sd = Object.fromEntries(cases.filter((c) => c.sd).map((c) => [c.id, c.sd!]));
@@ -196,7 +204,19 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(card("free")).toHaveTextContent("Free.");
     expect(card("free").textContent).not.toMatch(/You paid|\$0/);
     expect(card("free").querySelector('[aria-label^="Step 1 of 4: Claimed"]')).not.toBeNull();
-    expect(card("home0")).toHaveTextContent("You paid $42.30.");
+    expect(await within(card("home0")).findByText(/You paid \$42\.30\./)).toBeInTheDocument();
+  });
+
+  // A1-B2 (Declutter audit, prod 2026-10-29): Stripe charged $34.20 (sale + the $2 setup fee) and the card said
+  // "You paid $32.20", the line's total_cents. The figure is the card charge, declutter_my_paid_cents.
+  it("A1-B2: You paid is the card charge, setup fee included, never the sale total; no answer, no figure", async () => {
+    load(CASES.filter((c) => c.id === "home0" || c.id === "home1"));
+    state.paid = { home0: 4430 };
+    show();
+    await screen.findByText("Item home0");
+    expect(await within(card("home0")).findByText(/You paid \$44\.30\./)).toBeInTheDocument();
+    expect(card("home0").textContent).not.toContain("$42.30");
+    expect(card("home1").textContent).not.toMatch(/You paid/);
   });
 
   // Audit 2026-10-28 A3-1: after "I got it" the Helpr can still be tipped, without opening Details.

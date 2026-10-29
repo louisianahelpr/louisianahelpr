@@ -11,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { Crown, MoreVertical, Flag, Ban, UserX, Pencil } from "lucide-react";
+import { EDIT_PROFILE_PATH } from "@/components/profile/profileLanding/YouCard";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -46,6 +47,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUnblock } from "./useUnblock";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
+/** Your own public profile is a preview, titled by what it is (app audit A3-C7). */
+const OWN_PROFILE_TITLE = "How others see you";
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -154,10 +158,12 @@ const UserProfile = () => {
   // where it has always been, and the name is back in the box beside the
   // avatar — where it appears exactly once.
   //
-  // The own-profile view keeps "Profile Review": there the subject is not a
+  // The own-profile view is titled by what it is: there the subject is not a
   // stranger to identify, it is the preview itself, and the whole screen
-  // exists to answer "what do others see?".
-  const headerTitle = isOwnProfile ? "Profile Review" : "Profile";
+  // exists to answer "what do others see?". It read "Profile Review", and the
+  // "How others see you" eyebrow never paints (PageHeader retired eyebrows),
+  // so at 375 nothing said it was a preview (app audit A3-C7, 2026-10-29).
+  const headerTitle = isOwnProfile ? OWN_PROFILE_TITLE : "Profile";
 
   // The BROWSER TAB still names the person — a tab strip with four identical
   // "Profile — Helpr" entries is useless, and a document title is not a
@@ -166,7 +172,7 @@ const UserProfile = () => {
   // so keying off it made the tab read "A neighbor" for the whole load.
   usePageTitle(
     isOwnProfile
-      ? "Profile review — Helpr"
+      ? `${OWN_PROFILE_TITLE} — Helpr`
       : profile?.full_name
         ? `${displayName} — Helpr`
         : "Profile — Helpr",
@@ -488,6 +494,21 @@ const UserProfile = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
+          ) : isOwnProfile ? (
+            // Your own preview opens Edit profile in one tap (app audit A3-C6, 2026-10-29).
+            <Button
+              variant="ghost"
+              type="button"
+              data-testid="own-profile-edit"
+              aria-label="Edit profile"
+              onClick={() => navigate(EDIT_PROFILE_PATH)}
+              className="rounded-full h-10 min-w-10 px-2 sm:px-3 shrink-0 gap-1.5 text-ds-14 font-bold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              <Pencil className="w-4 h-4" aria-hidden />
+              {/* Icon only on a phone, so "How others see you" stays whole at 375. */}
+              <span className="max-sm:hidden">Edit</span>
+            </Button>
           ) : null
         }
       />

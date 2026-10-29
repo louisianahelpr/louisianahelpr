@@ -3,7 +3,7 @@ import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { doneFloorStart } from "@/components/job-card/useDoneFloor";
+import { doneFloorStart } from "@/lib/doneFloor";
 import type { AcceptMissing } from "@/lib/awardGate";
 
 /**

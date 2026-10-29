@@ -319,10 +319,11 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   it("porch: the buyer is told the \"Picked up\" photo pays the seller (row 99), and can tap \"I got it\" instead", async () => {
-    state.bookings = [slot(-60)];
+    // A1-C2: the buyer's "I got it" on a porch pickup waits for the pickup time (or the porch photo); this one has passed.
+    state.bookings = [slot(60)];
     show([line({ handover: "porch" })]);
     expect(await screen.findByLabelText(/this pays the seller/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "I got it" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
   it("\"They didn't show\" appears only 15 minutes after the booked time (row 94)", async () => {
@@ -474,15 +475,21 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     early.unmount();
 
-    // 3. The porch photo is in: pick it up today.
+    // 3. The porch photo is in on the pickup day: pick it up today.
     state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
+    state.bookings = [{ ...slot(-60), pickup_day: key(today) }];
     const third = show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("It's out. Pick it up today.")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Step 3 of 4: On the porch" })).toBeInTheDocument();
-    // A1-C2: the porch photo is in (still booked for tomorrow), so "I got it" is there.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| | !porchBuyer \|\|
-    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
     third.unmount();
+
+    // 3b. A1-C2: the porch photo is in while it is booked for TOMORROW: the card says the day, and "I got it" is there.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| | !porchBuyer \|\|
+    state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
+    const early3 = show([line({ handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText("It's out. Pick it up tomorrow.")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
+    early3.unmount();
 
     // 4. The seller: put it out that day; no "Out all day" / "Out until" for a day.
     state.handover = { side: "seller" };
@@ -581,7 +588,8 @@ describe("boards 159 + 160: handover sheets", () => {
   });
 
   it("159 buyer: 'Something's not right' closes the sheet and opens the problem form, nothing confirmed", async () => {
-    state.bookings = [slot(-60)];
+    // A1-C2: a porch "I got it" waits for the pickup time; this one has passed.
+    state.bookings = [slot(60)];
     show([line({ handover: "porch" })]);
     fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
@@ -649,7 +657,8 @@ describe("#6: a free claim never reads like a paid order", () => {
           // Wait for the booking read: a booked door pickup moves to its second step.
           if (at !== null && handover === "pickup_home") await within(card).findByText("Booked. The pickup time is below.");
           const name = side === "buyer" ? "I got it" : "Picked up";
-          const acts = side === "buyer" ? at !== null : handover === "pickup_home" && at === 30;
+          // A1-C2: a porch buyer's "I got it" waits for the pickup time (or the porch photo), so not for one in an hour.
+          const acts = side === "buyer" ? at !== null && (handover !== "porch" || at === 30) : handover === "pickup_home" && at === 30;
           const action = acts ? await within(card).findByRole("button", { name }) : null;
           expect(card.textContent, `${handover} ${side} ${at}`).not.toMatch(MONEY);
           expect(within(card).getAllByText(/Claimed/).length).toBeGreaterThan(0);

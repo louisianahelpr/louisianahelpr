@@ -6,7 +6,6 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
-  ImagePlus,
   MapPin,
   Calendar,
   Zap,
@@ -32,7 +31,7 @@ import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
-import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
+import { ReviewMediaRows } from "./ReviewMediaRows";
 import { HelprActivityNote } from "./HelprActivityNote";
 import { QuoteAskButton } from "@/components/quotes/QuoteAskButton";
 
@@ -45,6 +44,8 @@ interface CheckoutStepProps {
    *  taxable-category list. */
   category: string;
   imagePreviews: string[];
+  /** The picked scope video's blob: preview (A2-B6), or null. */
+  scopeVideoUrl?: string | null;
   streetAddress: string;
   city: string;
   addrState: string;
@@ -114,6 +115,7 @@ export function CheckoutStep({
   categoryLabel,
   category,
   imagePreviews,
+  scopeVideoUrl,
   streetAddress,
   city,
   addrState,
@@ -339,29 +341,7 @@ export function CheckoutStep({
           {/* Recurring schedule: the days and the visit count (CheckoutRepeatsRow). */}
           {isRecurring && <CheckoutRepeatsRow recurrenceDays={recurrenceDays} visitCount={seriesDates.length} endDate={seriesEndDate} />}
 
-          {/* Photos (thumbnail row) */}
-          {imagePreviews.length > 0 && (
-            <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
-                <ImagePlus className="w-3 h-3" />Photos
-              </span>
-              <div className="flex-1 flex gap-1.5 flex-wrap justify-end">
-                {imagePreviews.slice(0, 5).map((src, i) =>
-                  isSafeBlobPreviewUrl(src) ? (
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      key={i}
-                      src={src}
-                      alt=""
-                      className="w-10 h-10 rounded-ds-sm object-cover"
-                      style={{ border: "0.5px solid hsl(var(--olivewood) / 0.15)" }}
-                    />
-                  ) : null,
-                )}
-              </div>
-            </div>
-          )}
+          <ReviewMediaRows imagePreviews={imagePreviews} scopeVideoUrl={scopeVideoUrl} />
 
           {/* Special requirements */}
           {specialRequirements && (

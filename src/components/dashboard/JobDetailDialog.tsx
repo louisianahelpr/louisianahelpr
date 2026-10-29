@@ -21,6 +21,8 @@ import { askQuestionCounterpart } from "./jobDetailDialog/askQuestionCounterpart
 import { SeriesTermsLine } from "@/components/series/SeriesTermsLine";
 import { recurrenceShapeLabel } from "@/lib/recurringSchedule";
 import { JobDetailNotes } from "@/components/job-card/JobNotes";
+import { ScopeVideo } from "@/components/jobs/ScopeVideo";
+import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -852,17 +854,11 @@ const JobDetailDialog = ({
         )}
 
         {/* Scope video — shows before description so helpers immediately
-            see what's needed. Hidden when no video attached. */}
-        {job.scope_video_url && (
+            see what's needed. Hidden when no video attached. The browse
+            view carries the column since 20261029194021 (A2-B6). */}
+        {safeScopeVideoUrl(job.scope_video_url) && (
           <div className="rounded-ds-md overflow-hidden mb-3">
-            <video
-              src={job.scope_video_url}
-              controls
-              playsInline
-              preload="none"
-              className="w-full max-h-48 object-cover"
-              style={{ background: "hsl(var(--bark) / 0.05)" }}
-            />
+            <ScopeVideo url={job.scope_video_url} />
             {/* Same body voice as the description above — this line was
                 `text-ds-11` where the description was `text-ds-15`, two of the
                 seven sizes one dialog was speaking. Alignment and the top gap

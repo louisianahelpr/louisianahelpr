@@ -73,3 +73,20 @@ export function readVideoDuration(file: Blob, timeoutMs = 5000): Promise<number 
     video.src = url;
   });
 }
+
+/**
+ * The URL a <video> may play for a job's scope video, or null (A2-B6). The
+ * stored value is the job-photos bucket's public https URL; on the post-job
+ * Review step it is the picked file's blob: preview. Anything else (an empty
+ * value, an unparseable string, another scheme) plays nothing.
+ */
+export function safeScopeVideoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "https:" || protocol === "blob:" ? url : null;
+  } catch {
+    // Not a parseable URL, so not one to play; the null IS the handling.
+    return null;
+  }
+}

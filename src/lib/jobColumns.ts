@@ -184,8 +184,9 @@ export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount
  * jobs already has them (so they are not JOB_COLUMNS_AHEAD_OF_DB): a browse
  * read names them and goes through readJobsAheadOfDb, which drops them on
  * 42703 until db-deploy lands. helper_fee_percent: Q2400, 20261025235701.
+ * scope_video_url: A2-B6, 20261029194021 (the poster's scope video).
  */
-export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent"] as const;
+export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url"] as const;
 
 /**
  * `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out, and on a browse-view read

@@ -108,6 +108,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         categoryLabel={form.categoryLabel}
         category={form.category}
         imagePreviews={form.imagePreviews}
+        scopeVideoUrl={form.scopeVideoPreviewUrl}
         streetAddress={form.streetAddress}
         city={form.city}
         addrState={form.addrState}

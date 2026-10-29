@@ -12977,6 +12977,7 @@ export type Database = {
           recurrence_interval: string | null
           recurrence_weeks: number | null
           require_photo_proof: boolean | null
+          scope_video_url: string | null
           series_split_ok: boolean | null
           special_requirements: string | null
           start_time: string | null
@@ -13021,6 +13022,7 @@ export type Database = {
           recurrence_interval?: string | null
           recurrence_weeks?: number | null
           require_photo_proof?: boolean | null
+          scope_video_url?: string | null
           series_split_ok?: boolean | null
           special_requirements?: string | null
           start_time?: string | null
@@ -13065,6 +13067,7 @@ export type Database = {
           recurrence_interval?: string | null
           recurrence_weeks?: number | null
           require_photo_proof?: boolean | null
+          scope_video_url?: string | null
           series_split_ok?: boolean | null
           special_requirements?: string | null
           start_time?: string | null

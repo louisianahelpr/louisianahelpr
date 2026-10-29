@@ -11,7 +11,7 @@
 //
 // @mutate src/components/postjob/CheckoutBudgetLine.tsx |   const series = visitCount > 1; |   const series = false;
 // @mutate src/components/postjob/CheckoutBudgetLine.tsx |   const crew = crewSize > 1; |   const crew = false;
-// @mutate src/components/postjob/CheckoutBudgetLine.tsx | each later visit is charged to your saved card about 3 days before it. | each later visit is charged to your saved card.
+// @mutate src/lib/seriesMoneyCopy.ts | "each later visit is charged to your saved card about 3 days before it"; | "each later visit is charged to your saved card";
 // @mutate src/pages/post-job/CheckoutStepView.tsx |         isGroupJob={form.isGroupJob} |         isGroupJob={false}
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

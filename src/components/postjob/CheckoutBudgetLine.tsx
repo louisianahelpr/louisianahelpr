@@ -1,5 +1,6 @@
 import { formatPriceExact } from "@/lib/format";
 import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
+import { SERIES_LATER_VISITS_CHARGED, seriesVisitsSuffix } from "@/lib/seriesMoneyCopy";
 
 /**
  * The review step's secondary line under the Total: the budget, and what sits on top of it.
@@ -40,11 +41,11 @@ export function CheckoutBudgetLine({
       <>
         <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
-          {` a visit · ${visitCount} visits`}
+          {seriesVisitsSuffix(visitCount)}
           {hasGift ? ` · $${formatPriceExact(giftAppliedAmount)} gift applied` : ""}
         </p>
         <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          The total is for the first visit; each later visit is charged to your saved card about 3 days before it.
+          {`The total is for the first visit; ${SERIES_LATER_VISITS_CHARGED}.`}
         </p>
         {crewLine}
       </>

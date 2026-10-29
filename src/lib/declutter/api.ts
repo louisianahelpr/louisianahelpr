@@ -784,6 +784,18 @@ export async function makeOffer(itemId: string, amountCents: number): Promise<st
   return rpcData(await supabase.rpc("declutter_make_offer", { p_item_id: itemId, p_amount_cents: amountCents }), (e) => rpcErrorMessage("declutter_make_offer", e)) as string;
 }
 
+/**
+ * Smart offers (20261029162620, owner 2026-10-29): the seller's own live or paused item. Off = Buy only; auto
+ * accepts offers at or above the item's lowest price (floor_price_cents, set with declutter_set_listing_price) and
+ * counters lower ones at it. Auto is saved off whenever offers are off.
+ */
+export async function setOfferRules(itemId: string, acceptsOffers: boolean, autoOffers: boolean): Promise<void> {
+  rpcData(
+    await supabase.rpc("declutter_set_offer_rules", { p_item_id: itemId, p_accepts_offers: acceptsOffers, p_auto_offers: autoOffers }),
+    (e) => rpcErrorMessage("declutter_set_offer_rules", e),
+  );
+}
+
 export async function respondOffer(offerId: string, action: OfferAction, amountCents: number | null = null): Promise<string> {
   return rpcData(
     await supabase.rpc("declutter_respond_offer", { p_offer_id: offerId, p_action: action, p_amount_cents: amountCents }),

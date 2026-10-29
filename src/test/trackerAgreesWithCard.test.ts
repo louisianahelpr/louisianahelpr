@@ -248,7 +248,8 @@ describe("the 8-step bar reads the card's own line and button (lead review 2026-
 
   it("both cards hand the bar the line and button they draw, and the strip prints the same line", () => {
     const posted = blankComments(readFileSync(resolve(__dirname, "../..", "src/pages/posts/PostedJobCard.tsx"), "utf8"));
-    expect(posted).toMatch(/const cardLine = posterStatusLine\(withDisputeSettling\(job, unsettledDisputeJobIds\), pendingApplicantCounts\?\.\[job\.id\] \?\? 0, undefined, completedJobMeta\[job\.id\]\);/);
+    // A2-B15: the one cardLine also carries the closed-applicants swap, so bar and strip both read it.
+    expect(posted).toMatch(/const cardLine = withClosedApplicants\(posterStatusLine\(withDisputeSettling\(job, unsettledDisputeJobIds\), pendingApplicantCounts\?\.\[job\.id\] \?\? 0, undefined, completedJobMeta\[job\.id\]\), closedApplicantSummaries\?\.\[job\.id\] \?\? null\);/);
     expect(posted).toMatch(/wait: cardLine\.id as PosterWait,/);
     expect(posted).toMatch(/card: \{ line: cardLine, face: faceAction \}/);
     const applied = blankComments(readFileSync(resolve(__dirname, "../..", "src/pages/jobs/AppliedJobCard.tsx"), "utf8"));

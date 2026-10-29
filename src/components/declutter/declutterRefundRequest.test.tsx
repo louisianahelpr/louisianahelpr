@@ -30,6 +30,9 @@ const state = vi.hoisted(() => ({
   returned: [] as unknown[][],
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// D2-11: who made the handover (declutter_my_handover); the card's handover row.
+const handover = vi.hoisted(() => ({ row: { confirmed_by: "auto", picked_up_at: null } as { confirmed_by: string | null; picked_up_at: string | null } }));
+vi.mock("@/lib/declutter/handover", () => ({ fetchMyHandover: async (orderId: string) => ({ order_id: orderId, ...handover.row }) }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/refundRequests")>();
   return {
@@ -66,10 +69,33 @@ function show(view: RefundRequestView) {
 }
 
 beforeEach(() => {
+  handover.row = { confirmed_by: "auto", picked_up_at: null };
   state.asked = [];
   state.answered = [];
   state.offers = [];
   state.returned = [];
+});
+
+// Audit 1028 part 2, D2-11: "Never got it" was offered after the buyer tapped "I got it".
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const buyerHasIt = handover.data?.confirmed_by === "buyer" \|\| !!handover.data?.picked_up_at; |   const buyerHasIt = false;
+describe("DeclutterRefundPanel: the reasons fit the handover (D2-11)", () => {
+  const reasonLabels = () => screen.getAllByRole("radio").map((r) => r.closest("label")?.textContent);
+  it("after the buyer's I got it or pickup photo: no Never got it", async () => {
+    for (const row of [{ confirmed_by: "buyer", picked_up_at: null }, { confirmed_by: "auto", picked_up_at: "2026-10-23T18:00:00Z" }]) {
+      handover.row = row;
+      const { unmount } = show(BASE);
+      fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+      await waitFor(() => expect(reasonLabels()).toEqual(["Not as described", "Damaged"]));
+      unmount();
+    }
+  });
+
+  it("paid automatically, the buyer never said they had it: Never got it stays", async () => {
+    show(BASE);
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    await screen.findAllByRole("radio");
+    expect(reasonLabels()).toEqual(["Not as described", "Damaged", "Never got it"]);
+  });
 });
 
 describe("DeclutterRefundPanel", () => {

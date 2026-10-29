@@ -59,7 +59,7 @@ export function useSectionPreview(key: SectionKey): boolean {
  * Owner 2026-10-22 (the Explore header): the row is the header's TOP line, compact
  * chips beside the bell and the photo (AppTopBar), still the quiet tone of 2026-10-21
  * (the Browse/Posted/Working tabs under it are now thin underlines). A section
- * not open to everyone says "Coming soon" under its name, for every viewer: muted and
+ * not open to everyone says "Soon" under its name (11px; was "Coming soon" at 9px until A2-L11, 2026-10-29), for every viewer: muted and
  * inert when it is closed to them (no toast, no navigation), and still opening for a
  * tester, whose empty Browse then says "Opens soon" (no banner since owner 2026-10-28).
  * Guards: src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts.
@@ -81,7 +81,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     const track = navRef.current?.querySelector<HTMLElement>("[role='radiogroup']");
     if (!track) return;
     const update = () => setMore(track.scrollWidth - track.clientWidth - track.scrollLeft > 2);
-    // The chips change width after mount ("Coming soon" appears once the sections' answer lands), so the picked chip
+    // The chips change width after mount ("Soon" appears once the sections' answer lands), so the picked chip
     // is brought into view, and the fade re-measured, whenever the track's content resizes.
     const reveal = () => {
       const picked = track.querySelector<HTMLElement>("[aria-checked='true']");
@@ -102,7 +102,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   if (isWebDesktop) return null;
   const options = visible.map((s) => {
     const on = isOn(s);
-    // ONE word for a section not open to everyone (owner, 2026-10-22): "Coming soon", for a member (closed: a tap
+    // ONE word for a section not open to everyone (owner, 2026-10-22): "Soon" (was "Coming soon"; A2-L11), for a member (closed: a tap
     // does nothing) and for a tester alike (open to them; inside, an empty Browse says "Opens soon").
     const soon = !on || isPreview(s);
     return {
@@ -110,8 +110,8 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
       label: soon ? (
         <span data-soon="" className="flex flex-col items-center leading-[1.15]">
           <span className={on ? undefined : "text-muted-foreground font-medium"}>{s.navLabel}</span>
-          {/* Still 9px; set 3% tighter so four chips fit a 375 phone (owner 2026-10-28). */}
-          <SoonPill variant="caption" data-coming-soon="" className="tracking-[-0.03em]" />
+          {/* "Soon" at 11px, the app's floor (owner 2026-10-29, A2-L11); the chip's name says "coming soon". */}
+          <SoonPill variant="caption" data-coming-soon="" />
         </span>
       ) : (
         // A name with no caption under it keeps a little air of its own (the chips' own padding is 2px a side).

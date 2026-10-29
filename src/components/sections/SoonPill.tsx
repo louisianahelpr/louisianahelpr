@@ -6,9 +6,11 @@
  *  - "full":  "Coming soon" (mock-up 20), where a row has room (was "Opening soon" until audit P5-4, 2026-10-28: one word for a closed section);
  *  - "short": "Soon", where the row is narrow (the 248px rail) or already says
  *             "Coming soon" beneath the name (Settings, board 52);
- *  - "caption": "Coming soon" under a section's name inside its Explore header chip
- *               (owner, 2026-10-22): the chip is already the border, so no pill. It
- *               replaced "badge", the 14px "Soon" the old switcher hung off an icon.
+ *  - "caption": "Soon" under a section's name inside its Explore header chip: the chip
+ *               is already the border, so no pill. It was "Coming soon" at 9px (owner,
+ *               2026-10-22); three of those at 375 sat under the app's 11px floor (audit
+ *               A2-L11), so it is "Soon" at 11px (owner yes, 2026-10-29). The chip's
+ *               accessible name still says "Declutter, coming soon".
  *  - "rail":    "Coming soon" UNDER the section's name on the desktop rail, as on the
  *               phone's chips. Audit #42 (2026-10-28): a member's phone chip said "Coming
  *               soon" and the same member's rail said "Soon"; the lead's rule: members see
@@ -19,8 +21,8 @@
 export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption" | "rail"; className?: string } & Record<`data-${string}`, string>) {
   if (variant === "caption") {
     return (
-      <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}>
-        Coming soon
+      <span {...rest} className={`text-ds-11 font-medium text-muted-foreground ${className}`}>
+        Soon
       </span>
     );
   }

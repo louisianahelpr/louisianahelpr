@@ -110,12 +110,14 @@ describe("the landing says what is open today", () => {
     unmount();
   });
 
-  it("the landing's soon line uses the same word as the rail and the Explore chips (P5-4)", () => {
+  it("the landing's soon line uses the same word as the rail (P5-4)", () => {
     const rail = render(<SoonPill variant="rail" />);
     const railWord = rail.container.textContent;
     rail.unmount();
+    // The phone's Explore chip says "Soon" at 11px (owner 2026-10-29, A2-L11);
+    // its accessible name still says "coming soon".
     const chip = render(<SoonPill variant="caption" />);
-    expect(chip.container.textContent).toBe(railWord);
+    expect(chip.container.textContent).toBe("Soon");
     chip.unmount();
     const { unmount } = renderSections(null);
     expect(screen.getByTestId("landing-sections-soon").textContent).toBe(railWord);

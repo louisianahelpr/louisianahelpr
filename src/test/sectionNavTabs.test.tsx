@@ -36,7 +36,9 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
  * (Owner 2026-10-22, the Explore header: a section not open to everyone says "Coming soon" under its name for
  * EVERY viewer, member and tester alike; a tester's still opens, and its empty Browse says "Opens soon".)
- * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" className="tracking-[-0.03em]" /> | <span data-coming-soon="" />
+ * (Owner 2026-10-29, A2-L11: the caption under a closed chip is "Soon" at 11px, not "Coming soon" at 9px; the
+ * chip's accessible name stays "Declutter, coming soon" and the desktop rail keeps "Coming soon".)
+ * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel, |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
@@ -132,12 +134,12 @@ describe("the section tabs (owner 2026-10-18)", () => {
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
     expect(declutter.querySelector("[data-soon]")).toBeTruthy();
-    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
+    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
     fireEvent.click(declutter);
     expect(screen.getByTestId("where").textContent).toBe("/jobs");
     expect(toasts).toEqual([]);
     const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
-    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
+    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
     // A section open to everyone carries no caption.
     expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
   });
@@ -170,7 +172,7 @@ describe("the section tabs (owner 2026-10-18)", () => {
     everyone.open = new Set(["shops"]);
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
-    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
+    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
     expect(declutter.querySelector("[data-preview-pill]")).toBeNull();
     expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
     fireEvent.click(declutter);

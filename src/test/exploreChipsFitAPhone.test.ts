@@ -8,9 +8,14 @@
  * The rendered fit is held by the home-chrome e2e at 375 and 1440 (track scrollWidth <= clientWidth on a phone);
  * this guard holds the levers and the type floors, so nobody buys the fit by shrinking the words.
  *
+ * A2-L11 (app audit 2026-10-28; owner yes 2026-10-29): three 9px "Coming soon" captions at 375 were under the
+ * app's 11px floor. The caption is now "Soon" at 11px (narrower than "Coming soon" at 9px, so the fit holds); the
+ * chip's accessible name stays "Declutter, coming soon", and the desktop rail keeps "Coming soon".
+ *
  * @mutate src/components/sections/ExploreSwitcher.tsx |         optionClassName="px-0.5 text-ds-11 whitespace-nowrap" |         optionClassName="px-1.5 text-ds-11 whitespace-nowrap"
  * @mutate src/components/sections/ExploreSwitcher.tsx |         className="w-full overflow-x-auto no-scrollbar gap-0" |         className="w-full overflow-x-auto no-scrollbar"
- * @mutate src/components/sections/SoonPill.tsx |       <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}> |       <span {...rest} className={`text-ds-8 font-medium text-muted-foreground ${className}`}>
+ * @mutate src/components/sections/SoonPill.tsx |       <span {...rest} className={`text-ds-11 font-medium text-muted-foreground ${className}`}> |       <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}>
+ * @mutate src/components/sections/SoonPill.tsx |         Soon\n      </span>\n    );\n  }\n  if (variant === "rail") { |         Coming soon\n      </span>\n    );\n  }\n  if (variant === "rail") {
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -30,11 +35,12 @@ describe("the Explore chips fit a 375 phone without shrinking their words (owner
     expect(track.split(/\s+/)).toEqual(expect.arrayContaining(["gap-0", "overflow-x-auto"]));
   });
 
-  it("'Coming soon' stays under each name, 9px, only set a little tighter", () => {
-    expect(sw).toContain('<SoonPill variant="caption" data-coming-soon="" className="tracking-[-0.03em]" />');
+  it("'Soon' sits under each closed name at 11px, the app's floor (A2-L11)", () => {
+    expect(sw).toContain('<SoonPill variant="caption" data-coming-soon="" />');
     const pill = code("src/components/sections/SoonPill.tsx");
-    expect(pill).toMatch(/variant === "caption"[\s\S]{0,300}?className=\{`text-ds-9 font-medium/);
-    expect(pill).toMatch(/>\s*Coming soon\s*</);
+    expect(pill).toMatch(/variant === "caption"[\s\S]{0,120}?className=\{`text-ds-11 font-medium[^`]*`\}>\s*Soon\s*</);
+    // The accessible name still says it in full.
+    expect(sw).toMatch(/ariaLabel: soon \? comingSoonLabel\(s\.navLabel\) : s\.navLabel/);
   });
 
   it("a chip that is too wide for 320 still scrolls (the fade and reveal stay)", () => {

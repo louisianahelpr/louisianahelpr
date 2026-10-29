@@ -777,15 +777,17 @@ export const FORMS: FormSpec[] = [
   // Reject (write firewall).
   {
     name: "declutter-sell", url: "/declutter/sell", as: "helper",
-    // The sell flow is 5 steps since board 31a-158 (2026-10-20): a held photo (never uploaded: only step 4 saves)
-    // opens step 2, whose text fields the sweep fills. Steps 3-4 (price, area, address) are not swept from here.
+    // A NEW listing is ONE screen since 2026-10-29 (SellOneScreen): a held photo (never uploaded: only Post saves),
+    // then the summary card's title row opens in place ("Add title" / "Edit title"), and the sweep fills the text
+    // fields on the screen (title, and the ways' area and address while they are open). Post is never pressed.
     prepare: async (page) => {
       await page.locator("#sell-files").waitFor({ state: "attached", timeout: 20_000 });
       await page.setInputFiles("#sell-files", { name: "sweep.png", mimeType: "image/png", buffer: Buffer.from("89504e470d0a1a0a", "hex") });
-      await page.getByRole("button", { name: "Continue" }).click();
+      await page.getByRole("button", { name: /^(Add|Edit) title$/ }).click();
       await page.locator("#sell-title").waitFor({ timeout: 20_000 });
     },
-    covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellPhotos.tsx", "src/components/declutter/DeclutterPickupTimes.tsx"],
+    covers: ["src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellPhotos.tsx", "src/components/declutter/DeclutterPickupTimes.tsx",
+      "src/components/declutter/SellOneScreen.tsx", "src/components/declutter/SellSummaryCard.tsx", "src/components/declutter/SellFormParts.tsx"],
   },
   {
     name: "declutter-ask", url: "/declutter", as: "poster",

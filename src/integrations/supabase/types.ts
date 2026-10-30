@@ -2798,6 +2798,15 @@ export type Database = {
           return_agreed_at: string | null
           return_by: string | null
           returned_at: string | null
+          return_address: string | null
+          return_at: string | null
+          return_day: string | null
+          return_dropped_off_at: string | null
+          return_lat: number | null
+          return_lng: number | null
+          return_photo_path: string | null
+          return_way: string | null
+          returned_photo_path: string | null
           id: string
           is_seed: boolean
           note: string
@@ -2820,6 +2829,15 @@ export type Database = {
           return_agreed_at?: string | null
           return_by?: string | null
           returned_at?: string | null
+          return_address?: string | null
+          return_at?: string | null
+          return_day?: string | null
+          return_dropped_off_at?: string | null
+          return_lat?: number | null
+          return_lng?: number | null
+          return_photo_path?: string | null
+          return_way?: string | null
+          returned_photo_path?: string | null
           id?: string
           is_seed?: boolean
           note: string
@@ -2842,6 +2860,15 @@ export type Database = {
           return_agreed_at?: string | null
           return_by?: string | null
           returned_at?: string | null
+          return_address?: string | null
+          return_at?: string | null
+          return_day?: string | null
+          return_dropped_off_at?: string | null
+          return_lat?: number | null
+          return_lng?: number | null
+          return_photo_path?: string | null
+          return_way?: string | null
+          returned_photo_path?: string | null
           id?: string
           is_seed?: boolean
           note?: string
@@ -14875,7 +14902,29 @@ export type Database = {
       }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
       declutter_withdraw_refund: { Args: { p_request_id: string }; Returns: Json }
-      declutter_refund_item_returned: { Args: { p_request_id: string }; Returns: Json }
+      declutter_refund_item_returned: { Args: { p_photo_path?: string; p_request_id: string }; Returns: Json }
+      declutter_accept_refund_with_return: {
+        Args: { p_at: string; p_day: string; p_request_id: string; p_way: string }
+        Returns: Json
+      }
+      declutter_return_backstop_at: {
+        Args: {
+          r: Database["public"]["Tables"]["declutter_refund_requests"]["Row"]
+        }
+        Returns: string
+      }
+      declutter_return_photo_ok: {
+        Args: { p_order_id: string; p_path: string; p_uid: string }
+        Returns: boolean
+      }
+      declutter_return_dropped_off: {
+        Args: { p_lat: number; p_lng: number; p_photo_path: string; p_request_id: string }
+        Returns: Json
+      }
+      declutter_set_return_address: {
+        Args: { p_address: string; p_lat: number; p_lng: number; p_request_id: string }
+        Returns: Json
+      }
       end_recurring_series_by_platform: {
         Args: {
           p_admin?: string

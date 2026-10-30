@@ -11,7 +11,7 @@
  *
  * @mutate src/lib/declutter/problemPhotos.ts | export const PROBLEM_FORM_PHOTOS_READY = true; | export const PROBLEM_FORM_PHOTOS_READY = false;
  * @mutate src/lib/declutter/problemPhotos.ts | export const REFUND_FORM_PHOTOS_READY = true; | export const REFUND_FORM_PHOTOS_READY = false;
- * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
+ * @mutate supabase/migrations/20261030043920_declutter_returns.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photo_paths text[] DEFAULT '{}') | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photos text[] DEFAULT '{}')
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
@@ -35,7 +35,8 @@ const report = DEFS.get("declutter_report_problem")?.stmt ?? "";
 /** The storage write rule's branch (from IF p_write THEN to the read branch's RETURN). */
 function writeBranch(): string {
   const at = access.indexOf("IF p_write THEN");
-  const end = access.indexOf("END IF;", at);
+  // Up to the read branch: returns (20261030043920) put a nested IF (the return folder) inside the write branch.
+  const end = access.indexOf("RETURN public.has_role(v_uid, 'admin')", at);
   return at < 0 || end < 0 ? "" : access.slice(at, end);
 }
 
@@ -47,7 +48,7 @@ function problemUploadsAfterHandover(): boolean {
 
 describe("D2-7: the photo pickers wait for the server, and turn on when it is ready", () => {
   it("reads the live definitions (floor)", () => {
-    expect(access).toContain("split_part(p_name, '/', 3) NOT IN ('handover', 'problem')");
+    expect(access).toMatch(/split_part\(p_name, '\/', 3\) NOT IN \('handover', 'problem'(, 'return')?\)/);
     expect(writeBranch().length).toBeGreaterThan(50);
     expect(writeBranch()).toContain("o.status = 'paid'");
     expect(ask.length).toBeGreaterThan(200);

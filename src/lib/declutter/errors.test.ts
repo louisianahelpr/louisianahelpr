@@ -27,7 +27,8 @@ describe("the copy tables", () => {
 
   it("holds a real inventory (every refusal code, both tables)", () => {
     expect(Object.keys(DECLUTTER_ERROR_COPY).length).toBeGreaterThanOrEqual(30);
-    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["address_not_found", "ai_photos_required", "ai_rate_limited", "ai_timed_out", "ai_unavailable", "delivery_rate_changed", "drop_pct_unavailable", "geocode_unavailable", "item_photos_invalid", "payment_review", "payment_unavailable", "photo_unavailable", "raise_unavailable", "room_photos_invalid", "tip_already_paid", "tip_check_failed", "tip_helpr_held", "tip_helpr_no_payout", "tip_not_sent", "tip_page_closed"]);
+    // address_not_found moved to the server table: declutter_set_return_address raises it (returns, 20261030043920).
+    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["ai_photos_required", "ai_rate_limited", "ai_timed_out", "ai_unavailable", "delivery_rate_changed", "drop_pct_unavailable", "geocode_unavailable", "item_photos_invalid", "payment_review", "payment_unavailable", "photo_unavailable", "raise_unavailable", "room_photos_invalid", "tip_already_paid", "tip_check_failed", "tip_helpr_held", "tip_helpr_no_payout", "tip_not_sent", "tip_page_closed"]);
   });
 
   it("no code sits in both tables", () => {

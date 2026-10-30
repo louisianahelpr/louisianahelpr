@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1021,
-    "files": 273,
-    "rendering": 861,
-    "suppressedByPolicy": 160,
+    "calls": 1025,
+    "files": 274,
+    "rendering": 863,
+    "suppressedByPolicy": 162,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 717,
+      "toast.error": 719,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 163,
+      "toast.success": 165,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 458,
-      "template": 104,
-      "dynamic": 509,
+      "template": 106,
+      "dynamic": 511,
       "jsx": 0
     }
   },
@@ -5298,7 +5298,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 120,
+      "line": 131,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5308,7 +5308,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 121,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5318,7 +5318,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 125,
+      "line": 136,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5338,7 +5338,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 126,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5348,7 +5348,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 130,
+      "line": 141,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5358,7 +5358,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 131,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5368,7 +5368,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 233,
+      "line": 252,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5398,7 +5398,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 236,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5408,7 +5408,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 241,
+      "line": 262,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5418,7 +5418,47 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 242,
+      "line": 263,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundReturn.tsx",
+      "line": 108,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Dropped off. ${who} is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundReturn.tsx",
+      "line": 109,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundReturn.tsx",
+      "line": 118,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Saved. ${who} is told where to pick it up."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundReturn.tsx",
+      "line": 119,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

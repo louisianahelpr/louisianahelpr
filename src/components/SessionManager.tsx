@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
+import { useWebPushAskAfterJobAction, useWebPushBootSync } from "@/hooks/useWebPush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
 import { useCppVariantRouter } from "@/lib/cppRouting";
@@ -65,6 +66,12 @@ export const SessionManager = () => {
   // runs before React), so the decision lives there too; see the trace in that
   // file's header.
   const { profile, user } = useCurrentUser();
+  // Web push (owner approved 2026-10-29): with permission already granted,
+  // keep this browser's subscription row current on every signed-in boot; and
+  // after a job action, explain notifications in the in-app sheet (the browser
+  // prompt only ever comes from its button). Both are no-ops in the native app.
+  useWebPushBootSync(user?.id);
+  useWebPushAskAfterJobAction();
   useEffect(() => {
     // null until the profile lands, so the cached account flag the first
     // paint used is not switched off and back on (Q169).

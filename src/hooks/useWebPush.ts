@@ -1,0 +1,68 @@
+// Web push, the two React halves (owner approved 2026-10-29, B58's plan):
+//
+//   useWebPushBootSync(userId) - signed in with permission already granted: make
+//     sure this browser's subscription row exists (boot upsert).
+//   useWebPushAskAfterJobAction() - after a member posts a job or applies
+//     ("helpr:job-action", dispatched by recordJobActionForPermissionPrompt),
+//     show the in-app notifications sheet. The browser's prompt is raised only
+//     by the sheet's button (a tap), never automatically. On iPhone Safari
+//     outside the Home Screen, where Apple offers no web push, the sheet says
+//     how to add Helpr to the Home Screen instead.
+//
+// Both are web only; the native app has its own APNs path (nativePush.ts).
+import { useEffect } from "react";
+import { safeStorage } from "@/lib/safeStorage";
+import { explainPermission } from "@/hooks/usePermissionRationale";
+import { waitForNoModal } from "@/lib/pushPermissionNudge";
+import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPush } from "@/lib/webPush";
+import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
+
+export const WEB_PUSH_ASKED_KEY = "web-push-asked-at";
+/** One ask per 14 days, like the Activity nudges (pushPermissionNudge.ts). */
+export const WEB_PUSH_ASK_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function useWebPushBootSync(userId: string | null | undefined): void {
+  useEffect(() => {
+    if (!userId || !hasWebPushApis()) return;
+    // subscribeWebPush reports its own failures and never throws.
+    void subscribeWebPush();
+  }, [userId]);
+}
+
+/** What the sheet after a job action should be: the ask, the Home Screen hint, or nothing. */
+export function webPushAskKind(now: number = Date.now()): "ask" | "home_screen" | null {
+  const last = Number(safeStorage.getItem(WEB_PUSH_ASKED_KEY) ?? 0);
+  if (Number.isFinite(last) && last > 0 && now - last < WEB_PUSH_ASK_COOLDOWN_MS) return null;
+  if (hasWebPushApis()) return Notification.permission === "default" ? "ask" : null;
+  return isIosOutsideHomeScreen() ? "home_screen" : null;
+}
+
+export async function offerWebPushAfterJobAction(): Promise<void> {
+  const kind = webPushAskKind();
+  if (!kind) return;
+  // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
+  if (!(await waitForNoModal(60_000))) return;
+  safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
+  if (kind === "home_screen") {
+    await explainPermission("notifications_home_screen", () => {});
+    return;
+  }
+  await explainPermission("notifications", async () => {
+    // FIRST statement, synchronously inside the sheet button's click: Safari
+    // only shows the prompt from a user gesture, and an await before this
+    // line would spend it.
+    const answer = await Notification.requestPermission();
+    if (answer === "granted") await subscribeWebPush();
+  });
+}
+
+export function useWebPushAskAfterJobAction(): void {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onAction = () => {
+      void offerWebPushAfterJobAction();
+    };
+    window.addEventListener(JOB_ACTION_EVENT, onAction);
+    return () => window.removeEventListener(JOB_ACTION_EVENT, onAction);
+  }, []);
+}

@@ -211,6 +211,8 @@ rpc_exempt(fn, why) AS (
   ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'),
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),
+  ('register_push_subscription', 'web push (20261030022344): the browser twin of the push_tokens INSERT/UPDATE exemption; a banned account still signs in (Q300) and must get account notices such as Restriction lifted. It saves only the caller own browser subscription, which nobody else sees'),
+  ('unregister_push_subscription', 'web push (20261030022344): the browser twin of the push_tokens DELETE exemption; sign-out removes only the caller own browser subscription, and a banned account must be able to stop pushes'),
   ('dismiss_sms_phone_prompt', 'SMS phone ask (20261027183058): stamps only the caller own notification_preferences row so the prompt stops; like opting out of notifications it must work for everyone, and it changes nothing another person sees'),
   ('helpr_set_vehicle', 'Declutter vehicle match Q2452 (20261028012406): the 3-argument overload, kept for installed app builds, writes nothing itself; it only delegates to the 4-argument helpr_set_vehicle(p_has_car, ...), which calls is_caller_banned() and refuses a banned caller before any write (proven in src/test/pglite/helprVehicleMatch.pglite.mjs). The check reads overloads by name, so the delegating overload needs this entry'),
   ('helpr_go_online', 'Declutter go-online 20261027203030: going ONLINE runs helpr_task_assert_helpr (which calls is_caller_banned()); going OFFLINE only clears the caller own helpr_delivery_online row so offers stop, like clear_available_now, and changes nothing another person sees'),

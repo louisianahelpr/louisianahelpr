@@ -24,6 +24,8 @@
     "accept_application_at_suggested_time(uuid, timestamp with time zone, text)": "client",
     "accept_group_application(uuid, timestamp with time zone, text)": "client",
     "accept_job_offer(uuid)": "client",
+    "register_push_subscription(text, text, text, text)": "client",
+    "unregister_push_subscription(text)": "client",
     "admin_sms_status()": "client",
     "get_my_sms_consent()": "client",
     "sms_phone_prompt_due(text)": "reviewed 2026-10-27 (Q2423): answers only for (SELECT auth.uid()) (refuses a NULL caller), never an id passed in; reads the caller's own preferences row, own text consent and own job / crew-seat counts, and returns one boolean",

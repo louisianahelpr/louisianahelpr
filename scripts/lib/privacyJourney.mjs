@@ -87,7 +87,10 @@ export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attac
 export const EXPORT_SECTIONS = [
   "exported_at", "user_id", "email", "profile", "jobs", "applications", "reviews", "messages",
   "message_reactions", "notifications", "notification_preferences", "notification_logs",
-  "notification_dedupe_suppressions", "push_tokens", "saved_jobs", "saved_searches",
+  "notification_dedupe_suppressions", "push_tokens",
+  // Web push (20261030022344): browser subscriptions, without endpoint / p256dh / auth.
+  "push_subscriptions",
+  "saved_jobs", "saved_searches",
   "saved_search_alert_queue", "match_digest_queue", "parish_match_alert_queue",
   "favorite_helpers", "helper_availability",
   "helper_credentials", "helper_verifications", "verification_checks",

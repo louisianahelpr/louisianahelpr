@@ -4,14 +4,16 @@
 // process-email-queue refuses test recipients again at send time. A defect
 // answers 500 and sweep_cron_http_failures reports it.
 //
-// confirm-reminders: at most two "confirm your email" reminders to an email
-// account that never confirmed (lead, 2026-10-25): step 1 about an hour after
-// sign-up, step 2 about a day. 53 of 164 real email sign-ups since 10-15 never
-// confirmed, and nothing reminded them.
+// confirm-reminders: ONE "confirm your email" reminder to an email account
+// that never confirmed, about a day after sign-up, never more than one (owner
+// 2026-10-29; migration 20261030025302). It began 2026-10-25 as two (step 1
+// about an hour, step 2 about a day); step 1 is retired: this sends only step
+// 2, and the SQL returns no rows for step 1 and skips any account that already
+// had a reminder of either step.
 //
 // Each run, hourly at :17 by cron job confirm-reminders (migration
-// <MIGRATION>):
-//   1. claim_confirm_reminders(step, CAP) for step 1, then step 2: picks the
+// 20261025190000):
+//   1. claim_confirm_reminders(2, CAP): picks the
 //      due accounts and writes their confirm_reminder_sends row in ONE
 //      statement, returning only the rows it wrote. WHO is due (and the hidden
 //      switch confirm_reminders, per account) is all in that SQL.
@@ -47,7 +49,8 @@ const corsHeaders = {
 
 /** Most accounts one run claims per step; 24 runs a day. Measured 2026-10-25: about 5 unconfirmed sign-ups a day. */
 const CAP = 25;
-const STEPS: ConfirmReminderStep[] = [1, 2];
+/** Step 2 only: one reminder per account, about a day after sign-up (owner 2026-10-29). Step 1 is retired. */
+const STEPS: ConfirmReminderStep[] = [2];
 
 /** A database answer (SQLSTATE or PGRSTxxx): the call rolled back, nothing queued. */
 function databaseRefused(code: string | undefined): boolean {

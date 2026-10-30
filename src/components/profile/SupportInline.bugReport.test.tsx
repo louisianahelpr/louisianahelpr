@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const db = vi.hoisted(() => ({ inserted: [] as Record<string, unknown>[] }));
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({

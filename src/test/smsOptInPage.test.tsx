@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * /sms-opt-in, THE PUBLIC LINK TWILIO'S A2P FORM ASKS FOR (owner, 2026-10-23): the form takes a URL, not an upload.
  * The page shows the real opt-in box (public/sms-opt-in-form.png) and the same box ticked
@@ -15,6 +16,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SmsOptIn from "@/pages/info/SmsOptIn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 
 const ROOT = resolve(__dirname, "..", "..");
 afterEach(cleanup);

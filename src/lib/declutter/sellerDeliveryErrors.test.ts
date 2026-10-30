@@ -25,10 +25,10 @@ describe("rpcErrorMessage", () => {
   });
 
   it("each RPC speaks its own words for a shared code", () => {
-    // seller_delivered: the buyer is told the seller marked it; the seller is told they already did.
-    expect(rpcErrorMessage("declutter_report_not_delivered", "seller_delivered")).toBe(S.seller_delivered);
-    expect(rpcErrorMessage("declutter_seller_cancel_delivery", "seller_delivered")).toBe(T.declutter_seller_cancel_delivery.seller_delivered);
-    expect(T.declutter_seller_cancel_delivery.seller_delivered).not.toBe(S.seller_delivered);
+    // not_reschedulable: a new time vs. the door choice read differently.
+    expect(rpcErrorMessage("declutter_propose_delivery_time", "not_reschedulable")).toBe(S.not_reschedulable);
+    expect(rpcErrorMessage("declutter_set_delivery_handoff", "not_reschedulable")).toBe(T.declutter_set_delivery_handoff.not_reschedulable);
+    expect(T.declutter_set_delivery_handoff.not_reschedulable).not.toBe(S.not_reschedulable);
   });
 
   it("a code the RPC does not raise, a longer code containing one, or nothing to read is null", () => {

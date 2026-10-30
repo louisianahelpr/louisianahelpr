@@ -26,8 +26,8 @@
  *     the edge function lets a seller delivery be $0 and adds no $0 line; the
  *     CHECKs allow a $0 seller delivery; 141d's payout keeps the rate.
  *
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql | 'slot_minutes', 60, | 'slot_minutes', 30,
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql | 'hold_minutes', 35, | 'hold_minutes', 20,
+ * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'slot_minutes', 60, | 'slot_minutes', 30,
+ * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'hold_minutes', 35, | 'hold_minutes', 20,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   SELECT round((greatest(COALESCE(p_items_cents, 0), 0) + greatest(COALESCE(p_delivery_cents, 0), 0)) * 0.05)::integer + 70; |   SELECT round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70;
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_debt, o.items_cents + v_rate - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_debt, o.items_cents - v_debt,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL OR o.handover = 'seller_delivery' THEN |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL THEN
@@ -38,8 +38,9 @@
  * @mutate supabase/migrations/20261029223949_export_my_data_seller_porch_days.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); |   RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', NULL, NULL, NULL);
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     AND now() > d.slot_start - make_interval(hours => (public.declutter_seller_delivery_rules() ->> 'buyer_cancel_hours')::integer) THEN |     AND false THEN
+ * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql |   -- Owner 2026-10-29: the buyer never cancels a paid order; it can be moved once.\n  RAISE EXCEPTION 'paid_order_not_cancellable' | RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL);\n  RAISE EXCEPTION 'paid_order_not_cancellable'
+ * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql |   -- Owner 2026-10-29: the seller never cancels a paid order; it can be moved once.\n  RAISE EXCEPTION 'paid_order_not_cancellable' | RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', 'seller', 'item_gone_after_sale', 'x');\n  RAISE EXCEPTION 'paid_order_not_cancellable'
+ * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql |     'proposals_per_side', 1, |     'proposals_per_side', 3,
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR | IF (false) OR
  * @mutate src/lib/declutter/sellerDelivery.ts |   slot_minutes: 60, |   slot_minutes: 30,
  * @mutate src/lib/declutter/sellerDelivery.ts |   const premiumCents = Math.round((Math.max(0, itemsCents) + Math.max(0, rateCents)) * 0.05) + 70; |   const premiumCents = Math.round(Math.max(0, itemsCents) * 0.05) + 70;
@@ -53,7 +54,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) { |   if (false) {
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n    SELECT * INTO sd | SELECT * INTO sd
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);\n  if (off) return off;\n  const declutterOff | const declutterOff
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |     buyerCancel: open && b.side === "buyer" && !marked && (cancelBy === null \|\| now <= cancelBy), |     buyerCancel: open && b.side === "buyer",
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |     changeHandoff: open && b.side === "buyer" | buyerCancel: open && b.side === "buyer",\n    changeHandoff: open && b.side === "buyer"
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     case "out_of_range": return typed ? "out_of_range" : "hidden"; |     case "out_of_range": return "out_of_range";
  */
 import { describe, expect, it } from "vitest";
@@ -243,10 +244,19 @@ describe("Declutter seller delivery (20261027153244)", () => {
     expect(flat(body("declutter_address_access"))).toContain("AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'");
   });
 
-  it("owner 2026-10-22: the buyer cancels until 24 h before (all back but the card fee); a door drop-off needs a photo", () => {
-    const bc = flat(body("declutter_buyer_cancel_delivery"));
-    expect(bc).toContain("RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL);");
-    expect(bc).toContain("now() > d.slot_start - make_interval(hours => (public.declutter_seller_delivery_rules() ->> 'buyer_cancel_hours')::integer) THEN RAISE EXCEPTION 'cancel_window_closed'");
+  it("owner 2026-10-29 (Q2477): a paid order is never cancelled by either side, and moved at most once per side", () => {
+    // Both cancel RPCs keep auth + membership, then refuse; neither reaches a refund (declutter_close_paid_order).
+    for (const [fn, side] of [["declutter_buyer_cancel_delivery", "buyer"], ["declutter_seller_cancel_delivery", "seller"]] as const) {
+      const b = flat(body(fn));
+      expect(b, fn).toContain(`IF v_side <> '${side}' THEN RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501'; END IF; RAISE EXCEPTION 'paid_order_not_cancellable' USING ERRCODE = '55000',`);
+      expect(b, fn).not.toMatch(/declutter_close_paid_order|declutter_refund_paid_order|stripe/i);
+      expect(b.indexOf("'item_not_found'"), fn).toBeLessThan(b.indexOf("'paid_order_not_cancellable'"));
+    }
+    expect(sqlRules().proposals_per_side).toBe(1);
+    expect(sqlRules()).not.toHaveProperty("buyer_cancel_hours");
+    // The one move is counted per side by the propose RPC, from the rules.
+    expect(flat(body("declutter_propose_delivery_time"))).toContain(
+      "IF (CASE WHEN v_side = 'buyer' THEN d.buyer_proposals ELSE d.seller_proposals END) >= (v_rules ->> 'proposals_per_side')::integer THEN RAISE EXCEPTION 'reschedule_used'");
     // 'buyer_cancelled' keeps the card fee and only the card fee (the refund policy CHECK, newest).
     expect(flat(body("declutter_record_refund"))).toMatch(/WHEN p_reason IN \('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault'(, 'refund_request_full')?\) THEN 'keep_card_fee'/);
     expect(flat(body("declutter_seller_delivered"))).toContain("IF (p_photo_path IS NULL AND d.handoff = 'leave') OR");
@@ -268,16 +278,20 @@ describe("Declutter seller delivery screens follow the server's rules", () => {
   const base: SellerDeliveryBooking = {
     order_id: "o", side: "buyer", order_status: "paid", status: "booked", slot_start: "2026-11-01T19:00:00.000Z",
     slot_end: "2026-11-01T20:00:00.000Z", delivery_cents: 2000, dropoff_area: "Mid-City", handoff: "leave",
-    dropoff_address: null, proposed_start: null, proposed_by: null, proposals_left: 3, delivered_at: null,
+    dropoff_address: null, proposed_start: null, proposed_by: null, proposals_left: 1, delivered_at: null,
     delivered_photo_path: null, confirmed_at: null, not_delivered_from: "2026-11-01T20:15:00.000Z",
   };
   const at = (iso: string) => Date.parse(iso);
 
-  it("the buyer cancels until 24 h before the slot, never after the seller's mark", () => {
-    expect(sellerDeliveryActions(base, at("2026-10-31T18:00:00Z")).buyerCancel).toBe(true);
-    expect(sellerDeliveryActions(base, at("2026-10-31T20:00:00Z")).buyerCancel).toBe(false);
-    expect(sellerDeliveryActions({ ...base, delivered_at: "2026-11-01T19:10:00Z" }, at("2026-10-30T00:00:00Z")).buyerCancel).toBe(false);
-    expect(sellerDeliveryActions({ ...base, status: "needs_time", slot_start: null, slot_end: null }, at("2026-11-02T00:00:00Z")).buyerCancel).toBe(true);
+  it("owner 2026-10-29: no side has a cancel on a paid order; the one new-time ask is gone once used", () => {
+    const keys = ["markDelivered", "gotIt", "notDelivered", "changeHandoff", "askNewTime", "answerProposal", "withdrawProposal"].sort();
+    for (const side of ["buyer", "seller"] as const) {
+      for (const status of ["booked", "needs_time"] as const) {
+        expect(Object.keys(sellerDeliveryActions({ ...base, side, status }, at("2026-10-30T00:00:00Z"))).sort()).toEqual(keys);
+      }
+      expect(sellerDeliveryActions({ ...base, side }, at("2026-10-30T00:00:00Z")).askNewTime).toBe(true);
+      expect(sellerDeliveryActions({ ...base, side, proposals_left: 0 }, at("2026-10-30T00:00:00Z")).askNewTime).toBe(false);
+    }
   });
 
   it("#7 (deep audit 2026-10-28): the buyer's 'I got it' only from the delivery day (Louisiana time) or once marked delivered", () => {
@@ -303,7 +317,6 @@ describe("Declutter seller delivery screens follow the server's rules", () => {
     const seller = { ...base, side: "seller" as const };
     expect(sellerDeliveryActions(seller, at("2026-11-01T18:59:00Z")).markDelivered).toBe(false);
     expect(sellerDeliveryActions(seller, at("2026-11-01T19:01:00Z")).markDelivered).toBe(true);
-    expect(sellerDeliveryActions({ ...seller, status: "needs_time" }).sellerCancel).toBe(false);
   });
 
   it("checkout shows the choice only when the server says so", () => {

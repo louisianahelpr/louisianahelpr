@@ -49,8 +49,8 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     state.responded = [];
   });
 
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label> | <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>Your price</label>
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span> | <span aria-hidden className="sr-only"></span>
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label> | <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>Your price</label>
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span> | <span aria-hidden className="sr-only"></span>
   it("the field is named on screen, shows a $ inside it, and sends the dollars typed as cents", async () => {
     show();
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
@@ -69,8 +69,8 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     expect(state.responded[0]).toEqual(expect.arrayContaining(["o1", "counter", 3200]));
   });
 
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | placeholder={counterExample(o)} | placeholder="30"
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   o.my_side === "seller" ? String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200)) : undefined; |   String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200));
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | placeholder={counterExample(o)} | placeholder="30"
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |   o.my_side === "seller" ? String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200)) : undefined; |   String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200));
   it("the example follows each offer's numbers; a buyer answering a counter gets no made-up number (DC-12)", async () => {
     state.offers = [
       { ...OFFER, offer_id: "o2", item_title: "Oak chair", amount_cents: 5000, current_price_cents: 9000 },

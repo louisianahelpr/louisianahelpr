@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
+ * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */

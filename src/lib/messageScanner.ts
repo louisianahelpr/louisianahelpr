@@ -15,8 +15,10 @@ const LOCATION_SHARE_REGEX = new RegExp(LOCATION_SHARE_PATTERN);
 // may no longer sit inside a longer digit run (docs/OPEN.md queue #1,
 // 2026-09-14: a 14-digit timestamp read as a phone number).
 const PHONE_REGEX = new RegExp(PHONE_PATTERN, "gi");
-// Spelled-out phone: 7+ consecutive number-words (mirrors the server heuristic).
-const SPELLED_PHONE_REGEX = /(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/gi;
+// Spelled-out phone: 7+ consecutive number-words, English or Spanish, mixed
+// freely (mirrors the server heuristic; Spanish added for Messages audit M3).
+const NUMBER_WORD = "zero|one|two|three|four|five|six|seven|eight|nine|oh|cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve";
+const SPELLED_PHONE_REGEX = new RegExp(`(${NUMBER_WORD})([^a-z0-9]+(${NUMBER_WORD})){6,}`, "gi");
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 const PAYMENT_APPS = /\b(venmo|cashapp|cash\s*app|zelle|paypal|apple\s*pay|google\s*pay|crypto|bitcoin|btc|eth)\b/gi;
 // `my number` / `my email` are deliberately CLIENT-ONLY (see the file header
@@ -35,7 +37,15 @@ const PAYMENT_APPS = /\b(venmo|cashapp|cash\s*app|zelle|paypal|apple\s*pay|googl
 // the sender could be struck with no warning and no visible reason. Added
 // here so the client warns before send on exactly the phrases the server
 // will act on after send.
-const DIRECT_PAY_PHRASES = /\b(pay\s*me\s*direct|off\s*the\s*app|outside\s*the\s*app|text\s*me|call\s*me|whatsapp|telegram|my\s*number|my\s*email|dm\s*me|hit\s*me\s*up|contact\s*me\s*at|reach\s*me\s*at|send\s*money\s*to|pay\s*outside|skip\s*the\s*fee|avoid\s*the\s*fee|cash\s*only|in\s*cash)\b/gi;
+//
+// `text me` / `call me` (and the Spanish `llámame` / `escríbeme` /
+// `mándame un mensaje`) are NOT here on their own any more (Messages audit M3,
+// 2026-10-30): "Call me when you get here" carries no contact detail, and the
+// server stopped refusing it the same day. They warn only beside a phone
+// number or email (CALL_ME_PHRASES below). `mi número` / `mi correo` warn like
+// `my number` / `my email` (client-only, same reason as above).
+const DIRECT_PAY_PHRASES = /\b(pay\s*me\s*direct|off\s*the\s*app|outside\s*the\s*app|whatsapp|telegram|my\s*number|my\s*email|mi\s*n[uú]mero|mi\s*correo|dm\s*me|hit\s*me\s*up|contact\s*me\s*at|reach\s*me\s*at|send\s*money\s*to|pay\s*outside|skip\s*the\s*fee|avoid\s*the\s*fee|cash\s*only|in\s*cash)\b/gi;
+const CALL_ME_PHRASES = /\b(text\s*me|call\s*me|ll[aá]mame|escr[ií]beme|m[aá]ndame\s+un\s+mensaje)\b/gi;
 
 // Normalize fullwidth digits (U+FF10-U+FF19) to ASCII so they can't evade the
 // phone regex — mirrors the server-side translate(). (F-TRUST-02)
@@ -87,6 +97,13 @@ export function scanMessage(content: string): DetectedViolation[] {
   const directPay = content.match(DIRECT_PAY_PHRASES);
   if (directPay) {
     directPay.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Off-platform language detected" }));
+  }
+
+  // "Call me" / "llámame" only beside a contact detail (Messages audit M3).
+  const hasContact = violations.some((v) => v.type === "phone_number" || v.type === "email");
+  const callMe = hasContact ? content.match(CALL_ME_PHRASES) : null;
+  if (callMe) {
+    callMe.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Off-platform language detected" }));
   }
 
   return violations;

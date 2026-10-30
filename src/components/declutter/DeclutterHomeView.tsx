@@ -346,6 +346,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
                   </Button>
                 )}
+                {item.status === "live" && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
+                  </Button>
+                )}
                 {(item.status === "live" || item.status === "paused") && (
                   <Button type="button" variant="outline" size="sm" aria-label={`Manage ${item.title}`} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
                     Manage

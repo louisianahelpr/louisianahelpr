@@ -244,27 +244,18 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   `btn-grad-primary` — not a flat tint. */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
+                    variant={categoryFilter ? "primary" : "outline"}
                     aria-label={categoryFilter ? `Filter: ${JOB_CATEGORY_LABELS[categoryFilter]}` : "Filter by skill"}
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-ds-md h-11 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all ${
-                      categoryFilter ? "btn-grad-primary text-[hsl(var(--parchment))]" : ""
-                    }`}
-                    style={
-                      categoryFilter
-                        ? undefined
-                        : {
-                            background: "hsl(var(--ivory-sand) / 0.65)",
-                            border: "1px solid hsl(var(--olivewood) / 0.18)",
-                            color: "hsl(var(--olivewood))",
-                          }
-                    }
+                    className="shrink-0 gap-1.5 px-3 text-ds-11"
                   >
                     <ListFilter className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate max-w-[80px] sm:max-w-none">
                       {categoryFilter ? JOB_CATEGORY_LABELS[categoryFilter] : "Filter"}
                     </span>
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   // role="dialog" with no name announces as bare "dialog".
@@ -313,16 +304,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               </Popover>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Sort: ${activeSortLabel}`}
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-ds-md h-11 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
-                    style={{
-                      background: "hsl(var(--ivory-sand) / 0.65)",
-                      border: "1px solid hsl(var(--olivewood) / 0.18)",
-                      color: "hsl(var(--olivewood))",
-                    }}
-                  >
+                  <Button type="button" size="sm" variant="outline" aria-label={`Sort: ${activeSortLabel}`} className="shrink-0 gap-1.5 px-3 text-ds-11">
                     <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
                     {/* Truncate long label on SE (320 px) instead of hiding
                         it — the icon alone has no visible affordance for
@@ -330,7 +312,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                         clears the widest option ("Recently saved", 86px at
                         11px/600) so nothing clips at 375; only 320 truncates. */}
                     <span className="truncate max-w-[90px] sm:max-w-none">{activeSortLabel}</span>
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   // role="dialog" with no name announces as bare "dialog".

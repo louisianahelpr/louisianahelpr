@@ -26,8 +26,10 @@
  *   - `exceptions`: "file::kind" -> a written reason. That file/kind is not
  *     counted at all; an exception whose file/kind has no hit left fails.
  *
- * @mutate src/pages/profile/strSettings/AddCalendarForm.tsx | <Loader2 className="w-4 h-4 animate-spin mr-2" /> | <Loader2 className="w-4 h-4 mr-2" />
- * @mutate src/pages/user/ReviewsSection.tsx | import ReportDialog from "@/components/ReportDialog"; | import ReportDialog from "@/components/ReportDialog";\nexport const Planted = () => <select aria-label="x" />;
+ * @mutate src/pages/profile/GiftCard.tsx | <Spinner className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} /> | <div className="w-4 h-4 shrink-0 rounded-full border-2 motion-safe:animate-spin" />
+ * @mutate src/pages/profile/strSettings/AddCalendarForm.tsx | <ChoicePill key={p} selected={form.platform === p} onClick={() => set("platform", p)}> | <ChoicePill key={p} selected={form.platform === p} onClick={() => set("platform", p)}><button type="button" />
+ * @mutate src/pages/user/ReviewsSection.tsx | <Button type="button" size="sm" variant="ghost" onClick={onCancelResponding}> | <Button type="button" size="sm" variant="ghost" onClick={onCancelResponding}><input aria-label="x" />
+ * @mutate src/pages/profile/GiftCard.tsx |                   <input\n                    id="gift-custom-amount" |                   <Input\n                    id="gift-custom-amount"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, writeFileSync } from "node:fs";

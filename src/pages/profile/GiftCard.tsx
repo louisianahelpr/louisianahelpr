@@ -53,6 +53,8 @@ import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
+import { ChoicePill } from "@/components/ui/ChoicePill";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -400,10 +402,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
           <div
             className="rounded-[20px] border border-border bg-card p-4 flex items-center gap-3 mb-6"
           >
-            <div
-              className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
-              style={{ borderColor: "hsl(var(--bark))", borderTopColor: "transparent" }}
-            />
+            <Spinner className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
             <p className="font-sans text-ds-13 text-foreground">
               Claiming your gift card…
             </p>
@@ -493,42 +492,18 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 >
                   Occasion
                 </p>
-                <div role="group" aria-labelledby="gift-occasion-label" className="flex flex-wrap gap-2">
+                <div role="radiogroup" aria-labelledby="gift-occasion-label" className="flex flex-wrap gap-2">
                   {GIFT_OCCASIONS.map((o) => {
                     const active = o.id === occasionId;
                     return (
-                      <button
+                      <ChoicePill
                         key={o.id}
-                        type="button"
-                        aria-pressed={active}
+                        selected={active}
                         onClick={() => setOccasionId(o.id)}
-                        // SELECTED = GLOSSY. `btn-grad-primary` is the app's one
-                        // primary surface; this chip painted a flat 15%-bark
-                        // tint, the same rule break the review tags and the
-                        // withdraw-reason rows already had fixed. The active
-                        // `style` sets COLOR ONLY — a `background` shorthand
-                        // here would wipe the class's background-image.
-                        // px-3 is the app's chip padding (ReviewForm's quick
-                        // tags, the filter pills). It also buys a row back at
-                        // 320: with px-4 only "Congratulations" and
-                        // "Just because" fit alone, giving five rows.
-                        className={`min-h-11 px-3 rounded-ds-pill text-ds-12 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
-                          active
-                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                            : ""
-                        }`}
-                        style={
-                          active
-                            ? { color: "hsl(var(--parchment))" }
-                            : {
-                                background: "var(--surface-premium)",
-                                border: "1px solid hsl(var(--bark) / 0.18)",
-                                color: "hsl(var(--bark))",
-                              }
-                        }
+                        className="px-3 text-ds-12"
                       >
                         {o.label}
-                      </button>
+                      </ChoicePill>
                     );
                   })}
                 </div>
@@ -583,35 +558,18 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 >
                   Amount
                 </p>
-                <div role="group" aria-labelledby="gift-amount-label" className="grid grid-cols-3 gap-2">
+                <div role="radiogroup" aria-labelledby="gift-amount-label" className="grid grid-cols-3 gap-2">
                   {AMOUNT_PRESETS.map((amt) => {
                     const active = selectedAmount === amt;
                     return (
-                      <button
+                      <ChoicePill
                         key={amt}
-                        type="button"
-                        aria-pressed={active}
+                        selected={active}
                         onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
-                        // SELECTED = GLOSSY, like every other selected control.
-                        // The active `style` sets COLOR ONLY: a `background`
-                        // shorthand would wipe btn-grad-primary's image.
-                        className={`min-h-11 px-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
-                          active
-                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                            : ""
-                        }`}
-                        style={
-                          active
-                            ? { color: "hsl(var(--parchment))" }
-                            : {
-                                background: "var(--surface-premium)",
-                                border: "1px solid hsl(var(--bark) / 0.18)",
-                                color: "hsl(var(--bark))",
-                              }
-                        }
+                        className="justify-center px-2"
                       >
                         ${amt}
-                      </button>
+                      </ChoicePill>
                     );
                   })}
                 </div>

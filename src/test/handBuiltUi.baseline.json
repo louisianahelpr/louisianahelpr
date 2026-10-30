@@ -814,7 +814,7 @@
       "button": 3
     },
     "src/components/profile/SavedHelpersTab.tsx": {
-      "button": 7,
+      "button": 5,
       "input": 1
     },
     "src/components/profile/ScheduleTab.tsx": {
@@ -1141,9 +1141,7 @@
       "button": 1
     },
     "src/pages/profile/GiftCard.tsx": {
-      "button": 2,
-      "input": 1,
-      "spinner": 1
+      "input": 1
     },
     "src/pages/profile/HelperAnalytics.tsx": {
       "button": 2
@@ -1188,10 +1186,6 @@
     "src/pages/profile/petProfiles/PetRailRow.tsx": {
       "button": 3
     },
-    "src/pages/profile/strSettings/AddCalendarForm.tsx": {
-      "button": 1,
-      "spinner": 1
-    },
     "src/pages/profile/strSettings/ConnectionCard.tsx": {
       "button": 1,
       "spinner": 2
@@ -1219,8 +1213,7 @@
       "button": 1
     },
     "src/pages/user/ReviewsSection.tsx": {
-      "button": 9,
-      "textarea": 1
+      "button": 6
     },
     "src/pages/user/UserProfile.tsx": {
       "skeleton": 2

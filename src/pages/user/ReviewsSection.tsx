@@ -5,6 +5,8 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
 import ReportDialog from "@/components/ReportDialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 // The ONE review-card design. See `src/components/profile/reviewCard.tsx` —
 // the chip and the star row are shared with PublicReviewWall rather than drawn
 // twice, which is the drift the owner caught on 2026-09-19.
@@ -335,37 +337,31 @@ export const ReviewsSection = ({
               {/* Inline response editor */}
               {isOwnProfile && respondingToReview === r.id && (
                 <div className="mt-3 space-y-2">
-                  <textarea
+                  <Textarea
                     value={responseText}
                     onChange={(e) => onSetResponseText(e.target.value)}
                     aria-label="Write a public response"
                     maxLength={500}
                     rows={3}
-                    className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-background/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
+                    className="min-h-0 text-ds-13"
                     style={{ color: "hsl(var(--ink-deep))" }}
                   />
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
                       onClick={() => onSaveResponse(r.id)}
                       // Empty draft = nothing to save. Disabled outright so
                       // the button can't be tapped into a dead end (the save
                       // handler also guards, but that's a toast, not an
                       // affordance).
                       disabled={savingResponse || responseText.trim().length === 0}
-                      className="btn-press px-4 py-1.5 rounded-full text-ds-12 font-semibold text-white disabled:opacity-50"
-                      style={{ backgroundColor: "hsl(var(--bark))" }}
                     >
                       {savingResponse ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onCancelResponding}
-                      className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold"
-                      style={{ color: "hsl(var(--olivewood)/0.8)" }}
-                    >
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={onCancelResponding}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -375,10 +371,12 @@ export const ReviewsSection = ({
           {canShowMore && (
             // p-3 rather than the card convention's p-5: a full-width
             // pagination control, sized as a button, not a content card.
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleShowMore}
               disabled={loadingMoreReviews}
-              className="w-full rounded-2xl liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-full gap-1.5 text-ds-13 font-medium"
             >
               {loadingMoreReviews ? (
                 <span>Loading…</span>
@@ -389,7 +387,7 @@ export const ReviewsSection = ({
                   <span className="text-muted-foreground">({visible.length} of {knownTotal})</span>
                 </>
               )}
-            </button>
+            </Button>
           )}
         </>
       ) : (

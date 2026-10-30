@@ -233,8 +233,11 @@ async function run(file, budget) {
     const availableUsd = (balNow.available ?? []).filter((b) => b.currency === "usd").reduce((n, b) => n + b.amount, 0);
     step("8 test balance", { available_usd_cents: availableUsd, needs_at_most_cents: budget * 100 });
     if (availableUsd < budget * 100) throw new Error(`Stripe TEST available balance ${availableUsd}c does not cover ${budget * 100}c; release not called, job ${job.id} stays payout_pending`);
+    // release-payout takes CRON_SECRET or an admin (run 41138685238: the repo's service key is a 401).
+    const cronSecret = process.env.CRON_SECRET ?? "";
+    if (!cronSecret) throw new Error("CRON_SECRET is empty; release not called");
     const pay = await fetch(`${e.base}/functions/v1/release-payout`, {
-      method: "POST", headers: { Authorization: `Bearer ${e.service}`, apikey: e.service, "Content-Type": "application/json" },
+      method: "POST", headers: { Authorization: `Bearer ${cronSecret}`, "Content-Type": "application/json" },
       body: JSON.stringify({ job_id: job.id, initiated_by: "system" }), signal: AbortSignal.timeout(90_000),
     });
     const payBody = await pay.text();

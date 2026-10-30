@@ -10,10 +10,16 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import SmsAlertsCard from "./SmsAlertsCard";
 
-/** The two moments the prompt is offered at (the server decides whether it is the member's first). */
-export type SmsPromptMoment = "first_job" | "first_hire";
+/**
+ * The moments the prompt is offered at; the server decides whether it is due. "has_phone" (SMS-OPTIN, owner
+ * 2026-10-29, migration 20261030132841): on Home, for a member whose profile already has a phone and whose texts
+ * are off (53 such members on prod, 0 with texts on, 2026-10-30).
+ */
+export type SmsPromptMoment = "first_job" | "first_hire" | "has_phone";
 
 export const SMS_PHONE_PROMPT_TITLE = "Add your phone so you don't miss updates";
+/** They already gave a phone: ask them to turn texts on, not to add one. */
+export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don't miss updates";
 
 /**
  * The one-time "Add your phone so you don't miss updates" prompt (owner-approved 2026-10-27), with the existing
@@ -62,7 +68,7 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
   return (
     <Dialog open onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} data-sms-phone-prompt={moment}>
-        <DialogHero title={SMS_PHONE_PROMPT_TITLE} />
+        <DialogHero title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} />
         <DialogBody>
           <p>We'll text you when something on your job needs you and you haven't seen it in the app.</p>
           <SmsAlertsCard />

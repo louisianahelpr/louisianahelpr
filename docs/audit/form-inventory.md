@@ -186,6 +186,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/sections/CustomizeSheet.tsx` | checkbox/switch/radio×1 |  |  | customize-sheet |
 
+## /home, /profile, /payment-success
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×1, checkbox/switch/radio×1 | tel |  | sms-alerts-card · Loading text alert settings · (225) 555-0123 |
+
 ## /jobs
 
 | File | Controls | input types | maxLength | hints |
@@ -305,12 +311,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×3 |  |  | saved-search-new · saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
 | `src/pages/profile/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
 | `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  |  |
-
-## /profile, /payment-success
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×1, checkbox/switch/radio×1 | tel |  | sms-alerts-card · Loading text alert settings · (225) 555-0123 |
 
 ## /quotes/request/:id
 

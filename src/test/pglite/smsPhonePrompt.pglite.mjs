@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261027183058_sms_phone_prompt (the one-time "Add your phone so you don't miss updates"
- * prompt at a member's first job post and first hire; dismissed on the account).
+ * prompt at a member's first job post and first hire; dismissed on the account) and for
+ * 20261030132841_sms_prompt_for_members_with_a_phone (SMS-OPTIN: the 'has_phone' moment, shown on Home).
  *
- *   node src/test/pglite/smsPhonePrompt.pglite.mjs                     # AFTER: the migration applied 3x
- *   NEW_MIGRATION=skip node src/test/pglite/smsPhonePrompt.pglite.mjs  # RED: the migration absent
+ *   node src/test/pglite/smsPhonePrompt.pglite.mjs                       # AFTER: both migrations applied 3x
+ *   NEW_MIGRATION=skip node src/test/pglite/smsPhonePrompt.pglite.mjs    # RED: neither migration
+ *   PHONE_MIGRATION=skip node src/test/pglite/smsPhonePrompt.pglite.mjs  # RED: only the 10-27 one (no has_phone)
  *
  * The tables it reads are stubbed in prod's shape (only the columns it reads; notification_preferences with its
  * prod constraints: user_id UNIQUE, FK to auth.users). pglite is loaded from ~/.lh-pglite (PGLITE_DIR).
@@ -15,7 +17,9 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const NEW = readFileSync(new URL("../../../supabase/migrations/20261027183058_sms_phone_prompt.sql", import.meta.url), "utf8");
+const PHONE = readFileSync(new URL("../../../supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql", import.meta.url), "utf8");
 const skip = process.env.NEW_MIGRATION === "skip";
+const skipPhone = skip || process.env.PHONE_MIGRATION === "skip";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -38,8 +42,10 @@ await db.exec(`
     pending_phone text, pending_since timestamptz);
   CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid);
   CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
+  CREATE TABLE public.profiles (id uuid PRIMARY KEY, phone text, is_seed boolean DEFAULT false);
 `);
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(NEW);
+if (!skipPhone) for (let i = 0; i < 3; i++) await db.exec(PHONE);
 
 const u = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const POSTER = u(1), POSTER2 = u(2), HELPR = u(3), CREW = u(4), OPTED = u(5), PENDING = u(6), NOPREFS = u(7), OTHER = u(8);
@@ -52,6 +58,9 @@ await db.exec(`
     ('${OTHER}', '${HELPR}'), ('${OPTED}', NULL), ('${PENDING}', NULL), ('${NOPREFS}', NULL);
   INSERT INTO public.group_job_helpers VALUES (gen_random_uuid(), '${CREW}');
   INSERT INTO public.sms_consent VALUES ('${OPTED}', true, NULL, NULL), ('${PENDING}', false, '+12255550123', now() - interval '1 hour');
+  -- SMS-OPTIN: HELPR and OPTED and PENDING gave a phone; POSTER2 typed only spaces; CREW has none.
+  INSERT INTO public.profiles (id, phone) VALUES ('${HELPR}', '(337) 555-0142'), ('${OPTED}', '3375550100'),
+    ('${PENDING}', '2255550123'), ('${POSTER2}', '   '), ('${CREW}', NULL), ('${OTHER}', '3375550199');
 `);
 
 async function as(uid, sql) {
@@ -77,6 +86,17 @@ check("a poster is not a hired Helpr: first_hire not due", (await due(POSTER, "f
 check("a confirmed phone (texts on): never due", (await due(OPTED, "first_job")) === false);
 check("a confirmation text waiting for YES: not due", (await due(PENDING, "first_job")) === false);
 check("an unknown moment is refused", /invalid_moment/.test(String(await due(POSTER, "signup"))));
+
+// SMS-OPTIN (20261030132841): a member who already gave a phone is asked once, on Home.
+check("has_phone: a member with a phone on their profile and texts off: due", (await due(HELPR, "has_phone")) === true);
+check("has_phone: no profile phone: not due", (await due(CREW, "has_phone")) === false);
+check("has_phone: a phone of only spaces is no phone: not due", (await due(POSTER2, "has_phone")) === false);
+check("has_phone: no profile row at all: not due", (await due(NOPREFS, "has_phone")) === false);
+check("has_phone: texts already on: not due", (await due(OPTED, "has_phone")) === false);
+check("has_phone: a confirmation text waiting: not due", (await due(PENDING, "has_phone")) === false);
+const dOther = await as(OTHER, `SELECT public.dismiss_sms_phone_prompt() AS v`);
+check("has_phone: one 'Not now' (any moment) ends it", !!dOther?.v && (await due(OTHER, "has_phone")) === false);
+await db.exec(`UPDATE public.notification_preferences SET sms_phone_prompt_dismissed_at = NULL WHERE user_id = '${OTHER}'`);
 
 const d1 = await as(POSTER, `SELECT public.dismiss_sms_phone_prompt() AS v`);
 check("dismissing stamps the caller's own row", !!d1?.v && !d1.error, JSON.stringify(d1));

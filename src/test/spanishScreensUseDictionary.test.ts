@@ -19,6 +19,8 @@
  * @mutate src/pages/auth/Login.tsx | {t("login.passwordMissing")} | Add your password
  * @mutate src/pages/auth/Login.tsx | aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} | aria-label={showPassword ? "Hide password" : "Show password"}
  * @mutate src/lib/i18n/en.ts | "hero.subhead": "Hire help or find work. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
+ * @mutate src/components/MobileNav.tsx |           {shown}\n        </span> |           {label}\n        </span>
+ * @mutate src/lib/i18n/navLabels.ts |   "/messages": "nav.messages",\n | \n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -26,6 +28,9 @@ import { join, resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { en } from "@/lib/i18n/en";
 import { es } from "@/lib/i18n/es";
+import { navKey } from "@/lib/i18n/navLabels";
+import { leftItems, rightItems, exploreItem, youItem, sectionItems } from "@/components/mobileNav/mobileNavHelpers";
+import { SECTIONS } from "@/components/sections/sectionsConfig";
 
 const ROOT = resolve(__dirname, "..", "..");
 
@@ -100,5 +105,22 @@ describe("the landing hero: English locked, Spanish present", () => {
       expect(es[k].trim(), k).not.toBe("");
       expect(es[k], k).not.toBe(en[k]);
     }
+  });
+});
+
+describe("the main nav (rail + phone dock) shows its words in the member's language", () => {
+  it("every nav destination has a dictionary key", () => {
+    const items = [...leftItems, ...rightItems, exploreItem, youItem, ...sectionItems, ...SECTIONS];
+    expect(items.length).toBeGreaterThan(8);
+    expect(items.filter((i) => !navKey(i.path, i.label)).map((i) => i.path)).toEqual([]);
+  });
+  it("the dock and rail render the translated word, not the config label", () => {
+    const dock = blankComments(readFileSync(join(ROOT, "src/components/MobileNav.tsx"), "utf8"));
+    const rail = blankComments(readFileSync(join(ROOT, "src/components/DesktopSidebarNav.tsx"), "utf8"));
+    expect(dock.match(/<span\s+data-dock-label[\s\S]*?<\/span>/)?.[0] ?? "").toMatch(/\{shown\}/);
+    expect(dock).toMatch(/const shown = shownKey \? tr\(shownKey\) : label;/);
+    expect(rail).toMatch(/const shown = shownKey \? tr\(shownKey\) : label;/);
+    expect(rail).toMatch(/style=\{\{ fontWeight: active \? 700 : 500 \}\}\s*>\s*\{shown\}/);
+    expect(rail).toContain('{tr("nav.create")}');
   });
 });

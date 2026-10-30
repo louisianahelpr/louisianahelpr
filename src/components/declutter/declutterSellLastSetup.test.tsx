@@ -4,7 +4,7 @@
  * blank or default fields are filled, and a saved draft is never touched. Pickup times are per seller already (loaded as before).
  * The API is stubbed: this checks what the form does with the last setup.
  *
- * @mutate src/components/declutter/useSellFlowState.ts |   const usedLastSetup = useLastListingSetup(urlItemId ? undefined : user?.id, { setForm, setWays, setCoords }); |   const usedLastSetup = useLastListingSetup(undefined, { setForm, setWays, setCoords });
+ * @mutate src/components/declutter/useSellFlowState.ts |   const usedLastSetup = useLastListingSetup(prefillFor, { setForm, setWays, setCoords }); |   const usedLastSetup = useLastListingSetup(undefined, { setForm, setWays, setCoords });
  * @mutate src/components/declutter/SellLastSetup.tsx |     areaLabel: f.areaLabel.trim() ? f.areaLabel : s.areaLabel, |     areaLabel: s.areaLabel,
  * @mutate src/components/declutter/SellLastSetup.tsx |     ...(s.dropPct !== null && !f.drops ? { drops: true, dropPct: s.dropPct } : {}), |
  * @mutate src/components/declutter/SellLastSetup.tsx |     if (s.ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? s.ways : w)); |

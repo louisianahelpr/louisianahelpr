@@ -14800,6 +14800,7 @@ export type Database = {
           counter_count: number
           current_price_cents: number
           floor_price_cents: number | null
+          from_wanted: boolean
           item_id: string
           item_title: string
           my_side: string

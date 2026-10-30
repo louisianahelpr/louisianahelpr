@@ -122,6 +122,8 @@ export interface AdminActionEmailProps {
   ctaLabel: string
   /** A closing line after the paragraphs, e.g. "— Louisiana Helpr Team" on a support reply. */
   signOff?: string
+  /** Replaces the "just reply to this email" footer, on a mail answered somewhere other than by email. */
+  footerNote?: string
 }
 
 export const AdminActionEmail = ({
@@ -133,13 +135,14 @@ export const AdminActionEmail = ({
   ctaUrl,
   ctaLabel,
   signOff,
+  footerNote,
 }: AdminActionEmailProps) => (
   <BaseLayout
     preheader={preheader}
     footer={
       // True as written: every send from admin-user-actions sets
       // `replyTo: SUPPORT_EMAIL`, so a plain reply really does reach support.
-      <TransactionalFooter>
+      footerNote ? <TransactionalFooter>{footerNote}</TransactionalFooter> : <TransactionalFooter>
         {/* A bare address, not a mailto anchor: react-email's plaintext
             renderer prints an anchor as "text href", so a mailto link whose
             text IS the address arrives as "admin@x admin@x". Clients auto-link

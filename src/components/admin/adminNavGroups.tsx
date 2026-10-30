@@ -22,6 +22,7 @@ import {
   ScrollText,
   Settings,
   Share2,
+  Link2,
   ShieldAlert,
   ShieldCheck,
   Store,
@@ -119,6 +120,8 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       // Email campaigns are "Marketing" above; this is the Facebook/Instagram
       // auto-poster, which is a different system with its own kill switch.
       { id: "social", label: "Social posts", icon: Share2 },
+      // B59: matchmaker "Post this job" links and who brings customers (Book me links).
+      { id: "growth", label: "Growth links", icon: Link2 },
     ],
   },
   {

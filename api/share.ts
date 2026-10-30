@@ -790,6 +790,33 @@ export async function metaForBook(id: string, url: string): Promise<Meta | null>
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * Matchmaker links (B59, 2026-10-29): /post-job?mm=1&cat=...&t=...
+ * ------------------------------------------------------------------ */
+
+/**
+ * The card is built from the link's own query, never a database read: the
+ * owner wrote those words in Admin -> Growth links. Each value goes through
+ * clean() and escapeAttr like every other card value; the category is shown
+ * humanised, the price only as whole dollars in range. Mirrors
+ * src/lib/matchmakerLink.ts (which this server file cannot import).
+ */
+export function metaForMatchmaker(params: URLSearchParams): Meta {
+  const what = clean(params.get("t"), 80) || humaniseCategory(params.get("cat"));
+  const town = clean(params.get("town"), 60);
+  const priceRaw = params.get("price") ?? "";
+  const price = /^\d{1,4}$/.test(priceRaw) && Number(priceRaw) >= 1 ? ` · $${Number(priceRaw)}` : "";
+  const headline = clean(`Post this job: ${what}${town ? ` in ${town}` : ""}${price}`, 100);
+  return {
+    title: `${headline} — Helpr`,
+    ogTitle: headline,
+    description:
+      "Tap to post it on Louisiana Helpr, already filled in. Local Helprs say yes, and the job is covered by the Helpr Guarantee.",
+    url: `${SITE_ORIGIN}/post-job`,
+    robots: "noindex, follow",
+  };
+}
+
 function metaForUser(url: string): Meta {
   return {
     title: "Helpr profile",
@@ -863,12 +890,13 @@ function metaForNoindexPage(id: string): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker"; id: string } | null {
   const declared = url.searchParams.get("_og");
   if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
+  if (declared === "matchmaker") return { kind: "matchmaker", id: "" };
 
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
@@ -905,6 +933,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   if (route.kind === "shop") {
     const seg = safeIdSegment(route.id);
     return metaForShop(route.id, seg ? `${SITE_ORIGIN}/shops/${seg}` : `${SITE_ORIGIN}/shops`);
+  }
+
+  if (route.kind === "matchmaker") {
+    return metaForMatchmaker(url.searchParams);
   }
 
   if (route.kind === "book") {

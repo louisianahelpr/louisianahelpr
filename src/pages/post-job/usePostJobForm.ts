@@ -21,6 +21,7 @@ import { prefillOpensDetails } from "./usePrefillOpensDetails";
 import { prefillOpensWhen } from "@/lib/bookAgain";
 import { DEFAULT_QUOTE_WINDOW, type QuoteWindowHours } from "@/lib/quotes/api";
 import type { PriceMode } from "@/components/quotes/PostJobQuoteChoice";
+import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -58,7 +59,7 @@ export function usePostJobForm() {
   // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
   // Rentals S1: an approved maintenance request (`maintenance`) too, and
   // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts).
-  const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
+  const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway") || searchParams.get(MATCHMAKER_PARAM));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
   // Which form PAGE is showing: 1 the groups / a group's categories (screens 2-3 of 7), 2 Details (4),
   // 3 Price (5), 4 When and where (6); Review (7) is the checkout step. Numbers: postJobScreens.ts.

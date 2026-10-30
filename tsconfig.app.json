@@ -85,6 +85,7 @@
     "supabase/functions/_shared/geocodeAddressPoint.ts",
     "supabase/functions/_shared/declutterCheckoutName.ts",
     "supabase/functions/_shared/confirmLink.ts",
+    "supabase/functions/_shared/supportGuest.ts",
     "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
     "supabase/functions/_shared/easypostRates.ts",

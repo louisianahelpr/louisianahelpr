@@ -6,7 +6,7 @@
  * Reads helpr_my_route's EFFECTIVE definition: a pickup stop's place is 'seller' and no place is derived from
  * porch_ok; and the route card has words for 'seller' that claim neither.
  */
-// @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql | 'place', CASE WHEN p->>'kind' = 'dropoff' THEN 'door' ELSE 'seller' END, | 'place', CASE WHEN p->>'kind' = 'dropoff' THEN 'door' ELSE 'porch' END,
+// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql | 'place', CASE WHEN p->>'kind' = 'dropoff' THEN 'door' ELSE 'seller' END, | 'place', CASE WHEN p->>'kind' = 'dropoff' THEN 'door' ELSE 'porch' END,
 // @mutate src/components/declutter/DeliveryRoute.tsx | seller: "At the seller's door, or on the porch if they leave it out" | seller: "On the seller's porch"
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

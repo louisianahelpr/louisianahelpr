@@ -167,6 +167,8 @@ export interface RouteStop {
   arrive_at: string;
   late: boolean;
   leg_miles: number;
+  /** A pickup the seller handed over to this Helpr (20261030152601): Picked up is open at once. Absent before that migration. */
+  handed_over_at?: string | null;
 }
 
 export interface MyRoute {

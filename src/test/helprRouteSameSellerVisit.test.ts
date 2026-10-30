@@ -2,12 +2,15 @@
  * Audit 1c D3-2: two deliveries from one seller sent the Helpr there twice, with a drop-off in between. Migration
  * 20261030152601: helpr_route_plan joins a same-point pickup whose Picked up is open by then into one visit, and the
  * accept card offers the Helpr's own time at this seller (helpr_task_same_pickup_slot, which answers exactly who
- * helpr_task_pickup_windows answers). Backend proof: src/test/pglite/helprRouteSameSellerVisit.pglite.mjs (3x; 8 red
- * with NEW_MIGRATION=skip, and each of 11 planted defects red).
+ * helpr_task_pickup_windows answers). Backend proof: src/test/pglite/helprRouteSameSellerVisit.pglite.mjs (3x; red with
+ * NEW_MIGRATION=skip, and each planted defect red).
  *
  * Reads the EFFECTIVE definitions.
  */
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql | (v_s->>'slot')::timestamptz - interval '30 minutes' <= v_visit | true
+// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |            AND v_s->>'seller' = v_seller\n |
+// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql | (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) <= 50 | (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) = 0
+// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |         'seller', t.pickup_contact_id)); |         'nobody', t.pickup_contact_id));
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |      AND x.pickup_contact_id = t.pickup_contact_id\n |
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |      AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)\n |
 // @mutate src/components/declutter/DeclutterPickupWindows.tsx |       {same.data && ( |       {false && (
@@ -32,8 +35,11 @@ describe("one seller, one visit", () => {
     expect(picked.length).toBeGreaterThan(500);
   });
 
-  it("a pickup joins a visit only at the same point, and only once Picked up would be open", () => {
-    expect(plan).toContain("(v_s->>'lat')::numeric = v_lat AND (v_s->>'lng')::numeric = v_lng");
+  it("a pickup joins a visit only at the accept card's own rule (same seller, within 50 m), and only once Picked up would be open", () => {
+    expect(plan).toContain("v_s->>'seller' = v_seller");
+    expect(plan).toContain("public.helpr_task_distance_m(v_lat, v_lng, (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) <= 50");
+    expect(same).toContain("public.helpr_task_distance_m(x.pickup_lat, x.pickup_lng, t.pickup_lat, t.pickup_lng) <= 50");
+    expect(flat("helpr_my_route")).toContain("'seller', t.pickup_contact_id");
     expect(plan).toContain("(v_s->>'slot')::timestamptz - interval '30 minutes' <= v_visit");
     // The window it assumes is helpr_task_picked_up's own.
     expect(picked).toMatch(/interval '30 minutes'/);

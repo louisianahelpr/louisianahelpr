@@ -32,7 +32,7 @@
 --      declutter_return_dropped_off (20261030071818, Q2486): the return drop-off is measured from the order's pickup
 --      points too, so a drop-off at the frozen place passes and one at the old item address fails.
 --   NOT changed: declutter_seller_picked_up (pickup_home / meetup only: no place); declutter_seller_delivery_check
---   (seller delivery still measures from the item address: filed LOW, Q?b46-sd).
+--   (seller delivery still measures from the item address: filed LOW, Q2491).
 --
 -- MONEY: no amount changes. A missing place is refused before an order row or a payment page exists, exactly as
 -- meetup_spot_needed is; an open order is reused only for the same place as it is now.

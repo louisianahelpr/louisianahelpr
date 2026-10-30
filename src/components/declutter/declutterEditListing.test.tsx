@@ -23,6 +23,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const calls: string[] = [];
 const editListing = vi.fn(async (..._a: unknown[]) => { calls.push("edit"); return "live"; });
 const photoRows = { value: [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/a.jpg", position: 0 }] as { id: string; item_id: string; storage_path: string; position: number }[] };
+// The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   editListing: (...a: unknown[]) => editListing(...a),

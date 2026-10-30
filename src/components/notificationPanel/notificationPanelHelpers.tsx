@@ -1,4 +1,4 @@
-import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search } from "lucide-react";
+import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, MessageCircleQuestion } from "lucide-react";
 import type { Notification } from "./types";
 
 // Icons take their colour from the circle they sit in (board 28: olive, or the money tint for money kinds).
@@ -31,6 +31,7 @@ export const typeIcons: Record<string, React.ReactNode> = {
   declutter_refunds: <Undo2 className="w-4 h-4" />,
   declutter_price_drops: <TrendingDown className="w-4 h-4" />,
   declutter_wanted: <Search className="w-4 h-4" />,
+  declutter_questions: <MessageCircleQuestion className="w-4 h-4" />,
 };
 
 const startOfDay = (d: Date) => {

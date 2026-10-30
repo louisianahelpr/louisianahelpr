@@ -53,6 +53,7 @@ const ALLOWED_TYPES = new Set([
   "declutter_refunds",
   "declutter_price_drops",
   "declutter_wanted",
+  "declutter_questions",
 ]);
 
 // Same-origin path check: link must be a server-relative path (starts with `/`,

@@ -85,6 +85,7 @@ export const NOTIFICATION_TYPE_MAP: Record<string, { prefCol: string; category: 
   declutter_refunds:     { prefCol: 'email_declutter_refunds',     category: 'declutter_refunds' },
   declutter_price_drops: { prefCol: 'email_declutter_price_drops', category: 'declutter_price_drops' },
   declutter_wanted:      { prefCol: 'email_declutter_wanted',      category: 'declutter_wanted' },
+  declutter_questions:   { prefCol: 'email_declutter_questions',   category: 'declutter_questions' },
 }
 
 /** The route for a type nobody mapped: the platform-alerts switch, logged as System. */

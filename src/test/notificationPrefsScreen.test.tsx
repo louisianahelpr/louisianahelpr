@@ -118,7 +118,7 @@ describe("the Declutter group", () => {
     PREFS_ROW = withDeclutterColumns();
     render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByTestId("declutter-notification-group")).toBeTruthy());
-    expect(declutterRows.length).toBe(7);
+    expect(declutterRows.length).toBe(8);
     for (const r of declutterRows) {
       expect(screen.getByLabelText(`${r.label} push`), `${r.key} push`).toBeTruthy();
       // Email: a switch only where that kind is emailed; elsewhere a dash that says why.

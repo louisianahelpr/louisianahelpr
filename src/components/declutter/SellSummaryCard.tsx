@@ -48,7 +48,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
           <p className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
             <p className={`text-ds-15 [overflow-wrap:anywhere] ${empty ? "text-muted-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
-              {busy && empty ? "Claude is filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
+              {busy && empty ? "We're filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
             </p>
           )}
         </div>
@@ -81,7 +81,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
     <section className="space-y-2" aria-labelledby="sell-summary-head">
       <h2 id="sell-summary-head" className="font-display font-moment text-ds-24 font-semibold leading-tight text-foreground">Your listing</h2>
       <p className="text-ds-14 text-muted-foreground">
-        {busy ? "Claude is writing it from your photos." : draft ? "Claude wrote this from your photos. Change anything." : "Add photos and Claude writes it for you, or fill it in yourself."}
+        {busy ? "We're writing it from your photos." : draft ? "We wrote this from your photos. Change anything." : "Add photos and we'll write it for you, or fill it in yourself."}
       </p>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" aria-busy={busy} data-sell-summary={busy ? "busy" : draft ? "done" : "empty"}>
         <Row {...row("title")} title="Title" value={form.title.trim()} empty={!form.title.trim()}>

@@ -299,7 +299,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   // setDropPct before 20261028160637 reaches prod (PGRST202): only the old 5% step exists.
   drop_pct_unavailable: "Choosing how much the price drops isn't ready yet. Pick 5% for now, or turn price drops off.",
   // declutter-ai-draft draft mode for a NEW listing (photos in the request, owner 2026-10-28).
-  item_photos_invalid: "Claude couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
+  item_photos_invalid: "We couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
   ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",
   // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
   geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",

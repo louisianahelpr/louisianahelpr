@@ -13,8 +13,8 @@
  *   - email_messages defaults true and existing rows were turned on; a row
  *     written after the migration keeps its off; off = bell, no email;
  *   - a second and third message in the same conversation inside 15 minutes
- *     add no bell and no email; a different conversation still alerts; after
- *     15 minutes it alerts again (M6);
+ *     add no bell and no email; a different conversation still alerts; once
+ *     the window has passed it alerts again (M6);
  *   - message_preview off = "Sent you a message." in the bell (M6);
  *   - a muted thread gets no bell and no email (M4);
  *   - grants unchanged: the trigger function is not executable by anon or

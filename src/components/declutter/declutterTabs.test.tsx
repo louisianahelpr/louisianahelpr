@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && t.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></> | {view === "buying" ? <WantedView />
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[],
@@ -52,6 +52,7 @@ const state = {
   offers: [] as unknown[],
   cart: [] as unknown[],
   bookings: [] as unknown[],
+  questions: [] as { id: string; item_id: string; question: string; created_at: string }[],
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
@@ -154,6 +155,8 @@ vi.mock("@/lib/declutter/api", () => ({
   setWatch: async () => "ok",
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
+  // Audit DC-9: unanswered questions on the seller's listings (only those asked for).
+  fetchUnansweredQuestions: async (ids: string[]) => state.questions.filter((q) => ids.includes(q.item_id)),
   fetchPhotos: async () => [],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -268,6 +271,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.offers = [];
     state.cart = [];
     state.bookings = [];
+    state.questions = [];
     where = "";
   });
 
@@ -611,6 +615,46 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const label = (box.textContent ?? "").replace(/\d+/, "").trim();
     const needsYouLabel = /^(To |Pick up|Hand over)/.test(label);
     expect(count === rows || needsYouLabel, `box "${label}" shows ${count} above ${rows} listed`).toBe(true);
+  });
+
+  // Audit DC-9: "To answer" left out unanswered questions and showed buyer-turn offers and the settings. It counts
+  // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count; |   const toAnswer = todo?.sellerOffers ?? 0;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}
+  // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | const ASKABLE = new Set(["live", "paused"]); | const ASKABLE = new Set(["live", "paused", "draft", "sold"]);
+  it("DC-9: To answer counts and shows the offers waiting on the seller and the unanswered questions, nothing else", async () => {
+    state.mine = [ITEM, { ...ITEM, id: "i2", title: "Desk" }, { ...ITEM, id: "i3", status: "draft", title: "Draft lamp" }];
+    state.offers = [OFFER, { ...OFFER, offer_id: "o9", item_id: "i2", item_title: "Desk", awaiting: "buyer" }];
+    state.questions = [
+      { id: "q1", item_id: "i2", question: "Does the desk come apart?", created_at: "2026-10-29" },
+      // Only listings on sale (live or paused) count; a draft is not on sale.
+      { id: "q2", item_id: "i3", question: "Still have it?", created_at: "2026-10-29" },
+    ];
+    const { container } = at("/declutter?tab=selling&status=offers");
+    const qs = await screen.findByRole("region", { name: "Questions to answer" });
+    expect(within(qs).getByText("Does the desk come apart?")).toBeInTheDocument();
+    expect(within(qs).getByRole("link", { name: /Does the desk come apart/ })).toHaveAttribute("href", "/declutter/item/i2");
+    expect(within(qs).queryByText("Still have it?")).toBeNull();
+    const box = container.querySelector('[data-status-box="offers"]') as HTMLElement;
+    await vi.waitFor(() => expect(box.textContent).toBe("To answer · 2"));
+    const offers = screen.getByRole("region", { name: "Offers on your items" });
+    expect(offers.querySelectorAll("li")).toHaveLength(1);
+    expect(within(offers).queryByText("Desk")).toBeNull(); // the buyer's turn: not here
+    expect(container.querySelector("[data-selling-settings]")).toBeNull();
+    // All: the settings and every open offer are back.
+    fireEvent.click(screen.getByRole("button", { name: /^All/ }));
+    expect(await screen.findByRole("region", { name: "Selling settings" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Offers on your items" }).querySelectorAll("li").length).toBeGreaterThan(1);
+  });
+
+  it("DC-9: To answer with nothing waiting says so once", async () => {
+    state.mine = [ITEM];
+    state.offers = [{ ...OFFER, awaiting: "buyer" }];
+    at("/declutter?tab=selling&status=offers");
+    expect(await screen.findByText("Nothing to answer right now.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Offers on your items" })).toBeNull();
   });
 
   // D3 (Cowork audit 2026-10-20): the empty Selling list said 'Tap "Sell an

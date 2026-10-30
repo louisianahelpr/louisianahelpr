@@ -106,8 +106,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |
 | `src/components/declutter/DeclutterOrderTalk.tsx` | textarea×1 |  | 1000 | Messages |
 | `src/components/declutter/DeclutterProblemPhotos.tsx` | input×1 | file |  | Photos |
-| `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | wanted-reply-pick · wanted-reply-price · wanted-near-title |
-| `src/components/declutter/DeclutterWantedViews.tsx` | input×3 | text, file | 60 | What are you looking for? · wanted-what · Kids bike, 16 inch · wanted-category · Pick one · wanted-max · 30 · wanted-within |
+| `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | Photos · wanted-reply-pick · wanted-reply-price · wanted-near-title |
+| `src/components/declutter/DeclutterWantedViews.tsx` | input×3 | text, file | 60 | What are you looking for? · wanted-what · Kids bike · wanted-what-problem · wanted-category · Pick one · wanted-category-problem · wanted-max |
 | `src/components/declutter/DeliverVehicleForm.tsx` | checkbox/switch/radio×3 |  |  | Your vehicle |
 | `src/components/declutter/DeliveryRaisePanel.tsx` | input×1 | text |  | Raise the pay |
 

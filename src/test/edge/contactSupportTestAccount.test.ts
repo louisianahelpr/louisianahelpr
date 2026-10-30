@@ -44,10 +44,10 @@ describe("contact-support: a test account never reaches admin", () => {
     scenario.reads.profiles = { rows: [{ full_name: "Dana Member", email: "member@louisianahelpr.com" }] };
   });
 
-  it("a real member: the email, the queue row and Slack all go", async () => {
+  it("a real member: the queue row and Slack go, with no admin@ copy (owner 10-30)", async () => {
     scenario.rpc.is_test_subject = false;
     await send(FORM);
-    expect(sendWithResend).toHaveBeenCalledTimes(1);
+    expect(sendWithResend).not.toHaveBeenCalled();
     expect(reportWrites()).toHaveLength(1);
     expect(postSlackOpsAlert).toHaveBeenCalledTimes(1);
   });
@@ -75,7 +75,6 @@ describe("contact-support: a test account never reaches admin", () => {
   it("the test-account read fails: the sender counts as real, so a real request is never lost", async () => {
     scenario.rpcErrors = { is_test_subject: { message: "boom" } };
     await send(FORM);
-    expect(sendWithResend).toHaveBeenCalledTimes(1);
     expect(reportWrites()).toHaveLength(1);
     expect(postSlackOpsAlert).toHaveBeenCalledTimes(1);
   });

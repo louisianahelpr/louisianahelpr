@@ -294,26 +294,7 @@ serve(async (req) => {
       if (!guestLimit.allowed) return rateLimitResponse(guestLimit.retryAfter ?? 300, corsHeaders)
     }
 
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    if (!resendApiKey) {
-      // Do NOT pretend this succeeded — a support message that silently
-      // evaporates is worse than an error the visitor can act on.
-      console.error('[contact-support] RESEND_API_KEY not configured')
-      return new Response(
-        JSON.stringify({ error: "Support email isn't available right now. Please email admin@louisianahelpr.com." }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
     const accountLine = userId ? `Signed in (user ${userId})` : 'Not signed in (guest)'
-    const { html, text } = await renderSupportEmail({
-      topicLabel,
-      name,
-      email,
-      subject,
-      message,
-      accountLine,
-    })
 
     // Q840: a request filed by a test or seed account (or from a fixture
     // address) is not mailed to the support inbox; the reports row and
@@ -345,32 +326,6 @@ serve(async (req) => {
         })
       }
     }
-    try {
-      if (!testSubmitter) await sendWithResend(resendApiKey, {
-        to: SUPPORT_EMAIL,
-        from: FROM_CONTACT,
-        subject: `[${topicLabel}] ${subject || 'No subject'} — ${name}`,
-        html,
-        text,
-        // The footer says "Reply directly to <them>", but the envelope is
-        // noreply@ — without this the support agent has to copy the address
-        // out of the body by hand. `email` has already been through
-        // cleanLine() + EMAIL_RE above, so no newline can reach this header.
-        replyTo: email,
-      })
-    } catch (sendErr) {
-      const msg = sendErr instanceof Error ? sendErr.message : String(sendErr)
-      console.error('[contact-support] Resend send failed:', msg)
-      return new Response(
-        JSON.stringify({ error: "We couldn't send that just now. Please try again in a moment." }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
-    // ── Secondary trail, both best-effort ────────────────────────────────
-    // The email above is the delivery guarantee; neither of these may fail
-    // the request, but both log loudly rather than swallowing.
-
     // Every sender gets a row in the admin `reports` queue so /support and the
     // in-app Profile support tab land in the SAME place (the Support inbox).
     //
@@ -402,6 +357,57 @@ serve(async (req) => {
         console.error('[contact-support] reports insert failed:', reportErr.message)
       } else {
         reportLogged = true
+      }
+    }
+
+    // ── The admin@ email ─────────────────────────────────────────────────
+    // A signed-in member's message is answered in the app (owner 10-30), so the
+    // ticket above is enough: their email only goes when that row failed, as the
+    // one record left. A guest's still goes. Whichever went, a message that reached
+    // the inbox is never reported as failed: a retry would file it twice.
+    if (!testSubmitter && (!userId || !reportLogged)) {
+      const resendApiKey = Deno.env.get('RESEND_API_KEY')
+      if (!resendApiKey) {
+        console.error('[contact-support] RESEND_API_KEY not configured')
+        // Do NOT pretend this succeeded when nothing recorded it.
+        if (!reportLogged) {
+          return new Response(
+            JSON.stringify({ error: "Support email isn't available right now. Please email admin@louisianahelpr.com." }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          )
+        }
+      } else {
+        try {
+          const { html, text } = await renderSupportEmail({
+            topicLabel,
+            name,
+            email,
+            subject,
+            message,
+            accountLine,
+          })
+          await sendWithResend(resendApiKey, {
+            to: SUPPORT_EMAIL,
+            from: FROM_CONTACT,
+            subject: `[${topicLabel}] ${subject || 'No subject'} — ${name}`,
+            html,
+            text,
+            // The footer says "Reply directly to <them>", but the envelope is
+            // noreply@ — without this the support agent has to copy the address
+            // out of the body by hand. `email` has already been through
+            // cleanLine() + EMAIL_RE above, so no newline can reach this header.
+            replyTo: email,
+          })
+        } catch (sendErr) {
+          const msg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+          console.error('[contact-support] Resend send failed:', msg)
+          if (!reportLogged) {
+            return new Response(
+              JSON.stringify({ error: "We couldn't send that just now. Please try again in a moment." }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            )
+          }
+        }
       }
     }
 

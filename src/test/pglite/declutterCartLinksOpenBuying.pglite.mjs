@@ -82,7 +82,7 @@ insert into public.declutter_orders (id, buyer_id, seller_id, setup_fee_cents, s
 create table public.declutter_items (id uuid primary key, seller_id uuid, status text default 'reserved', title text, updated_at timestamptz);
 insert into public.declutter_items (id, seller_id, title) values ('${ITEM}', '${SELLER}', 'Blue lamp');
 create table public.declutter_cart_items (id uuid primary key default gen_random_uuid(), item_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, status text default 'in_cart',
-  source text default 'buy', closed_at timestamptz, created_at timestamptz default now());
+  price_cents int not null default 1500, source text default 'buy', closed_at timestamptz, created_at timestamptz default now());
 insert into public.declutter_cart_items (item_id, buyer_id, seller_id) values ('${ITEM}', '${BUYER2}', '${SELLER}');
 `);
 

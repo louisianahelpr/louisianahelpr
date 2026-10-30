@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { safeStorage } from "@/lib/safeStorage";
+import { clearDraftOnAccount, readDraftFromAccount, saveDraftToAccount } from "@/lib/jobPostDraftAccount";
 
 const DRAFT_KEY = "helpr_draft_job";
 /**
@@ -13,6 +14,7 @@ export const DRAFT_CHECKOUT_JOB_KEY = "helpr_draft_checkout_job";
 export function dropSpentDraft(): void {
   safeStorage.removeItem(DRAFT_KEY);
   safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
+  void clearDraftOnAccount();
 }
 
 /**
@@ -30,6 +32,7 @@ export function dropDraftPaidAs(paidJobId: string): void {
 // `visibilitychange:hidden` flush (below) covers the gap when the app is
 // refreshed or backgrounded mid-window, which on mobile is the common case.
 const SAVE_DEBOUNCE_MS = 5000;
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface JobDraft {
   title: string;
@@ -94,21 +97,41 @@ export function useDraftJob() {
   const dirty = useRef(false);
 
   useEffect(() => {
+    let found = false;
     try {
       const saved = safeStorage.getItem(DRAFT_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as JobDraft;
         // Only restore if less than 7 days old
-        if (Date.now() - parsed.savedAt < 7 * 24 * 60 * 60 * 1000) {
+        if (Date.now() - parsed.savedAt < DRAFT_MAX_AGE_MS) {
           setDraft(parsed);
           pendingDraft.current = parsed;
           setHasDraft(true);
+          found = true;
         } else {
           safeStorage.removeItem(DRAFT_KEY);
         }
       }
     } catch { /* ignore */ }
-    setDraftLoaded(true);
+    if (found) {
+      setDraftLoaded(true);
+      return;
+    }
+    // Nothing on this device: the account may have one from another device (OPS-3).
+    let gone = false;
+    void readDraftFromAccount<JobDraft>().then((fromAccount) => {
+      if (gone) return;
+      // Typing has started while it was read: what they typed wins.
+      if (fromAccount && pendingDraft.current.savedAt === 0) {
+        setDraft(fromAccount);
+        pendingDraft.current = fromAccount;
+        setHasDraft(true);
+      }
+      setDraftLoaded(true);
+    });
+    return () => {
+      gone = true;
+    };
   }, []);
 
   // Synchronously persist whatever's currently pending and cancel the
@@ -124,6 +147,7 @@ export function useDraftJob() {
     try {
       safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
     } catch { /* ignore */ }
+    void saveDraftToAccount(pendingDraft.current);
   }, []);
 
   // Another tab cleared the draft (it posted the job): drop ours so a
@@ -178,6 +202,7 @@ export function useDraftJob() {
       try {
         safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
       } catch { /* ignore */ }
+      void saveDraftToAccount(pendingDraft.current);
     }, SAVE_DEBOUNCE_MS);
   }, []);
 

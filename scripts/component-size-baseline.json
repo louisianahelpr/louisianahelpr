@@ -25,11 +25,11 @@
     "src/pages/info/Legal.tsx": 725,
     "src/pages/jobs/AppliedJobCard.tsx": 850,
     "src/pages/posts/PostedJobCard.tsx": 768,
-    "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 650,
+    "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 645,
     "src/pages/profile/GiftCard.tsx": 828,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
     "src/pages/profile/Profile.tsx": 842,
     "src/pages/profile/WorkRecord.tsx": 692,
-    "src/pages/user/UserProfile.tsx": 804
+    "src/pages/user/UserProfile.tsx": 797
   }
 }

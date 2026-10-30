@@ -28,6 +28,7 @@ import { ApplicantTrustLine, helperInitialsFrom, isImageAttachment, TopHelprChip
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
+import { ApplicantNeighborHires } from "./applicantsPanel/ApplicantNeighborHires";
 import { ApplicantPrivateNote } from "./applicantsPanel/ApplicantPrivateNote";
 import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/ApplicantsDesktopTable";
 import { formatJobDate } from "@/lib/dateUtils";
@@ -536,19 +537,7 @@ export function ApplicantsPanel({
                               {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
                               <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
                               {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}
-                              {neighborCount > 0 && (
-                                <span
-                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                  style={{ color: "hsl(var(--bark))" }}
-                                >
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                                    style={{ background: "hsl(var(--bark))" }}
-                                    aria-hidden="true"
-                                  />
-                                  {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
-                                </span>
-                              )}
+                              <ApplicantNeighborHires count={neighborCount} />
                               <ApplicantAvailableNow until={app.profiles?.available_until} />
                               {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").
                                   `flagged_hidden` is set server-side by

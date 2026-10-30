@@ -43,6 +43,7 @@ import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { GetHelpNow } from "@/components/jobs/GetHelpNow";
+import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow, showStreet: boolean): string {
@@ -202,6 +203,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
           <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+          {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
+          {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
           {isHired && <HiredSeriesSection job={job} userId={userId} />}
           {isPoster ? (
             <PosterMoney job={job} total={total} loading={applicants.isLoading} />

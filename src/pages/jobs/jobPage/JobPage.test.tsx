@@ -40,9 +40,12 @@
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} /> |  />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {false && <JobProofPhotos
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {<JobProofPhotos
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {(isPoster \|\| isHired) && <JobProofPhotos
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { JobPageRow } from "./useJobPage";
@@ -72,6 +75,10 @@ vi.mock("./useJobPage", () => ({
     tracking: { data: state.tracking },
     onCrew: state.onCrew,
   }),
+}));
+vi.mock("@/hooks/useProofPhotoUrls", () => ({
+  PENDING_PHOTO_SRC: "pending",
+  useProofPhotoUrls: (values: readonly string[]) => values.map((v) => `https://signed.example/${v}`),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
 // The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.
@@ -277,6 +284,55 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     renderPage();
     expect(screen.getByText("$90")).toBeTruthy();
     expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
+  });
+});
+
+// Tester 6, 10-30: the photos showed only in the approve sheet.
+describe("job page: the Helpr's before and after photos, for the job's parties only", () => {
+  const PHOTOS = { proof_before_urls: ["j/b1.jpg"], proof_after_urls: ["j/a1.jpg", "j/a2.jpg"] };
+  const imgs = () => [...document.querySelectorAll("[data-job-proof-photos] img")].map((i) => i.getAttribute("src"));
+
+  it("the poster sees them while the job is under way, signed, and opening them only opens them", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "in_progress", ...PHOTOS });
+    state.party = true;
+    renderPage();
+    expect(imgs()).toEqual(["https://signed.example/j/b1.jpg", "https://signed.example/j/a1.jpg"]);
+    fireEvent.click(screen.getByRole("button", { name: "See the before and after photos" }));
+    expect(screen.getByText("Photo proof")).toBeTruthy();
+    expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("the Helpr sees them on their page after release", () => {
+    state.job = row({ helper_id: ME, status: "completed", payment_status: "released", ...PHOTOS });
+    state.party = true;
+    renderPage();
+    expect(imgs()).toHaveLength(2);
+  });
+
+  it("the before photo shows alone, as soon as it's in", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "in_progress", proof_before_urls: ["j/b1.jpg"], proof_after_urls: [] });
+    state.party = true;
+    renderPage();
+    expect(imgs()).toEqual(["https://signed.example/j/b1.jpg"]);
+  });
+
+  it("nobody else: not a stranger, and not a row that did not come from the party read", () => {
+    state.job = row({ status: "in_progress", ...PHOTOS });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-proof-photos]")).toBeNull();
+    cleanup();
+    state.job = row({ helper_id: ME, status: "in_progress", ...PHOTOS });
+    state.party = false;
+    renderPage();
+    expect(document.querySelector("[data-job-proof-photos]")).toBeNull();
+  });
+
+  it("no photos, no section", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "in_progress", proof_before_urls: null, proof_after_urls: [] });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-proof-photos]")).toBeNull();
   });
 });
 

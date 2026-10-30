@@ -30,7 +30,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
+import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { toast } from "sonner";
 import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
@@ -494,7 +495,7 @@ export const DisputeTimelineDialog = ({
                         rel="noopener noreferrer"
                         className="block w-16 h-16 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors"
                       >
-                        <img loading="lazy" decoding="async" src={src ?? PENDING_PHOTO_SRC} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                        <ProofPhotoImg insideControl src={src} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
                       </a>
                     );
                   })}

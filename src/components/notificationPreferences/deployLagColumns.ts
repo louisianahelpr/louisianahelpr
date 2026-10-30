@@ -17,6 +17,7 @@
  *   saved_helper_availability  migration 20260915202026
  *   email_quote_reminders      migration 20261023120308 (Q2120)
  *   declutter_* and email_declutter_*  migration 20261028162048 (14 columns)
+ *   remind_starting_soon, remind_finish_job, remind_payout_followups  migration 20261030031059 (Job reminders)
  */
 const DECLUTTER_KINDS = [
   "declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
@@ -27,6 +28,7 @@ const DEPLOY_LAG_COLUMNS = [
   "email_enabled", "saved_helper_availability", "email_quote_reminders",
   ...DECLUTTER_KINDS,
   ...DECLUTTER_KINDS.map((k) => `email_${k}` as const),
+  "remind_starting_soon", "remind_finish_job", "remind_payout_followups",
 ] as const;
 
 type LagColumn = (typeof DEPLOY_LAG_COLUMNS)[number];
@@ -43,6 +45,10 @@ export const columnsPresentIn = (row: Record<string, unknown>): ColumnPresence =
 /** Every Declutter switch column is deployed (the group is shown only then). */
 export const declutterColumnsPresent = (present: ColumnPresence): boolean =>
   DECLUTTER_KINDS.every((k) => present[k] && present[`email_${k}`]);
+
+/** Every Job reminders switch column is deployed (20261030031059); until then those switches are read-only. */
+export const jobReminderColumnsPresent = (present: ColumnPresence): boolean =>
+  present.remind_starting_soon && present.remind_finish_job && present.remind_payout_followups;
 
 /** Drops every key whose column is not deployed yet, so the upsert cannot PGRST204. */
 export function stripMissingColumns(payload: object, present: ColumnPresence): void {

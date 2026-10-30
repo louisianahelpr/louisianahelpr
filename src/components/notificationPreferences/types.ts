@@ -84,6 +84,13 @@ export interface Prefs {
       not belong in the per-category `rows` grid and is not part of the
       six-registry closed type set. Owner, 2026-09-15: off unless turned on. */
   saved_helper_availability: boolean;
+  /** Job reminders (owner 2026-10-29, 20261030031059): the switchable ones,
+      shown in the "Job reminders" group from public.job_reminder_types. All
+      default true. Off = the reminder is not sent at all (the notifications
+      insert gate drops it). The always-on reminders have no column. */
+  remind_starting_soon: boolean;
+  remind_finish_job: boolean;
+  remind_payout_followups: boolean;
   /** Local-time `HH:MM` start of the quiet-hours window. NULL when
       quiet hours are disabled. Wired in migration
       `20260609120000_notification_quiet_hours.sql`. */

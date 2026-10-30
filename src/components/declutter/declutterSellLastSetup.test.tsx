@@ -52,6 +52,14 @@ const places = vi.hoisted(() => ({ value: [] as unknown[] }));
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => places.value, fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+// Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.
+vi.mock("@/lib/declutter/photos", async (orig) => ({
+  ...(await orig<object>()),
+  cleanListingPhoto: async (f: File) => {
+    if (f.name.startsWith("bad")) throw new (await import("@/lib/declutter/errors")).ListingPhotoError("We couldn't prepare this photo.");
+    return f;
+  },
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));

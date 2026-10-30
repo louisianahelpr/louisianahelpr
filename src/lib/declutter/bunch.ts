@@ -21,7 +21,7 @@
  * Nothing here is the protection: every write is a declutter_* RPC behind the
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
-import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
+import { blobToBase64, cleanListingPhoto, unusablePhotosNote } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
@@ -168,14 +168,8 @@ export interface GroupResult {
   unusable: { key: string; name: string; error: unknown }[];
 }
 
-/** The screen's words for the photos left out, by file name, or null when there are none. */
-export function unusablePhotosNote(unusable: GroupResult["unusable"]): string | null {
-  if (unusable.length === 0) return null;
-  const shown = unusable.slice(0, 5).map((u) => u.name || "A photo").join(", ");
-  const more = unusable.length > 5 ? ` and ${unusable.length - 5} more` : "";
-  const subject = unusable.length === 1 ? `This photo wasn't added (${shown}):` : `${unusable.length} photos weren't added (${shown}${more}):`;
-  return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
-}
+/** The screen's words for the photos left out (it lives with the photo rules, for the one-item form too). */
+export { unusablePhotosNote };
 
 /** Long enough to tell two items apart: "oak", "the" and "with" say nothing about whether they're the same thing. */
 const titleWords = (title: string) => new Set(title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !["with", "from", "that", "this", "used", "item", "size"].includes(w)));

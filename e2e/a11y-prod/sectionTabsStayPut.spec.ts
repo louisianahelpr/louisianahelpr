@@ -57,6 +57,35 @@ function rowState(page: Page) {
   });
 }
 
+/**
+ * Scroll by `dy` with the pointer (or finger) at (x, y). Chromium: a real wheel. Mobile WebKit (the iPhone 13 project)
+ * has no wheel ("Mouse wheel is not supported in mobile WebKit", measured B76 2026-10-30) and Playwright has no swipe,
+ * so there the scroll goes to what a finger at that point would move: the nearest ancestor of the element under it
+ * that a person can scroll (overflow-y auto or scroll, with room to move), else the page. A tab row that is a vertical
+ * scroller (the bug) is that element, so its scrollTop moves as the rubber-band did on the owner's iPhone.
+ */
+async function scrollAt(page: Page, x: number, y: number, dy: number): Promise<void> {
+  await page.mouse.move(x, y);
+  try {
+    await page.mouse.wheel(0, dy);
+    return;
+  } catch (e) {
+    if (!/not supported/i.test(String(e))) throw e;
+  }
+  await page.evaluate(({ px, py, d }) => {
+    let el: Element | null = document.elementFromPoint(px, py);
+    while (el && el !== document.documentElement) {
+      const cs = getComputedStyle(el);
+      if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
+        el.scrollBy(0, d);
+        return;
+      }
+      el = el.parentElement;
+    }
+    window.scrollBy(0, d);
+  }, { px: x, py: y, d: dy });
+}
+
 let poster: Session | null = null;
 test.beforeAll(async ({ request }) => {
   if (sessionAvailable("poster")) poster = await getSession(request, "poster");
@@ -75,13 +104,11 @@ test.describe("section tab rows stay put when the page scrolls (owner 2026-10-30
         const before = await rowState(page);
         expect(before, "no tablist on the screen").not.toBeNull();
         // 1. over the content, 2. over the tab row itself (where an iPhone swipe moved the words).
-        await page.mouse.move(v.width / 2, v.height * 0.65);
-        await page.mouse.wheel(0, 800);
+        await scrollAt(page, v.width / 2, v.height * 0.65, 800);
         await page.waitForTimeout(400);
         const box = await page.getByRole("tablist").first().boundingBox();
         expect(box).not.toBeNull();
-        await page.mouse.move(box!.x + Math.min(40, box!.width / 2), box!.y + box!.height / 2);
-        await page.mouse.wheel(0, 800);
+        await scrollAt(page, box!.x + Math.min(40, box!.width / 2), box!.y + box!.height / 2, 800);
         await page.waitForTimeout(400);
         const after = await rowState(page);
         expect(after!.scrollTop, "the tab row scrolled vertically").toBe(0);

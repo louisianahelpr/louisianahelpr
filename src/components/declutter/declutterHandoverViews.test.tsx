@@ -1065,6 +1065,17 @@ describe("D2-2: an open problem shows on both cards", () => {
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
   });
 
+  it("the booked pickup is over (D2-9 offers Report a problem): no second report while one is open", async () => {
+    state.bookings = [slot(120)];
+    const before = show([line()]);
+    expect(await screen.findByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+    before.unmount();
+    state.problems = [damaged];
+    show([line()]);
+    await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
   it("handed over: the payout says it is held, and the refund panel gets no second report", async () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];

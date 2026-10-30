@@ -4,7 +4,8 @@
  * decides what is big. The screen says beforehand which rule applies, and never saves without the tax box.
  *
  * @mutate src/components/declutter/DeclutterEditListing.tsx |   const ready = attested && | const ready =
- * @mutate src/components/declutter/DeclutterEditListing.tsx |   const big = title.trim() !== item.title \|\| description.trim() !== item.description \|\| category !== item.category; |   const big = false; */
+ * @mutate src/components/declutter/DeclutterEditListing.tsx |   const big = title.trim() !== item.title \|\| description.trim() !== item.description \|\| category !== item.category; |   const big = false;
+ */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

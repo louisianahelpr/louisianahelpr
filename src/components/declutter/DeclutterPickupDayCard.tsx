@@ -60,7 +60,7 @@ export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[];
   const route = routeMapsUrl(stops);
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-4" aria-label="Your pickups today">
-      <h2 className="flex items-center gap-2 text-base font-semibold">
+      <h2 className="text-base font-semibold flex items-center gap-2">
         <CalendarCheck className="h-4 w-4 text-primary" aria-hidden />
         {today.length === 1 ? "Your pickup today" : `Your ${today.length} pickups today`}
       </h2>

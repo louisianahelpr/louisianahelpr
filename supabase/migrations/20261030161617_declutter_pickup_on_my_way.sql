@@ -54,11 +54,11 @@ BEGIN
   SELECT min(i.title), count(*) - 1 INTO v_title, v_more
     FROM public.declutter_cart_items c JOIN public.declutter_items i ON i.id = c.item_id
    WHERE c.order_id = o.id;
-  PERFORM public.declutter_notify(o.seller_id, 'work_status', 'Your buyer is on the way',
+  PERFORM public.declutter_notify(o.seller_id, 'declutter_pickups', 'Your buyer is on the way',
     CASE WHEN v_title IS NULL THEN 'They''re coming for their pickup.'
          WHEN v_more > 0 THEN format('They''re coming for %s and %s more.', v_title, v_more)
          ELSE format('They''re coming for %s.', v_title) END,
-    '/declutter?view=selling', o.buyer_id);
+    '/declutter?tab=selling', o.buyer_id);
   RETURN 'on_way';
 END;
 $fn$;

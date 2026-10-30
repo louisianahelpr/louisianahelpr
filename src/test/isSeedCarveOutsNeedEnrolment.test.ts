@@ -101,6 +101,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_price_drop_alert: "hides",
   declutter_price_drop_sweep: "hides",
   declutter_price_hint: "hides",
+  declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
   declutter_refund_cancels_setup_jobs: "alerts",
   declutter_refund_gave_up_check: "alerts",
   // board 141d (20261026155251): a refund request follows its order's is_seed
@@ -211,6 +212,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sweep_idv_review_waiting: "alerts",
   sweep_job_match_queue: "alerts",
   sweep_saved_search_alert_queue: "alerts",
+  sweep_unanswered_applications: "alerts", // 20261030150630: a seed job never sends the poster nudge
   tag_automated_analytics_event: "tags",
   user_error_screen_is_real: "alerts",
   user_report_is_real: "alerts",

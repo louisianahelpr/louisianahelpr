@@ -347,7 +347,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   const toRoute = (
     <button type="button" className="min-h-11 text-left text-ds-13 font-semibold underline" data-task-steps-on-route=""
       onClick={() => document.querySelector('[aria-label="Your route"]')?.scrollIntoView({ block: "start" })}>
-      Take the photo at this stop on Your route
+      Take the photo at this stop on your route
     </button>
   );
   return (

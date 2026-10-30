@@ -1219,6 +1219,7 @@ export type Database = {
       }
       declutter_bookings: {
         Row: {
+          buyer_on_way_at: string | null
           buyer_id: string
           buyer_missed_at: string | null
           buyer_rebooked: boolean
@@ -1237,6 +1238,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          buyer_on_way_at?: string | null
           buyer_id: string
           buyer_missed_at?: string | null
           buyer_rebooked?: boolean
@@ -1255,6 +1257,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          buyer_on_way_at?: string | null
           buyer_id?: string
           buyer_missed_at?: string | null
           buyer_rebooked?: boolean

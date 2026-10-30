@@ -14,8 +14,8 @@ export function QuietTimeInput({ label, ariaLabel, value, onChange, disabled }: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        aria-label={ariaLabel}
-        className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+        aria-label={`${label}: ${ariaLabel}`}
+        className="min-w-0 rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
       />
     </label>
   );

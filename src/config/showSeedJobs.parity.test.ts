@@ -275,6 +275,7 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.rentals_cancel_request_job", "single-job mutation on the caller's own job; status is a precondition"],
     // A service_role sweep that tells a series POSTER their own funded visit is
     // still empty tomorrow (20261012195747); it shows no job to anyone else.
+    ["public.sweep_unanswered_applications", "service_role sweep telling a poster about their own job; filters is_seed and is_test_member; not a feed"],
     ["public.sweep_unfilled_series_visit_reminders", "service_role sweep notifying the poster of their own series visit; not a feed"],
     // Q1732: an admin clears ONE dispute's test-mode stamps; it locks that
     // dispute's job by id (service_role only). Not a list of jobs.

@@ -168,6 +168,7 @@ const ALLOWED: Record<string, string> = {
   start_underfilled_crews: SPOTS,
   submit_job_quote: LIMIT,
   suggest_category: LIMIT,
+  declutter_on_my_way: "logic: the \"and N more\" count of one order's own lines in one notice",
   sweep_cron_startup_failures: OPS,
   sweep_dayof_confirm_reminders: SPOTS,
   sweep_dead_crons: OPS,

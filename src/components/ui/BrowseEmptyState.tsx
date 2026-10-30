@@ -15,7 +15,7 @@ export function browseEmptyShift(room: { top: number; height: number }, contentH
   return Math.max(highest, Math.round(screenMid - natural));
 }
 
-export function BrowseEmptyState(props: Omit<ComponentProps<typeof EmptyState>, "variant" | "align">) {
+export function BrowseEmptyState({ icon, illustration, title, body, action, footnote, surfaceStyle, bodyLines }: Omit<ComponentProps<typeof EmptyState>, "variant" | "align">) {
   const room = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
   useLayoutEffect(() => {
@@ -42,7 +42,7 @@ export function BrowseEmptyState(props: Omit<ComponentProps<typeof EmptyState>, 
   return (
     <div ref={room} data-browse-empty="" className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="flex min-h-0 min-w-0 flex-1" style={shift ? { transform: `translateY(${shift}px)` } : undefined}>
-        <EmptyState {...props} variant="bare" />
+        <EmptyState icon={icon} illustration={illustration} title={title} body={body} action={action} footnote={footnote} surfaceStyle={surfaceStyle} bodyLines={bodyLines} variant="bare" />
       </div>
     </div>
   );

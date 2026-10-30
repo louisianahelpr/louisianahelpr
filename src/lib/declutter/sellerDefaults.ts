@@ -8,6 +8,7 @@
  * Until the migration is on prod (table missing) reads give the defaults and saves do nothing.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import type { SellerHandover } from "@/lib/declutter/api";
 
 export interface SellerDefaults {
@@ -59,11 +60,9 @@ function fromRow(r: Row): SellerDefaults {
 
 /** The member's saved choices, or null when they have none saved yet (then use SELLER_DEFAULTS). */
 export async function fetchSellerDefaults(userId: string): Promise<SellerDefaults | null> {
-  const { data, error } = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
-  if (error) {
-    if (notDeployed(error.code)) return null;
-    throw error;
-  }
+  const res = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
+  if (res.error && notDeployed(res.error.code)) return null;
+  const data = unwrap(res);
   return data ? fromRow(data as Row) : null;
 }
 

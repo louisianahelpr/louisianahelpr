@@ -53,8 +53,8 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(call(skeleton, "AppShell")).toBe(call(frame, "AppShell"));
     expect(skeleton).toContain('className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
     expect(frame).toContain('className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
-    expect(frame).toContain('<div className="flex flex-col gap-4 pt-1 pb-6">');
-    expect(skeleton).toContain('<div className="flex flex-col gap-4 pt-1 pb-6">');
+    expect(frame).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
+    expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
   it("draws Home's top bar: the same box, the same emblem size, bell + avatar and no '+'", () => {

@@ -75,6 +75,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/boot/routePreload.ts": "chunk preloading, not a control",
   "src/lib/routePrefetch.ts": "chunk prefetching, not a control",
   "src/lib/declutter/haulAwayLink.ts": "builds the Declutter haul-away link; its only callers are the seller's Declutter screens (selling needs 18+, row 53) and Post a job's own form is gated (FormStep)",
+  "src/lib/declutter/movingDayJob.ts": "builds the moving-day link; its only caller is the seller's Moving sale screen (DeclutterMoveView; selling needs 18+, row 53) and Post a job's own form is gated (FormStep)",
   "src/lib/desktopNavRoutes.ts": "which routes show the desktop rail",
   "src/components/mobileNav/mobileNavHelpers.ts": "which routes are signed-in pages",
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",

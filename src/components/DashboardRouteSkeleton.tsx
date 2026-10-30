@@ -42,7 +42,7 @@ const DashboardRouteSkeleton = () => (
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-4 pt-1 pb-6">
+          <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">
               {/* Greeting (text-page-title) + the date line. */}
               <div>

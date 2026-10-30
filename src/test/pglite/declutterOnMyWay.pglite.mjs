@@ -113,7 +113,7 @@ check(await say(a) === "on_way", "the buyer, on the booked day: told");
 const n1 = await notices("%Oak dresser%");
 check(n1.length === 1, `the seller gets one notice (${n1.length})`);
 check(n1[0]?.user_id === SELLER && n1[0]?.title === "Your buyer is on the way", "to the seller, in plain words");
-check(n1[0]?.link === "/declutter?view=selling", "linking to their selling tab");
+check(n1[0]?.link === "/declutter?tab=selling", "linking to their selling tab");
 const noted = (await db.query(`SELECT buyer_on_way_at FROM public.declutter_bookings WHERE order_id = $1`, [a])).rows[0].buyer_on_way_at;
 check(noted !== null, "the time is noted");
 check(await say(a) === "already", "a second tap: already");

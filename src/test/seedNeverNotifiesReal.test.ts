@@ -394,12 +394,14 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "deliver_parish_match_alert",
       "deliver_saved_search_alert",
       "deliver_saved_search_item_alerts",
+      "notify_message_recipient",
       "notify_on_application",
       "quote_notify_to",
       "rentals_notify",
       "send_application_roundups",
       "send_backout_email",
       "send_job_match_roundups",
+      "sweep_unanswered_applications",
     ]);
     // D4-11 (2026-10-30): declutter_wanted_email only posts; its two callers write the row first and apply the boundary.
     expect(liveDef("declutter_wanted_notify")!.body).toMatch(/IF v_id IS NOT NULL THEN\s+PERFORM public\.declutter_wanted_email/);

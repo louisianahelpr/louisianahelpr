@@ -64,11 +64,13 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
   const kept = (photos.data ?? []).filter((p) => !removed.includes(p.id));
   const photoTotal = kept.length + held.length;
   const photosChanged = held.length > 0 || removed.length > 0;
+  // DC-4: an older listing may still carry a stored 'delivery' tick; it is not a choice any more, so it is not sent.
+  const sentWays: SellerHandover[] = free ? ["porch"] : ways.filter((w) => w !== "delivery");
   // The same rule the server runs, so the seller knows before saving (the server decides).
   const big = title.trim() !== item.title || description.trim() !== item.description || category !== item.category || photosChanged;
   const save = useMutation({
     mutationFn: async (): Promise<keyof typeof EDIT_SAVED> => {
-      const status = await editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: free ? ["porch"] : ways });
+      const status = await editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: sentWays });
       // New photos first, then the removed ones, so the listing always keeps one (too_few_photos).
       for (const f of held) await addPhoto(user!.id, item.id, f);
       for (const id of removed) await removePhoto(id);
@@ -90,7 +92,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       }
     },
   });
-  const ready = attested && title.trim().length >= 3 && (free || ways.length > 0) && photoTotal >= DECLUTTER_MIN_PHOTOS && !!user && !photos.isLoading && !save.isPending;
+  const ready = attested && title.trim().length >= 3 && sentWays.length > 0 && photoTotal >= DECLUTTER_MIN_PHOTOS && !!user && !photos.isLoading && !save.isPending;
   return (
     <form className="space-y-5" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); }}>
       <div className="space-y-2" data-edit-photos="">

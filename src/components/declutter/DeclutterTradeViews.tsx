@@ -326,7 +326,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Owner 2026-10-28: only the ways the seller ticked for every item here (the server refuses the rest).
   const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home", ...(spotsNear.length > 0 ? ["meetup" as const] : []),
     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]).filter((h) => wayAllowed(ways, h));
-  const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery") ? [...order, "delivery"] : order;
+  // Owner 2026-10-29 (DC-4): Helpr delivery is always a choice for what the buyer pays for, whatever was ticked.
+  const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
   const offered = ticked; // None open to this buyer: no fallback to the seller's door (Q2462); NoWayWorks opens the chat.
   const [handover, setHandover] = useState<Handover>(offered[0]);
   // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.

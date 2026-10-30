@@ -73,7 +73,8 @@ export function useSellFlowState(urlItemId: string | null) {
   const [ways, setWays] = useState<SellerHandover[]>(["porch"]);
   const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
   // A free item is picked up from the porch only (the free checkout's one way of these four).
-  const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
+  // DC-4 (owner 2026-10-29): Helpr delivery is never a tick (buyers can always choose it), so it is never saved as one.
+  const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
   const setCoverFirst = useCallback((d: { coverFile?: File }) => setHeld((h) => coverFirst(h, d.coverFile)), []);
@@ -117,8 +118,8 @@ export function useSellFlowState(urlItemId: string | null) {
       pickupAddress: priv.data.pickup_address,
     });
     setCoords({ lat: Number(priv.data.pickup_lat), lng: Number(priv.data.pickup_lng), address: priv.data.pickup_address });
-    // Until the saved ways are read: an older draft offered porch (if on) and Helpr delivery.
-    setWays(it.porch_ok !== false ? ["porch", "delivery"] : ["delivery"]);
+    // Until the saved ways are read: an older draft offered porch (if on). Helpr delivery is not a tick (DC-4).
+    setWays(it.porch_ok !== false ? ["porch"] : []);
   }, [itemId, item.data, priv.data]);
 
   // The saved draft's own step (declutter_items.drop_pct); 0 means the seller turned drops off.

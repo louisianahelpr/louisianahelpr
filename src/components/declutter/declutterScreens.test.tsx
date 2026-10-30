@@ -458,11 +458,12 @@ describe("Declutter controls are the shared ones", () => {
     at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
     await screen.findByRole("heading", { name: "Show it off" });
     for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
-    // Owner 2026-10-28: the seller ticks the ways; an older draft with porch on shows porch + Helpr delivery ticked.
+    // Owner 2026-10-28: the seller ticks the ways; an older draft with porch on shows porch ticked. DC-4 (owner
+    // 2026-10-29): Helpr delivery is never a tick (buyers can always choose it).
     const porch = await screen.findByRole("checkbox", { name: "Porch pickup" });
     expect(porch.tagName).toBe("BUTTON");
     expect(porch).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("checkbox", { name: "Helpr delivery" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("checkbox", { name: "Helpr delivery" })).toBeNull();
     expect(screen.queryByText(/Pickup at your door/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByRole("heading", { name: "Ready to list?" });

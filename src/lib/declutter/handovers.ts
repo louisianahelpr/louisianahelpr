@@ -20,7 +20,11 @@ export function waysEveryLineAllows(lines: Pick<CartLine, "handovers" | "porch_o
   return sets.reduce((acc, s) => acc.filter((w) => s.includes(w)));
 }
 
-/** Whether a way may be offered under that rule. */
-export function wayAllowed(ways: Handover[] | null, way: Handover): boolean {
-  return ways === null || ways.includes(way);
+/**
+ * Whether a way may be offered under that rule. Helpr delivery on a PAID checkout is always allowed, whatever the
+ * seller ticked (owner 2026-10-29, DC-4; the server's declutter_handover_refused, 20261030045905, and the
+ * declutter-checkout mirror say the same). A free claim passes paid = false (porch or the home only).
+ */
+export function wayAllowed(ways: Handover[] | null, way: Handover, paid = false): boolean {
+  return (paid && way === "delivery") || ways === null || ways.includes(way);
 }

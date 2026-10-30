@@ -15,7 +15,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { nextStep, type LatLng, type NavStep } from "@/lib/declutter/route";
 import type { RouteStop } from "@/lib/helprTasks/api";
-import { StopActions } from "./StopActions";
 
 // The MapKit JS members this map touches (Apple's runtime is loosely typed; see AppleMapPreview).
 interface MkCoordinate { latitude: number; longitude: number }
@@ -29,12 +28,13 @@ interface MkMap {
   addAnnotation: (a: unknown) => void;
   addOverlays: (o: unknown[]) => void;
   removeOverlays: (o: unknown[]) => void;
-  showItems: (items: unknown[]) => void;
+  showItems: (items: unknown[], options?: Record<string, unknown>) => void;
   destroy?: () => void;
 }
 interface MkAnnotation { coordinate: MkCoordinate }
 interface MkRuntime {
   Coordinate: new (lat: number, lng: number) => MkCoordinate;
+  CoordinateSpan?: new (latDelta: number, lngDelta: number) => unknown;
   Map: new (el: HTMLElement, options: Record<string, unknown>) => MkMap;
   MarkerAnnotation: new (c: MkCoordinate, o: Record<string, unknown>) => MkAnnotation;
   Style: new (o: Record<string, unknown>) => unknown;
@@ -74,8 +74,14 @@ const toSteps = (r: MkRoute | null): NavStep[] =>
 /** Re-ask Directions for the current leg after moving this far, at most this often. */
 const REROUTE_M = 400;
 const REROUTE_MS = 30_000;
+/**
+ * Audit 1c D3-9: with one pin, showItems zoomed to the street around it. Never closer than about 3 km across (MapKit
+ * JS showItems `minimumSpan`), so the area around a lone stop shows.
+ */
+export const MIN_SPAN_DEG = 0.03;
+const fitOptions = (mk: MkRuntime) => (mk.CoordinateSpan ? { minimumSpan: new mk.CoordinateSpan(MIN_SPAN_DEG, MIN_SPAN_DEG) } : undefined);
 
-export default function DeliveryRouteMap({ stops, userId }: { stops: RouteStop[]; userId: string }) {
+export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
   const status = useMapKitJs();
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MkMap | null>(null);
@@ -113,7 +119,7 @@ export default function DeliveryRouteMap({ stops, userId }: { stops: RouteStop[]
       }));
       map.current.addAnnotations(pins);
       pinsRef.current = pins;
-      map.current.showItems(pins);
+      map.current.showItems(pins, fitOptions(mk));
     } catch (err) {
       console.warn("[route map] pins", err);
     }
@@ -147,7 +153,7 @@ export default function DeliveryRouteMap({ stops, userId }: { stops: RouteStop[]
       try {
         map.current.removeOverlays(legOverlays.current);
         map.current.addOverlays(lines);
-        if (!here) map.current.showItems([...pinsRef.current, ...lines]);
+        if (!here) map.current.showItems([...pinsRef.current, ...lines], fitOptions(mk));
       } catch (err) {
         console.warn("[route map] line", err);
       }
@@ -218,10 +224,12 @@ export default function DeliveryRouteMap({ stops, userId }: { stops: RouteStop[]
         <p className="text-ds-12 text-muted-foreground">Your location is used only on this screen, while it's open. It isn't saved.</p>
         {current && (
           <div className="space-y-2 border-t border-border pt-3">
+            {/* Audit 1c D3-9: the photo step showed here, on the stop card and on Your deliveries. It lives on the stop
+                card below; this panel names the next stop only. */}
             <p className="text-ds-13 font-semibold">
-              Stop {current.seq}: {current.kind === "pickup" ? "Pick up" : "Drop off"} · {current.address ?? `near ${current.area}`}
+              Next: stop {current.seq}, {current.kind === "pickup" ? "pick up" : "drop off"} · {current.address ?? `near ${current.area}`}
             </p>
-            <StopActions stop={current} userId={userId} />
+            <p className="text-ds-12 text-muted-foreground">Its photo step is on the stop below.</p>
           </div>
         )}
       </div>

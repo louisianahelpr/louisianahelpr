@@ -33,7 +33,7 @@ import { type APIRequestContext, type Browser } from "@playwright/test";
 import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
-import { openCardFields, waitForStripePaymentMethods } from "../stripeCheckoutCard";
+import { openCardFields, untickStripeLink, waitForStripePaymentMethods } from "../stripeCheckoutCard";
 import { answerStripeReturn } from "../stripeReturn";
 import { captureHeldCard } from "../cardHold";
 import {
@@ -239,9 +239,8 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
         await page.keyboard.press("Escape").catch(() => {});
       }
     }
-    const link = page.locator("#enableStripePass");
-    if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true }).catch(() => {});
     for (let attempt = 1; attempt <= 3; attempt++) {
+      await untickStripeLink(page);
       await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
       await page.getByTestId("hosted-payment-submit-button").click();
       const left = await page

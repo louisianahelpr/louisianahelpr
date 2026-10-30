@@ -256,6 +256,8 @@ try {
         const f = page.locator(id);
         if ((await f.count()) && (await f.isVisible().catch(() => false))) { await f.fill(v).catch(() => {}); await page.keyboard.press("Escape").catch(() => {}); }
       }
+      // Stripe draws the ticked Link box after the address; let it appear, then untick.
+      await page.waitForTimeout(2_000);
       const link = page.locator("#enableStripePass");
       if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true }).catch(() => {});
       await page.getByTestId("hosted-payment-submit-button").click();

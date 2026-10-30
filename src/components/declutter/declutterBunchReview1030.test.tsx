@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterBunchRow.tsx |       {open && <div className="border-t border-border">{children}</div>} |       <div className="border-t border-border">{children}</div>
  * @mutate src/components/declutter/DeclutterBunchRow.tsx |     if (nextPriceId) document.getElementById(nextPriceId)?.focus(); |     void nextPriceId;
  * @mutate src/components/declutter/DeclutterBunchRow.tsx | inputMode="decimal" enterKeyHint="next" | inputMode="decimal"
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     return new Set(live.length > 0 ? live : items.map((it) => it.key)); |     return new Set(items.map((it) => it.key));
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |     return new Set(live.length > 0 ? live : sortedItems.map((it) => it.key)); |     return new Set(sortedItems.map((it) => it.key));
  * @mutate src/lib/declutter/bunch.ts |     if (!it.aiPrice \|\| !Number.isFinite(was)) { |     if (false) {
  * Finding 3, photos:
  * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | onClick={() => setBig(k)} data-bunch-photo={k} | onClick={() => toggle(k)} data-bunch-photo={k}

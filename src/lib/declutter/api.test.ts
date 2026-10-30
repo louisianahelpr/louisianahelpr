@@ -13,14 +13,14 @@
  * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e)); |       p_not_a_frequent_seller: false,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e));
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
  * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
- * @mutate src/lib/declutter/api.ts |     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL, |     cacheControl: "3600",
- * @mutate src/lib/declutter/api.ts |   if (error) {\n    const { error: rmErr } = await bucket.remove([path]); |   if (error) {\n    const rmErr = null as { message: string } \| null;
+ * @mutate src/lib/declutter/api.ts | upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL }); | upsert: false, cacheControl: "3600" });
+ * @mutate src/lib/declutter/api.ts |       const { error: rmErr } = await bucket.remove([path]);\n      if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message); |       const rmErr = null as { message: string } \| null;\n      if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message);
  * @mutate src/lib/declutter/api.ts |   if (itemIds.length === 0) return []; |   if (false) return [];
  * @mutate src/lib/declutter/api.ts |   if (paths.length === 0) return; |   if (false) return;
  * @mutate src/lib/declutter/api.ts |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }) |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note })
  * @mutate src/lib/declutter/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     if (msg) e.userMessage = msg;
- * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
- * @mutate src/lib/declutter/api.ts |   const cleaned = await cleanListingPhoto(file);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   const cleaned = await cleanListingPhoto(file);\n  if (false) throw new Error("photo_not_uploaded");
+ * @mutate src/lib/declutter/api.ts |       throw new Error("photo_not_uploaded");\n    },\n    attach: |       return;\n    },\n    attach:
+ * @mutate src/lib/declutter/api.ts |   const cleaned = await cleanListingPhoto(file, size, quality);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   const cleaned = await cleanListingPhoto(file, size, quality);\n  if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/api.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
@@ -635,7 +635,7 @@ describe("RPC writes", () => {
 // @mutate src/lib/declutter/api.ts |       if (isNetworkFailure(error)) throw new Error(error.message); |       void isNetworkFailure;
 // @mutate src/lib/declutter/api.ts | .eq("item_id", itemId).eq("storage_path", path).maybeSingle(); | .eq("item_id", itemId).maybeSingle();
 // @mutate src/lib/declutter/api.ts | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new PhotoUploadRefused("photo_not_uploaded"); | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new Error("photo_not_uploaded");
-// @mutate src/lib/declutter/api.ts | cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY) | cleanListingPhoto(file)
+// @mutate src/lib/declutter/api.ts | const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, ...hooks } = options; | const { size = 1920, quality = 0.82, ...hooks } = options;
 describe("addPhotoSteadily", () => {
   const file = new File(["raw"], "raw.png", { type: "image/png" });
   const cleaned = new File(["clean"], "clean.jpg", { type: "image/jpeg" });

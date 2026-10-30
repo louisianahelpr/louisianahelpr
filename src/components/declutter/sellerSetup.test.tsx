@@ -14,7 +14,7 @@
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |         <SellerSetupGate>\n          <Suspense fallback={<DeclutterSellSkeleton />}>\n            <BunchFlow moving={params.get("mode") === "moving"} />\n          </Suspense>\n        </SellerSetupGate> |         <BunchFlow moving={params.get("mode") === "moving"} />
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
@@ -119,7 +119,8 @@ describe("one-time setup before posting", () => {
     expect(state.savedPlaces).toHaveLength(0);
     expect(document.querySelector("[data-setup-problem]")).toBeNull();
     fireEvent.click(share);
-    await waitFor(() => expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull());
+    await screen.findByText("Got it. We'll use where you are now.");
+    expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull();
     expect(state.savedPlaces).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByText("the posting form");

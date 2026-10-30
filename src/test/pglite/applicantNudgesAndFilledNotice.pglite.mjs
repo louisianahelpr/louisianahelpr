@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030135219_applicant_nudges_and_filled_notice.sql (owner 2026-10-29, audit
+ * PGlite proof for 20261030150630_applicant_nudges_and_filled_notice.sql (owner 2026-10-29, audit
  * page UX-3, Q2484: "nudge posters after 24 h; tell other applicants kindly when a job fills, with
  * similar jobs").
  *
@@ -35,7 +35,7 @@ const names = read("20261021131322_member_names_first_and_initial.sql");
 const MDN = names.match(/CREATE OR REPLACE FUNCTION public\.member_display_name\([\s\S]*?\n\$fn\$;/)?.[0];
 if (!MDN) throw new Error("member_display_name not found in 20261021131322");
 
-const FILE = "20261030135219_applicant_nudges_and_filled_notice.sql";
+const FILE = "20261030150630_applicant_nudges_and_filled_notice.sql";
 let SQL = read(FILE);
 if (process.env.LH_PROOF_REVERT) {
   const filled = SQL.indexOf("    ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL");

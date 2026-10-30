@@ -27,7 +27,7 @@ const FIELD_WORD: Record<SummaryField, string> = {
   description: "details",
 };
 
-function Row({ field, title, value, empty, open, onToggle, busy, children, extra }: {
+function Row({ field, title, value, empty, open, onToggle, busy, children, extra, problem }: {
   field: SummaryField;
   title: string;
   value: string;
@@ -37,6 +37,8 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
   busy: boolean;
   children: ReactNode;
   extra?: ReactNode;
+  /** What blocks Post in this row, once Post was tapped (audit DC-2: said in the row, not only by the button). */
+  problem?: ReactNode;
 }) {
   const verb = open ? "Done" : empty ? "Add" : "Edit";
   return (
@@ -57,21 +59,23 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
         </button>
       </div>
       {open && children}
+      {problem}
       {extra}
     </li>
   );
 }
 
-export function SellSummaryCard({ s, open, setOpen, priceExtras }: {
+export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
   s: SellFlow;
   open: SummaryField | null;
   setOpen: (u: (o: SummaryField | null) => SummaryField | null) => void;
   priceExtras: ReactNode;
+  problems?: Partial<Record<SummaryField, ReactNode>>;
 }) {
   const { form, set, ai, hintAt, priceCents } = s;
   const busy = ai.state.status === "busy";
   const toggle = (f: SummaryField) => setOpen((o) => (o === f ? null : f));
-  const row = (field: SummaryField) => ({ field, open: open === field, onToggle: () => toggle(field), busy });
+  const row = (field: SummaryField) => ({ field, open: open === field, onToggle: () => toggle(field), busy, problem: problems?.[field] });
   const draft = ai.state.status === "done" ? ai.state.draft : null;
   return (
     <section className="space-y-2" aria-labelledby="sell-summary-head">

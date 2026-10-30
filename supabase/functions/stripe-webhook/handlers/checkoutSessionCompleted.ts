@@ -807,8 +807,9 @@ async function settleCheckoutSession(
               type: "payment",
               // `&user=` names the SUBJECT, the donor (Q139): the Q137 seed
               // boundary reads it, so a seed donor never notifies a real
-              // recipient. Nothing on /profile reads `user`.
-              link: `/profile?tab=gift_card&user=${donorId}`,
+              // recipient. Nothing on /profile reads `user`. `show=received` opens
+              // the cards sent to the viewer, not the send-a-gift form above them.
+              link: `/profile?tab=gift_card&show=received&user=${donorId}`,
             });
           }
 

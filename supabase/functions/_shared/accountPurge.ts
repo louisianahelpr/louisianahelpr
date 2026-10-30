@@ -152,7 +152,7 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series" | "declutter" | "shops" | "money_owed";
+  reason?: "job" | "series" | "declutter" | "shops" | "money_owed" | "fee_owed";
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -611,6 +611,64 @@ async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string):
   }
   if (claw.data && claw.data.length > 0) {
     return { ok: true, active: true, detail: `clawback ${claw.data[0].id}`, reason: "money_owed" };
+  }
+  return { ok: true, active: false };
+}
+
+/**
+ * Q2171: what the member is told when a fee they OWE blocks deleting their
+ * account (a card fee from a Helpr-at-fault refund, or a Declutter seller's
+ * card fee after a refund). Both come out of the member's next payout.
+ */
+export const FEE_DEBT_BLOCKS_DELETION_MESSAGE =
+  "You still owe a card fee from a refunded job or Declutter sale. It comes out of your next payout. You can delete your account once it is paid off; if no payout is coming, contact support to settle it.";
+
+/**
+ * A Helpr-at-fault ruling the member still owes on: a card fee left to pay
+ * (card_fee_remaining_cents > 0), or a ruling whose full refund has not been
+ * priced yet (card_fee_cents null: the refund or its bill has not finished,
+ * and admin_bill_helpr_fault can still bill it).
+ */
+export const FEE_DEBT_RULING_FILTER = "card_fee_cents.is.null,card_fee_remaining_cents.gt.0";
+
+/**
+ * Q2171 (lh-money-escrow@c4ec33afb#4): a fee debt the member OWES. Not part of
+ * findActiveWork: that check also gates the under-13 deletion (which the law
+ * requires) and the admin delete, where a debt is no reason to keep an account.
+ * delete-own-account calls this one itself. job_helpr_fault_rulings.helper_id is
+ * SET NULL on delete and declutter_seller_fee_debts CASCADE with the account,
+ * so deleting now would lose the debt (the owner rule is never absorb a fee).
+ * Fails closed on a read error; a missing TABLE (42P01 / PGRST205) owes nothing.
+ */
+export async function findFeeDebtOwed(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  if (!UUID_RE.test(userId)) return { ok: false, active: false, detail: "userId is not a UUID" };
+  // A missing TABLE only, never a missing column (42703 fails closed).
+  const tableAbsent = (e: { code?: string }) => e.code === "42P01" || e.code === "PGRST205";
+  const ruling: PostgrestLike<{ id: string }[]> = await admin
+    .from("job_helpr_fault_rulings")
+    .select("id")
+    .eq("helper_id", userId)
+    .or(FEE_DEBT_RULING_FILTER)
+    .limit(1);
+  if (ruling.error && !tableAbsent(ruling.error)) {
+    console.error(`[accountPurge] Helpr-at-fault fee check failed for ${userId}:`, ruling.error.message);
+    return { ok: false, active: false, detail: ruling.error.message };
+  }
+  if (ruling.data && ruling.data.length > 0) {
+    return { ok: true, active: true, detail: `helpr fault ruling ${ruling.data[0].id}`, reason: "fee_owed" };
+  }
+  const seller: PostgrestLike<{ id: string }[]> = await admin
+    .from("declutter_seller_fee_debts")
+    .select("id")
+    .eq("seller_id", userId)
+    .gt("remaining_cents", 0)
+    .limit(1);
+  if (seller.error && !tableAbsent(seller.error)) {
+    console.error(`[accountPurge] Declutter fee-debt check failed for ${userId}:`, seller.error.message);
+    return { ok: false, active: false, detail: seller.error.message };
+  }
+  if (seller.data && seller.data.length > 0) {
+    return { ok: true, active: true, detail: `declutter fee debt ${seller.data[0].id}`, reason: "fee_owed" };
   }
   return { ok: true, active: false };
 }

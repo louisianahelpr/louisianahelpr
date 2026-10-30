@@ -4,7 +4,7 @@
  * The pick is required by the server for porch pickup and Helpr delivery from a seller with places
  * (porch_place_needed), and frozen on the order at checkout. Afterwards the order shows the frozen place.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -26,8 +26,13 @@ export const PORCH_PLACES_WAIT_MS = 3000;
  * The seller's places for this cart, and whether a checkout that needs a place can go ahead. A failed read, or one
  * still going after PORCH_PLACES_WAIT_MS, does not hold the Pay button: most sellers have no places, and the server
  * still refuses a missing pick (porch_place_needed). If the read then brings places, Pay waits for the pick again.
+ *
+ * A seller with exactly one place (every first-timer: setup saves their address as "Home") has nothing to choose, so
+ * that place is picked for the buyer and Pay is not held. The server still gets the pick as usual, once a place is
+ * `needed`; `whenPicked` lets Pay wait for that call so a fast tap never meets porch_place_needed.
  */
-export function useSellerPorchPlaces(sellerId: string, cartKey: number) {
+export function useSellerPorchPlaces(sellerId: string, cartKey: number, needed = true) {
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: placesKey(sellerId, cartKey), queryFn: () => fetchSellerPorchPlaces(sellerId) });
   const [waitedOut, setWaitedOut] = useState(false);
   useEffect(() => {
@@ -36,8 +41,24 @@ export function useSellerPorchPlaces(sellerId: string, cartKey: number) {
     const timer = setTimeout(() => setWaitedOut(true), PORCH_PLACES_WAIT_MS);
     return () => clearTimeout(timer);
   }, [q.isLoading, sellerId, cartKey]);
-  const places: SellerPorchPlace[] = q.data && q.data !== PORCH_PLACES_NOT_DEPLOYED ? q.data : [];
-  return { query: q, places, ready: (!q.isLoading || waitedOut) && (places.length === 0 || places.some((p) => p.chosen)) };
+  const read: SellerPorchPlace[] = q.data && q.data !== PORCH_PLACES_NOT_DEPLOYED ? q.data : [];
+  const only = read.length === 1 ? read[0] : null;
+  const picking = useRef<Promise<void> | null>(null);
+  const sent = useRef<string | null>(null);
+  useEffect(() => {
+    if (!needed || !only || only.chosen || sent.current === only.id) return;
+    sent.current = only.id;
+    picking.current = chooseSellerPorchPlace(sellerId, only.id)
+      .then(() => qc.invalidateQueries({ queryKey: placesKey(sellerId, cartKey) }))
+      .catch((err: unknown) => {
+        // Said, and sent again on the next read (a refused checkout reads the places again).
+        sent.current = null;
+        toast.error(declutterErrorMessage(err));
+      });
+  }, [needed, only, sellerId, cartKey, qc, q.dataUpdatedAt]);
+  const whenPicked = useCallback(() => picking.current ?? Promise.resolve(), []);
+  const places = only ? [{ ...only, chosen: true }] : read;
+  return { query: q, places, whenPicked, ready: (!q.isLoading || waitedOut) && (places.length === 0 || places.some((p) => p.chosen)) };
 }
 
 export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen }: {
@@ -60,6 +81,18 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
   });
   if (loadError) return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(loadError)} onRetry={onRetry} />;
   if (places.length === 0) return null;
+  // One place: nothing to choose (useSellerPorchPlaces has picked it). Still only its name, area and days.
+  if (places.length === 1) {
+    const p = places[0];
+    return (
+      <div className="space-y-1 rounded-xl border border-border p-3" data-porch-place-one="">
+        <p className="text-xs font-medium">Pickup place</p>
+        <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.label}</p>
+        <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{p.area} · {shortDays(p.weekdays)}</p>
+        <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>
+      </div>
+    );
+  }
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-porch-place-picker="">
       <legend className="px-1 text-xs font-medium">Pick a pickup place</legend>

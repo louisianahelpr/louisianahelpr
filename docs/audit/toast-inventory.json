@@ -10815,7 +10815,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10825,7 +10825,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 120,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10835,7 +10835,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 123,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10845,7 +10845,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10855,7 +10855,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 162,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10872,7 +10872,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 163,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10882,7 +10882,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 171,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10892,7 +10892,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10902,7 +10902,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10912,7 +10912,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10922,7 +10922,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 225,
+      "line": 226,
       "kind": "toast.error",
       "title": {
         "form": "literal",

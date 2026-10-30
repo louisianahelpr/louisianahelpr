@@ -50,7 +50,7 @@ function labelFiles(): string[] {
 }
 
 describe("Notify me when work lands is push only (Q1313)", () => {
-  it("inventory: the three button surfaces are found (floor, so the scan cannot go empty)", () => {
+  it("inventory: the four button surfaces are found (floor, so the scan cannot go empty)", () => {
     const found = labelFiles();
     expect(found.length).toBeGreaterThan(2);
     const files = found.map((f) => f.replace(/^.*src\//, "src/")).sort();
@@ -58,6 +58,7 @@ describe("Notify me when work lands is push only (Q1313)", () => {
       "src/components/dashboard/EmptyFeedActions.tsx",
       "src/components/dashboard/GuestEmptyStateActions.tsx",
       "src/pages/home/DashboardGuest.tsx",
+      "src/pages/jobs/EmptyJobsWaysOut.tsx",
     ]);
   });
 

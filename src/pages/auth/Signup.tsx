@@ -38,6 +38,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
+import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { useLanguage } from "@/lib/i18n/language";
 
 const Signup = () => {
@@ -111,26 +112,7 @@ const Signup = () => {
   // ProfileEditForm — resolved as the user types so both hints below can
   // render before submit, not just at it.
   const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
-  // The hint needs the parish tables (9 KB gz), and only once a ZIP has resolved, so
-  // they stay off this page's first download. A failed load only means no hint: the
-  // hint is soft and never blocks signing up.
-  const [cityZipMismatch, setCityZipMismatch] = useState<string | null>(null);
-  useEffect(() => {
-    if (!resolvedZipParish) {
-      setCityZipMismatch(null);
-      return;
-    }
-    let live = true;
-    void import("@/lib/cityZipMismatch").then(
-      ({ cityZipMismatchHint }) => {
-        if (live) setCityZipMismatch(cityZipMismatchHint(location, resolvedZipParish));
-      },
-      (err: unknown) => report(err, { severity: "warning", tags: { source: "Signup.cityZipMismatch" } }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [location, resolvedZipParish]);
+  const cityZipMismatch = useCityZipMismatch(location, resolvedZipParish);
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred

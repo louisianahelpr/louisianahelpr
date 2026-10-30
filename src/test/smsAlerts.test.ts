@@ -77,8 +77,8 @@ describe("SMS alerts source rules", () => {
     expect(src).not.toMatch(/from\(\s*['"]notifications['"]/);
   });
 
-  // @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql |     WHEN p_type = 'warning' AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type = 'warning' THEN 'dispute'
-  // @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
+  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type IN ('warning', 'job_updates') AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type IN ('warning', 'job_updates') THEN 'dispute'
+  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
   it("the classifier reaches warning/payment/financial types only by exact title, never admin/system/review", () => {
     const trg = newestTrigger("notifications_fan_out_to_sms");
     expect(trg).toMatch(/AFTER\s+INSERT\s+ON\s+public\.notifications/i);
@@ -89,7 +89,7 @@ describe("SMS alerts source rules", () => {
     }
     const body = newestFunctionBody("sms_kind_for");
     expect(body.length).toBeGreaterThan(400);
-    const whens = [...body.matchAll(/WHEN\s+([\s\S]*?)\s+THEN\s+'([a-z_]+)'/g)].map((m) => ({ cond: m[1].replace(/\s+/g, " "), kind: m[2] }));
+    const whens = [...body.matchAll(/WHEN\s+([\s\S]*?)\s+THEN\s+'([a-z_]+)'/g)].map((m) => ({ cond: m[1].split(/\sTHEN\s+NULL\s+WHEN\s/).pop()!.replace(/\s+/g, " "), kind: m[2] })); // A THEN NULL branch never texts: only what follows it is this branch.
     expect(whens.length).toBeGreaterThan(10);
     for (const w of whens) {
       // A shared type is only ever reached through an exact title.
@@ -107,7 +107,7 @@ describe("SMS alerts source rules", () => {
   // NO TEXT FOR A NEARBY OR MATCHING JOB (owner ruling 2026-10-23, Twilio A2P). Behaviour (a waiting one skipped, a
   // new one never queued, the claim never hands one out) is proved in src/test/pglite/smsNoNearbyJobTexts.pglite.mjs;
   // the sender's refusal in src/test/edge/sms-alerts.test.ts. These are the anchors.
-  // @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
+  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
   // @mutate supabase/functions/_shared/smsPolicy.ts |   job_offer: "New job offer. Answer before it expires.", |   job_offer: "New job offer. Answer before it expires.",\n  job_match: "A new job was posted near you.",
   it("a nearby-job (job_match) notification is never texted, and no text can be built for one", () => {
     const body = newestFunctionBody("sms_kind_for").replace(/\s+/g, " ");

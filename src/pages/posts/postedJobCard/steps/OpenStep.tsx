@@ -84,7 +84,7 @@ export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked, applicant
         <JobActionChip key="cancel" icon={XCircle} label="Cancel" ariaLabel="Cancel job" tone="danger" onClick={() => onCancel(job)} />,
         <ShareJobButton
           key="share"
-          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+          job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category }}
           layout="stack"
           className={JOB_ACTION_CHIP_CLASS}
           style={jobActionChipStyle("share")}

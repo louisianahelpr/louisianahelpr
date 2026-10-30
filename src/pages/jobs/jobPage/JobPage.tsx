@@ -170,7 +170,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           <ShareJobButton
             variant="icon"
             bare
-            job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: job.location ? getCity(job.location) : undefined }}
+            job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: job.location ? getCity(job.location) : undefined }}
           />
         ) : undefined
       }

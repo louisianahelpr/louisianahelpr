@@ -181,7 +181,7 @@ export function useSellFlowState(urlItemId: string | null) {
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
   const resumedEmpty = !!urlItemId && loadedId === urlItemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
-  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !urlItemId && held.length > 0 && broughtBack !== "written", autoFillEmpty: resumedEmpty, onDraft: setCoverFirst });
+  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !urlItemId && held.length > 0 && broughtBack !== "written", autoFillEmpty: resumedEmpty, photosAdded: itemId ? 0 : held.length, onDraft: setCoverFirst });
   const prefillFor = urlItemId || broughtBack !== "no" ? undefined : user?.id;
   const usedLastSetup = useLastListingSetup(prefillFor, { setForm, setWays, setCoords });
   // Saved settings are the source once they exist (owner 2026-10-30): they replace what the last listing filled in,
@@ -206,7 +206,9 @@ export function useSellFlowState(urlItemId: string | null) {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
-  const keptWork = useSellSaved(urlItemId || answer ? undefined : user?.id, { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId }, held, (back) => {
+  const keptWork = useSellSaved(urlItemId || answer ? undefined : user?.id, { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, aiMemory: ai.memory.current, sizeKnown }, held, (back) => {
+    setSizePicked(back.sizeKnown === true);
+    ai.remember(back.aiMemory ?? null, back.held.length);
     setBroughtBack(back.form.title.trim() ? "written" : "unwritten");
     setForm(back.form);
     setCoords(back.coords);

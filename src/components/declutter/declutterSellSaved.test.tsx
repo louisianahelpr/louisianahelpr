@@ -53,7 +53,9 @@ vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: Rea
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [{ id: "pl", position: 1, label: "Home", address: "100 Main Street, Baton Rouge, LA 70802", area: "Mid-City, Baton Rouge", lat: 30.45, lng: -91.15, weekdays: [6] }] }));
+// The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => h.draftRow,
@@ -146,6 +148,17 @@ describe("a new listing is kept on this device", () => {
     expect(h.aiCalls).toBe(1);
   });
 
+  it("after a reload, Write it again still keeps the seller's edit", async () => {
+    await startAndEdit();
+    cleanup();
+    open();
+    await screen.findByText("We kept your listing from last time.");
+    fireEvent.click(screen.getByRole("button", { name: "Write my listing" }));
+    await waitFor(() => expect(h.aiCalls).toBe(2));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(rowValue("title")).toBe("Grandma's dresser");
+  });
+
   it("nothing to keep before there is a photo or a word", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -165,8 +178,6 @@ describe("a new listing is kept on this device", () => {
 
   it("posting clears what was kept, so nothing comes back", async () => {
     await startAndEdit();
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
-    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await screen.findByText("Selling tab");
@@ -176,8 +187,6 @@ describe("a new listing is kept on this device", () => {
   it("a failed publish then a reload updates the same draft, never a second one", async () => {
     await startAndEdit();
     h.publishFails = true;
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
-    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(savedMeta()?.createdId).toBe(NEW_ID));

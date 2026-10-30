@@ -12,6 +12,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
+import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
@@ -824,7 +825,7 @@ export async function requestAiDraft(itemId: string, at: AiHintPoint = null): Pr
 }
 
 /** How many of a new listing's photos Claude looks at (the edge function's draft mode reads 4 too). */
-export const AI_DRAFT_PHOTOS = 4;
+export { AI_DRAFT_PHOTOS };
 
 /**
  * Owner 2026-10-28: Claude writes a NEW listing from the photos still on the

@@ -6150,6 +6150,30 @@ export type Database = {
           },
         ]
       }
+      job_post_drafts: {
+        Row: {
+          draft: Json
+          reminded_at: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          draft: Json
+          reminded_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          draft?: Json
+          reminded_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_quote_offers: {
         Row: {
           by_side: string
@@ -14260,6 +14284,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      clear_my_job_post_draft: { Args: never; Returns: undefined }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
       declutter_add_handover: {
@@ -15724,6 +15749,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      my_job_post_draft: { Args: never; Returns: Json }
       objectionable_reason: { Args: { p_text: string }; Returns: string }
       referral_member_has_completed_job: {
         Args: { p_user: string }
@@ -15733,6 +15759,7 @@ export type Database = {
         Args: { p_job_id: string; p_user: string }
         Returns: undefined
       }
+      save_my_job_post_draft: { Args: { p_draft: Json }; Returns: undefined }
       sms_phone_prompt_due: { Args: { p_moment: string }; Returns: boolean }
       dismiss_sms_phone_prompt: { Args: never; Returns: string }
       get_quotes_for_request: {
@@ -19054,6 +19081,7 @@ export type Database = {
         Returns: number
       }
       sweep_job_match_queue: { Args: never; Returns: number }
+      sweep_job_post_drafts: { Args: { p_now?: string }; Returns: number }
       sweep_job_start_reminders: { Args: never; Returns: number }
       sweep_no_show_alerts: { Args: never; Returns: number }
       sweep_old_email_send_log: { Args: never; Returns: number }

@@ -49,3 +49,12 @@ EXCEPTION WHEN undefined_object THEN
   NULL;
 END;
 $$;
+
+-- Q807: refuse writes from an unconfirmed email on the new table(s) (standard guarded attach).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

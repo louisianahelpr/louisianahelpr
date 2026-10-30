@@ -840,3 +840,12 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;
+
+-- Q807: refuse writes from an unconfirmed email on the new table(s) (standard guarded attach).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

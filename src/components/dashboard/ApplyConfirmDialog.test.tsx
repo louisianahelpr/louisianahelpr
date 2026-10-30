@@ -1,7 +1,10 @@
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = !confirmApplyJob?.is_group_job; |   const single = true;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           event.preventDefault(); |           void event;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
-import { describe, it, expect, vi } from "vitest";
+// @mutate src/components/dashboard/ApplyConfirmDialog.tsx | ${applySheetPrice(job)}</span> | ${job.budget}</span>
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | `Apply at $${applySheetPrice(confirmApplyJob)}` | `Apply at $${confirmApplyJob.budget}`
+// @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts |   if (!isGiveawayFixedPayJob(job)) return formatPrice(job.budget); |   if (false) return formatPrice(job.budget);
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ApplyConfirmDialog } from "./ApplyConfirmDialog";
@@ -37,8 +40,9 @@ vi.mock("@/hooks/useAwardBlockReason", () => ({
 // needs the profile and a platform_settings query. 0 = fee already paid, the
 // state every test here assumed; the fee line itself is covered by
 // ApplyEarningsBreakdown.test.tsx.
+const owedFee = vi.hoisted(() => ({ cents: 0 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({
-  useFirstPayoutFeeCents: () => 0,
+  useFirstPayoutFeeCents: () => owedFee.cents,
 }));
 
 function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
@@ -384,6 +388,38 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     unmount();
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ budget: 200, is_group_job: true, helpers_needed: 4 }) })} />);
     expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
+  });
+
+  // Owner 2026-10-30 (lead's decision, T1 saw $60 around the $50): applying to the giveaway shows $50 only.
+  describe("the price on the card and the button", () => {
+    const stamp = { budget: 60, urgent_fee: 0, helper_fee_percent: 5 };
+    afterEach(() => { owedFee.cents = 0; cleanup(); });
+
+    for (const cents of [0, 200]) {
+      const owing = cents ? ", setup fee owed" : "";
+      it(`the giveaway says $50 on both, with no $60, no take-home words and no setup fee${owing}`, () => {
+        owedFee.cents = cents;
+        render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ ...stamp, helper_fee_flat_cents: 700 }) })} />);
+        expect(screen.getByTestId("apply-job-summary").textContent).toContain("$50");
+        expect(screen.getByRole("button", { name: "Apply at $50" })).toBeEnabled();
+        const sheet = document.body.textContent ?? "";
+        expect(sheet).not.toContain("$60");
+        expect(sheet).not.toContain("$48");
+        expect(sheet).not.toMatch(/take[\s-]?home/i);
+        expect(sheet).not.toMatch(/setup fee/i);
+      });
+
+      it(`every other job keeps its price on both and its take-home below${owing}`, () => {
+        owedFee.cents = cents;
+        render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ ...stamp, helper_fee_flat_cents: 70 }) })} />);
+        expect(screen.getByTestId("apply-job-summary").textContent).toContain("$60");
+        expect(screen.getByRole("button", { name: "Apply at $60" })).toBeEnabled();
+        const sheet = document.body.textContent ?? "";
+        expect(sheet).toContain(cents ? "$54" : "$56");
+        expect(sheet).toMatch(/take home/i);
+        if (cents) expect(sheet).toMatch(/setup fee/i);
+      });
+    }
   });
 
   // Deep audit 2026-10-28: with only the "a neighbor" fallback name, the note label read "Say hi to a".

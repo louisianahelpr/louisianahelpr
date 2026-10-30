@@ -250,6 +250,8 @@ export function ApplicantsEmptyState({
     id: selectedJob.id,
     title: selectedJob.title,
     budget: selectedJob.budget,
+    helper_fee_flat_cents: selectedJob.helper_fee_flat_cents,
+    helper_fee_percent: selectedJob.helper_fee_percent,
     category: selectedJob.category,
   };
   const sharePrimary = <ShareJobButton variant="primary" job={shareJob} />;

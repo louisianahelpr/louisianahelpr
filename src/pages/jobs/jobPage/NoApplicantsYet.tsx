@@ -32,7 +32,7 @@ export function NoApplicantsYet({ job, onManage }: { job: JobPageRow; onManage: 
       </p>
       <h3 className="pt-2 text-left text-ds-12 font-semibold uppercase tracking-wide text-muted-foreground">Want replies sooner?</h3>
       <div className="space-y-2 text-left">
-        <ShareJobButton job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: city ?? undefined }} />
+        <ShareJobButton job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: city ?? undefined }} />
         <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
           {rows.map((r) => (
             <li key={r.key}>

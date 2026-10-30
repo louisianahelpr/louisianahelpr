@@ -223,7 +223,7 @@ describe("the Working card's one button (board 21)", () => {
     expect(helperFaceAction({ ...s, isMinimalCard: true, isOffered: false, owesReview: false })).toBeNull();
   });
   it("a review owed: Leave a review, else Manage job", () => {
-    expect(helperFaceAction({ ...s, isMinimalCard: false, isOffered: false, owesReview: true })?.label).toBe("Leave a review");
+    expect(helperFaceAction({ ...s, isMinimalCard: false, isOffered: false, owesReview: true, posterId: "poster-1" })?.label).toBe("Leave a review");
     expect(helperFaceAction({ ...s, isMinimalCard: false, isOffered: false, owesReview: false })?.label).toBe("Manage job");
   });
 });

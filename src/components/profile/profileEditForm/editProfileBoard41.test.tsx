@@ -21,6 +21,7 @@ const idCheck = vi.hoisted(() => ({ opened: [] as string[] }));
 // Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
 // this file tests the setup flow itself; the paused state is
 // src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/lib/identityCheck", async (orig) => ({
   ...(await orig<typeof import("@/lib/identityCheck")>()),

@@ -63,6 +63,8 @@ export const SURFACES: Surface[] = [
     note: "dispute timeline \"talk to us\" link (Builder 5 problems-s1b): opens /support on the message topic" },
   { file: "src/components/SosShareButton.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "SOS sheet \"talk to support\" (Builder 5 problems-s1b): opens /support on the message topic" },
+  { file: "src/components/help/HelpEntry.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+    note: "the top bars' Help lifebuoy, Get help now (UX-6): opens /support on the message topic" },
   { file: "src/main.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "shake-to-report opens /support?topic=report" },
   { file: "src/pages/jobs/appliedJobCard/DisputedSection.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",

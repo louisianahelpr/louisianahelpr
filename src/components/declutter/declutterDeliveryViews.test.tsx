@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | disabled={deliver.isPending \|\| !dropPhoto} | disabled={deliver.isPending}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
+ * @mutate src/components/declutter/StopActions.tsx |       await reportPickupNoShow(taskId, uploaded.current.path, where); |       await reportPickupNoShow(taskId, "", { lat: 0, lng: 0 });
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -70,6 +70,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   markPickedUp: async (...a: unknown[]) => { state.calls.push(["picked_up", ...a]); },
   markDelivered: async (...a: unknown[]) => { state.calls.push(["delivered", ...a]); return { result: "confirmed" }; },
   reportPickupNoShow: async (...a: unknown[]) => { state.calls.push(["no_show", ...a]); },
+  markHandedOver: async (...a: unknown[]) => { state.calls.push(["handed_over", ...a]); return { result: "handed_over" }; },
   confirmReceived: async (...a: unknown[]) => { state.calls.push(["got_it", ...a]); },
   saveVehicle: async (...a: unknown[]) => { state.calls.push(["vehicle", ...a]); },
   uploadTaskPhoto: async (_u: string, t: string) => `u1/task/${t}/photo.jpg`,
@@ -374,9 +375,11 @@ describe("DeliverView (the Helpr's screen)", () => {
   it("my delivery, taken: the pickup address, the \"Picked up\" photo, and backing out", async () => {
     state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
       trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2026-10-20T15:00:00Z", payout_status: null }];
-    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2099-10-20T15:00:00Z", pickup_address: "1234 Example St" };
+    // Inside the window (audit 1c #1): 10 minutes before the pickup.
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: new Date(Date.now() + 10 * 60_000).toISOString(), pickup_address: "1234 Example St" };
     show(<DeliverView />);
     expect(await screen.findByText("1234 Example St")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Photo of the item when you pick it up/)).toBeEnabled();
     expect(screen.queryByText(/Deliver to:/)).toBeNull();
     expect(screen.queryByRole("button", { name: "The seller wasn't there" })).toBeNull();
     fireEvent.change(screen.getByLabelText(/Photo of the item when you pick it up/), { target: { files: [jpeg()] } });
@@ -398,13 +401,68 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2000-01-01T15:00:00Z", pickup_address: "1234 Example St" };
     show(<DeliverView />);
     fireEvent.change(await screen.findByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
-    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | onPick={(f) => setAsk({ kind: "away", file: f })} | onPick={(f) => sellerAway.mutate(f)}
+    // @mutate src/components/declutter/StopActions.tsx | <PhotoPickButton id={`${id}-away`} disabled={report.isPending} onPick={setFile} /> | <PhotoPickButton id={`${id}-away`} disabled={report.isPending} onPick={(f) => report.mutate(f)} />
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Report that the seller wasn't there?");
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Report it" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  it("audit 1c #1: days before the pickup, \"Picked up\" waits, and says when it opens", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2099-10-20T15:00:00Z", payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: new Date(Date.now() + 2 * 86_400_000).toISOString(), pickup_address: "1234 Example St" };
+    show(<DeliverView />);
+    expect(await screen.findByText(/You can mark it picked up from .*, or once the seller taps Handed over\./)).toBeInTheDocument();
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | disabled={pickedUp.isPending \|\| opensAt !== null} | disabled={pickedUp.isPending}
+    expect(screen.getByLabelText(/Photo of the item when you pick it up/)).toBeDisabled();
+  });
+
+  it("audit 1c #1: after the seller's \"Handed over\" the Helpr can mark it picked up early", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2099-10-20T15:00:00Z", payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+      pickup_address: "1234 Example St", handed_over_at: new Date().toISOString() };
+    show(<DeliverView />);
+    expect(await screen.findByText("The seller says they handed it over.")).toBeInTheDocument();
+    expect(screen.queryByText(/You can mark it picked up from/)).toBeNull();
+    expect(screen.getByLabelText(/Photo of the item when you pick it up/)).toBeEnabled();
+  });
+
+  it("audit 1c #4: after \"The seller wasn't there\" the card says it is held and hides the steps", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2000-01-01T15:00:00Z", payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2000-01-01T15:00:00Z", pickup_address: "1234 Example St", problem_open: true };
+    show(<DeliverView />);
+    expect(await screen.findByText("Reported. Louisiana Helpr is deciding.")).toBeInTheDocument();
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "accepted" && !v.problem_open && ( |           {v.status === "accepted" && (
+    expect(screen.queryByLabelText(/Photo of the item when you pick it up/)).toBeNull();
+    expect(screen.queryByLabelText(/The seller wasn't there/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Back out" })).toBeNull();
+  });
+
+  it("audit 1c #1: the seller taps \"Handed over\" (asked in the app), and reads the Helpr's word as theirs until then", async () => {
+    state.view = { ...VIEW, role: "pickup_contact", status: "accepted", pickup_slot_start: "2026-10-17T20:00:00Z", helpr_first_name: "Hallie" };
+    show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Handed over" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Did you hand it to Hallie?");
+    expect(state.calls).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Handed over" }));
+    await waitFor(() => expect(state.calls[0]).toEqual(["handed_over", "t1"]));
+  });
+
+  it("audit 1c #1: a pickup the seller never confirmed reads \"says it was picked up\" to the seller", async () => {
+    state.view = { ...VIEW, role: "pickup_contact", status: "picked_up", picked_up_at: "2026-10-29T01:09:00Z", helpr_first_name: "Hallie" };
+    const { unmount } = show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    expect(await screen.findByText(/Hallie says it was picked up\. .*If you didn't hand it over, report a problem\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Handed over" })).toBeNull();
+    unmount();
+    state.view = { ...(state.view as object), handed_over_at: "2026-10-29T01:05:00Z" };
+    show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    expect(await screen.findByText(/Hallie picked it up\. You're paid when the buyer has it\./)).toBeInTheDocument();
   });
 
   it("my delivery, picked up: the drop-off needs a photo and no code (owner 2026-10-18)", async () => {

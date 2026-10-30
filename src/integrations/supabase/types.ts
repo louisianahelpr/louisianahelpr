@@ -4595,6 +4595,8 @@ export type Database = {
           dropoff_lng: number
           dropoff_photo_path: string | null
           fee_cents: number
+          handed_over_at: string | null
+          handed_over_to: string | null
           helpr_id: string | null
           id: string
           is_seed: boolean
@@ -4637,6 +4639,8 @@ export type Database = {
           dropoff_lng: number
           dropoff_photo_path?: string | null
           fee_cents: number
+          handed_over_at?: string | null
+          handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
           is_seed?: boolean
@@ -4679,6 +4683,8 @@ export type Database = {
           dropoff_lng?: number
           dropoff_photo_path?: string | null
           fee_cents?: number
+          handed_over_at?: string | null
+          handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
           is_seed?: boolean
@@ -15996,6 +16002,7 @@ export type Database = {
       helpr_task_distance_m: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       helpr_task_dropoff_shows_at: { Args: { p_helpr: string; p_slot: string; p_status: string }; Returns: string }
       helpr_task_fee_cents: { Args: { p_pay_cents: number }; Returns: number }
+      helpr_task_handed_over: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }

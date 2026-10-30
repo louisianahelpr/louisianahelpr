@@ -12,9 +12,11 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
+import { PickupWindowNote, SellerAwayStep, pickupOpensAt } from "./StopActions";
+import { SellerHandedOver } from "./SellerHandedOver";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
@@ -51,10 +53,8 @@ import {
   fetchOpenTasks,
   fetchTaskView,
   releaseTask,
-  reportPickupNoShow,
   saveVehicle,
   taskPhotoUrl,
-  uploadTaskPhoto,
   uploadVehiclePhoto,
   type MyTask,
   type OpenTask,
@@ -146,7 +146,12 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
       ? `${who} picks it up from the seller ${when(v.pickup_slot_start)}.`
       : `${who} picks it up ${when(v.pickup_slot_start)}. Have it ready.`;
   } else if (v.status === "picked_up") {
-    line = side === "buyer" ? `${who} has your item and is on the way.` : `${who} picked it up. You're paid when the buyer has it.`;
+    // Audit 1c #1: without the seller's "Handed over" the seller reads it as the Helpr's word.
+    line = side === "buyer"
+      ? `${who} has your item and is on the way.`
+      : v.handed_over_at
+        ? `${who} picked it up. You're paid when the buyer has it.`
+        : `${who} says it was picked up. You're paid when the buyer has it. If you didn't hand it over, report a problem.`;
   } else if (v.status === "delivered" && v.delivered_at) {
     line = side === "buyer"
       ? `${who} left it at your drop-off address ${when(v.delivered_at)}. Tap "I got it". If something is wrong, report a problem before it confirms itself ${when(new Date(new Date(v.delivered_at).getTime() + 24 * 3_600_000).toISOString())}.`
@@ -164,7 +169,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
   // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
   const events = [
     v.accepted_at && { key: "a", text: `${who} took the delivery`, at: v.accepted_at },
-    v.picked_up_at && { key: "p", text: `${who} picked it up from the seller`, at: v.picked_up_at },
+    v.picked_up_at && { key: "p", text: side === "seller" && !v.handed_over_at ? `${who} says it was picked up` : `${who} picked it up from the seller`, at: v.picked_up_at },
     v.delivered_at && { key: "d", text: `${who} left it at the drop-off`, at: v.delivered_at },
   ].filter(Boolean) as { key: string; text: string; at: string }[];
   return (
@@ -195,6 +200,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
           I got it
         </button>
       )}
+      {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
+      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} who={who} handedOverAt={v.handed_over_at} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
         Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours.
@@ -390,30 +397,19 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   // "Picked up" and "Left at the door" are shared with My route (useTaskSteps).
   const { pickedUp, delivered: deliverStep, done } = useTaskSteps(t.task_id, userId, () => setDropPhoto(null));
   const deliver = { isPending: deliverStep.isPending, mutate: () => deliverStep.mutate(dropPhoto) };
-  // Back out and "the seller wasn't there" ask in the app, never window.confirm (lead 2026-10-28).
-  const [ask, setAsk] = useState<{ kind: "backOut" } | { kind: "away"; file: File } | null>(null);
+  // Back out asks in the app, never window.confirm (lead 2026-10-28); "the seller wasn't there" is SellerAwayStep's.
+  const [ask, setAsk] = useState<{ kind: "backOut" } | null>(null);
   const backOut = useMutation({
     mutationFn: () => releaseTask(t.task_id),
     onSettled: () => setAsk(null),
     onSuccess: (r) => done(r.strike ? "You backed out less than 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const awayUploaded = useRef<{ file: File; path: string } | null>(null);
-  const sellerAway = useMutation({
-    mutationFn: async (file: File) => {
-      // Location first (a refusal uploads nothing), then the photo once per file.
-      const where = await currentPosition();
-      if (awayUploaded.current?.file !== file) awayUploaded.current = { file, path: await uploadTaskPhoto(userId, t.task_id, file) };
-      await reportPickupNoShow(t.task_id, awayUploaded.current.path, where);
-    },
-    onSettled: () => setAsk(null),
-    onSuccess: () => done("Reported. Louisiana Helpr will look at it and decide. You're not counted as a no-show meanwhile."),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
   const v = view.data;
   const pickId = `helpr-pick-${t.task_id}`;
   const dropId = `helpr-drop-${t.task_id}`;
-  const awayId = `helpr-away-${t.task_id}`;
+  // Audit 1c #1: "Picked up" opens 30 minutes before the pickup, or at once after the seller's "Handed over".
+  const opensAt = v && !v.handed_over_at ? pickupOpensAt(v.pickup_slot_start) : null;
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <p className="font-semibold truncate" title={t.title}>{t.title}</p>
@@ -439,24 +435,23 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
           {v.pickup_slot_start && <p className="text-sm">Pickup: <span className="font-medium">{when(v.pickup_slot_start)}</span></p>}
           {v.pickup_address && <p className="text-sm">Pick up at: <span className="font-medium">{v.pickup_address}</span></p>}
           {v.dropoff_address && <p className="text-sm">Deliver to: <span className="font-medium">{v.dropoff_address}</span></p>}
-          {v.status === "accepted" && (
+          {/* Audit 1c #4: after "The seller wasn't there" (or any problem on the sale) the steps wait for the decision. */}
+          {v.status === "accepted" && v.problem_open && (
+            <p className="text-sm font-semibold" role="status" data-task-held="">Reported. Louisiana Helpr is deciding.</p>
+          )}
+          {v.status === "accepted" && !v.problem_open && (
             <>
+              {v.handed_over_at && <p className="text-sm" data-task-handed-over="">The seller says they handed it over.</p>}
               <label htmlFor={pickId} className="block text-xs font-medium">Photo of the item when you pick it up, taken at the pickup address</label>
-              <PhotoPickButton id={pickId} disabled={pickedUp.isPending} onPick={(f) => pickedUp.mutate(f)} />
+              {opensAt && <PickupWindowNote opensAt={opensAt} />}
+              <PhotoPickButton id={pickId} disabled={pickedUp.isPending || opensAt !== null} onPick={(f) => pickedUp.mutate(f)} />
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} disabled={backOut.isPending}
                   onClick={() => setAsk({ kind: "backOut" })}>
                   Back out
                 </button>
               </div>
-              {v.pickup_slot_start && Date.now() >= new Date(v.pickup_slot_start).getTime() + 15 * 60_000 && (
-                <>
-                  <label htmlFor={awayId} className="block text-xs font-medium">
-                    The seller wasn't there: a photo of the door, taken at the pickup address
-                  </label>
-                  <PhotoPickButton id={awayId} disabled={sellerAway.isPending} onPick={(f) => setAsk({ kind: "away", file: f })} />
-                </>
-              )}
+              <SellerAwayStep taskId={t.task_id} userId={userId} slotStart={v.pickup_slot_start} onReported={done} />
             </>
           )}
           {v.status === "picked_up" && (
@@ -474,10 +469,6 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       <ConfirmSheet open={ask?.kind === "backOut"} title="Back out of this delivery?" confirmLabel="Back out" pending={backOut.isPending}
         onConfirm={() => backOut.mutate()} onClose={() => setAsk(null)} testId="delivery-back-out">
         Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike.
-      </ConfirmSheet>
-      <ConfirmSheet open={ask?.kind === "away"} title="Report that the seller wasn't there?" confirmLabel="Report it" pending={sellerAway.isPending}
-        onConfirm={() => { if (ask?.kind === "away") sellerAway.mutate(ask.file); }} onClose={() => setAsk(null)} testId="delivery-seller-away">
-        Your door photo goes to Louisiana Helpr, who looks at it and decides. You're not counted as a no-show meanwhile.
       </ConfirmSheet>
     </li>
   );

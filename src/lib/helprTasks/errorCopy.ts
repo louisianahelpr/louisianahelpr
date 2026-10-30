@@ -148,7 +148,18 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     refund_amount_unknown: DC.refund_amount_unknown,
     task_not_active: DC.task_not_active,
     task_not_found: DC.task_not_found,
+    // 20261030012018 (audit 1c #1): not before 30 minutes ahead of the pickup, unless the seller tapped Handed over.
+    too_early: "You can mark it picked up 30 minutes before the pickup time, or once the seller taps Handed over.",
     unknown_task_source: DC.unknown_task_source,
+  },
+  // The seller's "Handed over" (20261030012018).
+  helpr_task_handed_over: {
+    account_restricted: DC.account_restricted,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    problem_open: DC.problem_open,
+    task_not_active: "This delivery has no Helpr on it right now.",
+    task_not_found: DC.task_not_found,
   },
   helpr_task_pickup_no_show: {
     account_restricted: DC.account_restricted,

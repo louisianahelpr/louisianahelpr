@@ -5,7 +5,11 @@
  * @mutate supabase/functions/_shared/rate-limit.ts |   const subject = options.subject ?? jwtSubject(req); |   const subject = jwtSubject(req);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkRateLimit } from "../../../supabase/functions/_shared/rate-limit";
+
+// Loaded by path: the module is Deno code, outside the app's TypeScript project.
+type Limit = (req: Request, o: { windowMs: number; maxRequests: number; ipMaxRequests?: number; keyPrefix: string; subject?: string }) => Promise<unknown>;
+const MODULE = new URL("../../../supabase/functions/_shared/rate-limit.ts", import.meta.url).pathname;
+const checkRateLimit: Limit = async (req, o) => (await import(/* @vite-ignore */ MODULE)).checkRateLimit(req, o);
 
 const SUB = "11111111-1111-4111-8111-111111111111";
 const b64url = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64url");

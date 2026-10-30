@@ -43,6 +43,8 @@ export type SupportReplyRow = {
 /** What the edge function answers on success. */
 type ReplyResult = {
   success?: boolean;
+  /** A guest's ticket: there is no account, so email is the whole reply. */
+  guest?: boolean;
   notified?: boolean;
   email_queued?: boolean;
   has_email?: boolean;
@@ -78,7 +80,7 @@ export function emailStatusLabel(status: string): string {
 export function replyOutcomeMessage(name: string, r: ReplyResult): { ok: boolean; text: string } {
   const reached: string[] = [];
   const missed: string[] = [];
-  (r.notified ? reached : missed).push("in the app");
+  if (!r.guest) (r.notified ? reached : missed).push("in the app");
   if (r.has_email === false) missed.push("by email (no address on file)");
   else if (r.email_unconfirmed) missed.push("by email (their address isn't confirmed)");
   else (r.email_queued ? reached : missed).push("by email");
@@ -96,7 +98,7 @@ export function replyOutcomeMessage(name: string, r: ReplyResult): { ok: boolean
     : "";
   const tail = `${res.text}${record}`;
   const extrasOk = res.ok && r.outcome_recorded !== false;
-  if (missed.length === 0) return { ok: extrasOk, text: `Reply sent to ${name} in the app and by email.${tail}` };
+  if (missed.length === 0) return { ok: extrasOk, text: `Reply sent to ${name} ${r.guest ? "by email" : "in the app and by email"}.${tail}` };
   if (reached.length === 0) {
     return { ok: false, text: `Reply saved, but it did not reach ${name} ${missed.join(" or ")}.${tail}` };
   }
@@ -111,7 +113,7 @@ function replyWhen(iso: string): string {
 }
 
 /** The replies already sent on one ticket, oldest first. */
-export function SupportThread({ replies }: { replies: SupportReplyRow[] }) {
+export function SupportThread({ replies, byEmailOnly = false }: { replies: SupportReplyRow[]; byEmailOnly?: boolean }) {
   if (replies.length === 0) return null;
   return (
     <ol className="space-y-2" aria-label="Replies sent">
@@ -127,8 +129,7 @@ export function SupportThread({ replies }: { replies: SupportReplyRow[] }) {
           <p className="text-ds-11 text-foreground whitespace-pre-wrap break-words">{r.body}</p>
           <p className="text-ds-10 text-muted-foreground">
             {!r.outcome_recorded && <span className="text-destructive-ink">Delivery not fully recorded: check before resending · </span>}
-            {r.notified === null ? "In-app notice not recorded" : r.notified ? "In-app notice delivered" : "In-app notice not delivered"}
-            {" · "}
+            {!byEmailOnly && (r.notified === null ? "In-app notice not recorded · " : r.notified ? "In-app notice delivered · " : "In-app notice not delivered · ")}
             {emailStatusLabel(r.email_status)}
             {r.resolved_on_send && " · Resolved on send"}
           </p>
@@ -147,6 +148,7 @@ export function SupportReplyComposer({
   memberName,
   canResolve,
   disabledReason,
+  byEmailOnly = false,
   onSent,
 }: {
   ticketId: string;
@@ -154,6 +156,8 @@ export function SupportReplyComposer({
   canResolve: boolean;
   /** Set when there is no member to reach (deleted account): the button explains instead of opening. */
   disabledReason?: string;
+  /** A guest's ticket: no account to tell in the app. */
+  byEmailOnly?: boolean;
   onSent: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -217,7 +221,7 @@ export function SupportReplyComposer({
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={4}
-        placeholder="They get this in the app and by email."
+        placeholder={byEmailOnly ? "They get this by email." : "They get this in the app and by email."}
         aria-describedby={countId}
         aria-invalid={tooLong || undefined}
         disabled={sending}

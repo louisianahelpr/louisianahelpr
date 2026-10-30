@@ -150,6 +150,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/confirmLink.ts";`,
   );
 
+  // Guest support tickets: `_shared/supportGuest.ts` has ZERO imports, so point
+  // at the REAL module and the writer and reader stay under test together.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/supportGuest\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/supportGuest.ts";`,
+  );
+
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
   // point at the REAL module and the name rule stays under test.
   out = out.replace(

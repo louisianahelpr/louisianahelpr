@@ -157,6 +157,11 @@ export async function fetchMyReplyListings(userId: string): Promise<{ id: string
   return (rows ?? []) as { id: string; title: string; current_price_cents: number }[];
 }
 
+/** Audit 10-30 #12: a free listing has no price to offer (the server takes at least $1), so it can't answer a post. */
+export function canAnswerWanted(item: { current_price_cents: number }): boolean {
+  return item.current_price_cents >= 100;
+}
+
 /** Q2267 "I have this": an offer from one of your live listings, awaiting the poster. Returns the offer id. */
 export async function replyToWanted(wantedId: string, itemId: string, cents: number): Promise<string> {
   return rpcData(

@@ -24,9 +24,11 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellChooserEntry movingOutOn={movingOutOn} />\n | \n
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
- * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
+ * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(kept?.title \|\| p.title); |     setTitle(kept?.title \|\| p.title);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
  * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Help me list my things to sell"; | const SELL_FOR_ME_TITLE = "Help me list my things to sell, please";
+ * Audit 10-30 #14: a reload keeps what was typed; the template only fills an empty start.
+ * @mutate src/pages/post-job/useJobFormEffects.ts |     setDescription(kept?.description \|\| p.description); |     setDescription(p.description);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
@@ -238,30 +240,16 @@ describe("Sell it for me: B, ask a local business", () => {
   });
 });
 
-describe("Post a job reads ?sellForMe=1", () => {
-  it("skips the entry screen and pre-fills category, title and description", async () => {
-    const form = blankComments(readFileSync(join(process.cwd(), "src/pages/post-job/usePostJobForm.ts"), "utf8"));
-    expect(form).toMatch(/const skipEntry = !!\(searchParams\.get\(SELL_FOR_ME_PARAM\) \|\|/);
-    vi.resetModules();
-    vi.doMock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: false }) }));
-    vi.doMock("@/integrations/supabase/client", () => ({
-      supabase: { rpc: () => Promise.resolve({ data: null, error: null }), from: () => ({}) },
-    }));
-    const { useJobFormEffects } = await import("@/pages/post-job/useJobFormEffects");
-    const set = { category: "", title: "", description: "" };
-    const noop = () => {};
-    renderHook(() =>
-      useJobFormEffects({
-        searchParams: new URLSearchParams("sellForMe=1"),
+const noop = () => {};
+/** Every param the effects read, on an empty form; `over` holds the setters a test watches. */
+const effectParams = (over: Record<string, unknown>) => ({
+  searchParams: new URLSearchParams("sellForMe=1"),
         profile: null,
         flushDraft: noop,
         saveDraft: noop,
         setOnboardingFeeCents: noop,
         setOpenJobCount: noop,
         setOnboardingFeePaid: noop,
-        setTitle: (v) => { set.title = v; },
-        setDescription: (v) => { set.description = v; },
-        setCategory: (v) => { set.category = v; },
         setStreetAddress: noop,
         setCity: noop,
         setAddrState: noop,
@@ -298,8 +286,47 @@ describe("Post a job reads ?sellForMe=1", () => {
         includeMaterials: false,
         materialsNote: "",
         offerToHelperId: null,
-      }),
+  ...over,
+});
+
+describe("Post a job reads ?sellForMe=1", () => {
+  it("skips the entry screen and pre-fills category, title and description", async () => {
+    const form = blankComments(readFileSync(join(process.cwd(), "src/pages/post-job/usePostJobForm.ts"), "utf8"));
+    expect(form).toMatch(/const skipEntry = !!\(searchParams\.get\(SELL_FOR_ME_PARAM\) \|\|/);
+    vi.resetModules();
+    vi.doMock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: false }) }));
+    vi.doMock("@/integrations/supabase/client", () => ({
+      supabase: { rpc: () => Promise.resolve({ data: null, error: null }), from: () => ({}) },
+    }));
+    const { useJobFormEffects } = await import("@/pages/post-job/useJobFormEffects");
+    const set = { category: "", title: "", description: "" };
+    renderHook(() =>
+      useJobFormEffects(effectParams({
+        setTitle: (v: string) => { set.title = v; },
+        setDescription: (v: string) => { set.description = v; },
+        setCategory: (v: string) => { set.category = v; },
+      }) as never),
     );
     expect(set).toEqual(buildSellForMePrefill());
+  });
+
+  it("#14: a reload puts back what was typed, not the template", async () => {
+    const { useJobFormEffects } = await import("@/pages/post-job/useJobFormEffects");
+    localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Help with my garage", description: "EDITED about 12 items", category: "declutter_help", savedAt: Date.now() }));
+    const set = { setCategory: vi.fn(), setTitle: vi.fn(), setDescription: vi.fn() };
+    renderHook(() => useJobFormEffects(effectParams(set) as never));
+    expect(set.setCategory).toHaveBeenLastCalledWith("declutter_help");
+    expect(set.setTitle).toHaveBeenLastCalledWith("Help with my garage");
+    expect(set.setDescription).toHaveBeenLastCalledWith("EDITED about 12 items");
+    localStorage.removeItem("helpr_draft_job");
+  });
+
+  it("#14: a kept draft from another kind of job never fills this one", async () => {
+    const { useJobFormEffects } = await import("@/pages/post-job/useJobFormEffects");
+    localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Mow my lawn", description: "Front and back", category: "yard_work", savedAt: Date.now() }));
+    const set = { setCategory: vi.fn(), setTitle: vi.fn(), setDescription: vi.fn() };
+    renderHook(() => useJobFormEffects(effectParams(set) as never));
+    expect(set.setDescription).toHaveBeenLastCalledWith(buildSellForMePrefill().description);
+    localStorage.removeItem("helpr_draft_job");
   });
 });

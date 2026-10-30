@@ -4,6 +4,7 @@ import { todayYmd } from "@/lib/jobDate";
 import { buildSellForMePrefill, SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { buildMovingDayPrefill, MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 import { useEffect, useCallback } from "react";
+import { keptDraftInCategory } from "@/hooks/useDraftJob";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
@@ -381,9 +382,12 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   useEffect(() => {
     if (!searchParams.get(SELL_FOR_ME_PARAM)) return;
     const p = buildSellForMePrefill();
+    // Audit 10-30 #14: the param stays in the address, so a reload runs this again. What the member typed wins over
+    // the template.
+    const kept = keptDraftInCategory(p.category);
     setCategory(p.category);
-    setTitle(p.title);
-    setDescription(p.description);
+    setTitle(kept?.title || p.title);
+    setDescription(kept?.description || p.description);
     // The setters are stable useState setters; the param is the trigger.
   }, [searchParams]);
 

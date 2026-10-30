@@ -290,6 +290,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   return (
     <section className="space-y-3" aria-label="Your listings">
       <SectionHeading title="Your listings" />
+      {list.filter((i) => i.status === "draft").length > 1 && (
+        <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">List all my drafts</Link></p>
+      )}
       {haulOn && !haul.isError && (
         <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused").length} />
       )}

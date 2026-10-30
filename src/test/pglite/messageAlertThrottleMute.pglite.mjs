@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030141139_message_email_throttle_mute (Messages audit
+ * PGlite proof for 20261030150631_message_email_throttle_mute (Messages audit
  * E3 H1 + M6 + M4, owner 09:12 via the lead).
  *
  *   node src/test/pglite/messageAlertThrottleMute.pglite.mjs
@@ -22,7 +22,7 @@
  */
 import { PGlite, SCHEMA, U, readMigration, loadLive, makeCheck } from "./messageAlertsWorld.mjs";
 
-const NEW = "20261030141139_message_email_throttle_mute.sql";
+const NEW = "20261030150631_message_email_throttle_mute.sql";
 const SKIP = process.env.NEW_MIGRATION === "skip";
 const { check, state } = makeCheck();
 

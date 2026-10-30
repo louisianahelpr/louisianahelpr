@@ -32,6 +32,7 @@ import { SecurityTab } from "./SecurityTab";
  * opposite of coverage, it removes the gate from the test's world.
  */
 const requireBiometricMock = vi.fn<(reason: string, options?: unknown) => Promise<boolean>>();
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (...args: unknown[]) =>
     (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),

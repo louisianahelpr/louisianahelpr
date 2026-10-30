@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -6,6 +7,7 @@ import { MemoryRouter } from "react-router-dom";
 import { ProfileTabFallback, TAB_SHAPES } from "./ProfileTabFallback";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
 import { blankComments } from "@/test/helpers/blankNonCode";
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 
 /**
  * THE OWNER'S RULING, AS A CHECK — "skeleton fills the screen, grows below"

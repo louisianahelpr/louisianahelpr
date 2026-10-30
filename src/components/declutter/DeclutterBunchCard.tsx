@@ -78,7 +78,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
               <li key={k} className="relative">
                 <button type="button" aria-pressed={on} aria-label={`${name}, photo ${i + 1}`} onClick={() => toggle(k)}
                   className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
-                  {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full object-cover" data-bunch-thumb="" />}
+                  {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
                   {on && (
                     <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-background text-foreground shadow" aria-hidden>
                       <Check className="h-4 w-4" />

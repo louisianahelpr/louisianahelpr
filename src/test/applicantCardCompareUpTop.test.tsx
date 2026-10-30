@@ -25,6 +25,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/pages/posts/postedJobs/useApplicantCategoryCounts", () => ({ useApplicantCategoryCounts: () => null }));
 vi.mock("@/hooks/usePaidTierBadge", () => ({ usePaidTierBadge: () => () => null }));
 // B67's trust line reads its own query; this card test renders without a QueryClient, so it reads nothing.

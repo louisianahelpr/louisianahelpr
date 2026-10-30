@@ -11,6 +11,12 @@
 // plaintext with the appendix's keys and salt and compares the whole message byte
 // for byte, then decrypts what encryptPushPayload makes with a fresh key.
 
+/**
+ * Bytes backed by a plain ArrayBuffer. WebCrypto and fetch take a BufferSource / BodyInit,
+ * which TypeScript 5.7+ refuses for a Uint8Array<ArrayBufferLike> (it could be shared memory).
+ */
+export type Bytes = Uint8Array<ArrayBuffer>;
+
 export interface WebPushSubscriptionKeys {
   endpoint: string;
   p256dh: string; // base64url, 65-byte uncompressed P-256 point
@@ -23,19 +29,19 @@ export interface VapidKeys {
   subject: string; // mailto: or https: contact (RFC 8292 section 2.1)
 }
 
-export function b64urlEncode(bytes: Uint8Array): string {
+export function b64urlEncode(bytes: Bytes): string {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function b64urlDecode(text: string): Uint8Array {
+export function b64urlDecode(text: string): Bytes {
   const b64 = text.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/, "");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
-function concat(...parts: Uint8Array[]): Uint8Array {
+function concat(...parts: Bytes[]): Bytes {
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   let o = 0;
   for (const p of parts) {
@@ -48,7 +54,7 @@ function concat(...parts: Uint8Array[]): Uint8Array {
 const utf8 = (s: string) => new TextEncoder().encode(s);
 
 /** A JWK for a P-256 key from its raw uncompressed public point (and private scalar). */
-function p256Jwk(publicRaw: Uint8Array, privateRaw?: Uint8Array): JsonWebKey {
+function p256Jwk(publicRaw: Bytes, privateRaw?: Bytes): JsonWebKey {
   if (publicRaw.length !== 65 || publicRaw[0] !== 0x04) {
     throw new Error("invalid_p256_public_key");
   }
@@ -66,7 +72,7 @@ function p256Jwk(publicRaw: Uint8Array, privateRaw?: Uint8Array): JsonWebKey {
   return jwk;
 }
 
-async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, bytes: number): Promise<Uint8Array> {
+async function hkdf(salt: Bytes, ikm: Bytes, info: Bytes, bytes: number): Promise<Bytes> {
   const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info }, key, bytes * 8);
   return new Uint8Array(bits);
@@ -74,9 +80,9 @@ async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, bytes: 
 
 /** Test seam: the RFC vectors fix the sender's key pair and the salt. */
 export interface EncryptOverrides {
-  senderPublic?: Uint8Array; // 65 bytes
-  senderPrivate?: Uint8Array; // 32 bytes
-  salt?: Uint8Array; // 16 bytes
+  senderPublic?: Bytes; // 65 bytes
+  senderPrivate?: Bytes; // 32 bytes
+  salt?: Bytes; // 16 bytes
   recordSize?: number;
 }
 
@@ -87,9 +93,9 @@ export interface EncryptOverrides {
  */
 export async function encryptPushPayload(
   sub: Pick<WebPushSubscriptionKeys, "p256dh" | "auth">,
-  plaintext: Uint8Array,
+  plaintext: Bytes,
   overrides: EncryptOverrides = {},
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const uaPublic = b64urlDecode(sub.p256dh);
   const authSecret = b64urlDecode(sub.auth);
   if (authSecret.length !== 16) throw new Error("invalid_auth_secret");
@@ -97,7 +103,7 @@ export async function encryptPushPayload(
   // One record: plaintext + the 0x02 last-record delimiter + the 16-byte tag must fit.
   if (plaintext.length + 1 + 16 > recordSize) throw new Error("payload_too_large");
 
-  let senderPublic: Uint8Array;
+  let senderPublic: Bytes;
   let senderPrivateKey: CryptoKey;
   if (overrides.senderPublic && overrides.senderPrivate) {
     senderPublic = overrides.senderPublic;

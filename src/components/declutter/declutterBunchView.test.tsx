@@ -85,6 +85,8 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterSellChooser from "./DeclutterSellChooser";
+import { BunchCard } from "./DeclutterBunchCard";
+import { blankItem } from "@/lib/declutter/bunch";
 
 beforeAll(() => {
   let n = 0;
@@ -187,5 +189,19 @@ describe("Sell a bunch", () => {
   it("is a choice in What do you want to sell?", () => {
     render(<MemoryRouter><DeclutterSellChooser /></MemoryRouter>);
     expect(screen.getByRole("link", { name: /A bunch of things/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
+  });
+});
+
+// T2 and T3 at 375 (10-30): the merge label wrapped one word per line and its picker showed only "P", squeezed by the buttons.
+// @mutate src/components/declutter/DeclutterBunchCard.tsx |             <div className="w-full" data-bunch-merge-row=""> |             <div className="min-w-0 flex-1" data-bunch-merge-row="">
+describe("the merge picker's row", () => {
+  it("has the card's whole width, with the buttons below it", () => {
+    const item = { ...blankItem(["a"]), key: "one" };
+    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
+    const row = document.querySelector("[data-bunch-merge-row]") as HTMLElement;
+    expect(row.className.split(" ")).toContain("w-full");
+    expect(row.className).not.toContain("flex-1");
+    expect(row.querySelector("select")).toBeTruthy();
+    expect(row.querySelector("button")).toBeNull();
   });
 });

@@ -83,7 +83,10 @@ export default function DeclutterHome() {
   const { todo, settled: todoSettled } = useDeclutterTodo();
   // Audit DC-9: the Selling badge counts what "To answer" counts, questions too (the chip's own cached read).
   const questions = useUnansweredQuestions(user?.id);
-  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled && questions.settled);
+  // Browse's photos do not wait for the two badges (two rounds on a slow phone): they land inside the sideways-scrolling
+  // tab row, which cannot re-wrap and push the page down. Every other tab and an old ?view= link read them first.
+  const browseFirst = !params.get("view") && !params.get("tab");
+  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && (browseFirst || (todoSettled && questions.settled)));
   const wantedOn = wanted.on;
   const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS_FREE);
   const asked = params.get("view");

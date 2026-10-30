@@ -644,12 +644,13 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     // Buying: a cart line to check out, a counter to answer and a purchase to pick up. Selling: an offer and a sale to hand over.
-    expect(tab(/^Buying/)).toHaveAccessibleName(/3/);
-    expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
+    // On Browse they land after the tabs, inside the row (the photos do not wait for them).
+    await vi.waitFor(() => expect(tab(/^Buying/)).toHaveAccessibleName(/3/));
+    await vi.waitFor(() => expect(tab(/^Selling/)).toHaveAccessibleName(/2/));
   });
 
   // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
-  // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
+  // listing shows on the tab too; it lands inside the sideways-scrolling tab row, which cannot re-wrap.
   // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "selling", label: "Selling", count: todo ? todo.selling + questions.count : undefined }, |         { value: "selling", label: "Selling", count: todo?.selling },
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
   it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
@@ -658,7 +659,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const first = at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     // An offer, a sale to hand over and a question.
-    expect(tab(/^Selling/)).toHaveAccessibleName(/3/);
+    await vi.waitFor(() => expect(tab(/^Selling/)).toHaveAccessibleName(/3/));
     expect(state.questionReads).toBe(1);
     first.unmount();
     // Nothing on sale: no question read at all.

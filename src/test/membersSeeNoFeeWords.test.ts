@@ -144,6 +144,7 @@ export function allHits(): string[] {
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/components/declutter/DeclutterTradeViews.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"): the checkout total says it includes a service fee, with no name of a rate and no number",
+  "src/pages/profile/Receipts.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; DB-13, audit 2026-10-30): a Declutter receipt's total says it includes the same service fee the checkout total said, with no name of a rate and no number",
   "src/components/TipCostBreakdown.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip's You pay total says it includes a service fee, with no name of a rate and no number",
   "src/components/reviewPanel/ReviewForm.tsx::Your Helpr gets the whole tip. Includes a small Louisiana Helpr service fee. Most people tip 10–15% for great work.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip prompt says a service fee is included, with no number (10–15% is a tip suggestion, not a fee)",
   "sql:admin_alert_manual_close::'cancellation fee transfer failed'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",

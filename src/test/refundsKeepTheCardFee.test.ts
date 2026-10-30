@@ -330,7 +330,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
-  'src/pages/profile/Receipts.tsx: .from("declutter_orders") .select("id, status, total_cents, paid_at") .eq("buyer_id", uid!) .not("paid_at", "is", null), ) ?? []) as PaidOrderRow[], })',
+  // DB-13 (audit 2026-10-30): also the order's item, delivery, shipping and tax amounts for the receipt's lines; still no fee column.
+  'src/pages/profile/Receipts.tsx: .from("declutter_orders") .select("id, status, total_cents, paid_at, items_cents, delivery_cents, shipping_cents, tax_cents") .eq("buyer_id", uid!) .not("paid_at", "is", null), ) ?? []) as PaidOrderRow[], })',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   // Q2170: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the

@@ -75,7 +75,7 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />,
 }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.4, lng: -91.1 }) }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
@@ -124,7 +124,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 });
 
 import BunchFlow from "./DeclutterBunchView";
-import { addPhotosToItem, blankItem, bulkEdit, bunchItemProblem, bunchNeedsLine, editBunchItem, itemsFromAnswer, listingProgressLine, makeCover, mergeItems, mergePriceClash, percentOffSuggested, sortProgressLine, takePhotoOff } from "@/lib/declutter/bunch";
+import { addPhotosToItem, blankItem, bulkEdit, bunchItemNeed, bunchItemProblem, bunchNeedsLine, editBunchItem, itemsFromAnswer, listingProgressLine, makeCover, mergeItems, mergePriceClash, percentOffSuggested, sortProgressLine, takePhotoOff } from "@/lib/declutter/bunch";
 
 const realListBunch = async () => (await vi.importActual<typeof import("@/lib/declutter/bunch")>("@/lib/declutter/bunch")).listBunch;
 
@@ -483,8 +483,11 @@ describe("size is asked only when the photo tool didn't answer it (lead 10-30)",
     const [told, blank] = itemsFromAnswer(answer, [photo("a"), photo("b")]);
     expect(told.sizeUnknown).toBe(false);
     expect(bunchItemProblem(told)).toBeNull();
+    // A photo the tool didn't place waits in the not-sorted pile; "These are one item" makes it an item, size not known.
+    expect(blank.notSorted).toBe(true);
+    expect(bunchItemNeed(blank)).toBeNull();
     expect(blank.sizeUnknown).toBe(true);
-    const named = { ...blank, title: "Rug", price: "5" };
+    const named = { ...blank, notSorted: false, title: "Rug", price: "5" };
     expect(bunchItemProblem(named)).toMatch(/Pick a size/);
     const [picked] = editBunchItem([named], named.key, { deliverySize: "xl" });
     expect(picked.sizeUnknown).toBe(false);

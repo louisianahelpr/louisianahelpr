@@ -62,7 +62,7 @@ export function BunchCard({ item, index, others, urls, files, at, rewriting, rew
     <div className="space-y-3 p-4" data-bunch-card="">
       {/* The row above says its name. */}
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `Write it again: ${name}`} onClick={onRewrite}>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `${noWords ? "Write it with AI" : "Write it again"}: ${name}`} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
           {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"}
         </Button>

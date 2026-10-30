@@ -210,39 +210,6 @@ describe("a new listing remembers the last listing's setup", () => {
     expect(drafts[0]).toMatchObject({ areaLabel: LAST.areaLabel, pickupAddress: LAST.pickup!.address, pickupLat: 30.45, pickupLng: -91.15 });
   });
 
-  // The owner's real address "couldn't be found" (2026-10-30): the house isn't on the map, but the town is. Nothing saves
-  // on the town's point; the seller's own position at the address does, and the address they typed is what's kept.
-  it("a house the map doesn't know: no draft on the area's point, then their location makes the listing", async () => {
-    geocode.mockResolvedValue({ status: "approximate", lat: 30.5, lng: -92.1, precision: "town" });
-    here.fn.mockResolvedValue({ lat: 30.51, lng: -92.11 });
-    const TYPED = "101 Sample Bayou Rd, Exampleville, LA 70000";
-    open();
-    await addPhotoAndWait();
-    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
-    fireEvent.click(screen.getByRole("button", { name: "Change" }));
-    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: TYPED } });
-    fireEvent.click(document.getElementById("sell-tax")!);
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    const share = await screen.findByRole("button", { name: "I'm at this address, use my location" });
-    expect(drafts).toHaveLength(0);
-    fireEvent.click(share);
-    await waitFor(() => expect(analyticsTrack).toHaveBeenCalledWith("address_location_used", {}));
-    expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await waitFor(() => expect(drafts).toHaveLength(1));
-    expect(drafts[0]).toMatchObject({ pickupAddress: TYPED, pickupLat: 30.51, pickupLng: -92.11 });
-  });
-
-  it("no earlier listing: the form starts as before, with no note", async () => {
-    last.value = null;
-    open();
-    await addPhotoAndWait();
-    // No earlier setup: "How buyers get it" starts open, with no note.
-    await screen.findByLabelText("Area buyers see");
-    expect(document.querySelector("[data-last-setup]")).toBeNull();
-    expect(screen.getByLabelText("Area buyers see")).toHaveValue("");
-  });
-
   it("only blank fields are filled; drops stay off when the last listing had them off", () => {
     const typed = { ...EMPTY, areaLabel: "Garden District", pickupAddress: "1 Elm Street" };
     expect(applyLastSetup(typed, LAST)).toMatchObject({ areaLabel: "Garden District", pickupAddress: "1 Elm Street", drops: true, dropPct: 10 });

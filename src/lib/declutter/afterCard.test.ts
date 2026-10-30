@@ -5,10 +5,12 @@
  * @mutate src/lib/declutter/afterCard.ts |     if (typeof v.at !== "number" \|\| now - v.at > AFTER_CARD_TTL_MS \|\| now < v.at) return null; |     void 0;
  * @mutate src/lib/declutter/afterCard.ts |     sessionStorage.removeItem(KEY); |     void KEY;
  * @mutate src/lib/declutter/afterCard.ts | !UUID.test(v.itemId) | false
+ * @mutate src/lib/declutter/afterCard.ts |   return typeof v === "string" && OFFER_AMOUNT.test(v) ? v : null; |   return typeof v === "string" ? v : null;
+ * @mutate src/lib/declutter/afterCard.ts |   return next.offerAmount ? amount : null; |   return null;
  * @mutate src/lib/declutter/afterCard.ts |   return isAfterCardAction(a) ? a : null;\n} |   return a as AfterCardAction;\n}
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { AFTER_CARD_TTL_MS, afterCardFromState, afterCardPath, isAfterCardAction, rememberAfterCard, takeAfterCard } from "./afterCard";
+import { AFTER_CARD_TTL_MS, afterCardFromState, afterCardPath, afterCardReturnState, isAfterCardAction, offerAmountFromState, rememberAfterCard, takeAfterCard } from "./afterCard";
 
 const ID = "0f0e0d0c-0b0a-4908-8706-050403020100";
 
@@ -22,6 +24,20 @@ describe("afterCard", () => {
     expect(takeAfterCard(2_000)).toBeNull();
     // The action rides in router state, never the address (a shared link cannot start a buy).
     expect(afterCardPath(ID)).toBe(`/declutter/item/${ID}`);
+  });
+
+  it("DA-11: the typed offer amount rides along, and only something an offer box could hold", () => {
+    rememberAfterCard(ID, "offer", 1_000, "25.50");
+    expect(takeAfterCard(2_000)).toEqual({ itemId: ID, action: "offer", offerAmount: "25.50" });
+    rememberAfterCard(ID, "offer", 1_000, "<img src=x>");
+    expect(takeAfterCard(2_000)).toEqual({ itemId: ID, action: "offer" });
+    expect(offerAmountFromState({ offerAmount: "30" })).toBe("30");
+    expect(offerAmountFromState({ offerAmount: "javascript:" })).toBeNull();
+    expect(offerAmountFromState(null)).toBeNull();
+    // Saved carries on with the action; cancelled brings only the amount back, and nothing at all when none was typed.
+    expect(afterCardReturnState(true, { action: "offer", offerAmount: "30" })).toEqual({ afterCard: "offer", offerAmount: "30" });
+    expect(afterCardReturnState(false, { action: "offer", offerAmount: "30" })).toEqual({ offerAmount: "30" });
+    expect(afterCardReturnState(false, { action: "buy" })).toBeNull();
   });
 
   it("drops a stale, future-dated or malformed intent", () => {

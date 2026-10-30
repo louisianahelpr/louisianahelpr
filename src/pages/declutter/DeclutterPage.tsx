@@ -7,7 +7,7 @@ import { OrderTalkFromLink } from "@/components/declutter/DeclutterOrderTalk";
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { afterCardPath, takeAfterCard, type AfterCardState } from "@/lib/declutter/afterCard";
+import { afterCardPath, afterCardReturnState, takeAfterCard } from "@/lib/declutter/afterCard";
 
 /**
  * /declutter: the 404 unless the hidden 'declutter' switch is on (DeclutterGate),
@@ -30,8 +30,7 @@ export default function DeclutterPage() {
     if (cardReturn !== "saved" && cardReturn !== "cancelled") return;
     const next = takeAfterCard();
     if (!next) return;
-    const state: AfterCardState | null = cardReturn === "saved" ? { afterCard: next.action } : null;
-    navigate(afterCardPath(next.itemId), { replace: true, state });
+    navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) });
   }, [cardReturn, navigate]);
   return (
     <>

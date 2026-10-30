@@ -1,8 +1,9 @@
 /**
  * Declutter "Add a Helpr" (owner 2026-10-16; docs/specs/declutter-add-a-helpr.md).
  *
- * A buyer who paid for a Declutter item taps one choice (put it together, hang
- * it on the wall, set it up) and lands on Post a Job pre-filled
+ * A buyer who paid for a Declutter item taps one choice (move it to their
+ * place, put it together, hang it on the wall, set it up) and lands on Post a
+ * Job pre-filled
  * (`/post-job?declutterOrder=<order id>&help=<kind>`). They confirm and pay
  * through the normal job checkout: the job is an ordinary Helpr job. Right
  * after the post is created, declutter_link_setup_job points the order at it
@@ -16,12 +17,18 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
 
-export type SetupKind = "assemble" | "mount" | "setup";
+export type SetupKind = "move" | "assemble" | "mount" | "setup";
 
-export const SETUP_KINDS: readonly SetupKind[] = ["assemble", "mount", "setup"];
+export const SETUP_KINDS: readonly SetupKind[] = ["move", "assemble", "mount", "setup"];
+
+/** The job categories a choice pre-fills. */
+export type SetupJobCategory = "moving" | "assembly" | "handyman";
 
 /** The button words, the job category and the job words for each choice. */
-export const SETUP_KIND_INFO: Record<SetupKind, { button: string; category: "assembly" | "handyman"; titleVerb: string; need: string }> = {
+export const SETUP_KIND_INFO: Record<SetupKind, { button: string; category: SetupJobCategory; titleVerb: string; need: string }> = {
+  // GROW-5 (owner 2026-10-29, "Need help moving it?"): the Declutter way into Jobs. A buyer
+  // collecting a big item from the seller books a Helpr to move it to their place.
+  move: { button: "Move it to my place", category: "moving", titleVerb: "Move", need: "moved from the seller's place to mine" },
   assemble: { button: "Put it together", category: "assembly", titleVerb: "Put together", need: "put together" },
   mount: { button: "Hang it on the wall", category: "handyman", titleVerb: "Wall-mount", need: "hung on the wall" },
   setup: { button: "Set it up", category: "handyman", titleVerb: "Set up", need: "set up" },
@@ -39,12 +46,18 @@ const KINDS_BY_CATEGORY: Record<string, readonly SetupKind[]> = {
   appliances: ["setup"],
 };
 
-/** The choices an order's items fit, in SETUP_KINDS order; with no item details (an older server) every choice. */
-export function setupKindsFor(details: SetupItemDetail[] | undefined): SetupKind[] {
-  if (!details || details.length === 0) return [...SETUP_KINDS];
+/**
+ * The choices an order's items fit, in SETUP_KINDS order; with no item details (an older server) every choice.
+ * "Move it" (GROW-5) is offered only when the buyer collects the item themselves (any handover but Helpr
+ * delivery, which already brings it) and something in the order is too big for a car (large or xl).
+ */
+export function setupKindsFor(details: SetupItemDetail[] | undefined, handover?: SetupHelprInfo["handover"]): SetupKind[] {
+  const canMove = handover !== "delivery";
+  if (!details || details.length === 0) return SETUP_KINDS.filter((k) => k !== "move" || canMove);
   const fit = new Set<SetupKind>();
+  if (canMove && details.some((d) => d.delivery_size === "large" || d.delivery_size === "xl")) fit.add("move");
   for (const d of details) {
-    const kinds = KINDS_BY_CATEGORY[d.category] ?? (d.delivery_size === "small" ? [] : SETUP_KINDS);
+    const kinds = KINDS_BY_CATEGORY[d.category] ?? (d.delivery_size === "small" ? [] : SETUP_KINDS.filter((k) => k !== "move"));
     kinds.forEach((k) => fit.add(k));
   }
   return SETUP_KINDS.filter((k) => fit.has(k));
@@ -110,7 +123,7 @@ export function louisianaYmd(iso: string): string {
 export interface SetupJobPrefill {
   title: string;
   description: string;
-  category: "assembly" | "handyman";
+  category: SetupJobCategory;
   /** The pickup day when it is today or later (Louisiana), else "" (the buyer picks). */
   dateNeeded: string;
 }
@@ -123,12 +136,13 @@ export function buildSetupJobPrefill(info: Pick<SetupHelprInfo, "items" | "picku
   const pickupDay = info.pickup_at ? louisianaYmd(info.pickup_at) : "";
   const dateNeeded = pickupDay && pickupDay >= todayYmd ? pickupDay : "";
   const when = dateNeeded ? ` I pick it up on ${dateNeeded}, so any time after that works.` : "";
+  // Moving: the Helpr collects it at the seller's on the pickup day and brings it home.
+  const description = kind === "move"
+    ? `I bought ${what} on Declutter and need it ${k.need}.${dateNeeded ? ` Pickup is on ${dateNeeded}.` : ""} Please bring a truck or van big enough for it.`
+    : `I bought ${what} on Declutter and need it ${k.need} at my place.${when} Please bring your own tools.`;
   return {
     title: fitWords(`${k.titleVerb} ${items[0]}`, 32),
-    description: fit(
-      `I bought ${what} on Declutter and need it ${k.need} at my place.${when} Please bring your own tools.`,
-      1000,
-    ),
+    description: fit(description, 1000),
     category: k.category,
     dateNeeded,
   };

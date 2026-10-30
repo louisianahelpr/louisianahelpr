@@ -10,6 +10,8 @@
  * @mutate src/lib/declutter/setupHelpr.ts |   return j.status !== "cancelled" && FUNDED.has(j.payment_status ?? ""); |   return FUNDED.has(j.payment_status ?? "");
  * @mutate src/lib/declutter/setupHelpr.ts |   const dateNeeded = pickupDay && pickupDay >= todayYmd ? pickupDay : ""; |   const dateNeeded = pickupDay;
  * @mutate src/lib/declutter/setupHelpr.ts |   mount: { button: "Hang it on the wall", category: "handyman", |   mount: { button: "Hang it on the wall", category: "assembly",
+ * @mutate src/lib/declutter/setupHelpr.ts |   move: { button: "Move it to my place", category: "moving", |   move: { button: "Move it to my place", category: "handyman",
+ * @mutate src/lib/declutter/setupHelpr.ts |   const description = kind === "move" |   const description = false
  * @mutate src/lib/declutter/setupHelpr.ts |     title: fitWords(`${k.titleVerb} ${items[0]}`, 32), |     title: `${k.titleVerb} ${items[0]}`,
  * @mutate src/lib/declutter/setupHelpr.ts |       if (msg && Object.isExtensible(e)) e.userMessage = msg; |       if (false) e.userMessage = msg;
  * @mutate src/lib/declutter/setupHelpr.ts |   return data === true; |   return data !== false;
@@ -56,6 +58,7 @@ describe("buildSetupJobPrefill", () => {
     expect(SETUP_KIND_INFO.assemble.category).toBe("assembly");
     expect(SETUP_KIND_INFO.mount.category).toBe("handyman");
     expect(SETUP_KIND_INFO.setup.category).toBe("handyman");
+    expect(SETUP_KIND_INFO.move.category).toBe("moving");
   });
 
   it("titles fit 32 characters and never end on half a word", () => {
@@ -89,6 +92,20 @@ describe("buildSetupJobPrefill", () => {
     expect(parseSetupKind("mount")).toBe("mount");
     expect(parseSetupKind("<script>")).toBe("assemble");
     expect(parseSetupKind(null)).toBe("assemble");
+  });
+});
+
+describe("GROW-5 moving job (Need help moving it?)", () => {
+  it("pre-fills a moving job from the seller's place to the buyer's, on the pickup day", () => {
+    const p = buildSetupJobPrefill({ items: ["Sectional sofa"], pickup_at: "2026-10-20T15:00:00Z" }, "move", "2026-10-16");
+    expect(p.category).toBe("moving");
+    expect(p.title).toBe("Move Sectional sofa");
+    expect(p.dateNeeded).toBe("2026-10-20");
+    expect(p.description).toBe("I bought Sectional sofa on Declutter and need it moved from the seller's place to mine. Pickup is on 2026-10-20. Please bring a truck or van big enough for it.");
+  });
+
+  it("is a choice the Post a job link can name", () => {
+    expect(parseSetupKind("move")).toBe("move");
   });
 });
 

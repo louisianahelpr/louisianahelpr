@@ -12,7 +12,7 @@
  */
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -497,6 +497,7 @@ function useSelectedTabInView(view: string) {
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
   // W14: "Wanted" exists only while its own switch is on for this member.
   // The tab row waits for that answer (Q?declutter-settle): painted before it,
   // the Wanted tab arrived ~20 ms later and, at 375, wrapped the row onto a
@@ -527,7 +528,8 @@ export default function DeclutterHome() {
   const view: DeclutterTab = subView ?? fromView ?? sectionTab;
   const tabRowRef = useSelectedTabInView(tabsReady ? view : "");
   // An old ?view= link is rewritten to ?tab= once the badges' reads are in
-  // (they decide which side an offers/cart link meant), keeping its other params.
+  // (they decide which side an offers/cart link meant), keeping its other params and its router state
+  // (audit posting 1030 #3: dropping it closed "Your listing is live" before it opened).
   useEffect(() => {
     if (!fromView || !tabsReady) return;
     setParams((p) => {
@@ -536,8 +538,8 @@ export default function DeclutterHome() {
       if (fromView === "browse") next.delete("tab");
       else next.set("tab", fromView);
       return next;
-    }, { replace: true });
-  }, [fromView, tabsReady, setParams]);
+    }, { replace: true, state: location.state });
+  }, [fromView, tabsReady, setParams, location.state]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   // Browse adds its count and (desktop) search, filters and map at the row's end, or (phone) its search row under

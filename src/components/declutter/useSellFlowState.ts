@@ -352,7 +352,7 @@ export function useSellFlowState(urlItemId: string | null) {
         }
       }
       // Board 80: the Selling tab opens the "What next" sheet (ListedWhatNext) instead of a toast.
-      navigate("/declutter?view=selling", { state: { justListed: { itemId: id, status } } });
+      navigate("/declutter?tab=selling", { state: { justListed: { itemId: id, status } } });
     } catch (err) {
       toast.error(declutterErrorMessage(err));
     } finally {

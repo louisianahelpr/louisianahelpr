@@ -13,7 +13,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -109,6 +109,12 @@ import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
+/** Where Post lands: the address and the router state the "Your listing is live" sheet reads. */
+function SellingTabProbe() {
+  const loc = useLocation();
+  return <p data-testid="landed" data-search={loc.search} data-state={JSON.stringify(loc.state)}>Selling tab</p>;
+}
+
 function open() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
@@ -117,7 +123,7 @@ function open() {
       <MemoryRouter initialEntries={["/declutter/sell"]}>
         <Routes>
           <Route path="/declutter/sell" element={<DeclutterSellPage />} />
-          <Route path="/declutter" element={<p>Selling tab</p>} />
+          <Route path="/declutter" element={<SellingTabProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -222,6 +228,20 @@ describe("photo-first selling, one screen", () => {
     expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$36", "$32", "$30"]);
     expect(strip.textContent).toMatch(/10% less each evening/);
     expect(strip.textContent).toMatch(/may stop sooner/);
+  });
+
+  // Audit posting 1030 #3: Post lands on the new address, carrying what the sheet reads.
+  // @mutate src/components/declutter/useSellFlowState.ts | navigate("/declutter?tab=selling", { state | navigate("/declutter?view=selling", { state
+  it("Post lands on ?tab=selling with the listing in router state, so \"Your listing is live\" opens", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    const landed = await screen.findByTestId("landed");
+    expect(landed).toHaveAttribute("data-search", "?tab=selling");
+    expect(JSON.parse(landed.getAttribute("data-state")!)).toEqual({ justListed: { itemId: NEW_ID, status: "live" } });
   });
 
   it("price drops off in settings: the lowest price is saved as the price and the step as 0, so it never drops", async () => {

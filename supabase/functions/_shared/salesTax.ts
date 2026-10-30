@@ -50,6 +50,7 @@
 // enforce_funded_category_tax_class and is_category_taxable (migration
 // 20261017055441); src/lib/salesTax.parity.test.ts holds all of them equal.
 import { isPosterFeeJob } from "./posterJobFee.ts";
+import { MAX_URGENT_FEE_DOLLARS } from "./jobBudgetLimits.ts";
 
 export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
   "assembly",
@@ -142,11 +143,11 @@ export function salesTaxCeilingCents(budgetCents: number, category: string | nul
 /**
  * Whether ANY line on the checkout is taxable.
  *
- * Kept as its own function because the answer is deliberately narrower than it
- * looks: the service fee, the urgent tip and the one-time setup fee all ship
- * with `tax_code: txcd_00000000` (non-taxable) in create-payment, so the labor
- * line is the only line tax can ever land on. If a fee's tax code changes, this
- * is the one place that has to change with it.
+ * Tax lands only where the labor is taxable: the labor line, the urgent bonus
+ * (taxed like labor, owner 2026-10-21, Q1843) and a poster-fee job's service
+ * fee all carry laborTaxCode(category); the one-time setup fee ships as
+ * `txcd_00000000`. So a checkout has a taxable line exactly when the category's
+ * labor is taxable. If a line's tax code changes, this has to change with it.
  */
 export function hasTaxableLine(category: string | null | undefined): boolean {
   return isLaborTaxable(category);
@@ -177,26 +178,50 @@ export function salesTaxCents(
   return Math.round((base * totalRatePercent) / 100);
 }
 
+/** The urgent bonus floor create-payment charges ($5, URGENT_FEE_FLOOR_CENTS there). */
+export const URGENT_BONUS_FLOOR_CENTS = 500;
+
+/**
+ * The urgent bonus a job's checkout charges, in cents: create-payment's
+ * server-authoritative rule (never the stored column alone). An urgent job pays
+ * the stored bonus clamped to $5..MAX_URGENT_FEE_DOLLARS; a job that is not
+ * urgent pays none, whatever urgent_fee holds.
+ */
+export function urgentBonusChargedCents(job: {
+  is_urgent?: boolean | null;
+  urgent_fee?: number | string | null;
+} | null | undefined): number {
+  if (job?.is_urgent !== true) return 0;
+  const stored = Math.round(Number(job?.urgent_fee ?? 0) * 100);
+  const safe = Number.isFinite(stored) ? stored : 0;
+  return Math.min(Math.max(safe, URGENT_BONUS_FLOOR_CENTS), MAX_URGENT_FEE_DOLLARS * 100);
+}
+
 /**
  * The base Stripe taxed on a job's escrow checkout, in cents: the labor line
- * (the budget) and, on a poster-fee job in a taxable category, the "Service
- * fee" line, which carries the labor's tax code (create-payment escrow, the
- * owner-adopted tax memo 2026-10-17). The urgent bonus, the setup fee and a
- * flat-model job's lines all ship as NONTAXABLE_TAX_CODE, so they are not in
- * it. Dividing the tax by the budget alone overstated the rate on a taxed
- * poster-fee job (lh-money-escrow review of Q1996 slice 3a, #5).
+ * (the budget); in a taxable category, the urgent bonus line (taxed like
+ * labor, owner 2026-10-21, Q1843); and, on a poster-fee job in a taxable
+ * category, the "Service fee" line, which carries the labor's tax code
+ * (create-payment escrow, the owner-adopted tax memo 2026-10-17). The setup
+ * fee and an exempt category's lines ship as NONTAXABLE_TAX_CODE, so they are
+ * not in it. Dividing the tax by the budget alone overstated the rate on a
+ * taxed poster-fee job (lh-money-escrow review of Q1996 slice 3a, #5).
  */
 export function jobEscrowTaxableBaseCents(job: {
   budget?: number | string | null;
   category?: string | null;
   customer_fee_amount?: number | string | null;
   poster_fee_flat_cents?: number | string | null;
+  is_urgent?: boolean | null;
+  urgent_fee?: number | string | null;
 } | null | undefined): number {
   const budgetCents = Math.round(Number(job?.budget ?? 0) * 100);
   const laborCents = Number.isFinite(budgetCents) && budgetCents > 0 ? budgetCents : 0;
-  if (!isPosterFeeJob(job) || !isLaborTaxable(job?.category)) return laborCents;
+  if (!isLaborTaxable(job?.category)) return laborCents;
+  const taxedLaborCents = laborCents + urgentBonusChargedCents(job);
+  if (!isPosterFeeJob(job)) return taxedLaborCents;
   const feeCents = Math.round(Number(job?.customer_fee_amount ?? 0) * 100);
-  return laborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0);
+  return taxedLaborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0);
 }
 
 /**

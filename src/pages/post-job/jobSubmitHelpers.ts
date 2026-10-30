@@ -172,8 +172,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // EFFECTIVE rate (0 when the category is exempt) so rate x budget always
   // reconciles with the amount.
   const lockedSalesTaxRate = isLaborTaxable(category) ? salesTaxRate : 0;
+  // The urgent bonus is taxed like the labor (owner 2026-10-21, Q1843), so the
+  // taxed base is budget + bonus; an exempt category taxes neither.
+  const urgentBonusCents = isUrgent ? Math.round((parseFloat(urgentFee) || 0) * 100) : 0;
   const lockedSalesTaxAmount =
-    salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate) / 100;
+    salesTaxCents(Math.round(parseFloat(budget) * 100) + urgentBonusCents, category, salesTaxRate) / 100;
 
   return {
     customer_id: userId,

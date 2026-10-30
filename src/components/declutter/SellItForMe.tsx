@@ -12,7 +12,6 @@
  * The entry shows only where Declutter shows (the 'declutter' switch).
  */
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, HandHelping, Store, UserRound } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
@@ -23,11 +22,12 @@ import { useFeature } from "@/hooks/useFeature";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { browseShops, fetchShopCardExtras } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { sellForMePostJobPath, SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter/sellForMe";
+import { SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter/sellForMe";
 import { ShopBrowseCard } from "@/components/shops/ShopBrowseCard";
 import { categoryLabel, useShopCategories } from "@/components/shops/shopsUi";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
+import { HelprListExplainSheet } from "./HelprListExplainSheet";
 
 /** At most this many businesses in the sheet, nearest first. */
 const MAX_SHOPS = 6;
@@ -43,11 +43,20 @@ const ROW = "flex w-full items-center gap-3 rounded-2xl border border-border bg-
  */
 export function SellItForMeEntry() {
   const declutterOn = useFeature("declutter");
+  const shopsOn = useFeature("shops");
+  const { underAge, explain, gatedProps } = useAgeGate();
   const [open, setOpen] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+  // Audit 10-30 #21: with Shops off there is only one choice to make, so no sheet asks for it.
+  const tap = () => {
+    if (shopsOn) setOpen(true);
+    else if (underAge) explain("post");
+    else setExplaining(true);
+  };
   if (!declutterOn) return null;
   return (
     <>
-      <button type="button" className={ROW} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">
+      <button type="button" className={ROW} onClick={tap} data-testid="sell-it-for-me-entry" {...(shopsOn ? {} : gatedProps("post"))}>
         <HandHelping className="h-5 w-5 shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">
           <span className="block font-semibold text-sm">Sell it for me</span>
@@ -55,14 +64,14 @@ export function SellItForMeEntry() {
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
-      <SellItForMeSheet open={open} onOpenChange={setOpen} />
+      <SellItForMeSheet open={open} onOpenChange={setOpen} onHire={() => { setOpen(false); setExplaining(true); }} />
+      <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />
     </>
   );
 }
 
-function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function SellItForMeSheet({ open, onOpenChange, onHire }: { open: boolean; onOpenChange: (open: boolean) => void; onHire: () => void }) {
   const shopsOn = useFeature("shops");
-  const navigate = useNavigate();
   // Under 18 cannot post a job (Q1586): the choice is greyed and a tap says why.
   const { underAge, explain, gatedProps } = useAgeGate();
   const hireHelpr = () => {
@@ -70,8 +79,7 @@ function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
       explain("post");
       return;
     }
-    onOpenChange(false);
-    navigate(sellForMePostJobPath());
+    onHire();
   };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -79,7 +87,7 @@ function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
         <SheetHero title="Sell it for me" />
         <div className="space-y-5" data-testid="sell-it-for-me-sheet">
           <p className="text-sm text-muted-foreground">
-            {shopsOn ? "Pick who helps. It's your choice." : "A local Helpr can do the photos and listings with you."}
+            Pick who helps. It's your choice.
           </p>
           <button type="button" className={ROW} onClick={hireHelpr} data-testid="sell-for-me-hire-helpr" {...gatedProps("post")}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">

@@ -21,7 +21,9 @@
  * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => setAsked(s.id)} |                   onClick={() => {}}
  * @mutate src/components/declutter/SellItForMe.tsx |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>\n |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p><button type="button">Hire a Helpr instead</button>\n
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
- * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
+ * @mutate src/components/declutter/SellItForMe.tsx |     onHire();\n |     onOpenChange(false);\n
+ * @mutate src/components/declutter/SellItForMe.tsx |     if (shopsOn) setOpen(true); |     setOpen(true);
+ * @mutate src/components/declutter/HelprListExplainSheet.tsx | navigate(sellForMePostJobPath()); | navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellChooserEntry movingOutOn={movingOutOn} />\n | \n
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(kept?.title \|\| p.title); |     setTitle(kept?.title \|\| p.title);
@@ -31,7 +33,7 @@
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setDescription(kept?.description \|\| p.description); |     setDescription(p.description);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
@@ -157,6 +159,8 @@ describe("Sell it for me: A, hire a Helpr", () => {
     show();
     open();
     fireEvent.click(await screen.findByTestId("sell-for-me-hire-helpr"));
+    // Audit 10-30 #1: the explanation first, then the job.
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
     expect(await screen.findByTestId("where")).toHaveTextContent("/post-job?sellForMe=1");
     expect(sellForMePostJobPath()).toBe("/post-job?sellForMe=1");
   });
@@ -172,7 +176,7 @@ describe("Sell it for me: A, hire a Helpr", () => {
     expect(Array.from(p.description).length).toBeLessThanOrEqual(1000);
     for (const ask of ["How many items", "Rough size", "pickups"]) expect(p.description).toContain(ask);
     expect(p.description).toContain(SELL_FOR_ME_NO_ACCOUNT_LINE);
-    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("Your Helpr takes the photos and writes the listings with you; you post them from your account.");
+    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("You help take the photos and write the listings; I post them from my account.");
   });
 
   it("Declutter Help is untaxed, like errands and cleaning", () => {
@@ -218,6 +222,7 @@ describe("Sell it for me: B, ask a local business", () => {
     const sheet = screen.getByTestId("sell-it-for-me-sheet");
     expect(within(sheet).getAllByRole("button", { name: /hire a( local)? helpr/i })).toHaveLength(1);
     fireEvent.click(screen.getByTestId("sell-for-me-hire-helpr"));
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
     expect(await screen.findByTestId("where")).toHaveTextContent("/post-job?sellForMe=1");
   });
 
@@ -234,9 +239,11 @@ describe("Sell it for me: B, ask a local business", () => {
     state.shops = [shop("s1", "Bayou Consignment")];
     show();
     open();
-    expect(await screen.findByTestId("sell-for-me-hire-helpr")).toBeInTheDocument();
+    // Audit 10-30 #21: one choice needs no sheet, so the explanation opens at once.
+    expect(await screen.findByRole("button", { name: "Continue" })).toBeInTheDocument();
+    expect(screen.queryByTestId("sell-for-me-hire-helpr")).toBeNull();
     expect(screen.queryByTestId("sell-for-me-businesses")).toBeNull();
-    await waitFor(() => expect(state.browseCalls).toHaveLength(0));
+    expect(state.browseCalls).toHaveLength(0);
   });
 });
 

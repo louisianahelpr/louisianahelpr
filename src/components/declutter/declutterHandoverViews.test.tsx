@@ -47,6 +47,8 @@ const state = {
   /** DB-12: the order's newest problem as declutter_order_problem returns it (decision once decided). */
   orderProblem: null as Record<string, unknown> | null,
 };
+// The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/sellerDelivery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/declutter/sellerDelivery")>()),
   fetchSellerDeliveryBooking: async () => state.sd,

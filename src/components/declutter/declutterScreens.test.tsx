@@ -44,6 +44,8 @@ const state = {
 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+// The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,

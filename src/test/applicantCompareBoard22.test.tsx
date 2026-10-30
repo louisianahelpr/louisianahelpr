@@ -43,7 +43,8 @@ describe("boards 22/170: compare applicants", () => {
 
   it("the Applicants panel wires the tick on pending cards and the bar under the list", () => {
     const src = blankComments(readFileSync("src/pages/posts/postedJobs/ApplicantsPanel.tsx", "utf8"));
-    expect(src).toMatch(/app\.status === "pending" && applications\.length > 1 && <CompareCheck/);
+    // Owner 2026-10-29: the phone card's toggle is the CompareChip in the top-right icon row (applicantCardCompareUpTop).
+    expect(src).toMatch(/app\.status === "pending" && applications\.length > 1 && <CompareChip/);
     expect(src).toMatch(/<CompareBar apps=\{applications\} ids=\{compare\.ids\}/);
   });
 

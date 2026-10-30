@@ -1,6 +1,6 @@
 // PROVEN ABLE TO FAIL: rendering the raw signal string (e.g. `{visibleSignals.join(" · ")}`)
 // with no aria-hidden star / sr-only "stars" turns this red.
-// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {visibleSignals.map((s, i) => (\n                                  <Fragment key={i}>\n                                    {i > 0 && " · "}\n                                    {renderTrustSignal(s)}\n                                  </Fragment>\n                                ))} | {visibleSignals.join(" · ")}
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {visibleSignals.map((s, i) => (\n                                    <Fragment key={i}>\n                                      {i > 0 && " · "}\n                                      {renderTrustSignal(s)}\n                                    </Fragment>\n                                  ))} | {visibleSignals.join(" · ")}
 
 /**
  * Q248(d): the applicant trust-signal row can contain a rating string like

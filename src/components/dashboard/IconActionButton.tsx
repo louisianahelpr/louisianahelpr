@@ -58,6 +58,8 @@ export interface IconActionButtonProps {
    * size utility.
    */
   compact?: boolean;
+  /** Greys the button out and ignores taps (the applicant card's Compare once 3 are picked). */
+  disabled?: boolean;
 }
 
 const RESTING_SHADOW =
@@ -78,6 +80,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
       ariaPressed,
       bare = false,
       compact = false,
+      disabled = false,
     },
     ref,
   ) {
@@ -113,6 +116,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
         size="icon"
         aria-label={ariaLabel}
         aria-pressed={ariaPressed}
+        disabled={disabled}
         onClick={onClick}
         className={
           bare

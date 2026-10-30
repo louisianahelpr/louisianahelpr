@@ -74,6 +74,14 @@ const status = async (id) => one(await svc(`SELECT status FROM public.declutter_
                             FROM (SELECT b, public.declutter_buyer_fee_cents_ship(b - 1, 1) AS f FROM generate_series(101, 2000000) b) x`))[0];
   ok(bad?.n === 1999900 && bad.us === 0, `US card: fee >= card fee for all ${bad?.n} fee bases ($1.01-$20,000)`);
   ok(bad?.intl === 0 && bad.min_intl_margin >= 30, `international card: fee >= card fee for all of them (smallest margin ${bad?.min_intl_margin}c)`);
+  // Seller-paid shipping (owner 2026-10-29, decision 9): the buyer pays $0 shipping, so the order is F1 on items only
+  // (shipping_cents = 0) and the label comes out of the seller's payout. Same sweep over every items amount.
+  const sp = (await svc(`SELECT count(*) FILTER (WHERE f < round((i + f) * 0.029)::int + 30)::int AS us,
+                                count(*) FILTER (WHERE f < round((i + f) * 0.044)::int + 30)::int AS intl,
+                                min(f - (round((i + f) * 0.044)::int + 30))::int AS min_intl_margin, count(*)::int AS n
+                           FROM (SELECT i, public.declutter_buyer_fee_cents(i) AS f FROM generate_series(100, 2000000) i) x`))[0];
+  ok(sp?.n === 1999901 && sp.us === 0 && sp.intl === 0,
+    `seller-paid shipping (buyer pays $0 shipping, fee on items): fee >= US and international card fee for all ${sp?.n} item amounts (smallest intl margin ${sp?.min_intl_margin}c)`);
   // ... and the DB actually charges THAT fee on shipped orders: a grid of real inserts, each priced by the CHECK.
   let made = 0;
   let short = 0;

@@ -16,7 +16,7 @@ import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { SORT_LABEL, type DeclutterFilters, type DeclutterSort } from "@/lib/declutter/browseFilters";
 import { CONDITION_LABEL } from "./declutterUi";
-import type { OriginAsk } from "./DeclutterBrowseBar";
+import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
 
 // 44px tall, the tap floor (was h-10, 40px: Declutter audit 2026-10-28).
 const CHIP = "flex h-11 min-h-11 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -122,7 +122,7 @@ export function declutterFilterSections({
           {words && <p className="text-ds-13 text-muted-foreground">{words}</p>}
           {ask.asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
           {ask.deviceNote && <p className="text-xs text-muted-foreground" role="status">{ask.deviceNote}</p>}
-          {!(located && ask.origin.status === "ready" && ask.origin.source === "device") && (!ask.asked || ask.canAskAgain) && (
+          {offerAsk(ask) && (
             <Button type="button" variant="outline" size="sm" onClick={ask.askDevice}>
               {ask.asked ? "Try my location again" : "Use my location"}
             </Button>

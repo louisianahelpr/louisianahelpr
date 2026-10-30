@@ -47,6 +47,8 @@ export function useDeclutterOrigin(): {
   canAskAgain: boolean;
   /** Why the device read did not give a fix, once asked (null while it loads, or if it worked). */
   deviceNote: string | null;
+  /** The ZIP code on the profile, so Browse can say "Miles from 70501" when the miles come from it (DA-10). */
+  zip: string | null;
 } {
   const [attempts, setAttempts] = useState(0);
   const asked = attempts > 0;
@@ -106,5 +108,5 @@ export function useDeclutterOrigin(): {
   const asking = asked && device.status === "loading";
   const gotDeviceFix = device.status === "ready" && device.source === "device";
   const canAskAgain = asked && !asking && (device.status === "error" || (device.status === "ready" && !gotDeviceFix));
-  return { origin, askDevice: () => setAttempts((n) => n + 1), asked, asking, canAskAgain, deviceNote };
+  return { origin, askDevice: () => setAttempts((n) => n + 1), asked, asking, canAskAgain, deviceNote, zip };
 }

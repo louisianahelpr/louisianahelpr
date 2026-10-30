@@ -17,13 +17,14 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, applyBrowseFilters } from "@/lib/declutter/browseFilters";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
+import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DECLUTTER_GRID, DeclutterBrowseBones } from "./DeclutterSkeletons";
 
 const FREE_ONLY = { ...NO_FILTERS, freeOnly: true };
 
 export function FreeView({ userId }: { userId: string }) {
-  const { origin } = useDeclutterOrigin();
+  const { origin, askDevice, asked, asking, canAskAgain, deviceNote, zip } = useDeclutterOrigin();
   const lat = origin.status === "ready" ? origin.lat : null;
   const lng = origin.status === "ready" ? origin.lng : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
@@ -53,18 +54,22 @@ export function FreeView({ userId }: { userId: string }) {
   }
   const approximate = origin.status === "ready" && origin.approximate;
   return (
-    <ul className={DECLUTTER_GRID} data-testid="declutter-free-list">
-      {rows.map(({ item, miles }) => (
-        <li key={item.id} className="min-w-0">
-          <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={approximate}
-            save={{
-              on: watching.data?.has(item.id) ?? false,
-              toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
-              pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
-            }}
-          />
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-4">
+      {/* Where the miles are measured from, and "Use my location", as on Browse (DA-10). */}
+      <DeclutterMilesFrom ask={{ origin, askDevice, asked, asking, canAskAgain, deviceNote, zip }} />
+      <ul className={DECLUTTER_GRID} data-testid="declutter-free-list">
+        {rows.map(({ item, miles }) => (
+          <li key={item.id} className="min-w-0">
+            <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={approximate}
+              save={{
+                on: watching.data?.has(item.id) ?? false,
+                toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
+                pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

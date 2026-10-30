@@ -4339,7 +4339,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 170,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4568,7 +4568,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeView.tsx",
-      "line": 43,
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

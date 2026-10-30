@@ -38,6 +38,7 @@ import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
+import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterBrowseBar, DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
@@ -143,8 +144,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   const fill = useFillHeight();
 
   // No location prompt on landing: miles come from what we already know, and the device is asked only from the
-  // "Use my location" button in the filters.
-  const { origin, askDevice, asked, asking, canAskAgain, deviceNote } = useDeclutterOrigin();
+  // "Use my location" button (in the filters, and on the miles line above the cards, DA-10).
+  const { origin, askDevice, asked, asking, canAskAgain, deviceNote, zip } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
@@ -192,7 +193,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   const listLoading = items.isLoading || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
-  const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice };
+  const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip };
 
   const header: DeclutterBrowseHeader = desktop
     ? {
@@ -259,6 +260,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}
           />
         )}
+        {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}
+        {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
         {itemsPhase === "offline-empty" ? (
           <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (

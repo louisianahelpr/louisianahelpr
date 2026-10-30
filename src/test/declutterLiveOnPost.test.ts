@@ -97,7 +97,7 @@ describe("item B: a listing goes live when posted; only a failed automatic check
   });
 
   it("the item page offers 'Report this listing' to everyone but the seller; the seller's copy has no 'first 3'", () => {
-    expect(code("src/components/declutter/DeclutterItemView.tsx")).toContain("{!isSeller && user && <DeclutterReportListing itemId={itemId} />}");
+    expect(code("src/components/declutter/DeclutterItemView.tsx")).toContain("{!ownListing && user && <DeclutterReportListing itemId={itemId} />}");
     expect(code("src/components/declutter/DeclutterReportListing.tsx")).toContain('reportedType="declutter_item"');
     for (const p of ["src/components/declutter/declutterUi.tsx", "src/components/admin/settings/DeclutterReviewCard.tsx"]) {
       expect(code(p), p).not.toMatch(/first 3|of 3 approved/);

@@ -17,27 +17,36 @@ import { DeclutterNotice } from "./declutterUi";
  * line on a paid or handed-over order, never a free claim) whose payout is not sent yet: its payout's amount while
  * that is pending or failed, or the sale's price while no payout row exists yet. A payout sent (succeeded) or with
  * nothing due counts nothing.
+ * `titles` names every item in that money (audit 1030 DC-14: the banner summed two sales but named only the first).
  */
-export function declutterMoneyWaiting(cart: CartLine[], payouts: MyPayout[]): { cents: number; firstTitle: string | null } {
+export function declutterMoneyWaiting(cart: CartLine[], payouts: MyPayout[]): { cents: number; titles: string[] } {
   const payoutBy = new Map(payouts.map((p) => [p.order_id, p]));
-  const sales = new Map<string, { cents: number; title: string }>();
+  const sales = new Map<string, { cents: number; titles: string[] }>();
   for (const l of cart) {
     if (l.my_side !== "seller" || l.status !== "paid" || !l.order_id || l.price_cents <= 0) continue;
     if (l.order_status !== "paid" && l.order_status !== "handed_over") continue;
-    const s = sales.get(l.order_id) ?? { cents: 0, title: l.item_title };
+    const s = sales.get(l.order_id) ?? { cents: 0, titles: [] };
     s.cents += l.price_cents;
+    s.titles.push(l.item_title);
     sales.set(l.order_id, s);
   }
   let cents = 0;
-  let firstTitle: string | null = null;
+  const titles: string[] = [];
   for (const [orderId, s] of sales) {
     const p = payoutBy.get(orderId);
     const owed = !p ? s.cents : p.status === "pending" || p.status === "failed" ? p.amount_cents : 0;
     if (owed <= 0) continue;
     cents += owed;
-    firstTitle ??= s.title;
+    titles.push(...s.titles);
   }
-  return { cents, firstTitle };
+  return { cents, titles };
+}
+
+/** "Oak chair", "Oak chair and Blue mug", "Oak chair, Blue mug and 1 more": every item the money is for, counted. */
+export function soldWords(titles: string[]): string {
+  if (titles.length <= 2) return titles.join(" and ");
+  if (titles.length === 3) return `${titles[0]}, ${titles[1]} and ${titles[2]}`;
+  return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`;
 }
 
 /**
@@ -66,10 +75,10 @@ function DeclutterMoneyPrompt() {
   if (!cart.data || !payouts.data) return null;
   const waiting = declutterMoneyWaiting(cart.data, payouts.data);
   if (waiting.cents <= 0) return null;
-  return <OwedPayoutPrompt cents={waiting.cents} title={waiting.firstTitle} />;
+  return <OwedPayoutPrompt cents={waiting.cents} titles={waiting.titles} />;
 }
 
-function OwedPayoutPrompt({ cents, title }: { cents: number; title: string | null }) {
+function OwedPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }) {
   // The one reader every payout-setup entry point uses (payoutSetupPausedEntryPoints guard). Money is owed
   // here, so its only possible "no" is the pause for everyone.
   const paused = usePayoutSetupBlock() === "paused";
@@ -79,7 +88,7 @@ function OwedPayoutPrompt({ cents, title }: { cents: number; title: string | nul
   return (
     <div data-declutter-payout-prompt="">
       <DeclutterNotice tone="warn" title={`Set up payouts to get your ${formatPrice(cents)}.`}>
-        {title ? `You sold ${title}. ` : ""}The money is held safely until payouts are set up, one short step.{" "}
+        {titles.length ? `You sold ${soldWords(titles)}. ` : ""}The money is held safely until payouts are set up, one short step.{" "}
         <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
       </DeclutterNotice>
     </div>

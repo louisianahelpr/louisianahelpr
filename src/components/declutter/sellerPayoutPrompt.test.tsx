@@ -9,6 +9,9 @@
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     if (l.my_side !== "seller" \|\| l.status !== "paid" \|\| !l.order_id \|\| l.price_cents <= 0) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | p.status === "pending" \|\| p.status === "failed" ? p.amount_cents : 0 | p.amount_cents
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("sold") && <SellerPayoutPrompt />} |
+ * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     titles.push(...s.titles); |     if (!titles.length) titles.push(...s.titles);
+ * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     s.titles.push(l.item_title); |     if (!s.titles.length) s.titles.push(l.item_title);
+ * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`; |   return `${titles[0]}, ${titles[1]} and more`;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -27,7 +30,7 @@ vi.mock("@/components/payouts/PayoutSetupPausedNotice", () => ({ PayoutSetupPaus
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/handover", () => ({ fetchMyPayouts: async () => state.payouts }));
 
-import { SellerPayoutPrompt, declutterMoneyWaiting } from "./SellerPayoutPrompt";
+import { SellerPayoutPrompt, declutterMoneyWaiting, soldWords } from "./SellerPayoutPrompt";
 
 const SOLD = {
   line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 3200, status: "paid",
@@ -85,6 +88,26 @@ describe("Declutter payout prompt: only when Declutter money waits", () => {
     for (const [name, cart, payouts, cents] of cases) {
       expect(declutterMoneyWaiting(cart as never, payouts as never).cents, name).toBe(cents);
     }
+  });
+
+  // Audit 1030 DC-14: two sales, $42 in the title, and the body named only the first item.
+  it("two sales waiting: the amount sums both and the words name both", async () => {
+    state.cart = [SOLD, { ...SOLD, line_id: "l2", item_id: "i2", item_title: "Blue enamel mug", price_cents: 1000, order_id: "o2" }];
+    show();
+    expect(await screen.findByText("Set up payouts to get your $42.")).toBeInTheDocument();
+    expect(screen.getByText(/You sold Oak rocking chair and Blue enamel mug\./)).toBeInTheDocument();
+  });
+
+  it("every item in the money is named or counted, and a paid-out sale is not", () => {
+    const two = { ...SOLD, line_id: "l2", item_id: "i2", item_title: "Lamp", order_id: "o2" };
+    const three = { ...SOLD, line_id: "l3", item_id: "i3", item_title: "Rug", order_id: "o2" };
+    expect(declutterMoneyWaiting([SOLD, two, three] as never, []).titles).toEqual(["Oak rocking chair", "Lamp", "Rug"]);
+    expect(declutterMoneyWaiting([SOLD, two] as never, [{ ...PAYOUT, status: "succeeded" }] as never).titles).toEqual(["Lamp"]);
+    const words: [string[], string][] = [
+      [["A"], "A"], [["A", "B"], "A and B"], [["A", "B", "C"], "A, B and C"], [["A", "B", "C", "D"], "A, B and 2 more"], [["A", "B", "C", "D", "E"], "A, B and 3 more"],
+    ];
+    expect(words.length).toBeGreaterThan(3);
+    for (const [t, w] of words) expect(soldWords(t)).toBe(w);
   });
 
   it("the server says no (owed nothing): no prompt, and the Declutter rows are not even read", async () => {

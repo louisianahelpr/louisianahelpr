@@ -1,5 +1,5 @@
 /**
- * Declutter returns (migration 20261030043920_declutter_returns.sql): the way a full-refund item goes back to the seller, inside the
+ * Declutter returns (migration 20261030071818_declutter_returns.sql): the way a full-refund item goes back to the seller, inside the
  * refund panel (DeclutterRefundRequest.tsx) and nowhere else (src/test/declutterReturns.test.ts). Owner 2026-10-29:
  * only the two free ways, no paid Helpr trip. Every rule is the server's; this only shows them and sends choices.
  */

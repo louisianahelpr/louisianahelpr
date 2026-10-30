@@ -182,7 +182,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   refund_already_asked: "You already asked for a refund on this sale.",
   refund_window_over: "The 24 hours to ask for a refund are over, so this sale is final.",
   refund_already_answered: "This refund request was already answered.",
-  // Declutter returns (20261030043920_declutter_returns.sql): the two free ways back.
+  // Declutter returns (20261030071818_declutter_returns.sql): the two free ways back.
   invalid_return_way: "Choose how the item comes back: the buyer brings it, or you pick it up.",
   invalid_return_day: "Pick a day in the next 7 days.",
   invalid_return_time: "Pick a time from now on, within the next 7 days.",

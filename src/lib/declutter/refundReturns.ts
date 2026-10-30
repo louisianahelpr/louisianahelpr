@@ -1,5 +1,5 @@
 /**
- * Declutter returns (migration 20261030043920_declutter_returns.sql): how a full-refund item gets back to the seller. Owner 2026-10-29
+ * Declutter returns (migration 20261030071818_declutter_returns.sql): how a full-refund item gets back to the seller. Owner 2026-10-29
  * (through the lead): only the two free ways, no paid Helpr trip.
  *   drop_off  the buyer brings it to the seller's pickup address on or after the day the seller picked, and takes
  *             a live photo there (declutter_return_dropped_off; the porch photo rules).

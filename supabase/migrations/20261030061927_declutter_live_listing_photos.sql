@@ -12,7 +12,7 @@
 -- "send it back for the automatic check" step are new):
 --   - A draft: unchanged.
 --   - The seller's own LIVE listing: the photo is added / removed, and the
---     listing follows the same rule as a big edit (20261030043553,
+--     listing follows the same rule as a big edit (20261030071816,
 --     declutter_edit_listing): it goes to pending_review (hidden from buyers),
 --     the automatic check is cleared (the existing photo trigger,
 --     trg_declutter_photos_void_ai_check, does that), each buyer with an open
@@ -97,7 +97,7 @@ BEGIN
   RETURNING id INTO v_id;
   UPDATE public.declutter_items SET updated_at = now() WHERE id = p_item_id;
 
-  -- A live listing's new photo: the same rule as a big edit (declutter_edit_listing, 20261030043553).
+  -- A live listing's new photo: the same rule as a big edit (declutter_edit_listing, 20261030071816).
   IF v_item.status = 'live' THEN
     FOR r IN
       SELECT DISTINCT o.buyer_id FROM public.declutter_offers o

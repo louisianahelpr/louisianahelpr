@@ -131,7 +131,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017055505)'),
   ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261017055505; a stale one raises photo_too_old, 20261029002010)'),
   ('handover_photo_is_fresh',       'allow',    'TRUE = this storage object was uploaded in the last 10 minutes: a live handover photo (20261029002010)'),
-  ('declutter_return_photo_ok',     'allow',    'TRUE = this path is the caller''s own uploaded return photo for this order (20261030043920)'),
+  ('declutter_return_photo_ok',     'allow',    'TRUE = this path is the caller''s own uploaded return photo for this order (20261030071818)'),
   ('helpr_task_same_stripe_mode',   'allow',    'TRUE = the two members are the same Stripe kind (test vs real): the Helpr may take the task (20261017055505)'),
   ('helpr_task_source_held',        'deny',     'TRUE = the source holds the money (an open problem): no confirm or payout (20261017055505)'),
   ('helpr_task_source_slot_ok',     'allow',    'TRUE = the task''s source accepts this pickup time (20261017055505)'),
@@ -173,7 +173,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('admin_queue_still_pending',     'classify', 'labels an admin-queue ledger item still pending (close rule, Q355); NULL rule = cannot tell'),
   ('admin_alert_manual_close',      'classify', 'labels an admin alert title as closed only by a person (Q355 part 2); NULL title = not manual'),
   ('job_photos_shareable',          'classify', 'labels a job whose before/after photos Helpr may use in marketing: the poster and every booked Helpr left share_job_photos on (admin only; app access never depends on it; 20261021001940)'),
-  ('declutter_search_matches',      'classify', 'labels a Declutter item as matching a saved search''s words (DA-1, 20261030043900); NULL query = no search words, matches like an empty Browse search; no access decision'),
+  ('declutter_search_matches',      'classify', 'labels a Declutter item as matching a saved search''s words (DA-1, 20261030071817); NULL query = no search words, matches like an empty Browse search; no access decision'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('session_email_unconfirmed',     'noarg',    'reads the JWT only (Q807): TRUE refuses the write, so it fails safe'),
@@ -534,7 +534,7 @@ BEGIN
         -- Slice 5: B's photo for task T in the private helpr-tasks bucket (no bucket row needed for the check).
         INSERT INTO storage.objects (bucket_id, name) VALUES
           ('helpr-tasks', B::text || '/task/00000000-0000-4000-8140-000000000601/p.jpg');
-        -- Returns (20261030043920): B's return photo for order 0501 in the private declutter-handover bucket.
+        -- Returns (20261030071818): B's return photo for order 0501 in the private declutter-handover bucket.
         INSERT INTO storage.objects (bucket_id, name) VALUES
           ('declutter-handover', B::text || '/declutter/return/00000000-0000-4000-8140-000000000501/p.jpg');
       WHEN 'shop' THEN

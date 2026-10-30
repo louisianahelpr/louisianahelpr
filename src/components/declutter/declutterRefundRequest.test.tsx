@@ -205,7 +205,7 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
     fireEvent.click(screen.getByText("Refund in full"));
     fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
-    // Declutter returns (20261030043920): the full answer and the way back go in ONE call, with no amount.
+    // Declutter returns (20261030071818): the full answer and the way back go in ONE call, with no amount.
     await waitFor(() => expect(state.accepted).toHaveLength(1));
     expect(state.accepted[0]).toEqual(["r1", "drop_off", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), null]);
     expect(state.answered).toEqual([]);

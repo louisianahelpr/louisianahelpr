@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030043553_declutter_live_on_post (owner 2026-10-29, Selling audit item B: a new listing goes
+ * PGlite proof for 20261030071816_declutter_live_on_post (owner 2026-10-29, Selling audit item B: a new listing goes
  * live when posted; only a failed automatic check holds it; members can report a listing; an admin can take it down).
  *
  *   node src/test/pglite/declutterLiveOnPost.pglite.mjs                    # AFTER: migration applied 3x
@@ -19,7 +19,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const NEW = readFileSync(MIG + "20261030043553_declutter_live_on_post.sql", "utf8");
+const NEW = readFileSync(MIG + "20261030071816_declutter_live_on_post.sql", "utf8");
 const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: the prod definitions before the migration (expect FAILs)");
 

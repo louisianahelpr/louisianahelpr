@@ -799,7 +799,7 @@ export const RPC_ERROR_COPY = {
     refund_amount_unknown: DC.refund_amount_unknown,
     refund_not_found: DC.refund_not_found,
   },
-  // Declutter returns (20261030043920_declutter_returns.sql).
+  // Declutter returns (20261030071818_declutter_returns.sql).
   declutter_accept_refund_with_return: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

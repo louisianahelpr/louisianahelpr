@@ -58,7 +58,7 @@ describe("the surfaces' shared arithmetic", () => {
   });
 });
 
-// @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   jobs.some(isAwaitingTransfer) ? firstPayoutFeeDollars : 0; |   firstPayoutFeeDollars;
+// @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   jobs.some((j) => isAwaitingTransfer(j) && !isGiveawayFixedPayJob(j)) ? firstPayoutFeeDollars : 0; |   firstPayoutFeeDollars;
 describe("firstPayoutFeeDueFrom (Q753 review): the fee only while a payout is still to come", () => {
   it("is the fee when a job awaits its transfer, and 0 for settled-only rows", async () => {
     const { firstPayoutFeeDueFrom } = await import("@/components/profile/earningsTab/earningsTabHelpers");

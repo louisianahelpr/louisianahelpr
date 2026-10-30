@@ -169,11 +169,11 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             onMakeCover={s.makeCover}
             coverUndo={s.coverUndo ? s.undoCover : null}
             free={form.free}
-            tipDone={ai.state.status === "done"}
+            tipDone={ai.state.status === "done" || s.keptWork.restored}
             aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
-          {!form.free && ai.state.status !== "done" && <SellItForMeEntry />}
+          {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />}
           {problemAt("photos")}
         </section>
 

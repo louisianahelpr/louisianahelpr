@@ -21,7 +21,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
-import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMySales,
@@ -52,7 +51,7 @@ import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";

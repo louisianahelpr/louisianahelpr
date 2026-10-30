@@ -98,7 +98,9 @@ export function SellPhotos({
           </li>
         ))}
         {previews.map((url, i) => (
-          <li key={url} className="relative" data-held-photo="">
+          <li key={url} data-held-photo="">
+            {/* The chips and X sit on the photo; Make cover sits under it, so its height never moves them. */}
+            <div className="relative">
             {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
             {url.startsWith("blob:") && (
               <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
@@ -109,6 +111,7 @@ export function SellPhotos({
               </span>
             ) : uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
+            </div>
             {onMakeCover && !heldFailed && uploaded.length + i > 0 && (
               <button type="button" onClick={() => onMakeCover(i)} aria-label={`Make photo ${uploaded.length + i + 1} the cover`} className="min-h-11 w-full text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
                 Make cover

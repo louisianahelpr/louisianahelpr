@@ -279,8 +279,11 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
-    await waitFor(() => expect(screen.queryByText("Add a card to finish.")).toBeNull());
-    await waitFor(() => expect(screen.queryByText("Checking for your card…")).toBeNull());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled();
+      expect(screen.queryByText("Add a card to finish.")).toBeNull();
+      expect(screen.queryByText("Checking for your card…")).toBeNull();
+    });
     // Never sent on its own: the member's own press sends it.
     expect(state.sent).toEqual([]);
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");

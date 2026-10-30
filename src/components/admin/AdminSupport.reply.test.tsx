@@ -7,7 +7,10 @@
  * src/test/pglite/adminSupportReplies.pglite.mjs.
  *
  * @mutate src/components/admin/AdminSupport.tsx |                   canResolve={ticket.status === "pending"} |                   canResolve={false}
- * @mutate src/components/admin/AdminSupport.tsx |                   <SupportThread replies={repliesFor(ticket.id)} /> |                   null
+ * @mutate src/components/admin/AdminSupport.tsx |                     <SupportThread replies={repliesFor(ticket.id)} byEmailOnly={!!guest} /> |                   null
+ * @mutate src/components/admin/AdminSupport.tsx |                   byEmailOnly={!!guest}\n                  disabledReason |                   disabledReason
+ * @mutate src/components/admin/AdminSupport.tsx | ticket.reporter_id \|\| guest ? undefined | ticket.reporter_id ? undefined
+ * @mutate src/components/admin/SupportReply.tsx |   if (!r.guest) (r.notified ? reached : missed).push("in the app"); |   (r.notified ? reached : missed).push("in the app");
  * @mutate src/components/admin/SupportReply.tsx |         body: { reportId: ticketId, message: trimmed, resolve: canResolve && resolve }, |         body: { reportId: ticketId, message: trimmed, resolve: false },
  * @mutate src/components/admin/SupportReply.tsx |       if (!result.success) throw new Error(result.error \|\| "The reply was not sent."); |
  * @mutate src/components/admin/useSupportReplies.ts |   const repliesPending = (id: string) => replies.isLoading \|\| (replies.isPlaceholderData && !fetchedIds.has(id)); |   const repliesPending = (id: string) => replies.isLoading;
@@ -95,22 +98,41 @@ describe("Admin Support: reply to a member", () => {
     toasts.success.mockReset(); toasts.warning.mockReset(); toasts.error.mockReset();
   });
 
-  it("a guest's ticket names the guest, reads as Guest and is answered by email, not with the deleted-member line", async () => {
-    db.rpc.admin_support_queue = [ticket({
-      reporter_id: null, reporter_name: null, reporter_email: null,
-      reason: "[Issue Report] Guest message",
-      description: "Subject: Cannot log in\n\nNo reset email\n\n(Submitted from /support)\n\nGuest: Dana Guest <dana@example.com>",
-    })];
+  const guestTicket = () => ticket({
+    reporter_id: null, reporter_name: null, reporter_email: null,
+    reason: "[Issue Report] Guest message",
+    description: "Subject: Cannot log in\n\nNo reset email\n\n(Submitted from /support)\n\nGuest: Dana Guest <dana@bayoumail.net>",
+  });
+
+  it("a guest's ticket names the guest and is answered with the same composer, never a line about a deleted member", async () => {
+    db.rpc.admin_support_queue = [guestTicket()];
     mount();
-    expect(await screen.findByText(/Dana Guest/)).toHaveTextContent("dana@example.com");
+    expect(await screen.findByText(/Dana Guest/)).toHaveTextContent("dana@bayoumail.net");
     expect(screen.getByText("Guest")).toBeInTheDocument();
     expect(screen.getByText(/No reset email/)).not.toHaveTextContent("Guest:");
-    expect(screen.getByRole("link", { name: "Reply by email" })).toHaveAttribute(
-      "href",
-      "mailto:dana@example.com?subject=Louisiana%20Helpr%3A%20Guest%20message",
-    );
     expect(screen.queryByText(/deleted their account/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /email/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reply" }));
+    expect(screen.getByLabelText("Reply to Dana Guest")).toHaveAttribute("placeholder", "They get this by email.");
+    fireEvent.change(screen.getByLabelText("Reply to Dana Guest"), { target: { value: "We reset it." } });
+    db.invokeResult = { data: { success: true, guest: true, notified: false, email_queued: true, has_email: true, resolved: true, resolve: "resolved", outcome_recorded: true }, error: null };
+    fireEvent.click(screen.getByRole("button", { name: "Send reply" }));
+    await waitFor(() => expect(toasts.success).toHaveBeenCalledWith("Reply sent to Dana Guest by email. Ticket marked resolved."));
+    expect(toasts.warning).not.toHaveBeenCalled();
+    expect(db.invokes[0].body).toMatchObject({ reportId: "r-1", message: "We reset it." });
+  });
+
+  it("a reply on a guest's ticket shows in its thread with the email outcome, no in-app line", async () => {
+    db.rpc.admin_support_queue = [guestTicket()];
+    db.rpc.admin_support_replies = [{
+      id: "rep-g", report_id: "r-1", body: "We reset it.", created_at: "2026-10-21T10:00:00Z",
+      admin_name: "Ada Owner", notified: false, email_status: "sent", resolved_on_send: false, outcome_recorded: true,
+    }];
+    mount();
+    const thread = await screen.findByRole("list", { name: "Replies sent" });
+    expect(thread).toHaveTextContent("We reset it.");
+    expect(thread).toHaveTextContent("Emailed");
+    expect(thread).not.toHaveTextContent("In-app");
   });
 
   it("a deleted member's ticket still says there is no one to reply to", async () => {

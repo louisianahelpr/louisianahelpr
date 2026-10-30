@@ -98,7 +98,7 @@ const DECLUTTER_FILES = [
   "20261030061753_declutter_meetup_got_it_waits.sql",
   // Q2487: free items are asked for, the giver picks.
   "20261030064021_declutter_free_requests.sql",
-  "20261029224749_declutter_porch_places.sql",
+  "20261030164712_declutter_porch_places.sql",
   // Owner 2026-10-28: the ways the seller ticks (invalid_handovers, handover_not_offered).
   "20261028235247_declutter_handover_choices.sql",
   // Q2462: the handover chat (no_agreed_sale, talk_blocked, handover_way_open, talk_recently_closed, talk_not_found,

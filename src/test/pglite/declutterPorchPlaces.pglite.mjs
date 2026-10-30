@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261029224749_declutter_porch_places (D-NEW14, owner-approved design 2026-10-29): a seller saves
+ * PGlite proof for 20261030164712_declutter_porch_places (D-NEW14, owner-approved design 2026-10-29): a seller saves
  * up to 5 porch pickup places, each with its own weekdays; the buyer picks a place, then a day; only the chosen
  * address is shared after paying; the place is FROZEN on the order at checkout; Helpr delivery uses the chosen place.
  *
@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
-const NEW_FILE = "20261029224749_declutter_porch_places.sql";
+const NEW_FILE = "20261030164712_declutter_porch_places.sql";
 const BASES = [
   "20261027211754_declutter_bundle_discount.sql",
   "20261028200440_declutter_audit3_notices_and_empty_cart.sql",

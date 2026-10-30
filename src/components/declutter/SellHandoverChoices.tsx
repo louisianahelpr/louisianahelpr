@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { SellDeliveryOffNotice } from "./SellDeliveryOffNotice";
 import { SellPorchDays } from "./SellPorchDays";
+import { SellPorchPlaces } from "./SellPorchPlaces";
 
 export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
   porch: { title: "Porch pickup", words: "You leave it out and the buyer picks it up. You don't have to meet.", icon: DoorOpen },
@@ -79,6 +80,7 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, p
       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>}
       {!free && sellerDeliveryOpen && <SellDeliveryOffNotice ticked={ways.includes("seller_delivery")} />}
       {(free || ways.includes("porch")) && <SellPorchDays pickupDays={pickupDays} />}
+      {(free || ways.includes("porch")) && <SellPorchPlaces />}
     </div>
   );
 }

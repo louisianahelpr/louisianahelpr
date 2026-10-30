@@ -109,8 +109,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
   // declutter_set_porch_days (20261029161347).
   invalid_porch_days: "Pick porch days from Sunday to Saturday.",
-  // Porch places (D-NEW14, 20261029224749).
-  invalid_porch_place: "Give the place a name and pick its address from the list.",
+  // Porch places (D-NEW14, 20261030164712).
+  invalid_porch_place: "Give the place a name and its full address.",
   porch_places_full: "You can save up to 5 pickup places.",
   porch_place_not_found: "We couldn't find that pickup place. It may have been removed.",
   porch_place_unavailable: "That pickup place isn't available. Pick another.",

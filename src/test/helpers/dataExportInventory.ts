@@ -170,6 +170,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_guarantee_claims: { by: ["poster_id", "helper_id"] },
   // Safe meetup spots (20261027204500, exported by 20261027233614, Q2451): the buyer's own pick per seller.
   declutter_meetup_choices: { by: ["buyer_id"] },
+  // D-NEW14 porch places (20261030164712, exported by 20261030165438): the seller's own places; the buyer's own pick per seller.
+  declutter_porch_places: { by: ["seller_id"] },
+  declutter_porch_place_choices: { by: ["buyer_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -290,6 +293,14 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
   },  // Q2451 (20261027233614): the meeting spot of each order the member is a side of (no person column; a public place).
   declutter_order_meetups: {
     table: "declutter_order_meetups",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: [],
+    noPersonColumn: true,
+  },
+  // D-NEW14 (20261030164712, exported by 20261030165438): the place frozen on each order the member is a side of; the
+  // buyer's copy leaves out the seller's address, point and id.
+  declutter_order_porch_places: {
+    table: "declutter_order_porch_places",
     scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
     stripped: [],
     noPersonColumn: true,
@@ -561,10 +572,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "rental_rent_payments.reported_by": { reason: "which side entered a rent payment ('tenant' or 'landlord'), not a person id; the table is keyed by tenancy_id and holds no person column (20261019073106)" },
   "rental_tenancies.ended_by": { reason: "which side ended the tenancy ('tenant' or 'landlord'), not a person id; the tenancy is exported by its landlord_id and tenant_id (20261019073106)" },
   "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261017205605, with this staff id dropped)", stripped: true },
-  "declutter_porch_places.seller_id": { reason: "export pending after Builder 44's export_my_data lands (lead 2026-10-29; a parallel restatement would collide). D-NEW14 porch places (20261029224749): the seller's own saved porch pickup places, readable by them in the sell form (declutter_my_porch_places); to be exported to the seller" },
-  "declutter_porch_place_choices.buyer_id": { reason: "export pending after Builder 44's export_my_data lands (lead 2026-10-29; a parallel restatement would collide). D-NEW14 porch places (20261029224749): which of a seller's places a buyer picked for their cart, until checkout; to be exported to the buyer only (as declutter_meetup_choices)" },
-  "declutter_porch_place_choices.seller_id": { reason: "export pending after Builder 44's export_my_data lands (lead 2026-10-29; a parallel restatement would collide). D-NEW14 porch places (20261029224749): which seller a buyer's place pick is for; the pick is the buyer's own and the seller never sees it (as declutter_meetup_choices.seller_id)" },
-  "declutter_order_porch_places.seller_id": { reason: "export pending after Builder 44's export_my_data lands (lead 2026-10-29; a parallel restatement would collide). D-NEW14 porch places (20261029224749): the porch place frozen on an order at checkout; to be exported to both sides of the order, the address to the seller only" },
+  "declutter_order_porch_places.seller_id": { reason: "D-NEW14 porch places (20261030164712, exported by 20261030165438): the seller of an order's frozen place; the section is scoped by the order (either side), and the buyer's copy has this id, the address and the point removed", stripped: true },
+  "declutter_porch_place_choices.seller_id": { reason: "D-NEW14 porch places (20261030164712, exported by 20261030165438): which seller a buyer's place pick is for; the pick is the buyer's own and the seller never sees it (as declutter_meetup_choices.seller_id)" },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the whole table stays out of the export (A3-I6)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.

@@ -71,6 +71,12 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // B59 Book me (20261030013347): recordBookingSourceFor (src/lib/bookMe.ts) is best effort on
+  // Post a job. A failure is reported and the post goes on; it never shows a message.
+  record_booking_source: {
+    not_signed_in: { reason: ANON_REVOKED },
+    account_restricted: { reason: "no message exists at this site: recordBookingSourceFor reports any error and posting goes on; a restricted account is refused again, with words, by the post itself." },
+  },
   // Boards 66/172 slice 2 (20261021130723): poster_cancel_job raises quote_changed only for a non-NULL
   // p_expected_fee_cents; rentals_cancel_request_job calls it with two arguments, so the check never runs there.
   rentals_cancel_request_job: {

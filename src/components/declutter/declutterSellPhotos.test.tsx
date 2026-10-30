@@ -5,7 +5,7 @@
  * the device (previews only, nothing uploaded); Post creates the draft and uploads them to it, then lists it.
  * The API is stubbed: this checks the order of calls, not the backend.
  *
- * @mutate src/components/declutter/useSellFlowState.ts |       await uploadHeld(id, waiting); |       void waiting;
+ * @mutate src/components/declutter/useSellFlowState.ts |         uploadHeld(id, waiting),\n |         null,\n
  * @mutate src/components/declutter/useSellFlowState.ts |       setHeld((h) => [...h, ...good]);\n |       void good;\n
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |   const count = uploaded.length + held.length; |   const count = uploaded.length;
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellPhotos\n |           <span hidden />{false && <SellPhotos\n
@@ -38,6 +38,10 @@ const upload = {
   failing: new Set<string>(),
   gate: null as Promise<void> | null,
   onDraft: [] as { id: string; storage_path: string }[],
+  storing: 0,
+  mostAtOnce: 0,
+  delays: {} as Record<string, () => Promise<void>>,
+  keepUpGate: null as Promise<void> | null,
 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
@@ -104,14 +108,22 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItemDropState: async () => null,
   updateDraft: async () => "ok",
   setPorchOk: async () => true,
-  setKeepUp: async () => true,
+  setKeepUp: async () => { await upload.keepUpGate; return true; },
   setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
   fetchItemHandovers: async () => null,
-  addPhoto: async (_u: string, id: string, f: File) => {
+  storePhoto: async (_u: string, id: string, f: File) => {
+    upload.storing += 1;
+    upload.mostAtOnce = Math.max(upload.mostAtOnce, upload.storing);
     await upload.gate;
+    await upload.delays[f.name]?.();
+    upload.storing -= 1;
     if (upload.failing.has(f.name)) throw new Error("photo_not_uploaded");
-    calls.push(`addPhoto:${id}:${f.name}`);
-    upload.onDraft.push({ id: `p-${f.name}`, storage_path: f.name });
+    return `${id}:${f.name}`;
+  },
+  attachPhoto: async (id: string, path: string) => {
+    const name = path.slice(id.length + 1);
+    calls.push(`addPhoto:${id}:${name}`);
+    upload.onDraft.push({ id: `p-${name}`, storage_path: name });
     return "p";
   },
   removePhoto: async () => undefined,
@@ -167,6 +179,10 @@ describe("photo-first selling, one screen", () => {
     upload.failing = new Set();
     upload.gate = null;
     upload.onDraft.length = 0;
+    upload.storing = 0;
+    upload.mostAtOnce = 0;
+    upload.delays = {};
+    upload.keepUpGate = null;
     aiCalls.length = 0;
     drafts.length = 0;
     drops.length = 0;
@@ -238,7 +254,7 @@ describe("photo-first selling, one screen", () => {
       expect(calls).toEqual(["createDraft", `addPhoto:${NEW_ID}:a.jpg`, `addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:c.jpg`, "attest", "publish"]),
     );
     // The seller's choice is what the server stores: their lowest price and their step.
-    // @mutate src/components/declutter/useSellFlowState.ts |       if (!form.free) await setDropPct(id, choice.dropPct); |       void choice;
+    // @mutate src/components/declutter/useSellFlowState.ts |         form.free ? null : setDropPct(id, choice.dropPct),\n |         null,\n
     expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 2000 })]);
     expect(drops).toEqual([[NEW_ID, 5]]);
   });
@@ -470,7 +486,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit posting 1030 #5: a slow Post said only "Posting…".
-  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(`Uploading photo ${i + 1} of ${list.length}`); |       void i;
+  // @mutate src/components/declutter/useSellFlowState.ts |     setPostStep(`Uploading photo 1 of ${list.length}`); |     void list;
   it("a slow Post says which photo it is on", async () => {
     let release = () => {};
     upload.gate = new Promise<void>((r) => { release = r; });
@@ -483,6 +499,176 @@ describe("photo-first selling, one screen", () => {
     expect(await screen.findByRole("button", { name: "Uploading photo 1 of 2" })).toBeDisabled();
     release();
     await screen.findByTestId("landed");
+  });
+
+  // Audit posting 1030 #5: a few upload at once, but they join the listing in the seller's order, and the first is the
+  // cover: photo 3 finishing first must not make it the cover.
+  // @mutate src/components/declutter/useSellFlowState.ts |     await forEachTogether(list, PHOTOS_AT_ONCE, async (f) => { |     await forEachTogether(list, 1, async (f) => {
+  // @mutate src/components/declutter/useSellFlowState.ts |     for (const f of list) {\n      const path = stored.get(f); |     for (const f of [...stored.keys()]) {\n      const path = stored.get(f);
+  it("Post uploads three at a time, and the photos join the listing in the seller's order whichever finishes first", async () => {
+    const finish: Record<string, () => void> = {};
+    for (const n of ["a.jpg", "b.jpg", "c.jpg", "d.jpg"]) upload.delays[n] = () => new Promise<void>((r) => { finish[n] = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg", "c.jpg", "d.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(upload.storing).toBe(3));
+    expect(finish["d.jpg"]).toBeUndefined();
+    // The last of the three is done first; the fourth then starts.
+    finish["c.jpg"]();
+    await waitFor(() => expect(finish["d.jpg"]).toBeDefined());
+    expect(await screen.findByRole("button", { name: "Uploading photo 2 of 4" })).toBeDisabled();
+    expect(calls.filter((c) => c.startsWith("addPhoto"))).toEqual([]);
+    finish["d.jpg"]();
+    finish["b.jpg"]();
+    finish["a.jpg"]();
+    await screen.findByTestId("landed");
+    expect(upload.mostAtOnce).toBe(3);
+    expect(calls.filter((c) => c.startsWith("addPhoto")).map((c) => c.split(":")[2])).toEqual(["a.jpg", "b.jpg", "c.jpg", "d.jpg"]);
+  });
+
+  // Audit posting 1030 #5: the steps that don't need each other run together; the check and the publish still wait.
+  // @mutate src/components/declutter/useSellFlowState.ts |         setHandovers(id, savedWays),\n |         await setHandovers(id, savedWays),\n
+  // @mutate src/components/declutter/useSellFlowState.ts |           ? setKeepUp(id, true).catch( |           ? await setKeepUp(id, true).catch(
+  it("the ways go in while the photos upload, the tick while Keep it up saves, and nothing is checked or published until they're all done", async () => {
+    let photos = () => {};
+    upload.gate = new Promise<void>((r) => { photos = r; });
+    let ways = () => {};
+    vi.mocked(api.setHandovers).mockImplementationOnce(async (_id, w) => { await new Promise<void>((r) => { ways = r; }); return w; });
+    let keepUp = () => {};
+    upload.keepUpGate = new Promise<void>((r) => { keepUp = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    // The ways are still going in, and the photo has started anyway.
+    await waitFor(() => expect(upload.storing).toBe(1));
+    expect(drops).toEqual([[NEW_ID, 5]]);
+    ways();
+    photos();
+    // Keep it up is still saving, and the tick has gone in.
+    await waitFor(() => expect(calls).toContain("attest"));
+    expect(calls).not.toContain("publish");
+    keepUp();
+    await screen.findByTestId("landed");
+    expect(calls).toEqual(["createDraft", `addPhoto:${NEW_ID}:a.jpg`, "attest", "publish"]);
+  });
+
+  // Audit posting 1030 #5: a refused setting no longer stops the photos halfway; it is said, and the next Post retries it.
+  it("a refused setting: the photos still go up, nothing is published, and the next Post sends none of them twice", async () => {
+    vi.mocked(api.setHandovers).mockRejectedValueOnce(new Error("invalid_handovers"));
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls.filter((c) => c.startsWith("addPhoto"))).toHaveLength(2));
+    await screen.findByRole("button", { name: "Post it" });
+    expect(calls).not.toContain("publish");
+    calls.length = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByTestId("landed");
+    expect(calls).toEqual(["attest", "publish"]);
+  });
+
+  // Audit posting 1030 #9: drag to reorder before upload, and the arrow keys for those who can't drag.
+  // @mutate src/components/declutter/SellOneScreen.tsx |             onMoveHeld={s.moveHeld}\n |
+  // @mutate src/components/declutter/SellPhotoDrag.ts |       if (over !== from) onMove(from, over); |       void over;
+  // @mutate src/components/declutter/useSellFlowState.ts |     setHeld((h) => movedPhoto(h, from, to)); |     void from; void to;
+  describe("moving photos before Post", () => {
+    const shown = () => [...document.querySelectorAll("[data-held-photo] img")].map((i) => i.getAttribute("src"));
+    /** jsdom lays nothing out: each tile is a 100 px square, side by side. */
+    function placeTiles() {
+      document.querySelectorAll("[data-held-photo]").forEach((t, i) => {
+        t.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 99, top: 0, bottom: 99 }) as DOMRect;
+      });
+    }
+    const pointer = (target: EventTarget, type: string, x: number, y = 50) =>
+      fireEvent(target, new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX: x, clientY: y }));
+    async function threePhotos() {
+      URL.createObjectURL = vi.fn((f: Blob) => `blob:${(f as File).name}`);
+      open();
+      await screen.findByRole("heading", { name: "Show it off" });
+      addPhotos("a.jpg", "b.jpg", "c.jpg");
+      await screen.findByText("We wrote your listing. Check it before you post");
+      placeTiles();
+    }
+    const grip = (n: number) => screen.getByRole("button", { name: `Move photo ${n}. Drag it, or use the left and right arrow keys.` });
+
+    it("dragging the third onto the first makes it the cover, and Post keeps that order", async () => {
+      await threePhotos();
+      const dragged = document.querySelector('[data-held-photo] img[src="blob:c.jpg"]');
+      pointer(grip(3), "pointerdown", 250);
+      pointer(window, "pointermove", 50);
+      // Nothing reshuffles under the finger: the place it would go is marked.
+      expect(shown()).toEqual(["blob:a.jpg", "blob:b.jpg", "blob:c.jpg"]);
+      expect(document.querySelectorAll("[data-held-photo]")[0].querySelector("[data-drop-target]")).not.toBeNull();
+      pointer(window, "pointerup", 50);
+      expect(shown()).toEqual(["blob:c.jpg", "blob:a.jpg", "blob:b.jpg"]);
+      expect(document.querySelectorAll("[data-held-photo]")[0].querySelector("[data-cover-chip]")).not.toBeNull();
+      // The preview isn't remade by moving it.
+      expect(document.querySelector('[data-held-photo] img[src="blob:c.jpg"]')).toBe(dragged);
+      fillWaysAndTax();
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      await screen.findByTestId("landed");
+      expect(calls.filter((c) => c.startsWith("addPhoto")).map((c) => c.split(":")[2])).toEqual(["c.jpg", "a.jpg", "b.jpg"]);
+    });
+
+    it("let go off the grid, or the drag is cancelled: the order stays", async () => {
+      await threePhotos();
+      pointer(grip(1), "pointerdown", 50);
+      pointer(window, "pointermove", 900, 900);
+      pointer(window, "pointerup", 900, 900);
+      expect(shown()).toEqual(["blob:a.jpg", "blob:b.jpg", "blob:c.jpg"]);
+      pointer(grip(1), "pointerdown", 50);
+      pointer(window, "pointermove", 150);
+      pointer(window, "pointercancel", 150);
+      expect(shown()).toEqual(["blob:a.jpg", "blob:b.jpg", "blob:c.jpg"]);
+    });
+
+    it("the arrow keys move a photo and keep the focus on it", async () => {
+      await threePhotos();
+      grip(1).focus();
+      fireEvent.keyDown(grip(1), { key: "ArrowRight" });
+      expect(shown()).toEqual(["blob:b.jpg", "blob:a.jpg", "blob:c.jpg"]);
+      // React puts focus back on an element it moved; this checks that the tile moves rather than being remade.
+      expect(document.activeElement).toBe(grip(2));
+      fireEvent.keyDown(grip(2), { key: "ArrowRight" });
+      fireEvent.keyDown(grip(3), { key: "ArrowRight" });
+      expect(shown()).toEqual(["blob:b.jpg", "blob:c.jpg", "blob:a.jpg"]);
+    });
+
+    it("after the seller has moved one, the AI's cover pick leaves their order alone", async () => {
+      await threePhotos();
+      fireEvent.keyDown(grip(1), { key: "ArrowRight" });
+      aiAnswer.extra = { coverPhoto: 2 };
+      fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+      await waitFor(() => expect(aiCalls).toHaveLength(2));
+      await screen.findByText("We wrote your listing. Check it before you post");
+      expect(shown()).toEqual(["blob:b.jpg", "blob:a.jpg", "blob:c.jpg"]);
+      expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull();
+    });
+
+    it("one photo, or photos that failed to upload, have no handle", async () => {
+      open();
+      await screen.findByRole("heading", { name: "Show it off" });
+      addPhotos("a.jpg");
+      await screen.findByText("We wrote your listing. Check it before you post");
+      expect(document.querySelector("[data-photo-grip]")).toBeNull();
+      upload.failing = new Set(["b.jpg", "c.jpg"]);
+      addPhotos("b.jpg", "c.jpg");
+      await screen.findByText(/^3 of 12/);
+      expect(document.querySelectorAll("[data-photo-grip]")).toHaveLength(3);
+      fillWaysAndTax();
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      await screen.findByText(/2 photos didn't upload/);
+      expect(document.querySelectorAll("[data-photo-grip]")).toHaveLength(0);
+    });
   });
 
   it("price drops off in settings: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
@@ -687,7 +873,7 @@ describe("photo-first selling, one screen", () => {
 
   // Owner 2026-10-28: "pick up at my door. remove that. they need the option to click which they will do, porch pick up,
   // they deliver, safe meeting spot. whatever other options we have".
-  // @mutate src/components/declutter/useSellFlowState.ts |       await setHandovers(id, savedWays); |       void savedWays;
+  // @mutate src/components/declutter/useSellFlowState.ts |         setHandovers(id, savedWays),\n |         null,\n
   // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push( |   if (false) out.push(
   // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
   // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);

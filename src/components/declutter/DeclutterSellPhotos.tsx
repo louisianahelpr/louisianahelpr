@@ -7,13 +7,15 @@
  * they are added, as before. Claude's listing panel (SellAiDraft.tsx) sits
  * under the photos and works from either kind (owner 2026-10-28).
  */
-import { useEffect, useMemo, type ReactNode } from "react";
-import { Camera, X } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Camera, GripVertical, X } from "lucide-react";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
+import { usePhotoDrag } from "./SellPhotoDrag";
 
 export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
 const MIN_PHOTOS = DECLUTTER_MIN_PHOTOS;
+const noMove = () => {};
 
 /** Board 31a: the first photo is the listing's cover (the gallery and Browse card show photos by position). */
 function CoverChip() {
@@ -34,6 +36,35 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
+/** One preview per photo for as long as it is held, so moving a photo never redraws it. */
+function useHeldPreviews(held: File[]): string[] {
+  const urls = useRef(new Map<File, string>());
+  const previews = held.map((f) => {
+    let url = urls.current.get(f);
+    if (!url) {
+      url = URL.createObjectURL(f);
+      urls.current.set(f, url);
+    }
+    return url;
+  });
+  useEffect(() => {
+    for (const [f, url] of urls.current) {
+      if (!held.includes(f)) {
+        URL.revokeObjectURL(url);
+        urls.current.delete(f);
+      }
+    }
+  }, [held]);
+  useEffect(() => {
+    const all = urls.current;
+    return () => {
+      all.forEach((url) => URL.revokeObjectURL(url));
+      all.clear();
+    };
+  }, []);
+  return previews;
+}
+
 export function SellPhotos({
   uploaded,
   held,
@@ -44,6 +75,7 @@ export function SellPhotos({
   heldFailed = false,
   refusedNote = null,
   onMakeCover,
+  onMoveHeld,
   coverUndo = null,
   free = false,
   tipDone = false,
@@ -62,6 +94,8 @@ export function SellPhotos({
   refusedNote?: string | null;
   /** A held photo becomes the cover. */
   onMakeCover?: (index: number) => void;
+  /** A held photo is dragged to another place. */
+  onMoveHeld?: (from: number, to: number) => void;
   /** The AI moved the cover: says so, and this puts it back. */
   coverUndo?: (() => void) | null;
   free?: boolean;
@@ -70,8 +104,9 @@ export function SellPhotos({
   /** Claude's listing panel (SellAiDraftPanel), once there is a photo. */
   aiPanel: ReactNode;
 }) {
-  const previews = useMemo(() => held.map((f) => URL.createObjectURL(f)), [held]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+  const previews = useHeldPreviews(held);
+  const drag = usePhotoDrag(held.length, onMoveHeld ?? noMove);
+  const canDrag = !!onMoveHeld && !heldFailed && held.length > 1;
   const count = uploaded.length + held.length;
   const addTile = count < MAX_PHOTOS && (
     <li>
@@ -98,12 +133,26 @@ export function SellPhotos({
           </li>
         ))}
         {previews.map((url, i) => (
-          <li key={url} data-held-photo="">
+          <li key={url} data-held-photo="" ref={drag.tileRef(i)} className="relative" style={drag.tileStyle(i)}>
             {/* The chips and X sit on the photo; Make cover sits under it, so its height never moves them. */}
-            <div className="relative">
+            <div className={drag.isTarget(i) ? "relative rounded-2xl ring-2 ring-[hsl(var(--bark))] ring-offset-2 ring-offset-background" : "relative"} data-drop-target={drag.isTarget(i) ? "" : undefined}>
             {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
             {url.startsWith("blob:") && (
-              <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+              <img src={url} alt={`Photo ${uploaded.length + i + 1}`} draggable={false} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+            )}
+            {canDrag && (
+              <button
+                type="button"
+                data-photo-grip=""
+                aria-label={`Move photo ${uploaded.length + i + 1}. Drag it, or use the left and right arrow keys.`}
+                className="absolute top-0 left-0 flex h-11 w-11 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+                onPointerDown={(e) => drag.startDrag(e, i)}
+                onKeyDown={(e) => drag.gripKeys(e, i)}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
+                  <GripVertical className="h-4 w-4" />
+                </span>
+              </button>
             )}
             {heldFailed ? (
               <span data-photo-failed="" className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-background/95 px-2 py-0.5 text-ds-12 font-semibold text-destructive-ink">
@@ -125,6 +174,7 @@ export function SellPhotos({
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
       </p>
+      {canDrag && <p className="text-ds-13 text-muted-foreground" data-photo-drag-hint="">Drag a photo's handle to change the order.</p>}
       {coverUndo && (
         <p className="text-ds-13 text-foreground" data-cover-moved="">
           We picked the best photo for the cover.{" "}

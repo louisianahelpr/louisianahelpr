@@ -19,7 +19,7 @@ const compress = {
 };
 vi.mock("@/lib/imageCompression", () => ({ compressImage: (f: File) => compressImpl(f) }));
 
-import { bunchThumbnail, cleanListingPhoto, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath, stripJpegAppSegments } from "./photos";
+import { bunchThumbnail, cleanListingPhoto, forEachTogether, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath, stripJpegAppSegments } from "./photos";
 
 /** SOI, optional APP1 "Exif" segment, APP0, SOS. */
 function jpeg(withExif: boolean): Uint8Array {
@@ -130,5 +130,45 @@ describe("Sell a bunch's previews", () => {
     expect(await bunchThumbnail(original)).toBe(original);
     expect(warn).toHaveBeenCalledWith("[declutter] no small preview for a photo", expect.any(Error));
     warn.mockRestore();
+  });
+});
+
+describe("the sell form's photos are prepared once", () => {
+  // @mutate src/lib/declutter/photos.ts |   let ready = readyPhotos.get(file); |   let ready: Promise<File> \| undefined;
+  // @mutate src/lib/declutter/photos.ts |     ready.catch(() => readyPhotos.delete(file)); |     void ready;
+  it("Post reuses what adding the photo prepared; a failure is tried again; another size is its own copy", async () => {
+    let made = 0;
+    compressImpl = async () => { made += 1; return fileOf(jpeg(false)); };
+    const f = fileOf(jpeg(false));
+    const first = await cleanListingPhoto(f);
+    expect(await cleanListingPhoto(f)).toBe(first);
+    expect(made).toBe(1);
+    await cleanListingPhoto(f, 1280, 0.75);
+    expect(made).toBe(2);
+
+    compress.fail("no decode");
+    const g = fileOf(jpeg(false));
+    await expect(cleanListingPhoto(g)).rejects.toThrow(LISTING_PHOTO_UNCLEANABLE);
+    compress.mockResolvedValue(fileOf(jpeg(false)));
+    await expect(cleanListingPhoto(g)).resolves.toBeInstanceOf(File);
+  });
+});
+
+describe("forEachTogether", () => {
+  // @mutate src/lib/declutter/photos.ts |   await Promise.all(Array.from({ length: Math.min(limit, list.length) }, runner)); |   await runner();
+  it("never runs more than the limit, and reaches every item", async () => {
+    let now = 0;
+    let most = 0;
+    const seen: number[] = [];
+    await forEachTogether([1, 2, 3, 4, 5, 6, 7], 3, async (n) => {
+      now += 1;
+      most = Math.max(most, now);
+      await Promise.resolve();
+      seen.push(n);
+      now -= 1;
+    });
+    expect(most).toBe(3);
+    expect(seen.sort()).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    await expect(forEachTogether([], 3, async () => {})).resolves.toBeUndefined();
   });
 });

@@ -60,7 +60,22 @@ async function fileBytes(file: Blob): Promise<Uint8Array> {
  * block. Throws ListingPhotoError (plain words) otherwise. Room photos for
  * moving-out mode pass a smaller size (they go to the photo tool only).
  */
-export async function cleanListingPhoto(file: File, maxDimension = 1920, quality = 0.82): Promise<File> {
+export function cleanListingPhoto(file: File, maxDimension = 1920, quality = 0.82): Promise<File> {
+  // The sell form tries each photo when it is added: Post uses that same copy instead of preparing it again.
+  if (maxDimension !== 1920 || quality !== 0.82) return prepareListingPhoto(file, maxDimension, quality);
+  let ready = readyPhotos.get(file);
+  if (!ready) {
+    ready = prepareListingPhoto(file, maxDimension, quality);
+    readyPhotos.set(file, ready);
+    // A photo that couldn't be prepared is tried again next time; the caller is told by the promise it holds.
+    ready.catch(() => readyPhotos.delete(file));
+  }
+  return ready;
+}
+
+const readyPhotos = new WeakMap<File, Promise<File>>();
+
+async function prepareListingPhoto(file: File, maxDimension: number, quality: number): Promise<File> {
   if (!file.type.startsWith("image/")) throw new ListingPhotoError("Only photos can be added to a listing.");
   let cleaned: File;
   try {
@@ -110,6 +125,15 @@ export function stripJpegAppSegments(bytes: Uint8Array): Uint8Array | null {
     i += 2 + len;
   }
   return null;
+}
+
+/** Runs `work` over the list with at most `limit` going at once. `work` says its own failures: it must not throw. */
+export async function forEachTogether<T>(list: readonly T[], limit: number, work: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  const runner = async () => {
+    while (next < list.length) await work(list[next++]);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, list.length) }, runner));
 }
 
 /** Longest side of a preview on Sell a bunch's cards: a 4-across grid at three device pixels per point. */

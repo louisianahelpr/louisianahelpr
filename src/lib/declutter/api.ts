@@ -515,6 +515,14 @@ async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
  * refusal is thrown.
  */
 export async function addPhoto(sellerId: string, itemId: string, file: File): Promise<string> {
+  return attachPhoto(itemId, await storePhoto(sellerId, itemId, file));
+}
+
+/**
+ * The slow half of adding a photo, safe to run for several at once: cleans it and puts the file in storage. It is on
+ * nothing until attachPhoto. Returns where it went.
+ */
+export async function storePhoto(sellerId: string, itemId: string, file: File): Promise<string> {
   const cleaned = await cleanListingPhoto(file);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
@@ -527,8 +535,14 @@ export async function addPhoto(sellerId: string, itemId: string, file: File): Pr
     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
   });
   if (upErr) throw new Error("photo_not_uploaded");
+  return path;
+}
+
+/** The quick half: puts a stored photo on the listing, last in its order. One at a time, or the order is the server's. */
+export async function attachPhoto(itemId: string, path: string): Promise<string> {
   const { data, error } = await supabase.rpc("declutter_add_item_photo", { p_item_id: itemId, p_storage_path: path });
   if (error) {
+    const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
     const { error: rmErr } = await bucket.remove([path]);
     if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message);
     const words = rpcErrorMessage("declutter_add_item_photo", error);

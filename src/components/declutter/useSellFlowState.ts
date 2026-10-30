@@ -5,9 +5,11 @@
  * (src/test/componentSizeRatchet.test.ts).
  *
  * A new listing's photos wait on the device until Post (there is no draft to hold them); Claude reads them
- * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft, uploads
- * them, then runs the same list path a draft's "List it" runs: saveDetails -> setPickupWindows -> attestItem ->
- * requestAiCheckWithRetry (fail-safe) -> publishItem. The server path is the same either way.
+ * from the device by itself once the first ones are added (SellAiDraft.tsx). They are not uploaded earlier, though
+ * that would make Post quicker: the bucket is public and a draft needs a title, a price and an address, so a photo the
+ * seller later took back would already be on the internet. Post creates the draft, uploads them, then runs the same
+ * list path a draft's "List it" runs: saveDetails -> setPickupWindows -> attestItem -> requestAiCheckWithRetry
+ * (fail-safe) -> publishItem. The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -19,6 +21,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   addPhoto,
+  attachPhoto,
   attestItem,
   createDraft,
   fetchItem,
@@ -38,12 +41,13 @@ import {
   requestAiDraftFromPhotos,
   setDropPct,
   setPickupWindows,
+  storePhoto,
   updateDraft,
   type DraftFields,
   type PickupWindow,
 } from "@/lib/declutter/api";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
-import { cleanListingPhoto, unusablePhotosNote } from "@/lib/declutter/photos";
+import { cleanListingPhoto, forEachTogether, unusablePhotosNote } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { answerAfterListing, readWantedAnswer } from "@/lib/declutter/wanted";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -52,12 +56,25 @@ import { useKeepUp } from "./KeepUpRow";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
 import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
+import { movedPhoto } from "./SellPhotoDrag";
 import { useLastListingSetup } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
+
+/** How many of a listing's photos upload at once: on one bad connection, more only compete with each other. */
+const PHOTOS_AT_ONCE = 3;
+
+/**
+ * Post's server steps that don't depend on each other run together (audit posting 1030 #5). Each takes the item's row
+ * lock first (then the private row), so they queue on the server and can't deadlock. All finish before the first failure
+ * is thrown: a refused setting never leaves a photo half done.
+ */
+async function allDone(steps: (Promise<unknown> | null)[]): Promise<void> {
+  for (const r of await Promise.allSettled(steps)) if (r.status === "rejected") throw r.reason;
+}
 
 export function useSellFlowState(urlItemId: string | null) {
   const { user } = useCurrentUser();
@@ -116,6 +133,12 @@ export function useSellFlowState(urlItemId: string | null) {
     coverChosen.current = true;
     setCoverUndo(null);
     setHeld((h) => coverFirst(h, h[i]));
+  }, []);
+  // Dragged by the seller (audit posting 1030 #9): their order, which the AI's cover pick then leaves alone.
+  const moveHeld = useCallback((from: number, to: number) => {
+    coverChosen.current = true;
+    setCoverUndo(null);
+    setHeld((h) => movedPhoto(h, from, to));
   }, []);
   const undoCover = () => {
     coverChosen.current = true;
@@ -283,12 +306,14 @@ export function useSellFlowState(urlItemId: string | null) {
       };
       if (itemId) {
         await updateDraft(itemId, fields);
-        // The ways (also sets porch_ok). Owner 2026-10-28.
-        await setHandovers(itemId, savedWays);
-        // Only once the saved step was read: a failed read must not overwrite it with the form's 5% default.
-        if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
-        // A new listing's second Post: only the photos that failed go up again.
-        if (!urlItemId && waiting.length > 0) await uploadHeld(itemId, waiting);
+        await allDone([
+          // The ways (also sets porch_ok). Owner 2026-10-28.
+          setHandovers(itemId, savedWays),
+          // Only once the saved step was read: a failed read must not overwrite it with the form's 5% default.
+          !form.free && dropLoadedFor.current === itemId ? setDropPct(itemId, choice.dropPct) : null,
+          // A new listing's second Post: only the photos that failed go up again.
+          !urlItemId && waiting.length > 0 ? uploadHeld(itemId, waiting) : null,
+        ]);
         if (urlItemId) toast.success("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
@@ -303,14 +328,16 @@ export function useSellFlowState(urlItemId: string | null) {
       // The ways the seller ticked (owner 2026-10-28; also sets porch_ok). If it fails the draft still
       // exists with every way open (an older item's), it is said, and the next Post saves again and retries it.
       waysLoadedFor.current = id;
-      await setHandovers(id, savedWays);
-      // The photos chosen first go up now that the draft exists. One that fails stays held (uploadHeld), and
-      // onPublish stops before publishing (audit posting 1030 #2).
-      await uploadHeld(id, waiting);
-      // The seller's step (a new draft starts at 5%), after the photos so a refusal never leaves a draft
-      // without them; it is said, and the next Post retries it. With drops off the
-      // lowest price is the price, so it never drops whatever the step.
-      if (!form.free) await setDropPct(id, choice.dropPct);
+      await allDone([
+        setHandovers(id, savedWays),
+        // The photos chosen first go up now that the draft exists. One that fails stays held (uploadHeld), and
+        // onPublish stops before publishing (audit posting 1030 #2).
+        uploadHeld(id, waiting),
+        // The seller's step (a new draft starts at 5%): a refusal never leaves a draft without its photos; it is
+        // said, and the next Post retries it. With drops off the lowest price is the price, so it never drops
+        // whatever the step.
+        form.free ? null : setDropPct(id, choice.dropPct),
+      ]);
       return id;
     } catch (err) {
       toast.error(declutterErrorMessage(err));
@@ -339,27 +366,46 @@ export function useSellFlowState(urlItemId: string | null) {
   }
 
   /**
-   * A NEW listing's held photos go up one at a time. One that goes up leaves `held` (it is on the draft now); one that
-   * fails stays on screen, marked, with why (audit posting 1030 #2: they were cleared first and skipped, and the listing
-   * went live without them).
+   * A NEW listing's held photos go up a few at a time (audit posting 1030 #5), then join the listing one at a time, in
+   * the seller's order: the server numbers them as they arrive, and the first is the cover. One that goes up leaves
+   * `held` (it is on the draft now); one that fails stays on screen, marked, with why (audit posting 1030 #2: they were
+   * cleared first and skipped, and the listing went live without them).
    */
   async function uploadHeld(id: string, list: File[]): Promise<void> {
+    const stored = new Map<File, string>();
     const up = new Set<File>();
     const failed: File[] = [];
     let why: string | null = null;
+    // The plain upload failure is what the panel's own words already say; a refusal says its own reason. Said on screen,
+    // with the photo kept and marked: data-photo-trouble in SellOneScreen.
+    const didNotGoUp = (f: File, err: unknown) => {
+      failed.push(f);
+      why = (err as { message?: string } | null)?.message === "photo_not_uploaded" ? why : declutterErrorMessage(err);
+    };
+    let finished = 0;
     setUploading(list.length);
-    for (const [i, f] of list.entries()) {
-      setPostStep(`Uploading photo ${i + 1} of ${list.length}`);
+    setPostStep(`Uploading photo 1 of ${list.length}`);
+    await forEachTogether(list, PHOTOS_AT_ONCE, async (f) => {
       try {
-        await addPhoto(user!.id, id, f);
+        stored.set(f, await storePhoto(user!.id, id, f));
+      } catch (err) {
+        // Kept, marked and said on screen by what follows.
+        didNotGoUp(f, err);
+      }
+      finished += 1;
+      setUploading((n) => n - 1);
+      if (finished < list.length) setPostStep(`Uploading photo ${finished + 1} of ${list.length}`);
+    });
+    if (stored.size > 0) setPostStep("Adding your photos");
+    for (const f of list) {
+      const path = stored.get(f);
+      if (!path) continue;
+      try {
+        await attachPhoto(id, path);
         up.add(f);
       } catch (err) {
-        // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.
-        failed.push(f);
-        // The plain upload failure is what the panel's own words already say; a refusal says its own reason.
-        why = (err as { message?: string } | null)?.message === "photo_not_uploaded" ? why : declutterErrorMessage(err);
-      } finally {
-        setUploading((n) => n - 1);
+        // Kept, marked and said on screen by what follows.
+        didNotGoUp(f, err);
       }
     }
     setHeld((h) => [...h.filter((f) => !up.has(f)), ...failed.filter((f) => !h.includes(f))]);
@@ -426,26 +472,20 @@ export function useSellFlowState(urlItemId: string | null) {
       // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
       if (failedPhotos.current > 0) return;
       setPostStep("Saving your listing");
-      // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
-      // fails it is said, and the seller can turn it on in Manage listing.
-      if (!urlItemId && keepUpWanted) {
-        try {
-          await setKeepUp(id, true);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
-        }
-      }
-      // The same for "make it free after __ days": a free listing has nothing to choose.
-      if (!urlItemId && autoFreeWanted !== null && !form.free) {
-        try {
-          await setAutoFreeDays(id, autoFreeWanted);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
-        }
-      }
-      // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
-      if (urlItemId) await setPickupWindows(windows);
-      await attestItem(id);
+      await Promise.all([
+        // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
+        // fails it is said, and the seller can turn it on in Manage listing.
+        !urlItemId && keepUpWanted
+          ? setKeepUp(id, true).catch((err) => { toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`); })
+          : null,
+        // The same for "make it free after __ days": a free listing has nothing to choose.
+        !urlItemId && autoFreeWanted !== null && !form.free
+          ? setAutoFreeDays(id, autoFreeWanted).catch((err) => { toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`); })
+          : null,
+        // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
+        urlItemId ? setPickupWindows(windows) : null,
+        attestItem(id),
+      ]);
       setPostStep("Checking your listing");
       // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
       await requestAiCheckWithRetry(id);
@@ -489,7 +529,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, coverUndo, undoCover,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, moveHeld, coverUndo, undoCover,
   };
 }
 

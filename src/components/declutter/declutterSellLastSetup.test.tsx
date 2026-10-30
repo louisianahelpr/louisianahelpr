@@ -18,6 +18,8 @@
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setWays(() => row.handovers); |       void 0;
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct })); |       setForm((f) => ({ ...f, dropPct: row.dropPct }));
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       floorEdited.current = true;\n |       autoFloor.current = form.floor;\n
+ * @mutate src/components/declutter/useSellerDefaultsPrefill.ts | (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) \|\| floorPct.current | (form.drops && pctFromFloor(form.price, form.floor)) \|\| floorPct.current
+ * @mutate src/components/declutter/useSellerDefaultsPrefill.ts | (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) \|\| floorPct.current | floorPct.current
  * @mutate src/components/declutter/useSellFlowState.ts |       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);\n |       \n
  * @mutate src/lib/declutter/sellerDefaults.ts | Math.round((p * floorPct) / 100) | Math.round(p)
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="space-y-3" data-sell-switches=""> | <div className="space-y-3">
@@ -219,7 +221,20 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));
-    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 51, freeAfterDays: null, handovers: ["porch"] });
+    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] });
+  });
+
+  it("a lowest price the seller typed is what Post remembers, as a share of the price", async () => {
+    open();
+    await addPhotoAndWait();
+    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("23"));
+    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "36" } });
+    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(remembered.saves).toHaveLength(1));
+    expect(remembered.saves[0].floorPct).toBe(80);
   });
 
   it("a saved row pre-fills the switches, the step, the lowest price's share, free-after and the ways", async () => {
@@ -243,5 +258,23 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     await new Promise((r) => setTimeout(r, 0));
     expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("30");
+  });
+
+  it("a lowest price the seller cleared or typed stays theirs when the asking price changes", async () => {
+    open();
+    await addPhotoAndWait();
+    const floor = () => screen.getByLabelText("Lowest you'll take");
+    await waitFor(() => expect(floor()).toHaveValue("23"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    // Not touched yet: it follows the asking price.
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "60" } });
+    await waitFor(() => expect(floor()).toHaveValue("30"));
+    // Cleared: it stays empty, and a new asking price does not fill it back in.
+    fireEvent.change(floor(), { target: { value: "" } });
+    await waitFor(() => expect(floor()).toHaveValue(""));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "80" } });
+    await waitFor(() => expect(screen.getByLabelText("Price")).toHaveValue("80"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(floor()).toHaveValue("");
   });
 });

@@ -1,6 +1,6 @@
 # Shipping for Declutter and Shops (SPEC; S1 in progress)
 
-Status: owner decided 2026-10-20; money review done (approve with fixes, folded into sections 5-9); S1 (data model + fee) built on wip/shipping-spec-1019. Tracked as Q2259 in docs/OPEN.md.
+Status: owner decided 2026-10-20; money review done (approve with fixes, folded into sections 5-9); S1 (data model + fee) landed; S2 restarted 2026-10-30 (owner: "restart shipping NOW"), database part on wip/b50-s2-db; tax questions S1-S3 answered in 4.1. Switch: `declutter_shipping` (lead 2026-10-30, replaces `shipping` in 9.2). Tracked as Q2259 in docs/OPEN.md.
 Nothing gets built until both are done. Owner order 10-20 ~01:10Z: discounted USPS labels through
 Shippo or EasyPost, the buyer pays shipping at checkout, the seller prints the label, tracking shows in
 the app, a "shipped" handover with a buyer window after delivery, the seller is paid when the sale is
@@ -109,7 +109,7 @@ USPS insurance (Notice 123): $0.01-50 $2.80; 50.01-100 $3.50; 100.01-200 $4.50; 
 Whether Shippo or EasyPost quote BELOW these commercial prices (for example cubic pricing) is NOT
 verified; step S0 measures it with one live rate call each (a rate quote buys nothing).
 
-## 4. Sales tax on shipping (flag for the CPA)
+## 4. Sales tax on shipping (answered in 4.1 from published law)
 - Rule (Louisiana Department of Revenue, Revenue Information Bulletin 25-025, October 1, 2025,
   dam.ldr.la.gov/lawspolicies/RIB%2025-025.pdf, read 2026-10-20): "Transportation charges paid to a
   seller for the delivery of tangible personal property ... purchased from that seller are subject to
@@ -122,17 +122,72 @@ verified; step S0 measures it with one live rate call each (a rate quote buys no
   longer matches; do not rely on it.
 - Declutter: casual sales are exempt "isolated or occasional sales" (row 54, R.S. 47:305(A)), so their
   shipping is exempt too under the RIB's exempt-sale rule. A business-like seller (row 54 part 2) is
-  taxable, and so is their shipping. CPA question CPA-S1: confirm both, and whether the platform
+  taxable, and so is their shipping. Question S1 (answered in 4.1): confirm both, and whether the platform
   collecting the shipping (we buy the label) changes who "the seller" of the transport is.
 - Shops: items are taxable, so the shipping line is taxable at the DESTINATION (the tax memo's
   "delivered into Louisiana" sourcing). Stripe: tax code `txcd_92010001` (Shipping) on the shipping
   rate with `tax_behavior` set (docs.stripe.com/payments/during-payment/charge-shipping, read
   2026-10-20). Under Q2102's PaymentIntents tax flow the shipping goes into the Tax Calculation as the
-  shipping cost with the buyer's address. CPA question CPA-S2: is the buyer fee on a shipped Shops order
+  shipping cost with the buyer's address. Question S2 (answered in 4.1): is the buyer fee on a shipped Shops order
   also sourced to the destination?
-- CPA question CPA-S3: does collected shipping count toward the $100,000 marketplace-facilitator
+- Question S3 (answered in 4.1): does collected shipping count toward the $100,000 marketplace-facilitator
   threshold (R.S. 47:340.1, "gross revenue for retail sales delivered into Louisiana")?
 - Louisiana-only shipping at first (owner question 3) keeps this to one state.
+
+### 4.1 Answers to S1-S3 from published Louisiana law (B50, 2026-10-30; the owner has no accountant or lawyer)
+Sources read this session (2026-10-30 ~00:15Z): RIB 25-025 (dam.ldr.la.gov/lawspolicies/RIB%2025-025.pdf, full
+text, 3 pages); La. R.S. 47:340.1 (legis.la.gov/legis/Law.aspx?d=1186690). Quoted from this repo's earlier
+verified reading (docs/specs/declutter-auctions.md line 158): R.S. 47:305(A). A RIB "does not have the force and
+effect of law and is not binding on the public or the Department" (RIB 25-025, every page); it is the Department's
+published position, and the only published guidance on this point.
+- **S1 (shipping on a casual Declutter sale): not taxed. A business-like seller's shipping: taxed with the sale.**
+  R.S. 47:305(A): "Isolated or occasional sales of tangible personal property or services by a person not engaged
+  in such business shall be exempt from the sales and use tax levied by all taxing authorities." RIB 25-025,
+  "Exempt and Excluded Transactions": "If the underlying transaction is excluded ... or exempt ..., the associated
+  transportation charges are also excluded or exempt", because they are "part of the total cost price or sales
+  price of the exempt transaction" (Example 1: an exempt $500 sale, its $50 delivery not taxable). Who buys the
+  label does not change this: the RIB's "Third-Party Delivery Charges" says a carrier charge the seller "passes
+  through ... to the purchaser" becomes "part of the sales price"; ours is passed through as part of the sale's
+  price, so it takes the sale's status: exempt with an exempt sale, taxable with a taxable one. Build rule: the
+  shipping line uses the same tax status as the items on that order (Declutter today: NONTAXABLE, as the items).
+  When a seller fails the occasional-sale test (row 54 part 2), the shipping is taxed with the items.
+- **S2 (buyer fee on a shipped Shops order): taxed where the items are taxed, at the buyer's address.** R.S.
+  47:301(13) "sales price" includes transportation charges and "any services ... that are a part of the sale" (verified
+  reading in docs/specs/declutter-auctions.md line 158); R.S.
+  47:340.1(B) makes the facilitator "the dealer for each remote sale for delivery into Louisiana" and (E)(1)
+  "responsible for the determination of taxability". The fee is charged on the same sale and delivered to the same
+  address, so it follows the items: taxable on a taxable Shops order and sourced to the ship-to address with the
+  shipping (Stripe Tax: fee and shipping both go into the PaymentIntents tax calculation with the buyer's address,
+  Q2102). NOT read this session: the parish-level sourcing statute for in-state dealers; the code follows the
+  delivery address, which is what Stripe Tax does for a shipped order.
+- **S3 (does collected shipping count toward the $100,000): count it.** R.S. 47:340.1(C)(2): the threshold is
+  "gross revenue for retail sales delivered into Louisiana"; (C)(3): "only remote sales that are retail sales, as
+  defined in R.S. 47:301, shall be considered"; (A)(9): "'Remote sale' means a sale made by a remote seller or a
+  sale facilitated by a marketplace facilitator" (so an in-state Declutter sale through the app is a remote sale
+  here). The section does not define "gross revenue"; R.S. 47:301(13) puts transportation charges inside the
+  sales price. So the shipping a buyer pays counts toward the $100,000 (counting it can only make the app register
+  sooner, never collect too little). The app's revenue tracker must add shipping_cents to each order's total.
+
+### 4.2 Rates and services (for S2 rates; read 2026-10-30 ~00:12Z)
+- **USPS Cubic.** EasyPost's rate chart (easypost.com/usps-rate-chart, "USPS Commercial EasyPost Merchant Rate
+  Charts", below USPS Commercial) lists Ground Advantage CUBIC, zones 1/2/3/4: 0.10 cu ft $6.19/6.19/6.50/6.66;
+  0.20 $6.30/6.30/6.57/6.63; 0.30 $6.48/6.48/6.71/7.01; 0.40 $6.86/6.86/7.09/7.18; 0.50 $6.86/6.86/7.14/7.38; and
+  Priority Mail CUBIC 0.10 $8.03/8.28/8.62/9.30 ... 0.50 $10.52/10.69/11.84/14.20. The page shows two dates
+  (October 5, 2025 and October 25, 2026) and does not say which table each belongs to: NOT verified as current.
+  Ground Advantage cubic applies to parcels "less than 20 pounds and up to 1 cubic foot" (easypost.com/ground-advantage).
+  So a small dense box in Louisiana can be ~$1 cheaper than the $7.33-$7.86 weight rate (section 3). How EasyPost
+  returns cubic rates (a separate service name, or automatically from the box dimensions) is NOT in its public docs
+  ("Service levels are generated from live carrier metadata", docs.easypost.com/carriers/usps-wallet-guide): it is
+  read from GET /v2/metadata/carriers with the first API key (S0). Build: ship-rates always sends the box
+  dimensions, asks for every USPS rate EasyPost returns, and offers the cheapest of Ground Advantage (incl. cubic)
+  as the default plus Priority as the faster option.
+- **USPS Connect Local: not available through EasyPost (as far as published).** USPS: "Use the Click-N-Ship
+  application to easily print shipping labels"; drop off "at the Postal Service facility in the delivery ZIP Code
+  area by critical entry time"; same-day "expected but not guaranteed and may not be available at all locations"
+  (usps.com/business/connect/local.htm; no price on the page). No EasyPost page found names it (searches of
+  easypost.com, docs.easypost.com and support.easypost.com, 2026-10-30). Not built; re-checked from the carrier
+  metadata endpoint at S0. If it appears there, it becomes an option only when the seller's and buyer's ZIPs share a
+  delivery unit.
 
 ## 5. Money analysis
 ### 5.1 The card fee can exceed our fee (finding)

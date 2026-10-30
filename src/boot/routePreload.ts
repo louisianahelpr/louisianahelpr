@@ -93,6 +93,11 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/profile/Profile"), protectedRoute],
   },
+  // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
+  "/declutter": {
+    guest: [() => import("@/pages/auth/Login"), protectedRoute],
+    signedIn: [() => import("@/pages/declutter/DeclutterPage"), protectedRoute],
+  },
 };
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */

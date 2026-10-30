@@ -61,7 +61,7 @@ function footerClasses() {
 /** The Button base + default size, likewise read rather than restated. */
 function buttonBase() {
   const src = readFileSync(join(REPO, "src/components/ui/button.tsx"), "utf8");
-  const base = /"(squircle inline-flex[^"]*)"/.exec(src)?.[1];
+  const base = /"((?:squircle )?inline-flex[^"]*)"/.exec(src)?.[1]; // every button is a pill now: no squircle
   const size = /default:\s*"([^"]*h-14[^"]*)"/.exec(src)?.[1];
   if (!base || !size) throw new Error("button.tsx base/size classes not found");
   return `${base} ${size}`;

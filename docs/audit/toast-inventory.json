@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
+    "calls": 1052,
     "files": 287,
-    "rendering": 884,
+    "rendering": 885,
     "suppressedByPolicy": 167,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 738,
+      "toast.error": 739,
       "toast.info": 4,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 453,
       "template": 101,
-      "dynamic": 547,
+      "dynamic": 548,
       "jsx": 0
     }
   },
@@ -6411,7 +6411,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 254,
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6421,7 +6421,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 259,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6431,7 +6431,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 292,
+      "line": 318,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6441,7 +6441,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 316,
+      "line": 344,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6451,7 +6451,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 332,
+      "line": 360,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6461,7 +6461,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 376,
+      "line": 423,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6471,7 +6471,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 406,
+      "line": 453,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6481,7 +6481,17 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 413,
+      "line": 468,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6491,7 +6501,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 435,
+      "line": 497,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6501,7 +6511,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 443,
+      "line": 501,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6511,7 +6521,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 461,
+      "line": 519,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -6521,7 +6531,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 465,
+      "line": 523,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6541,7 +6551,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 470,
+      "line": 528,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6551,7 +6561,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 476,
+      "line": 534,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

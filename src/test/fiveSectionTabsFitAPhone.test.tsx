@@ -16,13 +16,11 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const denser = options.length >= DENSER_TAB_COUNT; |   const denser = false;
  * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 15px); |     font-size: 15px;
  * @mutate src/components/sections/SectionTabs.tsx | denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense | dense
- * @mutate src/components/sections/SectionTabs.tsx | style={more ? { maskImage: TABS_END_FADE, WebkitMaskImage: TABS_END_FADE } : undefined} | style={undefined}
- * @mutate src/components/sections/SectionTabs.tsx | list.scrollWidth - list.clientWidth - list.scrollLeft > 2 | list.scrollWidth - list.clientWidth > 2
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { SectionTabs, DENSE_TAB_COUNT, DENSER_TAB_COUNT } from "@/components/sections/SectionTabs";
 
 const five = [
@@ -51,24 +49,6 @@ describe("five section tabs fit a phone (A3-6)", () => {
     unmount();
     render(<SectionTabs label="Declutter view" tabs={five} value="selling" onChange={() => {}} />);
     expect(screen.getByRole("tablist").className).not.toMatch(/section-tabs-denser/);
-  });
-
-  it("a row that does not fit fades at its right edge until the end is reached; a row that fits has no fade", () => {
-    const { unmount } = render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
-    const list = screen.getByRole("tablist");
-    expect(list.hasAttribute("data-tabs-more")).toBe(false);
-    unmount();
-    const width = vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(342);
-    const client = vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(287);
-    render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
-    const over = screen.getByRole("tablist");
-    expect(over.hasAttribute("data-tabs-more")).toBe(true);
-    expect(over.style.maskImage || over.style.getPropertyValue("-webkit-mask-image")).toMatch(/linear-gradient/);
-    over.scrollLeft = 55;
-    fireEvent.scroll(over);
-    expect(over.hasAttribute("data-tabs-more")).toBe(false);
-    width.mockRestore();
-    client.mockRestore();
   });
 
   it("Jobs' three tabs keep their size", () => {

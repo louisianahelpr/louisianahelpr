@@ -53,7 +53,7 @@ function sellerDeliverySummary(s: MySellerDelivery | undefined): string {
 /** Whole dollars typed into a box ("50"), as cents, or NaN. */
 const dollarsToCents = (v: string, digits: number) => (new RegExp(`^\\d{1,${digits}}$`).test(v.trim()) ? Number(v.trim()) * 100 : NaN);
 
-/** The card in Declutter settings (and the sell form's off notice). Renders nothing while the switch is off for this member. */
+/** The Selling tab's card. Renders nothing while the switch is off for this member. */
 export function SellerDeliveryCard() {
   const on = useFeature("declutter_seller_delivery");
   const mine = useMySellerDelivery(on);

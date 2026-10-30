@@ -15,6 +15,15 @@ export function browseEmptyShift(room: { top: number; height: number }, contentH
   return Math.max(highest, Math.round(screenMid - natural));
 }
 
+/**
+ * The middle of the screen above the bottom nav. Measured from the nav itself: `--bottom-nav-h` is only ever set to 0
+ * (the 96px is a fallback inside the CSS that reads it), so reading that variable centred on the full screen. A nav that
+ * is hidden (desktop, display:none) has no height and the whole screen counts.
+ */
+export function browseEmptyScreenMid(innerHeight: number, nav: { top: number; height: number } | null | undefined): number {
+  return (nav && nav.height > 0 ? nav.top : innerHeight) / 2;
+}
+
 export function BrowseEmptyState({ icon, illustration, title, body, action, footnote, surfaceStyle, bodyLines }: Omit<ComponentProps<typeof EmptyState>, "variant" | "align">) {
   const room = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
@@ -26,9 +35,9 @@ export function BrowseEmptyState({ icon, illustration, title, body, action, foot
       const first = card?.firstElementChild?.getBoundingClientRect();
       const last = card?.lastElementChild?.getBoundingClientRect();
       if (!first || !last) return;
-      const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bottom-nav-h")) || 0;
+      const nav = document.querySelector(".mobile-nav-frame")?.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      setShift(browseEmptyShift({ top: r.top, height: r.height }, last.bottom - first.top, (window.innerHeight - nav) / 2));
+      setShift(browseEmptyShift({ top: r.top, height: r.height }, last.bottom - first.top, browseEmptyScreenMid(window.innerHeight, nav)));
     };
     place();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);

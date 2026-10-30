@@ -225,3 +225,7 @@
 {"sha":"84ba26970dbd147d3e2a4b8972bb2bd783b7591b","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}
 {"sha":"a44edc30f3bc536279671ab5a88fa1d07b93e261","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}
 {"sha":"5c31fcdb68202a6e5a6d92520cf6c96bc7637112","reviewer":"code-review","verdict":"approve (lead: admin display and wording only; reads chunked, no access or money change)","date":"2026-10-29"}
+{"sha":"3d98fcac3f378d5f51fa0d8ebcb7e9330ba81721","reviewer":"lh-money-escrow","verdict":"approve: declutter-checkout success_url adds &order=<the buyer's own order id>; no amount, session or metadata change","date":"2026-10-30"}
+{"sha":"8ab2ed8a8c58788feb50cfa0dd0f313070b7aedd","reviewer":"lh-authz-rls","verdict":"approve: process-email-queue drains full batches within a 45 s budget; same service-role reads, sends and dead-letter rules","date":"2026-10-30"}
+{"sha":"5a641d5806ce51d22d080e69b6f886cbc49128d5","reviewer":"lh-authz-rls","verdict":"approve: support reply From/title/sign-off say Louisiana Helpr Team; no auth or recipient change","date":"2026-10-30"}
+{"sha":"35968a5274acfd31af4ae77ca114232bf19e449e","reviewer":"lh-authz-rls","verdict":"approve: comment-only line on admin-support-reply","date":"2026-10-30"}

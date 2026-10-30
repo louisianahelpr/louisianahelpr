@@ -48,6 +48,10 @@ const FIX = "20261019020032_backout_notices_close_on_closed_job.sql";
  */
 // @two-way src/test/cronJobNotificationsCheckJobStatus.test.ts:listed but now checks status, or no longer a cron producer reading jobs
 const NO_STATUS_CHECK: Record<string, string> = {
+  // OPS-3 (20261030223154), cron 'job-post-draft-reminder'.
+  sweep_job_post_drafts:
+    "it notifies about a draft, not a job: it reads jobs only to stay quiet when the member made ANY job around or " +
+    "after the draft, whatever that job's status, so no status can make it wrong.",
   // Q2450 Helpr Guarantee (20261027200455), reached from cron 'helpr-guarantee-sweep' through guarantee_sweep.
   open_dispute_as:
     "the dispute filer: it reads the job FOR UPDATE into _status / _payment_status and branches on them " +

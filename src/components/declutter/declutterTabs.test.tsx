@@ -180,6 +180,7 @@ vi.mock("@/lib/declutter/api", () => ({
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+import { toast } from "sonner";
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
 vi.mock("@/lib/declutter/donate", () => ({
   fetchDonationPartnersNear: vi.fn(async () => []),
@@ -437,6 +438,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : | return false ? { title: "Claimed", todoWords: "to choose a pickup" } :
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     body: "No strike for a free item. | body: "You'll get a Declutter strike. No strike for a free item.
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | kind === "free" ? WORDS.free.done : | false ? WORDS.free.done :
   it("DA-3/DA-4: a free claim reads as a give-away on Selling and on Buying, never as a sale", async () => {
     const FREE = { ...LINE, price_cents: 0, porch_ok: true };
     state.mine = [ITEM];
@@ -459,6 +462,15 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Cancel this claim?");
     expect(within(sheet).getByRole("button", { name: "Keep the claim" })).toBeInTheDocument();
+    // B100 (owner 2026-10-30, 20261030132149): cancelling a free claim gives no strike and the item goes back up.
+    expect(sheet).toHaveTextContent("No strike for a free item.");
+    expect(sheet).toHaveTextContent("it goes back up so others can ask for it.");
+    expect(sheet).not.toHaveTextContent(/Declutter strike|comes down/);
+    const said = vi.spyOn(toast, "success");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Cancel claim" }));
+    await vi.waitFor(() => expect(state.calls).toContainEqual(["cancel_sale", "if1"]));
+    await vi.waitFor(() => expect(said).toHaveBeenCalledWith("Claim cancelled. It's back up."));
+    said.mockRestore();
     unmount();
 
     // A paid sale waiting beside the free claim keeps the sale words; the chip names both.

@@ -150,7 +150,8 @@ describe("Sell a bunch", () => {
     sort.hold = null;
     const flagged = document.querySelector("[data-flagged]") as HTMLElement;
     fireEvent.change(within(flagged).getByLabelText("Name"), { target: { value: "Butter knife" } });
-    await waitFor(() => expect(document.querySelector("[data-flagged]")).toBeNull());
+    // fireEvent flushes the state change: the mark was there just above, so this is not a first paint.
+    expect(document.querySelector("[data-flagged]")).toBeNull();
   });
 
   it("previews are small copies made from the files, loaded lazily", async () => {

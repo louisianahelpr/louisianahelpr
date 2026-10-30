@@ -56,10 +56,11 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/bunch")>();
   return {
     ...real,
-    groupPhotos: async (photos: { key: string }[]) => ({
-      items: [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture" }],
-      failed: [],
-    }),
+    groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
+      const items = [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture" }];
+      onProgress(1, 1, items);
+      return { items, failed: [], unusable: [] };
+    },
     listBunch: async (_s: string, items: BunchItem[], _p: unknown, _pl: unknown, ways: string[], _op: unknown, _d: unknown, _st: unknown, choices?: BunchChoices) => {
       state.listed.push({ ways, choices, items });
       return items.map((i) => ({ key: i.key, title: i.title, status: "live" as const, keepUpFailed: true }));

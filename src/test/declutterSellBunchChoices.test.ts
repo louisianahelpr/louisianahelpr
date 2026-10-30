@@ -1,0 +1,105 @@
+/**
+ * Sell a bunch audit, finding 9: a bunch listing gets the same choices as the single form. Lowering the price and
+ * Keep it up start from the seller's remembered choices (both ON by default), and an item can be given away free.
+ * Before this every bunch item was saved with its lowest price = its price (it never dropped) and without Keep it up,
+ * and a price under $1 was refused, so nothing could be given away.
+ *
+ * @mutate src/lib/declutter/bunch.ts |       if (!it.free) await deps.setDropPct(id, choice.dropPct); |       void choice.dropPct;
+ * @mutate src/lib/declutter/bunch.ts |       if (choices.keepUp) { |       if (false) {
+ * @mutate src/lib/declutter/bunch.ts |       await deps.setHandovers(id, it.free ? ["porch"] : ways); |       await deps.setHandovers(id, ways);
+ * @mutate src/lib/declutter/bunch.ts |   return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" }) |   return moveRowProblem({ title: it.title, price: it.price, floor: "" })
+ * @mutate src/lib/declutter/bunch.ts | floor: floorFromPct(dollars, choices.floorPct) | floor: dollars
+ * @mutate src/lib/declutter/bunch.ts |           keepUpFailed = true; |           keepUpFailed = false;
+ */
+import { describe, expect, it, vi } from "vitest";
+import { blankItem, bunchItemProblem, listBunch, type BunchChoices, type BunchItem, type ListDeps } from "@/lib/declutter/bunch";
+
+const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.4, pickupLng: -91.1 };
+const ON: BunchChoices = { keepUp: true, drops: true, dropPct: 10, floorPct: 50 };
+const OFF: BunchChoices = { keepUp: false, drops: false, dropPct: 10, floorPct: 50 };
+
+function item(extra: Partial<BunchItem>): BunchItem {
+  return { ...blankItem(["p1", "p2"]), title: "Oak chair", description: "Solid.", category: "furniture", price: "40", ...extra };
+}
+function deps(over: Partial<ListDeps> = {}): ListDeps {
+  let n = 0;
+  return {
+    createDraft: vi.fn(async () => `id${++n}`),
+    updateDraft: vi.fn(async (id: string) => id),
+    addPhoto: vi.fn(async () => ({}) as never),
+    setHandovers: vi.fn(async (_id, w) => w),
+    setDropPct: vi.fn(async (_id, p) => p),
+    setKeepUp: vi.fn(async (_id, on) => on),
+    publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
+    ...over,
+  };
+}
+const photos = new Map(["p1", "p2"].map((k) => [k, new File([k], `${k}.jpg`, { type: "image/jpeg" })]));
+const run = (items: BunchItem[], d: ListDeps, choices: BunchChoices, ways: ("porch" | "meetup")[] = ["porch", "meetup"]) =>
+  listBunch("seller", items, photos, place, ways, () => {}, d, undefined, choices);
+
+describe("Sell a bunch: the batch's choices reach each item", () => {
+  it("drops on: the lowest price is the seller's share of the price, and the step is saved", async () => {
+    const d = deps();
+    await run([item({ price: "$1,000" })], d, ON);
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100_000, floorPriceCents: 50_000 }));
+    expect(d.setDropPct).toHaveBeenCalledWith("id1", 10);
+  });
+
+  it("drops off: the lowest price is the price, and the step is 0", async () => {
+    const d = deps();
+    await run([item({})], d, OFF);
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 }));
+    expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
+  });
+
+  it("a $1 item has nothing lower to drop to: it lists with no drops", async () => {
+    const d = deps();
+    const out = await run([item({ price: "1" })], d, ON);
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100, floorPriceCents: 100 }));
+    expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
+    expect(out[0]).toMatchObject({ status: "live" });
+  });
+
+  it("Keep it up goes on each item only when it's on", async () => {
+    const on = deps();
+    await run([item({}), item({})], on, ON);
+    expect(on.setKeepUp).toHaveBeenCalledTimes(2);
+    expect(on.setKeepUp).toHaveBeenCalledWith("id2", true);
+    const off = deps();
+    await run([item({})], off, OFF);
+    expect(off.setKeepUp).not.toHaveBeenCalled();
+  });
+
+  it("Keep it up failing never stops the listing, and the outcome says so", async () => {
+    const d = deps({ setKeepUp: vi.fn(async () => { throw new Error("nope"); }) });
+    const out = await run([item({})], d, ON);
+    expect(out[0]).toMatchObject({ status: "live", keepUpFailed: true });
+    expect(d.publishMany).toHaveBeenCalledWith(["id1"], expect.any(Function));
+  });
+
+  it("a free item: price and lowest price 0, porch pickup only, no drop step, still lists", async () => {
+    const d = deps();
+    const out = await run([item({ free: true, price: "" })], d, ON);
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 0, floorPriceCents: 0 }));
+    expect(d.setHandovers).toHaveBeenCalledWith("id1", ["porch"]);
+    expect(d.setDropPct).not.toHaveBeenCalled();
+    expect(out[0]).toMatchObject({ status: "live" });
+  });
+
+  it("a priced item beside it keeps the batch's ways", async () => {
+    const d = deps();
+    await run([item({ free: true }), item({})], d, ON);
+    expect(d.setHandovers).toHaveBeenCalledWith("id2", ["porch", "meetup"]);
+  });
+});
+
+describe("Sell a bunch: what makes an item ready", () => {
+  it("a free item needs no price; a priced one still does", () => {
+    expect(bunchItemProblem(item({ free: true, price: "" }))).toBeNull();
+    expect(bunchItemProblem(item({ price: "" }))).toMatch(/price/);
+  });
+  it("a free item still needs a name", () => {
+    expect(bunchItemProblem(item({ free: true, price: "", title: "" }))).toMatch(/name/);
+  });
+});

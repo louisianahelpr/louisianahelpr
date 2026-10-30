@@ -34,7 +34,7 @@ vi.mock("@/components/DatePickerField", () => ({
     <input id={id} value={value} max={max} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => null }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "not_found" }) }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   fetchMyItemPrivate: async () => null,

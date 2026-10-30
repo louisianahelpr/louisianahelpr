@@ -27,7 +27,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { geocodeAddress } from "@/lib/geocode";
+import { useExactAddressPoint } from "./useExactAddressPoint";
+import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
@@ -62,7 +63,8 @@ export default function BunchFlow() {
 
   const [areaLabel, setAreaLabel] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const place = useExactAddressPoint();
+  const coords = place.point;
   const [photos, setPhotos] = useState<BunchPhoto[]>([]);
   const [items, setItems] = useState<BunchItem[]>([]);
   const [sorting, setSorting] = useState<{ done: number; total: number } | null>(null);
@@ -109,16 +111,6 @@ export default function BunchFlow() {
   const ready = items.filter((it) => !bunchItemProblem(it));
   const savedWays = ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   const busy = !!sorting || !!listing;
-
-  async function locate(): Promise<{ lat: number; lng: number } | null> {
-    const address = pickupAddress.trim();
-    if (coords && coords.address === address) return coords;
-    const g = await geocodeAddress(address);
-    if (!g) return null;
-    const c = { lat: g.latitude, lng: g.longitude, address };
-    setCoords(c);
-    return c;
-  }
 
   async function onPhotos(list: FileList | null) {
     const picked = Array.from(list ?? []);
@@ -175,8 +167,7 @@ export default function BunchFlow() {
     }
     setListing({ done: 0, total: ready.length * 2 });
     try {
-      const c = await locate();
-      if (!c) throw new Error("invalid_location");
+      const c = await place.locate(pickupAddress);
       await setPickupWindows(windows);
       const out = await listBunch(
         user!.id, ready, files,
@@ -216,7 +207,12 @@ export default function BunchFlow() {
         <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
         <input id="bunch-address" className={input} maxLength={300} value={pickupAddress} autoComplete="street-address" placeholder="Street, city, ZIP"
-          onChange={(e) => setPickupAddress(e.target.value)} onBlur={() => { if (pickupAddress.trim().length >= 5) void locate(); }} />
+          onChange={(e) => setPickupAddress(e.target.value)} onBlur={() => {
+            if (pickupAddress.trim().length < 5) return;
+            // Early, for the note under the address and the price hints. A failure is said at "List": nothing was asked for yet.
+            place.locate(pickupAddress).catch((e: unknown) => console.warn("[bunch] address check on blur:", e instanceof Error ? e.message : "unknown"));
+          }} />
+        <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
         <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
       </Section>
 

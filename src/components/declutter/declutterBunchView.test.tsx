@@ -1,4 +1,5 @@
 /**
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       const c = await place.locate(pickupAddress); |       const c = { lat: 0, lng: 0 };
  * "Sell a bunch" screen (owner 2026-10-29: "upload all pictures for everything
  * they want to sell, ai does the forms and they review all at once before
  * submission"). /declutter/sell?mode=bunch:
@@ -31,7 +32,8 @@ vi.mock("@/components/declutter/DeclutterSellView", () => ({ default: () => <p>o
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
+const lookupAnswer = vi.hoisted(() => ({ value: { status: "exact", lat: 30.4, lng: -91.1 } as Record<string, unknown> }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => lookupAnswer.value }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
@@ -107,6 +109,13 @@ describe("Sell a bunch", () => {
     expect(calls.listed).toEqual([]);
 
     for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-tax-${i}`)!);
+    // The map knows the area but not the house: nothing lists on the area's point, and the note says what to do.
+    lookupAnswer.value = { status: "approximate", lat: 30.5, lng: -92.1, precision: "town" };
+    fireEvent.click(list);
+    expect(await screen.findByRole("button", { name: /use my location/ })).toBeTruthy();
+    expect(calls.listed).toEqual([]);
+    lookupAnswer.value = { status: "exact", lat: 30.4, lng: -91.1 };
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "2 Main St, Baton Rouge" } });
     fireEvent.click(list);
     await waitFor(() => expect(calls.listed).toEqual([["i1"]]));
     const failed = await screen.findByText(/wasn't listed: Refused for a test reason\./);

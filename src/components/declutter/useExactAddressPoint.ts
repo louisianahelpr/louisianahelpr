@@ -1,8 +1,8 @@
 /**
- * The house-level point for a typed address, shared by the sell form, the bunch and move lists and the return
- * address. Only an exact match or the member's own position at the address is ever handed back (lead 2026-10-30):
- * the handover checks refuse anyone 200 m from a stored point, so a street or town point would strand a real seller,
- * buyer or Helpr after the sale. The lookup module is import()ed here, so it only loads when a lookup is made.
+ * The point for a typed address, shared by the sell form, the bunch and move lists and the return address. A pickup
+ * takes only an exact match or the member's own position at the address (lead 2026-10-30): the handover checks refuse
+ * anyone 200 m from a stored point, so a street or town point would strand a real seller, buyer or Helpr after the
+ * sale. The return address alone may ask for allowApproximate. The lookup module is import()ed here, so it only loads when a lookup is made.
  */
 import { useCallback, useState } from "react";
 import { metresBetween } from "../../../supabase/functions/_shared/addressMatch";
@@ -22,7 +22,7 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
   const [locating, setLocating] = useState(false);
 
   /** The saved point for this address, or throws Error(<code>) for declutterErrorMessage. */
-  const locate = useCallback(async (raw: string): Promise<AddressPoint> => {
+  const locate = useCallback(async (raw: string, opts?: { allowApproximate?: boolean }): Promise<AddressPoint & { approximate?: boolean }> => {
     const address = raw.trim();
     if (point && point.address === address) return point;
     const { lookUpAddress } = await import("@/lib/addressLookup");
@@ -33,6 +33,8 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
       setInexact(null);
       return p;
     }
+    // Only the return address (lead 2026-10-30): return_lat feeds the seller's map link and no distance check reads it.
+    if (found.status === "approximate" && opts?.allowApproximate) return { lat: found.lat, lng: found.lng, address, approximate: true };
     if (found.status === "approximate") {
       setInexact({ address, near: { lat: found.lat, lng: found.lng } });
       throw new Error("address_not_exact");

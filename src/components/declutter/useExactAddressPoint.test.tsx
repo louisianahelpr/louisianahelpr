@@ -7,7 +7,8 @@
  * @mutate src/components/declutter/useExactAddressPoint.ts |     throw new Error(found.status === "unavailable" ? "address_lookup_unavailable" : notFoundCode); |     throw new Error(notFoundCode);
  * @mutate src/components/declutter/useSellFlowState.ts |       const c = await place.locate(form.pickupAddress); |       const c = { lat: 0, lng: 0 };
  * @mutate src/components/declutter/DeclutterMoveView.tsx |       const g = await addressPoint.locate(pickupAddress); |       const g = { lat: 0, lng: 0 };
- * @mutate src/components/declutter/DeclutterRefundReturn.tsx |       const g = await place.locate(address); |       const g = { lat: 0, lng: 0 };
+ * @mutate src/components/declutter/DeclutterRefundReturn.tsx |       const g = await place.locate(address, { allowApproximate: true }); |       const g = await place.locate(address);
+ * @mutate src/components/declutter/useExactAddressPoint.ts |     if (found.status === "approximate" && opts?.allowApproximate) return { lat: found.lat, lng: found.lng, address, approximate: true }; |     if (found.status === "approximate") return { lat: found.lat, lng: found.lng, address, approximate: true };
  */
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
@@ -113,12 +114,14 @@ describe("AddressNeedsExactSpot", () => {
   });
 });
 
+const toasted = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({ toast: toasted }));
 const refund = vi.hoisted(() => ({ setReturnAddress: vi.fn(async () => undefined) }));
 vi.mock("@/lib/declutter/refundReturns", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/refundReturns")>()), setReturnAddress: refund.setReturnAddress }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" } }) }));
 
 describe("the return address form", () => {
-  it("saves nothing on an area's point, and shows the note", async () => {
+  it("a refund never waits on the house: it saves the typed address with the area's point, and says the map may be rough", async () => {
     lookup.fn.mockReset();
     lookup.fn.mockResolvedValue(AREA);
     refund.setReturnAddress.mockClear();
@@ -126,7 +129,21 @@ describe("the return address form", () => {
     render(<QueryClientProvider client={new QueryClient()}><DeclutterReturnBuyer v={v} who="The seller" /></QueryClientProvider>);
     fireEvent.change(screen.getByLabelText("Where should they pick it up?"), { target: { value: TYPED } });
     fireEvent.click(screen.getByRole("button", { name: "Send the address" }));
-    expect(await screen.findByRole("button", { name: /use my location/ })).toBeInTheDocument();
+    await waitFor(() => expect(refund.setReturnAddress).toHaveBeenCalledWith("r1", TYPED, { lat: 30.5, lng: -92.1 }));
+    await waitFor(() => expect(toasted.success).toHaveBeenCalledWith(expect.stringMatching(/map may only show the area.*address you typed/)));
+    expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull();
+  });
+
+  it("a lookup that failed still stops and says so: there is no point at all to send", async () => {
+    lookup.fn.mockReset();
+    lookup.fn.mockResolvedValue({ status: "unavailable" });
+    refund.setReturnAddress.mockClear();
+    toasted.error.mockClear();
+    const v = { order_id: "o1", request: { id: "r1", status: "returning", return_way: "collect", return_at: null, return_address: null } } as unknown as RefundRequestView;
+    render(<QueryClientProvider client={new QueryClient()}><DeclutterReturnBuyer v={v} who="The seller" /></QueryClientProvider>);
+    fireEvent.change(screen.getByLabelText("Where should they pick it up?"), { target: { value: TYPED } });
+    fireEvent.click(screen.getByRole("button", { name: "Send the address" }));
+    await waitFor(() => expect(toasted.error).toHaveBeenCalledWith(expect.stringMatching(/just now/)));
     expect(refund.setReturnAddress).not.toHaveBeenCalled();
   });
 });

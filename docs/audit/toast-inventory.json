@@ -4817,66 +4817,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 238,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "status === \"live\" ? \"Back on sale.\" : \"Haul-away cancelled. The item is off sale.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Back on sale."
-          },
-          {
-            "form": "literal",
-            "text": "Haul-away cancelled. The item is off sale."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 241,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 246,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 261,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Taken down."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 264,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterItemView.tsx",
       "line": 116,
       "kind": "toast.error",
@@ -5700,6 +5640,66 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterSellingTab.tsx",
+      "line": 205,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"live\" ? \"Back on sale.\" : \"Haul-away cancelled. The item is off sale.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Back on sale."
+          },
+          {
+            "form": "literal",
+            "text": "Haul-away cancelled. The item is off sale."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellingTab.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellingTab.tsx",
+      "line": 213,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellingTab.tsx",
+      "line": 228,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Taken down."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterSellingTab.tsx",
+      "line": 231,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterShareCard.tsx",
       "line": 44,
       "kind": "toast.success",
@@ -5731,7 +5731,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 138,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5741,7 +5741,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 280,
+      "line": 268,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5751,7 +5751,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 289,
+      "line": 277,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5776,7 +5776,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 295,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

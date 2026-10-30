@@ -23,7 +23,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
             lang={l}
             aria-pressed={lang === l}
             onClick={() => setLang(l)}
-            className="min-h-[44px] px-1.5 inline-flex items-center hover:underline active:opacity-60 transition-opacity"
+            className="link-standard min-h-[44px] px-1.5 inline-flex items-center"
             style={{ color: lang === l ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)", fontWeight: lang === l ? 700 : 500 }}
           >
             {t(NAME[l])}

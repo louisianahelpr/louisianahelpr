@@ -61,7 +61,8 @@ const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_
 /** A first-name reader restated verbatim by a later migration for another reason (its name line unchanged). EXACT. */
 const RESTATED_LATER: Record<string, string> = {
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
-  helpr_task_view: "20261027201327_delivery_dropoff_on_accept.sql",
+  // Audit 1c #1/#4 (2026-10-29): handed_over_at and problem_open added; the name read is verbatim.
+  helpr_task_view: "20261030012018_helpr_delivery_seller_handover.sql",
   // Q2399 card hold at post: the offer branch's money gate reads job_payment_is_listed; the name read is verbatim.
   // A2-B15 (2026-10-29): the poster's own reopen files no backout notice; the name read is verbatim.
   record_backout_notice: "20261029162907_poster_own_reopen_files_no_backout_notice.sql",

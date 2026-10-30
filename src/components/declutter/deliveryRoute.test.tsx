@@ -25,6 +25,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   markPickedUp: async (...a: unknown[]) => { state.calls.push(["picked_up", ...a]); },
   markDelivered: async (...a: unknown[]) => { state.calls.push(["delivered", ...a]); return { result: "delivered" }; },
+  reportPickupNoShow: async (...a: unknown[]) => { state.calls.push(["no_show", ...a]); },
   uploadTaskPhoto: async (_u: string, t: string) => `u1/task/${t}/photo.jpg`,
 }));
 
@@ -113,6 +114,24 @@ describe("My route", () => {
     fireEvent.change(within(cards[0]).getByLabelText("Photo at the drop-off address (Blue lamp, stop 1)"), { target: { files: [jpeg()] } });
     fireEvent.click(leave);
     await waitFor(() => expect(state.calls).toContainEqual(["delivered", "t9", "u1/task/t9/photo.jpg", { lat: 30.5, lng: -91.15 }]));
+  });
+
+  it("audit 1c #4: a pickup stop 15 minutes past its time offers \"The seller wasn't there\", asked in the app", async () => {
+    state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: new Date(Date.now() - 20 * 60_000).toISOString() })] };
+    show();
+    const list = await screen.findByRole("list", { name: "Stops in order" });
+    fireEvent.change(within(list).getByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Report it" }));
+    await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
+  });
+
+  it("audit 1c #1: a pickup stop days ahead says when Picked up opens; before 15 minutes past, no no-show", async () => {
+    state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: new Date(Date.now() + 2 * 86_400_000).toISOString() })] };
+    show();
+    const list = await screen.findByRole("list", { name: "Stops in order" });
+    expect(within(list).getByText(/You can mark it picked up from .*, or once the seller taps Handed over\./)).toBeInTheDocument();
+    expect(within(list).queryByLabelText(/The seller wasn't there/)).toBeNull();
   });
 
   it("with no map available it says so and Open in Maps still works", async () => {

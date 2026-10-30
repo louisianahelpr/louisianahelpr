@@ -1,21 +1,94 @@
 /** "Picked up" / "Left at the door" for one stop of My route (the list and the map's current stop). */
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { RouteStop } from "@/lib/helprTasks/api";
+import { reportPickupNoShow, uploadTaskPhoto } from "@/lib/helprTasks/api";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { currentPosition } from "@/lib/declutter/position";
 import { useTaskSteps } from "./useTaskSteps";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
+const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const day = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+
+/** helpr_task_picked_up's window (20261030012018): from 30 minutes before the booked pickup. */
+const PICKUP_OPENS_MIN_BEFORE = 30;
+/** helpr_task_pickup_no_show's: from 15 minutes after the booked pickup. */
+const SELLER_AWAY_MIN_AFTER = 15;
+
+/** When "Picked up" opens for a booked pickup, or null if it is open now. */
+export function pickupOpensAt(slotStart: string | null | undefined, now = Date.now()): string | null {
+  if (!slotStart) return null;
+  const opens = new Date(slotStart).getTime() - PICKUP_OPENS_MIN_BEFORE * 60_000;
+  return now < opens ? new Date(opens).toISOString() : null;
+}
+
+/** "You can mark it picked up from Sat, Oct 31, 8:30 AM, or once the seller taps Handed over." */
+export function PickupWindowNote({ opensAt }: { opensAt: string }) {
+  return (
+    <p className="text-ds-13 text-muted-foreground" data-pickup-opens="">
+      You can mark it picked up from {day(opensAt)}, {clock(opensAt)}, or once the seller taps Handed over.
+    </p>
+  );
+}
+
+/**
+ * "The seller wasn't there" (helpr_task_pickup_no_show): from 15 minutes after the booked pickup, a photo of the
+ * door taken at the pickup address, asked in the app. Shared by the delivery card and My route's pickup stop
+ * (audit 1c #4: the route stop never offered it).
+ */
+export function SellerAwayStep({ taskId, userId, slotStart, label, onReported }: {
+  taskId: string;
+  userId: string;
+  slotStart: string | null;
+  label?: string;
+  onReported: (msg: string) => void;
+}) {
+  const id = useId();
+  const [file, setFile] = useState<File | null>(null);
+  const uploaded = useRef<{ file: File; path: string } | null>(null);
+  const report = useMutation({
+    mutationFn: async (f: File) => {
+      // Location first (a refusal uploads nothing), then the photo once per file.
+      const where = await currentPosition();
+      if (uploaded.current?.file !== f) uploaded.current = { file: f, path: await uploadTaskPhoto(userId, taskId, f) };
+      await reportPickupNoShow(taskId, uploaded.current.path, where);
+    },
+    onSettled: () => setFile(null),
+    onSuccess: () => onReported("Reported. Louisiana Helpr will look at it and decide. You're not counted as a no-show meanwhile."),
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  if (!slotStart || Date.now() < new Date(slotStart).getTime() + SELLER_AWAY_MIN_AFTER * 60_000) return null;
+  return (
+    <>
+      <label htmlFor={`${id}-away`} className="block text-xs font-medium">
+        The seller wasn't there: a photo of the door, taken at the pickup address{label ? <span className="sr-only"> ({label})</span> : null}
+      </label>
+      <PhotoPickButton id={`${id}-away`} disabled={report.isPending} onPick={setFile} />
+      <ConfirmSheet open={file !== null} title="Report that the seller wasn't there?" confirmLabel="Report it" pending={report.isPending}
+        onConfirm={() => { if (file) report.mutate(file); }} onClose={() => setFile(null)} testId="delivery-seller-away">
+        Your door photo goes to Louisiana Helpr, who looks at it and decides. You're not counted as a no-show meanwhile.
+      </ConfirmSheet>
+    </>
+  );
+}
 
 /** What the Helpr does at a stop: the "Picked up" photo, or the drop-off photo and "Left at the door". */
 export function StopActions({ stop, userId }: { stop: RouteStop; userId: string }) {
   const [dropPhoto, setDropPhoto] = useState<File | null>(null);
-  const { pickedUp, delivered } = useTaskSteps(stop.task_id, userId, () => setDropPhoto(null));
+  const { pickedUp, delivered, done } = useTaskSteps(stop.task_id, userId, () => setDropPhoto(null));
   const id = useId();
   if (stop.kind === "pickup") {
+    const opensAt = pickupOpensAt(stop.slot_start);
     return (
       <div className="space-y-1">
         <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
+        {opensAt && <PickupWindowNote opensAt={opensAt} />}
         <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending} onPick={(f) => pickedUp.mutate(f)} />
+        <SellerAwayStep taskId={stop.task_id} userId={userId} slotStart={stop.slot_start} label={`${stop.title}, stop ${stop.seq}`} onReported={done} />
       </div>
     );
   }

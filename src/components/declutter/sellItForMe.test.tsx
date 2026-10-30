@@ -23,7 +23,7 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellChooserEntry movingOutOn={movingOutOn} />\n | \n
- * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
+ * @mutate src/components/declutter/SellOneScreen.tsx |           {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />}\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
  * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Help me list my things to sell"; | const SELL_FOR_ME_TITLE = "Help me list my things to sell, please";

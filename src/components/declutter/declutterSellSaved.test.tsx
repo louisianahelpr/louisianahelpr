@@ -209,7 +209,7 @@ describe("a new listing is kept on this device", () => {
     h.draftRow = { id: NEW_ID, status: "live" };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
-    await waitFor(() => expect(savedMeta()).toBeUndefined());
+    await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12");
   });
@@ -219,9 +219,9 @@ describe("a new listing is kept on this device", () => {
     cleanup();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
-    await waitFor(() => expect(screen.queryByText("We kept your listing from last time.")).toBeNull());
     await waitFor(() => expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12"));
+    expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(rowValue("title")).toBe("Add a title");
-    await waitFor(() => expect(savedMeta()).toBeUndefined());
+    await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
   });
 });

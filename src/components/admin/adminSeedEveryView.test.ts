@@ -81,6 +81,7 @@ const VIEWS: Record<string, Rule> = {
   shops: { kind: "tags", render: [`${A}AdminShopsOrders.tsx`], resolve: [`${A}AdminShopsOrders.tsx`] },
   marketing: { kind: "none", why: "email campaign composer; no member rows" },
   social: { kind: "none", why: "Facebook/Instagram post queue; no member rows" },
+  growth: { kind: "none", why: "the matchmaker link builder reads no rows; Who brings customers reads admin_booking_sources, which drops every test Helpr and test poster on the server (20261030013347; is_seed carve-out 'hides' in isSeedCarveOutsNeedEnrolment), so no test row reaches this view" },
 };
 
 /** A real read of is_seed — not merely the word in a type: a fetchSeedUserIds

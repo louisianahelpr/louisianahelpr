@@ -52,6 +52,9 @@ const GUARDED_LOCALLY: Record<string, string> = {
   // Iterate the table's OWN keys, so the key always exists.
   "src/lib/jobCategories.ts:JOB_CATEGORY_LABELS": "JOB_CATEGORY_VALUES.map((value) => ({ value, label: JOB_CATEGORY_LABELS[value] }))",
   "src/pages/info/helpCenter/helpCenterContent.ts:JOB_CATEGORY_LABELS": ".filter((value) => CREDENTIAL_TIER_CATEGORIES.has(value))",
+  // Matchmaker links (B66): a link's category is checked against the table's own keys before any read;
+  // the admin builder passes a typed JobCategory from its own option list.
+  "src/lib/matchmakerLink.ts:JOB_CATEGORY_LABELS": "if (!isCategory(category)) return null;",
   // A different table that shares the name: support-message topics, typed keys.
   "src/components/profile/SupportInline.tsx:CATEGORY_ICONS": "const CATEGORY_ICONS: Record<SupportCategory, React.ReactNode> = {",
 };

@@ -11,6 +11,7 @@
  * link can only ever pre-fill a normal, editable form.
  */
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
+import { MAX_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 
 /** The flag param. Also the key Post a job reads to skip its entry screen and open Details. */
 export const MATCHMAKER_PARAM = "mm";
@@ -19,7 +20,6 @@ const ORIGIN = "https://www.louisianahelpr.com";
 const TITLE_MAX = 80;
 const DESC_MAX = 500;
 const TOWN_MAX = 60;
-const PRICE_MAX = 5000;
 
 export interface MatchmakerFields {
   category: JobCategory;
@@ -42,7 +42,7 @@ function isCategory(value: string | null): value is JobCategory {
 
 function toPrice(value: string | number | null | undefined): number | null {
   const n = typeof value === "number" ? value : Number(String(value ?? "").replace(/[$,\s]/g, ""));
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > PRICE_MAX) return null;
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > MAX_JOB_BUDGET_DOLLARS) return null;
   return n;
 }
 

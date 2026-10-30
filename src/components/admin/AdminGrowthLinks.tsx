@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminCard, AdminViewShell } from "@/components/admin/AdminViewShell";
@@ -145,7 +146,7 @@ function BookingSources() {
         <ul className="divide-y divide-border">
           {q.data.map((r) => (
             <li key={r.helpr_id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-              <span className="min-w-0 truncate font-medium text-foreground">{r.helpr_name || "Deleted account"}</span>
+              <span className="min-w-0 truncate font-medium text-foreground">{r.helpr_name || ADMIN_DELETED_ACCOUNT_LABEL}</span>
               <span className="shrink-0 tabular-nums text-muted-foreground">
                 {r.posters_brought} brought · {r.posters_who_posted} posted · last {formatShortDate(r.last_at)}
               </span>

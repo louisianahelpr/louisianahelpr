@@ -14,7 +14,9 @@
  *   reminders always use it;
  * - the page renders the Confirm panel for a token or an expired link.
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+// The shared listing (Q1142): outside src/ it reads the real directory, so supabase/migrations is listed as before.
+import { readdirSync } from "./helpers/trackedFiles";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { describe, expect, it } from "vitest";

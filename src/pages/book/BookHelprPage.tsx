@@ -9,12 +9,13 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { BadgeCheck, MapPin, Share2, Star, UserX } from "lucide-react";
+import { MapPin, Share2, Star, UserX } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import UserAvatar from "@/components/UserAvatar";
+import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import { GuaranteePromise } from "@/components/guarantee/GuaranteePromise";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -61,9 +62,9 @@ function BookBody({ card, signedIn, isMe }: { card: BookCard; signedIn: boolean;
     <div className="mx-auto w-full max-w-md space-y-4 pb-8">
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="book-name">
         <UserAvatar userId={card.userId} src={card.avatarUrl} name={card.name} pixelSize={96} className="mx-auto h-24 w-24" />
-        <h1 id="book-name" className="mt-3 text-xl font-semibold text-foreground">
+        <h2 id="book-name" className="mt-3 text-xl font-semibold text-foreground">
           {card.name}
-        </h1>
+        </h2>
         <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {card.town && (
             <span className="inline-flex items-center gap-1">
@@ -72,9 +73,9 @@ function BookBody({ card, signedIn, isMe }: { card: BookCard; signedIn: boolean;
             </span>
           )}
           {card.isIdVerified && (
-            <span className="inline-flex items-center gap-1">
-              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-              ID verified
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={ID_VERIFIED_PILL_STYLE}>
+              <IdVerifiedShield className="h-3.5 w-3.5" />
+              {ID_VERIFIED_LABEL}
             </span>
           )}
         </div>

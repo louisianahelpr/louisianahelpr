@@ -84,6 +84,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { readdirSync } from "./helpers/trackedFiles";
+import { en } from "@/lib/i18n/en";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
@@ -179,6 +180,12 @@ export function collectRenderedLabels(files: string[]): RenderedLabels {
       if (!e) return;
       if (ts.isParenthesizedExpression(e)) return collectStrings(e.expression, at);
       if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return add(e.text, at);
+      // Spanish option (B63): `t("nav.bottom")` / `tr("nav.bottom")` renders the English dictionary's words.
+      if (ts.isCallExpression(e) && ts.isIdentifier(e.expression) && /^(t|tr)$/.test(e.expression.text)) {
+        const k = e.arguments[0];
+        if (k && ts.isStringLiteral(k) && k.text in en) add(en[k.text as keyof typeof en], at);
+        return;
+      }
       if (ts.isConditionalExpression(e)) {
         collectStrings(e.whenTrue, at);
         collectStrings(e.whenFalse, at);

@@ -8,7 +8,7 @@
  * preview card (api/share.ts, no database read).
  *
  * @mutate src/lib/matchmakerLink.ts |   if (!isCategory(category)) return null; |   if (!category) return null;
- * @mutate src/lib/matchmakerLink.ts |   if (!Number.isFinite(n) \|\| !Number.isInteger(n) \|\| n < 1 \|\| n > PRICE_MAX) return null; |   if (!Number.isFinite(n)) return null;
+ * @mutate src/lib/matchmakerLink.ts |   if (!Number.isFinite(n) \|\| !Number.isInteger(n) \|\| n < 1 \|\| n > MAX_JOB_BUDGET_DOLLARS) return null; |   if (!Number.isFinite(n)) return null;
  * @mutate src/pages/post-job/useJobFormEffects.ts |     const mm = readMatchmakerLink(searchParams); |     const mm = null as ReturnType<typeof readMatchmakerLink>;
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM] as const; | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM] as const;
  * @mutate api/share.ts |   if (route.kind === "matchmaker") { |   if (false) {
@@ -45,6 +45,9 @@ describe("building and reading a matchmaker link", () => {
     expect(r?.price).toBeNull();
     expect(r?.title.length).toBe(80);
     expect(readMatchmakerLink(new URLSearchParams(`mm=1&cat=${JOB_CATEGORY_VALUES[0]}&price=99999`))?.price).toBeNull();
+    // The job cap is the one constant (MAX_JOB_BUDGET_DOLLARS, $1,000): a link never prefills a price Post a job refuses.
+    expect(readMatchmakerLink(new URLSearchParams(`mm=1&cat=${JOB_CATEGORY_VALUES[0]}&price=1000`))?.price).toBe(1000);
+    expect(readMatchmakerLink(new URLSearchParams(`mm=1&cat=${JOB_CATEGORY_VALUES[0]}&price=1001`))?.price).toBeNull();
     expect(readMatchmakerLink(new URLSearchParams(`mm=1&cat=${JOB_CATEGORY_VALUES[0]}&price=12.5`))?.price).toBeNull();
   });
 

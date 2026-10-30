@@ -11,6 +11,8 @@
 // plaintext with the appendix's keys and salt and compares the whole message byte
 // for byte, then decrypts what encryptPushPayload makes with a fresh key.
 
+import { caughtMessage } from "./caughtMessage.ts";
+
 /**
  * Bytes backed by a plain ArrayBuffer. WebCrypto and fetch take a BufferSource / BodyInit,
  * which TypeScript 5.7+ refuses for a Uint8Array<ArrayBufferLike> (it could be shared memory).
@@ -203,6 +205,6 @@ export async function sendWebPush(
     const reason = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 200);
     return { ok: res.ok, status: res.status, gone: res.status === 404 || res.status === 410, reason };
   } catch (err) {
-    return { ok: false, status: 0, gone: false, reason: err instanceof Error ? err.message : String(err) };
+    return { ok: false, status: 0, gone: false, reason: caughtMessage(err) };
   }
 }

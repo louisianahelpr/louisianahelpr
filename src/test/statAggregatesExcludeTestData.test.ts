@@ -89,6 +89,7 @@ const ALLOWED: Record<string, string> = {
   declutter_seller_delivery_check: MONEY,
   declutter_seller_hidden_sweep: OPS,
   declutter_send_handover_message: LIMIT,
+  declutter_send_order_message: LIMIT,
   declutter_set_pickup_windows: VALID,
   declutter_start_checkout: MONEY,
   declutter_wanted_record_match: LIMIT,

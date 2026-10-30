@@ -14,10 +14,12 @@
  * nothing; it is not the referral program.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** Built from this constant, never window.location: a native build's origin is capacitor://localhost. */
 const BOOK_LINK_ORIGIN = "https://www.louisianahelpr.com";
@@ -92,8 +94,7 @@ export async function fetchBookCard(userId: string): Promise<BookCard | null> {
     supabase.rpc("get_safe_profiles", { user_ids: [userId] }),
     supabase.rpc("get_public_profile_stats", { p_user_ids: [userId] }),
   ]);
-  if (profile.error) throw profile.error;
-  const p = (profile.data ?? [])[0];
+  const p = (unwrap(profile) ?? [])[0];
   if (!p) return null;
   // Stats are a nicety: a failed stats read still shows the Helpr, with no numbers.
   const s = stats.error ? undefined : (stats.data ?? [])[0];
@@ -141,8 +142,8 @@ export async function recordBookingSourceFor(offerTo: string | null): Promise<"r
   takeBookingSource();
   const { data, error } = await supabase.rpc("record_booking_source", { p_helpr_id: offerTo });
   if (error) {
-    // PGRST202: the function is not deployed yet (migrations land on merge). Nothing to record.
-    if ((error as { code?: string }).code !== "PGRST202") {
+    // Not deployed yet (migrations land on merge): nothing to record. A changed signature still reports.
+    if (!isMissingRpcNamed(error, "record_booking_source")) {
       report(error, { severity: "warning", tags: { source: "bookMe.recordBookingSource" }, context: { helpr_id: offerTo } });
     }
     return "skipped";

@@ -8,7 +8,7 @@ import { OwnProfileEditButton } from "./OwnProfileEditButton";
  * copies the link) for your /book page. Same look as OwnProfileEditButton
  * beside it: icon only on a phone, so the header stays whole at 375.
  */
-export function BookMeShareButton({ userId, displayName }: { userId: string; displayName: string }) {
+function BookMeShareButton({ userId, displayName }: { userId: string; displayName: string }) {
   return (
     <Button
       variant="ghost"

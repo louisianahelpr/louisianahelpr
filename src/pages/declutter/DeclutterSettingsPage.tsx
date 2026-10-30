@@ -13,8 +13,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 /**
- * /declutter/settings (owner 2026-10-30: "a settings gear like Jobs"): listing defaults, pickup times, delivery,
- * bundle discount, notifications. Each setting keeps its own save. The 404 unless 'declutter' is on (DeclutterGate).
+ * /declutter/settings (owner 2026-10-30: "a settings gear like Jobs"): pickup places, listing defaults, pickup times,
+ * delivery, bundle discount, notifications. Each setting keeps its own save. Places come first: under the other
+ * settings they sat at y 1507 at 375 and sellers couldn't find how to add a second address. The 404 unless 'declutter' is on (DeclutterGate).
  */
 function DeclutterSettings() {
   usePageTitle("Declutter settings — Helpr");
@@ -23,6 +24,7 @@ function DeclutterSettings() {
   return (
     <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
       <div className="space-y-section pb-6" data-testid="declutter-settings">
+        <SellPorchPlaces card />
         <section className="space-y-2" aria-label="Listing defaults">
           <SectionHeading title="Listing defaults" />
           <ListingDefaultsCard userId={user.id} />
@@ -32,7 +34,6 @@ function DeclutterSettings() {
           {/* One card around the rows: a row drops its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
           <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
             <PickupTimesCard userId={user.id} />
-            <SellPorchPlaces card />
             <SellerDeliveryCard />
             <BundleDiscountCard />
           </div>

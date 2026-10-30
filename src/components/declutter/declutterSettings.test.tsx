@@ -6,7 +6,7 @@
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
  * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
@@ -155,11 +155,12 @@ describe("Declutter settings", () => {
     expect(screen.getByText("Tick at least one way buyers can get it.")).toBeInTheDocument();
   });
 
-  it("pickup places have their own card, right after pickup times", async () => {
+  it("pickup places have their own card, first on the page so a seller finds them", async () => {
     open();
     await screen.findByRole("button", { name: "Add a pickup place" });
     const card = screen.getByRole("region", { name: "Pickup places" });
-    expect(card.previousElementSibling).toBe(screen.getByRole("region", { name: "Pickup times" }));
+    expect(card.previousElementSibling).toBeNull();
+    expect(card.nextElementSibling).toBe(screen.getByRole("region", { name: "Listing defaults" }));
     expect(card.tagName).toBe("SECTION");
   });
 
@@ -168,7 +169,7 @@ describe("Declutter settings", () => {
     open();
     const card = await screen.findByRole("region", { name: "Pickup places" });
     expect(card.textContent).toBe("Pickup placesLoading…");
-    expect(card.previousElementSibling).toBe(screen.getByRole("region", { name: "Pickup times" }));
+    expect(card.nextElementSibling).toBe(screen.getByRole("region", { name: "Listing defaults" }));
   });
 
   it("no card at all before the places are on the server", async () => {

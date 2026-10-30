@@ -112,6 +112,10 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
 }
 
 /** How buyers get it: the ways, the area, the private pickup address and the seller's pickup times. */
+/** With saved places these times no longer set porch days (declutter_order_is_porch_day); these ways still read them. */
+const PICKUP_TIMES_WITH_PLACES = "Safe meeting spots and Helpr delivery pickups use these times. They apply to all your listings.";
+const PICKUP_TIMES_FREE_WITH_PLACES = "A free item is picked up on the place's days, so these times are for your other listings.";
+
 export function SellWaysFields({ s }: { s: SellFlow }) {
   const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows } = s;
   const hasPlaces = useHasPorchPlaces();
@@ -137,7 +141,7 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
     </div>
     <div className="space-y-2" aria-labelledby="sell-pickup">
       <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">Your usual pickup times</h3>
-      <p className="text-ds-13 text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
+      <p className="text-ds-13 text-muted-foreground">{hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."}</p>
       <PickupTimesEditor windows={windows} setWindows={setWindows} />
     </div>
   </>);

@@ -76,8 +76,8 @@ export async function deleteMyPorchPlace(id: string): Promise<string> {
 }
 
 /** The seller's places for the caller's cart with that seller (empty: the seller has none, or no cart). */
-export async function fetchSellerPorchPlaces(sellerId: string): Promise<SellerPorchPlace[] | typeof PORCH_PLACES_NOT_DEPLOYED> {
-  const r = await supabase.rpc("declutter_seller_porch_places", { p_seller_id: sellerId });
+export async function fetchSellerPorchPlaces(sellerId: string, signal: AbortSignal): Promise<SellerPorchPlace[] | typeof PORCH_PLACES_NOT_DEPLOYED> {
+  const r = await supabase.rpc("declutter_seller_porch_places", { p_seller_id: sellerId }).abortSignal(signal);
   if (r.error && isMissingRpcNamed(r.error, "declutter_seller_porch_places")) return PORCH_PLACES_NOT_DEPLOYED;
   return (rpcData(r, (e) => rpcErrorMessage("declutter_seller_porch_places", e)) ?? []) as SellerPorchPlace[];
 }

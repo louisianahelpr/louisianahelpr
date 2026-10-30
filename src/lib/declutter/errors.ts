@@ -294,6 +294,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
  * does). Kept apart so the two-way check against the migrations stays exact.
  */
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
+  // The buyer's read of a seller's pickup places missed its deadline (useSellerPorchPlaces).
+  porch_places_slow: "The pickup places are taking too long to load. Check your connection and try again.",
   // declutter-checkout (seller delivery, 20261027153244): the price the screen showed is no longer the seller's.
   delivery_rate_changed: "The seller's delivery price just changed. Check the new price, then tap Pay again.",
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",

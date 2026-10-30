@@ -5415,7 +5415,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterPorchPlaces.tsx",
-      "line": 59,
+      "line": 91,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6151,7 +6151,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 43,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6161,7 +6161,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 87,
+      "line": 114,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

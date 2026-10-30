@@ -4,13 +4,25 @@
  * step aside. The buyer picks a place before Pay opens, sees no address before paying, and a seller's paid order says
  * which place to put the item out at.
  *
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: true
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length > 0 ? places.some((p) => p.chosen) : !refused) | ready: true
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && ( | ready: !q.isLoading && (
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: !q.isLoading \|\| waitedOut
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (needsPlace) void porchPlaces.query.refetch();\n |
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       if (chosen === "porch") void porchPlaces.query.refetch();\n |
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length > 0 ? places.some((p) => p.chosen) : !refused) | ready: !q.isLoading \|\| waitedOut
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (needsPlace) void porchPlaces.reread(err);\n |
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       if (chosen === "porch") void porchPlaces.reread(err);\n |
  * @mutate src/components/declutter/SellFormParts.tsx |     {hasPlaces && <SavedPlacesComeFirst free={form.free} />}\n |
  * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces\n          ? (form.free | {false\n          ? (form.free
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     await qc.cancelQueries({ queryKey: key, exact: true });\n |
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | raceVisibleDeadlineAbortable((s) => fetchSellerPorchPlaces(sellerId, s), PORCH_PLACES_READ_MS, PORCH_PLACES_SLOW, signal) | fetchSellerPorchPlaces(sellerId, signal)
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | places.length > 0 ? places.some((p) => p.chosen) : !refused | places.length === 0 \|\| places.some((p) => p.chosen)
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     if (r.isSuccess && (r.data === PORCH_PLACES_NOT_DEPLOYED \|\| r.data.length === 0)) setRefused(false);\n |
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {free ? "You get the exact address once you confirm." : "You get the exact address after you pay."} | {"You get the exact address after you pay."}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | places={porchPlaces.places} free refused | places={porchPlaces.places} refused
+ * @mutate src/components/declutter/SellHandoverChoices.tsx |       <SellPorchPlaces free={free} helprOnly={!free && !ways.includes("porch")} />\n |
+ * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."} | {"Buyers pick one of these times. They apply to all your listings."}
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}\n |
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | export const PLACE_CARD_EDGE = "dark:!border-border"; | export const PLACE_CARD_EDGE = "";
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "border-[hsl(var(--bark))] dark:!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: g.latitude, lng: g.longitude | lat: 0, lng: 0
  * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
@@ -39,7 +51,8 @@ import { SellPorchPlaces } from "./SellPorchPlaces";
 import { SellWaysFields } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 import { SellPorchDays } from "./SellPorchDays";
-import { OrderPorchPlace, PORCH_PLACES_WAIT_MS, PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
+import { OrderPorchPlace, PORCH_PLACES_READ_MS, PORCH_PLACES_WAIT_MS, PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
+import { SellHandoverChoices } from "./SellHandoverChoices";
 import { fetchMyPorchPlaces } from "@/lib/declutter/porchPlaces";
 
 const HOME = { id: "p1", position: 0, label: "Home", address: "12 Home Street, Lafayette", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6, 0] };
@@ -52,7 +65,11 @@ function wrap(ui: React.ReactNode) {
 }
 /** `answers`: the RPC name -> its rows. */
 function answers(map: Record<string, unknown>) {
-  h.rpc.mockImplementation(async (name: string) => (name in map ? { data: map[name], error: null } : { data: null, error: { message: `unexpected ${name}` } }));
+  h.rpc.mockImplementation((name: string) => builder(Promise.resolve(name in map ? { data: map[name], error: null } : { data: null, error: { message: `unexpected ${name}` } })));
+}
+/** What supabase.rpc() returns, as far as these reads use it: awaitable, and can take an abort signal. */
+function builder<T>(p: Promise<T>) {
+  return Object.assign(p, { abortSignal: () => p });
 }
 
 function Checkout({ sellerId = "s1" }: { sellerId?: string }) {
@@ -173,7 +190,7 @@ describe("the buyer's pick", () => {
     /** Answers declutter_seller_porch_places only when `answer` is called; until then the read hangs, as a stalled connection does. */
     function hanging() {
       let answer: (rows: unknown[]) => void = () => undefined;
-      h.rpc.mockImplementation(() => new Promise((resolve) => { answer = (rows) => resolve({ data: rows, error: null }); }));
+      h.rpc.mockImplementation(() => builder(new Promise((resolve) => { answer = (rows) => resolve({ data: rows, error: null }); })));
       return (rows: unknown[]) => answer(rows);
     }
 
@@ -200,9 +217,89 @@ describe("the buyer's pick", () => {
     });
   });
 
-  it("a refused checkout reads the places again, so the picker the refusal asks for can show", () => {
-    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/if \(needsPlace\) void porchPlaces\.query\.refetch\(\);/);
-    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/if \(chosen === "porch"\) void porchPlaces\.query\.refetch\(\);/);
+  describe("a read that never answers", () => {
+    beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
+    afterEach(() => { vi.useRealTimers(); });
+    const NEEDED = { message: "porch_place_needed" };
+    function Refusable() {
+      const p = useSellerPorchPlaces("s1", 1000);
+      return (<>
+        <PorchPlacePicker sellerId="s1" cartKey={1000} places={p.places} loadError={p.query.error} refused={p.refused} onRetry={() => void p.reread()} />
+        <button type="button" disabled={!p.ready} onClick={() => void p.reread(NEEDED)}>Pay</button>
+      </>);
+    }
+    const stallThenAnswer = (rows: unknown[]) => {
+      let calls = 0;
+      h.rpc.mockImplementation(() => { calls += 1; return builder(calls === 1 ? new Promise(() => undefined) : Promise.resolve({ data: rows, error: null })); });
+      return () => calls;
+    };
+
+    it("is given up on, so it says so instead of hanging for good", async () => {
+      h.rpc.mockImplementation(() => builder(new Promise(() => undefined)));
+      wrap(<Refusable />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_READ_MS + 100); });
+      expect(screen.getByText("We couldn't load the pickup places.")).toBeInTheDocument();
+      expect(screen.getByText(/taking too long/)).toBeInTheDocument();
+      expect(PORCH_PLACES_READ_MS).toBeLessThanOrEqual(10_000);
+    });
+
+    it("a refused checkout starts a NEW read while the old one still hangs: the picker shows and Pay waits", async () => {
+      const calls = stallThenAnswer(OPTIONS);
+      const { container } = wrap(<Refusable />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS + 100); });
+      const pay = screen.getByRole("button", { name: "Pay" });
+      expect(pay).toBeEnabled();
+      expect(calls()).toBe(1);
+      fireEvent.click(pay);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+      expect(calls()).toBe(2);
+      expect(container.querySelector("[data-porch-place-picker]")).not.toBeNull();
+      expect(pay).toBeDisabled();
+      expect(screen.getByRole("alert").textContent).toBe("Pick which of the seller's pickup places you'll use.");
+    });
+
+    it("the refusal stays on screen while the new read is out, and Pay waits", async () => {
+      h.rpc.mockImplementation(() => builder(new Promise(() => undefined)));
+      wrap(<Refusable />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS + 100); });
+      fireEvent.click(screen.getByRole("button", { name: "Pay" }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+      expect(screen.getByRole("status").textContent).toContain("Pick which of the seller's pickup places you'll use.");
+      expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
+      // Past the short wait, and past the new read giving up: the server already said no, so Pay stays off, with Try again.
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS + 100); });
+      expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_READ_MS); });
+      expect(screen.getByText("We couldn't load the pickup places.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
+    });
+
+    it("if the new read finds no places after all, Pay opens again", async () => {
+      stallThenAnswer([]);
+      wrap(<Refusable />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS + 100); });
+      fireEvent.click(screen.getByRole("button", { name: "Pay" }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+      expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled();
+    });
+  });
+
+  it("every refused checkout goes through the new read", () => {
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/if \(needsPlace\) void porchPlaces\.reread\(err\);/);
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/toast\.error\(declutterErrorMessage\(err\)\); void porchPlaces\.reread\(err\);/);
+    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/if \(chosen === "porch"\) void porchPlaces\.reread\(err\);/);
+    for (const f of ["DeclutterTradeViews.tsx", "DeclutterFreeClaim.tsx"]) expect(SRC(f)).not.toMatch(/porchPlaces\.query\.refetch/);
+  });
+
+  it("a free claim never talks about paying", async () => {
+    answers({});
+    const { container, unmount } = wrap(<PorchPlacePicker sellerId="s1" cartKey={0} places={OPTIONS} loadError={null} onRetry={() => undefined} free />);
+    expect(container.textContent).toContain("You get the exact address once you confirm.");
+    expect(container.textContent).not.toMatch(/pay/i);
+    unmount();
+    const paid = wrap(<PorchPlacePicker sellerId="s1" cartKey={1000} places={OPTIONS} loadError={null} onRetry={() => undefined} />);
+    expect(paid.container.textContent).toContain("You get the exact address after you pay.");
+    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/places=\{porchPlaces\.places\} free refused/);
   });
 
   it("paid checkout and the free claim both wait on the pick", () => {
@@ -243,6 +340,72 @@ describe("the sell form says which address wins", () => {
     await waitFor(() => expect(container.querySelector("[data-porch-places]")).not.toBeNull());
     expect(container.querySelector("[data-saved-places-first]")).toBeNull();
     expect(note(container)).toBe("Private. Only the buyer who pays sees it.");
+  });
+});
+
+describe("the places editor follows the server's rule, not the porch tick", () => {
+  const choices = (ways: string[], free: boolean) => <SellHandoverChoices ways={ways as never} setWays={() => undefined} free={free} sellerDeliveryOpen={false} pickupDays={[6]} />;
+
+  it("porch unticked on a paid item: Helpr delivery still uses places, so it stays, in Helpr words", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(choices(["meetup"], false));
+    const block = await waitFor(() => { const el = container.querySelector("[data-porch-places]"); expect(el).not.toBeNull(); return el!; });
+    expect(block.textContent).toContain("A buyer choosing Helpr delivery picks one of these");
+    expect(block.textContent).not.toContain("after paying");
+    expect(container.querySelector("[data-porch-days]")).toBeNull();
+  });
+
+  it("porch ticked reads as it did; a free item says no paying", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const paid = wrap(choices(["porch"], false));
+    await waitFor(() => expect(paid.container.querySelector("[data-porch-places]")?.textContent).toContain("Buyers pick one of these. They only get its address after paying."));
+    paid.unmount();
+    const free = wrap(choices(["porch"], true));
+    await waitFor(() => expect(free.container.querySelector("[data-porch-places]")?.textContent).toContain("sees its address once they confirm"));
+    expect(free.container.querySelector("[data-porch-places]")?.textContent).not.toMatch(/paying/);
+  });
+});
+
+describe("a place's days and the usual pickup times say which is which", () => {
+  const flow = { form: { free: false, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn() } as unknown as SellFlow;
+
+  it("with places: porch uses the place's days, the times are for the other ways", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(<SellWaysFields s={flow} />);
+    await waitFor(() => expect(container.querySelector("[data-place-days-rule]")?.textContent).toBe("Porch pickup uses each place's days, not your usual pickup times."));
+    expect(container.textContent).toContain("Safe meeting spots and Helpr delivery pickups use these times.");
+    expect(container.textContent).not.toContain("Buyers pick one of these times.");
+  });
+
+  it("with none: the times read as before and there is no rule line", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [] });
+    const { container } = wrap(<SellWaysFields s={flow} />);
+    await waitFor(() => expect(container.querySelector("[data-porch-places]")).not.toBeNull());
+    expect(container.querySelector("[data-place-days-rule]")).toBeNull();
+    expect(container.textContent).toContain("Buyers pick one of these times.");
+  });
+});
+
+describe("finding places, and their edges in dark", () => {
+  const PAGE = () => blankComments(readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterSettingsPage.tsx"), "utf8"));
+
+  it("the Selling row names them and they come first in settings", () => {
+    expect(SRC("DeclutterHomeView.tsx")).toContain("Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications");
+    expect(PAGE().indexOf("<SellPorchPlaces card />")).toBeGreaterThan(0);
+    expect(PAGE().indexOf("<SellPorchPlaces card />")).toBeLessThan(PAGE().indexOf("<ListingDefaultsCard"));
+  });
+
+  it("place rows, the place form and way tiles force their edge in dark, over the !important in index.css T2", async () => {
+    // T2 makes every .bg-card border transparent with !important and dark drops its shadow, so a plain border class paints nothing.
+    expect(readFileSync(join(process.cwd(), "src/index.css"), "utf8")).toMatch(/:where\(\.bg-card\),[\s\S]{0,60}border-color: transparent !important/);
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(<SellHandoverChoices ways={["porch"]} setWays={() => undefined} free={false} sellerDeliveryOpen={false} pickupDays={[6]} />);
+    const row = await waitFor(() => { const el = container.querySelector("[data-porch-place]"); expect(el).not.toBeNull(); return el!; });
+    expect(row.className).toContain("dark:!border-border");
+    expect(container.querySelector('[data-handover-tile="porch"]')!.className).toContain("dark:!border-[hsl(var(--bark))]");
+    expect(container.querySelector('[data-handover-tile="meetup"]')!.className).toContain("dark:!border-border");
+    fireEvent.click(screen.getByRole("button", { name: "Add a pickup place" }));
+    expect(container.querySelector("[data-porch-place-form]")!.className).toContain("dark:!border-border");
   });
 });
 

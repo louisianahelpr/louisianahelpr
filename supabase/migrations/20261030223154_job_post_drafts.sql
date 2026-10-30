@@ -213,8 +213,11 @@ END
 $do$;
 
 -- @export-step
--- Download My Data: the NEWEST export_my_data (20261030223154_job_post_drafts.sql), VERBATIM with one section added before RETURN.
+-- Download My Data: the NEWEST export_my_data (20261030165438_export_my_data_porch_places.sql), VERBATIM with one section added before RETURN.
 -- A branch that restates export_my_data after this one must start from THIS body. Grants restated exactly.
+
+DROP FUNCTION IF EXISTS public.export_my_data();
+
 CREATE OR REPLACE FUNCTION public.export_my_data(p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -730,10 +733,6 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_order_porch_places', (SELECT coalesce(jsonb_agg(
              CASE WHEN t.seller_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'address' - 'lat' - 'lng' - 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t
       WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))));
-  -- The half-finished job post on this account (OPS-3): the member's own words.
-  v_out := v_out || jsonb_build_object('job_post_drafts', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.job_post_drafts t
-             WHERE t.user_id = v_uid));
-
   -- The half-finished job post on this account (OPS-3): the member's own words.
   v_out := v_out || jsonb_build_object('job_post_drafts', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.job_post_drafts t
              WHERE t.user_id = v_uid));

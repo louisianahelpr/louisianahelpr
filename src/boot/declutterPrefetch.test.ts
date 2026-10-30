@@ -1,32 +1,54 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { createClient } from "@supabase/supabase-js";
-import { blankComments } from "@/test/helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
+import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 
-import { DECLUTTER_PREFETCH_KEY, declutterItemsRestUrl, declutterPhotosRestUrl, startDeclutterPrefetch } from "./declutterPrefetch";
-import { takeDeclutterItemsPrefetch, takeDeclutterPhotosPrefetch } from "@/lib/declutter/bootPrefetch";
+import { DECLUTTER_PREFETCH_KEY, FIRST_SCREEN_SWITCH_KEYS, startDeclutterPrefetch } from "./declutterPrefetch";
+import {
+  previewIsTopOfList,
+  readFirstScreenPreview,
+  takeFirstScreenBundleSellers,
+  takeFirstScreenDropStates,
+  takeFirstScreenItems,
+  takeFirstScreenPhotos,
+  takeFirstScreenSwitches,
+  takeFirstScreenWatching,
+} from "@/lib/declutter/bootPrefetch";
 
-// @mutate src/boot/declutterPrefetch.ts | u.searchParams.set("order", "live_at.desc"); | u.searchParams.set("order", "created_at.desc");
-// @mutate src/boot/declutterPrefetch.ts | return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? session.access_token : null; | return session.access_token;
+// @mutate src/boot/declutterPrefetch.ts | return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? { token: session.access_token, userId } : null; | return { token: session.access_token, userId };
 // @mutate src/boot/declutterPrefetch.ts | if (path !== "/declutter" \|\| typeof fetch !== "function") return; | if (typeof fetch !== "function") return;
-// @mutate src/lib/declutter/api.ts | const prefetched = await takeDeclutterItemsPrefetch(); | const prefetched = null;
-// @mutate src/lib/declutter/bootPrefetch.ts |   p.items = undefined; |
+// @mutate src/boot/declutterPrefetch.ts | .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null)) | .then((r) => r.json() as Promise<unknown>)
+// @mutate src/lib/declutter/api.ts | const prefetched = await takeFirstScreenItems(); | const prefetched = null;
+// @mutate src/lib/declutter/bootPrefetch.ts |   return a && !a.more ? a.items : null; |   return a ? a.items : null;
+// @mutate src/lib/declutter/bootPrefetch.ts |   if (s.taken.has(part)) return null; |
+// @mutate src/lib/declutter/bootPrefetch.ts |   if (userId !== undefined && userId !== s.userId) return null; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!itemIds.every((id) => covered.has(id))) return null; |
+// @mutate src/lib/declutter/bootPrefetch.ts |   return sellerIds.every((id) => asked.has(id)) ? a.bundle_sellers : null; |   return a.bundle_sellers;
+// @mutate src/lib/declutter/bootPrefetch.ts |   if (!defaultView) return false; |
 // @mutate src/entry.ts | .then((m) => m.startDeclutterPrefetch(window.location.pathname)) | .then(() => undefined)
 
 const BASE = "https://x.supabase.co";
-const client = () => {
-  const urls: string[] = [];
-  const db = createClient(BASE, "k", {
-    auth: { persistSession: false },
-    global: { fetch: ((u: string) => { urls.push(String(u)); return Promise.resolve(new Response("[]", { status: 200 })); }) as typeof fetch },
-  });
-  return { db, urls };
+const session = (expiresInS: number) =>
+  JSON.stringify({ access_token: "tok", expires_at: Math.floor(Date.now() / 1000) + expiresInS, user: { id: "me" } });
+const ANSWER = {
+  switches: { declutter: true },
+  items: [{ id: "a", seller_id: "s1", sale_mode: "offers", last_price_drop_on: null, drop_pct: 0 }, { id: "b", seller_id: "s2", sale_mode: null, last_price_drop_on: null }],
+  more: false,
+  near: null,
+  photos: [{ item_id: "a" }, { item_id: "b" }],
+  watching: ["a"],
+  bundle_sellers: ["s1"],
 };
-const session = (expiresInS: number) => JSON.stringify({ access_token: "tok", expires_at: Math.floor(Date.now() / 1000) + expiresInS });
-const norm = (u: string) => {
-  const url = new URL(u);
-  return `${url.pathname}?${[...url.searchParams.entries()].map(([k, v]) => `${k}=${v}`).sort().join("&")}`;
+const stubAnswer = (body: unknown = ANSWER, status = 200) => {
+  const f = vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status })));
+  vi.stubGlobal("fetch", f);
+  vi.stubEnv("VITE_SUPABASE_URL", BASE);
+  vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "k");
+  return f;
+};
+const start = () => {
+  localStorage.setItem("sb-x-auth-token", session(3600));
+  startDeclutterPrefetch("/declutter");
 };
 
 afterEach(() => {
@@ -36,44 +58,52 @@ afterEach(() => {
   localStorage.clear();
 });
 
-const stubFetch = (itemRows: unknown[] = [{ id: "a" }, { id: "b" }], photoRows: unknown[] = [{ item_id: "a" }, { item_id: "b" }]) => {
-  const f = vi.fn((u: string) => Promise.resolve(new Response(JSON.stringify(String(u).includes("declutter_item_photos") ? photoRows : itemRows), { status: 200 })));
-  vi.stubGlobal("fetch", f);
-  vi.stubEnv("VITE_SUPABASE_URL", BASE);
-  vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "k");
-  return f;
-};
-
-describe("the entry's /declutter prefetch", () => {
-  it("asks for exactly what the page's items read asks for", async () => {
-    const { db, urls } = client();
-    await db.from("declutter_items")
-      .select("id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers")
-      .in("status", ["live", "reserved"]).order("live_at", { ascending: false }).limit(500);
-    expect(norm(declutterItemsRestUrl(BASE))).toBe(norm(urls[0]));
-  });
-
-  it("asks for exactly what the page's photos read asks for", async () => {
-    const { db, urls } = client();
-    await db.from("declutter_item_photos").select("id, item_id, storage_path, position").in("item_id", ["a", "b"]).order("position", { ascending: true });
-    expect(norm(declutterPhotosRestUrl(BASE, ["a", "b"]))).toBe(norm(urls[0]));
-  });
-
-  it("starts on a cold /declutter with a live session, sending that session, and hands over once", async () => {
-    const f = stubFetch();
-    localStorage.setItem("sb-x-auth-token", session(3600));
-    startDeclutterPrefetch("/declutter");
-    expect(f.mock.calls.length).toBeGreaterThan(0);
-    const init = (f.mock.calls[0] as unknown as [string, { headers: Record<string, string> }])[1];
+describe("the entry's /declutter first screen", () => {
+  it("asks the one read, sending the member's session and every switch", () => {
+    const f = stubAnswer();
+    start();
+    const [url, init] = f.mock.calls[0] as unknown as [string, { method: string; headers: Record<string, string>; body: string }];
+    expect(url).toBe(`${BASE}/rest/v1/rpc/declutter_first_screen`);
+    expect(init.method).toBe("POST");
     expect(init.headers.Authorization).toBe("Bearer tok");
-    expect(await takeDeclutterItemsPrefetch()).toEqual([{ id: "a" }, { id: "b" }]);
-    expect(takeDeclutterItemsPrefetch()).toBeNull();
-    expect(await takeDeclutterPhotosPrefetch(["a"])).toEqual([{ item_id: "a" }]);
-    expect(await takeDeclutterPhotosPrefetch(["a"])).toBeNull();
+    expect(JSON.parse(init.body).p_switch_keys).toEqual([...FEATURE_SWITCH_KEYS]);
   });
 
-  it("does nothing signed out, on another page, or with a session near expiry or malformed", () => {
-    const f = stubFetch();
+  it("its switch keys are FEATURE_SWITCH_KEYS exactly, in a list the server accepts (at most 64)", () => {
+    expect(FIRST_SCREEN_SWITCH_KEYS).toEqual([...FEATURE_SWITCH_KEYS]);
+    expect(FIRST_SCREEN_SWITCH_KEYS.length).toBeGreaterThan(20);
+    expect(FIRST_SCREEN_SWITCH_KEYS.length).toBeLessThanOrEqual(64);
+  });
+
+  it("the server answers every column Browse's reads ask for, and no other", () => {
+    const api = blankComments(readFileSync("src/lib/declutter/api.ts", "utf8"));
+    const quoted = (name: string) => (api.match(new RegExp(`const ${name} =\\s*"([^"]+)"`))?.[1] ?? "").split(", ");
+    const asked = [...quoted("ITEM_COLUMNS"), ...quoted("DROP_COLUMNS")];
+    expect(asked.length).toBeGreaterThan(15);
+    const sql = blankSqlComments(readFileSync("supabase/migrations/20261030171747_declutter_first_screen.sql", "utf8"));
+    const selected = (sql.match(/SELECT (i\.id,[\s\S]*?),\s*CASE WHEN/)?.[1] ?? "").split(",").map((c) => c.trim().replace(/^i\./, ""));
+    expect(selected.sort()).toEqual(asked.sort());
+  });
+
+  it("each read takes its part once", async () => {
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenSwitches("me")).toEqual({ declutter: true });
+    expect(await takeFirstScreenSwitches("me")).toBeNull();
+    expect((await takeFirstScreenItems())?.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(await takeFirstScreenItems()).toBeNull();
+    expect(await takeFirstScreenPhotos(["a"])).toEqual([{ item_id: "a" }]);
+    expect(await takeFirstScreenPhotos(["a"])).toBeNull();
+    expect((await takeFirstScreenDropStates(["a", "b"]))?.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(await takeFirstScreenDropStates(["a", "b"])).toBeNull();
+    expect(await takeFirstScreenBundleSellers(["s1", "s2"])).toEqual(["s1"]);
+    expect(await takeFirstScreenBundleSellers(["s1", "s2"])).toBeNull();
+    expect(await takeFirstScreenWatching("me")).toEqual(["a"]);
+    expect(await takeFirstScreenWatching("me")).toBeNull();
+  });
+
+  it("does nothing signed out, on another page, or with a session near expiry, malformed or nameless", () => {
+    const f = stubAnswer();
     startDeclutterPrefetch("/declutter");
     localStorage.setItem("sb-x-auth-token", session(3600));
     startDeclutterPrefetch("/home");
@@ -81,38 +111,88 @@ describe("the entry's /declutter prefetch", () => {
     startDeclutterPrefetch("/declutter");
     localStorage.setItem("sb-x-auth-token", "not json");
     startDeclutterPrefetch("/declutter");
+    localStorage.setItem("sb-x-auth-token", JSON.stringify({ access_token: "t", expires_at: 9999999999 }));
+    startDeclutterPrefetch("/declutter");
     expect(f).not.toHaveBeenCalled();
   });
 
-  it("a failed read hands nothing over, so the page asks for itself", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 401 }))));
-    vi.stubEnv("VITE_SUPABASE_URL", BASE);
-    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "k");
-    localStorage.setItem("sb-x-auth-token", session(3600));
-    startDeclutterPrefetch("/declutter");
-    expect(await takeDeclutterItemsPrefetch()).toBeNull();
-    expect(await takeDeclutterPhotosPrefetch(["a"])).toBeNull();
+  it("not deployed yet (404), refused, a broken answer or no network hands nothing over, so today's reads run", async () => {
+    for (const stub of [
+      () => stubAnswer({ code: "PGRST202" }, 404),
+      () => stubAnswer({ message: "no" }, 500),
+      () => stubAnswer({ items: "not a list" }),
+      () => vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline")))),
+    ]) {
+      stub();
+      vi.stubEnv("VITE_SUPABASE_URL", BASE);
+      vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "k");
+      start();
+      expect(await takeFirstScreenItems()).toBeNull();
+      expect(await takeFirstScreenSwitches("me")).toBeNull();
+      expect(await takeFirstScreenPhotos(["a"])).toBeNull();
+      expect(await takeFirstScreenDropStates(["a"])).toBeNull();
+      expect(await takeFirstScreenBundleSellers(["s1"])).toBeNull();
+      expect(await takeFirstScreenWatching("me")).toBeNull();
+      expect(await readFirstScreenPreview()).toBeNull();
+    }
   });
 
-  it("photos it did not cover are left to the page", async () => {
-    stubFetch();
-    localStorage.setItem("sb-x-auth-token", session(3600));
-    startDeclutterPrefetch("/declutter");
-    expect(await takeDeclutterPhotosPrefetch(["a", "not-in-the-prefetch"])).toBeNull();
+  it("another member's reads never take this member's answer", async () => {
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenSwitches("someone-else")).toBeNull();
+    expect(await takeFirstScreenSwitches(null)).toBeNull();
+    expect(await takeFirstScreenWatching("someone-else")).toBeNull();
   });
 
-  it("the entry starts it and the page's two reads take it", () => {
+  it("what the answer did not cover is left to the page", async () => {
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenPhotos(["a", "not-covered"])).toBeNull();
+    expect(await takeFirstScreenDropStates(["a", "not-covered"])).toBeNull();
+    expect(await takeFirstScreenBundleSellers(["s1", "not-covered"])).toBeNull();
+  });
+
+  it("a capped answer is never the live list; it is only a preview", async () => {
+    stubAnswer({ ...ANSWER, more: true, near: { lat: 30.45, lng: -91.15 } });
+    start();
+    expect(await takeFirstScreenItems()).toBeNull();
+    const p = await readFirstScreenPreview();
+    expect(p?.items.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(p?.near).toEqual({ lat: 30.45, lng: -91.15 });
+  });
+
+  it("a whole answer is no preview", async () => {
+    stubAnswer();
+    start();
+    expect(await readFirstScreenPreview()).toBeNull();
+  });
+
+  it("an old answer is not handed out", async () => {
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenItems(Date.now() + 60_000)).toBeNull();
+    expect(await readFirstScreenPreview(Date.now() + 60_000)).toBeNull();
+  });
+
+  it("the preview shows only when it is the exact top of the final list", () => {
+    const here = { lat: 30.45, lng: -91.15 };
+    expect(previewIsTopOfList(here, { ...here }, true)).toBe(true);
+    expect(previewIsTopOfList(null, null, true)).toBe(true);
+    expect(previewIsTopOfList(here, { lat: 30.46, lng: -91.15 }, true)).toBe(false); // a device fix or a ZIP's centre
+    expect(previewIsTopOfList(null, here, true)).toBe(false); // newest first, but the browser will sort by distance
+    expect(previewIsTopOfList(here, null, true)).toBe(false);
+    expect(previewIsTopOfList(here, here, false)).toBe(false); // a search, filter, distance or other sort
+  });
+
+  it("the entry starts it, and every read on the page takes its part", () => {
     const code = (p: string) => blankComments(readFileSync(p, "utf8"));
     expect(code("src/entry.ts")).toContain(".then((m) => m.startDeclutterPrefetch(window.location.pathname))");
     const api = code("src/lib/declutter/api.ts");
-    expect(api).toContain("const prefetched = await takeDeclutterItemsPrefetch();");
-    expect(api).toContain("const prefetched = await takeDeclutterPhotosPrefetch(itemIds);");
-  });
-
-  it("an old prefetch is not handed out", () => {
-    stubFetch();
-    localStorage.setItem("sb-x-auth-token", session(3600));
-    startDeclutterPrefetch("/declutter");
-    expect(takeDeclutterItemsPrefetch(Date.now() + 60_000)).toBeNull();
+    for (const call of ["takeFirstScreenItems()", "takeFirstScreenPhotos(itemIds)", "takeFirstScreenDropStates(itemIds)", "takeFirstScreenWatching(userId)"]) {
+      expect(api).toContain(call);
+    }
+    expect(code("src/lib/declutter/bundle.ts")).toContain("takeFirstScreenBundleSellers(sellerIds)");
+    expect(code("src/hooks/useFeature.ts")).toContain("takeFirstScreenSwitches(uid)");
   });
 });

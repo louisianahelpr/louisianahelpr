@@ -16871,6 +16871,11 @@ export type Database = {
         Returns: string
       }
       member_under_18: { Args: { p_user_id: string }; Returns: boolean }
+      message_attachment_locked: { Args: { p_name: string }; Returns: boolean }
+      message_delete_locked: {
+        Args: { p_job_id: string; p_message_id: string }
+        Returns: boolean
+      }
       message_violation_ladder: {
         Args: {
           p_content: string

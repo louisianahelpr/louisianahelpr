@@ -92,7 +92,9 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
     expect(reads).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Accept delivery" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
-    await waitFor(() => expect(screen.queryByText("Blue mug")).toBeNull());
+    // The list re-read after the accept says so (wait for that, then the absence: waitForEmptyIsVacuous).
+    expect(await screen.findByText(/^No deliveries to take right now\./)).toBeInTheDocument();
+    expect(screen.queryByText("Blue mug")).toBeNull();
     expect(state.windowReads.length, "no read of the taken task's pickup times after the accept").toBe(reads);
     const done = state.toasts.find((t) => t.msg.startsWith("Delivery accepted"));
     expect(done?.opts?.action?.label, "the confirmation carries an action, so toastPolicy lets it render").toBe("See it");
@@ -104,8 +106,11 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
     fireEvent.click(save);
     expect(await screen.findByText("Vehicle saved.")).toBeInTheDocument();
     expect(state.calls.some((c) => c[0] === "vehicle")).toBe(true);
-    fireEvent.click(screen.getByRole("checkbox", { name: "I have a car" }));
-    await waitFor(() => expect(screen.queryByText("Vehicle saved.")).toBeNull());
+    const car = screen.getByRole("checkbox", { name: "I have a car" });
+    fireEvent.click(car);
+    // The click is the precondition (the box really changed), then the absence (waitForEmptyIsVacuous).
+    expect(car).not.toBeChecked();
+    expect(screen.queryByText("Vehicle saved.")).toBeNull();
   });
 
   // D3-9 said the vehicle checkboxes had no accessible name. Each is named by its <label htmlFor> (measured here, the

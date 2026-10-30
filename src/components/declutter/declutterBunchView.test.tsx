@@ -12,7 +12,7 @@
  *   - "A bunch of things" is a choice in "What do you want to sell?" (DeclutterSellChooser, owner 2026-10-30).
  *
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null) |       ?? null
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (!attested ? "Tick the box under the four statements before you list these items." : null) |       ?? null
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.flagged && ( |       {false && (
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
@@ -146,10 +146,10 @@ describe("Sell a bunch", () => {
     const list = await screen.findByRole("button", { name: "List 2 items" });
     await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(list);
-    expect(await screen.findByText("All four statements need a check before you can list these items.")).toBeTruthy();
+    expect(await screen.findByText("Tick the box under the four statements before you list these items.")).toBeTruthy();
     expect(calls.listed).toEqual([]);
 
-    for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-tax-${i}`)!);
+    fireEvent.click(document.getElementById("bunch-tax")!);
     // The map knows the area but not the house: nothing lists on the area's point, and the note says what to do.
     lookupAnswer.value = { status: "approximate", lat: 30.5, lng: -92.1, precision: "town" };
     fireEvent.click(list);

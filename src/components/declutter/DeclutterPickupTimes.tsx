@@ -254,3 +254,13 @@ export function PickupTimesCard({ userId }: { userId: string }) {
     </section>
   );
 }
+
+const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "Sat 9:00 AM–12:00 PM", or "3 pickup times" when the days differ. */
+export function windowsSummary(windows: PickupWindow[]): string {
+  if (windows.length === 0) return "";
+  if (!sameHoursEveryDay(windows)) return `${windows.length} pickup times`;
+  const days = [...windows].sort((a, b) => a.weekday - b.weekday).map((w) => SHORT_DAY[w.weekday]).join(", ");
+  return `${days} ${timeLabel(windows[0].starts)}–${timeLabel(windows[0].ends)}`;
+}

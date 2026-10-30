@@ -7,7 +7,7 @@
  *
  * @mutate src/lib/declutter/autoFree.ts | export const AUTO_FREE_DAY_CHOICES = [7, 14, 21, 30] as const; | export const AUTO_FREE_DAY_CHOICES = [7, 12, 14, 21, 30] as const;
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |       CHECK (auto_free_days IS NULL OR auto_free_days IN (7, 14, 21, 30)); |       CHECK (auto_free_days IS NULL OR auto_free_days IN (7, 14, 21, 30, 60));
- * @mutate src/lib/declutter/autoFree.ts |   { value: "never", label: "Never" },\n |
+ * @mutate src/lib/declutter/autoFree.ts |   { value: "never", label: "Never make it free" },\n |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -53,6 +53,6 @@ describe("make it free after __ days: one list of day counts (OWN-FREE)", () => 
   });
 
   it("the chips are Never first (the default for a new listing), then each day count", () => {
-    expect(AUTO_FREE_OPTIONS.map((o) => o.label)).toEqual(["Never", ...app.map((d) => `${d} days`)]);
+    expect(AUTO_FREE_OPTIONS.map((o) => o.label)).toEqual(["Never make it free", ...app.map((d) => `${d} days`)]);
   });
 });

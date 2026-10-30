@@ -39,7 +39,7 @@ const ORDER = "00000000-0000-4000-8000-0000000000c1";
 afterEach(cleanup);
 
 describe("the order chat link with Declutter switched off", () => {
-  it("opens the chat over the page the gate draws", () => {
+  it("opens the chat over the page the gate draws", async () => {
     render(
       <MemoryRouter initialEntries={[`/declutter?tab=selling&order_talk=${ORDER}`]}>
         <DeclutterPage />
@@ -47,7 +47,7 @@ describe("the order chat link with Declutter switched off", () => {
     );
     expect(screen.getByText("NOT FOUND")).toBeInTheDocument();
     expect(screen.queryByText("DECLUTTER HOME")).toBeNull();
-    expect(screen.getByTestId("order-talk-sheet").textContent).toBe(ORDER);
+    expect((await screen.findByTestId("order-talk-sheet")).textContent).toBe(ORDER);
   });
 
   it("DeclutterPage mounts OrderTalkFromLink once, after the gate closes", () => {

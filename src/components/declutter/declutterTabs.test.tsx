@@ -14,8 +14,8 @@
  * which tab each order lands on.
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && t.counts[asked] > 0 ? asked : null; |   const only = asked;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
- * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></> | {view === "buying" ? <WantedView />
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <BuyingTab todo={todo} /> | {view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
@@ -36,7 +36,7 @@
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!fromView \|\| !tabsReady) return; |     return;
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -272,6 +272,9 @@ const BEFORE_ACTIONS = {
 } as const;
 
 const tab = (name: RegExp) => screen.getByRole("tab", { name });
+
+// The tabs load on their own (DeclutterHomeView.tsx): loaded once here so a first findBy does not race the import.
+beforeAll(() => Promise.all([import("./DeclutterSellingTab"), import("./DeclutterBuyingTab"), import("./DeclutterWantedViews"), import("./DeclutterFreeView"), import("./OrdersUpdating")]), 30_000);
 
 describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () => {
   beforeEach(() => {

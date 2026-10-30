@@ -81,8 +81,8 @@ describe("signedInSplit: signed-in code no first screen reaches (signed-in-deep,
 
   it("code only Declutter's first screen reaches is split off, and nothing another first screen reads", () => {
     const { declutterOnly } = signedInSplit(ROOT);
-    expect(declutterOnly.size).toBeGreaterThan(20); // about 60 on 2026-10-30
-    for (const rel of ["src/lib/declutter/sellerDelivery.ts", "src/lib/declutter/wanted.ts"]) {
+    expect(declutterOnly.size).toBeGreaterThan(5); // 11 on 2026-10-30, once only Browse was on the first screen
+    for (const rel of ["src/lib/declutter/browseFilters.ts", "src/lib/declutter/tabs.ts"]) {
       expect(declutterOnly.has(abs(rel)), rel).toBe(true);
     }
     for (const f of declutterOnly) expect(firstScreen.has(f), f).toBe(true);

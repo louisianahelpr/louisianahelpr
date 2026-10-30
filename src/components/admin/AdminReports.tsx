@@ -22,7 +22,7 @@ import {
   DialogSecondaryAction,
 } from "@/components/ui/dialog";
 import { formatShortDate } from "@/lib/format";
-import { AlertTriangle, CheckCircle2, User, ExternalLink, Send, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, User, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
@@ -38,6 +38,9 @@ import { reportsQueueKey, type ReportQueueFilter } from "@/components/admin/admi
 import { REPORT_FILTERS } from "@/components/admin/adminReports/reportFilters";
 import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_REPORT } from "@/components/admin/adminReports/reportedListings";
 import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
+import { hydrateReportedWanted, wantedSubject, WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
+import { WantedReportPanel } from "@/components/admin/adminReports/WantedReportPanel";
+import { ReportSubjectButton } from "@/components/admin/adminReports/ReportSubjectButton";
 import { SLA_BREACH_HOURS, slaInfo, typeIcon } from "@/components/admin/adminReports/reportRowBits";
 
 import type { Report } from "@/components/admin/adminReports/reportType";
@@ -79,8 +82,9 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
   // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT;
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT;
   const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
+  const { posts: wantedPosts, failed: wantedFailed } = await hydrateReportedWanted(reportRows);
   // Q366: an 'application' report holds an APPLICATION id. The person is
   // its helper and the context is its job; both are read from the row.
   const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
@@ -100,6 +104,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
   const subjectUserOf = (r: Report): string | null =>
     r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
       : r.reported_type === LISTING_REPORT ? listings.get(r.reported_id)?.seller_id ?? null
+      : r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id)?.poster_id ?? null
       : isUserSubject(r) ? r.reported_id : null;
   const userIds = [
     ...new Set(reportRows.flatMap(r => [
@@ -176,13 +181,16 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
         return title ? `${nameFor(helper)} · application on "${title}"` : `${nameFor(helper)} · application`;
       }
       if (r.reported_type === LISTING_REPORT) return listingSubject(listings.get(r.reported_id), listingsFailed);
+      if (r.reported_type === WANTED_REPORT) return wantedSubject(wantedPosts.get(r.reported_id), wantedFailed);
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 
     // Owner 2026-10-27: admin never shows a report a test account is part of.
     return reportRows.map(r => ({
       ...r,
-      reporter_name: nameFor(r.reporter_id),
+      // A Wanted report with no reporter came from the automatic photo check, never from a deleted account.
+      reporter_name: r.reported_type === WANTED_REPORT && !r.reporter_id ? "Automatic check" : nameFor(r.reporter_id),
+      reported_wanted: r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id) : undefined,
       reported_name: subjectFor(r),
       // Deleted actors cannot receive a message — the notification would
       // be written against a user_id with nothing behind it.
@@ -195,6 +203,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
       assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
       is_test: seedIds.has(r.reported_id)
         || (r.reported_type === LISTING_REPORT && listings.get(r.reported_id)?.is_seed === true)
+        || (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
           && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
@@ -434,6 +443,7 @@ const AdminReports = () => {
                   <div>
                     <p className="text-ds-13 font-semibold text-foreground">
                       <button
+                        disabled={report.reported_type === WANTED_REPORT && !report.subject_user_id}
                         onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
                         className="hover:text-primary underline-offset-2 hover:underline transition-colors"
                       >
@@ -502,6 +512,8 @@ const AdminReports = () => {
                 </p>
               )}
 
+              {report.reported_wanted && <WantedReportPanel post={report.reported_wanted} reportId={report.id} open={report.status !== "resolved" && report.status !== "dismissed"} onDone={loadReports} />}
+
               {/* One line, not two: 7 action buttons kept on a single row —
                   fits without scroll on wide admin screens, scrolls horizontally
                   rather than wrapping to a second line on narrow ones.
@@ -510,38 +522,7 @@ const AdminReports = () => {
                   affordance, which reads as clipped rather than scrollable —
                   the same fade AdminFilterStrip puts on chip rows. */}
               <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto no-scrollbar [&>button]:shrink-0 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
-                {/* `reported_id` is a JOB id for job reports, and this button
-                    sent every one of them to /user/<job-id> — a profile page
-                    that 404s. Seen on the live queue 2026-09-07: "Deleted job
-                    — Spam or scam" offered "View Profile". Route by subject,
-                    and disable when the subject is gone rather than open a
-                    page that will only say so. A review or message report
-                    carries that row's id, not a person's — no profile to open. */}
-                {report.reported_type === "job" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!report.reported_job_exists}
-                    title={!report.reported_job_exists ? "This job no longer exists" : undefined}
-                    onClick={() => navigate(`/jobs/${report.reported_id}`)}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Job
-                  </Button>
-                ) : report.reported_type === LISTING_REPORT ? (
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/declutter/item/${report.reported_id}`)}>
-                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Listing
-                  </Button>
-                ) : report.reported_type === "review" || report.reported_type === "message" ? null : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={report.reported_exists === false}
-                    title={report.reported_exists === false ? "This account no longer exists" : undefined}
-                    onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
-                  </Button>
-                )}
+                <ReportSubjectButton report={report} />
                 {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (
                   <>
                     {!report.assigned_to && (

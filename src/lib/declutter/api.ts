@@ -901,6 +901,30 @@ export async function takeDownListing(itemId: string, note: string, reportId: st
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_take_down_item", e) ?? null) as string;
 }
 
+/** Audit 10-30 #8: the same for a Wanted post (20261030225143). The poster reads the reason. */
+export async function takeDownWanted(wantedId: string, note: string, reportId: string): Promise<string> {
+  const res = await supabase.rpc("declutter_admin_take_down_wanted", { p_wanted_id: wantedId, p_note: note, p_report_id: reportId });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_take_down_wanted", e) ?? null) as string;
+}
+
+/** Audit 10-30 #8: a held Wanted photo an admin looked at and found fine: members see it now. */
+export async function releaseWantedPhotos(wantedId: string, reportId: string): Promise<string> {
+  const res = await supabase.rpc("declutter_admin_release_wanted_photos", { p_wanted_id: wantedId, p_report_id: reportId });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_release_wanted_photos", e) ?? null) as string;
+}
+
+export type ReportedWanted = { wanted_id: string; what: string; poster_id: string; status: string; removed: boolean; is_seed: boolean; photo_paths: string[]; photos_held: string[] };
+
+/** The reports queue's read of reported Wanted posts, whatever their status (admin only, 20261030225143). */
+export async function fetchReportedWanted(wantedIds: string[]): Promise<ReportedWanted[]> {
+  if (!wantedIds.length) return [];
+  const res = await supabase.rpc("declutter_admin_reported_wanted", { p_wanted_ids: wantedIds });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_reported_wanted", e) ?? null) ?? []) as ReportedWanted[];
+}
+
 export type ReportedListing = { item_id: string; title: string; seller_id: string; status: DeclutterStatus; is_seed: boolean };
 
 /** The reports queue's names for reported listings, whatever their status (admin only, 20261030071816). */

@@ -8,7 +8,7 @@
  * Nothing listed that fits: "List it now" opens the shared sell flow, which answers this post once the new listing
  * is live (quickListHref / answerAfterListing, owner 2026-10-30).
  */
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -22,12 +22,50 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
-import { canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedFromAlert, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+import { blockWantedPoster, canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedFromAlert, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 import { focusSheetItself } from "./focusSheetItself";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
+
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 
 const firstName = (posterName: string) => (posterName === "A neighbor" ? "them" : posterName.split(" ")[0]);
 const money = "font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]";
+
+/**
+ * Audit 10-30 #8: Report and Block on a post. A report reaches an admin. A block never cancels a job from here: when the
+ * two of you share one, the server refuses and nothing changes (declutter_block_wanted_poster).
+ */
+function WantedPostSafety({ post, onBlocked }: { post: WantedNear; onBlocked?: () => void }) {
+  const qc = useQueryClient();
+  const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const block = useMutation({
+    mutationFn: () => blockWantedPoster(post.id),
+    onSuccess: () => {
+      toast.success("Blocked. You won't see each other's Wanted posts.");
+      setBlocking(false);
+      onBlocked?.();
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
+    },
+    onError: (err) => { setBlocking(false); toast.error(declutterErrorMessage(err)); },
+  });
+  const quiet = "inline-flex min-h-11 items-center text-ds-13 font-medium text-muted-foreground underline underline-offset-2";
+  return (
+    <div className="flex gap-4" data-wanted-safety="">
+      <button type="button" className={quiet} onClick={() => setReporting(true)}>Report</button>
+      <button type="button" className={quiet} onClick={() => setBlocking(true)}>Block</button>
+      {reporting && (
+        <Suspense fallback={null}>
+          <ReportDialog open={reporting} onClose={() => setReporting(false)} reportedType="declutter_wanted" reportedId={post.id} />
+        </Suspense>
+      )}
+      <ConfirmSheet open={blocking} title="Block this person?" confirmLabel="Block" pending={block.isPending} onConfirm={() => block.mutate()} onClose={() => setBlocking(false)} testId="wanted-block">
+        You won't see each other's Wanted posts, and you can't buy from or message each other. If you have a job together, this stops and nothing changes: block them from that job, where you see any fee first.
+      </ConfirmSheet>
+    </div>
+  );
+}
 
 function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: WantedNear | null; userId: string; onClose: () => void; startItemId?: string | null }) {
   const qc = useQueryClient();
@@ -96,6 +134,7 @@ function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: W
                 </ul>
               )}
               <PhotoLightbox photos={photos.map((p) => photoPublicUrl(p))} lightboxIndex={bigPhoto} setLightboxIndex={setBigPhoto} />
+              <WantedPostSafety post={post} onBlocked={() => { clearPick(); onClose(); }} />
             </div>
             {mine.isLoading ? null : listings.length === 0 ? (
               <p className="text-ds-14">Nothing listed yet? List it now: add photos and a price, and it answers {who} as soon as it's live.</p>
@@ -198,7 +237,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
       ) : (
       <ul className="space-y-2">
         {(near.data ?? []).map((w) => (
-          <li key={w.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+          <li key={w.id} className="flex flex-wrap items-center gap-x-3 rounded-2xl border border-border bg-card px-4 py-3">
             {/* Owner 2026-10-30: the post's first photo of what they're looking for (20261030064727). */}
             {w.photo_path && (
               <FallbackImg src={photoPublicUrl(w.photo_path)} alt={w.what} className="h-14 w-14 shrink-0 rounded-xl bg-photo-empty object-cover" data-wanted-near-photo="" />
@@ -214,6 +253,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
             ) : (
               <Button type="button" size="sm" className="shrink-0" onClick={() => setReplying(w)}>I have this</Button>
             )}
+            <div className="w-full"><WantedPostSafety post={w} /></div>
           </li>
         ))}
       </ul>

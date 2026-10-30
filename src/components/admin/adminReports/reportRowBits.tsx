@@ -4,6 +4,7 @@
  */
 import { Briefcase, Clock, MessageSquare, User } from "lucide-react";
 import { LISTING_REPORT } from "./reportedListings";
+import { WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
 
 /** Trust & safety reports are triaged within this many hours. */
 export const SLA_BREACH_HOURS = 24;
@@ -26,7 +27,7 @@ export const slaInfo = (createdAt: string) => {
 
 export const typeIcon = (type: string) => {
   if (type === "user") return <User className="w-4 h-4" />;
-  if (type === "job" || type === "application" || type === LISTING_REPORT) return <Briefcase className="w-4 h-4" />;
+  if (type === "job" || type === "application" || type === LISTING_REPORT || type === WANTED_REPORT) return <Briefcase className="w-4 h-4" />;
   if (type === "review") return <Clock className="w-4 h-4" />;
   return <MessageSquare className="w-4 h-4" />;
 };

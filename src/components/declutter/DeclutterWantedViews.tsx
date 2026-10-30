@@ -37,6 +37,7 @@ import {
   WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
   addWantedPhoto,
+  checkWantedPhotos,
   closeWanted,
   createWanted,
   dollarsToCents,
@@ -216,6 +217,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
       for (const f of files.slice(0, WANTED_PHOTO_MAX)) {
         try { await addWantedPhoto(userId, id, f); } catch (err) { failed += 1; console.warn("[declutter] Wanted photo not added", err); }
       }
+      if (files.length > failed) checkPhotosInBackground(id);
       return failed;
     },
     onSuccess: (failed) => {
@@ -296,11 +298,18 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
 }
 
 /** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
+/** Audit 10-30 #8: runs behind the screen, because the post is already up. The poster hears only about a held photo. */
+function checkPhotosInBackground(wantedId: string) {
+  void checkWantedPhotos(wantedId).then((held) => {
+    if (held) toast.info("Your post is up. A photo is waiting for a quick look before sellers see it.");
+  });
+}
+
 function WantedPostPhotos({ post, userId }: { post: WantedPost; userId: string }) {
   const qc = useQueryClient();
   const inputId = useId();
   const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
-  const add = useMutation({ mutationFn: (f: File) => addWantedPhoto(userId, post.id, f), onSuccess: refresh, onError: (err) => toast.error(declutterErrorMessage(err)) });
+  const add = useMutation({ mutationFn: (f: File) => addWantedPhoto(userId, post.id, f), onSuccess: () => { refresh(); checkPhotosInBackground(post.id); }, onError: (err) => toast.error(declutterErrorMessage(err)) });
   const remove = useMutation({ mutationFn: (p: string) => removeWantedPhoto(post.id, p), onSuccess: refresh, onError: (err) => toast.error(declutterErrorMessage(err)) });
   const open = post.status === "open";
   if (post.photo_paths.length === 0 && !open) return null;

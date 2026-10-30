@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { DECLUTTER_PHOTO_BUCKET, rpcData } from "@/lib/declutter/api";
+import { DECLUTTER_PHOTO_BUCKET, invokeAiBody, rpcData } from "@/lib/declutter/api";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 
@@ -275,6 +275,11 @@ export async function removeWanted(id: string): Promise<void> {
   }
 }
 
+/** Audit 10-30 #8: block a post's poster. The post is the handle, so the app never holds their id. */
+export async function blockWantedPoster(id: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_block_wanted_poster", { p_wanted_id: id }), (e) => rpcErrorMessage("declutter_block_wanted_poster", e)) as string;
+}
+
 export async function closeWanted(id: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_close_wanted", { p_wanted_id: id }), (e) => rpcErrorMessage("declutter_close_wanted", e)) as string;
 }
@@ -328,6 +333,23 @@ export async function addWantedPhoto(userId: string, wantedId: string, file: Fil
     throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
   }
   return data as number;
+}
+
+/**
+ * Audit 10-30 #8: the automatic check on a post's new photos, the one listings get. Members see a photo only once it
+ * passes (declutter_wanted_browse), so nothing here can show one early, and the post's words are up either way. Asked
+ * twice; a check that never comes back reaches an admin through the sweep after an hour. Says whether a photo was held.
+ */
+export async function checkWantedPhotos(wantedId: string): Promise<boolean> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const answer = (await invokeAiBody({ mode: "wanted_check", wantedId })) as { flagged?: boolean };
+      return answer.flagged === true;
+    } catch (err) {
+      console.warn("[declutter] Wanted photo check did not finish", err);
+    }
+  }
+  return false;
 }
 
 /** Take a photo off your own post, then delete its object (the storage rule allows it once no post holds it). */

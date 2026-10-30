@@ -9,7 +9,7 @@
  *       blocked members.
  *
  * Read from the NEWEST statement that defines each policy / function / trigger. The behaviour runs in
- * src/test/pglite/messageTrustAdminDeleteReport.pglite.mjs (migration 3x; 12 checks red with NEW_MIGRATION=skip).
+ * src/test/pglite/messageTrustAdminDeleteReport.pglite.mjs (migration 3x; 12 checks red with NEW_MIGRATION=skip, measured 2026-10-30).
  *
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |       COALESCE(flagged_hidden, false)\n      OR team_thread_user_id IS NOT NULL |       true\n      OR team_thread_user_id IS NOT NULL
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |                COALESCE(m.flagged_hidden, false) |                true

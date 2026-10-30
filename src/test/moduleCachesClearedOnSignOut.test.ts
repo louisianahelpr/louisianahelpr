@@ -38,6 +38,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/header/PageTitleBar.tsx:stackListeners": { kind: "not-user-data", why: "subscriber callbacks for which mounted title bar is first (overlay rows go under the desktop bar, 2026-10-28); mount ids only, no account data" },
   "src/lib/payoutAfterHireSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the payout_after_hire switch answer (owner 2026-10-25); IdentityCheckHost republishes the answer for whoever is signed in (signed out reads off)" },
   "src/lib/identityCheckSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the identity_check switch answer; IdentityCheckHost republishes the answer for whoever is signed in (signed out reads off)" },
+  "src/lib/i18n/language.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the language choice (English or Spanish, per device, helpr_lang); the choice is a device setting, nothing about the account" },
   "src/lib/identityCheck.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the one Identity sheet's open/closed state (IdentityCheckHost); the state is a reason string, nothing about the account" },
   "src/components/mobileNav/useSectionTabs.ts:shownComingSoon": { kind: "not-user-data", why: "toast ids of the 'X is coming soon' notices shown (one per switched-off section label), dismissed and cleared on the next route change; section names, nothing about the account" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },

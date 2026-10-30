@@ -39,8 +39,10 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { cityZipMismatchHint } from "@/lib/cityZipMismatch";
+import { useLanguage } from "@/lib/i18n/language";
 
 const Signup = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/signup"]);
@@ -165,11 +167,11 @@ const Signup = () => {
     // must still be five digits: a half one would resolve no parish.
     {
       const zip = zipCode.replace(/\D/g, "");
-      if (zip && zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";
+      if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid");
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
-    if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
+    if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = t("signup.bioShort");
     // Contact details in a bio are rejected by the database (23514) — the
     // complete-signup function would fail the whole signup on it.
     else if (contactLeakFieldError(bio, "bio")) errors.bio = contactLeakFieldError(bio, "bio")!;
@@ -191,9 +193,9 @@ const Signup = () => {
 
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
-    if (!firstName.trim()) { toast.error("Add your first name."); return false; }
-    if (!lastName.trim()) { toast.error("Add your last name."); return false; }
-    if (!email.trim()) { toast.error("Add your email address."); return false; }
+    if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; }
+    if (!lastName.trim()) { toast.error(t("signup.lastNameToast")); return false; }
+    if (!email.trim()) { toast.error(t("signup.emailToast")); return false; }
     // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
     // letter, a digit AND a symbol, while this validator asked for only the
@@ -214,8 +216,8 @@ const Signup = () => {
     // the inline error message; they cannot drift apart again.
     const pwProblem = passwordProblem(password);
     if (pwProblem) { toast.error(pwProblem); return false; }
-    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
-    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
+    if (!acceptedPolicies) { toast.error(t("signup.termsToast")); return false; }
+    if (!ageConfirmed) { toast.error(t("signup.ageToast")); return false; }
     return true;
   };
 
@@ -231,7 +233,7 @@ const Signup = () => {
       try {
         avatarBase64 = await fileToBase64(avatarFile);
       } catch {
-        toast.error("We couldn't read your photo. You can add one later from your profile.");
+        toast.error(t("signup.photoReadFailed"));
       }
     }
     const avatarExt = avatarFile && !skipped ? avatarFile.name.split(".").pop() : null;
@@ -314,7 +316,7 @@ const Signup = () => {
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
       hapticError();
-      toast.error(`Too many attempts — try again in ${secsLeft}s.`);
+      toast.error(t("signup.tooManyAttempts", { seconds: secsLeft }));
       setLoading(false);
       return;
     }
@@ -322,9 +324,7 @@ const Signup = () => {
       // HIBP breached-password check (k-anonymity, fail-open on network error)
       const pwnedCount = await checkPasswordPwned(password);
       if (pwnedCount !== null && pwnedCount > 0) {
-        toast.error(
-          `This password has appeared in ${pwnedCount.toLocaleString()} known data breaches. Please choose a different password.`
-        );
+        toast.error(t("signup.passwordPwned", { count: pwnedCount.toLocaleString() }));
         setLoading(false);
         return;
       }
@@ -372,7 +372,7 @@ const Signup = () => {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
         if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }
         toast[finished ? "info" : "error"](finished ? SIGNUP_ALREADY_FINISHED_COPY :
-          `${userFacingError(completionErr, "We couldn't finish setting up your profile.")} Your account is created: confirm your email, then sign in to finish.`,
+          `${userFacingError(completionErr, t("signup.finishFailed"))} ${t("signup.accountCreatedConfirm")}`,
         );
         navigate("/signup-pending", { state: { email } });
         return;
@@ -394,7 +394,7 @@ const Signup = () => {
         (result as { staleAvatarObjects?: string[] } | null)?.staleAvatarObjects ?? [];
       if (staleAvatarObjects.length > 0) {
         toast.error(
-          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+          t("photo.staleAvatar"),
         );
       }
 
@@ -454,7 +454,7 @@ const Signup = () => {
       // the breadcrumb a bug report depends on.
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
       if (authCopy) console.error("[signup:auth]", err);
-      toast.error(authCopy ?? userFacingError(err, "Couldn't create your account — try again?"));
+      toast.error(authCopy ?? userFacingError(err, t("signup.createFailed")));
     } finally {
       setLoading(false);
     }
@@ -488,7 +488,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: "Create your account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About you" };
+    step === 1 ? { title: t("signup.title"), subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: t("signup.aboutTitle") };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked

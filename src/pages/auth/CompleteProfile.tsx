@@ -34,11 +34,12 @@ import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
   ALLOWED_IMAGE_TYPES,
-  MAX_FILE_SIZE,
+  fileProblemKey,
   withTimeout,
 } from "./completeProfile/constants";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
+import { useLanguage } from "@/lib/i18n/language";
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
@@ -48,7 +49,8 @@ const DeleteAccountDialog = lazy(() =>
 );
 
 const CompleteProfile = () => {
-  usePageTitle("Complete your profile — Helpr");
+  const { lang, t } = useLanguage();
+  usePageTitle(t("profileGate.pageTitle"));
   const navigate = useNavigate();
   const { signingOut, signOut } = useSignOutAction();
   const queryClient = useQueryClient();
@@ -98,7 +100,7 @@ const CompleteProfile = () => {
     if (!resolvedZipParish) return null;
     const cityParish = parishForCity(location);
     if (!cityParish || cityParish.name === resolvedZipParish) return null;
-    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
+    return t("profileGate.zipMismatch", { zipParish: resolvedZipParish, city: location.trim(), cityParish: cityParish.name });
   })();
   const [bio, setBio] = useState("");
   // Contact details in a bio never save (rejected server-side, 23514).
@@ -174,15 +176,9 @@ const CompleteProfile = () => {
   }, [profile?.avatar_url, avatarFile]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
-    if (!allowedTypes.includes(file.type)) {
-      toast.error(`${label} — that file type isn't supported.`);
-      return false;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${label} is over 5 MB — try a smaller file.`);
-      return false;
-    }
-    return true;
+    const problem = fileProblemKey(file, allowedTypes);
+    if (problem) toast.error(t(problem, { label }));
+    return !problem;
   };
 
   const { requestCrop: requestAvatarCrop, dialog: avatarCropDialog } = useAvatarCrop();
@@ -190,7 +186,7 @@ const CompleteProfile = () => {
     const picked = e.target.files?.[0];
     // Reset so picking the same file again after a cancel still fires onChange.
     e.target.value = "";
-    if (!picked || !validateFile(picked, ALLOWED_IMAGE_TYPES, "Profile picture")) return;
+    if (!picked || !validateFile(picked, ALLOWED_IMAGE_TYPES, t("profileGate.photoLabel"))) return;
     // Frame it before it becomes the preview — the circle crops anything left to chance.
     const file = await requestAvatarCrop(picked);
     if (file) {
@@ -210,8 +206,8 @@ const CompleteProfile = () => {
   // value already on the profile row (e.g. an avatar uploaded previously).
   const checklist = useMemo(() => {
     return [
-      { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
-      ...(ageBoxShown ? [{ label: "Confirm you're 18 or older", done: ageConfirmed }] : []),
+      { label: t("profileGate.needName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 },
+      ...(ageBoxShown ? [{ label: t("profileGate.needAge"), done: ageConfirmed }] : []),
       // City and ZIP left the checklist (owner 2026-10-26: optional, as on
       // sign-up step 2); a typed ZIP is still checked on submit.
       // Government-issued ID is intentionally NOT in the required checklist:
@@ -219,9 +215,10 @@ const CompleteProfile = () => {
       // verification is deferred to first-post / IDV. The upload field below
       // stays available so a user CAN attach it early, but it never blocks
       // profile completion.
-      { label: "Accept platform rules, terms & privacy", done: acceptedPolicies },
+      { label: t("profileGate.needPolicies"), done: acceptedPolicies },
     ];
   }, [
+    lang, t,
     firstName,
     lastName,
     ageBoxShown,
@@ -273,15 +270,15 @@ const CompleteProfile = () => {
     if (!user) return;
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
-    if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
+    if (!firstName.trim() || !lastName.trim()) return fail(t("profileGate.nameToast"));
     // The same words Signup.tsx says when step 1's 18+ box is left empty.
-    if (!ageDone) return fail("Check the box to confirm you're 18 or older.");
+    if (!ageDone) return fail(t("signup.ageToast"));
     // City and ZIP are optional (owner 2026-10-26); a typed ZIP is five digits.
-    { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail("Enter a 5-digit ZIP code, or leave it blank."); }
+    { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail(t("profileGate.zipToast")); }
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
-    if (!acceptedPolicies) return fail("Check the box to agree to the platform rules and terms.");
+    if (!acceptedPolicies) return fail(t("profileGate.policiesToast"));
     // Contact details in a bio are REJECTED by the database (23514); the
     // field already says so inline — block before the round-trip.
     if (bioLeak) return fail(bioLeak);
@@ -377,7 +374,7 @@ const CompleteProfile = () => {
       // this bucket has already seen), silence is the failure.
       if (staleAvatarObjects.length > 0) {
         toast.error(
-          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+          t("photo.staleAvatar"),
         );
       }
 
@@ -436,7 +433,7 @@ const CompleteProfile = () => {
           contactLeakRejectionMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
-              : userFacingError(err, "We couldn't save your profile just yet — give it another try.")),
+              : userFacingError(err, t("profileGate.saveFailed"))),
         );
       }
     } finally {
@@ -460,9 +457,9 @@ const CompleteProfile = () => {
           <div className="flex justify-center mb-4">
             <HelprSpinner size={24} />
           </div>
-          <h1 className="text-headline-hero font-display font-bold text-foreground">Checking your saved profile</h1>
+          <h1 className="text-headline-hero font-display font-bold text-foreground">{t("profileGate.checking")}</h1>
           <p className="mt-2 text-ds-11 text-muted-foreground">
-            Hang tight — we’re making sure your previous submission is loaded before asking for anything again.
+            {t("profileGate.checkingBody")}
           </p>
           <Button
             type="button"
@@ -472,7 +469,7 @@ const CompleteProfile = () => {
             disabled={signingOut}
             className="mt-5 w-full"
           >
-            <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
+            <X className="w-4 h-4 mr-2" /> {signingOut ? t("profileGate.loggingOut") : t("profileGate.signOut")}
           </Button>
         </div>
         {deleteDialog}
@@ -528,7 +525,7 @@ const CompleteProfile = () => {
                 letterSpacing: "-0.025em",
               }}
             >
-              Almost there.
+              {t("profileGate.title")}
             </h1>
             <CompleteProfileIntro />
           </div>
@@ -559,7 +556,7 @@ const CompleteProfile = () => {
                       loading="lazy"
                       decoding="async"
                       src={avatarPreview}
-                      alt="Profile preview"
+                      alt={t("profileGate.photoPreview")}
                       className="w-full h-full object-cover"
                       onError={() => setAvatarBroken(true)}
                     />
@@ -582,14 +579,14 @@ const CompleteProfile = () => {
                   type="file"
                   accept="image/*"
                   className="sr-only"
-                  aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
+                  aria-label={avatarPreview ? t("profileGate.photoChange") : t("profileGate.photoUpload")}
                   onChange={handleAvatarChange}
                 />
               </label>
               <p className="text-ds-11 text-muted-foreground">
                 {avatarPreview && !avatarBroken
-                  ? "Tap to change · JPG, PNG, WebP (5MB max)"
-                  : <>Profile photo (optional) · tap to add</>}
+                  ? t("profileGate.photoTapChange")
+                  : t("profileGate.photoTapAdd")}
               </p>
               {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
                   The `avatars` bucket is PUBLIC — anonymously fetchable at a
@@ -603,7 +600,7 @@ const CompleteProfile = () => {
                   line, in the muted token, next to the control it describes —
                   not a warning banner, which people learn to skip. */}
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-                Public — shown on your profile to anyone on Helpr.
+                {t("profileGate.photoPublic")}
               </p>
             </div>
 
@@ -613,7 +610,7 @@ const CompleteProfile = () => {
             {!providerGaveName && (
             <div className="grid grid-cols-2 gap-3" data-testid="complete-profile-names">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+                <Label htmlFor="firstName">{t("signup.firstName")} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="firstName"
@@ -629,7 +626,7 @@ const CompleteProfile = () => {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+                <Label htmlFor="lastName">{t("signup.lastName")} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="lastName"
@@ -652,7 +649,7 @@ const CompleteProfile = () => {
                 and with the check's padding the value read "705", 2026-09-12). */}
             <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="city">City <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <Label htmlFor="city">{t("signup.city")} <span className="font-normal text-muted-foreground">{t("signup.optional")}</span></Label>
                 {/* CityAutocomplete is the same combobox used on the
                     Post-a-Task form. It nudges the user toward canonical
                     Louisiana spellings (the LOUISIANA_CITIES bundle) but
@@ -674,7 +671,7 @@ const CompleteProfile = () => {
                   covers the social sign-ins that never see that step. */}
               <div className="space-y-1.5">
                 <Label htmlFor="zipCode">
-                  ZIP <span className="font-normal text-muted-foreground">(optional)</span>
+                  {t("signup.zip")} <span className="font-normal text-muted-foreground">{t("signup.optional")}</span>
                 </Label>
                 {/* Same valid ✓ as City beside it (owner, 2026-09-12:
                     "missing the check even though the zip is entered"). */}
@@ -712,11 +709,11 @@ const CompleteProfile = () => {
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="bio">About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
+              <Label htmlFor="bio">{t("signup.about")} <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>{t("signup.optional")}</span></Label>
               <Textarea
                 id="bio"
                 rows={3}
-                placeholder="A short intro neighbors will see on your profile."
+                placeholder={t("profileGate.bioPlaceholder")}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 autoCapitalize="sentences"
@@ -726,7 +723,7 @@ const CompleteProfile = () => {
               />
               <FieldError id="bio-contact-leak">{bioLeak}</FieldError>
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You can always add this later from your profile.
+                {t("profileGate.bioLater")}
               </p>
             </div>
 
@@ -747,10 +744,12 @@ const CompleteProfile = () => {
                 {/* Wording/order matches SignupStep1's identical consent row
                     (Terms, Rules & Privacy) so the same box reads the same
                     way everywhere a user ticks it. */}
-                I agree to the{" "}
-                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
-                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
+                {t("signup.agreeLead")}{" "}
+                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>{t("signup.terms")}</a>,{" "}
+                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>{t("signup.rules")}</a>{` ${t("signup.and")} `}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>{t("signup.privacy")}</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
+                {/* Terms, Rules and Privacy are not translated: a Spanish reader is told they open in English. */}
+                {lang === "es" && <span className="block" data-testid="legal-in-english">{t("lang.legalInEnglish")}</span>}
               </span>
             </label>
 
@@ -767,7 +766,7 @@ const CompleteProfile = () => {
                   className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
                 />
                 <span id="age-confirm-label" className="leading-relaxed">
-                  I confirm I am 18 years of age or older. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
+                  {t("profileGate.ageConfirm")} <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
                 </span>
               </label>
             )}
@@ -800,7 +799,7 @@ const CompleteProfile = () => {
                     Caught here by reading the computed page text, not the
                     class name — same trap as asserting gloss by class. */}
                 <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>
-                  Still needed
+                  {t("profileGate.stillNeeded")}
                 </p>
                 <ul className="mt-2 space-y-1.5" aria-live="polite">
                   {checklist
@@ -814,7 +813,7 @@ const CompleteProfile = () => {
                 </ul>
                 {checklist.some((c) => c.done) && (
                   <p className="mt-2.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {checklist.filter((c) => c.done).length} of {checklist.length} done.
+                    {t("profileGate.doneCount", { done: checklist.filter((c) => c.done).length, total: checklist.length })}
                   </p>
                 )}
               </div>
@@ -846,7 +845,7 @@ const CompleteProfile = () => {
               disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete required fields"}
+              {submitting ? t("profileGate.saving") : allComplete ? t("profileGate.enterApp") : t("profileGate.completeRequired")}
             </Button>
 
             <Button
@@ -857,7 +856,7 @@ const CompleteProfile = () => {
               disabled={signingOut}
               className="w-full"
             >
-              <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
+              <X className="w-4 h-4 mr-2" /> {signingOut ? t("profileGate.loggingOut") : t("profileGate.signOut")}
             </Button>
 
             {/* Same treatment as AccountBanned's, the other account-state
@@ -869,7 +868,7 @@ const CompleteProfile = () => {
               onClick={deleteAccount.requestDelete}
               className="w-full text-destructive-ink hover:text-destructive-ink"
             >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete account
+              <Trash2 className="w-4 h-4 mr-1" /> {t("profileGate.deleteAccount")}
             </Button>
 
             {/* The only route to a human from inside the gate. ProtectedRoute's
@@ -882,9 +881,9 @@ const CompleteProfile = () => {
                 other affordance. /help is NOT on the allowed list, so link
                 /support, which is. */}
             <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Stuck on something?{" "}
+              {t("profileGate.stuck")}{" "}
               <a href="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-                Contact support
+                {t("profileGate.contactSupport")}
               </a>
             </p>
           </form>

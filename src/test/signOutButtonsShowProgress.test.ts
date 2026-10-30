@@ -23,6 +23,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
+import { en } from "@/lib/i18n/en";
 
 const HELPER = "src/lib/authSignOut.ts";
 const HOOK = "src/hooks/useSignOutAction.ts";
@@ -49,14 +50,17 @@ const CALLS_HELPER = /\bsignOutWithPushCleanup\s*\(/g;
 const CALLS_HOOK = /\buseSignOutAction\s*\(/g;
 const SIGN_OUT_CALL = /\bsignOut\s*\(\s*\{/g;
 const DISABLED_BOUND = /\b(?:primaryDisabled|disabled)=\{signingOut\}/g;
-const LABEL_BOUND = /signingOut\s*\?\s*"Logging out…"/g;
+// The label written in, or (Spanish option, 2026-10-29) a dictionary key whose English is that label.
+const LABEL_BOUND = /signingOut\s*\?\s*(?:"Logging out…"|t\("([\w.]+)"\))/g;
+const countLabels = (code: string) =>
+  [...code.matchAll(LABEL_BOUND)].filter((m) => !m[1] || (en as Record<string, string>)[m[1]] === "Logging out…").length;
 
 /** What is wrong with one useSignOutAction caller, or null. */
 export function bindingProblem(code: string): string | null {
   const calls = count(code, SIGN_OUT_CALL);
   if (calls === 0) return "calls useSignOutAction() but never signOut({ … })";
   const disabled = count(code, DISABLED_BOUND);
-  const label = count(code, LABEL_BOUND);
+  const label = countLabels(code);
   if (disabled !== calls) return `${calls} signOut({ … }) call(s) but ${disabled} disabled={signingOut} binding(s)`;
   if (label !== calls) return `${calls} signOut({ … }) call(s) but ${label} signingOut ? "Logging out…" label(s)`;
   return null;
@@ -70,6 +74,9 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
     expect(bindingProblem(bound.replace("disabled={signingOut}", ""))).toMatch(/disabled/);
     expect(bindingProblem(bound.replace('signingOut ? "Logging out…" : "Sign out"', '"Sign out"'))).toMatch(/Logging out/);
     expect(bindingProblem(bound + `<Button onClick={() => void signOut({ after })}>Sign Out</Button>`)).not.toBeNull();
+    // A dictionary key counts only when its English is the progress label.
+    expect(bindingProblem(bound.replace('"Logging out…"', 't("profileGate.loggingOut")'))).toBeNull();
+    expect(bindingProblem(bound.replace('"Logging out…"', 't("profileGate.signOut")'))).toMatch(/Logging out/);
   });
 
   it("every caller of signOutWithPushCleanup is the hook or an allowlisted non-button caller (exact, two-way)", () => {

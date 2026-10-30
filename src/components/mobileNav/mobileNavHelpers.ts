@@ -52,6 +52,11 @@ export function writeCachedUnread(userId: string, n: number) {
   }
 }
 
+/** A guest's dock tab: Home opens /browse (the read-only home), Profile opens /login; the rest keep their path. */
+export function guestTabPath(path: string): string {
+  return path === "/home" ? "/browse" : path === "/profile" ? "/login" : path;
+}
+
 export const leftItems = [
   { path: "/home", icon: Home, label: "Home" },
   { path: "/posts", icon: ClipboardList, label: "Posts" },

@@ -38,10 +38,25 @@ const ROOT = resolve(__dirname, "..", "..");
 const CONVERTED = [
   "src/components/LanguageToggle.tsx",
   "src/pages/auth/Login.tsx",
+  "src/pages/auth/Signup.tsx",
+  "src/pages/auth/signup/SignupStep1.tsx",
+  "src/pages/auth/signup/SignupStep2.tsx",
+  "src/pages/auth/CompleteProfile.tsx",
+  "src/pages/auth/completeProfile/CompleteProfileIntro.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
-const ALLOWED: Record<string, string[]> = {};
+// @two-way src/test/spanishScreensUseDictionary.test.ts:stale ALLOWED
+const ALLOWED: Record<string, string[]> = {
+  // Report tags and a thrown Error the member never reads (userFacingError shows the t() fallback).
+  // "Profile picture" and "Finishing your account" are labels the shared helpers validateFile and
+  // withTimeout put inside their own English sentences; those helpers are not converted yet.
+  "src/pages/auth/Signup.tsx": ["Profile picture", "Account creation failed", "Finishing your account", "Signup.completeProfile", "Signup.createAccountAndFinish"],
+  // withTimeout labels (its own English "timed out" sentence, not converted yet) and a report tag.
+  "src/pages/auth/CompleteProfile.tsx": ["Profile check", "Profile save", "CompleteProfile.legalAcceptances"],
+  // Keyboard key names (e.key / getModifierState), not words.
+  "src/pages/auth/signup/SignupStep1.tsx": ["CapsLock", "Enter", "Enter", "Enter", "Enter"],
+};
 
 function findRawStrings(src: string): string[] {
   const code = blankComments(src)

@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { en } from "@/lib/i18n/en";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** The owner's wording (2026-10-12, Q1286). */
-export const WIPE_NOTICE =
-  "For your security, details entered before your email was confirmed were cleared. Please add them again.";
+/** The owner's English wording (the Spanish is es.ts "profileGate.wiped"). */
+export const WIPE_NOTICE = en["profileGate.wiped"];
 
 /**
  * Whether the signed-in account's details were cleared by the Q447
@@ -43,10 +45,11 @@ function usePreVerificationWipe(): boolean {
 /** /complete-profile's intro line, plus the wipe notice when it applies. */
 export function CompleteProfileIntro() {
   const wiped = usePreVerificationWipe();
+  const { t } = useLanguage();
   return (
     <>
       <p className="mt-3 font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        We need a few details before you can use Helpr. This keeps the community safe.
+        {t("profileGate.intro")}
       </p>
       {wiped && (
         <p
@@ -55,7 +58,7 @@ export function CompleteProfileIntro() {
           className="mt-3 rounded-ds-md border border-border/60 bg-card px-3 py-2 font-sans text-ds-13"
           style={{ color: "hsl(var(--ink-deep))" }}
         >
-          {WIPE_NOTICE}
+          {t("profileGate.wiped")}
         </p>
       )}
     </>

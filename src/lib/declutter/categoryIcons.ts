@@ -107,3 +107,10 @@ export const CATEGORY_GROUPS: { heading: CategoryGroupHeading; values: string[] 
   heading,
   values: CATEGORIES.filter((c) => c.group === heading).map((c) => c.key),
 }));
+
+/** CATEGORY_GROUPS in the shape of the shared TwoStepCategoryPicker: a short form's category control (no <optgroup>). */
+export const CATEGORY_PICKER_GROUPS = CATEGORY_GROUPS.map((g) => ({
+  slug: g.heading,
+  label: g.heading,
+  items: g.values.map((k) => ({ slug: k, label: CATEGORY_LABEL[k] })),
+}));

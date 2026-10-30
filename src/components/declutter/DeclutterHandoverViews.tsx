@@ -246,7 +246,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}
           <Suspense fallback={<HelprSpinner />}>
-            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
+            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} problemOpen={!!problem} />
           </Suspense>
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
@@ -272,7 +272,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
@@ -345,7 +345,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   );
 }
 
-function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; who: string; onProblem: () => void }) {
+function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; who: string; problemOpen: boolean; onProblem: () => void }) {
   const qc = useQueryClient();
   // A1-C2: the buyer's "I got it" on a porch pickup waits for the porch photo (set_out_at) or the pickup day
   // (the same handover row and key PorchOutPhoto reads, so nothing is read twice).
@@ -403,6 +403,9 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: 
       </div>
     );
   }
+  // Audit 1030 DB-2: no "I got it" while a problem is open (the server refuses it: problem_open); the card's note says why.
+  // The seller's "Picked up" above stays: it records the handover and the payout stays held.
+  if (problemOpen) return null;
   if (!porchReady) {
     return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;
   }

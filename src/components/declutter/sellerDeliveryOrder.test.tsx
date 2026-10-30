@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("gotIt")}>I got it</button>} | onClick={() => gotIt.mutate(undefined)}>I got it</button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && b.order_status === "paid" |         {false && b.order_status === "paid"
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -49,9 +49,9 @@ const BASE: SellerDeliveryBooking = {
   proposals_left: 3, delivered_at: null, delivered_photo_path: null, confirmed_at: null, not_delivered_from: iso(73.25 * HOUR),
 };
 
-function show() {
+function show(problemOpen?: boolean) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><SellerDeliveryOrderPanel orderId="o" userId="u1" onProblem={() => {}} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><SellerDeliveryOrderPanel orderId="o" userId="u1" onProblem={() => {}} problemOpen={problemOpen} /></QueryClientProvider>);
 }
 
 async function askAndConfirm(button: string, title: RegExp, confirm: string, call: string) {
@@ -128,5 +128,56 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     show();
     expect(await screen.findByText("We couldn't load this delivery.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+});
+
+// Audit 1030 DB-2 (live run A): with a problem report open, the delivery panel still offered "I got it" (which then
+// failed: the server refuses it with problem_open), the "Tap I got it ... 24 hours to report a problem" line and a
+// second "Report a problem". While a problem is open the panel offers none of them; the card's note says why.
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && <button | {can.gotIt && <button
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {problemOpen ? null : b.side === "buyer" ? | {b.side === "buyer" ?
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <button type="button" className={btn} onClick={onProblem}> | {<button type="button" className={btn} onClick={onProblem}>
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | !can.gotIt && !problemOpen && b.order_status | !can.gotIt && b.order_status
+describe("DB-2: a problem is open on the delivery", () => {
+  beforeEach(() => {
+    state.fail = false;
+    state.calls = [];
+  });
+
+  it("buyer, delivered: I got it, the 24-hour line and Report a problem show without a problem, and are gone with one", async () => {
+    state.booking = { ...BASE, delivered_at: iso(-HOUR) };
+    const before = show(false);
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
+    expect(screen.getByText(/24 hours to report a problem/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+    before.unmount();
+    show(true);
+    expect(await screen.findByText("Left at the door.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+    expect(screen.queryByText(/24 hours/)).toBeNull();
+    expect(screen.queryByText(/Tap "I got it"/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("buyer, before the delivery day: no promise of I got it while a problem is open", async () => {
+    state.booking = { ...BASE };
+    const before = show(false);
+    expect(await screen.findByText("You can confirm you got it from the delivery day.")).toBeInTheDocument();
+    before.unmount();
+    show(true);
+    await screen.findByText(/^Delivery /);
+    expect(screen.queryByText("You can confirm you got it from the delivery day.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("seller, delivered: not told they are paid in 24 hours while a problem is open, and no second report", async () => {
+    state.booking = { ...BASE, side: "seller", handoff: "hand", delivered_at: iso(-HOUR), dropoff_address: "500 Drop Rd" };
+    const before = show(false);
+    expect(await screen.findByText(/You're paid when the buyer confirms, or in 24 hours/)).toBeInTheDocument();
+    before.unmount();
+    show(true);
+    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(screen.queryByText(/You're paid when the buyer confirms/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 });

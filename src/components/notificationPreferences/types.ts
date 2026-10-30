@@ -91,6 +91,10 @@ export interface Prefs {
   remind_starting_soon: boolean;
   remind_finish_job: boolean;
   remind_payout_followups: boolean;
+  /** Q2483 (20261030035326): 2 hours before, 8 AM on the day, time to head out. */
+  remind_two_hours: boolean;
+  remind_morning_of: boolean;
+  remind_head_out: boolean;
   /** Local-time `HH:MM` start of the quiet-hours window. NULL when
       quiet hours are disabled. Wired in migration
       `20260609120000_notification_quiet_hours.sql`. */

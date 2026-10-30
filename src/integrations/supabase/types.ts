@@ -7329,8 +7329,11 @@ export type Database = {
           quiet_end: string | null
           quiet_start: string | null
           remind_finish_job: boolean
+          remind_head_out: boolean
+          remind_morning_of: boolean
           remind_payout_followups: boolean
           remind_starting_soon: boolean
+          remind_two_hours: boolean
           reviews: boolean
           saved_helper_availability: boolean
           saved_searches_paused: boolean
@@ -7385,8 +7388,11 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           remind_finish_job?: boolean
+          remind_head_out?: boolean
+          remind_morning_of?: boolean
           remind_payout_followups?: boolean
           remind_starting_soon?: boolean
+          remind_two_hours?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
@@ -7441,8 +7447,11 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           remind_finish_job?: boolean
+          remind_head_out?: boolean
+          remind_morning_of?: boolean
           remind_payout_followups?: boolean
           remind_starting_soon?: boolean
+          remind_two_hours?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean

@@ -21,7 +21,11 @@ import type { Prefs } from "./types";
  */
 
 /** The switchable reminder columns this build can write. A registry row naming any other column shows no switch. */
-export const REMINDER_PREF_KEYS = ["remind_starting_soon", "remind_finish_job", "remind_payout_followups"] as const;
+export const REMINDER_PREF_KEYS = [
+  "remind_starting_soon", "remind_finish_job", "remind_payout_followups",
+  // Q2483 (20261030035326): the 2-hour, 8 AM and head-out start reminders.
+  "remind_two_hours", "remind_morning_of", "remind_head_out",
+] as const;
 export type ReminderPrefKey = (typeof REMINDER_PREF_KEYS)[number];
 const isReminderKey = (c: string | null): c is ReminderPrefKey => (REMINDER_PREF_KEYS as readonly string[]).includes(c ?? "");
 
@@ -44,8 +48,8 @@ export function JobRemindersGroup({
   loaded: boolean;
   savingKey: string | null;
   locked: boolean;
-  /** The remind_* columns are deployed (deployLagColumns.ts); until then the switches are read-only. */
-  columnsReady: boolean;
+  /** This remind_* column is deployed (deployLagColumns.ts); until then its switch is read-only. */
+  columnsReady: (key: ReminderPrefKey) => boolean;
   onToggle: (key: ReminderPrefKey) => void;
 }) {
   // A plain read, not React Query: this screen also renders outside the app's
@@ -145,7 +149,7 @@ export function JobRemindersGroup({
                     savingKey={savingKey}
                     checked={prefs[key] === true}
                     onCheckedChange={() => onToggle(key)}
-                    disabled={locked || !columnsReady}
+                    disabled={locked || !columnsReady(key)}
                     ariaLabel={`${t.label} reminder`}
                     savingId={key}
                   />

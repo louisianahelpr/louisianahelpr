@@ -36,6 +36,9 @@ export const defaultPrefs: Prefs = {
   remind_starting_soon: true,
   remind_finish_job: true,
   remind_payout_followups: true,
+  remind_two_hours: true,
+  remind_morning_of: true,
+  remind_head_out: true,
   quiet_start: null,
   quiet_end: null,
 };

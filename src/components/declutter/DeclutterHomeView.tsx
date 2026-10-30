@@ -21,6 +21,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
+import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMySales,
@@ -404,6 +405,12 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   return (
     <div className="space-y-6">
       <ListedWhatNext />
+      {/* Audit posting 1030 #11: on a phone this tab had no way to sell. The photo screen directly, and one small line
+          to the other ways. The header has its own add action on desktop. */}
+      <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+        <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
+        <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
+      </div>
       <SellingDash
         todo={todo}
         userId={userId}

@@ -135,12 +135,12 @@ function SellingTabProbe() {
   return <p data-testid="landed" data-search={loc.search} data-state={JSON.stringify(loc.state)}>Selling tab</p>;
 }
 
-function open() {
+function open(entry = "/declutter/sell") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={["/declutter/sell"]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/declutter/sell" element={<DeclutterSellPage />} />
           <Route path="/declutter" element={<SellingTabProbe />} />
@@ -377,6 +377,86 @@ describe("photo-first selling, one screen", () => {
     expect(calls).not.toContain("publish");
   });
 
+  // Audit posting 1030 #8: Edit opened the row and left the cursor elsewhere.
+  // @mutate src/components/declutter/SellSummaryCard.tsx | [role=radio][aria-checked=true]")?.focus(); | [role=radio][aria-checked=true]");
+  // @mutate src/components/declutter/SellSummaryCard.tsx | <p onClick={instead ? undefined : onToggle} | <p
+  it("opening a row puts the cursor in it, and tapping the value opens it too", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
+    expect(document.activeElement).toBe(screen.getByLabelText("Title"));
+    fireEvent.click(screen.getByRole("button", { name: "Done title" }));
+    fireEvent.click(document.querySelector('[data-summary-row="description"] [data-summary-value]')!);
+    expect(document.activeElement).toBe(document.getElementById("sell-desc"));
+  });
+
+  // Audit posting 1030 #9: the AI changed the cover silently and the seller couldn't change it back.
+  // @mutate src/components/declutter/useSellFlowState.ts |     setCoverUndo(was[0] ?? null); |     void was;
+  // @mutate src/components/declutter/useSellFlowState.ts |     if (coverChosen.current) return; |     void coverChosen;
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | onClick={() => onMakeCover(i)} | onClick={() => {}}
+  it("the seller can make any photo the cover, and undo the AI's pick; after that the AI leaves it alone", async () => {
+    aiAnswer.extra = { coverPhoto: 1 };
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg", "c.jpg");
+    await screen.findByText("We picked the best photo for the cover.");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Make photo 3 the cover" }));
+    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+    await waitFor(() => expect(aiCalls).toHaveLength(2));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull();
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByTestId("landed");
+    expect(calls.filter((c) => c.startsWith("addPhoto")).map((c) => c.split(":")[2])).toEqual(["c.jpg", "a.jpg", "b.jpg"]);
+  });
+
+  // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
+  // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
+  // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
+  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && <SellItForMeEntry />} | {<SellItForMeEntry />}
+  it("Free: the words are a giveaway's, no price is suggested, and Edit price is Charge for it", async () => {
+    open("/declutter/sell?free=1");
+    await screen.findByRole("heading", { name: "Give it away" });
+    expect(screen.queryByText("Photos that sell")).toBeNull();
+    expect(screen.queryByText(/Sell it for me/)).toBeNull();
+    expect(screen.getByText("Good photos")).toBeInTheDocument();
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(document.querySelector("[data-ai-price]")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit price" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Charge for it" }));
+    expect(document.activeElement).toBe(document.querySelector('[data-summary-row="price"] input'));
+  });
+
+  // Audit posting 1030 #19: Post reported one problem per tap.
+  // @mutate src/components/declutter/SellOneScreen.tsx |     const here = tried ? problems.find((p) => p.at === at) : null; |     const here = tried && bad?.at === at ? bad : null;
+  it("Post marks every problem at once and scrolls to the first", async () => {
+    aiAnswer.extra = {};
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    const shown = (await screen.findAllByTestId("sell-form-problem")).map((p) => p.getAttribute("data-problem-at"));
+    expect(shown).toEqual(expect.arrayContaining(["photos", "title", "price", "tax"]));
+  });
+
+  // Audit posting 1030 #18: no preview before posting.
+  // @mutate src/components/declutter/SellOneScreen.tsx |         <BuyerPreview s={s} />\n |         {null}\n
+  it("a preview as a buyer sits above Post, once there is a photo and a title", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    expect(document.querySelector("[data-sell-preview]")).toBeNull();
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    const preview = document.querySelector("[data-sell-preview]")!;
+    expect(preview.textContent).toContain(DRAFT.title);
+    expect(preview.textContent).toContain("$45");
+  });
+
   // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.
   // @mutate src/components/declutter/useSellFlowState.ts |           await cleanListingPhoto(f);\n |           void cleanListingPhoto;\n
   it("a photo this device can't prepare is said when it is added, by name, and isn't counted", async () => {
@@ -425,11 +505,11 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     // Audit #45: nothing is printed under the live Post until it is tapped.
-    // @mutate src/components/declutter/SellOneScreen.tsx |     tried && bad?.at === at ? |     bad?.at === at ?
+    // @mutate src/components/declutter/SellOneScreen.tsx |     const here = tried ? problems.find((p) => p.at === at) : null; |     const here = problems.find((p) => p.at === at);
     expect(screen.queryByTestId("sell-form-problem")).toBeNull();
     // @mutate src/components/declutter/SellOneScreen.tsx |     if (bad) { |     if (false) {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Add at least 1 photo.");
+    expect(screen.getAllByTestId("sell-form-problem")[0]).toHaveTextContent("Add at least 1 photo.");
     expect(calls).toEqual([]);
   });
 
@@ -539,7 +619,10 @@ describe("photo-first selling, one screen", () => {
     expect(calls).toEqual([]); // nothing created or uploaded for it
     aiAnswer.release!();
     expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
-    expect(document.querySelector("[data-ai-title]")).toHaveTextContent(DRAFT.title);
+    // Audit posting 1030 #17: said once, in the rows below, not twice.
+    // @mutate src/components/declutter/SellAiDraft.tsx |         {!oneScreen && <div className="space-y-1"> |         {<div className="space-y-1">
+    expect(document.querySelector("[data-ai-title]")).toBeNull();
+    expect(document.querySelectorAll("[data-ai-price]")).toHaveLength(1);
     expect(document.querySelector("[data-ai-price]")).toHaveTextContent(`Suggested price: $45 · ${DRAFT.priceReason}`);
     // Audit posting 1030 #10: a photo added afterwards is read too, by itself, from every photo now held.
     // @mutate src/components/declutter/SellAiDraft.tsx |     if (photosAdded > readPhotos.current && readPhotos.current < AI_DRAFT_PHOTOS) void run(false); |     void readPhotos;

@@ -11,7 +11,7 @@
  * drops on and no lowest price it scrolled to Price but printed the words only by the button, off screen), and the
  * screen scrolls to that row. By the button a short pointer says to fix what is marked above.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -29,6 +29,9 @@ import { dropsOutcomeLine, formProblem } from "./sellForm";
 import { SellFreeToggle, SellTaxBox } from "./SellFormParts";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
+import { photoPublicUrl } from "@/lib/declutter/api";
+import { itemPriceLabel } from "@/lib/declutter/distance";
+import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
@@ -36,15 +39,46 @@ type Where = "photos" | SummaryField | "settings" | "tax";
  * The first thing that blocks Post, top to bottom, and the row it belongs to. While the AI is writing, the title and
  * price it is about to fill are not problems yet (audit posting 1030 #7: tapping Post then said "Give the item a name").
  */
-function postProblem(s: SellFlow): { message: string; at: Where } | null {
-  if (s.photoTotal < DECLUTTER_MIN_PHOTOS) return { message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" };
+function postProblems(s: SellFlow): { message: string; at: Where }[] {
+  const out: { message: string; at: Where }[] = [];
+  if (s.photoTotal < DECLUTTER_MIN_PHOTOS) out.push({ message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" });
   const writing = s.ai.state.status === "busy";
-  const f = formProblem(writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form);
-  if (f) return { message: f, at: /name/i.test(f) ? "title" : /price|lowest|drops/i.test(f) ? "price" : "settings" };
-  if (s.savedWays.length === 0) return { message: "Choose a way buyers can get it in Settings.", at: "settings" };
-  if (!writing && !s.sizeKnown) return { message: "Pick a size, so buyers know what it takes to move it.", at: "size" };
-  if (!s.attested) return { message: "Tick the box about this item before you list it.", at: "tax" };
-  return null;
+  // formProblem says the first thing wrong; each answered in turn, so all of them are marked at once (audit posting 1030 #19).
+  let probe = writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form;
+  for (let f = formProblem(probe); f; f = formProblem(probe)) {
+    const at: Where = /name/i.test(f) ? "title" : /price|lowest|drops/i.test(f) ? "price" : "settings";
+    out.push({ message: f, at });
+    if (at === "settings") break;
+    probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
+  }
+  if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: "Choose a way buyers can get it in Settings.", at: "settings" });
+  if (!writing && !s.sizeKnown) out.push({ message: "Pick a size, so buyers know what it takes to move it.", at: "size" });
+  if (!s.attested) out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
+  return out;
+}
+
+/** What buyers will see, just above Post (audit posting 1030 #18): the cover, the title and the price. */
+function BuyerPreview({ s }: { s: SellFlow }) {
+  const cover = s.photos.data?.[0];
+  const heldCover = cover ? null : s.held[0];
+  const url = useMemo(() => (heldCover ? URL.createObjectURL(heldCover) : null), [heldCover]);
+  useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+  const title = s.form.title.trim();
+  if (!title || (!cover && !heldCover)) return null;
+  const src = cover ? photoPublicUrl(cover.storage_path) : url;
+  return (
+    <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-3" data-sell-preview="">
+      {/* Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
+      {src && (cover || src.startsWith("blob:")) && <img src={src} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-photo-empty object-cover" />}
+      <div className="min-w-0 flex-1">
+        <p className="text-ds-13 text-muted-foreground">What buyers see</p>
+        <p className="truncate text-ds-15 font-bold text-foreground">{title}</p>
+        {(s.form.free || s.priceCents) && <p className="text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(s.form.free ? 0 : (s.priceCents as number))}</p>}
+      </div>
+    </div>
+  );
 }
 
 /** Start over (a listing brought back from this device): a fresh form, with the seller's saved settings read again. */
@@ -84,10 +118,13 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   }
 
   const dropsLine = dropsOutcomeLine(form);
-  const bad = postProblem(s);
+  const problems = postProblems(s);
+  const bad = problems[0] ?? null;
   /** The words for what blocks Post, shown in the row they belong to once Post was tapped. */
-  const problemAt = (at: Where): ReactNode =>
-    tried && bad?.at === at ? <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem" data-problem-at={at}>{bad.message}</p> : null;
+  const problemAt = (at: Where): ReactNode => {
+    const here = tried ? problems.find((p) => p.at === at) : null;
+    return here ? <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem" data-problem-at={at}>{here.message}</p> : null;
+  };
   const post = () => {
     if (bad) {
       setTried(true);
@@ -105,7 +142,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   postNow.current = post;
 
   return (
-    <AppPage title="Sell an item" backTo="/declutter?tab=selling" phoneHidesTitle>
+    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle>
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
         {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). */}
         <SellerPayoutPrompt />
@@ -129,10 +166,14 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             uploading={uploading}
             heldFailed={s.failedHeld > 0}
             refusedNote={s.refusedNote}
-            aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> : null}
+            onMakeCover={s.makeCover}
+            coverUndo={s.coverUndo ? s.undoCover : null}
+            free={form.free}
+            tipDone={ai.state.status === "done"}
+            aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
-          <SellItForMeEntry />
+          {!form.free && ai.state.status !== "done" && <SellItForMeEntry />}
           {problemAt("photos")}
         </section>
 
@@ -157,6 +198,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           <UsesSettingsNote />
           {problemAt("settings")}
         </div>
+        <BuyerPreview s={s} />
         {s.failedHeld > 0 && (
           <div role="alert" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-photo-trouble="">
             <p className="text-ds-15 font-semibold text-foreground">{s.failedHeld === 1 ? "1 photo didn't upload" : `${s.failedHeld} photos didn't upload`}. Your listing isn't up yet.</p>

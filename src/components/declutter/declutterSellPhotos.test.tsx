@@ -263,6 +263,24 @@ describe("photo-first selling, one screen", () => {
     expect(calls).toEqual([]);
   });
 
+  // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the
+  // next steps" (there are no steps). The class: nothing on the one screen talks about steps.
+  // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} />
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {held.length > 0 ? " · these go up when you save" : ""} | {held.length > 0 ? " · these go up when you save on step 4" : ""}
+  it("the one screen never talks about steps (DC-1)", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await screen.findByText("Claude wrote your listing");
+    expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you save$/);
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    const words = document.body.textContent ?? "";
+    expect(words.length).toBeGreaterThan(200);
+    expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);
+  });
+
   it("a held photo can be taken out before Post, and never goes up", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });

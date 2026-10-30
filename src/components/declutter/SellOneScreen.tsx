@@ -106,7 +106,7 @@ export function SellOneScreen() {
             onRemoveUploaded={(photoId) => void s.onRemovePhoto(photoId)}
             onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
             uploading={uploading}
-            aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} /> : null}
+            aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
           <SellItForMeEntry />

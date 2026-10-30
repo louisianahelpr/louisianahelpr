@@ -256,9 +256,9 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
         ? `Respond within ${hours} hour${hours > 1 ? "s" : ""} or the offer expires.`
         : "Respond soon or the offer expires.";
       return {
-        title: "📋 New job offer!",
+        title: "New job offer",
         message: `You've been selected for "${jobTitle(f)}". ${respond}`,
-        type: "info",
+        type: "new_offers",
         link: `/jobs?job=${f.job.id}`,
       };
     },

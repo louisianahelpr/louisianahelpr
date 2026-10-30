@@ -844,7 +844,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                                 const to = destinationOf(n);
                                 if (to) actions.push({ label: "View", href: to });
                               } else if (
-                                n.type === "warning" &&
+                                (n.type === "warning" || n.title === "Your Helpr cancelled") &&
                                 (n.title.toLowerCase().includes("cancelled") ||
                                   n.message.toLowerCase().includes("auto-cancel"))
                               ) {

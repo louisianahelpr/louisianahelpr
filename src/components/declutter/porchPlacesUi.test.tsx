@@ -185,7 +185,7 @@ describe("the buyer's pick", () => {
       expect(h.rpc.mock.calls.filter(([n]) => n === "declutter_set_porch_place")).toHaveLength(0);
     });
 
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             await porchPlaces.whenPicked();\n |
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             await porchPlaces.whenPicked();\n            const res = await startCheckoutPayment( |             const res = await startCheckoutPayment(
     // @mutate src/components/declutter/DeclutterFreeClaim.tsx |       await porchPlaces.whenPicked();\n |
     it("paid checkout, a delivery price and the free claim wait for that pick before they call the server", () => {
       expect(SRC("DeclutterTradeViews.tsx")).toMatch(/await porchPlaces\.whenPicked\(\);\s+const res = await startCheckoutPayment/);

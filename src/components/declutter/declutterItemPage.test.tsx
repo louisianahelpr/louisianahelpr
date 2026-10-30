@@ -50,6 +50,7 @@ const state = {
   drop: null as unknown,
   manage: null as unknown,
   reads: 0,
+  geo: { status: "idle" } as unknown,
 };
 const calls: [string, unknown[]][] = [];
 // A PostgREST builder that records each call and resolves to state.tableRows.
@@ -66,7 +67,7 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useUserLocation", () => ({
-  useUserLocation: () => ({ status: "idle" }),
+  useUserLocation: () => state.geo,
   getCachedUserLocation: () => null,
   deriveFallbackLocation: async () => null,
 }));
@@ -155,6 +156,7 @@ function open() {
 describe("the photo-first Declutter item page", () => {
   beforeEach(() => {
     state.item = { ...ITEM };
+    state.geo = { status: "idle" };
     state.photos = [];
     state.rating = { avg: 4.8, count: 12 };
     state.seller = { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" };
@@ -229,6 +231,25 @@ describe("the photo-first Declutter item page", () => {
     open();
     await screen.findByRole("region", { name: "Price and condition" });
     expect(document.querySelector("[data-item-delivered]")).toBeNull();
+  });
+
+  // Audit DC-7: the seller's own item page used the buyer's words ("after you pay") and said "About 52 mi away".
+  // @mutate src/components/declutter/DeclutterItemView.tsx |   const away = isSeller ? null : milesLabel( |   const away = milesLabel(
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {addressNote(free, isSeller)} | {addressNote(free, false)}
+  it("the seller's own page: no distance, and owner words about the address (DC-7)", async () => {
+    state.geo = { status: "ready", lat: 30.0, lng: -90.0, approximate: false };
+    const buyer = open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(document.querySelector("[data-item-where]")?.textContent).toMatch(/mi away/);
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("The exact address is shared after you pay.");
+    buyer.unmount();
+    state.item = { ...ITEM, seller_id: "u1" };
+    open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(document.querySelector("[data-item-where]")?.textContent).not.toMatch(/mi away|miles?/);
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Buyers see your exact address only after they pay.");
+    expect(document.body.textContent).not.toMatch(/after you pay/);
+    state.geo = { status: "idle" };
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".

@@ -179,6 +179,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // The Free change (20261030064021, Q2487): asks for free items (asker or giver) and the 30-day pause.
   declutter_free_requests: { by: ["requester_id", "seller_id"] },
   declutter_free_pauses: { by: ["user_id"] },
+  // Q1866 (20261030081455): quote requests (as poster) and quotes given (as quoter).
+  job_quote_requests: { by: ["poster_id"] },
+  job_quotes: { by: ["quoter_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
@@ -296,6 +299,19 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
   declutter_order_talks: {
     table: "declutter_order_talks",
     scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: [],
+    noPersonColumn: true,
+  },
+  // Q1866 (20261030081455): the quotes other members gave on the member's own requests, without the quoter's id or photos.
+  job_quotes_on_my_requests: {
+    table: "job_quotes",
+    scope: "WHERE t.quoter_id IS DISTINCT FROM v_uid AND t.request_id IN (SELECT r.id FROM public.job_quote_requests r WHERE r.poster_id = v_uid)",
+    stripped: ["quoter_id", "photo_paths"],
+  },
+  // Q1866: the counter-offers on any quote the member gave or received (no person column; keyed by its quote).
+  job_quote_offers: {
+    table: "job_quote_offers",
+    scope: "WHERE t.quote_id IN (SELECT q.id FROM public.job_quotes q JOIN public.job_quote_requests r ON r.id = q.request_id WHERE q.quoter_id = v_uid OR r.poster_id = v_uid)",
     stripped: [],
     noPersonColumn: true,
   },
@@ -516,8 +532,6 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // Quotes slice 1 (20261015091114): NOT exported yet, tracked by docs/OPEN.md
   // Q?quotes-export. ready/rentals-s1 also restates export_my_data, so the quotes
   // sections wait for it to land; the 'quotes' switch stays off until they do.
-  "job_quote_requests.poster_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
-  "job_quotes.quoter_id": { reason: "quotes slice 1: export pending (OPEN Q?quotes-export); switch 'quotes' is off, so no rows exist" },
   "shops.sos_verified_by": { reason: "the staff member who checked a shop's Secretary of State number; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped)", stripped: true },
   "job_helpr_fault_rulings.admin_id": { reason: "the staff member who ruled the Helpr at fault (Q2082 (b)); the ruling is the Helpr's (exported by job_helpr_fault_rulings.helper_id, 20261019015302, with this staff id dropped)", stripped: true },
   "shop_strikes.removed_by": { reason: "the staff member who removed a Shops strike; the strike is the member's (exported by shop_strikes.user_id, 20261018164443, with this staff id dropped)", stripped: true },

@@ -127,6 +127,8 @@ export const EXPORT_SECTIONS = [
   "declutter_order_talks", "declutter_order_talk_messages",
   // The Free change (20261030064021, Q2487): asks for free items and the 30-day pause.
   "declutter_free_requests", "declutter_free_pauses",
+  // Quotes (20261015091114, exported by 20261030081455, Q1866).
+  "job_quote_requests", "job_quotes", "job_quotes_on_my_requests", "job_quote_offers",
   "shops", "shop_photos", "shop_follows", "shop_items", "shop_item_private", "shop_item_photos",
   "shop_item_attestations", "shop_cottage_confirmations", "shop_cottage_sales",
   "rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos",

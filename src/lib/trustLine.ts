@@ -44,10 +44,17 @@ export function repeatCustomers(percent: number | null | undefined, sample: numb
   return Math.max(0, Math.round((percent * sample) / 100));
 }
 
+const jobsDone = (s: TrustInputs) => Math.max(0, Math.floor(s.completedJobs ?? 0));
+
+/** Under 3 jobs done: "New" on an applicant card, and no record line on the profile (lead decision, 2026-10-29). */
+export function isNewMember(s: TrustInputs): boolean {
+  return jobsDone(s) < NEW_UNDER_JOBS;
+}
+
 /** The trust line's parts, in order. "New" alone under 3 jobs done. */
 export function trustLineParts(s: TrustInputs): string[] {
-  const done = Math.max(0, Math.floor(s.completedJobs ?? 0));
-  if (done < NEW_UNDER_JOBS) return ["New"];
+  const done = jobsDone(s);
+  if (isNewMember(s)) return ["New"];
   const parts = [`${done} jobs done`];
   if (s.onTimeRate != null && Number.isFinite(s.onTimeRate)) parts.push(`${Math.round(s.onTimeRate)}% on time`);
   const back = repeatCustomers(s.repeatHirePercent, s.repeatClientSample);

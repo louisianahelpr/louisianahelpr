@@ -22,6 +22,10 @@
 --
 -- Median, not mean, for the reason 20260901005108 measured: one overnight gap drags a mean by 8x.
 --
+-- TEST DATA NEVER COUNTS (owner rule Q2480, 2026-10-29): a thread on a test job (jobs.is_seed) or with a
+-- poster who is a test account (public.is_test_member, defined by 20261030015205) is not an observation.
+-- That is why this file runs after 20261030015205 (builder 67 moved it from 20261030000822, never deployed).
+--
 -- Replay-safe: CREATE OR REPLACE of a new function; grants restated.
 
 CREATE OR REPLACE FUNCTION public.get_reply_speed(p_user_ids uuid[])
@@ -60,6 +64,8 @@ AS $fn$
       AND m.job_id IS NOT NULL
       AND j.customer_id IS NOT NULL
       AND j.customer_id <> t.user_id
+      AND j.is_seed IS NOT TRUE
+      AND NOT public.is_test_member(j.customer_id)
       AND j.customer_id = CASE WHEN m.sender_id = t.user_id THEN m.receiver_id ELSE m.sender_id END
   ),
   -- Per thread: when the poster first wrote, and when the member first wrote after that.

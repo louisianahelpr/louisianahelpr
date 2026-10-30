@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030000822_reply_speed_bucket (Q2478, owner decision 2b, 2026-10-29).
+ * PGlite proof for 20261030031223_reply_speed_bucket (Q2478, owner decision 2b, 2026-10-29).
+ * (Moved from 20261030000822, never deployed, by builder 67: it now calls public.is_test_member, which
+ * 20261030015205 defines, so it must run after it. Owner rule Q2480: test data never counts in a number.)
  *
  *   node src/test/pglite/replySpeedBucket.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/replySpeedBucket.pglite.mjs   # RED: no get_reply_speed exists
@@ -20,7 +22,7 @@ import os from "node:os";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const NEW = readFileSync(new URL("../../../supabase/migrations/20261030000822_reply_speed_bucket.sql", import.meta.url).pathname, "utf8");
+const NEW = readFileSync(new URL("../../../supabase/migrations/20261030031223_reply_speed_bucket.sql", import.meta.url).pathname, "utf8");
 const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running without the migration (expect FAILs)`);
 
@@ -41,6 +43,9 @@ const OWNJOB = id("b", 6); // fast only on threads of jobs they POSTED, and in t
 const SEED = id("b", 7); // fast, but a hidden seed profile
 const BANNED = id("b", 8); // fast, but banned
 const SELFOPEN = id("b", 9); // fast, but every thread was opened by them (never answering a poster)
+const TESTPOSTERS = id("b", 10); // fast, but only to posters who are test accounts (Q2480)
+const SEEDJOBS = id("b", 11); // fast, but only on test (is_seed) jobs (Q2480)
+const MIXED = id("b", 12); // 5 slow real threads + 6 fast test-poster threads: only the real ones count
 const POSTER = (n) => id("c", n);
 
 const db = new PGlite();
@@ -54,7 +59,8 @@ CREATE TABLE public.profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE NOT NULL,
   email_verified boolean NOT NULL DEFAULT true, ban_status text, is_seed boolean DEFAULT false
 );
-CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, title text);
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, title text, is_seed boolean DEFAULT false);
+CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, sender_id uuid NOT NULL, receiver_id uuid,
   content text NOT NULL DEFAULT 'x', created_at timestamptz NOT NULL DEFAULT now(),
@@ -64,11 +70,19 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.profiles, public.messages, public.jobs FROM PUBLIC, anon, authenticated;
+-- public.is_test_member, verbatim from 20261030015205 (builder 62, Q2480).
+CREATE FUNCTION public.is_test_member(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'public' AS $fn$
+  SELECT p_user_id IS NOT NULL AND (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
+    OR EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id)
+  );
+$fn$;
+REVOKE ALL ON FUNCTION public.is_test_member(uuid) FROM PUBLIC, anon, authenticated;
 CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$ SELECT true $$;
 `);
 await db.exec("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;");
 
-const members = [VIEWER, FAST, SLOW, DAY, GHOST, FEW, OWNJOB, SEED, BANNED, SELFOPEN];
+const members = [VIEWER, FAST, SLOW, DAY, GHOST, FEW, OWNJOB, SEED, BANNED, SELFOPEN, TESTPOSTERS, SEEDJOBS, MIXED];
 for (const m of members) {
   await db.query(
     "INSERT INTO public.profiles (user_id, is_seed, ban_status) VALUES ($1, $2, $3)",
@@ -77,11 +91,12 @@ for (const m of members) {
 }
 let jobN = 0;
 /** One job thread: the poster writes first `daysAgo` days back, the member answers after `mins` (null = never). */
-async function thread(member, mins, { daysAgo = 3, posterOpens = true, memberIsPoster = false, extra = [] } = {}) {
+async function thread(member, mins, { daysAgo = 3, posterOpens = true, memberIsPoster = false, extra = [], testPoster = false, seedJob = false } = {}) {
   jobN++;
   const poster = POSTER(jobN);
   const jobId = id("d", jobN);
-  await db.query("INSERT INTO public.jobs (id, customer_id) VALUES ($1, $2)", [jobId, memberIsPoster ? member : poster]);
+  if (testPoster) await db.query("INSERT INTO public.test_accounts (user_id) VALUES ($1)", [poster]);
+  await db.query("INSERT INTO public.jobs (id, customer_id, is_seed) VALUES ($1, $2, $3)", [jobId, memberIsPoster ? member : poster, seedJob]);
   const t0 = `now() - interval '${daysAgo} days'`;
   const [first, second] = posterOpens ? [poster, member] : [member, poster];
   await db.exec(`INSERT INTO public.messages (job_id, sender_id, receiver_id, created_at) VALUES ('${jobId}', '${first}', '${second}', ${t0})`);
@@ -105,6 +120,10 @@ for (let i = 0; i < 6; i++) await db.exec(`INSERT INTO public.messages (job_id, 
 for (let i = 0; i < 6; i++) await thread(SEED, 5);
 for (let i = 0; i < 6; i++) await thread(BANNED, 5);
 for (let i = 0; i < 6; i++) await thread(SELFOPEN, 5, { posterOpens: false });
+for (let i = 0; i < 6; i++) await thread(TESTPOSTERS, 5, { testPoster: true });
+for (let i = 0; i < 6; i++) await thread(SEEDJOBS, 5, { seedJob: true });
+for (let i = 0; i < 5; i++) await thread(MIXED, 180);
+for (let i = 0; i < 6; i++) await thread(MIXED, 5, { testPoster: true });
 // An ownerless job (poster deleted their account): customer_id NULL, never counted, never an error.
 await db.exec(`INSERT INTO public.jobs (id, customer_id) VALUES ('${id("e", 1)}', NULL)`);
 await db.exec(`INSERT INTO public.messages (job_id, sender_id, receiver_id, created_at) VALUES ('${id("e", 1)}', '${FAST}', NULL, now() - interval '3 days')`);
@@ -133,6 +152,9 @@ check("R6 own jobs and the team thread are not replies to a poster -> NULL", OWN
 check("R7 a hidden seed profile is not returned at all", !(SEED in by), JSON.stringify(Object.keys(by).length));
 check("R8 a banned member is not returned at all", !(BANNED in by));
 check("R9 threads the member opened measure no answering -> NULL", SELFOPEN in by && by[SELFOPEN] === null, String(by[SELFOPEN]));
+check("T1 replies to test-account posters never count (Q2480) -> NULL under the floor", TESTPOSTERS in by && by[TESTPOSTERS] === null, String(by[TESTPOSTERS]));
+check("T2 replies on test (is_seed) jobs never count (Q2480) -> NULL under the floor", SEEDJOBS in by && by[SEEDJOBS] === null, String(by[SEEDJOBS]));
+check("T3 only real threads count: 5 slow real + 6 fast test -> few_hours, not under_1h", by[MIXED] === "few_hours", String(by[MIXED]));
 check("R10 only the bucket leaves: the result has exactly two columns (user_id, reply_bucket)",
   r.ok && r.rows.length > 0 && Object.keys(r.rows[0]).length === 2);
 {

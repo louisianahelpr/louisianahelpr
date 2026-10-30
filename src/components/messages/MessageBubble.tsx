@@ -1,5 +1,6 @@
 import { Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
 import { MessageAttachment } from "@/components/MessageAttachment";
+import { MessageText } from "./MessageText";
 import { ReadReceipt } from "@/components/ChatPresence";
 import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
@@ -76,7 +77,7 @@ const renderMessageContent = (
       </a>
     );
   }
-  return <p>{content}</p>;
+  return <MessageText text={content} />;
 };
 
 /**

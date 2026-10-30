@@ -34,9 +34,9 @@ export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
  */
 const SELL_FOR_ME_TITLE = "Help me list my things to sell";
 
-/** The no-account-access promise, said in the job itself (owner 2026-10-19). */
+/** The no-account-access promise, said in the job itself (owner 2026-10-19), to the Helpr who reads it (audit 10-30 #15). */
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =
-  "Your Helpr takes the photos and writes the listings with you; you post them from your account.";
+  "You help take the photos and write the listings; I post them from my account.";
 
 /** The description template the poster fills in (under the 1000-character cap). */
 const SELL_FOR_ME_DESCRIPTION = [

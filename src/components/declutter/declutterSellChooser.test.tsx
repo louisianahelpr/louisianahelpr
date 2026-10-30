@@ -11,6 +11,8 @@
  *   5. Never says "Claude" (owner: say "we"); under 18 sees the Sell flow's notice, no choices.
  *   6. "Have a Helpr list it for me" is Post a job pre-filled with the owner's words.
  *
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx |             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />\n |
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h2 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h2> |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {movingOut && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {wanted && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | to={SELL_FREE_PATH} | to={SELL_ONE_PATH}
@@ -23,7 +25,7 @@
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -64,7 +66,7 @@ function at(url: string) {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[url]}>
-        <Routes><Route path="/declutter/sell" element={<DeclutterSellPage />} /></Routes>
+        <Routes><Route path="/declutter/sell" element={<DeclutterSellPage />} /><Route path="/post-job" element={<p>job form</p>} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -77,13 +79,13 @@ describe("What do you want to sell?", () => {
   it("offers the six ways, in order, each to its own flow", async () => {
     state.switches = { declutter: true, declutter_moving_out: true, declutter_wanted: true };
     at(SELL_CHOOSER_PATH);
-    expect(await screen.findByRole("heading", { name: "What do you want to sell?" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "What would you like to do?" })).toBeTruthy();
     expect(choices()).toEqual([
       ["one", "/declutter/sell"],
       ["bunch", "/declutter/sell?mode=bunch"],
       ["move", "/declutter/move"],
       ["free", "/declutter/sell?free=1"],
-      ["helpr", "/post-job?sellForMe=1"],
+      ["helpr", null],
       ["wanted", "/declutter?tab=wanted&post=1"],
     ]);
     // Each card says what it is and one line under it (the shared card's two text rows).
@@ -93,7 +95,7 @@ describe("What do you want to sell?", () => {
   it("drops Moving out sale and Post a Wanted while their switches are off for the viewer", async () => {
     state.switches = { declutter: true };
     at(SELL_CHOOSER_PATH);
-    await screen.findByRole("heading", { name: "What do you want to sell?" });
+    await screen.findByRole("heading", { name: "What would you like to do?" });
     expect(choices().map(([k]) => k)).toEqual(["one", "bunch", "free", "helpr"]);
   });
 
@@ -117,6 +119,21 @@ describe("What do you want to sell?", () => {
     at(SELL_CHOOSER_PATH);
     expect(await screen.findByText("You must be 18 or older to sell on Declutter.")).toBeTruthy();
     expect(choices()).toEqual([]);
+  });
+
+  // Audit 10-30 #1, #17.
+  it("'Have a Helpr list it for me' says what it means first, then goes on to the job", async () => {
+    state.switches = { declutter: true, declutter_wanted: true };
+    at(SELL_CHOOSER_PATH);
+    await screen.findByRole("heading", { name: "What would you like to do?" });
+    expect(document.querySelector("[data-sell-other]")!.textContent).toBe("Other ways");
+    expect(document.querySelector('[data-sell-choice="wanted"]')!.textContent).toContain("Post a Wanted");
+    fireEvent.click(document.querySelector('[data-sell-choice="helpr"]')!);
+    const sheet = await screen.findByRole("dialog");
+    for (const t of ["What the Helpr does", "What you do", "What you pay", "Who keeps the sale money", "What doesn't sell"]) expect(within(sheet).getByText(t)).toBeTruthy();
+    expect(sheet.textContent).not.toContain("Claude");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("job form")).toBeTruthy();
   });
 
   it("'Have a Helpr list it for me' is Post a job pre-filled with the owner's words", () => {

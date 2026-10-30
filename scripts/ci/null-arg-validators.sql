@@ -57,6 +57,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
   ('declutter_problem_window_open', 'allow',    'may the buyer still report a problem on this handed-over sale (board 141, 20261026155251)'),
   ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
+  ('shipping_rate_buyable',         'allow',    'may the label worker buy this rate: claimed, and within the shipping the buyer paid (shipping S2, 20261030000030)'),
   ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('declutter_delivery_tip_open',   'allow',    'A3-8 / A2-18 (20261028210552): TRUE = the buyer of this order can tip its delivery Helpr now, so "Enjoy your item" says so (the notice only; helpr_task_tip_start checks again)'),
@@ -300,6 +301,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_delivery_tip_open',   NULL, ARRAY['''00000000-0000-4000-8140-000000000503''::uuid'], ARRAY[1]),
   ('declutter_problem_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
+  -- Shipping S2 (the 'ship' step): shipment 801 is claimed for B's shipped order 504 ($7.33 paid), so a $7.33 rate is TRUE.
+  ('shipping_rate_buyable',         NULL, ARRAY['''00000000-0000-4000-8140-000000000801''::uuid', '733'], ARRAY[1,2]),
   -- Q2425: spot S (the 'meetup' step) is active and beside item I, whose line is in B's cart (the 'declutter' step).
   ('declutter_meetup_spot_near_lines', NULL, ARRAY['''00000000-0000-4000-8140-000000000701''::uuid', 'ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.item_id = ''00000000-0000-4000-8140-000000000301''::uuid)'], ARRAY[1,2]),
   -- Porch days: A has no picked days and a Monday pickup window (the 'declutter' step), so Monday (1) is a porch day.
@@ -350,7 +353,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'rentals', 'bucket', 'objects', 'shop']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'ship', 'rentals', 'bucket', 'objects', 'shop']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -475,6 +478,19 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000503', '2 Dropoff St', 'Lafayette', 30.21, -92.01, 5, 'small', 1200,
                            '00000000-0000-4000-8140-000000000601')$q$;
           EXECUTE $q$UPDATE public.profiles SET stripe_account_id = 'acct_q140_d' WHERE user_id = '00000000-0000-4000-8140-00000000000d'$q$;
+        END IF;
+      WHEN 'ship' THEN
+        -- Shipping S2 (20261030000030): order 504, B's PAID shipped order from seller A ($10 + $7.33 shipping, fee rule
+        -- f1_ship written out: the order triggers are off here), and its label claim 801 with a $7.33 budget.
+        IF to_regprocedure('public.shipping_rate_buyable(uuid, integer)') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, fee_rule, items_cents, premium_cents,
+                                                         tax_cents, delivery_cents, shipping_cents, total_cents, paid_at, stripe_payment_intent_id)
+                   VALUES ('00000000-0000-4000-8140-000000000504', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 'paid', 'ship', 'f1_ship', 1000, 157, 0, 0, 733, 1890, now(), 'pi_q140_s')$q$;
+          EXECUTE $q$INSERT INTO public.shipments (id, declutter_order_id, idempotency_key, label_mode, service, quoted_cents, ship_to, parcel)
+                   VALUES ('00000000-0000-4000-8140-000000000801', '00000000-0000-4000-8140-000000000504',
+                           'declutter:00000000-0000-4000-8140-000000000504', 'test', 'usps_ground_advantage', 733,
+                           '{"zip":"70501","line1":"[q140] 1 Test St"}', '{"weight_oz":12}')$q$;
         END IF;
       WHEN 'rentals' THEN
         -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261017205605 there is no table).

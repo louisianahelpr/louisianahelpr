@@ -19,7 +19,7 @@
  *   declutter_* and email_declutter_*  migration 20261028162048 (14 columns)
  *   remind_starting_soon, remind_finish_job, remind_payout_followups  migration 20261030031059 (Job reminders)
  *   remind_two_hours, remind_morning_of, remind_head_out  migration 20261030035326 (Q2483 start reminders)
- *   message_preview            migration 20261030141139 (Messages audit M6)
+ *   message_preview            migration 20261030150631 (Messages audit M6)
  */
 const DECLUTTER_KINDS = [
   "declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",

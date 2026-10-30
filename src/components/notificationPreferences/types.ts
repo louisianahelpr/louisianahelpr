@@ -23,7 +23,7 @@ export interface Prefs {
   email_job_applications: boolean;
   email_job_updates: boolean;
   email_messages: boolean;
-  /** Messages audit M6 (20261030141139): new-message bell and push show the
+  /** Messages audit M6 (20261030150631): new-message bell and push show the
       first words (true, default) or only "Sent you a message." (false).
       Emails never carry the words. */
   message_preview: boolean;

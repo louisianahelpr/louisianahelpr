@@ -19,6 +19,7 @@ import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { MessagePreviewRow } from "./notificationPreferences/MessagePreviewRow";
+import { QuietTimeInput } from "./notificationPreferences/QuietTimeInput";
 import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
@@ -654,28 +655,8 @@ const NotificationPreferences = () => {
         {quietEnabled && (
           <div className="mt-2 flex items-start gap-3 pl-[2.375rem]">
             <div className="flex-1 flex items-center gap-2 flex-wrap">
-              <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                <span className="font-sans">From</span>
-                <input
-                  type="time"
-                  value={prefs.quiet_start ?? "22:00"}
-                  onChange={(e) => void patchPrefs({ quiet_start: e.target.value }, "quiet_hours")}
-                  disabled={locked || !prefs.push_enabled || saving}
-                  aria-label="Quiet hours start time"
-                  className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="inline-flex items-center gap-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                <span className="font-sans">to</span>
-                <input
-                  type="time"
-                  value={prefs.quiet_end ?? "07:00"}
-                  onChange={(e) => void patchPrefs({ quiet_end: e.target.value }, "quiet_hours")}
-                  disabled={locked || !prefs.push_enabled || saving}
-                  aria-label="Quiet hours end time"
-                  className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
+              <QuietTimeInput label="From" ariaLabel="Quiet hours start time" value={prefs.quiet_start ?? "22:00"} onChange={(v) => void patchPrefs({ quiet_start: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
+              <QuietTimeInput label="to" ariaLabel="Quiet hours end time" value={prefs.quiet_end ?? "07:00"} onChange={(v) => void patchPrefs({ quiet_end: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
             </div>
             {/* Visual donut — translates the start/end times into a 24hr
                 arc so it's immediately clear *which* hours are muted.

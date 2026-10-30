@@ -213,6 +213,7 @@ rpc_exempt(fn, why) AS (
   -- Allowed by product decision.
   ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'),
   ('set_thread_snooze', 'snoozing is muting with an end date'),
+  ('clear_my_job_post_draft', 'OPS-3 (20261030223154): deletes only the caller own unfinished job post, which nobody else sees; removing your own data must work for every account'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),
   ('register_push_subscription', 'web push (20261030022344): the browser twin of the push_tokens INSERT/UPDATE exemption; a banned account still signs in (Q300) and must get account notices such as Restriction lifted. It saves only the caller own browser subscription, which nobody else sees'),
   ('unregister_push_subscription', 'web push (20261030022344): the browser twin of the push_tokens DELETE exemption; sign-out removes only the caller own browser subscription, and a banned account must be able to stop pushes'),

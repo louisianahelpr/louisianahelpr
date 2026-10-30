@@ -29,7 +29,7 @@
 // @mutate src/pages/post-job/EntryChoice.tsx | form.draftLoaded && draftCheckoutSettled && recentPosted | recentPosted
 // @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled && giftCardsSettled,\n    true,\n | true,\n    savedHelpersSettled && giftCardsSettled,\n
 // @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
-// @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
+// @mutate src/hooks/useDraftJob.ts |       setDraftLoaded(true);\n    });\n |     });\n
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve tab="notifications" />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | {view === "earned" && !pageReady && <EarningsPageSkeleton | {view === "earned" && loading && <EarningsPageSkeleton
 // @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading, streakState.settled && !ledgerPending) | useArrivalGate(!loading, true)
@@ -159,7 +159,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(src).toContain("const giftCardsSettled = giftCards.settled;");
     expect(src).toContain("useDraftCheckout(form.hasDraft)");
     // The draft is read in an effect; the flag says it has been.
-    expect(read("hooks/useDraftJob.ts")).toMatch(/\} catch \{\s*\}\n {4}setDraftLoaded\(true\);\n {2}\}, \[\]\);/);
+    expect(read("hooks/useDraftJob.ts")).toMatch(/if \(found\) \{\s*setDraftLoaded\(true\);[\s\S]*readDraftFromAccount[\s\S]*setDraftLoaded\(true\);\n {4}\}\);/);
     const hook = read("pages/post-job/useDraftCheckoutState.ts");
     expect(hook).toContain("return { state, settled: !hasDraft || answered };");
     expect(hook).toMatch(/useState\(\(\) => !safeStorage\.getItem\(DRAFT_CHECKOUT_JOB_KEY\)\)/);

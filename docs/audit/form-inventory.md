@@ -101,7 +101,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterDeliveryViews.tsx` | checkbox/switch/radio×3 |  |  | What happened · Your vehicle · Route · Your deliveries · Deliveries near you |
+| `src/components/declutter/DeclutterDeliveryViews.tsx` | checkbox/switch/radio×3 |  |  | What happened · Your vehicle · Your deliveries · Route · Deliveries near you |
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |

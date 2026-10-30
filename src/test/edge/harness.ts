@@ -1069,6 +1069,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/escrowTiming.ts";`,
   );
 
+  // A payout past its day tells the Helpr (jobs audit item 8): `_shared/payDelayNotice.ts`
+  // imports only insertNotifications and writes through the client it is given.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payDelayNotice\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payDelayNotice.ts";`,
+  );
+
   // Stalled-completion ladder: `_shared/stalledCompletion.ts` is pure TS whose
   // only imports are other pure `_shared` modules (cancellationFee for the
   // zone-correct anchor, arrivalNudge for the ledger type), so pointing at the

@@ -1477,3 +1477,82 @@ describe("process-scheduled-payouts: a payout is held, not attempted, unless Str
     expect(heldAlert()?.fields).toMatchObject({ gate: "cannot_verify" });
   });
 });
+
+// Jobs audit item 8: a payout past its day tells the Helpr, not only admins and ops.
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |         await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: "sending", source: "process-scheduled-payouts" });\n |
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |           await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: payDelayWhyForGate(live.kind), source: "process-scheduled-payouts" });\n |
+// @mutate supabase/functions/_shared/payDelayNotice.ts |   if (!error && count) return;\n |
+// @mutate supabase/functions/_shared/payDelayNotice.ts |   if (job.is_seed === true \|\| !payIsOverdue(job.payout_scheduled_at)) return; |   if (job.is_seed === true) return;
+// @mutate supabase/functions/_shared/payDelayNotice.ts |   if (job.is_seed === true \|\| !payIsOverdue(job.payout_scheduled_at)) return; |   if (!payIsOverdue(job.payout_scheduled_at)) return;
+describe("process-scheduled-payouts: a payout past its day tells the Helpr", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+  });
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+  const delayNotices = () => scenario.writes
+    .filter((w) => w.table === "notifications" && w.op === "insert")
+    .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Record<string, unknown>[])
+    .filter((n) => n.title === "Your pay is delayed");
+  const runCron = async () => {
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+  };
+  const transferFails = () => stripeMock.transfers.create.mockRejectedValue(
+    Object.assign(new Error("insufficient funds"), { type: "StripeError" }),
+  );
+  const accountNotPayable = () => stripeMock.accounts.retrieve.mockResolvedValue({
+    ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false, capabilities: { transfers: "inactive" },
+  });
+
+  it("a failed transfer: told, with no job for them to do", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    transferFails();
+    await runCron();
+    expect(delayNotices()).toHaveLength(1);
+    expect(delayNotices()[0]).toMatchObject({ user_id: "helper-1", job_id: "job-1", type: "financial_alerts", link: "/jobs?job=job-1" });
+    expect(String(delayNotices()[0].message)).toMatch(/couldn't send it\. You don't need to do anything/);
+  });
+
+  it("an account Stripe won't pay: told where to look", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    accountNotPayable();
+    await runCron();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(delayNotices()).toHaveLength(1);
+    expect(delayNotices()[0]).toMatchObject({ link: "/profile?tab=payment" });
+    expect(String(delayNotices()[0].message)).toMatch(/payout account can't receive money/);
+  });
+
+  it("a blip the next run can fix says nothing yet", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(2) } });
+    transferFails();
+    await runCron();
+    expect(delayNotices()).toEqual([]);
+  });
+
+  it("once a day per job, while the cron retries hourly", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    transferFails();
+    scenario.reads.notifications = { rows: [], count: 1 };
+    await runCron();
+    expect(delayNotices()).toEqual([]);
+  });
+
+  it("test jobs tell nobody", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13), is_seed: true } });
+    transferFails();
+    await runCron();
+    expect(delayNotices()).toEqual([]);
+  });
+
+  it("a payout that goes through says nothing", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    await runCron();
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    expect(delayNotices()).toEqual([]);
+  });
+});

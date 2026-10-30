@@ -37,6 +37,10 @@
 //   (3) ME-017 #8: a key that ignores the params makes a retry after a plan
 //   change hit Stripe's idempotency-mismatch error.
 // @mutate supabase/functions/create-boost-payment/index.ts | idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`, | idempotencyKey: `boost:${user.id}:${job_id}`,
+// Q2139 one wallet + Q2084 card only:
+// @mutate supabase/functions/create-boost-payment/index.ts |     const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }); |     const customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? "cus_byemail";
+// @mutate supabase/functions/create-boost-payment/index.ts |     if (error instanceof StripeCustomerUnavailable) { |     if (false) {
+// @mutate supabase/functions/create-boost-payment/index.ts |       adaptive_pricing: { enabled: false }, |
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -424,26 +428,50 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
 
   // ME-043: automatic_tax needs a tax location. An existing addressless
   // customer made Stripe refuse the session until the collected address was
-  // saved; customer_update is invalid without a customer, so only then.
-  it("saves the Checkout address for an existing customer, and never sends customer_update without one", async () => {
+  // saved. One wallet (Q2139): the customer is ALWAYS the member's wallet
+  // customer (stored, or made and claimed now), never one found by email, so
+  // customer_update always rides with it.
+  it("pays on the member's wallet customer (stored or new), never one found by email, and saves the address", async () => {
     stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_addr" });
     seed("free");
-    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet1" }] };
     let fn = await load();
     await fn.fetch(call(fn));
     let params = stripeMock.checkout.sessions.create.mock.calls[0][0] as Record<string, any>;
+    expect(params.customer).toBe("cus_wallet1");
+    expect(params.customer_email).toBeUndefined();
     expect(params.automatic_tax).toEqual({ enabled: true });
     expect(params.customer_update).toEqual({ address: "auto" });
     expect(params.line_items[0].price_data.tax_behavior).toBe("exclusive");
+    // Q2084: card only, dollars only.
+    expect(params.payment_method_types).toEqual(["card"]);
+    expect(params.adaptive_pricing).toEqual({ enabled: false });
+    const walletRead = scenario.readQueries.find((q) => q.table === "stripe_customers");
+    expect(walletRead?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "user_id", value: USER_ID }),
+      expect.objectContaining({ op: "eq", column: "wallet_mode", value: "live" }),
+    ]));
 
     resetSupabaseMock();
     seed("free");
-    stripeMock.customers.list.mockResolvedValue({ data: [] });
+    scenario.reads.stripe_customers = { rows: [] };
+    scenario.rpc.claim_stripe_customer = "cus_walletnew";
     fn = await load();
     await fn.fetch(call(fn));
     params = stripeMock.checkout.sessions.create.mock.calls[1][0] as Record<string, any>;
-    expect(params.customer).toBeUndefined();
-    expect(params.customer_update).toBeUndefined();
+    expect(params.customer).toBe("cus_walletnew");
+    expect(params.customer_update).toEqual({ address: "auto" });
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  it("a wallet that cannot be read answers 503 and opens no Checkout (never a second customer)", async () => {
+    seed("free");
+    scenario.reads.stripe_customers = { error: { message: "boom" } };
+    const fn = await load();
+    const res = await fn.fetch(call(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("same request = same key; a changed plan gets a new key instead of Stripe's mismatch error (ME-017 #8)", async () => {

@@ -65,7 +65,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/settings/MinSupportedBuildCard.tsx` | input×1 | number |  | minBuild |
 | `src/components/admin/settings/RentalsOwnershipCard.tsx` | input×2 | text |  | ID note (required to reject) · takedown-address-match · Note (required to reject) · landlord-review-group |
 | `src/components/admin/settings/ShopItemsReviewCard.tsx` | input×1 | text | 500 |  |
-| `src/components/admin/SupportReply.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Replies sent · They get this in the app and by email. |
+| `src/components/admin/SupportReply.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Replies sent |
 | `src/components/admin/userDetail/JobsTab.tsx` | select×1 |  |  | Job role filter |
 | `src/components/admin/userDetail/UserAuditLog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Reason for reversing this strike |
 

@@ -391,8 +391,8 @@ function unavailableJobMeta(url: string): Meta {
     description:
       "This job has been filled, expired, or removed. Browse open jobs near you on Helpr — Louisiana's local job marketplace.",
     url,
-    // /jobs/:id is <ProtectedRoute>-gated — an anonymous crawler bounces to
-    // /signup, so this URL must never be indexed. See index.html's comment.
+    // A job page is short-lived and a guest only gets a preview of it, so this
+    // URL stays out of search results. See index.html's comment.
     robots: "noindex, follow",
   };
 }
@@ -640,8 +640,7 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
     ogTitle: title,
     description: clean(jobDescription(job), 200),
     url,
-    // Same rationale as unavailableJobMeta above: the page itself requires
-    // sign-in, only the preview card is public.
+    // Same rationale as unavailableJobMeta above.
     robots: "noindex, follow",
   };
 }

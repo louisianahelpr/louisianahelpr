@@ -220,21 +220,11 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // shared link actually opens, was measured zero times. The rule below gives
   // the first id a real row so `job-detail-guest` audits the job, while
   // `…-dead` keeps its unmocked miss and stays the not-found case.
-  // NO `job-detail-guest` ROW ANY MORE, and the reason is worth stating because
-  // it is a real change in what this app shows the public.
-  //
-  // `/jobs/:id` became signed-in-only on 2026-09-02 (owner's call, after we
-  // measured that the browse card already sent guests to /signup while the same
-  // URL opened the full job to anyone arriving by link). A guest now gets the
-  // login screen here, so a row claiming this URL renders JobDetail for an
-  // anonymous visitor is simply false — and `auditCatalogRoutes.test.ts` caught
-  // exactly that the moment the route changed, which is what that guard is for.
-  //
-  // Note this leaves JobDetail's own populated branch rendered by NOBODY: a
-  // guest never reaches it, and JobDetail.tsx:105 redirects every signed-in
-  // visitor to /home?quickApply=<id>. The page is now a redirect shim
-  // wearing a page's clothes. Flagged to the owner rather than quietly deleted
-  // — the share-link landing experience it contains was built deliberately.
+  // Still no `job-detail-guest` row, for a different reason now. /jobs/:id was
+  // signed-in-only from 2026-09-02 until 2026-10-30, when guests got this page
+  // back (shared links on Facebook met a login wall). These sweeps have no live
+  // job id for a guest to open, so src/test/guestOpensSharedJobLink.test.tsx
+  // covers the guest page and its private fields.
   { name: "not-found", url: "/this-route-does-not-exist" },
 ];
 
@@ -379,9 +369,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // never actually happened. They are kept because the redirect itself is a
   // contract worth regressing on, and because they cost nothing under
   // `seededOnly`; the page they were meant to cover is now audited as
-  // `job-detail-guest` in ANON_SCREENS — which, since /jobs/:id went
-  // signed-in-only on 2026-09-02, no longer exists either. Nothing renders
-  // JobDetail's body now; see the note in ANON_SCREENS.
+  // `job-detail-guest` in ANON_SCREENS, which does not exist; see the note there.
   { name: "job-detail-1", url: "/jobs/10000000-0000-4000-8000-000000000001" },
   { name: "job-detail-2", url: "/jobs/10000000-0000-4000-8000-000000000002", seededOnly: true },
   { name: "job-detail-3", url: "/jobs/10000000-0000-4000-8000-000000000003", seededOnly: true },

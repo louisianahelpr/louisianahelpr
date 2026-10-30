@@ -159,6 +159,12 @@ export const en = {
   "profileGate.contactSupport": "Contact support",
   "profileGate.intro": "We need a few details before you can use Helpr. This keeps the community safe.",
   "profileGate.wiped": "For your security, details entered before your email was confirmed were cleared. Please add them again.",
+
+  // Shared on Log in and Sign up: the "or" rule and the Apple / Google buttons
+  "auth.or": "or",
+  "auth.continueWith": "Continue with {provider}",
+  "auth.connecting": "Connecting…",
+  "auth.socialFailed": "Couldn't sign in with {provider} — try again?",
 } as const;
 
 export type MsgKey = keyof typeof en;

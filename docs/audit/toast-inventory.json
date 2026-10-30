@@ -4145,7 +4145,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 98,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4155,7 +4155,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 197,
+      "line": 199,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4183,11 +4183,11 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 202,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "userFacingError(result, `Couldn't sign in with ${provider} — try again?`)"
+        "text": "userFacingError(result, t(\"auth.socialFailed\", { provider }))"
       },
       "renders": true
     },

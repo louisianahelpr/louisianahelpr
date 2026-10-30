@@ -81,6 +81,8 @@ export interface DeclutterItem {
   porch_ok: boolean;
   /** Smart offers (20261029162620): false = Buy only, the item page shows no "Make an offer". Absent = on (older fixtures, other reads). */
   accepts_offers?: boolean;
+  /** The ways the seller ticked (20261028235247); read only on the seller's own list (fetchMyItems). */
+  handovers?: SellerHandover[] | null;
 }
 
 export interface DeclutterPhoto {
@@ -225,7 +227,8 @@ export async function fetchSimilarItems(category: string, exceptItemId: string, 
 /** The member's own listings, every status. */
 export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
   const rows = await readItems((cols) =>
-    supabase.from("declutter_items").select(cols).eq("seller_id", userId).order("created_at", { ascending: false }),
+    // B48 live check 2026-10-29: the Selling row names every way the seller ticked (handovers), not only the porch.
+    supabase.from("declutter_items").select(`${cols}, handovers`).eq("seller_id", userId).order("created_at", { ascending: false }),
   );
   return (rows ?? []) as DeclutterItem[];
 }

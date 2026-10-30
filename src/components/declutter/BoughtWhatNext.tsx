@@ -8,13 +8,20 @@ import { fetchMyBookings } from "@/lib/declutter/handover";
 import { usePaySettling } from "./DeclutterPaySettling";
 import { useMyPaidCents } from "./useMyPaidCents";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * The one order a ?paid=1 return is about, or null when that is not certain. The checkout
- * return names no order, so the sheet only opens when exactly ONE paid order of this buyer
- * is still in its handover; with two or more it stays shut rather than guess (truth rule).
+ * The one order a ?paid=1 return is about, or null when that is not certain. The checkout return names the order
+ * (?order=<id>, B48 live check 2026-10-29: with two paid orders the sheet never opened), so its lines are the order's.
+ * A return without one (a page opened before that change) keeps the old rule: exactly ONE paid order of this buyer
+ * still in its handover, else no sheet rather than a guess (truth rule).
  */
-export function justPaidOrder(lines: CartLine[]): CartLine[] | null {
+export function justPaidOrder(lines: CartLine[], orderId: string | null = null): CartLine[] | null {
   const mine = lines.filter((l) => l.my_side === "buyer" && l.status === "paid" && l.order_id && l.order_status === "paid");
+  if (orderId && UUID.test(orderId)) {
+    const named = mine.filter((l) => l.order_id === orderId);
+    return named.length ? named : null;
+  }
   const ids = [...new Set(mine.map((l) => l.order_id))];
   return ids.length === 1 ? mine : null;
 }
@@ -64,7 +71,7 @@ export function BoughtWhatNext() {
   const [since] = useState(() => Date.now());
   const fresh = !!cart.data && cart.dataUpdatedAt >= since && !settling.settling;
   const lines = fresh ? cart.data.filter((l) => settling.sellerId === null || l.seller_id === settling.sellerId) : null;
-  const order = paid && lines ? justPaidOrder(lines) : null;
+  const order = paid && lines ? justPaidOrder(lines, params.get("order")) : null;
   // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the sale's total_cents.
   const orderId = order?.[0]?.order_id ?? null;
   const paidCents = useMyPaidCents(orderId ? [orderId] : [], !!orderId);
@@ -72,7 +79,7 @@ export function BoughtWhatNext() {
   const booking = useQuery({ queryKey: ["declutter", "bookings", orderId ?? ""], queryFn: () => fetchMyBookings([orderId as string]), enabled: !!orderId });
   // Wait for the booking answer; a failed read counts as not booked (a just-paid order has no day or time yet).
   if (!order || booking.isLoading) return null;
-  const close = () => { params.delete("paid"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
+  const close = () => { params.delete("paid"); params.delete("order"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];
   const total = orderId ? paidCents?.get(orderId) ?? null : null;
   // Audit 1028 D1-3: the buyer's real next step comes first ("Pick a pickup day", "Book a time to meet"), never

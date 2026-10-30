@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   NEW.reported_content := left(concat_ws( |   NEW.reported_content := NULL AND left(concat_ws(
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   BEFORE UPDATE OF content ON public.messages |   AFTER UPDATE OF read ON public.messages
- * @mutate src/pages/messages/Messages.tsx | if (error && /message_locked/.test(error.message)) { | if (false) {
+ * @mutate src/pages/messages/Messages.tsx | toast.error(error && /message_locked/.test(error.message) ? | toast.error(false ?
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -110,6 +110,6 @@ describe("Messages audit M1/M2/L6: admin reads, locked deletes, party-only repor
 
   it("the Messages screen says why a locked message will not delete", () => {
     const screen = blankComments(readFileSync("src/pages/messages/Messages.tsx", "utf8"));
-    expect(screen).toMatch(/if \(error && \/message_locked\/\.test\(error\.message\)\) \{\s+toast\.error\("This message can't be deleted now\./);
+    expect(screen).toMatch(/toast\.error\(error && \/message_locked\/\.test\(error\.message\) \? "This message can't be deleted now\./);
   });
 });

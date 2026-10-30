@@ -73,6 +73,10 @@
       "destination": "/api/share?_og=user&_id=:userId"
     },
     {
+      "source": "/book/:userId([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
+      "destination": "/api/share?_og=book&_id=:userId"
+    },
+    {
       "source": "/shops/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
       "destination": "/api/share?_og=shop&_id=:id"
     },
@@ -245,6 +249,15 @@
     },
     {
       "source": "/declutter/item/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/book/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

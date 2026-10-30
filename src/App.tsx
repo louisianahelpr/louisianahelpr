@@ -141,6 +141,7 @@ const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage
 // Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless the hidden 'shops' switch is on for the member (ShopsGate).
 const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
 const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
+const BookHelprPage = lazyWithPreload(() => import("./pages/book/BookHelprPage"));
 const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
 // Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
 // 'rentals' switch is on for the member (RentalsGate).
@@ -282,6 +283,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* SH2b (owner 2026-10-19): a shop page is open to anyone with the link;
           ShopPage picks the full or the public view. noindex via api/share.ts. */}
       <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} />
+      {/* /book/:userId: a Helpr's "Book me" link, open to anyone (B59). Card via api/share.ts. */}
+      <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprPage />)}</RouteErrorBoundary>} />
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

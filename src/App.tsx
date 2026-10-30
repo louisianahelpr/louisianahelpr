@@ -355,27 +355,18 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/privacy/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="privacy" /></PageTransition>)}</RouteErrorBoundary>} />
 
 
-      {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
-          /jobs/{id}?ref=share) land here: guests get a read-only preview,
-          signed-in users are redirected into the dashboard apply flow. */}
-      {/* SIGNED-IN ONLY (owner, 2026-09-02). The browse feed already sent a
-          guest tapping a job card to `/signup?redirect=/jobs/<id>`, while this
-          same URL opened the full job to anyone who arrived by link — measured
-          both ways before changing either. The owner chose the card's
-          behaviour as the correct one, so the two now agree.
-
-          The share link still converts: `<ProtectedRoute>` bounces to
-          `/signup?redirect=…`, and the visitor lands on the job once they have
-          an account. And the LINK PREVIEW is untouched — vercel.json rewrites
-          `/jobs/:id` to `/api/share`, which server-renders the OG tags for
-          crawlers and hands humans the same SPA, so a shared job still shows a
-          real card in Messages and on social. */}
+      {/* A SHARED JOB LINK SHOWS THE JOB TO A GUEST (10-30 jobs audit, items 1 and 2).
+          From 2026-09-02 this route was signed-in-only (owner's call then, to match
+          the browse card), so someone tapping a job shared on Facebook met a login
+          wall with no job, price or town. It now opens JobDetail's guest branch: the
+          public masked view only, no poster, and every action goes to sign-up with
+          the job carried. Signed-in visitors still pass every ProtectedRoute gate. */}
       {/* Jobs settings (lead decision 2026-10-19, option A): a static segment, so it ranks above /jobs/:id. */}
       <Route path="/search" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SearchPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Q2437: Find a Helpr (browse by skill and town, offer a job at your price). */}
       <Route path="/helprs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FindHelprs /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobsSettings /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /home's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want

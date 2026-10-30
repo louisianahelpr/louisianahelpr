@@ -46,6 +46,11 @@ const CONVERTED = [
   "src/pages/auth/completeProfile/CompleteProfileIntro.tsx",
   "src/components/profile/DeleteAccountDialog.tsx",
   "src/components/profile/DeleteAccountReauth.tsx",
+  "src/pages/jobs/JobsSection.tsx",
+  "src/components/sections/SectionTabs.tsx",
+  "src/components/sections/ExploreSwitcher.tsx",
+  "src/components/sections/SoonPill.tsx",
+  "src/components/sections/AppTopBar.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
@@ -57,6 +62,11 @@ const ALLOWED: Record<string, string[]> = {
   "src/pages/auth/CompleteProfile.tsx": ["CompleteProfile.legalAcceptances"],
   // Keyboard key names (e.key / getModifierState), not words.
   "src/pages/auth/signup/SignupStep1.tsx": ["CapsLock", "Enter", "Enter", "Enter", "Enter"],
+  // English config names (tests and the @mutate lines read them); the member sees each tab's labelKey and
+  // the gear's labelKey through t() (jobsTabsInSpanish.test.tsx renders them in Spanish).
+  "src/pages/jobs/JobsSection.tsx": ["Jobs settings", "Posted", "Working"],
+  // "Browse" is the config name; the tab shows tr("tabs.browse"). The rest are keyboard key names.
+  "src/components/sections/SectionTabs.tsx": ["Browse", "ArrowRight", "ArrowLeft", "Home", "End"],
 };
 
 function findRawStrings(src: string): string[] {

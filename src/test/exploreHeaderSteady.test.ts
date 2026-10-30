@@ -91,7 +91,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     }
     const jobs = code("src/pages/jobs/JobsSection.tsx");
     const head = jobs.slice(jobs.indexOf('className="explore-header'), jobs.indexOf("</div>", jobs.indexOf('className="explore-header')));
-    const order = ['<AppTopBar title={section.label} explore section="jobs"', "<SectionTabs "].map((s) => head.indexOf(s));
+    const order = ['<AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs"', "<SectionTabs "].map((s) => head.indexOf(s));
     expect(order[0]).toBeGreaterThan(0);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // Jobs' search is an icon in the status chip row now, never a field in the header (owner 2026-10-25;

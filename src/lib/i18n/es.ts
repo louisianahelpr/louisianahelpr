@@ -220,4 +220,16 @@ export const es: Record<MsgKey, string> = {
   "deleteAccount.newCode": "Enviar un código nuevo",
   "deleteAccount.emailCode": "Envíenme un código por correo",
   "deleteAccount.usePassword": "Usar mi contraseña",
+
+  // Jobs browse (the section tabs)
+  "tabs.browse": "Ver todo",
+  "jobs.tabPosted": "Publicados",
+  "jobs.tabWorking": "Trabajando",
+  "jobs.tabsLabel": "Trabajos y publicaciones",
+
+  // Jobs browse header (Explore chips, Soon, settings gear)
+  "jobs.settings": "Ajustes de trabajos",
+  "nav.sections": "Secciones",
+  "soon.short": "Pronto",
+  "soon.full": "Muy pronto",
 };

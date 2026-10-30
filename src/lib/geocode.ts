@@ -15,8 +15,6 @@
 export interface GeocodeResult {
   latitude: number;
   longitude: number;
-  /** The town or neighborhood OpenStreetMap names for the match, when it names one. */
-  town?: string;
 }
 
 /**
@@ -37,7 +35,6 @@ export async function geocodeAddress(
   url.searchParams.set("q", cleaned);
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", "1");
-  url.searchParams.set("addressdetails", "1");
   url.searchParams.set("countrycodes", "us");
 
   try {
@@ -45,14 +42,12 @@ export async function geocodeAddress(
       headers: { Accept: "application/json" },
     });
     if (!res.ok) return null;
-    const rows = (await res.json()) as Array<{ lat: string; lon: string; address?: Record<string, string | undefined> }>;
+    const rows = (await res.json()) as Array<{ lat: string; lon: string }>;
     if (!rows.length) return null;
     const lat = parseFloat(rows[0].lat);
     const lon = parseFloat(rows[0].lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-    const a = rows[0].address;
-    const town = a?.city ?? a?.town ?? a?.village ?? a?.hamlet ?? a?.suburb;
-    return { latitude: lat, longitude: lon, ...(town ? { town } : {}) };
+    return { latitude: lat, longitude: lon };
   } catch {
     return null;
   }

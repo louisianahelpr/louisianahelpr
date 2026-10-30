@@ -7,7 +7,7 @@
  * DeclutterQuestions; messages open after checkout). Share and
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
@@ -97,6 +97,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // seller gets it: the same link for anyone else is the ordinary page. No server read changes.
   const [params] = useSearchParams();
   const preview = ownListing && params.get("preview") === "buyer";
+  const [previewPressed, setPreviewPressed] = useState(false);
   const isSeller = ownListing && !preview;
   // A failed read hides the drop line (nothing is promised); the item itself still shows.
   const dropState = useQuery({
@@ -137,7 +138,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const away = ownListing ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const forSale = it.status === "live" || it.status === "reserved";
   const canAct = !isSeller && forSale;
-  const noteOwnListing = () => toast.info(PREVIEW_ACTION_NOTE);
+  // On the page, not a toast: toast.info renders nothing (src/lib/toastPolicy.ts), so Tester 5's press showed no note.
+  const noteOwnListing = () => setPreviewPressed(true);
   // DA-6 (Declutter audit 2026-10-30): a member who is not the seller reads an item that is no longer for sale only
   // through a PAID cart line of their own (items read policy, 20261030080020): they bought or claimed it.
   const boughtByMe = !ownListing && !forSale;
@@ -232,6 +234,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <div data-item-preview="">
               <DeclutterNotice title="This is what buyers see">
                 <Link to={`/declutter/item/${it.id}`} className="font-semibold underline underline-offset-2">Back to your listing</Link>
+                {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
               </DeclutterNotice>
             </div>
           )}

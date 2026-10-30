@@ -5,13 +5,16 @@
  * point is asked again, and a saved place with no exact point sends the seller here.
  *
  * @mutate src/components/declutter/SellerSetup.tsx |   const [windows, setWindows] = useState<PickupWindow[]>([]); |   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
- * @mutate src/components/declutter/SellerSetup.tsx |         if (!found) throw new Error("setup_not_found"); |
+ * Tester 5, 10-30: setup saved a town-only match as the exact point and called a lookup that was down "not found".
+ * @mutate src/components/declutter/SellerSetup.tsx |         const found = await place.locate(address); |         const found = await place.locate(address, { allowApproximate: true });
+ * @mutate src/components/declutter/SellerSetup.tsx |             <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} /> |
+ * @mutate src/components/declutter/SellerSetup.tsx |         address_lookup_unavailable: declutterErrorMessage({ message: "address_lookup_unavailable" }), |         address_lookup_unavailable: "We couldn't find that address. Check the street, city and ZIP.",
  * @mutate src/components/declutter/SellerSetup.tsx |     pickup: !s.hasPickup, |     pickup: false,
  * @mutate src/components/declutter/SellerSetup.tsx |     ways: !s.free && !s.hasWays, |     ways: !s.hasWays,
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |         <SellerSetupGate>\n          <Suspense fallback={<DeclutterSellSkeleton />}>\n            <BunchFlow moving={params.get("mode") === "moving"} />\n          </Suspense>\n        </SellerSetupGate> |         <BunchFlow moving={params.get("mode") === "moving"} />
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
@@ -25,14 +28,17 @@ const state = vi.hoisted(() => ({
   last: null as unknown,
   windows: [] as unknown[],
   savedWindows: [] as unknown[],
-  geocode: { latitude: 30.45123, longitude: -91.15456, town: "Baton Rouge" } as unknown,
+  lookup: { status: "exact", lat: 30.45123, lng: -91.15456 } as unknown,
+  here: { lat: 30.5001, lng: -92.1001 } as unknown,
 }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>) }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => state.geocode }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => state.lookup }));
+vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => state.here }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => state.last }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
   ...(await orig<object>()),
@@ -72,7 +78,7 @@ function open(free = false) {
 }
 
 beforeEach(() => {
-  Object.assign(state, { places: [], savedPlaces: [], row: null, rows: [], last: null, windows: [], savedWindows: [], geocode: { latitude: 30.45123, longitude: -91.15456, town: "Baton Rouge" } });
+  Object.assign(state, { places: [], savedPlaces: [], row: null, rows: [], last: null, windows: [], savedWindows: [], lookup: { status: "exact", lat: 30.45123, lng: -91.15456 }, here: { lat: 30.5001, lng: -92.1001 } });
 });
 afterEach(cleanup);
 
@@ -104,14 +110,52 @@ describe("one-time setup before posting", () => {
     expect(state.savedWindows).toHaveLength(1);
   });
 
+  it("a town-only match is never saved as the exact point: the note offers their location, and that point is what's kept", async () => {
+    Object.assign(state, { row: ROW, windows: [WINDOW], lookup: { status: "approximate", lat: 30.5, lng: -92.1, precision: "town" } });
+    open();
+    fireEvent.change(await screen.findByLabelText("Pickup address"), { target: { value: "101 Sample Bayou Rd, Exampleville, LA 70000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    const share = await screen.findByRole("button", { name: "I'm at this address, use my location" });
+    expect(state.savedPlaces).toHaveLength(0);
+    expect(document.querySelector("[data-setup-problem]")).toBeNull();
+    fireEvent.click(share);
+    await waitFor(() => expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull());
+    expect(state.savedPlaces).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await screen.findByText("the posting form");
+    expect(state.savedPlaces[0]).toMatchObject({ address: "101 Sample Bayou Rd, Exampleville, LA 70000", area: "Exampleville", lat: 30.5001, lng: -92.1001 });
+  });
+
+  it("a town-only match with times and settings still to save: nothing is written before the address is settled", async () => {
+    state.lookup = { status: "approximate", lat: 30.5, lng: -92.1, precision: "town" };
+    open();
+    fireEvent.change(await screen.findByLabelText("Pickup address"), { target: { value: "101 Sample Bayou Rd, Exampleville, LA 70000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await screen.findByRole("button", { name: /use my location/ });
+    expect(state.rows).toHaveLength(0);
+    expect(state.savedWindows).toHaveLength(0);
+  });
+
+  it("the lookup being down is said apart from not found, and nothing is saved", async () => {
+    Object.assign(state, { row: ROW, windows: [WINDOW], lookup: { status: "unavailable" } });
+    open();
+    fireEvent.change(await screen.findByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge, LA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    const said = (await screen.findByRole("alert")).textContent ?? "";
+    expect(said).toMatch(/can't look up addresses just now/);
+    expect(said).not.toMatch(/couldn't find/);
+    expect(state.savedPlaces).toHaveLength(0);
+  });
+
   it("an address with no match is asked again and nothing about it is saved; no town asks for the area", async () => {
-    Object.assign(state, { row: ROW, windows: [WINDOW], geocode: null });
+    Object.assign(state, { row: ROW, windows: [WINDOW], lookup: { status: "not_found" } });
     open();
     fireEvent.change(await screen.findByLabelText("Pickup address"), { target: { value: "nowhere at all" } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/couldn't find that address/);
     expect(state.savedPlaces).toHaveLength(0);
-    state.geocode = { latitude: 30.1, longitude: -91.1 };
+    state.lookup = { status: "exact", lat: 30.1, lng: -91.1 };
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     fireEvent.change(await screen.findByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));

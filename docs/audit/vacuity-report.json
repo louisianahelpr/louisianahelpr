@@ -1,8 +1,9 @@
 {
-  "generated": "2026-10-30T07:04:44.496Z",
-  "guards": 2745,
-  "registered": 2744,
+  "generated": "2026-10-30T07:28:54.074Z",
+  "guards": 2751,
+  "registered": 2749,
   "unregistered": [
+    "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
   "classA_noInventoryFloor": [

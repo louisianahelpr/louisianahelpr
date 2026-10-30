@@ -4185,7 +4185,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 99,
+      "line": 100,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4195,7 +4195,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4223,7 +4223,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10433,7 +10433,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 180,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10443,7 +10443,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 272,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10453,7 +10453,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 376,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10463,7 +10463,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 432,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10493,7 +10493,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10503,7 +10503,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10513,7 +10513,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 224,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10523,7 +10523,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10533,7 +10533,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 239,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10543,7 +10543,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 267,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10553,7 +10553,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 301,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10573,7 +10573,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10583,7 +10583,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 197,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10593,7 +10593,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10603,7 +10603,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 218,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10613,7 +10613,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 219,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10623,7 +10623,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 220,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10633,7 +10633,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 236,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10643,7 +10643,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 319,
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10653,7 +10653,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 327,
+      "line": 328,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10663,7 +10663,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 396,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10673,7 +10673,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 457,
+      "line": 458,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10703,7 +10703,7 @@
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 35,
+      "line": 36,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10712,7 +10712,7 @@
         "branches": [
           {
             "form": "dynamic",
-            "text": "fill(dict[key] ?? en[key], vars)",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
             "branches": [
               {
                 "form": "dynamic",
@@ -10730,7 +10730,7 @@
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 39,
+      "line": 40,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10739,7 +10739,7 @@
         "branches": [
           {
             "form": "dynamic",
-            "text": "fill(dict[key] ?? en[key], vars)",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
             "branches": [
               {
                 "form": "dynamic",

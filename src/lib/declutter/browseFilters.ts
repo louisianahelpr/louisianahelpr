@@ -11,6 +11,7 @@
  * sale_mode + last_price_drop_on. Nothing here is a guess about an item.
  */
 import { nextPriceDrop, type PriceDropFields } from "@/lib/declutter/priceDrop";
+import { matchesSearch } from "@/lib/declutter/searchMatch";
 
 export type DeclutterSort = "closest" | "newest" | "price_low";
 
@@ -113,18 +114,18 @@ export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null):
  * nearestFirst (closest first when the member's location is known, else
  * newest first as fetched); "closest" with no location keeps that order.
  */
-export function applyBrowseFilters<T extends BrowseItem & { id: string; title: string }>(
+export function applyBrowseFilters<T extends BrowseItem & { id: string; title: string; description?: string | null }>(
   rows: { item: T; miles: number | null }[],
   f: DeclutterFilters,
   query: string,
   drops: Map<string, DropState> | undefined,
   now: Date = new Date(),
 ): { item: T; miles: number | null }[] {
-  const q = query.trim().toLowerCase();
   const minC = f.minDollars !== null ? f.minDollars * 100 : null;
   const maxC = f.maxDollars !== null ? f.maxDollars * 100 : null;
   const kept = rows.filter(({ item }) => {
-    if (q && !item.title.toLowerCase().includes(q)) return false;
+    // Every word, in the title, description or category, plurals folded (DA-1; the server's alerts use the same rule).
+    if (!matchesSearch(query, item)) return false;
     if (f.category && item.category !== f.category) return false;
     if (minC !== null && item.current_price_cents < minC) return false;
     if (maxC !== null && item.current_price_cents > maxC) return false;

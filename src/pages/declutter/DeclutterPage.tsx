@@ -34,12 +34,17 @@ export default function DeclutterPage() {
     navigate(afterCardPath(next.itemId), { replace: true, state });
   }, [cardReturn, navigate]);
   return (
-    <DeclutterGate skeleton={<DeclutterHomeSkeleton />} agreedSales={<FinishSalesView />}>
-      <DeclutterHome />
-      {/* Q2462: the handover chat opens over the page from ?talk=<id> (its notices and the checkout link there). */}
-      <HandoverTalkFromLink />
-      {/* D2-1: the paid-order chat opens over the page from ?order_talk=<order id> (the button on each paid order, its notices). */}
+    <>
+      <DeclutterGate skeleton={<DeclutterHomeSkeleton />} agreedSales={<FinishSalesView />}>
+        <DeclutterHome />
+        {/* Q2462: the handover chat opens over the page from ?talk=<id> (its notices and the checkout link there). */}
+        <HandoverTalkFromLink />
+      </DeclutterGate>
+      {/* D2-1: the paid-order chat opens over the page from ?order_talk=<order id> (the button on each paid order, its
+          notices). OUTSIDE the gate: a paid sale carries on with Declutter switched off (row 62), and the gate drew
+          its children only while the switch was on, so a notice's link opened nothing. The server decides who may
+          read it (the order's buyer or seller only). */}
       <OrderTalkFromLink />
-    </DeclutterGate>
+    </>
   );
 }

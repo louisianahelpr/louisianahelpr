@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetS
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { fetchOrderTalk, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -66,7 +66,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const [draft, setDraft] = useState("");
   const send = useMutation({
     mutationFn: () => sendOrderMessage(orderId, draft.trim()),
-    onSuccess: () => { setDraft(""); void qc.invalidateQueries({ queryKey: key }); },
+    // Messages -> Declutter's list (DeclutterOrderTalkInbox) shows who sent the last message: refresh it too.
+    onSuccess: () => { setDraft(""); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const t = talk.data;

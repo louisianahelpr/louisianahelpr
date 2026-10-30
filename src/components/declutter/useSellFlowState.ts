@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { geocodeAddress } from "@/lib/geocode";
+import { useExactAddressPoint } from "./useExactAddressPoint";
 import {
   addPhoto,
   attestItem,
@@ -69,7 +69,9 @@ export function useSellFlowState(urlItemId: string | null) {
   const { underAge } = useAgeGate();
   // "Give it away free" from the sell chooser (?free=1, owner 2026-10-30): a NEW listing starts with Free on.
   const [form, setForm] = useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY));
-  const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const place = useExactAddressPoint();
+  const coords = place.point;
+  const setCoords = place.setPoint;
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
@@ -191,13 +193,7 @@ export function useSellFlowState(urlItemId: string | null) {
     }
     setSaving(true);
     try {
-      let c = coords;
-      if (!c || c.address !== form.pickupAddress.trim()) {
-        const g = await geocodeAddress(form.pickupAddress);
-        if (!g) throw new Error("invalid_location");
-        c = { lat: g.latitude, lng: g.longitude, address: form.pickupAddress.trim() };
-        setCoords(c);
-      }
+      const c = await place.locate(form.pickupAddress);
       const fields: DraftFields = {
         title: form.title.trim(),
         description: form.description.trim(),
@@ -352,7 +348,7 @@ export function useSellFlowState(urlItemId: string | null) {
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
   return {
-    user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
+    user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish,

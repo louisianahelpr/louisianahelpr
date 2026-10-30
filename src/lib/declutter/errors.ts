@@ -288,6 +288,11 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
  * does). Kept apart so the two-way check against the migrations stays exact.
  */
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
+  // The address lookup (src/lib/addressLookup.ts): the lookup itself failed, so this is never about what was typed.
+  address_lookup_unavailable: "We can't look up addresses just now. Your address may be fine, so try again in a minute.",
+  // Found the area but not the house: AddressNeedsExactSpot under the address says what to do.
+  address_not_exact: "We found your area, but not your house on the map. See the note under the address.",
+  location_far_from_address: "You seem to be far from that address. Check the address, or try again when you're there.",
   // declutter-checkout (seller delivery, 20261027153244): the price the screen showed is no longer the seller's.
   delivery_rate_changed: "The seller's delivery price just changed. Check the new price, then tap Pay again.",
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",

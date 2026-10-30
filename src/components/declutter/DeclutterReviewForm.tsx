@@ -59,7 +59,7 @@ function rememberReviewed(orderId: string, side: "buyer" | "seller") {
  * (same key, same fetch, so one request on the wire), only when the card shows the refund panel.
  */
 const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered", "returning", "to_admin"]);
-export const refundStillOpen = (v: RefundRequestView | undefined) => !!v?.request && REFUND_STILL_OPEN.has(v.request.status);
+const refundStillOpen = (v: RefundRequestView | undefined) => !!v?.request && REFUND_STILL_OPEN.has(v.request.status);
 
 export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false }: {
   orderId: string;

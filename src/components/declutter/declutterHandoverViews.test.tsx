@@ -4,6 +4,9 @@
  * which call each button makes. The API module is stubbed; the backend proof
  * is src/test/pglite/declutterSlice4.pglite.mjs.
  *
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {false && (
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
+ * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
@@ -147,6 +150,42 @@ const line = (over: Record<string, unknown> = {}) => ({
 const slot = (minsAgo: number) => ({
   order_id: "o1", slot_start: new Date(Date.now() - minsAgo * 60_000).toISOString(),
   slot_end: new Date(Date.now() - minsAgo * 60_000 + 30 * 60_000).toISOString(), porch_mode: null, porch_until: null,
+});
+
+describe("the seller's order card, I'm on my way (D-NEW11)", () => {
+  // Waiting for this line proves the booking has loaded, so the "not shown" checks below are not vacuous.
+  const bookingShown = () => screen.findByText(/You can tap "I'm here" from an hour before the meeting time/);
+  const said = () => document.querySelector("[data-buyer-on-way]");
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.meetup = { order_id: "o1", spot_name: "BRPD Safe Exchange Zone", spot_address: "9000 Airline Hwy, Baton Rouge",
+      spot_lat: 30.46, spot_lng: -91.14, buyer_here_at: null, seller_here_at: null };
+  });
+
+  it("says the buyer is on the way on the seller's card, not on the buyer's own", async () => {
+    state.bookings = [{ ...slot(-180), buyer_on_way_at: new Date().toISOString() }];
+    const { unmount } = show([line({ handover: "meetup", my_side: "seller" })]);
+    await bookingShown();
+    expect(said()?.textContent).toBe("Your buyer is on the way.");
+    unmount();
+    show([line({ handover: "meetup", my_side: "buyer" })]);
+    await bookingShown();
+    expect(said()).toBeNull();
+  });
+
+  it("an I'm on my way from an earlier day says nothing today, and neither does none", async () => {
+    state.bookings = [{ ...slot(-180), buyer_on_way_at: new Date(Date.now() - 2 * 24 * 3600e3).toISOString() }];
+    const { unmount } = show([line({ handover: "meetup", my_side: "seller" })]);
+    await bookingShown();
+    expect(said()).toBeNull();
+    unmount();
+    state.bookings = [slot(-180)];
+    show([line({ handover: "meetup", my_side: "seller" })]);
+    await bookingShown();
+    expect(said()).toBeNull();
+  });
 });
 
 describe("Q2425: a safe-spot meetup order", () => {

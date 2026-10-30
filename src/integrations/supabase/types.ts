@@ -16656,6 +16656,7 @@ export type Database = {
         Returns: boolean
       }
       is_test_member: { Args: { p_user_id: string }; Returns: boolean }
+      is_test_subject: { Args: { p_user_id: string }; Returns: boolean }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }
         Returns: boolean

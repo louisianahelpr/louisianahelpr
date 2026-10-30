@@ -13,7 +13,7 @@
  *   (D) the numbers: a $100 job stamped 5% + 70c pays $94.30, never the 10% default's $89.30.
  * Red on ready/lead-helpr-fee-1025 @ 1d2c319e2d (the view, both RPCs and 8 selects lacked the percent).
  *
- * @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql |     helper_fee_flat_cents,\n    helper_fee_percent,\n |     helper_fee_flat_cents,\n
+ * @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     helper_fee_flat_cents,\n    helper_fee_percent,\n |     helper_fee_flat_cents,\n
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n    -- Q2400: and the percent stamped with it (a 5% job is never priced at 10%).\n    j.helper_fee_percent\n |     j.helper_fee_flat_cents\n
  * @mutate src/lib/guestJobsQuery.ts | parish, helper_fee_flat_cents, helper_fee_percent"; | parish, helper_fee_flat_cents";
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | is_group_job, photos, helper_fee_flat_cents, helper_fee_percent";\nconst PARTY_COLUMNS | is_group_job, photos, helper_fee_flat_cents";\nconst PARTY_COLUMNS

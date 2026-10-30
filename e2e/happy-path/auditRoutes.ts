@@ -285,6 +285,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "declutter", url: "/declutter" },
   { name: "declutter-sell", url: "/declutter/sell" },
   { name: "declutter-move", url: "/declutter/move" },
+  { name: "declutter-settings", url: "/declutter/settings" },
   { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
   // Quotes on jobs (hidden switch 'quotes', created OFF). The /quotes hub is
   // retired (owner 2026-10-19): the route is QuotesHubRedirect, which sends a

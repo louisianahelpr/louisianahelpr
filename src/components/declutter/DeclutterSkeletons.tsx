@@ -148,3 +148,12 @@ export function DeclutterMoveSkeleton() {
     </AppPage>
   );
 }
+
+/** /declutter/settings while the 'declutter' switch is read. */
+export function DeclutterSettingsSkeleton() {
+  return (
+    <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
+      <p role="status" className="sr-only">Loading your settings</p>
+    </AppPage>
+  );
+}

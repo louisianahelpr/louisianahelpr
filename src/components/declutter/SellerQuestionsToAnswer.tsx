@@ -2,7 +2,8 @@
  * Audit DC-9: Selling's "To answer" counted only offers, so a buyer's question on a live listing never showed there.
  * This is the questions half: every unanswered question on the seller's listings that are on sale (live or paused),
  * oldest first, each linking to its item page, where the answer (and Claude's suggested reply) already lives
- * (DeclutterQuestions). Same read key for the chip count and the list, so they always agree.
+ * (DeclutterQuestions). Same read key for the Selling tab badge, the chip count and the list, so they always agree and
+ * it is one cached read; it is only made for a member with a listing on sale.
  */
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -14,18 +15,21 @@ import { SectionHeading } from "./DeclutterTabParts";
 /** Listings a buyer can still ask about. */
 const ASKABLE = new Set(["live", "paused"]);
 
-export function useUnansweredQuestions(userId: string) {
-  const mine = useQuery(myItemsQuery(userId));
+export function useUnansweredQuestions(userId: string | undefined) {
+  const mine = useQuery({ ...myItemsQuery(userId ?? ""), enabled: !!userId });
   const items = (mine.data ?? []).filter((i) => ASKABLE.has(i.status));
   const ids = items.map((i) => i.id).sort();
   const q = useQuery({
     queryKey: ["declutter", "unanswered-questions", userId, ids.join(",")],
     queryFn: () => fetchUnansweredQuestions(ids),
-    enabled: mine.isSuccess,
+    // Only a member with a listing on sale can have a question waiting.
+    enabled: mine.isSuccess && ids.length > 0,
   });
   const titles = new Map(items.map((i) => [i.id, i.title]));
   const rows = (q.data ?? []).filter((r) => titles.has(r.item_id)).map((r) => ({ ...r, title: titles.get(r.item_id) ?? "" }));
-  return { rows, count: rows.length };
+  // Answered (an error is an answer: no count), so the tab row can wait for it and never re-wrap late.
+  const settled = !userId || mine.isError || (mine.isSuccess && (ids.length === 0 || !q.isLoading));
+  return { rows, count: rows.length, settled };
 }
 
 export function QuestionsToAnswer({ userId }: { userId: string }) {

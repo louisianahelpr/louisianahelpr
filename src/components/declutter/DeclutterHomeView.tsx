@@ -46,6 +46,7 @@ import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { OrdersUpdating } from "./OrdersUpdating";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
+import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
 import { HANDOVER_TITLE } from "./handoverCopy";
@@ -477,7 +478,9 @@ export default function DeclutterHome() {
   // painted would widen its tab and could re-wrap the row (Q?declutter-settle).
   // The same reads fill the Buying and Selling tabs, so those open filled.
   const { todo, settled: todoSettled } = useDeclutterTodo();
-  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled);
+  // Audit DC-9: the Selling badge counts what "To answer" counts, questions too (the chip's own cached read).
+  const questions = useUnansweredQuestions(user?.id);
+  const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled && questions.settled);
   const wantedOn = wanted.on;
   const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS_FREE);
   const asked = params.get("view");
@@ -525,7 +528,7 @@ export default function DeclutterHome() {
       }
       tabs={[
         { value: "buying", label: "Buying", count: todo?.buying },
-        { value: "selling", label: "Selling", count: todo?.selling },
+        { value: "selling", label: "Selling", count: todo ? todo.selling + questions.count : undefined },
         { value: "deliver", label: "Deliver" },
         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
         { value: "free", label: "Free" },

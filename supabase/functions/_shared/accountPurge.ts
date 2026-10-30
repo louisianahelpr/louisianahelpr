@@ -46,6 +46,7 @@ import { classifyMissingSubfolderBuckets, IDENTITY_BUCKETS, identitySubfolderPre
 import { caughtMessage } from "./caughtMessage.ts";
 import { recurringVisitDates } from "./recurringSchedule.ts";
 import { louisianaToday } from "./louisianaDate.ts";
+import { appleSignInKeyFromEnv, revokeAppleSignIn } from "./appleSignIn.ts";
 
 /**
  * Structural, not `SupabaseClient`.
@@ -1437,6 +1438,25 @@ async function removeMediaOfDeletedJobs(
  * its money rows stay for the other side, the party column goes NULL with the auth user). Fails closed: a deletion
  * never completes with the words still there. Not deployed yet (PGRST202) also stops the deletion, and is retried.
  */
+/**
+ * Q1791 (App Store Review 5.1.1(v)): revoke the member's Sign in with Apple
+ * token before the auth row goes, so Apple stops treating the app as linked.
+ * Recorded as a step but NOT part of the gate in purgeAccount: a deletion is
+ * the member's legal right, and refusing it because Apple's endpoint (or a
+ * missing key) is down would strand them; a failure logs loudly instead. The
+ * token row CASCADEs with the auth row either way, so no Apple token outlives
+ * the account.
+ */
+async function revokeAppleTokenIfAny(admin: PurgeCapableClient, userId: string, steps: PurgeStep[]): Promise<void> {
+  const out = await revokeAppleSignIn(admin, userId, appleSignInKeyFromEnv((n) => Deno.env.get(n)));
+  if (out.status === "failed") {
+    console.error(`[accountPurge] Apple token revoke failed for ${userId}: ${out.detail}`);
+    steps.push({ step: "apple_revoke", ok: false, detail: out.detail });
+    return;
+  }
+  steps.push({ step: "apple_revoke", ok: true, detail: out.status });
+}
+
 async function scrubDeclutterSales(admin: PurgeCapableClient, userId: string, steps: PurgeStep[]): Promise<boolean> {
   const { data, error }: PostgrestLike<Record<string, number>> = await admin.rpc("declutter_scrub_member", { p_user_id: userId });
   if (error) {
@@ -1487,6 +1507,8 @@ export async function purgeAccount(
   // of `purge_user_data` nulls — reversing these two lines turns the retention
   // into a silent no-op that returns 0 and no error. See retainBanIfAny.
   const banRetained = await retainBanIfAny(admin, userId, steps);
+  // Q1791: while the token row still exists (purgeDatabaseRows and the auth delete come after).
+  await revokeAppleTokenIfAny(admin, userId, steps);
   // Read BEFORE the RPC: purge_user_data DELETES some of this user's jobs, and
   // afterwards nothing names them (see collectDeletableJobs).
   const deletableJobs = await collectDeletableJobs(admin, userId, steps);

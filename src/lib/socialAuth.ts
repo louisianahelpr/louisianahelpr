@@ -63,7 +63,12 @@ export type SocialSignInResult =
  * came back without its pending marker; `idToken` is set on native, where the
  * same token is replayed after "I'm new here" instead of reopening the sheet.
  */
-export type AccountChoice = AccountChoiceRef & { provider: SocialProvider | null; idToken?: string };
+export type AccountChoice = AccountChoiceRef & {
+  provider: SocialProvider | null;
+  idToken?: string;
+  /** Q1791: iOS Apple only, the one-time code apple-token-store exchanges once the account exists. */
+  appleCode?: string | null;
+};
 
 /** Thrown inside the native path; never escapes signInWithProvider. */
 class AccountChoiceRequired extends Error {
@@ -156,7 +161,7 @@ function providerLabel(provider: SocialProvider): string {
 
 // Internal: the native sign-in path. Throws on any non-cancel failure so
 // the caller's catch can run friendlyProviderError + hapticError.
-async function nativeIdToken(provider: SocialProvider): Promise<string> {
+async function nativeIdToken(provider: SocialProvider): Promise<{ idToken: string; appleCode: string | null }> {
   await initSocialLogin();
   const options =
     provider === "apple"
@@ -168,16 +173,44 @@ async function nativeIdToken(provider: SocialProvider): Promise<string> {
   >[0]);
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error(`${providerLabel(provider)} sign-in returned no idToken`);
-  return idToken;
+  return { idToken, appleCode: provider === "apple" ? appleAuthorizationCode(result) : null };
+}
+
+/**
+ * Q1791: the one-time Apple authorization code, iOS only. The plugin runs in its
+ * default (legacy) token mode, where it does NOT spend the code itself and hands
+ * it back as accessToken.token; `authorizationCode` is read first in case that
+ * mode ever changes. The App ID is the client the code was issued to.
+ */
+function appleAuthorizationCode(result: unknown): string | null {
+  if (Capacitor.getPlatform() !== "ios") return null;
+  const r = result as { authorizationCode?: unknown; accessToken?: { token?: unknown } | null } | null;
+  const code = typeof r?.authorizationCode === "string" ? r.authorizationCode : r?.accessToken?.token;
+  return typeof code === "string" && code ? code : null;
+}
+
+/**
+ * Q1791: hand the code to apple-token-store, which trades it with Apple for the
+ * refresh token account deletion revokes (App Store Review 5.1.1(v)). Fire and
+ * forget: a failure never blocks sign-in, it is only reported.
+ */
+function storeAppleToken(appleCode: string | null): void {
+  if (!appleCode) return;
+  void supabase.functions
+    .invoke("apple-token-store", { body: { authorizationCode: appleCode, clientId: "com.Helpr" } })
+    .then(({ error }) => {
+      if (error) report(error, { severity: "warning", tags: { area: "auth", op: "appleTokenStore" } });
+    });
 }
 
 async function nativeSignIn(provider: SocialProvider): Promise<void> {
-  const idToken = await nativeIdToken(provider);
+  const { idToken, appleCode } = await nativeIdToken(provider);
   const { error } = await supabase.auth.signInWithIdToken({ provider, token: idToken });
   // Q446: the server refused to create an account nobody chose.
   const choice = error ? accountChoiceFrom(error) : null;
-  if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken });
+  if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken, appleCode });
   if (error) throw error;
+  storeAppleToken(appleCode);
 }
 
 /** The hook's refusal, read off a GoTrue error (any shape). */
@@ -315,6 +348,7 @@ export async function continueAsNewAccount(
     const { error: signInError } = await supabase.auth.signInWithIdToken({ provider, token: choice.idToken });
     if (!signInError) {
       setLastAuthMethod(provider);
+      storeAppleToken(choice.appleCode ?? null);
       return { kind: "success" };
     }
     // An expired token or a second refusal: start the native sheet over.
@@ -337,9 +371,11 @@ export async function continueAsNewAccount(
 export async function connectProvider(provider: SocialProvider): Promise<SocialSignInResult> {
   if (isSocialLoginPluginAvailable()) {
     try {
-      const token = await nativeIdToken(provider);
+      const { idToken: token, appleCode } = await nativeIdToken(provider);
       const { error: linkError } = await supabase.auth.linkIdentity({ provider, token });
       if (linkError) throw linkError;
+      // Q1791: an Apple identity linked here is revoked on deletion too.
+      storeAppleToken(appleCode);
       return { kind: "success" };
     } catch (err) {
       if (isCancelError(err)) return { kind: "cancelled" };

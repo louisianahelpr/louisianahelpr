@@ -56,11 +56,7 @@ const DEFAULT_CARD_SETTERS = ["supabase/functions/stripe-webhook/handlers/_walle
 // @two-way src/test/oneWalletStripeCustomer.test.ts:stale baseline entry ${f} — remove it (lower the baseline)
 const LEGACY_EMAIL_LOOKUP = [
   "supabase/functions/check-pro-subscription/index.ts",
-  "supabase/functions/create-bgc-payment/index.ts",
-  "supabase/functions/create-boost-payment/index.ts",
-  "supabase/functions/create-gift-card-checkout/index.ts",
   "supabase/functions/create-pro-checkout/index.ts",
-  "supabase/functions/pay-onboarding-fee/index.ts",
 ];
 
 const edgeFiles = (readdirSync(join(REPO, "supabase/functions"), { recursive: true }) as string[])

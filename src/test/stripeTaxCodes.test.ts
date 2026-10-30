@@ -30,7 +30,7 @@
  *      calculation that showed it standard_rated in Louisiana.
  *
  * @mutate supabase/functions/_shared/salesTax.ts | export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005"; | export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
- * @mutate supabase/functions/create-bgc-payment/index.ts | ...(customerId ? { customer_update: { address: "auto" as const } } : {}), | ...({}),
+ * @mutate supabase/functions/create-bgc-payment/index.ts |       customer_update: { address: "auto" as const },\n | \n
  * @mutate supabase/functions/create-payment/index.ts | tip.`, tax_code: NONTAXABLE_TAX_CODE }, | tip.` },
  * @mutate supabase/functions/calculate-tax/index.ts | tax_code: TAXABLE_LABOR_TAX_CODE, | tax_code: "txcd_20030000",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts |           tax_behavior: "exclusive",\n | \n

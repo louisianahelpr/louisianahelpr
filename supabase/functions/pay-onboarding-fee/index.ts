@@ -7,6 +7,7 @@ import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 /**
  * Settle the one-time account setup fee EARLY, on its own.
@@ -123,12 +124,15 @@ serve(async (req) => {
 
     // Stripe mode (owner 2026-10-12): a test account pays on the TEST key, everyone
     // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
+    const stripeMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+    const stripe = new Stripe(stripeSecretKeyFor(stripeMode), {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    const customerId = customers.data[0]?.id;
+    // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
+    // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
+    // found by email (an address can belong to someone else's old customer).
+    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     const metadata = {
       kind: "onboarding_fee",
@@ -143,7 +147,11 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create(
       {
         customer: customerId,
-        customer_email: customerId ? undefined : user.email,
+        // Q2084 (owner: never eat a fee): card only (Apple Pay and Google Pay ride on
+        // card), never the account default list (Klarna, Afterpay, Affirm, Cash App,
+        // Amazon Pay cost more than the card fee covers), and dollars only.
+        payment_method_types: ["card"],
+        adaptive_pricing: { enabled: false },
         line_items: [
           {
             price_data: {
@@ -172,7 +180,8 @@ serve(async (req) => {
       // Per user, not per attempt: a double tap reopens the same session
       // instead of creating a second chargeable one.
       // Q2352: and per return path, since the page's return URLs differ (lh-money-escrow review #3).
-      { idempotencyKey: toDeclutter ? `onboarding-fee:${user.id}:declutter_selling` : `onboarding-fee:${user.id}` },
+      // v2: the wallet customer and payment methods changed the request (Q2084).
+      { idempotencyKey: toDeclutter ? `onboarding-fee:v2:${user.id}:declutter_selling` : `onboarding-fee:v2:${user.id}` },
     );
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -181,6 +190,10 @@ serve(async (req) => {
     });
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
+    if (error instanceof StripeCustomerUnavailable) {
+      console.error(`[pay-onboarding-fee] ${error.message}`);
+      return fail(503, "Something went wrong starting that payment. Please try again.");
+    }
     console.error("[pay-onboarding-fee] error:", error);
     return fail(500, "Something went wrong starting that payment. Please try again.");
   }

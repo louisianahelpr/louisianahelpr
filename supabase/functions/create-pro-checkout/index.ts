@@ -244,6 +244,10 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isOneTime ? "payment" : "subscription",
+      // Q2084 (owner: never eat a fee): card only (Apple Pay and Google Pay ride on
+      // card), never the account default list (Klarna, Afterpay, Affirm, Cash App,
+      // Amazon Pay cost more than the card fee covers), and dollars only.
+      payment_method_types: ["card"],
       success_url: buildRedirectUrl(`/profile?pro=success`, isNative),
       cancel_url: buildRedirectUrl(`/profile?pro=cancel`, isNative),
       // Stamp the buyer's user_id so the webhook can grant the tier by primary
@@ -277,6 +281,10 @@ serve(async (req) => {
       // existing customer, so it is applied conditionally below.
     };
     if (customerId) sessionParams.customer_update = { address: "auto" };
+    // Dollars only (Q2084). Set on the one-time purchase only: Adaptive Pricing
+    // on a SUBSCRIPTION session is not proven in Stripe TEST mode, and an
+    // unaccepted parameter would refuse every membership checkout.
+    if (isOneTime) sessionParams.adaptive_pricing = { enabled: false };
 
     if (!isOneTime) {
       sessionParams.subscription_data = subscriptionData;

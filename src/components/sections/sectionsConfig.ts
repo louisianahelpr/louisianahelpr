@@ -1,4 +1,5 @@
 import { Briefcase, Sofa, Store, KeyRound, type LucideIcon } from "lucide-react";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
 /**
  * The four sections (owner final decisions, 2026-10-19). One list for the
@@ -25,7 +26,7 @@ export interface SectionDef {
 
 export const SECTIONS: readonly SectionDef[] = [
   { key: "jobs", label: "Jobs", navLabel: "Jobs", path: "/jobs", icon: Briefcase, feature: null, add: { label: "Post a job", path: "/post-job" } },
-  { key: "declutter", label: "Declutter", navLabel: "Declutter", path: "/declutter", icon: Sofa, feature: "declutter", add: { label: "Sell an item", path: "/declutter/sell" } },
+  { key: "declutter", label: "Declutter", navLabel: "Declutter", path: "/declutter", icon: Sofa, feature: "declutter", add: { label: "Sell an item", path: SELL_CHOOSER_PATH } },
   { key: "shops", label: "Shops", navLabel: "Shops", path: "/shops", icon: Store, feature: "shops", add: { label: "Add an item or open a shop", path: "/shops/mine", cta: "Open a shop" } },
   { key: "homes", label: "Homes", navLabel: "Homes", path: "/rentals", icon: KeyRound, feature: "rentals", add: { label: "Add a property", path: "/rentals?tab=own&add=1" } },
 ];

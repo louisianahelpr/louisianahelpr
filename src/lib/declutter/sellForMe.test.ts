@@ -4,7 +4,7 @@
  * name. The title must fit public.jobs' 32-character cap (Q782) and the
  * description must carry the no-account-access promise.
  *
- * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph, list and sell all of my items";
+ * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Help me list my things to sell"; | const SELL_FOR_ME_TITLE = "Help me list all of my things to sell";
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -25,7 +25,7 @@ describe("sell it for me", () => {
   it("prefills a Declutter Help job whose title fits the jobs cap and whose description promises no account access", () => {
     const p = buildSellForMePrefill();
     expect(p.category).toBe("declutter_help");
-    expect(p.title).toBe("Photograph and list my items");
+    expect(p.title).toBe("Help me list my things to sell");
     expect(p.title.length).toBeLessThanOrEqual(32);
     expect(p.description.length).toBeLessThan(1000);
     expect(p.description.endsWith(SELL_FOR_ME_NO_ACCOUNT_LINE)).toBe(true);

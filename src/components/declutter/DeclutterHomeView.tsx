@@ -37,7 +37,7 @@ import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { Boxes, ChevronRight } from "lucide-react";
+import { ChevronRight, Tags } from "lucide-react";
 import { PickupTimesCard } from "./DeclutterPickupTimes";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
@@ -52,8 +52,7 @@ import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SellItForMeEntry } from "./SellItForMe";
-import { SellBunchEntry } from "./DeclutterBunchEntry";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -395,13 +394,11 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         listings={
           <div className="space-y-6">
             <MyListingsView userId={userId} haulOn={haulOn} />
-            {/* Owner 2026-10-28: the extra ways to sell as proper rows in one card, not loose grey pills. */}
-            <section className="space-y-2" aria-label="More ways to sell" data-sell-more="">
-              <SectionHeading title="More ways to sell" />
-              <div className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
-                <SellBunchEntry />
-                <SellItForMeEntry grouped />
-                <MovingOutEntry on={movingOutOn} />
+            {/* Owner 2026-10-30: "More ways to sell" is ONE row that opens "What do you want to sell?" (the chooser holds
+                every way: a bunch, a moving out sale, free, a Helpr lists it, a Wanted), never a second list of them. */}
+            <section aria-label="More ways to sell" data-sell-more="">
+              <div className="overflow-hidden rounded-[20px] border border-border bg-card">
+                <SellChooserEntry movingOutOn={movingOutOn} />
               </div>
             </section>
           </div>
@@ -425,19 +422,19 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   );
 }
 
-/** Moving-out mode's way in (docs/specs/declutter-moving-out.md), only while its switch is on: a row in "More ways to sell". */
-function MovingOutEntry({ on }: { on: boolean }) {
-  if (!on) return null;
+/** "More ways to sell" (owner 2026-10-30): one row to the sell chooser, its line naming what is in it for this viewer. */
+function SellChooserEntry({ movingOutOn }: { movingOutOn: boolean }) {
+  const ways = movingOutOn ? "A bunch at once, a moving out sale, free, or a Helpr lists it" : "A bunch at once, free, or a Helpr lists it";
   return (
     <Link
-      to="/declutter/move"
-      aria-label="Moving out sale: photograph each room and list everything at once"
+      to={SELL_CHOOSER_PATH}
+      data-sell-chooser-entry=""
       className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
-      <Boxes className="h-5 w-5 shrink-0" aria-hidden />
+      <Tags className="h-5 w-5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">Moving out sale</span>
-        <span className="block text-xs text-muted-foreground">Photograph each room and list everything at once</span>
+        <span className="block text-sm font-semibold">More ways to sell</span>
+        <span className="block text-xs text-muted-foreground">{ways}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>

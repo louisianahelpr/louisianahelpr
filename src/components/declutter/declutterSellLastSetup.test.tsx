@@ -13,12 +13,16 @@
  * The Keep it up card says one line for its current setting (lead 2026-10-30; describe block at the bottom).
  * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(false)}</span>
  * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span><span className="block text-ds-13 text-muted-foreground">It renews every 30 days until someone buys it.</span>
+ * The sell chooser's "Give it away free" (?free=1, owner 2026-10-30) starts a new listing as Free (describe block at the bottom).
+ * @mutate src/components/declutter/useSellFlowState.ts | useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY)) | useState<FormState>(EMPTY)
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { EMPTY } from "./sellForm";
 
 const NEW_ID = "0f0e0d0c-0b0a-4908-8706-0504030201bb";
@@ -81,12 +85,12 @@ import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { applyLastSetup } from "./SellLastSetup";
 
-function open() {
+function open(url = "/declutter/sell") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={["/declutter/sell"]}>
+      <MemoryRouter initialEntries={[url]}>
         <Routes><Route path="/declutter/sell" element={<DeclutterSellPage />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -169,5 +173,31 @@ describe("the new listing's Keep it up card", () => {
     fireEvent.click(screen.getByRole("switch", { name: "Keep it up until it sells" }));
     await waitFor(() => expect(card.getAttribute("data-keep-up")).toBe("on"));
     expect(lines()).toEqual(["On. It renews every 30 days until someone buys it, with no reminders."]);
+  });
+});
+
+// The sell chooser's "Give it away free" (owner 2026-10-30): /declutter/sell?free=1 is the same one screen with Free
+// already on, and Post lists it at price 0. Without the param a new listing is priced as before (the tests above).
+describe("Give it away free (?free=1)", () => {
+  beforeEach(() => {
+    drafts.length = 0;
+    last.value = LAST;
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it("starts with Free on and posts at price 0, even after Claude suggests a price", async () => {
+    open("/declutter/sell?free=1");
+    await addPhotoAndWait();
+    expect(document.querySelector("[data-sell-free-note]")).not.toBeNull();
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(drafts).toHaveLength(1));
+    expect(drafts[0]).toMatchObject({ priceCents: 0 });
+  });
+
+  it("a saved draft (?item=) is never switched to Free by the param", () => {
+    const src = readFileSync(join(process.cwd(), "src/components/declutter/useSellFlowState.ts"), "utf8");
+    expect(src).toMatch(/!urlItemId && startsFree\(params\)/);
   });
 });

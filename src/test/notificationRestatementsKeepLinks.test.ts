@@ -155,6 +155,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // unchanged (nothing gone; held in v_link so the email links the same place);
   // the only addition is the send-notification-email URL the new email posts to.
   "20261030150631_message_email_throttle_mute.sql::notify_message_recipient",
+  // UX-3 (Q2484 follow-up, 2026-10-30): notify_on_application keeps every link it had (nothing gone); the
+  // only addition is the new job-filled notice to the other applicants, linking the Browse feed filtered to
+  // the job's category ('/jobs?tab=browse' || CASE ... '&cat=' ...).
+  "20261030150630_applicant_nudges_and_filled_notice.sql::notify_on_application",
 ]);
 
 /**

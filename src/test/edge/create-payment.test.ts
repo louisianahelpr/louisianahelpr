@@ -1757,7 +1757,8 @@ describe("create-payment edge function", () => {
     it("the approval notice promises the figure after a setup fee still owed", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = { rows: [bothDoneRow()] };
-      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: false }] };
+      // Pro is 10%, the rate the $90 notice below falls back to. A row with no tier reads as free (12%): $88 - $2 = $86.
+      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: false, subscription_tier: "pro", subscription_expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }] };
       scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
       await releaseAs();
       const toHelper = notes().filter((n) => n.user_id === HELPER.id);

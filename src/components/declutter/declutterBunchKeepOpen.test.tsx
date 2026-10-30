@@ -42,10 +42,11 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/bunch")>();
   return {
     ...real,
-    groupPhotos: async (photos: { key: string }[]) => ({
-      items: photos.map((p, i) => ({ key: `i${i}`, photoKeys: [p.key], title: `Thing ${i}`, description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "40" } as BunchItem)),
-      failed: [],
-    }),
+    groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
+      const items = photos.map((p, i) => ({ key: `i${i}`, photoKeys: [p.key], title: `Thing ${i}`, description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "40" } as BunchItem));
+      onProgress(1, 1, items);
+      return { items, failed: [], unusable: [] };
+    },
     listBunch: () => h.listResult!(),
   };
 });
@@ -128,7 +129,7 @@ describe("a long run is honest and keeps going", () => {
     expect(screen.getByText("Thing 1", { selector: "[data-bunch-failed] span" }).closest("li")?.textContent).toContain("saved as a draft under Selling");
     const cards = document.querySelectorAll("[data-bunch-item]");
     expect(cards).toHaveLength(1);
-    expect(within(cards[0] as HTMLElement).getAllByRole("img")).toHaveLength(1);
+    expect(within(cards[0] as HTMLElement).getAllByRole("button", { name: /, photo \d+$/ })).toHaveLength(1);
   });
 });
 

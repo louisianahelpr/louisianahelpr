@@ -5,7 +5,7 @@
  * @mutate src/lib/declutter/bunch.ts |     const price = suggestedPrice(it.priceDollars); |     const price = "";
  * @mutate src/lib/declutter/bunch.ts |   const theirs = it.price.trim() !== "" && it.price !== it.aiPrice; |   const theirs = false;
  * @mutate src/lib/declutter/bunch.ts | invokeAiBody(at ? { mode: "group", photos, at } : { mode: "group", photos }, GROUP_TIMEOUT_MS) | invokeAiBody({ mode: "group", photos }, GROUP_TIMEOUT_MS)
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       const res = await groupPhotos(added, (done, total) => setSorting({ done, total }), (batch) => askGroup(batch, at)); |       const res = await groupPhotos(added, (done, total) => setSorting({ done, total }), (batch) => askGroup(batch, null));
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       }, (batch) => askGroup(batch, at)); |       }, (batch) => askGroup(batch, null));
  * @mutate src/components/declutter/DeclutterBunchView.tsx | .filter(Boolean), await hintPoint()); | .filter(Boolean));
  * @mutate src/components/declutter/DeclutterBunchView.tsx | flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) } | flagged: d.flagged !== false }
  */

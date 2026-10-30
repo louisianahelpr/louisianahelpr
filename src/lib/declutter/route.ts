@@ -39,6 +39,20 @@ export function routeMapsUrl(stops: AddressedStop[]): { href: string; count: num
   };
 }
 
+/**
+ * Audit 1c D3-2: helpr_route_plan gives pickups joined into one visit the same seq (same point, the later pickup's window
+ * already open). One visit is one card, one pin, and counts once.
+ */
+export function routeVisits<S extends { seq: number }>(stops: S[]): S[][] {
+  const visits: S[][] = [];
+  for (const s of stops) {
+    const last = visits[visits.length - 1];
+    if (last && last[0].seq === s.seq) last.push(s);
+    else visits.push([s]);
+  }
+  return visits;
+}
+
 export interface LatLng {
   lat: number;
   lng: number;

@@ -238,6 +238,17 @@ export async function fetchTaskPickupWindows(taskId: string): Promise<{ windows:
   return { windows: rows.map(({ weekday, starts, ends }) => ({ weekday, starts, ends })), latestPickupAt: rows[0]?.latest_pickup_at ?? null };
 }
 
+/**
+ * The caller's own coming pickup at this OPEN delivery's seller and place (helpr_task_same_pickup_slot, 20261030152601),
+ * when this delivery can use that time too: booking it makes one visit (audit 1c D3-2). Null when none, or before that
+ * read is deployed.
+ */
+export async function fetchSamePickupSlot(taskId: string): Promise<string | null> {
+  const res = await supabase.rpc("helpr_task_same_pickup_slot", { p_task_id: taskId });
+  if (res.error && isMissingRpcNamed(res.error, "helpr_task_same_pickup_slot")) return null;
+  return data<string | null>(res, (e) => rpcErrorMessage("helpr_task_same_pickup_slot", e));
+}
+
 /** Take a task with a 30-minute pickup time (inside the source's pickup times). */
 export async function acceptTask(taskId: string, pickupSlotStartIso: string): Promise<void> {
   data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => rpcErrorMessage("helpr_task_accept", e));

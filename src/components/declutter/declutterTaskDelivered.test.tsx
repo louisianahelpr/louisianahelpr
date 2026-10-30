@@ -1,11 +1,11 @@
 /**
  * The Helpr's card after the drop-off (Declutter deep audit #40, 2026-10-28; still open in audit 3,
  * a3-44-helpr-dropoff-p1-390): once the drop-off photo was in and "Left at the door" sent, the card said nothing
- * until the buyer confirmed: no "Delivered, waiting for the buyer" line. It now says so, and both photo steps
- * say they worked with a toast.
+ * until the buyer confirmed: no "Delivered, waiting for the buyer" line. It now says so. The toasts of both photo steps
+ * are in deliveryRoute.test.tsx (the steps live on the route's stop card, audit 1c D3-9).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = vi.hoisted(() => ({
@@ -61,7 +61,6 @@ const VIEW = {
   pickup_address: "1234 Example St", pickup_lat: null, pickup_lng: null, dropoff_address: "900 Far Rd", dropoff_lat: null,
   dropoff_lng: null, pickup_photo_path: null, dropoff_photo_path: null,
 };
-const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg" });
 
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -83,22 +82,5 @@ describe("the Helpr's card after the drop-off (deep audit #40)", () => {
     expect(line).toHaveAttribute("role", "status");
     // No photo step is offered again.
     expect(screen.queryByRole("button", { name: "Left at the door" })).toBeNull();
-  });
-
-  it("the drop-off photo and Left at the door end in a toast that says what happens next", async () => {
-    state.mine = [{ ...TASK, status: "picked_up" }];
-    state.view = { ...VIEW, status: "picked_up" };
-    show();
-    fireEvent.change(await screen.findByLabelText("Photo at the drop-off address"), { target: { files: [jpeg()] } });
-    fireEvent.click(screen.getByRole("button", { name: "Left at the door" }));
-    await waitFor(() => expect(state.toasts).toContain("Left at the door. You're paid when the buyer confirms, or after 24 hours."));
-  });
-
-  it("the pickup photo ends in a toast", async () => {
-    state.mine = [{ ...TASK, status: "accepted" }];
-    state.view = { ...VIEW, status: "accepted" };
-    show();
-    fireEvent.change(await screen.findByLabelText(/Photo of the item when you pick it up/), { target: { files: [jpeg()] } });
-    await waitFor(() => expect(state.toasts).toContain("Picked up. The buyer is told it's on the way."));
   });
 });

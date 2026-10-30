@@ -101,7 +101,7 @@ export function DeliveryRoute({ userId, where }: { userId: string; where: { lat:
         </p>
       </div>
       <Suspense fallback={<div className="h-64 w-full rounded-2xl bg-muted" aria-hidden />}>
-        <DeliveryRouteMap stops={stops} userId={userId} />
+        <DeliveryRouteMap stops={stops} />
       </Suspense>
       {maps && (
         <div className="space-y-1">
@@ -113,7 +113,7 @@ export function DeliveryRoute({ userId, where }: { userId: string; where: { lat:
           <p className="text-ds-12 text-muted-foreground">
             For spoken turn-by-turn. {maps.left_out > 0
               ? `Opens the next ${maps.count} ${maps.count === 1 ? "stop" : "stops"}; the rest join once those are done.`
-              : `Opens all ${maps.count} ${maps.count === 1 ? "stop" : "stops"} in this order.`}
+              : maps.count === 1 ? "Opens the stop." : `Opens all ${maps.count} stops in this order.`}
             {stops.some((s) => s.kind === "dropoff" && !s.address) && " A drop-off joins once its address shows, 2 hours before its pickup."}
           </p>
         </div>

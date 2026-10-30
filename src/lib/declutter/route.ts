@@ -22,8 +22,12 @@ export const MAX_MAPS_STOPS = 4;
 
 export function routeMapsUrl(stops: AddressedStop[]): { href: string; count: number; left_out: number } | null {
   const addressed = stops.map((s) => s.address?.trim() ?? "").filter((a) => a.length > 0);
-  if (addressed.length === 0) return null;
-  const trip = addressed.slice(0, MAX_MAPS_STOPS);
+  // Audit 1c D3-2: two pickups at one seller (with the drop-off between them hidden) were sent as destination AND
+  // waypoint, "900 North 3rd Street" twice. A stop is never repeated back to back (case and spacing ignored).
+  const same = (a: string, b: string) => a.toLowerCase().replace(/\s+/g, " ") === b.toLowerCase().replace(/\s+/g, " ");
+  const unique = addressed.filter((a, i) => i === 0 || !same(a, addressed[i - 1]));
+  if (unique.length === 0) return null;
+  const trip = unique.slice(0, MAX_MAPS_STOPS);
   const destination = trip[trip.length - 1];
   const waypoints = trip.slice(0, -1);
   const params = [`api=1`, `destination=${encodeURIComponent(destination)}`, `travelmode=driving`];
@@ -31,7 +35,7 @@ export function routeMapsUrl(stops: AddressedStop[]): { href: string; count: num
   return {
     href: `https://www.google.com/maps/dir/?${params.join("&")}`,
     count: trip.length,
-    left_out: addressed.length - trip.length,
+    left_out: unique.length - trip.length,
   };
 }
 

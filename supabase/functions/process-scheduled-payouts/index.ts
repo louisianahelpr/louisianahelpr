@@ -23,6 +23,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
@@ -106,7 +107,7 @@ serve(async (req) => {
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, poster_fee_flat_cents, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, poster_fee_flat_cents, is_seed, payout_scheduled_at")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       // Never pay out a job under dispute. A CREW whose dispute CLOSED
@@ -1505,6 +1506,7 @@ serve(async (req) => {
         });
         if (live.held) {
           results.push({ job_id: job.id, status: "payee_not_payable", gate: live.kind, reason: live.reason });
+          await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: payDelayWhyForGate(live.kind), source: "process-scheduled-payouts" });
           // A read that failed for an unknown reason is worth a red run; a
           // known not-payable account or a refused platform is a held payout,
           // already told to ops.
@@ -2093,6 +2095,8 @@ serve(async (req) => {
         // Un-claim the onboarding fee if THIS job claimed it — no money moved,
         // so the fee was never collected and the flag must not say it was.
         await rollBackOnboardingFeeClaim();
+
+        await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: "sending", source: "process-scheduled-payouts" });
 
         await postSlackOpsAlert({
           kind: "payout_failed",

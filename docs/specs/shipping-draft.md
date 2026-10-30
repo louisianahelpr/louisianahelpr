@@ -25,6 +25,29 @@ Every price below was read from the source named beside it on **2026-10-20 betwe
    Section 10 stays as the design for then.
 8. **Small only**: Declutter size `small`; Shops items the maker marks shippable; cottage food never.
 
+## Decided 2026-10-29 (owner, relayed by the lead 2026-10-30 ~00:40Z)
+9. **Seller-paid shipping.** A seller may tick "I'll pay shipping" on a listing: the item shows "Free shipping",
+   the buyer pays $0 shipping, and the label cost comes out of the seller's payout at label purchase. The buyer's fee
+   is then F1 on items only (shipping_cents = 0 on the order), which already covers the card fee on every order
+   (5.1: margin = 0.01955 I + 37.97c US, 0.0038 I + 36.92c international); the S2 PGlite fee sweep proves it for
+   every items amount up to $20,000. The label is bought only when it fits inside the seller's payout for that
+   order (a label dearer than the items is refused before buying, never a debt by surprise). Money: lh-money-escrow.
+10. **Bundles ship on ONE label.** Several items from the same seller in one cart are one order and one parcel:
+    weight = sum of the items' preset weights + the box, dimensions of the combined box (review fix 15 already said
+    one parcel per order); never one label per item.
+11. **Cheapest automatically.** Weight tiers, with "Under 4 oz ships cheapest" on the seller's form; USPS Cubic
+    requested whenever the parcel qualifies (under 20 lb and up to 1 cubic foot: ship-rates always sends the box
+    dimensions); USPS Connect Local only if EasyPost supports it (4.2: not found in any EasyPost doc; checked
+    against the live carrier list once ship-rates can quote).
+12. **Local first.** On the item page and at checkout, free porch pickup or a meetup is shown ABOVE shipping when the
+    buyer is close enough; shipping is the fallback.
+13. **At most 3 options, cheapest first and pre-selected; never air or overnight.** Filtered by carrier and service
+    in ship-rates (server), never in the client. Owner's own test quote in the EasyPost dashboard (lead, 00:40Z):
+    USPS Ground Advantage $6.15, UPS Ground $7.60, USPS Priority $8.01, FedEx/UPS air up to $107. So the allowed set
+    is USPS Ground Advantage (incl. cubic), USPS Priority (the one faster option) and UPS Ground; Express, air and
+    overnight services are dropped.
+- Note: the EasyPost label fee is $0 for the first 3,000 labels a month; members pay only the postage, with no markup.
+
 ## 1. What exists today (read from origin/main e20c7a205)
 - Declutter handover modes: `declutter_orders.handover IN ('pickup_home','porch','delivery')`
   (20261017055505). Spec row 24 says "Shipping NOT at launch"; terms draft line 76 says shipping is

@@ -4,7 +4,6 @@
  * @mutate src/lib/declutter/pickupWords.ts |   if (ways.includes("porch")) return "porch"; |   if (ways.length) return "porch";
  * @mutate src/lib/declutter/pickupWords.ts | way === "none" ? "before delivery" : "with pickup"; | "with pickup";
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | At most, {totalPhrase(way)}. | At most, with pickup.
- * @mutate src/components/declutter/DeclutterReserveSheet.tsx | Total {totalPhrase(way)}</dt> | Total with pickup</dt>
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | pendingClassName="font-normal" /> {forPhrase(way)}</> | pendingClassName="font-normal" /> for pickup</>
  */
 import { describe, expect, it } from "vitest";
@@ -28,10 +27,10 @@ describe("DB-4: the plain total names a way the seller offers", () => {
     expect(forPhrase(noDeliveryWay(["delivery"]))).toBe("before delivery");
   });
 
-  it("no buyer total line on the item page hard-codes \"with pickup\" / \"for pickup\" any more (floor: 3 files read)", () => {
-    const files = ["DeclutterOfferPanel.tsx", "DeclutterReserveSheet.tsx", "OfferSentWhatNext.tsx"]
+  it("no buyer total line on the item page hard-codes \"with pickup\" / \"for pickup\" any more (floor: 2 files read; the Reserve sheet is gone, DB-5)", () => {
+    const files = ["DeclutterOfferPanel.tsx", "OfferSentWhatNext.tsx"]
       .map((f) => blankComments(readFileSync(`src/components/declutter/${f}`, "utf8")));
-    expect(files.filter((s) => s.length > 500)).toHaveLength(3);
+    expect(files.filter((s) => s.length > 500)).toHaveLength(2);
     for (const s of files) expect(s).not.toMatch(/(Total|At most,) with pickup|\/> for pickup/);
   });
 });

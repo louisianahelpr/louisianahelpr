@@ -65,8 +65,12 @@ vi.mock("@/hooks/useUserLocation", () => ({
   getCachedUserLocation: () => null,
   deriveFallbackLocation: async () => null,
 }));
-const geocode = vi.fn(async () => ({ latitude: 1, longitude: 1 }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: () => geocode() }));
+const geocode = vi.fn(async (): Promise<unknown> => ({ status: "exact", lat: 1, lng: 1 }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: () => geocode() }));
+const here = vi.hoisted(() => ({ fn: vi.fn() }));
+vi.mock("@/lib/declutter/position", () => ({ currentPosition: here.fn }));
+const analyticsTrack = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics", () => ({ track: analyticsTrack }));
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
@@ -134,6 +138,7 @@ describe("a new listing remembers the last listing's setup", () => {
     drafts.length = 0;
     last.value = LAST;
     geocode.mockClear();
+    geocode.mockResolvedValue({ status: "exact", lat: 1, lng: 1 });
     vi.mocked(api.setHandovers).mockClear();
     URL.createObjectURL = vi.fn(() => "blob:preview");
     URL.revokeObjectURL = vi.fn();
@@ -159,6 +164,29 @@ describe("a new listing remembers the last listing's setup", () => {
     // The remembered point is used as is: the address is not looked up again.
     expect(geocode).not.toHaveBeenCalled();
     expect(drafts[0]).toMatchObject({ areaLabel: LAST.areaLabel, pickupAddress: LAST.pickup!.address, pickupLat: 30.45, pickupLng: -91.15 });
+  });
+
+  // The owner's real address "couldn't be found" (2026-10-30): the house isn't on the map, but the town is. Nothing saves
+  // on the town's point; the seller's own position at the address does, and the address they typed is what's kept.
+  it("a house the map doesn't know: no draft on the area's point, then their location makes the listing", async () => {
+    geocode.mockResolvedValue({ status: "approximate", lat: 30.5, lng: -92.1, precision: "town" });
+    here.fn.mockResolvedValue({ lat: 30.51, lng: -92.11 });
+    const TYPED = "101 Sample Bayou Rd, Exampleville, LA 70000";
+    open();
+    await addPhotoAndWait();
+    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: TYPED } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    const share = await screen.findByRole("button", { name: "I'm at this address, use my location" });
+    expect(drafts).toHaveLength(0);
+    fireEvent.click(share);
+    await waitFor(() => expect(analyticsTrack).toHaveBeenCalledWith("address_location_used", {}));
+    expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(drafts).toHaveLength(1));
+    expect(drafts[0]).toMatchObject({ pickupAddress: TYPED, pickupLat: 30.51, pickupLng: -92.11 });
   });
 
   it("no earlier listing: the form starts as before, with no note", async () => {

@@ -234,6 +234,11 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutSetupHire.ts";`,
   );
 
+  // geocode-address (2026-10-30): the REAL lookup; it imports only ./addressMatch.ts, which has no imports.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/geocodeAddressPoint\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/geocodeAddressPoint.ts";`,
+  );
   // Drop-off geocoder (Declutter slice 5): `_shared/geocodeDropoff.ts` has ZERO
   // imports and calls the global `fetch` at call time, so the REAL module serves
   // and each test stubs fetch (Nominatim is never reached).
@@ -1028,6 +1033,11 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/featureSwitch.ts";`,
   );
 
+  // geocode-address (2026-10-30): the REAL lookup; it imports only ./addressMatch.ts, which has no imports.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/geocodeAddressPoint\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/geocodeAddressPoint.ts";`,
+  );
   // Drop-off geocoder (Declutter slice 5): `_shared/geocodeDropoff.ts` has ZERO
   // imports and calls the global `fetch` at call time, so the REAL module serves
   // and each test stubs fetch (Nominatim is never reached).

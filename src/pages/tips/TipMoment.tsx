@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Gift } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { tipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 const MONEY = { color: "hsl(var(--sienna-ink))" };
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -99,7 +100,7 @@ export default function TipMoment() {
       {isHelpr && (
         <section aria-label="This job's pay" className="liquid-glass p-card flex flex-col gap-1.5 mt-2">
           {jobCents != null && (
-            <div className="flex justify-between text-ds-14"><span>{paidCents != null ? "Job, paid to you" : "Job, you take home"}</span><span className="font-semibold" style={MONEY}>{dollars(jobCents)}</span></div>
+            <div className="flex justify-between text-ds-14"><span>{paidCents != null ? "Job, paid to you" : isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home"}</span><span className="font-semibold" style={MONEY}>{dollars(jobCents)}</span></div>
           )}
           <div className="flex justify-between text-ds-14"><span>Tip (100%)</span><span className="font-semibold" style={MONEY}>{dollars(tipCents)}</span></div>
           {jobCents != null && (

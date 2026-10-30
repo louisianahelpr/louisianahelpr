@@ -308,6 +308,19 @@ describe("process-scheduled-payouts edge function", () => {
       });
     }
 
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (!isGiveawayFixedPayJob(job)) {\n        const take = await takeHelprFaultFee( |       {\n        const take = await takeHelprFaultFee(
+    it("the giveaway: a Helpr-fault debt waits for the next payout, the transfer stays $50", async () => {
+      seedPayableJob(scenario, {
+        job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },
+        profile: { onboarding_fee_paid: true },
+      });
+      scenario.rpc.take_helpr_fault_fee = 340;
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe(5000);
+      expect((scenario.rpcCalls ?? []).filter((c) => c.name === "take_helpr_fault_fee")).toHaveLength(0);
+    });
+
     it("the giveaway: a failed transfer un-claims the fee, so the retry claims it once and still sends $50", async () => {
       seedPayableJob(scenario, {
         job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },

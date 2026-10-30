@@ -678,6 +678,17 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(tab(/^Selling/).textContent).toBe("Selling");
   });
 
+  // Audit posting 1030 #11: on a phone the Selling tab had no way to sell.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
+  it("Selling offers Sell an item straight to the photo screen, and one line to the other ways", async () => {
+    state.mine = [ITEM];
+    at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    const row = document.querySelector("[data-selling-sell]")!;
+    expect(within(row as HTMLElement).getByRole("link", { name: "Sell an item" })).toHaveAttribute("href", "/declutter/sell");
+    expect(within(row as HTMLElement).getByRole("link", { name: "Free, a bunch, or moving out?" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+  });
+
   it("old link ?view=mine opens Selling and the address becomes ?tab=selling", async () => {
     state.mine = [ITEM];
     at("/declutter?view=mine");

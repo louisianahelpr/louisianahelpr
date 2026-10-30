@@ -43,6 +43,10 @@ export function SellPhotos({
   uploading,
   heldFailed = false,
   refusedNote = null,
+  onMakeCover,
+  coverUndo = null,
+  free = false,
+  tipDone = false,
   aiPanel,
 }: {
   uploaded: DeclutterPhoto[];
@@ -56,6 +60,13 @@ export function SellPhotos({
   heldFailed?: boolean;
   /** Photos that couldn't be added, by name and why. */
   refusedNote?: string | null;
+  /** A held photo becomes the cover. */
+  onMakeCover?: (index: number) => void;
+  /** The AI moved the cover: says so, and this puts it back. */
+  coverUndo?: (() => void) | null;
+  free?: boolean;
+  /** The listing is written: the photo tip has done its work. */
+  tipDone?: boolean;
   /** Claude's listing panel (SellAiDraftPanel), once there is a photo. */
   aiPanel: ReactNode;
 }) {
@@ -98,6 +109,11 @@ export function SellPhotos({
               </span>
             ) : uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
+            {onMakeCover && !heldFailed && uploaded.length + i > 0 && (
+              <button type="button" onClick={() => onMakeCover(i)} aria-label={`Make photo ${uploaded.length + i + 1} the cover`} className="min-h-11 w-full text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
+                Make cover
+              </button>
+            )}
           </li>
         ))}
         {addTile}
@@ -106,14 +122,20 @@ export function SellPhotos({
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
       </p>
+      {coverUndo && (
+        <p className="text-ds-13 text-foreground" data-cover-moved="">
+          We picked the best photo for the cover.{" "}
+          <button type="button" onClick={coverUndo} className="min-h-11 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Undo</button>
+        </p>
+      )}
       {refusedNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink [overflow-wrap:anywhere]" data-photo-refused="">{refusedNote}</p>}
       {aiPanel}
-      <div className="rounded-[20px] border border-border bg-card p-4">
-        <p className="text-ds-15 font-semibold text-foreground">Photos that sell</p>
+      {!tipDone && <div className="rounded-[20px] border border-border bg-card p-4">
+        <p className="text-ds-15 font-semibold text-foreground">{free ? "Good photos" : "Photos that sell"}</p>
         <p className="mt-1 text-ds-14 text-muted-foreground">
           Daylight, a plain background, and one close-up of any wear. Take your own. Location data is removed from every photo before it's uploaded.
         </p>
-      </div>
+      </div>}
     </div>
   );
 }

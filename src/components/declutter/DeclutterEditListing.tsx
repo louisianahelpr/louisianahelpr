@@ -31,10 +31,12 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
   const [attested, setAttested] = useState(false);
   useEffect(() => { if (saved.data) setWays(saved.data); }, [saved.data]);
   const free = item.price_cents === 0;
+  // DC-4: an older listing may still carry a stored 'delivery' tick; it is not a choice any more, so it is not sent.
+  const sentWays: SellerHandover[] = free ? ["porch"] : ways.filter((w) => w !== "delivery");
   // The same rule the server runs, so the seller knows before saving (the server decides).
   const big = title.trim() !== item.title || description.trim() !== item.description || category !== item.category;
   const save = useMutation({
-    mutationFn: () => editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: free ? ["porch"] : ways }),
+    mutationFn: () => editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: sentWays }),
     onSuccess: (status) => {
       toast.success(status === "pending_review" ? "Saved. It's back in review, and we'll tell you when it's live again." : "Saved.");
       for (const key of [["declutter", "mine"], ["declutter", "item", item.id], ["declutter", "handovers", item.id], ["declutter", "item-handovers", item.id]]) {
@@ -44,7 +46,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const ready = attested && title.trim().length >= 3 && (free || ways.length > 0) && !save.isPending;
+  const ready = attested && title.trim().length >= 3 && sentWays.length > 0 && !save.isPending;
   return (
     <form className="space-y-4" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); }}>
       {/* Lead 2026-10-29: photo edits on a live listing wait for the photo functions (Q2476). */}

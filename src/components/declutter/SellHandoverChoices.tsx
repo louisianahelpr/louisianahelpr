@@ -4,7 +4,9 @@
  *
  * The seller ticks the ways they offer; at least one. Pickup at the door is no longer offered. What is ticked is
  * stored per item (declutter_set_handovers) and checkout refuses any other way (declutter_start_checkout /
- * declutter_checkout_free: handover_not_offered); the buyer's checkout only shows what every item in it allows.
+ * declutter_checkout_free: handover_not_offered); the buyer's checkout only shows what every item in it allows,
+ * plus Helpr delivery, which buyers can always choose for what they buy (owner 2026-10-29, DC-4): it is said
+ * plainly under the ticks, never offered as one.
  * "I'll deliver" shows only while seller delivery is open to this member (its own switch). A free item is claimed
  * through the free checkout, which takes porch pickup only, so it is porch pickup, ticked and fixed.
  */
@@ -22,9 +24,19 @@ export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: str
   delivery: { title: "Helpr delivery", words: "A local Helpr picks it up and brings it to the buyer, who pays for it.", icon: MapPin },
 };
 
-/** The ways in a set, in step 4's order, as words for the review step ("Porch pickup, Helpr delivery"). */
+/**
+ * The ways the seller chooses from. Helpr delivery is not one (owner 2026-10-29, DC-4): buyers can always choose
+ * it for what they buy, so a tick for it did nothing a seller could rely on. An older listing may still have
+ * 'delivery' stored; checkout ignores it (declutter_handover_refused, 20261030045905).
+ */
+export const SELLER_WAYS: SellerHandover[] = (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery");
+
+/** Said once under the ways, plainly, instead of a tick. */
+export const HELPR_DELIVERY_ALWAYS = "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.";
+
+/** The ways in a set, in the form's order, as words for the review step ("Porch pickup, Safe meeting spot"). */
 export function handoverSummary(ways: SellerHandover[]): string {
-  return (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
+  return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
 }
 
 export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen }: {
@@ -33,7 +45,7 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen }:
   free: boolean;
   sellerDeliveryOpen: boolean;
 }) {
-  const shown = (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
+  const shown = SELLER_WAYS.filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
   const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
   return (
     <div className="space-y-2" role="group" aria-labelledby="sell-ways">
@@ -62,6 +74,7 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen }:
         })}
       </ul>
       {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">A free item is picked up from your porch.</p>}
+      {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>}
       {!free && sellerDeliveryOpen && <SellDeliveryOffNotice ticked={ways.includes("seller_delivery")} />}
       {(free || ways.includes("porch")) && <SellPorchDays />}
     </div>

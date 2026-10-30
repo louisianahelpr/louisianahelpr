@@ -308,14 +308,20 @@ describe("photo-first selling, one screen", () => {
   // they deliver, safe meeting spot. whatever other options we have".
   // @mutate src/components/declutter/useSellFlowState.ts |       await setHandovers(id, savedWays); |       void savedWays;
   // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0) return |   if (false) return
-  it("How buyers get it: the seller ticks the ways (no door pickup), at least one, and those are what is saved", async () => {
+  // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
+  // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);
+  // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>} |
+  it("How buyers get it: the seller ticks the ways (no door pickup, no Helpr delivery tick), at least one, and those are what is saved", async () => {
     vi.mocked(api.setHandovers).mockClear();
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
     await screen.findByText("Claude wrote your listing");
     const tiles = [...document.querySelectorAll("[data-handover-tile]")].map((t) => t.getAttribute("data-handover-tile"));
-    expect(tiles).toEqual(["porch", "seller_delivery", "meetup", "delivery"]);
+    expect(tiles).toEqual(["porch", "seller_delivery", "meetup"]);
+    expect(screen.queryByRole("checkbox", { name: "Helpr delivery" })).toBeNull();
+    expect(document.querySelector("[data-helpr-delivery-always]")?.textContent).toBe(
+      "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.");
     expect(screen.queryByText(/Pickup at your door/)).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Porch pickup" })).toHaveAttribute("aria-checked", "true");
     // None ticked: it will not post.
@@ -325,8 +331,7 @@ describe("photo-first selling, one screen", () => {
     expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Tick at least one way buyers can get it.");
     expect(calls).toEqual([]);
     fireEvent.click(screen.getByRole("checkbox", { name: "Safe meeting spot" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Helpr delivery" }));
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup", "delivery"]));
+    await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup"]));
   });
 });

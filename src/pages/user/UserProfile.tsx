@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -41,6 +41,7 @@ import { computeLastActiveLabel } from "./userProfileHelpers";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import SaveHelperButton from "@/components/SaveHelperButton";
+import { ProReturnBanner } from "./ProReturnBanner";
 import { useReplySpeed } from "@/lib/trustLine";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -286,20 +287,7 @@ const UserProfile = () => {
               page grew vertically too, on every viewport including phone where
               the width cap never binds. */}
           <div className="flex flex-col gap-section items-stretch">
-            {proReturn && (
-              <div
-                className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-                style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-                role="status"
-              >
-                <Crown className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-                <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-                  {proReturn === "success"
-                    ? "Membership upgrade confirmed — your new perks are live."
-                    : "Checkout canceled — no charge was made."}
-                </p>
-              </div>
-            )}
+            <ProReturnBanner result={proReturn} />
             <ProfileHeroSkeleton />
             {/* NO bone below the card any more. It held space for
                 "endorsements, availability and portfolio", but endorsements

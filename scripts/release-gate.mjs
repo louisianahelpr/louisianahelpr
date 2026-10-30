@@ -94,7 +94,10 @@ export function resolveSha(ref) {
 /** Newest completed run per workflow name for this sha, plus anything still running. */
 function runsForSha(sha) {
   const runs = ghJson([
-    "run", "list", "--commit", sha, "--limit", "100",
+    // Land queue and Main red watch fire once per push anywhere, so a sha on main
+    // collects hundreds of runs; 100 pushed f932f73e62's green Test out of the page
+    // (185 runs) and the gate called it missing.
+    "run", "list", "--commit", sha, "--limit", "1000",
     "--json", "databaseId,workflowName,displayTitle,conclusion,status,event,createdAt,url,headSha",
   ]);
   // gh's --commit filter is exact on headSha, but make the contract explicit.

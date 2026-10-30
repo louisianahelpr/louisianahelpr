@@ -158,7 +158,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
       <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
         {others.length > 0 && (
           <>
-            <div className="min-w-0 flex-1">
+            <div className="w-full" data-bunch-merge-row="">
               <label className="block text-ds-13 font-medium" htmlFor={`merge-${id}`}>Same thing as another item?</label>
               <select id={`merge-${id}`} className={field} value={mergeInto} onChange={(e) => setMergeInto(e.target.value)}>
                 <option value="">Pick an item</option>

@@ -7564,6 +7564,7 @@ export type Database = {
           job_matches: boolean
           job_updates: boolean
           match_digest_mode: boolean
+          message_preview: boolean
           messages: boolean
           new_offers: boolean
           payments: boolean
@@ -7623,6 +7624,7 @@ export type Database = {
           job_matches?: boolean
           job_updates?: boolean
           match_digest_mode?: boolean
+          message_preview?: boolean
           messages?: boolean
           new_offers?: boolean
           payments?: boolean
@@ -7682,6 +7684,7 @@ export type Database = {
           job_matches?: boolean
           job_updates?: boolean
           match_digest_mode?: boolean
+          message_preview?: boolean
           messages?: boolean
           new_offers?: boolean
           payments?: boolean

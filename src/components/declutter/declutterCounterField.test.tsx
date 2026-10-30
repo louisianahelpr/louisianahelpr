@@ -22,6 +22,7 @@ vi.mock("@/lib/declutter/api", () => ({
   },
 }));
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
+vi.mock("./BuyerTotal", () => ({ BuyerTotal: () => null }));
 
 import { OffersSection } from "./DeclutterTradeViews";
 
@@ -31,12 +32,12 @@ const OFFER = {
   floor_price_cents: 2500, updated_at: "2026-10-28",
 };
 
-function show() {
+function show(side: "buyer" | "seller" = "seller") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <OffersSection side="seller" />
+        <OffersSection side={side} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -59,11 +60,34 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     const field = input.closest("[data-counter-field]") as HTMLElement;
     expect(field).not.toBeNull();
     expect(within(field).getByText("$")).toHaveAttribute("aria-hidden");
-    // The words in the box never repeat the label or the unit.
-    expect(input).toHaveAttribute("placeholder", "30");
+    // The words in the box never repeat the label or the unit. Audit 1030 DC-12: the example is halfway between
+    // this offer ($22) and the price now ($40), not a hard-coded "30".
+    expect(input).toHaveAttribute("placeholder", "31");
     fireEvent.change(input, { target: { value: "32" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.responded).toHaveLength(1));
     expect(state.responded[0]).toEqual(expect.arrayContaining(["o1", "counter", 3200]));
+  });
+
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | placeholder={counterExample(o)} | placeholder="30"
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   o.my_side === "seller" ? String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200)) : undefined; |   String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200));
+  it("the example follows each offer's numbers; a buyer answering a counter gets no made-up number (DC-12)", async () => {
+    state.offers = [
+      { ...OFFER, offer_id: "o2", item_title: "Oak chair", amount_cents: 5000, current_price_cents: 9000 },
+      { ...OFFER, offer_id: "o3", item_title: "Lamp", amount_cents: 1200, current_price_cents: 1000 },
+    ];
+    show();
+    const answers = await screen.findAllByRole("button", { name: "Answer with a price" });
+    expect(answers.length).toBeGreaterThan(1);
+    answers.forEach((b) => fireEvent.click(b));
+    const boxes = screen.getAllByLabelText("Your price");
+    expect(boxes.map((b) => b.getAttribute("placeholder"))).toEqual(["70", "10"]);
+  });
+
+  it("the buyer's counter box has no example", async () => {
+    state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "buyer", amount_cents: 3500 }];
+    show("buyer");
+    fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
+    expect(screen.getByLabelText("Your price")).not.toHaveAttribute("placeholder");
   });
 });

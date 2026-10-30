@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS declutter_free_requests_requester_open
 ALTER TABLE public.declutter_free_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS declutter_free_requests_parties_read ON public.declutter_free_requests;
 CREATE POLICY declutter_free_requests_parties_read ON public.declutter_free_requests
-  FOR SELECT TO authenticated USING (requester_id = auth.uid() OR seller_id = auth.uid());
+  FOR SELECT TO authenticated USING (requester_id = (SELECT auth.uid()) OR seller_id = (SELECT auth.uid()));
 REVOKE ALL ON public.declutter_free_requests FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.declutter_free_requests TO authenticated;
 GRANT ALL ON public.declutter_free_requests TO service_role;
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.declutter_free_pauses (
 ALTER TABLE public.declutter_free_pauses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS declutter_free_pauses_own_read ON public.declutter_free_pauses;
 CREATE POLICY declutter_free_pauses_own_read ON public.declutter_free_pauses
-  FOR SELECT TO authenticated USING (user_id = auth.uid());
+  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
 REVOKE ALL ON public.declutter_free_pauses FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.declutter_free_pauses TO authenticated;
 GRANT ALL ON public.declutter_free_pauses TO service_role;
@@ -314,8 +314,10 @@ BEGIN
   RETURN NULL;
 END;
 $function$;
-DROP TRIGGER IF EXISTS declutter_free_pause_on_no_show ON public.declutter_orders;
-CREATE TRIGGER declutter_free_pause_on_no_show
+-- Named trg_declutter_orders_* so it fires after trg_declutter_orders_a_notice_about (same-event row triggers run in
+-- name order): the notice it sends then names the item (declutterNoticesNameTheItem).
+DROP TRIGGER IF EXISTS trg_declutter_orders_free_pause_on_no_show ON public.declutter_orders;
+CREATE TRIGGER trg_declutter_orders_free_pause_on_no_show
   AFTER UPDATE OF close_reason ON public.declutter_orders
   FOR EACH ROW
   EXECUTE FUNCTION public.declutter_free_pause_on_no_show();

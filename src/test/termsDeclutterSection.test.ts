@@ -19,6 +19,9 @@
  * @mutate src/pages/info/legal/TermsSection.tsx | Up to 10 items from one pickup address | Up to 12 items from one pickup address
  * @mutate src/pages/info/legal/TermsSection.tsx | Each strike lasts 1 year. | Each strike lasts 6 months.
  * @mutate src/pages/info/legal/TermsSection.tsx |       anchorId="declutter" |       anchorId="secondhand"
+ * Q2415 (owner 2026-10-27: list without payout setup; set it up at the first PAID sale, money held until then):
+ * @mutate src/pages/info/legal/TermsSection.tsx | Sellers can list without setting up payouts. A seller sets up payouts with Stripe at their first paid sale | Sellers set up payouts with Stripe before their first listing
+ * @mutate src/pages/info/legal/TermsSection.tsx | and the sale money is held until that setup is finished. | and the sale money is paid out at once.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -101,6 +104,19 @@ describe("Q2308: the Terms' Declutter section states the numbers the code enforc
     const m = sql("declutter_strike_expiry").match(/interval\s+'(\d+)\s+year'/i);
     expect(m, "strike expiry shape changed").toBeTruthy();
     expect(section).toContain(`Each strike lasts ${m![1]} year.`);
+  });
+
+  // Q2415: the built rule (payout_after_hire, owner 2026-10-27) lets a seller list with no payout account; the
+  // money from a paid sale waits as 'no_account' until setup. The Terms must say exactly that, and the listing
+  // RPCs must still not read the payout account (if a listing gate comes back, this sentence must change).
+  it("payout setup comes at the first paid sale, not before the first listing (Q2415)", () => {
+    expect(section).not.toMatch(/before (their|your) first listing/i);
+    expect(section).toContain("Sellers can list without setting up payouts.");
+    expect(section).toContain("sets up payouts with Stripe at their first paid sale");
+    expect(section).toContain("the sale money is held until that setup is finished.");
+    for (const fn of ["declutter_publish_item", "declutter_create_item"]) {
+      expect(sql(fn), `${fn} gates a listing on the payout account`).not.toMatch(/stripe_account_id|stripe_payouts_enabled|payouts_enabled/);
+    }
   });
 
   it("no draft marker, citation or HTML comment reaches the published Terms", () => {

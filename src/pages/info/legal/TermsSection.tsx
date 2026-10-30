@@ -283,7 +283,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">18 or older.</strong> Members under 18 can&apos;t buy, make offers, post Wanted requests, deliver or sell.</p>
             <p><strong className="text-foreground">In good standing:</strong> signed in, not banned, and with fewer than 3 active Declutter strikes.</p>
             <p><strong className="text-foreground">Items in Louisiana.</strong> Items and pickups are in Louisiana. Buyers may live anywhere.</p>
-            <p>Sellers set up payouts with Stripe before their first listing. Buyers save a card before making an offer or buying.</p>
+            <p>Sellers can list without setting up payouts. A seller sets up payouts with Stripe at their first paid sale, and the sale money is held until that setup is finished. Buyers save a card before making an offer or buying.</p>
             {idOn && <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase or your first listing, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>}
             <p>The one-time account setup fee is charged once per account, whichever comes first: your first Jobs payout, or your first Declutter purchase or listing.</p>
           </>

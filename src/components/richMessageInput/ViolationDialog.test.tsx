@@ -50,16 +50,18 @@ describe("ViolationDialog", () => {
   });
 
   it("explains the rule for the case that reads as a false positive", () => {
-    // "call me when you're outside" is the exact message the report was
-    // written about: a real, innocent sentence that the off-platform filter
-    // blocks. If the dialog cannot explain THIS one it has not solved anything.
-    const violations = scanned("call me when you're outside");
+    // "call me when you're outside" was the message the report was written
+    // about; since Messages audit M3 (2026-10-30) it passes the filter with no
+    // contact detail beside it. "dm me when you're outside" is the same shape
+    // and still trips the off-platform rule, so the dialog must explain it.
+    expect(scanned("call me when you're outside")).toHaveLength(0);
+    const violations = scanned("dm me when you're outside");
     expect(violations).toHaveLength(1);
     expect(violations[0].type).toBe("direct_pay");
 
     render(<ViolationDialog violations={violations} onOpenChange={vi.fn()} />);
 
-    expect(screen.getByText(/call me/i)).toBeInTheDocument();
+    expect(screen.getByText(/dm me/i)).toBeInTheDocument();
     expect(screen.getByText(/moving the job off Helpr/i)).toBeInTheDocument();
   });
 

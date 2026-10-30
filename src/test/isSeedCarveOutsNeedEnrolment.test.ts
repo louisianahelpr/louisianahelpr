@@ -52,6 +52,15 @@ type Kind = "money-gate" | "hides" | "tags" | "alerts" | "safety-skip" | "locks"
 /** Every SQL function whose newest body reads is_seed. EXACT both ways. */
 // @two-way src/test/isSeedCarveOutsNeedEnrolment.test.ts:toEqual(Object.keys(SQL_CARVE_OUTS).sort())
 const SQL_CARVE_OUTS: Record<string, Kind> = {
+  get_helper_completed_counts: "hides", // b62 (20261030015205): test data never counts in this total
+  get_helper_on_time_percents: "hides", // b62 (20261030015205): test data never counts in this total
+  get_helper_repeat_hire_percents: "hides", // b62 (20261030015205): test data never counts in this total
+  get_user_repeat_hire_percent: "hides", // b62 (20261030015205): test data never counts in this total
+  get_helper_tiers: "hides", // b62 (20261030015205): test data never counts in this total
+  get_neighbor_hire_count: "hides", // b62 (20261030015205): test data never counts in this total
+  get_applicant_category_counts: "hides", // b62 (20261030015205): test data never counts in this total
+  shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
+  is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
   admin_section_funnel: "hides",
@@ -230,6 +239,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "stripe-webhook/handlers/settleOnboardingFee.ts": "alerts",
   "subscription-reconciliation/index.ts": "alerts",
   "void-cancelled-payments/index.ts": "alerts",
+  // b62 (owner rule: test data never counts): the weekly email's totals drop test jobs.
+  "weekly-helper-report/index.ts": "hides",
 };
 
 const sqlReaders = new Map<string, string>();

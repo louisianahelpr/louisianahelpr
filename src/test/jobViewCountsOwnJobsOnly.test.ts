@@ -12,7 +12,7 @@
  * against the "unscoped" section of scripts/ci/definer-exec-allowlist.json.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261005060053_job_view_counts_own_jobs_only.sql |     AND j.customer_id = auth.uid() |     AND j.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     AND j.customer_id = auth.uid()\n    AND NOT public.is_test_member(jv.viewer_id) |     AND j.customer_id IS NOT NULL\n    AND NOT public.is_test_member(jv.viewer_id)
 // @mutate scripts/ci/definer-exec-allowlist.json |   "unscoped": { |   "unscoped": {\n    "get_job_view_counts(uuid[])": "reviewed 2026-10-05 (Q1284): counts only, fine for anyone to read, no person named at all.",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

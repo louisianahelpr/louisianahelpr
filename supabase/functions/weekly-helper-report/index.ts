@@ -163,12 +163,15 @@ serve(async (req) => {
         continue;
       }
       // Gather weekly stats
+      // Test data never counts in any number (owner rule, b62): every total in
+      // this email drops test jobs (jobs.is_seed), reviews and applications on them.
       const [jobsRes, reviewsRes, earningsRes, appsRes] = await Promise.all([
         supabase
           .from("jobs")
           .select("id, budget, platform_fee_amount, urgent_fee, status")
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
+          .eq("is_seed", false)
           .gte("updated_at", weekAgoISO),
         // Q321: reviews that became PUBLIC this week, under the same three
         // rules as get_public_profile_stats (published, past the blind period,
@@ -179,12 +182,13 @@ serve(async (req) => {
         // one week and revealed in the next is counted exactly once.
         supabase
           .from("reviews")
-          .select("rating, jobs!inner(status)")
+          .select("rating, jobs!inner(status, is_seed)")
           .eq("reviewee_id", helper.user_id)
           .eq("status", "published")
           .gte("feedback_visible_at", weekAgoISO)
           .lte("feedback_visible_at", new Date().toISOString())
-          .neq("jobs.status", "cancelled"),
+          .neq("jobs.status", "cancelled")
+          .eq("jobs.is_seed", false),
         supabase
           .from("jobs")
           // `payment_status` is REQUIRED, not decorative: helperEarnings'
@@ -197,11 +201,13 @@ serve(async (req) => {
           .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, payment_status")
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
+          .eq("is_seed", false)
           .gte("updated_at", weekAgoISO),
         supabase
           .from("applications")
-          .select("id")
+          .select("id, jobs!inner(is_seed)")
           .eq("helper_id", helper.user_id)
+          .eq("jobs.is_seed", false)
           .gte("created_at", weekAgoISO),
       ]);
 

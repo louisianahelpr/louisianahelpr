@@ -131,10 +131,14 @@ export function SellPorchPlaces({ card = false }: { card?: boolean }) {
   const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
   // null: no form open; a draft: adding (id null) or editing that place.
   const [draft, setDraft] = useState<Draft | null>(null);
-  if (mine.data === PORCH_PLACES_NOT_DEPLOYED || mine.isLoading) return null;
+  if (mine.data === PORCH_PLACES_NOT_DEPLOYED) return null;
   const inCard = (body: ReactNode) => (card
     ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>
     : body);
+  // In settings a row holds the place, as its neighbours do, so Your delivery and Bundle discount are not pushed down from nothing.
+  if (mine.isLoading) {
+    return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null;
+  }
   if (mine.isError) return inCard(<ErrorState variant="inline" title="We couldn't load your pickup places." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />);
   const places = mine.data ?? [];
   return inCard(

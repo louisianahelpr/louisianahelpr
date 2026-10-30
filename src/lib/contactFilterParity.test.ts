@@ -166,7 +166,7 @@ const SERVER_STRIKES = [
   "just cashapp me",
   "zelle is fine",
   "cash only please",
-  "text me when you can",
+  "dm me when you can",
   "skip the fee and pay outside",
 ];
 
@@ -359,4 +359,4 @@ describe("phone matcher: client and server agree on every shared fixture", () =>
 // Take the email branch out of the SHIPPED SQL. Before the branches were read
 // from the migration (2026-09-21) this survived: the retyped replica kept
 // answering "email" while the live gate let jane@gmail.com through.
-// @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql | ELSIF v_norm ~* '[a-z0-9._]+@ | ELSIF v_norm ~* 'zzz-removed@
+// @mutate supabase/migrations/20261030150556_contact_leak_call_me_spanish.sql | ELSIF v_norm ~* '[a-z0-9._]+@ | ELSIF v_norm ~* 'zzz-removed@

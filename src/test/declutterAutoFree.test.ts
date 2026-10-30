@@ -12,7 +12,7 @@
  *
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |      WHERE p.auto_free_days IS NOT NULL\n       AND i.status = 'live' |      WHERE i.status = 'live'
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |        AND COALESCE(i.live_at, i.submitted_at, i.created_at) + make_interval(days => p.auto_free_days) <= now() |        AND true
- * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |   v_n := v_n + public.declutter_auto_free_due();\n |
+ * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |   v_n := v_n + public.declutter_auto_free_due();\n |
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |       AND NOT i.seller_hidden\n       AND i.current_price_cents > 0 |       AND NOT i.seller_hidden\n       AND i.sale_mode = 'offers'\n       AND i.current_price_cents > 0
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |       CONTINUE WHEN v_days IS NULL OR it.started + make_interval(days => v_days) > now(); |       CONTINUE WHEN v_days IS NULL;
  * @mutate supabase/migrations/20261030030408_declutter_auto_free_days.sql |   IF p_days IS NOT NULL AND p_days NOT IN (7, 14, 21, 30) THEN |   IF p_days IS NOT NULL AND p_days NOT IN (7, 12, 14, 21, 30) THEN

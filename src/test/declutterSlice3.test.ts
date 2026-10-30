@@ -16,8 +16,8 @@
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
  * @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
  * @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql |   IF COALESCE(v_rules.auto_offers, false) AND v_rules.floor_price_cents < v_item.o_price_cents THEN |   IF v_rules.floor_price_cents < v_item.o_price_cents THEN
- * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |        SET current_price_cents = greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), |        SET current_price_cents = greatest(
- * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
+ * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |        SET current_price_cents = greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer, |        SET current_price_cents = greatest(
+ * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
@@ -138,7 +138,9 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     const drop = flat(body("declutter_price_drop_sweep"));
     // Slice 3b (row 61, B42): never below the private stop point, which is above the floor.
     // Owner 2026-10-28 (20261028160637): the seller's drop_pct, down to a whole dollar; 0 is skipped.
-    expect(drop).toContain("greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), (floor(i.current_price_cents * (100 - i.drop_pct) / 10000.0) * 100)::integer)");
+    // DA-17 (20261030154745): the stop counts UP to a whole dollar, so a listing at its stop never shows odd cents.
+    expect(drop).toContain("greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer, (floor(i.current_price_cents * (100 - i.drop_pct) / 10000.0) * 100)::integer)");
+    expect(drop).toContain("AND i.current_price_cents > greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer)");
     expect(drop).toContain("AND i.drop_pct > 0");
     expect(drop).toContain("AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today)");
     expect(drop).toContain("(now() AT TIME ZONE 'America/Chicago')::date");

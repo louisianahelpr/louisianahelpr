@@ -10,7 +10,8 @@
  *   Louisiana (America/Chicago) day, and still above the seller's stop.
  * - The new price is greatest(floor, stop, step), where step is current less
  *   the seller's drop_pct (5, 10, 15 or 20; 0 = off, skipped), down to a whole
- *   dollar (20261028160637; before it, a fixed floor(current * 0.95)).
+ *   dollar (20261028160637; before it, a fixed floor(current * 0.95)). The stop
+ *   counts up to a whole dollar too (20261030154745, DA-17: never $21.37).
  *
  * The floor and the stop are private (declutter_item_private; the stop is
  * hidden even from the seller, B42), so nobody but the server knows whether a

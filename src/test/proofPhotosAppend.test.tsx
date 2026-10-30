@@ -35,6 +35,8 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: () => [], PENDING_PHOTO_SRC: "" }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// Cleaning needs a real canvas; its own proof is src/test/heicProofPhotos.test.tsx.
+vi.mock("@/lib/cleanProofPhoto", () => ({ cleanProofPhoto: async (f: File) => f }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 
 import { PhotoProofCaptureChip } from "@/components/PhotoProof";
@@ -50,7 +52,9 @@ async function uploadOne(existing: string[]) {
   fireEvent.click(screen.getByRole("button", { name: /Before/ }));
   const input = document.querySelector('input[type="file"]') as HTMLInputElement;
   fireEvent.change(input, { target: { files: [new File(["x"], "a.jpg", { type: "image/jpeg" })] } });
-  fireEvent.click(screen.getByRole("button", { name: "Upload" }));
+  const go = screen.getByRole("button", { name: "Upload" }) as HTMLButtonElement;
+  await waitFor(() => expect(go.disabled).toBe(false));
+  fireEvent.click(go);
   await waitFor(() => expect(calls.updates.length).toBeGreaterThan(0));
   return (calls.updates[0] as { proof_before_urls: string[] }).proof_before_urls;
 }

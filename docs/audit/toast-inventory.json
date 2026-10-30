@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1052,
+    "calls": 1053,
     "files": 287,
-    "rendering": 884,
+    "rendering": 885,
     "suppressedByPolicy": 168,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 738,
+      "toast.error": 739,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 455,
       "template": 101,
-      "dynamic": 546,
+      "dynamic": 547,
       "jsx": 0
     }
   },
@@ -1058,7 +1058,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 139,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1068,7 +1068,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 141,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1085,7 +1085,17 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 148,
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "LISTING_PHOTO_UNCLEANABLE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1095,7 +1105,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 165,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1105,7 +1115,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 176,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1115,7 +1125,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 225,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1135,7 +1145,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 234,
+      "line": 243,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1145,7 +1155,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 245,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

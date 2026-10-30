@@ -13299,6 +13299,16 @@ export type Database = {
         Returns: Json
       }
       admin_ban_settlement_reviews: { Args: never; Returns: Json }
+      admin_booking_sources: {
+        Args: never
+        Returns: {
+          helpr_id: string
+          helpr_name: string
+          last_at: string
+          posters_brought: number
+          posters_who_posted: number
+        }[]
+      }
       admin_confirm_ban_settlement: {
         Args: { p_user_id: string }
         Returns: Json
@@ -16668,6 +16678,7 @@ export type Database = {
         }[]
       }
       reap_stranded_instant_payouts: { Args: never; Returns: Json }
+      record_booking_source: { Args: { p_helpr_id: string }; Returns: string }
       record_error_log_throttle_drop: {
         Args: { p_kind: string }
         Returns: undefined

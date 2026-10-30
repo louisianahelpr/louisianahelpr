@@ -694,6 +694,102 @@ function metaForSignup(ref: string | null): Meta {
  * /jobs/:id already is. The data is ALREADY anon-public, so the moment that
  * route opens up, a proper named card becomes both useful and safe.
  */
+/* ------------------------------------------------------------------ *
+ * "Book me on Helpr" (B59, 2026-10-29): /book/<user id>
+ * ------------------------------------------------------------------ */
+
+/**
+ * The same two anon reads the signed-out /book page makes, and nothing else:
+ * get_safe_profiles (masked "First L." name for anon, town) and
+ * get_public_profile_stats (counts). Bio, skills and avatar are not put on
+ * the card. No row = banned, deleted, unverified or a hidden test account:
+ * `absent`.
+ */
+interface BookProfile { full_name: string | null; location: string | null }
+interface BookStats { review_count: number | null; avg_rating: number | null; completed_jobs_as_helper: number | null }
+type BookLookup = { state: "found"; profile: BookProfile; stats: BookStats | null } | { state: "absent" } | { state: "unknown" };
+
+async function anonRpc<T>(fn: string, body: unknown): Promise<T | undefined> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(DB_TIMEOUT_MS),
+  });
+  if (!res.ok) return undefined;
+  return (await res.json()) as T;
+}
+
+async function fetchBookCard(id: string): Promise<BookLookup> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
+  try {
+    const [profiles, stats] = await Promise.all([
+      anonRpc<BookProfile[]>("get_safe_profiles", { user_ids: [id] }),
+      // Stats are a nicety: a failed stats read still gives a named card.
+      anonRpc<BookStats[]>("get_public_profile_stats", { p_user_ids: [id] }).catch(() => undefined),
+    ]);
+    if (!Array.isArray(profiles)) return { state: "unknown" };
+    if (!profiles.length) return { state: "absent" };
+    return { state: "found", profile: profiles[0], stats: Array.isArray(stats) && stats.length ? stats[0] : null };
+  } catch {
+    // Timeout, DNS, connection refused: we did not learn anything.
+    return { state: "unknown" };
+  }
+}
+
+export const BOOK_ROBOTS = "noindex, follow";
+const BOOK_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
+
+function bookTrust(stats: BookStats | null): string {
+  if (!stats) return "";
+  const parts: string[] = [];
+  const reviews = Number(stats.review_count ?? 0);
+  const avg = stats.avg_rating == null ? NaN : Number(stats.avg_rating);
+  if (reviews > 0 && Number.isFinite(avg)) parts.push(`${avg.toFixed(1)} stars (${reviews} review${reviews === 1 ? "" : "s"})`);
+  const done = Number(stats.completed_jobs_as_helper ?? 0);
+  if (done > 0) parts.push(`${done} job${done === 1 ? "" : "s"} done`);
+  return parts.join(" · ");
+}
+
+function unavailableBookMeta(url: string): Meta {
+  return {
+    title: "This Helpr isn't available — Helpr",
+    ogTitle: "This Helpr isn't available",
+    description: "Post a job on Louisiana Helpr and local Helprs can say yes.",
+    url,
+    robots: BOOK_ROBOTS,
+    cdnCache: BOOK_CDN_CACHE,
+  };
+}
+
+export async function metaForBook(id: string, url: string): Promise<Meta | null> {
+  if (!UUID_RE.test(id)) return unavailableBookMeta(url);
+  const lookup = await fetchBookCard(id);
+  if (lookup.state === "unknown") return null;
+  if (lookup.state === "absent") return unavailableBookMeta(url);
+  const name = clean(lookup.profile.full_name, 40) || "a Helpr";
+  const first = name.split(" ")[0] || name;
+  const town = clean(lookup.profile.location, 60);
+  const trust = bookTrust(lookup.stats);
+  const lead = `${first} is a Helpr${town ? ` in ${town}` : ""} on Louisiana Helpr.`;
+  return {
+    title: `Book ${name} on Louisiana Helpr`,
+    ogTitle: `Book ${name} on Louisiana Helpr`,
+    description: clean(
+      `${lead}${trust ? ` ${trust}.` : ""} Covered by the Helpr Guarantee. Payment is held safely until the work is done.`,
+      200,
+    ),
+    url,
+    robots: BOOK_ROBOTS,
+    cdnCache: BOOK_CDN_CACHE,
+  };
+}
+
 function metaForUser(url: string): Meta {
   return {
     title: "Helpr profile",
@@ -767,9 +863,9 @@ function metaForNoindexPage(id: string): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter") {
+  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -780,6 +876,8 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   if (pathname === "/signup") return { kind: "signup", id: "" };
   const itemMatch = pathname.match(/^\/declutter\/item\/([^/]+)$/);
   if (itemMatch) return { kind: "declutter", id: decodeURIComponent(itemMatch[1]) };
+  const bookMatch = pathname.match(/^\/book\/([^/]+)$/);
+  if (bookMatch) return { kind: "book", id: decodeURIComponent(bookMatch[1]) };
   const shopMatch = pathname.match(/^\/shops\/([^/]+)$/);
   if (shopMatch) return { kind: "shop", id: decodeURIComponent(shopMatch[1]) };
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
@@ -807,6 +905,11 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   if (route.kind === "shop") {
     const seg = safeIdSegment(route.id);
     return metaForShop(route.id, seg ? `${SITE_ORIGIN}/shops/${seg}` : `${SITE_ORIGIN}/shops`);
+  }
+
+  if (route.kind === "book") {
+    const seg = safeIdSegment(route.id);
+    return metaForBook(route.id, seg ? `${SITE_ORIGIN}/book/${seg}` : `${SITE_ORIGIN}/`);
   }
 
   if (route.kind === "declutter") {

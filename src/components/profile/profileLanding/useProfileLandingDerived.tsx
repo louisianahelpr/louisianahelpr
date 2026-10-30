@@ -2,7 +2,7 @@ import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import { holdsPaidPlan, mayStillBeBilled } from "@/lib/subscriptionTiers";
 import {
   ShieldAlert, UserPlus, TrendingUp, Crown, Gavel, HelpCircle,
-  AlertTriangle, Bug, Gift,
+  AlertTriangle, Bug, Gift, Share2,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
@@ -131,6 +131,10 @@ export function useProfileLandingDerived({
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
+        // "Book me on Helpr" (B59): your own /book page, where "Share your booking link" opens the share sheet.
+        ...(profile?.user_id
+          ? [{ key: "book-me", label: "Book me on Helpr", icon: <Share2 className="w-5 h-5" />, desc: "Share a link neighbors can book you from", tint: SECTION_TINT.money, href: `/book/${profile.user_id}` }]
+          : []),
         {
           key: "gift-card",
           label: "Gift card",

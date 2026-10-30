@@ -89,7 +89,7 @@ const guestTitle = scenarioTitle({ journey: "keyboard", persona: "new", state: "
 // ring leaves every Complete Profile text field focused with nothing painted,
 // and stripping the calendar day's leaves every day of Post a job's calendar
 // the same way; "focused with nothing painted" is what catches each.
-// @mutate src/components/ui/input.tsx | "focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0", | "focus-visible:ring-0",
+// @mutate src/components/ui/fieldSurface.ts | "focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 " + | "focus-visible:ring-0 " +
 // @mutate src/components/ui/calendar.tsx | "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full" | "focus-visible:ring-0 h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"
 
 test(guestTitle, async ({ browser, request, journey }) => {

@@ -19,6 +19,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 /**
  * Every popup or sheet TITLE primitive (lead 2026-10-21: DialogHero, then
@@ -72,8 +73,10 @@ function titleValue(attrs: string): string | null {
 function titles(src: string): string[] {
   const out: string[] = [];
   for (const { attrs } of openingTags(src)) {
-    const v = titleValue(attrs);
-    if (!v) continue;
+    const raw0 = titleValue(attrs);
+    if (!raw0) continue;
+    // A title from the dictionary (Spanish option, 2026-10-29) is judged by its English words.
+    const v = raw0.replace(/\b(?:t|tr)\(\s*"([\w.]+)"[^)]*\)/g, (m, k: string) => (k in en ? JSON.stringify(en[k as keyof typeof en]) : m));
     const lit = /^"([^"]*)"$/.exec(v) ?? /^\{"([^"]*)"\}$/.exec(v) ?? /^\{`([^`]*)`\}$/.exec(v);
     const parts = lit
       ? [lit[1]]

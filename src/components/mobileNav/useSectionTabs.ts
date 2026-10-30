@@ -60,9 +60,6 @@ export function openingSoonLine(labels: readonly string[]): string | null {
   return `${names} ${labels.length === 1 ? "is" : "are"} opening soon`;
 }
 
-/** The accessible name of a switched-off section: "Declutter, coming soon". */
-export const comingSoonLabel = (label: string) => `${label}, coming soon`;
-
 const shownComingSoon = new Set<string>();
 
 /** What a tap on a switched-off section does instead of navigating. */

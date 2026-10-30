@@ -131,6 +131,7 @@ const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterP
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
 const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/DeclutterMovePage"));
+const DeclutterSettingsPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSettingsPage"));
 // Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden
 // 'quotes' switch is on for the member (QuotesGate).
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
@@ -272,6 +273,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

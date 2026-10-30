@@ -205,7 +205,7 @@ function pickupSummary(rows: { weekday: number; starts_local: string; ends_local
 }
 
 /**
- * The Selling tab's "Pickup times" setting (owner 2026-10-28: the seller's settings in one place). The same times the
+ * Declutter settings' "Pickup times" (owner 2026-10-28: the seller's settings in one place; /declutter/settings 2026-10-30). The same times the
  * sell form and moving-out mode edit (declutter_set_pickup_windows replaces the whole set, for every listing).
  */
 export function PickupTimesCard({ userId }: { userId: string }) {

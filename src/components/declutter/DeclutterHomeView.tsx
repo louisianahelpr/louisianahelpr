@@ -37,8 +37,7 @@ import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { ChevronRight, Tags } from "lucide-react";
-import { PickupTimesCard } from "./DeclutterPickupTimes";
+import { ChevronRight, Settings, Tags } from "lucide-react";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
@@ -49,11 +48,10 @@ import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeV
 import { OrdersUpdating } from "./OrdersUpdating";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
-import { SellerDeliveryCard } from "./SellerDeliverySettings";
-import { BundleDiscountCard } from "./BundleDiscountCard";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -416,21 +414,31 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           </div>
         }
         settings={<>
-          {/* Owner 2026-10-28: the seller's settings in ONE area under the lists, never an accordion among them.
-              Each setting keeps its own row (and its own save); the group draws the one card around them, so a row drops
-              its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
-          <section className="space-y-2" aria-label="Selling settings" data-selling-settings="">
-            <SectionHeading title="Selling settings" />
-            <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
-              <SellerDeliveryCard />
-              <PickupTimesCard userId={userId} />
-              <BundleDiscountCard />
-            </div>
-          </section>
+          {/* Owner 2026-10-30: the seller's settings moved to /declutter/settings, behind the gear that ends the tabs row
+              (Jobs' pattern). This one row keeps them findable from where they used to be, under the lists. */}
+          <SellingSettingsEntry />
           <DeliverEntry />
         </>}
       />
     </div>
+  );
+}
+
+/** Selling's one row to the seller's settings, in the same row look as "Deliver for pay" under it. */
+function SellingSettingsEntry() {
+  return (
+    <Link
+      to={DECLUTTER_SETTINGS.path}
+      data-selling-settings=""
+      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Settings className="h-5 w-5 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">Declutter settings</span>
+        <span className="block text-xs text-muted-foreground">Listing defaults, pickup times, delivery, bundle discount, notifications</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    </Link>
   );
 }
 
@@ -453,6 +461,8 @@ function SellChooserEntry({ movingOutOn }: { movingOutOn: boolean }) {
   );
 }
 
+const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const;
+
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 // The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
 // The Free tab, last, next to Wanted (OWN-FREE, owner via the lead 2026-10-30): for everyone, as the Free section is.
@@ -471,7 +481,8 @@ function useSelectedTabInView(view: string) {
     if (!list || !tab) return;
     const l = list.getBoundingClientRect();
     const t = tab.getBoundingClientRect();
-    if (t.right > l.right) list.scrollLeft += t.right - l.right;
+    // 28: clear of the row's end fade (SectionTabs).
+    if (t.right > l.right - 28) list.scrollLeft += t.right - l.right + 28;
     else if (t.left < l.left) list.scrollLeft -= l.left - t.left;
   }, [view]);
   return ref;
@@ -531,7 +542,8 @@ export default function DeclutterHome() {
     <SectionTabs
       label="Declutter view"
       browseCount={browse?.count}
-      end={browse?.end}
+      // The gear is LAST at the row's right end on every tab and width, as in Jobs (owner 2026-10-30).
+      end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
       value={view}
       onChange={(v) =>
         setParams((p) => {

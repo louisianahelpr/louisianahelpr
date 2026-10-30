@@ -43,6 +43,7 @@ import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 import { headerJobCount, sheetResultCount } from "@/pages/home/headerJobCount";
 import { safeStorage } from "@/lib/safeStorage";
+import { readJobsMapVisible, saveJobsMapVisible } from "@/lib/jobsMapVisible";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
 import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
@@ -248,11 +249,11 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
    * (owner: "give them the option to get rid of the map"). Persisted, because a
    * pane that reappears on every route change is one the user has to dismiss
    * repeatedly. Default ON: the split view is the desktop layout, and a map
-   * nobody has been told exists is worse than one they can close.
+   * nobody has been told exists is worse than one they can close. Its own key
+   * since 2026-10-30, so a device that hid it under the old one opens with it
+   * once, like Declutter (src/lib/jobsMapVisible.ts).
    */
-  const [mapVisible, setMapVisible] = useState<boolean>(
-    () => safeStorage.getItem("helpr.browseMapVisible") !== "0",
-  );
+  const [mapVisible, setMapVisible] = useState<boolean>(readJobsMapVisible);
 
   // ONE OUTAGE, ONE MESSAGE — the same rule f2b63d921 applied to the
   // notification toast, now applied to the desktop map column.
@@ -280,7 +281,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   const toggleMap = useCallback(() => {
     const next = !mapVisible;
     setMapVisible(next);
-    safeStorage.setItem("helpr.browseMapVisible", next ? "1" : "0");
+    saveJobsMapVisible(next);
   }, [mapVisible]);
 
   // Desktop split-screen hover sync — hovering a list card scales up the

@@ -7560,7 +7560,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 157,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7577,7 +7577,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 161,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7587,7 +7587,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 194,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7597,7 +7597,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10805,7 +10805,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 248,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

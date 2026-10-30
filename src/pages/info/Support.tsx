@@ -29,6 +29,7 @@ import {
   SUPPORT_TOPICS,
   findSupportTopic,
   type SupportTopicKey,
+  SUPPORT_REPLY_PROMISE,
 } from "@/lib/supportTopics";
 
 /**
@@ -312,8 +313,8 @@ const Support = () => {
                     className="font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-md"
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
-                    Our team will read it and reply by email — usually within one
-                    business day. Nothing else to do on your end.
+                    Our team will read it and reply by email. {SUPPORT_REPLY_PROMISE} Nothing
+                    else to do on your end.
                   </p>
                 </div>
                 <Button variant="outline" onClick={reset} className="mt-2">

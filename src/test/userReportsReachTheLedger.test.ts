@@ -71,6 +71,8 @@ export const SURFACES: Surface[] = [
     note: "a disputed job's contact-support link (poster side)" },
   { file: "src/pages/auth/AccountBanned.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "suspension appeal opens /support?topic=message" },
+  { file: "src/components/jobs/GetHelpNow.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+    note: "Get help now on an active job (Q2478 part 3): opens /support?topic=message with the job in the subject" },
   { file: "scripts/app-store-reviews.mjs", kind: "ingest", target: "app-store-review", channel: "store-review",
     note: "Q289: App Store reviews rated <= 3, pulled daily by app-store-reviews.yml" },
   { file: "src/components/admin/SupportReply.tsx", kind: "invoke", target: "admin-support-reply", channel: "not-a-report",

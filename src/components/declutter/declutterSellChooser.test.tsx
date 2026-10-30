@@ -19,6 +19,7 @@
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH } | declutter: [{ label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={SELL_CHOOSER_PATH}>Sell something</Link> | <Link to="/declutter/sell">Sell something</Link>
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -142,9 +143,13 @@ describe("every Sell button opens the chooser", () => {
     const BARE = /["'`]\/declutter\/sell["'`]/;
     // The route itself and the no-nav list name the path, they are not buttons; the chooser's "One item" names it
     // through SELL_ONE_PATH, in the one module that holds the paths.
+    // @two-way src/components/declutter/declutterSellChooser.test.tsx:stale baseline entry in the bare-path list
     const ALLOWED = new Set(["src/App.tsx", "src/components/mobileNav/mobileNavHelpers.ts", "src/lib/declutter/sellChooser.ts"]);
-    const offenders = files.filter((f) => !ALLOWED.has(f) && BARE.test(blankComments(readFileSync(join(process.cwd(), f), "utf8"))));
+    const namesBarePath = (f: string) => BARE.test(blankComments(readFileSync(join(process.cwd(), f), "utf8")));
+    const offenders = files.filter((f) => !ALLOWED.has(f) && namesBarePath(f));
     expect(offenders).toEqual([]);
+    const stale = [...ALLOWED].filter((f) => !files.includes(f) || !namesBarePath(f));
+    expect(stale, "stale baseline entry in the bare-path list: remove it").toEqual([]);
     // The Sell buttons this guard was built for each name the chooser.
     for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterHomeView.tsx", "src/components/sections/sectionsConfig.ts"]) {
       expect(blankComments(readFileSync(join(process.cwd(), f), "utf8")), f).toMatch(/SELL_CHOOSER_PATH/);

@@ -80,6 +80,7 @@ const VIEW_LABELS: Record<View, string> = {
     banreview: "Ban review",
     stalled: "Stuck Jobs",
     shops: "Shops orders",
+    growth: "Growth links",
   };
 
 const Admin = () => {

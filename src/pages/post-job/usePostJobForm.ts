@@ -22,6 +22,7 @@ import { prefillOpensWhen } from "@/lib/bookAgain";
 import { DEFAULT_QUOTE_WINDOW, type QuoteWindowHours } from "@/lib/quotes/api";
 import type { PriceMode } from "@/components/quotes/PostJobQuoteChoice";
 import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
+import { useRecentPostedJobs, usePostedBefore } from "@/hooks/useRecentPostedJobs";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -570,7 +571,12 @@ export function usePostJobForm() {
     }
   };
 
+  // "First job, easy yes" (B59): Review shows the Helpr Guarantee on a member's first post. Same 3-row
+  // query and cache key as the entry screen; unknown (still loading) counts as not first.
+  const isFirstPost = usePostedBefore(useRecentPostedJobs(3)) === false;
+
   return {
+    isFirstPost,
     cardHoldOn,
     // step / nav
     step,

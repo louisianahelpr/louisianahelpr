@@ -46,7 +46,7 @@ function BookMeta({ card, id }: { card: BookCard | null | undefined; id: string 
 }
 
 /** "4.9 (12 reviews) · 8 jobs done", or nothing when there is nothing to say yet. */
-export function trustLine(card: Pick<BookCard, "jobsDone" | "reviewCount" | "avgRating">): string {
+function trustLine(card: Pick<BookCard, "jobsDone" | "reviewCount" | "avgRating">): string {
   const parts: string[] = [];
   if (card.reviewCount > 0 && card.avgRating != null) {
     parts.push(`${card.avgRating.toFixed(1)} (${card.reviewCount} review${card.reviewCount === 1 ? "" : "s"})`);
@@ -61,7 +61,7 @@ function BookBody({ card, signedIn, isMe }: { card: BookCard; signedIn: boolean;
   return (
     <div className="mx-auto w-full max-w-md space-y-4 pb-8">
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="book-name">
-        <UserAvatar src={card.avatarUrl} name={card.name} pixelSize={96} className="mx-auto h-24 w-24" />
+        <UserAvatar userId={card.userId} src={card.avatarUrl} name={card.name} pixelSize={96} className="mx-auto h-24 w-24" />
         <h1 id="book-name" className="mt-3 text-xl font-semibold text-foreground">
           {card.name}
         </h1>

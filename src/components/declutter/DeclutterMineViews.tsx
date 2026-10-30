@@ -45,6 +45,7 @@ import { TakenDownSection } from "./DeclutterTakenDown";
 import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
+import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -100,7 +101,7 @@ const LISTED = new Set(["draft", "pending_review", "live", "paused", "reserved"]
 const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
 
-export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode }) {
+export function SellingDash({ todo, userId, listings, settings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode; settings?: ReactNode }) {
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
@@ -112,6 +113,10 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   const ended = useEndedSales();
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
+  // Audit DC-9: "To answer" is the offers waiting for the seller AND the questions waiting for an answer, and only
+  // those (no buyer-turn offers, no settings).
+  const questions = useUnansweredQuestions(userId);
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count;
   return (
     <div className="space-y-6">
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
@@ -120,7 +125,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
         value={only}
         onPick={(k) => (k === null ? only && toggle(only) : toggle(k))}
         chips={[
-          { key: "offers", label: "To answer", count: todo?.sellerOffers ?? 0, hot: true },
+          { key: "offers", label: "To answer", count: toAnswer, hot: true },
           { key: "listings", label: "Listed", count: listed },
           { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
@@ -128,13 +133,17 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
-      {show("offers") && <OffersSection side="seller" />}
+      {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
+      {show("offers") && <QuestionsToAnswer userId={userId} />}
+      {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting />}
       {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
       {show("sold") && <SellerPayoutPrompt />}
       {show("sold") && <PaidOrders side="seller" />}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
+      {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
+      {only === null && settings}
     </div>
   );
 }

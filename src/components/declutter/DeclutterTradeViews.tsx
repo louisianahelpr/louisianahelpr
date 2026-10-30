@@ -240,7 +240,8 @@ function OfferRow({ o }: { o: MyOffer }) {
  * Offers on your items (side="seller", the Selling tab) or the offers you sent
  * (side="buyer", the Buying tab): rows 57-58.
  */
-export function OffersSection({ side }: { side: "buyer" | "seller" }) {
+/** onlyMyTurn (audit DC-9, Selling's "To answer"): only the open offers waiting for this member, nothing else. */
+export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "seller"; onlyMyTurn?: boolean }) {
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
   const title = seller ? "Offers on your items" : "Your offers";
@@ -251,6 +252,16 @@ export function OffersSection({ side }: { side: "buyer" | "seller" }) {
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading offers…</p>;
   const mine = (offers.data ?? []).filter((o) => o.my_side === side);
   const toAnswer = mine.filter((o) => o.status === "open" && o.awaiting === side).length;
+  if (onlyMyTurn) {
+    const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side);
+    if (waiting.length === 0) return null;
+    return (
+      <section className="space-y-2" aria-label={title} data-offers-my-turn="">
+        <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
+        <ul className="space-y-3">{waiting.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
+      </section>
+    );
+  }
   // Deep audit #30: closed offers (said no, taken back, ran out, sold) piled up above the seller's live ones. The
   // seller sees the open ones; the closed ones fold under one button. declutter_my_offers keeps a closed offer 30 days.
   const shown = seller ? mine.filter((o) => o.status === "open") : mine;

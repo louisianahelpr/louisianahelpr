@@ -350,6 +350,25 @@ export async function fetchQuestions(itemId: string): Promise<DeclutterQuestion[
   return (rpcData(res, (e) => rpcErrorMessage("declutter_item_questions", e)) ?? []) as DeclutterQuestion[];
 }
 
+/**
+ * Audit DC-9: the questions still waiting for the seller's answer on these listings (the seller's own, from
+ * myItemsQuery), oldest first, for Selling's "To answer". The table read keeps asker_id out (members have no grant
+ * on it); its row policy hides removed questions.
+ */
+export async function fetchUnansweredQuestions(itemIds: string[]): Promise<Pick<DeclutterQuestion, "id" | "item_id" | "question" | "created_at">[]> {
+  if (!itemIds.length) return [];
+  const rows = unwrap(
+    await supabase
+      .from("declutter_questions")
+      .select("id, item_id, question, created_at")
+      .in("item_id", itemIds)
+      .is("answer", null)
+      .is("removed_at", null)
+      .order("created_at", { ascending: true }),
+  );
+  return (rows ?? []) as Pick<DeclutterQuestion, "id" | "item_id" | "question" | "created_at">[];
+}
+
 export async function fetchWatching(userId: string): Promise<Set<string>> {
   const rows = unwrap(await supabase.from("declutter_watchlist").select("item_id").eq("user_id", userId));
   return new Set((rows ?? []).map((r: { item_id: string }) => r.item_id));

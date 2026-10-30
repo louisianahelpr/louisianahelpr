@@ -397,19 +397,21 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
             </section>
           </div>
         }
+        settings={<>
+          {/* Owner 2026-10-28: the seller's settings in ONE area under the lists, never an accordion among them.
+              Each setting keeps its own row (and its own save); the group draws the one card around them, so a row drops
+              its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
+          <section className="space-y-2" aria-label="Selling settings" data-selling-settings="">
+            <SectionHeading title="Selling settings" />
+            <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
+              <SellerDeliveryCard />
+              <PickupTimesCard userId={userId} />
+              <BundleDiscountCard />
+            </div>
+          </section>
+          <DeliverEntry />
+        </>}
       />
-      {/* Owner 2026-10-28: the seller's settings in ONE area under the lists, never an accordion among them.
-          Each setting keeps its own row (and its own save); the group draws the one card around them, so a row drops
-          its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
-      <section className="space-y-2" aria-label="Selling settings" data-selling-settings="">
-        <SectionHeading title="Selling settings" />
-        <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
-          <SellerDeliveryCard />
-          <PickupTimesCard userId={userId} />
-          <BundleDiscountCard />
-        </div>
-      </section>
-      <DeliverEntry />
     </div>
   );
 }

@@ -4,10 +4,17 @@
  * output is untrusted input). Dependency-free so vitest imports it
  * (src/test/declutterAiDraftSanitize.test.ts).
  */
+/**
+ * The same keys, in the same order, as src/lib/declutter/categoryIcons.ts CATEGORIES (the app's one category list;
+ * this function cannot import from src/). src/test/declutterCategoryList.test.ts fails until the two agree. Owner
+ * 2026-10-30: Pets and 18 more, Louisiana-specific plus general; "other" last.
+ */
 export const DECLUTTER_CATEGORIES = [
-  "furniture", "appliances", "electronics", "kitchen", "home_decor", "tools",
-  "outdoor_garden", "sports_outdoors", "toys_games", "baby_kids", "clothing",
-  "books_media", "other",
+  "furniture", "appliances", "electronics", "kitchen", "home_decor", "bedding_bath", "storage_organization", "tools",
+  "outdoor_garden", "sports_outdoors", "exercise_fitness", "hunting_fishing", "boats_marine", "camping", "bikes", "auto_parts",
+  "baby_kids", "toys_games", "clothing", "jewelry_accessories", "health_beauty", "pets", "office_school",
+  "books_media", "crafts_hobbies", "musical_instruments", "collectibles_antiques", "holiday_seasonal", "tailgating_game_day", "party_events",
+  "moving_supplies", "other",
 ] as const;
 
 export const DELIVERY_SIZES = ["small", "large", "xl"] as const;

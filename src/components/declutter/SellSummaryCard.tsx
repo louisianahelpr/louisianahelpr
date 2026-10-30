@@ -12,7 +12,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { ChipGroup } from "./DeclutterSellSteps";
 import PriceHint from "./DeclutterPriceHint";
 import { AiPriceLine } from "./SellAiDraft";
-import { CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import { FieldLabel, SELL_INPUT, SellPriceInput } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 
@@ -104,7 +104,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
           {!form.free && <SellPriceInput s={s} />}
         </Row>
         <Row {...row("category")} title="Category" value={CATEGORY_LABEL[form.category] ?? form.category} empty={false}>
-          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} value={form.category} onChange={(v) => set("category", v)} />
+          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
         </Row>
         <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />

@@ -87,7 +87,14 @@ export function useDrivingTime(
   destLng: number | null | undefined,
   miles: number | null,
 ): number | null {
-  const mapKitStatus = useMapKitJs();
+  // MapKit is only asked for when a route could come back and be shown. Every
+  // JobCard calls this, so a visitor with no location (every guest on /browse)
+  // downloaded Apple's script and an edge-minted token for a route the effect
+  // below would never request (Lighthouse run 41080594282, 2026-10-30).
+  const mapKitStatus = useMapKitJs({
+    enabled:
+      originLat != null && originLng != null && destLat != null && destLng != null && isCommutableDistance(miles),
+  });
   const [minutes, setMinutes] = useState<number | null>(() =>
     miles == null ? null : commuteEstimate(miles, heuristicMinutes(miles)),
   );

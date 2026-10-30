@@ -175,7 +175,7 @@ describe("photo-first selling, one screen", () => {
     const covers = document.querySelectorAll("[data-cover-chip]");
     expect(covers).toHaveLength(1);
     expect(covers[0].closest("[data-held-photo]")).toBe(document.querySelectorAll("[data-held-photo]")[0]);
-    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
     expect(calls).toEqual([]); // nothing uploaded before there is a draft
 
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
@@ -209,7 +209,7 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
-    await screen.findByText("Claude wrote your listing");
+    await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     expect(screen.getByText("Off. It stays at your price until you change it.")).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
-    await screen.findByText("Claude wrote your listing");
+    await screen.findByText("We wrote your listing. Check it before you post");
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
@@ -283,7 +283,7 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg", "b.jpg");
-    await screen.findByText("Claude wrote your listing");
+    await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
     expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you save$/);
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
@@ -316,11 +316,11 @@ describe("photo-first selling, one screen", () => {
     expect(document.querySelector("[data-ai-draft]")).toBeNull();
     addPhotos("a.jpg", "b.jpg");
     // It runs by itself, with the photos still on the device, and says so.
-    expect(await screen.findByText("Claude is writing your listing…")).toBeInTheDocument();
+    expect(await screen.findByText("We're writing your listing…")).toBeInTheDocument();
     expect(aiCalls).toEqual([["a.jpg", "b.jpg"]]);
     expect(calls).toEqual([]); // nothing created or uploaded for it
     aiAnswer.release!();
-    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
     expect(document.querySelector("[data-ai-title]")).toHaveTextContent(DRAFT.title);
     expect(document.querySelector("[data-ai-price]")).toHaveTextContent(`Suggested price: $45 · ${DRAFT.priceReason}`);
     // Adding more photos does not run it again by itself...
@@ -356,7 +356,7 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg", "b.jpg", "c.jpg");
-    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
     expect(document.querySelector("[data-ai-photo-tip]")).toHaveTextContent("One more photo would help: A photo of the label");
     // b.jpg is the cover now, marked as such.
     const held = () => [...document.querySelectorAll("[data-held-photo] img")].map((i) => i.getAttribute("src"));
@@ -369,8 +369,8 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
-    await screen.findByText("Claude is writing your listing…");
-    expect(rowValue("title")).toBe("Claude is filling this in…");
+    await screen.findByText("We're writing your listing…");
+    expect(rowValue("title")).toBe("We're filling this in…");
     fireEvent.click(screen.getByRole("button", { name: "Add title" }));
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Grandma's dresser" } });
     aiAnswer.release!();
@@ -390,7 +390,7 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
-    await screen.findByText("Claude wrote your listing");
+    await screen.findByText("We wrote your listing. Check it before you post");
     const tiles = [...document.querySelectorAll("[data-handover-tile]")].map((t) => t.getAttribute("data-handover-tile"));
     expect(tiles).toEqual(["porch", "seller_delivery", "meetup"]);
     expect(screen.queryByRole("checkbox", { name: "Helpr delivery" })).toBeNull();

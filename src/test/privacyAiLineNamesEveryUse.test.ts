@@ -57,7 +57,7 @@ describe("the Privacy tab's AI line covers every use of the AI provider", () => 
     ),
   ].sort();
   const privacy = readFileSync(join(ROOT, "src/pages/info/legal/PrivacySection.tsx"), "utf8");
-  const line = privacy.split("\n").find((l) => l.includes(">Anthropic (Claude)<")) ?? "";
+  const line = privacy.split("\n").find((l) => l.includes(">Anthropic<")) ?? "";
 
   it("finds the AI callers and the line", () => {
     expect(callers.length).toBeGreaterThan(1);

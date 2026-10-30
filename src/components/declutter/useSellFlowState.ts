@@ -31,6 +31,7 @@ import {
   fetchPhotos,
   publishItem,
   removePhoto,
+  reorderPhotos,
   fetchItemHandovers,
   setHandovers,
   setKeepUp,
@@ -453,6 +454,23 @@ export function useSellFlowState(urlItemId: string | null) {
     }
   }
 
+  /** A photo already on the listing moves: shown at once, and put back if the server refuses (audit posting 1030 #9). */
+  async function moveUploaded(from: number, to: number) {
+    const key = ["declutter", "item-photos", itemId];
+    const was = photos.data ?? [];
+    const next = movedPhoto(was, from, to);
+    if (!itemId || next === was) return;
+    qc.setQueryData(key, next);
+    try {
+      await reorderPhotos(itemId, next.map((p) => p.id));
+    } catch (err) {
+      qc.setQueryData(key, was);
+      toast.error(declutterErrorMessage(err));
+    } finally {
+      void qc.invalidateQueries({ queryKey: key });
+    }
+  }
+
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
     if (!attested) {
@@ -529,7 +547,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, moveHeld, coverUndo, undoCover,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, moveHeld, moveUploaded, coverUndo, undoCover,
   };
 }
 

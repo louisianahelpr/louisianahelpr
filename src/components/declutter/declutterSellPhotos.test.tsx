@@ -42,6 +42,7 @@ const upload = {
   mostAtOnce: 0,
   delays: {} as Record<string, () => Promise<void>>,
   keepUpGate: null as Promise<void> | null,
+  readGate: null as Promise<void> | null,
 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
@@ -100,7 +101,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,
   fetchMyPickupWindows: async () => [],
-  fetchPhotos: async () => upload.onDraft,
+  fetchPhotos: async () => { await upload.readGate; return [...upload.onDraft]; },
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { calls.push("createDraft"); drafts.push(f); return NEW_ID; },
@@ -127,6 +128,7 @@ vi.mock("@/lib/declutter/api", () => ({
     return "p";
   },
   removePhoto: async () => undefined,
+  reorderPhotos: vi.fn(async () => undefined),
   requestAiDraft: async () => ({}),
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
   requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.fails ? Promise.reject(new Error("ai_unavailable")) : aiAnswer.next(); },
@@ -183,6 +185,7 @@ describe("photo-first selling, one screen", () => {
     upload.mostAtOnce = 0;
     upload.delays = {};
     upload.keepUpGate = null;
+    upload.readGate = null;
     aiCalls.length = 0;
     drafts.length = 0;
     drops.length = 0;
@@ -668,6 +671,44 @@ describe("photo-first selling, one screen", () => {
       fireEvent.click(screen.getByRole("button", { name: "Post it" }));
       await screen.findByText(/2 photos didn't upload/);
       expect(document.querySelectorAll("[data-photo-grip]")).toHaveLength(0);
+    });
+  });
+
+  // Audit posting 1030 #9: photos already on the listing move through the server, and come back if it refuses.
+  // @mutate src/components/declutter/useSellFlowState.ts |       await reorderPhotos(itemId, next.map((p) => p.id)); |       void next;
+  // @mutate src/components/declutter/useSellFlowState.ts |       qc.setQueryData(key, was);\n |
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {onMoveUploaded && i > 0 && <MakeCover n={i + 1} onClick={() => onMoveUploaded(i, 0)} />}\n |
+  // @mutate src/components/declutter/SellOneScreen.tsx |             onMoveUploaded={(from, to) => void s.moveUploaded(from, to)}\n |
+  describe("moving photos already on the listing", () => {
+    const onDraftNow = () => [...document.querySelectorAll("[data-uploaded-photo] img")].map((i) => i.getAttribute("src"));
+    /** Post with one failure: two photos are on the draft, one still held, and the screen stays. */
+    async function twoUploaded() {
+      vi.mocked(api.reorderPhotos).mockClear();
+      upload.failing = new Set(["c.jpg"]);
+      open();
+      await screen.findByRole("heading", { name: "Show it off" });
+      addPhotos("a.jpg", "b.jpg", "c.jpg");
+      await screen.findByText("We wrote your listing. Check it before you post");
+      fillWaysAndTax();
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      await screen.findByText(/1 photo didn't upload/);
+      await waitFor(() => expect(onDraftNow()).toEqual(["https://cdn/a.jpg", "https://cdn/b.jpg"]));
+    }
+
+    it("Make cover sends the new order, and shows it", async () => {
+      await twoUploaded();
+      fireEvent.click(screen.getByRole("button", { name: "Make photo 2 the cover" }));
+      await waitFor(() => expect(api.reorderPhotos).toHaveBeenCalledWith(NEW_ID, ["p-b.jpg", "p-a.jpg"]));
+    });
+
+    it("the server refuses: the order goes back and it is said", async () => {
+      await twoUploaded();
+      // The read after it hangs here, so what puts the order back is the refusal itself, even with no connection.
+      upload.readGate = new Promise<void>(() => {});
+      vi.mocked(api.reorderPhotos).mockImplementationOnce(() => new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("photos_changed"), { userMessage: "Your photos changed somewhere else. Check the order and try again." })), 0)));
+      fireEvent.click(screen.getByRole("button", { name: "Make photo 2 the cover" }));
+      await waitFor(() => expect(onDraftNow()).toEqual(["https://cdn/b.jpg", "https://cdn/a.jpg"]));
+      await waitFor(() => expect(onDraftNow()).toEqual(["https://cdn/a.jpg", "https://cdn/b.jpg"]));
     });
   });
 

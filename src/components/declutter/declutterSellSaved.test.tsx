@@ -76,6 +76,7 @@ vi.mock("@/lib/declutter/api", () => ({
   storePhoto: async (_u: string, _id: string, f: File) => f.name,
   attachPhoto: async (_id: string, name: string) => { h.onDraft.push({ id: `p-${name}`, storage_path: name }); return "p"; },
   removePhoto: async () => undefined,
+  reorderPhotos: async () => undefined,
   requestAiDraft: async () => ({}),
   requestAiDraftFromPhotos: async () => {
     h.aiCalls += 1;

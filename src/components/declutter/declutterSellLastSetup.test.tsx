@@ -105,6 +105,7 @@ vi.mock("@/lib/declutter/api", () => ({
   setAutoFreeDays: async () => null,
   attachPhoto: async () => "p",
   removePhoto: async () => undefined,
+  reorderPhotos: async () => undefined,
   requestAiDraft: async () => DRAFT,
   requestAiDraftFromPhotos: async () => DRAFT,
   requestAiCheck: async () => ({ checked: true, flagged: false }),

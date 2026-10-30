@@ -36,6 +36,34 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
+const DROP_TARGET = "rounded-2xl ring-2 ring-[hsl(var(--bark))] ring-offset-2 ring-offset-background";
+
+/** What drags a photo. The photo itself still scrolls the page under a finger. */
+function PhotoGrip({ n, index, drag }: { n: number; index: number; drag: ReturnType<typeof usePhotoDrag> }) {
+  return (
+    <button
+      type="button"
+      data-photo-grip=""
+      aria-label={`Move photo ${n}. Drag it, or use the left and right arrow keys.`}
+      className="absolute top-0 left-0 flex h-11 w-11 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+      onPointerDown={(e) => drag.startDrag(e, index)}
+      onKeyDown={(e) => drag.gripKeys(e, index)}
+    >
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
+        <GripVertical className="h-4 w-4" />
+      </span>
+    </button>
+  );
+}
+
+function MakeCover({ n, onClick }: { n: number; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={`Make photo ${n} the cover`} className="min-h-11 w-full text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
+      Make cover
+    </button>
+  );
+}
+
 /** One preview per photo for as long as it is held, so moving a photo never redraws it. */
 function useHeldPreviews(held: File[]): string[] {
   const urls = useRef(new Map<File, string>());
@@ -76,6 +104,7 @@ export function SellPhotos({
   refusedNote = null,
   onMakeCover,
   onMoveHeld,
+  onMoveUploaded,
   coverUndo = null,
   free = false,
   tipDone = false,
@@ -96,6 +125,8 @@ export function SellPhotos({
   onMakeCover?: (index: number) => void;
   /** A held photo is dragged to another place. */
   onMoveHeld?: (from: number, to: number) => void;
+  /** A photo already on the listing is dragged to another place. */
+  onMoveUploaded?: (from: number, to: number) => void;
   /** The AI moved the cover: says so, and this puts it back. */
   coverUndo?: (() => void) | null;
   free?: boolean;
@@ -107,6 +138,8 @@ export function SellPhotos({
   const previews = useHeldPreviews(held);
   const drag = usePhotoDrag(held.length, onMoveHeld ?? noMove);
   const canDrag = !!onMoveHeld && !heldFailed && held.length > 1;
+  const uploadedDrag = usePhotoDrag(uploaded.length, onMoveUploaded ?? noMove);
+  const canDragUploaded = !!onMoveUploaded && uploaded.length > 1;
   const count = uploaded.length + held.length;
   const addTile = count < MAX_PHOTOS && (
     <li>
@@ -126,34 +159,25 @@ export function SellPhotos({
       <input id="sell-files" type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
       <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5" data-sell-photos="">
         {uploaded.map((p, i) => (
-          <li key={p.id} className="relative">
-            <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
-            {i === 0 && <CoverChip />}
-            <RemoveButton label={`Remove photo ${i + 1}`} onClick={() => onRemoveUploaded(p.id)} />
+          <li key={p.id} data-uploaded-photo="" ref={uploadedDrag.tileRef(i)} className="relative" style={uploadedDrag.tileStyle(i)}>
+            <div className={uploadedDrag.isTarget(i) ? `relative ${DROP_TARGET}` : "relative"} data-drop-target={uploadedDrag.isTarget(i) ? "" : undefined}>
+              <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} draggable={false} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+              {canDragUploaded && <PhotoGrip n={i + 1} drag={uploadedDrag} index={i} />}
+              {i === 0 && <CoverChip />}
+              <RemoveButton label={`Remove photo ${i + 1}`} onClick={() => onRemoveUploaded(p.id)} />
+            </div>
+            {onMoveUploaded && i > 0 && <MakeCover n={i + 1} onClick={() => onMoveUploaded(i, 0)} />}
           </li>
         ))}
         {previews.map((url, i) => (
           <li key={url} data-held-photo="" ref={drag.tileRef(i)} className="relative" style={drag.tileStyle(i)}>
             {/* The chips and X sit on the photo; Make cover sits under it, so its height never moves them. */}
-            <div className={drag.isTarget(i) ? "relative rounded-2xl ring-2 ring-[hsl(var(--bark))] ring-offset-2 ring-offset-background" : "relative"} data-drop-target={drag.isTarget(i) ? "" : undefined}>
+            <div className={drag.isTarget(i) ? `relative ${DROP_TARGET}` : "relative"} data-drop-target={drag.isTarget(i) ? "" : undefined}>
             {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
             {url.startsWith("blob:") && (
               <img src={url} alt={`Photo ${uploaded.length + i + 1}`} draggable={false} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
             )}
-            {canDrag && (
-              <button
-                type="button"
-                data-photo-grip=""
-                aria-label={`Move photo ${uploaded.length + i + 1}. Drag it, or use the left and right arrow keys.`}
-                className="absolute top-0 left-0 flex h-11 w-11 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
-                onPointerDown={(e) => drag.startDrag(e, i)}
-                onKeyDown={(e) => drag.gripKeys(e, i)}
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
-                  <GripVertical className="h-4 w-4" />
-                </span>
-              </button>
-            )}
+            {canDrag && <PhotoGrip n={uploaded.length + i + 1} drag={drag} index={i} />}
             {heldFailed ? (
               <span data-photo-failed="" className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-background/95 px-2 py-0.5 text-ds-12 font-semibold text-destructive-ink">
                 Didn't upload
@@ -161,11 +185,7 @@ export function SellPhotos({
             ) : uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
             </div>
-            {onMakeCover && !heldFailed && uploaded.length + i > 0 && (
-              <button type="button" onClick={() => onMakeCover(i)} aria-label={`Make photo ${uploaded.length + i + 1} the cover`} className="min-h-11 w-full text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
-                Make cover
-              </button>
-            )}
+            {onMakeCover && !heldFailed && uploaded.length + i > 0 && <MakeCover n={uploaded.length + i + 1} onClick={() => onMakeCover(i)} />}
           </li>
         ))}
         {addTile}
@@ -174,7 +194,7 @@ export function SellPhotos({
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
       </p>
-      {canDrag && <p className="text-ds-13 text-muted-foreground" data-photo-drag-hint="">Drag a photo's handle to change the order.</p>}
+      {(canDrag || canDragUploaded) && <p className="text-ds-13 text-muted-foreground" data-photo-drag-hint="">Drag a photo's handle to change the order.</p>}
       {coverUndo && (
         <p className="text-ds-13 text-foreground" data-cover-moved="">
           We picked the best photo for the cover.{" "}

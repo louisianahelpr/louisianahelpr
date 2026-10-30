@@ -57,6 +57,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   item_not_editable: "This item can't be changed now.",
   photo_not_uploaded: "That photo didn't finish uploading. Try adding it again.",
   photo_not_found: "That photo was already removed.",
+  // 20261030215829: a photo was added or removed somewhere else since this list was read.
+  photos_changed: "Your photos changed somewhere else. Check the order and try again.",
   too_many_photos: "A listing can have up to 12 photos.",
   // DC-8 (20261030061927): a listing on sale keeps at least one photo.
   too_few_photos: "A listing needs at least one photo. Add the new one before you remove the last.",

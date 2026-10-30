@@ -123,6 +123,7 @@ function SellSteps({ itemId }: { itemId: string }) {
             held={held}
             onFiles={(f) => void s.onFiles(f)}
             onRemoveUploaded={(photoId) => void s.onRemovePhoto(photoId)}
+            onMoveUploaded={(from, to) => void s.moveUploaded(from, to)}
             onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
             uploading={uploading}
             aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} /> : null}

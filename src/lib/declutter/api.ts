@@ -551,6 +551,11 @@ export async function attachPhoto(itemId: string, path: string): Promise<string>
   return data as string;
 }
 
+/** Puts a listing's uploaded photos in this order; the first is the cover. The ids must be exactly its photos (photos_changed otherwise). */
+export async function reorderPhotos(itemId: string, photoIds: string[]): Promise<void> {
+  rpcData(await supabase.rpc("declutter_reorder_item_photos", { p_item_id: itemId, p_photo_ids: photoIds }), (e) => rpcErrorMessage("declutter_reorder_item_photos", e));
+}
+
 /** Remove storage objects the server detached (photo removed, listing withdrawn). */
 async function removeObjects(paths: string[]): Promise<void> {
   if (paths.length === 0) return;

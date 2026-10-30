@@ -1204,6 +1204,16 @@ export const RPC_ERROR_COPY = {
     sale_mode_unavailable: DC.sale_mode_unavailable,
     under_18: DC.under_18,
   },
+  declutter_reorder_item_photos: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    photos_changed: DC.photos_changed,
+    under_18: DC.under_18,
+  },
   declutter_remove_item_photo: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

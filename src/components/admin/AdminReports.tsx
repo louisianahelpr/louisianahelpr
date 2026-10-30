@@ -48,6 +48,8 @@ type Report = {
   reported_type: string;
   reason: string;
   description: string | null;
+  /** Messages audit M2: the reported message's words, copied by the database when the report was filed. */
+  reported_content?: string | null;
   status: string;
   assigned_to: string | null;
   created_at: string;
@@ -519,6 +521,12 @@ const AdminReports = () => {
 
               {report.description && (
                 <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3">{report.description}</p>
+              )}
+              {/* The reported message as it read when it was reported (kept even if it is later deleted). */}
+              {report.reported_type === "message" && report.reported_content && (
+                <p className="text-ds-11 bg-muted/50 rounded-ds-sm p-3 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  <span className="font-semibold">Reported message: </span>{report.reported_content}
+                </p>
               )}
 
               {/* One line, not two: 7 action buttons kept on a single row —

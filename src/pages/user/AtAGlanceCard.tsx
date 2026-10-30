@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProfileStatsShape, ReplyLatency } from "./types";
+import { TrustLine } from "@/components/TrustLine";
+import type { ReplyBucket } from "@/lib/trustLine";
 
 /**
  * AT A GLANCE — every number this profile can honestly show, in ONE grid.
@@ -181,6 +183,10 @@ type Props = {
    * the same card and made a stranger doubt both.
    */
   repeatHirePercent: number | null;
+  /** Distinct clients behind repeatHirePercent (Q2478 trust line: "3 repeat customers"). */
+  repeatClientSample?: number | null;
+  /** get_reply_speed's rounded public bucket, or null (Q2478 2b). */
+  replyBucket?: ReplyBucket | null;
   /**
    * Completed jobs the VIEWER and this member have done together. Its own
    * tile, FOURTH (owner, 2026-09-19; it was second from VN-16, 2026-09-14).
@@ -218,9 +224,11 @@ export const AtAGlanceCard = ({
   postedJobsCount,
   workedJobsCount,
   replyLatency: _replyLatency,
-  onTimeArrivalRate: _onTimeArrivalRate,
+  onTimeArrivalRate,
   revisionFrequency: _revisionFrequency,
-  repeatHirePercent: _repeatHirePercent,
+  repeatHirePercent,
+  repeatClientSample = null,
+  replyBucket = null,
   mutualJobsCount,
   declutterReviewCount = 0,
   showReviews,
@@ -431,6 +439,8 @@ export const AtAGlanceCard = ({
      whose entire job is to show what a STRANGER sees, a sentence only you can
      ever read is the wrong thing to render. */
 
+  // Q2478 (owner 2a, 2026-10-29): ONE trust line under the four tiles, which stay exactly as they are.
+  const trustStats = { completedJobs: workedJobsCount, onTimeRate: onTimeArrivalRate, repeatHirePercent, repeatClientSample };
   return (
     <section aria-label="At a glance">
       {/* EXACTLY FOUR TILES: two-up on a phone, one row of four from `sm`.
@@ -456,6 +466,7 @@ export const AtAGlanceCard = ({
           <MetricCell key={c.key} cell={c} />
         ))}
       </div>
+      <TrustLine stats={trustStats} reply={replyBucket} className="mt-3" />
     </section>
   );
 };

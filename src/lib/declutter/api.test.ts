@@ -675,7 +675,7 @@ describe("addPhotoSteadily", () => {
     h.queue.push({ error: null }, dropped, ok({ id: "already-there" }));
     await expect(addPhotoSteadily("seller-1", "item-1", file, quiet)).resolves.toBe("already-there");
     expect(h.rpcs).toHaveLength(1);
-    expect(h.queries.at(-1)?.ops).toContainEqual(["eq", ["storage_path", path]]);
+    expect(h.queries[h.queries.length - 1].ops).toContainEqual(["eq", ["storage_path", path]]);
     // Its file is on the listing: never removed.
     expect(h.store.map((s) => s[0])).toEqual(["upload"]);
   });

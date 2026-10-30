@@ -10,7 +10,7 @@
  * with NEW_MIGRATION=skip). This file pins the shape of the NEWEST definition
  * so a later migration cannot restate open_dispute_as without the clear.
  *
- * @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql | dispute_helper_response = NULL, | dispute_reason = _reason,
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql | dispute_helper_response = NULL, | dispute_reason = _reason,
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";

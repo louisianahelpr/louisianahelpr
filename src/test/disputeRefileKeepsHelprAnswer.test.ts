@@ -14,13 +14,13 @@
  * on prod's state, ALL PASS applied 3x).
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |      SET helper_response = j.dispute_helper_response |      SET helper_response = NULL
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |          dispute_resolved_at = NULL, |          dispute_resolved_at = dispute_resolved_at,
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |          dispute_evidence_urls = COALESCE(_evidence_urls, '{}'::text[]) |          dispute_evidence_urls = COALESCE(dispute_evidence_urls, '{}'::text[]) \|\| COALESCE(_evidence_urls, '{}'::text[])
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |      SET helper_response = j.dispute_helper_response |      SET helper_response = NULL
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |          dispute_resolved_at = NULL, |          dispute_resolved_at = dispute_resolved_at,
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |          dispute_evidence_urls = COALESCE(_evidence_urls, '{}'::text[]) |          dispute_evidence_urls = COALESCE(dispute_evidence_urls, '{}'::text[]) \|\| COALESCE(_evidence_urls, '{}'::text[])
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   OR (NEW.helper_response IS DISTINCT FROM OLD.helper_response | OR (false
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |                AND OLD.helper_response IS NULL)) |                AND true))
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   PERFORM set_config('app.dispute_archive_rpc', '1', true);\n  UPDATE public.disputes d |   UPDATE public.disputes d
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   PERFORM set_config('app.dispute_archive_rpc', '0', true);\n | \n
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   PERFORM set_config('app.dispute_archive_rpc', '1', true);\n  UPDATE public.disputes d |   UPDATE public.disputes d
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   PERFORM set_config('app.dispute_archive_rpc', '0', true);\n | \n
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

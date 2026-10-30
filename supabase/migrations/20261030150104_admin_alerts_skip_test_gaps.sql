@@ -881,13 +881,13 @@ BEGIN
     'Re-filed',    CASE WHEN _refiled THEN 'yes' ELSE 'no' END
   );
 
-  SELECT j.is_seed INTO v_seed FROM public.jobs j WHERE j.id = _job_id FOR KEY SHARE;
   -- A test account's dispute goes to the digest too (owner 2026-10-30: test
-  -- stuff never reaches the owner): the opener, or the job's poster or Helpr.
+  -- stuff never reaches the owner): the job's poster or Helpr, or the opener.
+  -- Read in the same locked row read.
+  SELECT j.is_seed OR public.is_test_subject(j.customer_id) OR public.is_test_subject(j.helper_id)
+    INTO v_seed FROM public.jobs j WHERE j.id = _job_id FOR KEY SHARE;
   v_seed := coalesce(v_seed, false)
-    OR public.is_test_subject(_opener_id)
-    OR EXISTS (SELECT 1 FROM public.jobs j WHERE j.id = _job_id
-                 AND (public.is_test_subject(j.customer_id) OR public.is_test_subject(j.helper_id)));
+    OR public.is_test_subject(_opener_id);
   IF coalesce(v_seed, false) THEN
     INSERT INTO public.error_logs (severity, message, tags, context)
     VALUES (

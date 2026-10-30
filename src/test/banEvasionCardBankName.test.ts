@@ -25,12 +25,12 @@
  *
  * @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |     v_cards,\n    v_banks,\n    v_name_h, |     '{}'::text[],\n    v_banks,\n    v_name_h,
  * @mutate supabase/migrations/20261007043626_ban_evasion_phone_and_identity_near_match.sql |    email_sha256, phone_sha256, identity_sha256, card_sha256, bank_sha256, name_sha256, |    email_sha256, phone_sha256, identity_sha256, card_sha256, bank_sha256,
- * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |        OR (p_kind = 'bank' AND v_h = ANY (rb.bank_sha256))) |        OR FALSE)
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |        OR (p_kind = 'bank' AND v_h = ANY (rb.bank_sha256))) |        OR FALSE)
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |       VALUES (NEW.user_id, 'name', v_h, v_row.id, | INSERT INTO public.fraud_flags (user_id, flag_type, details) VALUES (NEW.user_id, 'possible_ban_evasion', v_row.reason);\n      VALUES (NEW.user_id, 'name', v_h, v_row.id,
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |     IF FOUND THEN\n      -- Admin-only | IF FOUND THEN\n      UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = NEW.user_id;\n      -- Admin-only
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |   AFTER INSERT OR UPDATE OF full_name ON public.profiles |   AFTER UPDATE OF full_name ON public.profiles
- * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |         COALESCE(v_email, '(unknown)')\n      )\n    WHERE NOT EXISTS ( |         COALESCE(v_email, '(unknown)') \|\| v_row.reason\n      )\n    WHERE NOT EXISTS (
- * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |            v_own_reason,\n           p_user_id, |            v_row.reason,\n           p_user_id,
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |         COALESCE(v_email, '(unknown)')\n      )\n    WHERE NOT EXISTS ( |         COALESCE(v_email, '(unknown)') \|\| v_row.reason\n      )\n    WHERE NOT EXISTS (
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |            v_own_reason,\n           p_user_id, |            v_row.reason,\n           p_user_id,
  * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |   -- Q1324: a fingerprint-match ban waits for an admin (ban_settlement_queue).\n  IF COALESCE(current_setting('app.ban_settlement_review', true), '') = 'on' THEN\n    RETURN NULL;\n  END IF;\n  -- Belt | -- Belt
  * @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |                        AND NOT EXISTS (SELECT 1 FROM public.payout_transfers pt\n                                        WHERE pt.job_id = j.id AND pt.helper_id = r.user_id AND pt.status = 'paid'))), '[]'::jsonb) |                        TRUE)), '[]'::jsonb)
  * @mutate src/components/admin/AdminFraudDashboard.tsx |       <AdminBanEvasionReview /> |
@@ -38,7 +38,7 @@
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   AFTER UPDATE OF payment_status ON public.jobs
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
- * @mutate supabase/migrations/20261006014801_ban_evasion_card_bank_and_name.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n     -- Q2275: Jobs Browse |      -- Q2275: Jobs Browse

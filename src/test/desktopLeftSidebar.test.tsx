@@ -111,8 +111,8 @@ describe("the LEFT sidebar (board 11)", () => {
     const header = document.querySelector("header") as HTMLElement;
     expect(header.hasAttribute("data-rail-inset")).toBe(true);
     expect(header.querySelector('[aria-label*="navigation panel"]')).toBeNull();
-    // Board 11: bell, then the member's photo.
-    expect([...header.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile"]);
+    // UX-6: Help, then board 11: bell, then the member's photo.
+    expect([...header.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Help", "Notifications", "Profile"]);
   });
 
   it("the shared insets move the page RIGHT of the sidebar (never a right-edge rail inset)", () => {

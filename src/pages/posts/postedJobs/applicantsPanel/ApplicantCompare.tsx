@@ -2,6 +2,8 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Columns2 } from "lucide-react";
+import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import { formatName } from "@/lib/utils";
 import type { EnrichedApplication } from "@/components/job-card/activityConstants";
 
@@ -24,7 +26,7 @@ export function useApplicantCompare() {
   return { ids, toggle, clear: () => setIds([]) };
 }
 
-/** The card's "Compare" tick. Disabled once 3 are picked, unless this one is. `labelHidden`: the desktop table's column header already says Compare (board 170). */
+/** The desktop table's "Compare" tick (the phone card uses CompareChip). Disabled once 3 are picked, unless this one is. `labelHidden`: the desktop table's column header already says Compare (board 170). */
 export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: string; name: string; ids: string[]; toggle: (id: string) => void; labelHidden?: boolean }) {
   const on = ids.includes(id);
   const full = !on && ids.length >= COMPARE_MAX;
@@ -41,6 +43,32 @@ export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: strin
       />
       <span className={labelHidden ? "sr-only" : undefined}>Compare</span>
     </label>
+  );
+}
+
+/**
+ * The phone/tablet card's Compare toggle, in the card's top-right icon row LEFT of the private-note icon (owner,
+ * 2026-10-29, iPhone Applicants screenshot: Compare had a row of its own under Hire, making every card taller).
+ * Owner's pick (option B with a change, 2026-10-29 mockup): a PLAIN icon exactly like the note, flag and block icons
+ * beside it (the same shared IconActionButton, bare and compact: no circle, no border, the same size and tap area).
+ * Picked shows as the icon turning olive (--bark) with an olive tint inside, never a ring; aria-pressed and the
+ * name "Compare <name>" carry it for screen readers. Disabled once 3 are picked, unless this one is.
+ * Guard: src/test/applicantCardCompareUpTop.test.tsx.
+ */
+export function CompareChip({ id, name, ids, toggle }: { id: string; name: string; ids: string[]; toggle: (id: string) => void }) {
+  const on = ids.includes(id);
+  const full = !on && ids.length >= COMPARE_MAX;
+  return (
+    <IconActionButton
+      bare compact
+      icon={<Columns2 className="w-4 h-4" style={on ? { fill: "hsl(var(--bark) / 0.22)" } : undefined} aria-hidden="true" />}
+      ariaLabel={`Compare ${name}`}
+      ariaPressed={on}
+      pressed={on}
+      pressedColor="hsl(var(--bark))"
+      disabled={full}
+      onClick={() => toggle(id)}
+    />
   );
 }
 

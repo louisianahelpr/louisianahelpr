@@ -23,13 +23,21 @@
  * (375: name block 141px wide, not truncated; row top 238 below the note's
  * bottom 226; Message 35-157, Hire 163-290, x 296-340 across the card).
  *
+ * Restated 2026-10-29 (owner's applicant-card pick, option B): the details
+ * under the name now span the card's full width in their own block
+ * (basis-full, order-1) between the name row and the Hire row, so the top row
+ * wraps at every width. Below sm the Hire row is still alone on the LAST line
+ * (order-2); from sm up the right column (icons over the Hire row) still sits
+ * beside the name, because the only full-basis item is the details block.
+ *
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx |       <MessageApplicantButton jobId={jobId} helperId={helperId} helperName={helperName} className="flex-1 sm:flex-none" />\n |
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1"> | <div className="flex flex-col items-end gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1">
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1"> | <div className="flex flex-row-reverse items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1">
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1"> | <div className="flex items-center gap-1.5 shrink-0 sm:mr-1">
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2"> | <div className="flex flex-col items-end gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2">
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2"> | <div className="flex flex-row-reverse items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2">
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2"> | <div className="flex items-center gap-1.5 shrink-0 sm:mr-1 order-2">
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | ? "contents sm:flex sm:flex-col sm:items-end sm:gap-1 sm:shrink-0 sm:-mt-1 sm:-mr-1" | ? "flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1"
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | ? "contents sm:flex sm:flex-col sm:items-end sm:gap-1 sm:shrink-0 sm:-mt-1 sm:-mr-1" | ? "contents lg:flex lg:flex-col lg:items-end lg:gap-1 lg:shrink-0 lg:-mt-1 lg:-mr-1"
- * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | "flex flex-wrap sm:flex-nowrap items-start gap-3" : | "flex items-start gap-3" :
+ * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <div className="flex flex-wrap items-start gap-x-3 gap-y-2"> | <div className="flex items-start gap-x-3 gap-y-2">
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | basis-full sm:basis-auto sm:mr-1 order-2"> | basis-full sm:basis-auto sm:mr-1">
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx | helperName={helperName} className="flex-1 sm:flex-none" /> | helperName={helperName} />
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                           {app.status !== "pending" && canMessageApplicant(app.status) && ( |                           {canMessageApplicant(app.status) && (
  */
@@ -115,6 +123,8 @@ const DIRECTION = /^flex-(row|col|row-reverse|col-reverse)$/;
 const WRAP = /^flex-(wrap|nowrap|wrap-reverse)$/;
 const BASIS = /^basis-/;
 const GROW = /^flex-(1|auto|initial|none)$/;
+const ORDER = /^order-\d+$/;
+const orderAt = (el: Element, width: number) => Number(utilityAt(el, width, ORDER)?.replace("order-", "") ?? 0);
 
 /** The element whose flex layout places `el` at `width` (a `contents` ancestor dissolves). */
 function flexParentAt(el: Element, width: number): HTMLElement {
@@ -176,7 +186,10 @@ describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left
     expect(nameBlock, "the name block is its own item").toBeTruthy();
     expect(nameBlock.contains(row)).toBe(false);
     expect(laid.indexOf(row), `${name}: the row comes after the name and note`).toBeGreaterThan(laid.indexOf(nameBlock));
-    expect(laid.indexOf(row), `${name}: the row is the last item, alone on its line`).toBe(laid.length - 1);
+    // Laid out last: the full-width details block (order-1) sits between the name row and this row (order-2).
+    const others = laid.filter((c) => c !== row);
+    expect(others.length).toBeGreaterThan(1);
+    for (const c of others) expect(orderAt(row, W), `${name}: the row is laid out after every other item`).toBeGreaterThan(orderAt(c, W));
     // The name block keeps the line's width (flex-1, min-w-0), not squeezed by the row beside it.
     expect(utilityAt(nameBlock, W, GROW)).toBe("flex-1");
     // Message and Hire share the width; the x keeps its own size; order unchanged.
@@ -198,7 +211,13 @@ describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left
       expect(utilityAt(column, W, DISPLAY)).toBe("flex");
       expect(utilityAt(column, W, DIRECTION)).toBe("flex-col");
       expect(column.contains(nameLink), `@${W}: the right column is beside the name, not around it`).toBe(false);
-      expect(utilityAt(flexParentAt(column, W), W, WRAP) ?? "flex-nowrap", `@${W}: the top row does not wrap`).not.toBe("flex-wrap");
+      // The top row wraps only to put the details block (the one full-basis item) on its own line: the name
+      // block (flex-1, basis 0) and this right column stay side by side.
+      const top = flexParentAt(column, W);
+      const fullBasis = flexChildrenAt(top, W).filter((c) => utilityAt(c, W, BASIS) === "basis-full");
+      expect(fullBasis.length, `@${W}: exactly one full-width item`).toBe(1);
+      expect(fullBasis[0].hasAttribute("data-applicant-details"), `@${W}: and it is the details block`).toBe(true);
+      expect(utilityAt(column, W, BASIS), `@${W}: the right column never takes a line of its own`).not.toBe("basis-full");
       expect(utilityAt(row, W, BASIS)).not.toBe("basis-full");
       expect(utilityAt(message, W, GROW), `@${W}: Message keeps its natural width`).not.toBe("flex-1");
       expect(utilityAt(hire, W, GROW), `@${W}: Hire keeps its natural width`).not.toBe("flex-1");

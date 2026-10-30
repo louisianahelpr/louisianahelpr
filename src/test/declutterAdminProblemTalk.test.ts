@@ -14,11 +14,14 @@
  *   3. the chat is the order's own: that buyer and seller, opened from its first cart line to the payment;
  *   4. every question on its items, removed ones included and marked (the history is kept);
  *   5. never PUBLIC or anon.
- * @mutate supabase/migrations/20261029005124_declutter_admin_problem_talk.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
- * @mutate supabase/migrations/20261029005124_declutter_admin_problem_talk.sql | CASE WHEN m.sender_id = t.buyer_id THEN 'buyer' ELSE 'seller' END AS side, | m.sender_id::text AS side,
- * @mutate supabase/migrations/20261029005124_declutter_admin_problem_talk.sql |            AND t.opened_at >= COALESCE(v_from, v_order.created_at)\n |
- * @mutate supabase/migrations/20261029005124_declutter_admin_problem_talk.sql |          WHERE q.item_id IN | WHERE q.removed_at IS NULL AND q.item_id IN
- * @mutate supabase/migrations/20261029005124_declutter_admin_problem_talk.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql | CASE WHEN m.sender_id = t.buyer_id THEN 'buyer' ELSE 'seller' END AS side, | m.sender_id::text AS side,
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |            AND t.opened_at >= COALESCE(v_from, v_order.created_at)\n |
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |          WHERE q.item_id IN | WHERE q.removed_at IS NULL AND q.item_id IN
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC;
+ *   6. the chat after payment (D2-1, 20261030042545): that order's only, as the side kept on each message.
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |          WHERE ot.order_id = v_order.id |          WHERE true
+ * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |                om.sender_side, |                om.sender_id::text,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -34,7 +37,7 @@ const grants = blankSqlComments(def ? readFileSync(join(MIG, def.file.split("/")
 
 describe("AL-6: an admin reads a reported problem's chat and questions, as sides only", () => {
   it("reads the newest definition (floor)", () => {
-    expect(def?.file ?? "").toContain("20261029005124_declutter_admin_problem_talk.sql");
+    expect(def?.file ?? "").toContain("20261030042545_declutter_admin_problem_talk_order_chat.sql");
     expect(flat.length).toBeGreaterThan(900);
   });
 
@@ -60,6 +63,12 @@ describe("AL-6: an admin reads a reported problem's chat and questions, as sides
   it("every question on its items, removed ones kept and marked", () => {
     expect(flat).toContain("q.removed_at IS NOT NULL");
     expect(flat).toMatch(/FROM public\.declutter_questions q WHERE q\.item_id IN \(SELECT c\.item_id FROM public\.declutter_cart_items c WHERE c\.order_id = v_order\.id\)/);
+  });
+
+  // D2-1 leftover (lead-approved 2026-10-30, 20261030042545): the chat after payment, that order's only, as sides.
+  it("the chat after payment: that order's own messages, each as the side kept on it", () => {
+    expect(flat).toContain("SELECT 'order_chat'::text, om.sender_side, om.body, om.created_at, NULL::text, NULL::timestamptz, false, om.id FROM public.declutter_order_talks ot JOIN public.declutter_order_talk_messages om ON om.talk_id = ot.id WHERE ot.order_id = v_order.id");
+    expect(flat).not.toMatch(/om\.sender_id/);
   });
 
   it("never PUBLIC or anon", () => {

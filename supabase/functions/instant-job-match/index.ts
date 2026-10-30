@@ -314,45 +314,6 @@ serve(async (req) => {
       });
     }
 
-    // Tiny category emoji map — surfaces a glanceable icon in the push
-    // notification title so users can identify the work type without
-    // reading. Keeps the brand-voiced "Match for you" framing.
-    const categoryEmoji: Record<string, string> = {
-      cleaning: "🧹",
-      yard_work: "🌿",
-      moving: "📦",
-      errands: "🛒",
-      handyman: "🔧",
-      painting: "🎨",
-      delivery: "🚚",
-      pet_care: "🐾",
-      assembly: "🪛",
-      // storm_prep and events were MISSING until 2026-09-19, so both fell
-      // through to the generic "✨" in the one place a user sees this map —
-      // the push notification title. In Louisiana, storm_prep is the category
-      // that most needs to be glanceable: `src/lib/categoryIcons.ts` gives it
-      // CloudLightning for exactly that reason, and the in-app CategoryIcon
-      // list had the same two-member hole (see CategoryIcon.tsx's note).
-      // `ENUM_MAP_RATCHET` in src/test/edge/exhaustivenessRegistry.test.ts is
-      // what found it and is what keeps the next enum member from repeating it.
-      storm_prep: "⛈️",
-      events: "🎉",
-      electrical: "⚡",
-      plumbing: "🚰",
-      hvac: "❄️",
-      roofing: "🏠",
-      welding: "🔥",
-      carpentry: "🪚",
-      auto_repair: "🚗",
-      appliance_repair: "🧺",
-      flooring: "🧱",
-      concrete_masonry: "🏗️",
-      fencing: "🚧",
-      pressure_washing: "💦",
-      declutter_help: "🏷️",
-      other: "✨",
-    };
-    const emoji = categoryEmoji[job.category] ?? "✨";
 
     // The job-match OFF switch, honoured before anything is queued (ADDED
     // 2026-09-11). `job_matches` false means no in-app row, no push, no digest
@@ -375,8 +336,7 @@ serve(async (req) => {
       if (mutedMatches.has(h.user_id)) continue;
       matches.push({
         user_id: h.user_id,
-        // Category emoji in the title for faster glance recognition.
-        title: `${emoji} ${sameDay ? "Today: " : ""}Match for you${job.is_urgent ? " · Urgent" : ""}`,
+        title: `${sameDay ? "Today: " : ""}Match for you${job.is_urgent ? " · Urgent" : ""}`,
         message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
         link: `/home?quickApply=${job.id}`,
       });

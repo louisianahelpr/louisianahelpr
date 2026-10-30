@@ -261,7 +261,7 @@ export const STALLED_APPROVE_DISABLED_LABEL = "Waiting on the Helpr to mark it d
  * step moved to {@link STALLED_APPROVE_DISABLED_DETAIL}, behind one tap.
  */
 export const STALLED_APPROVE_DISABLED_REASON =
-  "Your Helpr hasn't marked this job done yet — we've reminded them, and your payment stays in escrow.";
+  "Your Helpr hasn't marked this job done yet — we've reminded them, and your payment stays on hold.";
 
 /** Heading over the detail, wherever a surface puts it behind a tap. */
 export const STALLED_APPROVE_DETAIL_TITLE = "Why This Is Waiting";
@@ -283,7 +283,7 @@ export const STALLED_APPROVE_DISABLED_DETAIL =
 export const STALLED_NUDGE_TITLE_POSTED = "Has this job been finished?";
 export const stalledNudgeBodyPosted = (title: string, second: boolean): string =>
   second
-    ? `"${title}" — your Helpr still hasn't marked it done, so your payment is still in escrow. Message them, or report a problem and our team will review it.`
+    ? `"${title}" — your Helpr still hasn't marked it done, so your payment is still on hold. Message them, or report a problem and our team will review it.`
     : `"${title}" — its scheduled time has passed and nobody has marked it done. Message your Helpr, or report a problem if something went wrong.`;
 
 /** First and second reminder to the Helpr doing the job. */
@@ -296,7 +296,7 @@ export const stalledNudgeBodyWorking = (title: string, second: boolean): string 
 /** What both parties are told when it goes to a human. */
 export const STALLED_ESCALATED_TITLE = "We've asked support to step in";
 export const stalledEscalatedBody = (title: string): string =>
-  `"${title}" — nobody marked this job done, so our team is reviewing it. The payment stays in escrow until a person decides; nothing has been released or refunded.`;
+  `"${title}" — nobody marked this job done, so our team is reviewing it. The payment stays on hold until a person decides; nothing has been released or refunded.`;
 
 /**
  * The admin queue item's headline and body. Admin-only, so it may name the two

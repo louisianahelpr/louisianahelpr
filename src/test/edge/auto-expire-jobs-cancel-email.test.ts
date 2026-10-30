@@ -88,7 +88,7 @@ describe("auto-expire-jobs · Q1817: the auto-cancel notice is emailed to the po
     expect(inApp.map((n) => n.title)).toEqual(["Job auto-cancelled"]);
     expect(notificationEmails).toHaveLength(1);
     expect(notificationEmails[0]).toMatchObject({
-      user_id: "poster-1", job_id: "job-past", title: "Job auto-cancelled", type: "job_updates", link: "/post-job",
+      user_id: "poster-1", job_id: "job-past", title: "Job auto-cancelled", type: "job_updates", link: "/post-job?rebook=job-past",
     });
   });
 

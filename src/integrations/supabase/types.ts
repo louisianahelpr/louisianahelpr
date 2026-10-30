@@ -15850,6 +15850,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_reply_speed: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          reply_bucket: string
+          user_id: string
+        }[]
+      }
       get_ranked_open_jobs: {
         Args: {
           p_include_seed?: boolean

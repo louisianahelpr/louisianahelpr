@@ -1,5 +1,5 @@
 /**
- * Sell a bunch audit finding 3: the page said "a few seconds each" while 50 items take over 8 minutes, a locked phone
+ * Sell a bunch audit finding 3: the page said "a few seconds each" while 50 items (2026-10-30) take over 8 minutes, a locked phone
  * failed the later steps, and an item whose upload failed left the list, so its photos were gone.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   useScreenAwake(!!sorting \|\| !!listing \|\| listingDrafts); |   useScreenAwake(false);

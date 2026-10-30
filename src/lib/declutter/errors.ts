@@ -133,6 +133,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_moving_sale: "Add your moving-sale items first.",
   before_pickup_time: "You can mark it picked up from the booked pickup time.",
   not_delivered_yet: "You can confirm you got it from the delivery day, or once the seller marks it delivered.",
+  got_it_too_early: "You can tap \"I got it\" from an hour before the booked time.",
   not_a_door_pickup: "Only a pickup at the door is marked \"Picked up\" by the seller. For porch pickups the buyer confirms.",
   invalid_porch_time: "Pick a time after the booked pickup, on the same day.",
   invalid_method: "Something went wrong with the handover. Please try again.",

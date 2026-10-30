@@ -187,6 +187,29 @@ describe("Q2425: a safe-spot meetup order", () => {
     show([line({ handover: "meetup", my_side: "seller" })]);
     expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
   });
+
+  // Audit 1030 DB-3 (live run B): the buyer's "I got it" at a meeting spot worked days before the meeting, which
+  // handed the order over and started the seller's payout clock. It now opens an hour before, as "I'm here" does
+  // (the server refuses it before then: got_it_too_early, src/test/declutterMeetupGotItWaits.test.ts). A door pickup
+  // gets the same gate (lead decision 2026-10-30: the same payout-clock risk).
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if ((order.handover === "meetup" \|\| order.handover === "pickup_home") && Date.now() |   if (false && Date.now()
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | new Date(slotStart).getTime() - 60 * 60_000) { | new Date(slotStart).getTime() - 24 * 60 * 60_000) {
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (order.handover === "meetup" \|\| order.handover === "pickup_home") && Date.now() | (order.handover === "meetup") && Date.now()
+  for (const [handover, words] of [["meetup", "meeting"], ["pickup_home", "pickup"]] as const) {
+    it(`DB-3: the buyer's I got it waits until an hour before the ${words} time (${handover})`, async () => {
+      for (const [minsAgo, shown] of [[-180, false], [-61, false], [-59, true], [10, true]] as const) {
+        state.bookings = [slot(minsAgo)];
+        const { unmount } = show([line({ handover })]);
+        if (shown) {
+          expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
+        } else {
+          expect(await screen.findByText(`You can tap "I got it" from an hour before the ${words} time.`)).toBeInTheDocument();
+          expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+        }
+        unmount();
+      }
+    });
+  }
 });
 
 describe("Declutter slice 4: paid-order cards", () => {

@@ -53,7 +53,8 @@ import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { payoutPromiseSentence, readPromisedPayout } from "../_shared/payoutPromise.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
@@ -1971,13 +1972,15 @@ serve(async (req) => {
         // A crew's members are each told their share and the day by notify_on_job_update
         // (20261023143240); this notice would only reach one of them.
         if (job.helper_id && !isCrew) {
+          // What the payout will really send: the take-home, less an unpaid setup fee and any debt.
+          const promise = payoutPromiseSentence(await readPromisedPayout(supabaseAdmin, job.helper_id, job, helperPayout), payDay);
           await insertNotifications(supabaseAdmin, {
             user_id: job.helper_id,
             job_id: job.id,
             title: "Job approved!",
             message: forPoster
-              ? `Helpr support approved "${job.title}". $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`
-              : `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`,
+              ? `Helpr support approved "${job.title}". ${promise}`
+              : `"${job.title}" was approved. ${promise}`,
             type: "payment", link: "/profile?tab=earnings",
           });
         }

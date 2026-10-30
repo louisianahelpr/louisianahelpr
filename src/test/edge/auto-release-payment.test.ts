@@ -139,6 +139,8 @@ function seedRevisionDueJob(s: SupabaseScenario, jobOverrides: Record<string, un
   });
 }
 
+const FEE_ALREADY_PAID = { includes: "onboarding_fee_paid", result: { rows: [{ onboarding_fee_paid: true }] } };
+
 function seedDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> = {}) {
   s.reads.jobs = {
     // The revision settle-out selector (2026-09-05) reads the SAME table and,
@@ -179,7 +181,10 @@ function seedDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> =
   // no rows — nobody opted in — and `selectOverrides` below answers the tier
   // read. Without the empty base the mock would hand the flag query the tier
   // row and the same job would be enqueued twice.
-  s.reads.profiles = { rows: [] };
+  // The setup fee is already paid unless a test says otherwise (the promise reads it).
+  s.reads.profiles = { rows: [], selectOverrides: [FEE_ALREADY_PAID] };
+  s.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+  s.reads.job_helpr_fault_rulings = { rows: [] };
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
     id: "pi_1",
     status: "succeeded",
@@ -191,6 +196,7 @@ function seedHelperTier(s: SupabaseScenario, tier: string | null, expiresAt: str
   s.reads.profiles = {
     ...(s.reads.profiles ?? {}),
     selectOverrides: [
+      FEE_ALREADY_PAID,
       {
         includes: "subscription_tier",
         result: { rows: [{ subscription_tier: tier, subscription_expires_at: expiresAt }] },
@@ -208,6 +214,7 @@ function failHelperTierRead(s: SupabaseScenario) {
   s.reads.profiles = {
     ...(s.reads.profiles ?? {}),
     selectOverrides: [
+      FEE_ALREADY_PAID,
       {
         includes: "subscription_tier",
         result: { error: { message: "tier read boom" } },
@@ -522,6 +529,44 @@ describe("auto-release-payment edge function", () => {
   // `process-scheduled-payouts` would compute for the identical job, derived
   // from the shared helpers rather than hard-coded, so a change to the ladder
   // or the rounding rule moves both sides at once.
+  // Jobs audit item 6: the notice promises what the payout really sends, not the take-home.
+  describe("the promise takes off what the payout will take off", () => {
+    const notice = async () => {
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+      return String(helperNotification()?.message ?? "");
+    };
+    const feeUnpaid = () => { scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "onboarding_fee_paid", result: { rows: [{ onboarding_fee_paid: false }] } }] }; };
+
+    it("an unpaid setup fee comes off the figure, and the notice says so", async () => {
+      seedDueJob(scenario, { budget: 100, helper_fee_percent: null, helper_fee_flat_cents: 70 });
+      feeUnpaid();
+      const msg = await notice();
+      expect(msg).toMatch(/was approved\. \$87 will be sent to your account .*, after the one-time \$2 account setup fee\.$/);
+    });
+
+    it("money owed comes off in exact cents", async () => {
+      seedDueJob(scenario, { budget: 100, helper_fee_percent: null, helper_fee_flat_cents: 70 });
+      scenario.reads.job_helpr_fault_rulings = { rows: [{ card_fee_remaining_cents: 350 }] };
+      expect(await notice()).toMatch(/\$85\.50 will be sent to your account .*, after \$3\.50 owed from a job you were ruled at fault on\.$/);
+    });
+
+    it("the giveaway's exact amount is promised whole", async () => {
+      seedDueJob(scenario, { budget: 60, helper_fee_percent: 10, helper_fee_flat_cents: 700 });
+      feeUnpaid();
+      scenario.reads.job_helpr_fault_rulings = { rows: [{ card_fee_remaining_cents: 350 }] };
+      expect(await notice()).toMatch(/\$\d+ will be sent to your account [^,]+, [A-Z][a-z]{2} \d{1,2}\.$/);
+    });
+
+    it("a failed read promises the day and no figure", async () => {
+      seedDueJob(scenario);
+      scenario.reads.job_helpr_fault_rulings = { error: { message: "boom" } };
+      const msg = await notice();
+      expect(msg).toMatch(/Your pay will be sent to your account /);
+      expect(msg).not.toContain("$");
+    });
+  });
+
   describe("payout preview parity with process-scheduled-payouts", () => {
     it("quotes the helper's live tier rate when the profile is readable", async () => {
       seedDueJob(scenario, { helper_fee_percent: 12 });

@@ -10247,7 +10247,7 @@
     },
     {
       "file": "src/lib/declutter/setupFee.ts",
-      "line": 32,
+      "line": 35,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10257,7 +10257,7 @@
     },
     {
       "file": "src/lib/declutter/setupFee.ts",
-      "line": 39,
+      "line": 43,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10267,7 +10267,7 @@
     },
     {
       "file": "src/lib/declutter/setupFee.ts",
-      "line": 45,
+      "line": 50,
       "kind": "toast",
       "title": {
         "form": "literal",

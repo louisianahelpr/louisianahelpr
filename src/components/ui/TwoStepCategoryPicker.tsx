@@ -11,6 +11,8 @@
  */
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { FIELD_SURFACE_CLS } from "./fieldSurface";
 
 interface CategoryPickerGroup {
   slug: string;
@@ -26,6 +28,8 @@ interface Props {
   placeholder?: string;
   /** Optional icon per main category. */
   groupIcon?: (groupSlug: string) => React.ReactNode;
+  /** A form whose fields differ from the shared <Input>'s size says so here, so the trigger still matches them. */
+  triggerClassName?: string;
 }
 
 const SCROLL_MARGINS = "scroll-mt-20 scroll-mb-[calc(var(--bottom-nav-h,0px)+0.75rem)]";
@@ -38,7 +42,7 @@ function categoryTriggerText(groups: CategoryPickerGroup[], value: string): stri
   return null;
 }
 
-export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder = "Choose a category", groupIcon }: Props) {
+export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder = "Choose a category", groupIcon, triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -89,13 +93,13 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
         aria-expanded={open}
         aria-controls={panelId}
         onClick={toggle}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-base sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn("flex min-h-12 w-full items-center justify-between gap-2 text-left", FIELD_SURFACE_CLS, triggerClassName)}
       >
         <span className={chosen ? "text-foreground" : "text-muted-foreground"}>{chosen ?? placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && (
-        <div ref={panelRef} id={panelId} className={`mt-1 rounded-md border border-input bg-background p-1 shadow-md ${SCROLL_MARGINS}`}>
+        <div ref={panelRef} id={panelId} className={`mt-1 rounded-2xl border border-input bg-background p-1 shadow-md ${SCROLL_MARGINS}`}>
           {groups.map((g) => {
             const isOpen = expanded === g.slug;
             const regionId = `${panelId}-${g.slug}`;
@@ -106,7 +110,7 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
                   aria-expanded={isOpen}
                   aria-controls={regionId}
                   onClick={() => setExpanded(isOpen ? null : g.slug)}
-                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-base font-semibold sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-base font-semibold sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-center gap-2">
                     {groupIcon?.(g.slug)}
@@ -128,7 +132,7 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
                               setOpen(false);
                               triggerRef.current?.focus();
                             }}
-                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-base sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-base sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {c.label}
                             {on && <Check className="h-4 w-4 shrink-0" aria-hidden />}

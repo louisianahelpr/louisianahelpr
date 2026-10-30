@@ -10,14 +10,19 @@
  * Tester 10-30: the panel's own 60vh scroll sat inside the Wanted sheet's scroll and ran 5px past the screen; wrapped
  * rows touched. One scroller (the sheet or page around it), the expanded main brought into view, and rows with room.
  * Measured in a browser at 375 and 1440 (~/.lh-shots/b27-picker): this DOM has no layout, so these pin the causes.
- * @mutate src/components/ui/TwoStepCategoryPicker.tsx | className={`mt-1 rounded-md | className={`mt-1 max-h-[60vh] overflow-y-auto rounded-md
+ * @mutate src/components/ui/TwoStepCategoryPicker.tsx | className={`mt-1 rounded-2xl | className={`mt-1 max-h-[60vh] overflow-y-auto rounded-2xl
  * @mutate src/components/ui/TwoStepCategoryPicker.tsx | (expandedRef.current ?? panelRef.current)?.scrollIntoView?.({ block: "nearest" }); |
  * @mutate src/components/ui/TwoStepCategoryPicker.tsx | ref={isOpen ? expandedRef : undefined} |
- * @mutate src/components/ui/TwoStepCategoryPicker.tsx | rounded px-3 py-2 text-left text-base sm:text-sm ctl-tint | rounded px-3 text-left text-base sm:text-sm ctl-tint
+ * @mutate src/components/ui/TwoStepCategoryPicker.tsx | rounded-xl px-3 py-2 text-left text-base sm:text-sm ctl-tint | rounded-xl px-3 text-left text-base sm:text-sm ctl-tint
+ * The trigger wears the shared field look, sized like the fields around it (lead 10-30; 44px and square before).
+ * @mutate src/components/ui/TwoStepCategoryPicker.tsx | text-left", FIELD_SURFACE_CLS, triggerClassName)} | text-left rounded-md border border-input", triggerClassName)}
+ * @mutate src/components/ui/TwoStepCategoryPicker.tsx | flex min-h-12 w-full | flex min-h-11 w-full
+ * @mutate src/components/ui/TwoStepCategoryPicker.tsx | FIELD_SURFACE_CLS, triggerClassName)} | FIELD_SURFACE_CLS)}
  */
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { Input } from "./input";
 import { TwoStepCategoryPicker } from "./TwoStepCategoryPicker";
 
 const groups: Parameters<typeof TwoStepCategoryPicker>[0]["groups"] = [
@@ -55,6 +60,27 @@ describe("TwoStepCategoryPicker", () => {
     expect(onChange).toHaveBeenCalledWith("bbq");
     expect(screen.queryByText("Baking")).toBeNull();
     expect(screen.getByRole("button", { name: "Food to order › BBQ" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("the trigger wears the same field look and height as the shared Input, and a form can size it to its own fields", () => {
+    render(
+      <>
+        <Input aria-label="plain" />
+        <TwoStepCategoryPicker id="a" value="" groups={groups} onChange={() => {}} placeholder="default" />
+        <TwoStepCategoryPicker id="b" value="" groups={groups} onChange={() => {}} placeholder="small" triggerClassName="min-h-11 px-3" />
+      </>,
+    );
+    const input = screen.getByLabelText("plain").className.split(/\s+/);
+    const trigger = screen.getByRole("button", { name: "default" }).className.split(/\s+/);
+    const look = input.filter((c) => /^(rounded-|border|glass-field|px-|py-|text-ds|focus-visible:)/.test(c));
+    expect(look.length).toBeGreaterThan(8);
+    expect(trigger).toEqual(expect.arrayContaining(look));
+    expect(trigger).toContain("min-h-12");
+    expect(input).toContain("h-12");
+    const small = screen.getByRole("button", { name: "small" }).className.split(/\s+/);
+    expect(small).toEqual(expect.arrayContaining(["min-h-11", "px-3", "glass-field"]));
+    expect(small).not.toContain("min-h-12");
+    expect(small).not.toContain("px-4");
   });
 
   describe("in a scrolling sheet or page", () => {

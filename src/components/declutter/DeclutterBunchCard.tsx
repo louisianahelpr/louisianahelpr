@@ -118,7 +118,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
         {/* Its own row at every width, so opening it never leaves an empty column under the field beside it. */}
         <div className="min-w-0 sm:col-span-2" data-bunch-category-row="">
           <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
-          <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} />
+          <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" />
         </div>
         <div className="min-w-0 space-y-2">
           {!item.free && (

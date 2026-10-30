@@ -19,6 +19,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | alt="" loading="lazy" decoding="async" | alt=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : params.get("mode") === "bunch" ? ( |       ) : false ? (
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" /> | groups={CATEGORY_PICKER_GROUPS} />
  * Tester 10-30: opening the category picker in half a row left an empty column under Price and pushed Condition down.
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2" data-bunch-category-row=""> | <div className="min-w-0" data-bunch-category-row="">
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}> | <div className="min-w-0">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>
@@ -119,6 +120,10 @@ describe("Sell a bunch", () => {
     expect(cards).toHaveLength(2);
     // Category on its own row and Size filling the last one: no half-empty row at sm and up, open or closed.
     expect(cards[0].querySelector("[data-bunch-category-row]")!.className).toContain("sm:col-span-2");
+    // This card's fields are 44px: the picker's trigger is sized to match them.
+    const trigger = within(cards[0] as HTMLElement).getByRole("button", { name: "Category" }).className;
+    expect(trigger).toContain("min-h-11");
+    expect(trigger).toContain("border-input");
     expect(within(cards[0] as HTMLElement).getByLabelText("Size").parentElement!.className).toContain("sm:col-span-2");
     expect(cards[1].hasAttribute("data-flagged")).toBe(true);
     expect(within(cards[1] as HTMLElement).getByText(/You can still list it/)).toBeTruthy();

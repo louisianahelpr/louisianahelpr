@@ -28,6 +28,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       toast.success(openReplies > 0 | toast.success(false
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p> | <p data-wanted-near-empty="" />
  * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" /> | groups={CATEGORY_PICKER_GROUPS} />
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <div className="min-w-0 space-y-1" data-wanted-category-row=""> | <div className="grid grid-cols-2 gap-3" data-wanted-category-row="">
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -136,6 +137,7 @@ describe("the Wanted hub", () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
     const category = await screen.findByRole("button", { name: "Category" });
+    expect(category.className).toContain("border-input"); // this form's fields' border
     const form = category.closest("form")!;
     // No column layout around any of the three, so nothing sits beside the picker when it opens.
     for (const id of ["wanted-what", "wanted-category", "wanted-max"]) {

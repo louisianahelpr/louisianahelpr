@@ -94,7 +94,7 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
       <div className="min-w-0 space-y-1" data-wanted-category-row="">
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
         <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
-          onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} />
+          onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" />
       </div>
       <div className="min-w-0 space-y-1">
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>

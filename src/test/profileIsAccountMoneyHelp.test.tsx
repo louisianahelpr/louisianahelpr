@@ -17,7 +17,7 @@
  *
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |       title: "Help", |       title: "Legal",
  * @mutate src/components/profile/profileLanding/jobsSettingsGroups.tsx |       { key: "credentials", label: TAB_TITLES.credentials, |       { key: "credentials-x", label: TAB_TITLES.credentials,
- * @mutate src/pages/jobs/JobsSection.tsx | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" }; | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs" };
+ * @mutate src/pages/jobs/JobsSection.tsx | const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const; | const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs" } as const;
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={browse?.end}
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={<><SectionSettingsButton settings={JOBS_SETTINGS} />{browse?.end}</>}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={() => navigate(settings.path, { replace: false })} |       onClick={() => navigate("/profile")}
@@ -90,7 +90,7 @@ describe("Jobs settings", () => {
 
   it("Jobs settings is a gear in the Jobs header, and no card is left at the foot of the list (owner 2026-10-21)", () => {
     const jobs = src("src/pages/jobs/JobsSection.tsx");
-    expect(jobs).toContain('const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };');
+    expect(jobs).toContain('const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const;');
     // Never in the top bar any more (owner 2026-10-28): AppTopBar takes no settings at all.
     const bar = src("src/components/sections/AppTopBar.tsx");
     const topBar = bar.slice(bar.indexOf("export function AppTopBar("), bar.indexOf("export function SectionSettingsButton("));

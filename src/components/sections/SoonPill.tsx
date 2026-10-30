@@ -1,3 +1,4 @@
+import { useLanguage } from "@/lib/i18n/language";
 /**
  * THE one "not open yet" mark for a switched-off section (audit #3, 2026-10-21):
  * the same muted bordered pill everywhere a section is listed (sidebar, Explore
@@ -19,23 +20,24 @@
  *               nested row's 131px (WebKit, 1440), so it is a muted line under the name.
  */
 export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption" | "rail"; className?: string } & Record<`data-${string}`, string>) {
+  const { t } = useLanguage();
   if (variant === "caption") {
     return (
       <span {...rest} className={`text-ds-11 font-medium text-muted-foreground ${className}`}>
-        Soon
+        {t("soon.short")}
       </span>
     );
   }
   if (variant === "rail") {
     return (
       <span {...rest} className={`block text-ds-11 font-medium leading-tight text-muted-foreground ${className}`}>
-        Coming soon
+        {t("soon.full")}
       </span>
     );
   }
   return (
     <span {...rest} className={`inline-flex items-center rounded-full border border-border bg-card font-semibold text-muted-foreground shrink-0 px-2 py-0.5 text-ds-11 ${className}`}>
-      {variant === "full" ? "Coming soon" : "Soon"}
+      {variant === "full" ? t("soon.full") : t("soon.short")}
     </span>
   );
 }

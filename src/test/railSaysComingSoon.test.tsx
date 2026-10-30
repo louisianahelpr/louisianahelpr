@@ -8,7 +8,7 @@
  * ~/.lh-shots/b3-1028/s42).
  *
  * @mutate src/components/DesktopSidebarNav.tsx | {soon && <SoonPill variant="rail" aria-hidden="true" />} | {soon && <SoonPill variant="short" aria-hidden="true" />}
- * @mutate src/components/sections/SoonPill.tsx | leading-tight text-muted-foreground ${className}`}>\n        Coming soon | leading-tight text-muted-foreground ${className}`}>\n        Soon
+ * @mutate src/components/sections/SoonPill.tsx | leading-tight text-muted-foreground ${className}`}>\n        {t("soon.full")} | leading-tight text-muted-foreground ${className}`}>\n        {t("soon.short")}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

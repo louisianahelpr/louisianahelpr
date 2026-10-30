@@ -4,10 +4,12 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
-import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import { sectionByKey, type SectionDef, type SectionKey } from "./sectionsConfig";
 import { SoonPill } from "./SoonPill";
+import { useLanguage } from "@/lib/i18n/language";
+import { navKey } from "@/lib/i18n/navLabels";
 
 const LAST_KEY = "helpr_explore_last";
 
@@ -71,6 +73,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const { visible } = useSectionPrefs();
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
+  const { t: tr } = useLanguage();
   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]);
   // FOUR CHIPS ON ONE LINE, EVEN WHEN THEY DO NOT FIT (measured 2026-10-23, WebKit: the track is 237px at 375 and
   // the chips 278px once three say "Coming soon"): the row scrolls sideways, the open section's chip is scrolled
@@ -102,6 +105,8 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   if (isWebDesktop) return null;
   const options = visible.map((s) => {
     const on = isOn(s);
+    const navKeyed = navKey(s.path, s.navLabel);
+    const name = navKeyed ? tr(navKeyed) : s.navLabel;
     // ONE word for a section not open to everyone (owner, 2026-10-22): "Soon" (was "Coming soon"; A2-L11), for a member (closed: a tap
     // does nothing) and for a tester alike (open to them; inside, an empty Browse says "Opens soon").
     const soon = !on || isPreview(s);
@@ -109,24 +114,24 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
       value: s.key,
       label: soon ? (
         <span data-soon="" className="flex flex-col items-center leading-[1.15]">
-          <span className={on ? undefined : "text-muted-foreground font-medium"}>{s.navLabel}</span>
+          <span className={on ? undefined : "text-muted-foreground font-medium"}>{name}</span>
           {/* "Soon" at 11px, the app's floor (owner 2026-10-29, A2-L11); the chip's name says "coming soon". */}
           <SoonPill variant="caption" data-coming-soon="" />
         </span>
       ) : (
         // A name with no caption under it keeps a little air of its own (the chips' own padding is 2px a side).
-        <span className="px-0.5">{s.navLabel}</span>
+        <span className="px-0.5">{name}</span>
       ),
-      ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel,
+      ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name,
     };
   });
   // A <nav>: it moves between the four sections, and it is the same chrome on a
   // section's loading frame and on its page, so the page-settle sampler (which
   // skips nav) never counts it as the page arriving (settleSkeletonIsNeverContent).
   return (
-    <nav ref={navRef} data-testid="explore-switcher" aria-label="Sections" className={more ? "explore-chips-more" : undefined}>
+    <nav ref={navRef} data-testid="explore-switcher" aria-label={tr("nav.sections")} className={more ? "explore-chips-more" : undefined}>
       <SegmentedControl
-        ariaLabel="Explore"
+        ariaLabel={tr("nav.explore")}
         options={options}
         value={current}
         onChange={(key) => {

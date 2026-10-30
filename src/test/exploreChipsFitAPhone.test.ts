@@ -15,12 +15,13 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |         optionClassName="px-0.5 text-ds-11 whitespace-nowrap" |         optionClassName="px-1.5 text-ds-11 whitespace-nowrap"
  * @mutate src/components/sections/ExploreSwitcher.tsx |         className="w-full overflow-x-auto no-scrollbar gap-0" |         className="w-full overflow-x-auto no-scrollbar"
  * @mutate src/components/sections/SoonPill.tsx |       <span {...rest} className={`text-ds-11 font-medium text-muted-foreground ${className}`}> |       <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}>
- * @mutate src/components/sections/SoonPill.tsx |         Soon\n      </span>\n    );\n  }\n  if (variant === "rail") { |         Coming soon\n      </span>\n    );\n  }\n  if (variant === "rail") {
+ * @mutate src/components/sections/SoonPill.tsx |         {t("soon.short")}\n      </span>\n    );\n  }\n  if (variant === "rail") { |         {t("soon.full")}\n      </span>\n    );\n  }\n  if (variant === "rail") {
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -38,9 +39,12 @@ describe("the Explore chips fit a 375 phone without shrinking their words (owner
   it("'Soon' sits under each closed name at 11px, the app's floor (A2-L11)", () => {
     expect(sw).toContain('<SoonPill variant="caption" data-coming-soon="" />');
     const pill = code("src/components/sections/SoonPill.tsx");
-    expect(pill).toMatch(/variant === "caption"[\s\S]{0,120}?className=\{`text-ds-11 font-medium[^`]*`\}>\s*Soon\s*</);
+    // The word is the dictionary's (Spanish option, 2026-10-29): en "soon.short" = "Soon".
+    expect(pill).toMatch(/variant === "caption"[\s\S]{0,120}?className=\{`text-ds-11 font-medium[^`]*`\}>\s*\{t\("soon\.short"\)\}\s*</);
+    expect(en["soon.short"]).toBe("Soon");
     // The accessible name still says it in full.
-    expect(sw).toMatch(/ariaLabel: soon \? comingSoonLabel\(s\.navLabel\) : s\.navLabel/);
+    expect(sw).toMatch(/ariaLabel: soon \? tr\("nav\.comingSoon", \{ label: name \}\) : name/);
+    expect(en["nav.comingSoon"]).toBe("{label}, coming soon");
   });
 
   it("a chip that is too wide for 320 still scrolls (the fade and reveal stay)", () => {

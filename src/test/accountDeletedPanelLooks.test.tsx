@@ -7,7 +7,7 @@
  * the title's line, and the body reads left-aligned like the title.
  * ("Deleting…" while the request runs is already on the I5 base.)
  *
- * @mutate src/components/profile/DeleteAccountDialog.tsx | <DialogPrimaryAction onClick={onAcknowledgeDeleted}>Done</DialogPrimaryAction> | <DialogSecondaryAction onClick={onAcknowledgeDeleted}>Done</DialogSecondaryAction>
+ * @mutate src/components/profile/DeleteAccountDialog.tsx | <DialogPrimaryAction onClick={onAcknowledgeDeleted}>{t("deleteAccount.done")}</DialogPrimaryAction> | <DialogSecondaryAction onClick={onAcknowledgeDeleted}>{t("deleteAccount.done")}</DialogSecondaryAction>
  * @mutate src/components/profile/DeleteAccountDialog.tsx | <div className="space-y-4 py-2" role="status" aria-live="polite"> | <div className="text-center space-y-4 py-2" role="status" aria-live="polite">
  * @mutate src/components/profile/DeleteAccountDialog.tsx | title={<span className="inline-flex items-center gap-2"><Check | title={<span><Check
  */

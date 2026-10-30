@@ -21,12 +21,14 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { useLanguage } from "@/lib/i18n/language";
+import { navKey } from "@/lib/i18n/navLabels";
 
-const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };
+const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const;
 
 export const JOBS_TABS = [
-  { value: "posted", label: "Posted" },
-  { value: "working", label: "Working" },
+  { value: "posted", label: "Posted", labelKey: "jobs.tabPosted" },
+  { value: "working", label: "Working", labelKey: "jobs.tabWorking" },
 ] as const;
 
 /** Params only the old My Jobs page read: their presence (with no ?tab=) means Working. */
@@ -50,6 +52,7 @@ const JobsSection = () => {
   const [openedOnLegacyLink] = useState(() => resolveJobsTab(params, picked) === "working" && !params.get("tab"));
   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse";
   const section = sectionByKey("jobs");
+  const { t: tr } = useLanguage();
 
   const onTab = useCallback(
     (next: string) => {
@@ -85,8 +88,8 @@ const JobsSection = () => {
   /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
   const makeHeader = (browse?: { end?: ReactNode; count?: number }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
-      <AppTopBar title={section.label} explore section="jobs" desktopGap={false} />
-      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
+      <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false} />
+      <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
           the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search
           ICON at the end of their status chip row that opens IN PLACE, leftward, and filters that tab's list

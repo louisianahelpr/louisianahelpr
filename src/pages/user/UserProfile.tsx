@@ -41,6 +41,7 @@ import { computeLastActiveLabel } from "./userProfileHelpers";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import SaveHelperButton from "@/components/SaveHelperButton";
+import { useReplySpeed } from "@/lib/trustLine";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -131,6 +132,8 @@ const UserProfile = () => {
     offlineEmpty,
   } = useUserProfileData(userId, currentUserId);
   const declutterReviewCount = useDeclutterReviewCount(userId);
+  // Q2478 2b: the public reply-speed bucket (signed-in viewers only; get_reply_speed refuses anon).
+  const replyBucket = useReplySpeed(currentUserId && userId ? [userId] : []).get(userId ?? "") ?? null;
 
   const profile = (data?.profile ?? null) as Profile | null;
 
@@ -585,6 +588,8 @@ const UserProfile = () => {
                 onTimeArrivalRate={onTimeArrivalRate}
                 revisionFrequency={revisionFrequency}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
+                repeatClientSample={data?.statSamples?.repeatClients ?? null}
+                replyBucket={replyBucket}
                 // Moved here from the header line (owner, 2026-09-14, VN-16).
                 mutualJobsCount={mutualJobsCount}
                 showReviews={showReviews}

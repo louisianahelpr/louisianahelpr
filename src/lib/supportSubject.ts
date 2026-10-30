@@ -19,10 +19,10 @@ function shortJobId(id: string): string {
   return id.slice(0, 8);
 }
 
-function jobSubject(head: string, job: { id: string; title?: string | null }): string {
+function jobSubject(head: string, job: { id: string; title?: string | null }, noun: "job" | "order" = "job"): string {
   const title = (job.title ?? "").trim();
-  const tail = ` (job #${shortJobId(job.id)})`;
-  if (!title) return `${head}job #${shortJobId(job.id)}`;
+  const tail = ` (${noun} #${shortJobId(job.id)})`;
+  if (!title) return `${head}${noun} #${shortJobId(job.id)}`;
   const room = SUBJECT_MAX - head.length - tail.length - 2; // the two quotes
   const shown = title.length > room ? `${title.slice(0, room - 1).trimEnd()}…` : title;
   return `${head}"${shown}"${tail}`;
@@ -35,4 +35,9 @@ export function disputeSupportSubject(job: { id: string; title?: string | null }
 /** Get help now (Q2478 part 3): the same title + short id, worded as asking for help. */
 export function helpSupportSubject(job: { id: string; title?: string | null }): string {
   return jobSubject("Help with ", job);
+}
+
+/** Get help now on a Declutter order (CMP-3): what was bought, and the order's short id. */
+export function helpOrderSubject(order: { id: string; title?: string | null }): string {
+  return jobSubject("Help with ", order, "order");
 }

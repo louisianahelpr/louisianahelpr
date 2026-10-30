@@ -132,12 +132,13 @@ vi.mock("./SellerDeliveryOrder", () => ({
   ),
 }));
 
+import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { pickupDays } from "@/lib/declutter/pickupSlots";
 
 function show(cart: unknown[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><PaidOrdersSection cart={cart as never} /></QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={qc}><PaidOrdersSection cart={cart as never} /></QueryClientProvider></MemoryRouter>);
 }
 const line = (over: Record<string, unknown> = {}) => ({
   line_id: "l1", item_id: "i1", item_title: "Oak chair", my_side: "buyer", seller_id: "s1", price_cents: 4000, status: "paid",

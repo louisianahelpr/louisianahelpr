@@ -93,6 +93,7 @@ vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => null }));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => null }));
 
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
+import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { buyerNextAction, buyerOrderFacts, useBuyingTracker } from "./BuyingOrders";
 import { orderBucket, orderStepAt } from "./OrderSteps";
@@ -106,7 +107,7 @@ function Harness() {
 }
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><Harness /></QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={qc}><Harness /></QueryClientProvider></MemoryRouter>);
 }
 
 const line = (id: string, over: Record<string, unknown> = {}) => ({

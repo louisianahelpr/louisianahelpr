@@ -107,7 +107,7 @@ export function AppTopBar({
         // EXPLORE'S ROW (lead, 2026-10-30, UX-6): the four chips come first. Below 360px, where Help would push a chip
         // off the row, it is hidden here (You > Help and every sub-screen still have it). At 375 Help is 40px wide and
         // the row drops its 4px gaps, so the three narrower chips stay even. Guard: src/test/oneHelpEntry.test.tsx.
-        <span data-testid="explore-row-help" className="inline-flex max-[359px]:hidden">
+        <span data-testid="explore-row-help" className="inline-flex max-[369px]:hidden">
           <HelpEntry triggerClassName="h-11 w-10" />
         </span>
       ) : (

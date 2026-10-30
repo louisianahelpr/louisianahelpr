@@ -7,7 +7,7 @@
  * @mutate src/components/help/HelpEntryPanel.tsx | <p className="text-ds-13 text-muted-foreground">{SUPPORT_REPLY_PROMISE}</p> | <p className="text-ds-13 text-muted-foreground">We'll get back to you.</p>
  * @mutate src/components/DesktopTopNav.tsx | <HelpEntry /> | {null}
  * @mutate src/components/sections/AppTopBar.tsx | <HelpEntry /> | {null}
- * @mutate src/components/sections/AppTopBar.tsx | className="inline-flex max-[359px]:hidden" | className="inline-flex"
+ * @mutate src/components/sections/AppTopBar.tsx | className="inline-flex max-[369px]:hidden" | className="inline-flex"
  * @mutate src/components/sections/AppTopBar.tsx | <HelpEntry triggerClassName="h-11 w-10" /> | <HelpEntry />
  * @mutate src/components/sections/AppTopBar.tsx | gap-1 min-[360px]:gap-0 shrink-0 | gap-1 shrink-0
  * @mutate src/components/PageHeader.tsx | <HelpEntry /> | {null}
@@ -77,7 +77,7 @@ describe("the one Help entry", () => {
 
   it("on Explore's chip row, stays out of the way: hidden below 360px, narrower and with no gaps above it", () => {
     const bar = read("src/components/sections/AppTopBar.tsx");
-    expect(bar).toContain('className="inline-flex max-[359px]:hidden"');
+    expect(bar).toContain('className="inline-flex max-[369px]:hidden"');
     expect(bar).toContain('<HelpEntry triggerClassName="h-11 w-10" />');
     expect(bar).toContain("gap-1 min-[360px]:gap-0 shrink-0");
   });

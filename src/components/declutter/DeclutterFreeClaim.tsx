@@ -6,6 +6,7 @@
  * choose how to collect it in the cart (pickup at the giver's home, or porch pickup). At most 3 at a time (asks
  * plus free items waiting); the server says so in plain words when a fourth is tried.
  */
+import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -231,6 +232,9 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   const offered = freeWaysOffered(porchOk, ways);
   const [handover, setHandover] = useState<FreeHandover>(offered[0]);
   const chosen = offered.includes(handover) ? handover : offered[0];
+  // D-NEW14: a giver with saved pickup places: the taker picks one for a porch pickup (porch_place_needed otherwise).
+  const porchPlaces = useSellerPorchPlaces(sellerId, 0);
+  const placeReady = chosen !== "porch" || porchPlaces.ready;
   const confirm = useMutation({
     mutationFn: () => checkoutFree(sellerId, chosen),
     onSuccess: () => {
@@ -257,7 +261,9 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
         {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} who="giver" />}
       </fieldset>
-      <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0} onClick={() => confirm.mutate()}>
+      {chosen === "porch" && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} loadError={porchPlaces.query.error}
+        onRetry={() => void porchPlaces.query.refetch()} />}
+      <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
       <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>

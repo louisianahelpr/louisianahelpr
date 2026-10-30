@@ -104,7 +104,7 @@ const EXPECTED_CALLERS = [
   // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.
   "declutter_seller_delivery_offer",
   "declutter_seller_moving_sale",
-  // Porch places (D-NEW14, 20261029224749): both pass (p_seller_id, v_uid := declutter_assert_member(...)).
+  // Porch places (D-NEW14, 20261030164712): both pass (p_seller_id, v_uid := declutter_assert_member(...)).
   "declutter_seller_porch_places",
   // The handover chat: the caller is the talk's buyer or seller (the row is read WHERE buyer_id = v_uid OR seller_id = v_uid).
   "declutter_send_handover_message",

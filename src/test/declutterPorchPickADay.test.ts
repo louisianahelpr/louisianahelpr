@@ -14,9 +14,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
 // @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |   v_from := CASE WHEN b.pickup_day IS NOT NULL THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day) |   v_from := CASE WHEN false THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day)
-// @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
+// @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC;
-// @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   IF o.handover <> 'porch' THEN |   IF false THEN
+// @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF o.handover <> 'porch' THEN |   IF false THEN
 
 const ROOT = resolve(__dirname, "..", "..");
 const DIR = join(ROOT, "supabase", "migrations");
@@ -49,7 +49,7 @@ describe("Declutter porch pickup is a DAY (owner 2026-10-28)", () => {
     const book = body("declutter_book_porch_day");
     for (const clause of [
       "IF o.handover <> 'porch' THEN",
-      // The porch weekdays (20261029161347), read per ORDER since 20261029224749 (the frozen place's days, else the seller's).
+      // The porch weekdays (20261029161347), read per ORDER since 20261030164712 (the frozen place's days, else the seller's).
       "public.declutter_order_is_porch_day(o.id, extract(dow FROM p_day)::smallint)",
       "(p_day::timestamp AT TIME ZONE 'America/Chicago') >= o.paid_at + interval '7 days'",
       "h.set_out_at IS NOT NULL",

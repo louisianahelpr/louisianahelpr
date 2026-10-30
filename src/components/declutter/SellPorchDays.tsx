@@ -15,6 +15,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMyPickupWindows } from "@/lib/declutter/api";
 import { fetchMyPorchDays, saveMyPorchDays, PORCH_DAYS_NOT_DEPLOYED } from "@/lib/declutter/porchDays";
+import { fetchMyPorchPlaces, MY_PORCH_PLACES_KEY } from "@/lib/declutter/porchPlaces";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DayChip, shortDays } from "./DeclutterPickupTimes";
 
@@ -33,12 +34,15 @@ export function SellPorchDays({ pickupDays }: { pickupDays?: number[] }) {
     queryFn: () => fetchMyPickupWindows(user!.id),
     enabled: pickupDays === undefined && !!user,
   });
+  // D-NEW14: a seller with saved pickup places sets days per place (SellPorchPlaces), so these chips would mean nothing.
+  const places = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
   const [asked, setAsked] = useState(false);
   const save = useMutation({
     mutationFn: saveMyPorchDays,
     onSuccess: (days) => qc.setQueryData(KEY, days.length ? days : null),
   });
   if (mine.data === PORCH_DAYS_NOT_DEPLOYED || mine.isLoading) return null;
+  if (Array.isArray(places.data) && places.data.length > 0) return null;
   if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your porch days." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   if (pickupDays === undefined && saved.isError) return <ErrorState variant="inline" title="We couldn't load your pickup days." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
   if (pickupDays === undefined && !saved.isSuccess) return null;

@@ -6,7 +6,7 @@
  * by URL until the account deletion purges <uid>/).
  *
  * @mutate src/lib/shops/storageCleanup.ts |   if (failure \|\| removed < paths.length) { |   if (failure) {
- * @mutate src/lib/shops/storageCleanup.ts |     captureException(failure ?? new Error(`shops: ${what} not removed`), { what, removed, wanted: paths.length }, "warning"); |     void what;
+ * @mutate src/lib/shops/storageCleanup.ts |     report(failure ?? new Error(`shops: ${what} not removed`), { |     void ({
  * @mutate src/lib/shops/items.ts |     await removeShopObjects(ITEM_PHOTO_BUCKET, [path], "refused item photo upload"); |     void path;
  * @mutate src/lib/shops/api.ts |     await removeShopObjects(SHOP_PHOTO_BUCKET, [path], "refused photo upload"); |     void path;
  */
@@ -24,7 +24,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     rpc: h.rpc,
   },
 }));
-vi.mock("@/lib/sentry", () => ({ captureException: h.capture }));
+vi.mock("@/lib/errorLogger", async (actual) => ({ ...(await actual<typeof import("@/lib/errorLogger")>()), report: h.capture }));
 vi.mock("@/lib/declutter/photos", () => ({
   cleanListingPhoto: async (f: File) => f,
   LISTING_PHOTO_UPLOAD_TYPES: ["image/jpeg"],
@@ -46,7 +46,7 @@ describe("removeShopObjects", () => {
     h.remove.mockResolvedValue({ data: [{ name: "a" }], error: null });
     await removeShopObjects("job-photos", ["a", "b"], "item photo objects");
     expect(h.capture).toHaveBeenCalledTimes(1);
-    expect(h.capture.mock.calls[0][1]).toEqual({ what: "item photo objects", removed: 1, wanted: 2 });
+    expect(h.capture.mock.calls[0][1]).toMatchObject({ severity: "warning", context: { what: "item photo objects", removed: 1, wanted: 2 } });
   });
 
   it("reports a failed delete, and a throw, without throwing itself", async () => {
@@ -78,7 +78,7 @@ describe("a refused attach deletes the upload and reports a miss", () => {
       await expect(attach()).rejects.toMatchObject({ message: "item_not_editable" });
       expect(h.remove).toHaveBeenCalledTimes(1);
       expect(h.capture).toHaveBeenCalledTimes(1);
-      expect(h.capture.mock.calls[0][1]).toMatchObject({ removed: 0, wanted: 1 });
+      expect(h.capture.mock.calls[0][1]).toMatchObject({ context: { removed: 0, wanted: 1 } });
     });
   }
 });

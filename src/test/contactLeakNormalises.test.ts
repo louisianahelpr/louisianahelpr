@@ -14,10 +14,10 @@
  * (21 PASS after, applied 3x; 6 FAIL with NEW_MIGRATION=skip; 4 mutants red).
  * Can fail on the original bug: the definitions before 20261030080734 fail all three.
  *
- * @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql | translate(normalize(p_text, NFKC), | translate(p_text,
- * @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql |   ELSIF v_norm ~* '\mvenmo\M |   ELSIF p_text ~* '\mvenmo\M
- * @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql |   ELSIF v_tokens ~ '(^\|[^0-9])[0-9]([^0-9a-z]{1,3}[0-9]){9}(?![0-9])' THEN |   ELSIF false THEN
- * @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql |   v_tokens := regexp_replace(v_tokens, '\mfive\M', '5', 'g'); |
+ * @mutate supabase/migrations/20261030150556_contact_leak_call_me_spanish.sql | translate(normalize(p_text, NFKC), | translate(p_text,
+ * @mutate supabase/migrations/20261030150556_contact_leak_call_me_spanish.sql |   ELSIF v_norm ~* '\mvenmo\M |   ELSIF p_text ~* '\mvenmo\M
+ * @mutate supabase/migrations/20261030150556_contact_leak_call_me_spanish.sql |   ELSIF v_tokens ~ '(^\|[^0-9])[0-9]([^0-9a-z]{1,3}[0-9]){9}(?![0-9])' THEN |   ELSIF false THEN
+ * @mutate supabase/migrations/20261030150556_contact_leak_call_me_spanish.sql |   v_tokens := regexp_replace(v_tokens, '\mfive\M', '5', 'g'); |
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

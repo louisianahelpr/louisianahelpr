@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
@@ -58,9 +58,6 @@ export const DENSE_TAB_COUNT = 5;
  */
 export const DENSER_TAB_COUNT = 6;
 
-/** The row's last 28px fade out while there is more to scroll to (SectionTabs' `more`). */
-const TABS_END_FADE = "linear-gradient(to right, #000 calc(100% - 28px), transparent)";
-
 export function SectionTabs<T extends string>({
   label,
   tabs,
@@ -84,24 +81,6 @@ export function SectionTabs<T extends string>({
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  // A row that still does not fit (Declutter's six tabs and its gear at 375: measured 342px of tabs in 287px, 2026-10-30)
-  // scrolls sideways; a fade at the right edge says there is more, until the end is reached, never a word cut flat.
-  const listRef = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState(false);
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const update = () => setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
-    update();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    ro?.observe(list);
-    for (const tab of Array.from(list.children)) ro?.observe(tab);
-    list.addEventListener("scroll", update, { passive: true });
-    return () => {
-      ro?.disconnect();
-      list.removeEventListener("scroll", update);
-    };
-  }, [options.length]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     const at = options.findIndex((o) => o.value === value);
@@ -130,8 +109,7 @@ export function SectionTabs<T extends string>({
           (measured in WebKit: scrollTop 0 -> 1 on a wheel over the row) and on iOS rubber-banded them out of the clip,
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
-      <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
-        style={more ? { maskImage: TABS_END_FADE, WebkitMaskImage: TABS_END_FADE } : undefined}
+      <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
         className={cn("flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;

@@ -48,18 +48,26 @@ import { DeclutterNotice } from "./declutterUi";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
-/** Whether the buyer has any offer (the offers are their own group, under the orders; the same read and key as OffersSection). */
-function useHasBuyerOffers(): boolean | null {
+/**
+ * Whether the buyer has any offer, and whether one waits on THEIR answer (a seller's counter). The same read and key as
+ * OffersSection. Audit DB-6: a counter to answer sat under every order, below the fold; it now comes before them.
+ */
+function useBuyerOffers(): { has: boolean | null; toAnswer: boolean } {
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
-  return offers.data ? offers.data.some((o) => o.my_side === "buyer") : offers.isError ? true : null;
+  const mine = (offers.data ?? []).filter((o) => o.my_side === "buyer");
+  return {
+    has: offers.data ? mine.length > 0 : offers.isError ? true : null,
+    toAnswer: mine.some((o) => o.status === "open" && o.awaiting === "buyer"),
+  };
 }
 
 /**
  * Buying = an order tracker, mirroring Jobs > Posted (owner 2026-10-28: "buyers and sellers need a very organized way
  * to keep track of all their purchases"): one chip per ORDER_BUCKETS group that holds orders, with its count; each
  * order card shows its steps and ONE next action (BuyingOrders.tsx). A checkout still in the cart is the buyer's to
- * pay, so it sits under Needs you. Offers are grouped on their own below the orders. With nothing at all the tab says
- * so once.
+ * pay, so it sits under Needs you. Offers are grouped on their own below the orders, except that a seller's counter to
+ * answer puts them right after the checkouts (audit DB-6: needs-you first, history last). With nothing at all the tab
+ * says so once.
  */
 export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const [asked, toggle] = useStatusFilter(BUCKET_KEYS);
@@ -67,7 +75,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const chips = bucketChips(t.counts);
   // A chip with nothing in it is not shown, so a stale ?status= for an empty group shows every order.
   const only = asked && t.counts[asked] > 0 ? asked : null;
-  const offers = useHasBuyerOffers();
+  const offers = useBuyerOffers();
   const settling = usePaySettling();
   const orders = chips.length > 0;
   const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
@@ -75,12 +83,13 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   return (
     <div className="space-y-6">
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
-      {t.ready && !orders && offers === false && !settling.settling && (
+      {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.
         </DeclutterNotice>
       )}
       {showCart && <CartView />}
+      {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
       <PaidOrders side="buyer" views={t.views} show={(id) => only === null || t.views.get(id)?.bucket === only} />
       {ended.length > 0 && (
         <section className="space-y-2" aria-label="Ended">
@@ -89,7 +98,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
           <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
         </section>
       )}
-      {offers && <OffersSection side="buyer" />}
+      {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}
     </div>
   );
 }

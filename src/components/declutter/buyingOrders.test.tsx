@@ -170,6 +170,18 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(n).toBeGreaterThan(15);
   });
 
+  // Audit DB-6 (2026-10-30): Buying showed history above action (cart order). Needs you first, Done and Cancelled last.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const shown = views ? byBucket(chosen, views) : chosen; |   const shown = chosen;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.r - b.r \|\| a.i - b.i).map((x) => x.o); |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.i - b.i).map((x) => x.o);
+  it("DB-6: orders run Needs you, Waiting, Upcoming, Done, Cancelled, whatever the cart order", async () => {
+    const pick = (ids: string[]) => ids.map((id) => CASES.find((c) => c.id === id)!);
+    load(pick(["refunded", "done", "home1", "porch3", "porch0"]));
+    show();
+    const order = () => Array.from(document.querySelectorAll("article")).map((a) => /Item ([a-z0-9]+)/.exec(a.textContent ?? "")?.[1]);
+    await waitFor(() => expect(order()).toEqual(["porch0", "porch3", "home1", "done", "refunded"]));
+    expect(order().length).toBeGreaterThan(4);
+  });
+
   it("collapsed, each card has the tracker at its step and at most one primary button: its next action", async () => {
     load(CASES);
     show();

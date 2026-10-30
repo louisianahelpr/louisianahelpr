@@ -218,6 +218,20 @@ export function useBuyingTracker(): BuyingTracker {
   return { ready: !!cart.data, views, checkouts, ended, counts };
 }
 
+/**
+ * Audit DB-6 (2026-10-30): Buying listed orders in cart order, so a Done order could sit above one that Needs you.
+ * Orders now follow ORDER_BUCKETS (Needs you, Waiting, Upcoming, Done, Cancelled), keeping cart order inside a group;
+ * an order with no view yet goes last.
+ */
+export function byBucket<T extends { orderId: string }>(orders: readonly T[], views: ReadonlyMap<string, BuyerOrderView>): T[] {
+  const rank = (o: T) => {
+    const b = views.get(o.orderId)?.bucket;
+    const i = ORDER_BUCKETS.findIndex((x) => x.key === b);
+    return i < 0 ? ORDER_BUCKETS.length : i;
+  };
+  return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.o);
+}
+
 /** The chips that hold orders, in ORDER_BUCKETS order. */
 export function bucketChips(counts: Record<OrderBucket, number>) {
   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map((b) => ({ key: b.key, label: b.label, count: counts[b.key] }));

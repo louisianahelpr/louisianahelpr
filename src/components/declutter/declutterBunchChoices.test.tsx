@@ -7,8 +7,8 @@
  * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (out.some((o) => "status" in o)) void choices.remember(savedWays); |       void out;
- * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, saved.applyStep, choices.choices, | undefined, saved.applyStep,
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, choices.choices, | undefined, onStep,
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |           {!item.free && (\n            <div> |           {(\n            <div>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
  */

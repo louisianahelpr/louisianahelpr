@@ -62,6 +62,8 @@ export interface SavedBunch extends SavedPhotos {
   areaLabel: string;
   pickupAddress: string;
   coords: { lat: number; lng: number; address: string } | null;
+  /** The moving sale's date, or blank (an older save has none). */
+  moveDate?: string;
   items: BunchItem[];
 }
 

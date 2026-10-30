@@ -17,6 +17,8 @@
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {wanted && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | to={SELL_FREE_PATH} | to={SELL_ONE_PATH}
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | line="Add photos and we write the listing for you." | line="Add photos and Claude writes the listing for you."
+ * @mutate src/lib/declutter/sellChooser.ts |   return mode === "bunch" \|\| mode === "moving"; |   return mode === "bunch";
+ * @mutate src/pages/declutter/DeclutterMovePage.tsx |   return <Navigate to={SELL_MOVE_PATH} replace />; |   return <Navigate to="/declutter" replace />;
  * @mutate src/lib/declutter/sellChooser.ts |   return params.get("mode") === "choose"; |   return params.get("mode") !== "bunch";
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH } | declutter: [{ label: "Sell an item", path: "/declutter/sell" }
@@ -51,6 +53,7 @@ vi.mock("@/components/declutter/DeclutterSellView", () => ({ default: () => <p>o
 vi.mock("@/components/declutter/DeclutterBunchView", () => ({ default: () => <p>bunch form</p> }));
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
+import DeclutterMovePage from "@/pages/declutter/DeclutterMovePage";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { buildSellForMePrefill, sellForMePostJobPath } from "@/lib/declutter/sellForMe";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
@@ -85,7 +88,7 @@ describe("What do you want to sell?", () => {
     expect(choices()).toEqual([
       ["one", "/declutter/sell"],
       ["bunch", "/declutter/sell?mode=bunch"],
-      ["move", "/declutter/move"],
+      ["move", "/declutter/sell?mode=moving"],
       ["free", "/declutter/sell?free=1"],
       ["helpr", null],
       ["wanted", "/declutter?tab=wanted&post=1"],
@@ -113,6 +116,26 @@ describe("What do you want to sell?", () => {
     at("/declutter/sell?mode=bunch");
     expect(await screen.findByText("bunch form")).toBeTruthy();
     expect(document.querySelector("[data-sell-chooser]")).toBeNull();
+  });
+
+  it("?mode=moving opens the same bunch form, and /declutter/move sends old links there", async () => {
+    state.switches = { declutter: true };
+    at("/declutter/sell?mode=moving");
+    expect(await screen.findByText("bunch form")).toBeTruthy();
+    cleanup();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/declutter/move"]}>
+          <Routes>
+            <Route path="/declutter/move" element={<DeclutterMovePage />} />
+            <Route path="/declutter/sell" element={<DeclutterSellPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("bunch form")).toBeTruthy();
   });
 
   it("under 18 sees the Sell flow's notice and no choices", async () => {

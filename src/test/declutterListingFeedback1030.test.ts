@@ -12,7 +12,6 @@
  * @mutate src/components/declutter/sellForm.ts | return { floorCents: floor, dropPct: floor === price ? 0 : f.dropPct }; | return { floorCents: floor, dropPct: f.dropPct };
  * @mutate src/lib/declutter/priceDrop.ts |   return state.drops_stopped \|\| state.floor_price_cents >= currentCents; |   return state.drops_stopped;
  * @mutate src/lib/declutter/autoFree.ts | if (days === null) return "It won't become free on its own. This has nothing to do with price drops."; | if (days === null) return "It stays at your price until it sells or you change it.";
- * @mutate src/components/declutter/DeclutterMoveView.tsx | <TaxStatementsCheck id="move-tax" checked={attested} onChange={setAttested} /> | {TAX_STATEMENTS.map((s) => <li key={s}>{s}</li>)}
  * @mutate supabase/functions/declutter-ai-draft/index.ts | so pick the HIGH end of the fair range for this exact item, not the middle. | so pick a fair price for a quick local sale.
  * @mutate src/components/declutter/useSavedPickup.ts |     .filter((p) => p.address.trim() && p.area.trim() && Number.isFinite(p.lat) && Number.isFinite(p.lng)); |     .filter((p) => p.address.trim() && p.area.trim());
  */
@@ -77,7 +76,7 @@ describe("the four statements, one box, on every sell form", () => {
   it("every sell form uses the shared box", () => {
     const users = files.filter((f) => /<TaxStatementsCheck\b/.test(code(`${dir}/${f}`))).sort();
     expect(users.length).toBeGreaterThan(3);
-    expect(users).toEqual(["BunchDraftsSection.tsx", "DeclutterBunchView.tsx", "DeclutterEditListing.tsx", "DeclutterMoveView.tsx", "SellFormParts.tsx"]);
+    expect(users).toEqual(["BunchDraftsSection.tsx", "DeclutterBunchView.tsx", "DeclutterEditListing.tsx", "SellFormParts.tsx"]);
   });
 
   it("all four statements stay, word for word, above one tick", () => {

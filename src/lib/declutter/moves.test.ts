@@ -10,11 +10,9 @@
  *
  * @mutate src/lib/declutter/moves.ts |   if (d > MOVE_DATE_MAX_DAYS) return "Pick a move-out date within the next 6 months."; |   if (false) return "Pick a move-out date within the next 6 months.";
  * @mutate src/lib/declutter/moves.ts |   if (price === null \|\| price < 100 \|\| price > 100_000) return | if (price === null \|\| price < 100) return
- * @mutate src/lib/declutter/moves.ts |       floor_price_cents: r.floor.trim() ? moveDollarsToCents(r.floor)! : price, |       floor_price_cents: 100,
+ * @mutate src/lib/declutter/moves.ts |       floor_price_cents: f.floorPriceCents, |       floor_price_cents: 100,
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);
- * @mutate src/lib/declutter/moves.ts |     if (status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error)); |   if (false) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
- * @mutate src/lib/declutter/moves.ts |   if (!Array.isArray(items)) throw new Error("ai_unavailable"); |   if (!Array.isArray(items)) return [];
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -81,8 +79,7 @@ vi.mock("@/lib/declutter/api", async (importOriginal) => ({
 
 import {
   AI_CHECK_GAP_MS,
-  chunk,
-  createMoveDrafts,
+  createMoveDraft,
   daysBetween,
   fetchMyMoveItems,
   fetchMyMoveOutDate,
@@ -92,18 +89,13 @@ import {
   moveDollarsToCents,
   moveRowProblem,
   publishMany,
-  scanRoom,
   setMoveOutDate,
-  toMovePayload,
-  toMoveRows,
-  type MoveRow,
-  type RoomItem,
 } from "./moves";
 import { fetchSellerMovingSale, movingSaleLine } from "./movingSale";
-import { declutterErrorMessage, DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY } from "./errors";
+import { declutterErrorMessage, DECLUTTER_ERROR_COPY } from "./errors";
 
-const FOUND: RoomItem = { title: "Oak dresser", description: "Six drawers.", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false };
-const row = (o: Partial<MoveRow> = {}): MoveRow => ({ ...FOUND, key: "r-0", keep: true, price: "80", floor: "", ...o });
+const row = (o: Partial<{ title: string; price: string; floor: string }> = {}) => ({ title: "Oak dresser", price: "80", floor: "", ...o });
+const FIELDS = { title: "Oak dresser", description: "Six drawers.", category: "furniture", conditionStars: 4, deliverySize: "large" as const, priceCents: 8000, floorPriceCents: 4000 };
 const PLACE = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.45, pickupLng: -91.15 };
 
 beforeEach(() => {
@@ -171,43 +163,28 @@ describe("rows and prices", () => {
     expect(moveRowProblem(row({ floor: "0.5" }))).toMatch(/lowest price/);
     expect(moveRowProblem(row({ floor: "40" }))).toBeNull();
   });
-
-  it("found items start kept and unpriced (no price is guessed)", () => {
-    const rows = toMoveRows([FOUND, { ...FOUND, title: "Lamp" }], "room1");
-    expect(rows.map((r) => [r.key, r.keep, r.price, r.floor])).toEqual([["room1-0", true, "", ""], ["room1-1", true, "", ""]]);
-  });
-
-  it("the server payload drops unkept rows; a blank lowest price is the price", () => {
-    const p = toMovePayload([row(), row({ key: "r-1", keep: false }), row({ key: "r-2", title: " Lamp ", price: "15", floor: "10" })]);
-    expect(p).toEqual([
-      { title: "Oak dresser", description: "Six drawers.", category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 8000, floor_price_cents: 8000 },
-      { title: "Lamp", description: "Six drawers.", category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 1500, floor_price_cents: 1000 },
-    ]);
-  });
-
-  it("chunks into the server's batch size", () => {
-    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
-    expect(chunk(Array.from({ length: 31 }, (_, i) => i), 15).map((c) => c.length)).toEqual([15, 15, 1]);
-    expect(chunk([], 15)).toEqual([]);
-  });
 });
 
 describe("server calls", () => {
-  it("createMoveDrafts sends one all-or-nothing call and returns the ids", async () => {
-    h.queue.push({ data: ["a", "b"], error: null });
-    expect(await createMoveDrafts("2026-11-14", PLACE, [row(), row({ key: "r-1", title: "Lamp" })])).toEqual(["a", "b"]);
+  it("createMoveDraft sends one item with the date and returns its id", async () => {
+    h.queue.push({ data: ["a"], error: null });
+    expect(await createMoveDraft("2026-11-14", PLACE, FIELDS)).toBe("a");
     expect(h.rpcs[0][0]).toBe("declutter_create_move_drafts");
     expect(h.rpcs[0][1]).toMatchObject({ p_move_out_on: "2026-11-14", p_area_label: "Mid-City", p_pickup_address: "1 Main St", p_pickup_lat: 30.45, p_pickup_lng: -91.15 });
-    expect((h.rpcs[0][1] as { p_items: unknown[] }).p_items).toHaveLength(2);
+    expect((h.rpcs[0][1] as { p_items: unknown[] }).p_items).toEqual([
+      { title: "Oak dresser", description: "Six drawers.", category: "furniture", condition_stars: 4, delivery_size: "large", price_cents: 8000, floor_price_cents: 4000 },
+    ]);
   });
 
-  it("a refusal surfaces with the plain words (never swallowed)", async () => {
+  it("an answer with no id is a fault, and a refusal surfaces with the plain words (never swallowed)", async () => {
+    h.queue.push({ data: [], error: null });
+    await expect(createMoveDraft("2026-11-14", PLACE, FIELDS)).rejects.toThrow("invalid_items");
     h.queue.push({ data: null, error: { message: "move_draft_limit" } });
-    const err = await createMoveDrafts("2026-11-14", PLACE, [row()]).catch((e) => e);
+    const err = await createMoveDraft("2026-11-14", PLACE, FIELDS).catch((e) => e);
     expect(err).toBeInstanceOf(Error);
     expect(declutterErrorMessage(err)).toBe(DECLUTTER_ERROR_COPY.move_draft_limit);
     h.queue.push({ data: null, error: { message: "under_18" } });
-    expect(declutterErrorMessage(await createMoveDrafts("2026-11-14", PLACE, [row()]).catch((e) => e))).toBe(DECLUTTER_ERROR_COPY.under_18);
+    expect(declutterErrorMessage(await createMoveDraft("2026-11-14", PLACE, FIELDS).catch((e) => e))).toBe(DECLUTTER_ERROR_COPY.under_18);
   });
 
   it("setMoveOutDate sends the date (or null to end) and returns the count", async () => {
@@ -256,51 +233,6 @@ describe("server calls", () => {
   it("a failed read throws (unwrap), it is never an empty list", async () => {
     h.queue.push({ data: [{ move_out_on: "2026-10-20" }], error: null }, { data: null, error: { message: "boom", code: "42501" } });
     await expect(fetchSellerMovingSale("seller")).rejects.toBeTruthy();
-  });
-});
-
-describe("scanRoom", () => {
-  const file = (name: string) => new File([new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3])], name, { type: "image/jpeg" });
-
-  it("cleans each photo smaller, sends them in the body (never uploads), returns the items", async () => {
-    h.clean.mockImplementation(async (f: File) => f);
-    h.queue.push({ data: { items: [FOUND] }, error: null });
-    expect(await scanRoom([file("a.jpg"), file("b.jpg")])).toEqual([FOUND]);
-    expect(h.clean).toHaveBeenCalledTimes(2);
-    expect(h.clean.mock.calls[0].slice(1)).toEqual([1280, 0.75]);
-    const [fn, opts] = h.invokes[0] as [string, { body: { mode: string; photos: string[] } }];
-    expect(fn).toBe("declutter-ai-draft");
-    expect(opts.body.mode).toBe("room");
-    expect(opts.body.photos).toHaveLength(2);
-    expect(opts.body.photos[0]).toBe("/9j/AQID");
-  });
-
-  it("refuses 0 or more than 4 photos before sending anything", async () => {
-    await expect(scanRoom([])).rejects.toThrow("room_photos_invalid");
-    await expect(scanRoom([1, 2, 3, 4, 5].map((n) => file(`${n}.jpg`)))).rejects.toThrow("room_photos_invalid");
-    expect(h.invokes).toHaveLength(0);
-    expect(declutterErrorMessage(new Error("room_photos_invalid"))).toBe(DECLUTTER_CLIENT_ERROR_COPY.room_photos_invalid);
-  });
-
-  it("a 429 is the rate-limit words; a refusal code comes through; anything else is ai_unavailable", async () => {
-    h.clean.mockImplementation(async (f: File) => f);
-    const ctx = (status: number, body: unknown) => ({ status, json: async () => body });
-    h.queue.push({ data: null, error: { context: ctx(429, { error: "Too many requests. Please try again later." }) } });
-    expect(declutterErrorMessage(await scanRoom([file("a.jpg")]).catch((e) => e))).toBe(DECLUTTER_CLIENT_ERROR_COPY.ai_rate_limited);
-    h.queue.push({ data: null, error: { context: ctx(403, { error: "under_18" }) } });
-    expect(declutterErrorMessage(await scanRoom([file("a.jpg")]).catch((e) => e))).toBe(DECLUTTER_ERROR_COPY.under_18);
-    h.queue.push({ data: null, error: { context: ctx(500, { error: "Something odd" }) } });
-    expect((await scanRoom([file("a.jpg")]).catch((e) => e)).message).toBe("ai_unavailable");
-    h.queue.push({ data: null, error: { context: { status: 502, json: async () => { throw new Error("not json"); } } } });
-    expect((await scanRoom([file("a.jpg")]).catch((e) => e)).message).toBe("ai_unavailable");
-  });
-
-  it("an answer with no list is a fault (never 'nothing found'); an empty list is empty", async () => {
-    h.clean.mockImplementation(async (f: File) => f);
-    h.queue.push({ data: {}, error: null });
-    expect((await scanRoom([file("a.jpg")]).catch((e) => e)).message).toBe("ai_unavailable");
-    h.queue.push({ data: { items: [] }, error: null });
-    expect(await scanRoom([file("a.jpg")])).toEqual([]);
   });
 });
 

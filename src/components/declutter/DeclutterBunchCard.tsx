@@ -1,15 +1,14 @@
 /**
  * One item on Sell a bunch's review screen (DeclutterBunchView): its photos,
- * name, price (with the fair-price hint), category, condition, size and
- * details, every field editable. The seller fixes the photo tool's grouping
- * here (owner's pop-up, 2026-10-29): tap photos to choose them, then move them
- * to another item or split them into a new one; merge the whole item into
- * another; or drop it. A possibly banned item is marked, and can still be listed
+ * title, price (with the fair-price hint), category, condition and description, every field editable; size only while
+ * the photo tool hasn't answered it, as the single form does. The seller fixes the photo tool's grouping here (owner's
+ * pop-up, 2026-10-29; DeclutterBunchPhotos): see, add, remove, move or split photos; merge the whole item into another;
+ * or drop it. A possibly banned item is marked, and can still be listed
  * (the photo check decides); an item short of photos says what's missing
  * (bunchItemProblem).
  */
 import { useState } from "react";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DeliverySize } from "@/lib/declutter/api";
@@ -18,15 +17,17 @@ import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
+import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
 interface BunchCardProps {
   item: BunchItem;
   index: number;
-  /** The other items, for "Move to" and "Merge into": key and the name the seller sees. */
-  others: { key: string; name: string }[];
+  /** The other items, for "Move to" and "Merge into": key, the name the seller sees, and a first photo. */
+  others: BunchOther[];
   urls: Map<string, string>;
+  files: Map<string, File>;
   at: { lat: number; lng: number } | null;
   rewriting: boolean;
   /** Why the last "Write it" didn't work, on the card it was tapped on. */
@@ -34,6 +35,9 @@ interface BunchCardProps {
   onChange: (patch: Partial<BunchItem>) => void;
   onMove: (photoKeys: string[], toKey: string) => void;
   onSplit: (photoKeys: string[]) => void;
+  onRemovePhoto: (photoKey: string) => void;
+  onCover: (photoKey: string) => void;
+  onAddPhotos: (files: FileList | null) => void;
   onMerge: (intoKey: string) => void;
   onDrop: () => void;
   onRewrite: () => void;
@@ -46,23 +50,19 @@ export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNote, onChange, onMove, onSplit, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
-  const [chosen, setChosen] = useState<string[]>([]);
-  const [moveTo, setMoveTo] = useState("");
+export function BunchCard({ item, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
   const [mergeInto, setMergeInto] = useState("");
   const id = item.key;
   const problem = bunchItemProblem(item);
-  const live = chosen.filter((k) => item.photoKeys.includes(k));
-  const toggle = (k: string) => setChosen((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]));
   const name = bunchItemName(item, index);
   const noWords = !item.title.trim() && !item.description.trim();
   const mergeTarget = item.mergeHint ? others.find((o) => o.key === item.mergeHint) : undefined;
 
   return (
-    <li className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-bunch-item="" data-flagged={item.flagged ? "" : undefined}>
+    <div className="space-y-3 p-4" data-bunch-card="">
       <div className="flex items-center justify-between gap-2">
         <h3 className="min-w-0 break-words text-ds-15 font-semibold">{name}</h3>
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} onClick={onRewrite}>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `Write it again: ${name}`} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
           {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"}
         </Button>
@@ -83,48 +83,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
         </p>
       )}
 
-      <div className="space-y-2">
-        <p className="text-ds-13 text-muted-foreground">Tap photos to choose them, then move them or split them off.</p>
-        <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-          {item.photoKeys.map((k, i) => {
-            const url = urls.get(k);
-            const on = live.includes(k);
-            return (
-              <li key={k} className="relative" data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined}>
-                <button type="button" aria-pressed={on} aria-label={`${name}, photo ${i + 1}`} onClick={() => toggle(k)}
-                  className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
-                  {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
-                  {on && (
-                    <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-background text-foreground shadow" aria-hidden>
-                      <Check className="h-4 w-4" />
-                    </span>
-                  )}
-                  {item.failedPhoto === k && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        {live.length > 0 && (
-          <div className="flex flex-wrap items-end gap-2" data-bunch-chosen="">
-            {others.length > 0 && (
-              <div className="min-w-0 flex-1">
-                <label className="block text-ds-13 font-medium" htmlFor={`move-${id}`}>Move {live.length === 1 ? "this photo" : `these ${live.length} photos`} to</label>
-                <select id={`move-${id}`} className={field} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-                  <option value="">Pick an item</option>
-                  {others.map((o) => <option key={o.key} value={o.key}>{o.name}</option>)}
-                </select>
-              </div>
-            )}
-            {others.length > 0 && (
-              <Button type="button" variant="outline" size="sm" disabled={!moveTo} onClick={() => { onMove(live, moveTo); setChosen([]); setMoveTo(""); }}>Move</Button>
-            )}
-            {live.length < item.photoKeys.length && (
-              <Button type="button" variant="outline" size="sm" onClick={() => { onSplit(live); setChosen([]); }}>Split into a new item</Button>
-            )}
-          </div>
-        )}
-      </div>
+      <BunchPhotos item={item} name={name} others={others} urls={urls} files={files} onMove={onMove} onSplit={onSplit} onRemove={onRemovePhoto} onCover={onCover} onAdd={onAddPhotos} />
 
       {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-upload-failed="">
@@ -135,7 +94,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="min-w-0 sm:col-span-2">
-          <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>Name</label>
+          <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>Title</label>
           <input id={`title-${id}`} className={field} maxLength={80} value={item.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Oak rocking chair" />
         </div>
         {/* Its own row at every width, so opening it never leaves an empty column under the field beside it. */}
@@ -152,7 +111,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
             </div>
           )}
           <label className="flex min-h-11 items-center gap-3 text-ds-14 font-medium" data-bunch-free="">
-            <Checkbox checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} />
+            <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} />
             Give it away free
           </label>
         </div>
@@ -162,16 +121,19 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
             {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{CONDITION_LABEL[s]}</option>)}
           </select>
         </div>
-        <div className="min-w-0 sm:col-span-2">
-          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>Size</label>
-          <select id={`size-${id}`} className={field} value={item.deliverySize} onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
-            {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
-          </select>
-        </div>
+        {item.sizeUnknown && (
+          <div className="min-w-0 sm:col-span-2" data-bunch-size="">
+            <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>Size</label>
+            <select id={`size-${id}`} className={field} value="" onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
+              <option value="" disabled>Pick a size</option>
+              {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
+            </select>
+          </div>
+        )}
       </div>
       {!item.free && <PriceHint category={item.category} conditionStars={item.conditionStars} at={at} place="near_you" />}
       <div className="min-w-0">
-        <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>Details</label>
+        <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>Description</label>
         <textarea id={`desc-${id}`} rows={3} maxLength={2000} className="w-full min-w-0 rounded-2xl border border-input glass-field px-3 py-2 text-ds-15"
           value={item.description} onChange={(e) => onChange({ description: e.target.value })} />
       </div>
@@ -188,11 +150,11 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
                 {others.map((o) => <option key={o.key} value={o.key}>{o.name}</option>)}
               </select>
             </div>
-            <Button type="button" variant="outline" size="sm" disabled={!mergeInto} onClick={() => { onMerge(mergeInto); setMergeInto(""); }}>Merge</Button>
+            <Button type="button" variant="outline" size="sm" disabled={!mergeInto} aria-label={`Merge ${name}`} onClick={() => { onMerge(mergeInto); setMergeInto(""); }}>Merge</Button>
           </>
         )}
-        <Button type="button" variant="outline" size="sm" onClick={onDrop}>Don't sell this</Button>
+        <Button type="button" variant="outline" size="sm" aria-label={`Don't sell ${name}`} onClick={onDrop}>Don't sell this</Button>
       </div>
-    </li>
+    </div>
   );
 }

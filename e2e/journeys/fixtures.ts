@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
-import { openCardFields, stripeLayoutReport, stripePaymentMethodControl } from "../stripeCheckoutCard";
+import { openCardFields, stripeLayoutReport, stripePaymentMethodControl, untickStripeLink } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
@@ -557,13 +557,10 @@ export async function payOnStripeCheckout(page: Page) {
       await page.keyboard.press("Escape").catch(() => {});
     }
   }
-  const linkOptIn = page.locator("#enableStripePass");
-  if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
-    await linkOptIn.uncheck({ force: true }).catch(() => {});
-  }
   // The billing-address autocomplete can swallow the first Pay tap, so blur,
   // tap, and tap again if still on Stripe, naming any inline error it shows.
   for (let attempt = 1; attempt <= 3; attempt++) {
+    await untickStripeLink(page);
     await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
     await page.getByTestId("hosted-payment-submit-button").click();
     const left = await page

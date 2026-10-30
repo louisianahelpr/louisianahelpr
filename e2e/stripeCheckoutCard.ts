@@ -119,6 +119,23 @@ const STRIPE_CHECKOUT_HOST = "checkout.stripe.com";
 const STRIPE_CONFIRM_REQUEST = /api\.stripe\.com\/v1\/payment_pages\/[^/?]+\/confirm/;
 
 /**
+ * Untick "Save my information with Link" right before a Pay press. Stripe draws
+ * it, ticked, with a REQUIRED phone number, some time AFTER the address is
+ * filled; left ticked, Pay validates the phone, sends nothing and shows no
+ * alert. Unticking once before Pay lost that race: no test job funded after
+ * 2026-10-28 01:33Z (e2e-journeys 41047645233, measured with a network probe
+ * 2026-10-30: no /v1/payment_methods POST, box ticked, phone field red). So
+ * every press waits for the box to have had time to appear and asks again.
+ */
+export async function untickStripeLink(page: Page): Promise<void> {
+  await page.waitForTimeout(2_000);
+  const link = page.locator("#enableStripePass");
+  if ((await link.count()) && (await link.isChecked().catch(() => false))) {
+    await link.uncheck({ force: true }).catch(() => undefined);
+  }
+}
+
+/**
  * Press Pay until Stripe actually submits. Line 1 opens Google's address
  * autocomplete; when Escape does not close it, the FIRST click on Pay only
  * dismisses that dropdown. Scheduled e2e-real-backend run 39039797666
@@ -131,6 +148,7 @@ const STRIPE_CONFIRM_REQUEST = /api\.stripe\.com\/v1\/payment_pages\/[^/?]+\/con
  */
 export async function pressStripePay(page: Page, presses = 3): Promise<void> {
   for (let i = 1; i <= presses; i++) {
+    await untickStripeLink(page);
     const confirm = page.waitForRequest(STRIPE_CONFIRM_REQUEST, { timeout: 8_000 }).then(
       () => true,
       () => false,

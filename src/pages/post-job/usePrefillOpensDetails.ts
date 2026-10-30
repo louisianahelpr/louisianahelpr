@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
+import { MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 
 /**
  * The deep links whose pre-fill already picks the job's category. They open Post a job at Details (4 of 7), never
@@ -11,7 +12,10 @@ import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
  * buildSellForMePrefill sets Declutter help).
  */
 // `mm`: a matchmaker link from Admin -> Growth links (B59) sets the category from the link.
-export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM] as const;
+// `haulAway`: a Declutter haul-away (audit 1d D4-7: it stopped at "What do you need done?" with Moving & errands picked
+// and nothing saying it was the haul-away; useHaulAwayPrefill sets Moving help). `movingDay`: the moving sale's
+// "Hire a Helpr for moving day" (D4-6; buildMovingDayPrefill sets Moving help).
+export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const;
 
 /** Is this Post a job link one whose pre-fill picks the category (usePostJobForm hands FormStep the answer)? */
 export function prefillOpensDetails(searchParams: URLSearchParams): boolean {

@@ -17,6 +17,7 @@ import { usePostJobGiftCard } from "./usePostJobGiftCard";
 import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
+import { MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 import { prefillOpensDetails } from "./usePrefillOpensDetails";
 import { prefillOpensWhen } from "@/lib/bookAgain";
 import { DEFAULT_QUOTE_WINDOW, type QuoteWindowHours } from "@/lib/quotes/api";
@@ -59,8 +60,9 @@ export function usePostJobForm() {
   // A Declutter haul-away (`haulAway`, docs/specs/declutter-haul-away.md) too,
   // and so does a Declutter "Add a Helpr" tap (`declutterOrder`, setupHelpr.ts).
   // Rentals S1: an approved maintenance request (`maintenance`) too, and
-  // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts).
-  const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway") || searchParams.get(MATCHMAKER_PARAM));
+  // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts), and the moving sale's
+  // "Hire a Helpr for moving day" (`movingDay`, src/lib/declutter/movingDayJob.ts).
+  const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway") || searchParams.get(MATCHMAKER_PARAM) || searchParams.get(MOVING_DAY_PARAM));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
   // Which form PAGE is showing: 1 the groups / a group's categories (screens 2-3 of 7), 2 Details (4),
   // 3 Price (5), 4 When and where (6); Review (7) is the checkout step. Numbers: postJobScreens.ts.
@@ -585,6 +587,8 @@ export function usePostJobForm() {
     setFormPage,
     // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).
     prefillOpensDetails: prefillOpensDetails(searchParams),
+    // D4-7: the haul-away's items once its pre-fill loaded; Details says it is the haul-away.
+    haulAwayItemIds,
     // Q2471 #3: "Book <Helpr> again" (rebook + offerTo + bookAgain) opens at When and where once its copy lands.
     prefillOpensWhen: prefillOpensWhen(searchParams),
     entryPanel,

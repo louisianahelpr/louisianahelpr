@@ -95,7 +95,7 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                     value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
                 </div>
                 <p className={`text-ds-13 ${tooHigh ? "text-destructive-ink" : "text-muted-foreground"}`} role={tooHigh ? "alert" : undefined}>
-                  At most {formatPrice(limit!)}: their Wanted price and your listing's price.
+                  Up to {formatPrice(limit!)}, the lower of their Wanted price and your listing's price.
                 </p>
                 {cents !== null && !tooHigh && (
                   // Sellers keep the whole price; the buyer pays the buyer's fee (spec v2 §9.11). No pronouns.

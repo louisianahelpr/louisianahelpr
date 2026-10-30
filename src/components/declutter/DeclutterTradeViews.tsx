@@ -106,6 +106,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const sdKey = ["declutter", "seller-delivery-offer", sellerId, itemsTotalCents] as const;
   const sdOffer = useQuery({ queryKey: sdKey, queryFn: () => fetchSellerDeliveryOffer(sellerId), enabled: sellerDeliveryOn });
   const [sdTyped, setSdTyped] = useState(false);
+  const [sdChecked, setSdChecked] = useState<string | null>(null); // DB-9: the address checked in THIS checkout, shown in full
   const [slot, setSlot] = useState<string | null>(null);
   const [handoff, setHandoff] = useState<DeliveryHandoff | null>(null);
   const sdState = sellerDeliveryOn && !sdOffer.isError ? sellerDeliveryState(sdOffer.data, sdTyped) : "hidden";
@@ -133,7 +134,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const [quotedFor, setQuotedFor] = useState<number | null>(null);
   const priceIt = useMutation({
     mutationFn: () => fetchDeliveryQuote(sellerId, address.trim()),
-    onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); },
+    onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); setSdChecked(null); }, // DB-9: it stored a new drop-off: seller delivery checks again
     onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); },
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
@@ -167,7 +168,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // one quiet line says so, with no number. A free claim never reaches this sheet with a fee.
   const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + setupFeeCents;
   const includesServiceFee = payCents > listedCents;
-  const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff;
+  const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
@@ -201,8 +202,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
-          handoff={handoff} onHandoff={setHandoff}
-          onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); qc.setQueryData(sdKey, o); }} />
+          handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
+          onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
       )}
       {delivering && (
         <div className="space-y-2 rounded-xl border border-border p-3">
@@ -289,7 +290,6 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               if ((err as { message?: string } | null)?.message === "slot_unavailable") setSlot(null);
               // The seller changed their delivery price meanwhile: the offer is read again, so the
               // screen shows the new price before the buyer taps Pay again.
-
               void qc.invalidateQueries({ queryKey: sdKey });
             } else {
               toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));

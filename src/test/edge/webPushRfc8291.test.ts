@@ -20,6 +20,9 @@ import {
   vapidAuthorization,
 } from "../../../supabase/functions/_shared/webPush";
 
+/** ArrayBuffer-backed bytes (see Bytes in supabase/functions/_shared/webPush.ts). */
+type Bytes = Uint8Array<ArrayBuffer>;
+
 // RFC 8291 Appendix A, verbatim.
 const A = {
   plaintext: "V2hlbiBJIGdyb3cgdXAsIEkgd2FudCB0byBiZSBhIHdhdGVybWVsb24",
@@ -36,13 +39,13 @@ const A = {
 };
 
 /** Receiver side of RFC 8291, written independently of the sender, to decrypt a fresh message. */
-async function decryptAsReceiver(body: Uint8Array, uaPublicB64: string, uaPrivateB64: string, authB64: string) {
+async function decryptAsReceiver(body: Bytes, uaPublicB64: string, uaPrivateB64: string, authB64: string) {
   const salt = body.slice(0, 16);
   const idlen = body[20];
   const asPublic = body.slice(21, 21 + idlen);
   const ciphertext = body.slice(21 + idlen);
   const uaPublic = b64urlDecode(uaPublicB64);
-  const jwk = (pub: Uint8Array, d?: string): JsonWebKey => ({
+  const jwk = (pub: Bytes, d?: string): JsonWebKey => ({
     kty: "EC",
     crv: "P-256",
     x: b64urlEncode(pub.slice(1, 33)),
@@ -53,7 +56,7 @@ async function decryptAsReceiver(body: Uint8Array, uaPublicB64: string, uaPrivat
   const pub = await crypto.subtle.importKey("jwk", jwk(asPublic), { name: "ECDH", namedCurve: "P-256" }, false, []);
   const ecdh = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: pub }, priv, 256));
   const enc = new TextEncoder();
-  const h = async (s: Uint8Array, ikm: Uint8Array, info: Uint8Array, n: number) =>
+  const h = async (s: Bytes, ikm: Bytes, info: Bytes, n: number) =>
     new Uint8Array(
       await crypto.subtle.deriveBits(
         { name: "HKDF", hash: "SHA-256", salt: s, info },
@@ -129,12 +132,12 @@ describe("VAPID (RFC 8292)", () => {
   it("sendWebPush posts aes128gcm with VAPID, and reads 404 and 410 as gone", async () => {
     const { vapid } = await makeVapid();
     const sub = { endpoint: "https://web.push.apple.com/QX", p256dh: A.ua_public, auth: A.auth_secret };
-    const seen: { headers: Record<string, string>; body: Uint8Array }[] = [];
+    const seen: { headers: Record<string, string>; body: Bytes }[] = [];
     const statuses = [201, 404, 410, 500];
     const results = [];
     for (const status of statuses) {
       const fetchImpl = (async (_url: string, init: RequestInit) => {
-        seen.push({ headers: init.headers as Record<string, string>, body: init.body as Uint8Array });
+        seen.push({ headers: init.headers as Record<string, string>, body: init.body as Bytes });
         return new Response(status === 201 ? null : "x", { status });
       }) as unknown as typeof fetch;
       results.push(await sendWebPush(sub, { title: "t" }, vapid, { fetchImpl }));

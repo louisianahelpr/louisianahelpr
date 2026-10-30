@@ -71,6 +71,16 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // B65 web push (20261030022344): saveWebPushSubscription and removeWebPushSubscription
+  // (src/lib/webPush.ts) run in the background after sign-in and during sign-out. Any error is
+  // reported (area push) and the caller goes on; neither ever shows a message.
+  register_push_subscription: {
+    not_signed_in: { reason: ANON_REVOKED },
+    invalid_subscription: { reason: "no message exists at this site: saveWebPushSubscription reports any error (webPushRegister) and returns 'failed'; the browser's own PushSubscription supplies the endpoint and keys, and no copy is shown." },
+  },
+  unregister_push_subscription: {
+    not_signed_in: { reason: ANON_REVOKED },
+  },
   // B59 Book me (20261030013347): recordBookingSourceFor (src/lib/bookMe.ts) is best effort on
   // Post a job. A failure is reported and the post goes on; it never shows a message.
   record_booking_source: {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
@@ -24,6 +24,10 @@ import {
   type Allowlist,
   type CopyTable,
 } from "./helpers/rpcErrorInventory";
+
+// The inventory scans every migration and client file; under a loaded CI shard
+// it has taken 33 s against the 20 s default. Give every test here 90 s.
+vi.setConfig({ testTimeout: 90_000 });
 
 /**
  * EVERY CODE A CLIENT-CALLED RPC CAN RAISE HAS WORDS AT THE PLACE IT IS CALLED.

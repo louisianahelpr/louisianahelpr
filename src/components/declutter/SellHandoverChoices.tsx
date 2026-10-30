@@ -19,7 +19,7 @@ import { SellPorchDays } from "./SellPorchDays";
 
 export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
   porch: { title: "Porch pickup", words: "You leave it out and the buyer picks it up. You don't have to meet.", icon: DoorOpen },
-  seller_delivery: { title: "I'll deliver", words: "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under \"I can deliver\" on Selling.", icon: Truck },
+  seller_delivery: { title: "I'll deliver", words: "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under \"I can deliver\" in Declutter settings.", icon: Truck },
   meetup: { title: "Safe meeting spot", words: "Meet at a public spot near you, like a police station lobby. Your address stays private.", icon: Users },
   delivery: { title: "Helpr delivery", words: "A local Helpr picks it up and brings it to the buyer, who pays for it.", icon: MapPin },
 };
@@ -39,6 +39,36 @@ export function handoverSummary(ways: SellerHandover[]): string {
   return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
 }
 
+/** The tick tiles themselves, shared by this step and the listing defaults in Declutter settings. `fixed`: ticked and not changeable. */
+export function SellWayTiles({ shown, ways, setWays, fixed = false }: { shown: SellerHandover[]; ways: SellerHandover[]; setWays: (w: SellerHandover[]) => void; fixed?: boolean }) {
+  const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
+  return (
+    <ul className="grid gap-2 lg:grid-cols-2">
+      {shown.map((w) => {
+        const c = HANDOVER_CHOICE[w];
+        const on = fixed ? true : ways.includes(w);
+        const Icon = c.icon;
+        return (
+          <li key={w}>
+            <label htmlFor={`sell-way-${w}`} data-handover-tile={w} data-on={on ? "" : undefined}
+              className={`flex h-full cursor-pointer items-start gap-3 rounded-[16px] border bg-card p-4 transition-colors focus-within:ring-2 focus-within:ring-ring ${on ? "border-[hsl(var(--bark))]" : "border-border"}`}>
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${on ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] dark:text-foreground" : "bg-muted text-muted-foreground"}`} aria-hidden>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-ds-15 font-semibold text-foreground">{c.title}</span>
+                <span className="block text-ds-13 text-muted-foreground">{c.words}</span>
+              </span>
+              <Checkbox id={`sell-way-${w}`} className="mt-1" checked={on} disabled={fixed}
+                onCheckedChange={(v) => toggle(w, v === true)} aria-label={c.title} />
+            </label>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, pickupDays }: {
   ways: SellerHandover[];
   setWays: (w: SellerHandover[]) => void;
@@ -48,33 +78,10 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, p
   pickupDays?: number[];
 }) {
   const shown = SELLER_WAYS.filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
-  const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
   return (
     <div className="space-y-2" role="group" aria-labelledby="sell-ways">
       <p id="sell-ways" className="text-ds-14 font-semibold text-foreground">Tick every way that works for you</p>
-      <ul className="grid gap-2 lg:grid-cols-2">
-        {shown.map((w) => {
-          const c = HANDOVER_CHOICE[w];
-          const on = free ? true : ways.includes(w);
-          const Icon = c.icon;
-          return (
-            <li key={w}>
-              <label htmlFor={`sell-way-${w}`} data-handover-tile={w} data-on={on ? "" : undefined}
-                className={`flex h-full cursor-pointer items-start gap-3 rounded-[16px] border bg-card p-4 transition-colors focus-within:ring-2 focus-within:ring-ring ${on ? "border-[hsl(var(--bark))]" : "border-border"}`}>
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${on ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] dark:text-foreground" : "bg-muted text-muted-foreground"}`} aria-hidden>
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-ds-15 font-semibold text-foreground">{c.title}</span>
-                  <span className="block text-ds-13 text-muted-foreground">{c.words}</span>
-                </span>
-                <Checkbox id={`sell-way-${w}`} className="mt-1" checked={on} disabled={free}
-                  onCheckedChange={(v) => toggle(w, v === true)} aria-label={c.title} />
-              </label>
-            </li>
-          );
-        })}
-      </ul>
+      <SellWayTiles shown={shown} ways={ways} setWays={setWays} fixed={free} />
       {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">A free item is picked up from your porch.</p>}
       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>}
       {!free && sellerDeliveryOpen && <SellDeliveryOffNotice ticked={ways.includes("seller_delivery")} />}

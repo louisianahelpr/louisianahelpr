@@ -356,7 +356,7 @@ describe("Q139: a seed donor's gift email never reaches a real person", () => {
     expect(sendGiftCardEmail).not.toHaveBeenCalled();
     // The in-app row names the donor, so the trigger judges it the same way.
     const note = scenario.writes.find((w) => w.table === "notifications" && w.op === "insert");
-    expect((note?.payload as { link?: string })?.link).toBe("/profile?tab=gift_card&user=donor-1");
+    expect((note?.payload as { link?: string })?.link).toBe("/profile?tab=gift_card&show=received&user=donor-1");
   });
 
   it("a check that cannot answer: NOT emailed, and ops is paged", async () => {

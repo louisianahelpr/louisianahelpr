@@ -211,7 +211,7 @@ serve(async (req) => {
                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.`
                 : ""),
             type: "payment",
-            link: "/profile?tab=gift_card",
+            link: "/profile?tab=gift_card&show=received",
           });
           if (noteErr) {
             console.error(

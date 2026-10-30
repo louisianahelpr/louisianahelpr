@@ -25,6 +25,7 @@ export default function HelpEntryPanel({
         align="end"
         sideOffset={8}
         className="w-64 rounded-2xl"
+        aria-label="Help"
         data-testid="help-entry-panel"
         onCloseAutoFocus={(event) => {
           event.preventDefault();

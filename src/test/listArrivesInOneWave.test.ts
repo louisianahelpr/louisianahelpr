@@ -241,7 +241,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     // Browse (its own file since it lays out like Jobs' Browse, owner 2026-10-28): one gate for where-you-are AND
     // the items; no half-painted list. The cards' hearts (the watchlist read, 2026-10-19) join the same gate.
     const browse = read("components/declutter/DeclutterBrowseView.tsx");
-    expect(browse).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| drops\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
+    expect(browse).toMatch(/const listLoading = \(items\.isLoading && !preview\) \|\| photos\.isLoading \|\| drops\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
     expect(browse).toMatch(/\n {2}\} else if \(listLoading\) \{\n[^\n]*\n {4}body = <DeclutterBrowseBones map=\{desktop && mapVisible\} full=\{desktop && !mapVisible\} \/>;/);
     expect(browse).not.toContain("Loading items…");
   });

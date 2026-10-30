@@ -54,6 +54,7 @@ const db = vi.hoisted(() => ({
   updates: [] as Record<string, unknown>[],
 }));
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/integrations/supabase/client", () => {
   const from = () => ({
     select: () => ({

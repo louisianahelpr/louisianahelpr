@@ -225,6 +225,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
 const EDGE_READERS: Record<string, Kind> = {
   // A purchase is settled as a test purchase only for an enrolled test account.
   "_shared/appleAppStore.ts": "money-gate",
+  "_shared/payDelayNotice.ts": "alerts",
   "_shared/seedBoundary.ts": "hides",
   // Stripe TEST mode: enrolled AND is_seed (classifyParties).
   "_shared/stripeMode.ts": "money-gate",

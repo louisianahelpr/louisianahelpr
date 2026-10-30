@@ -277,6 +277,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "sends \"Payout account verified\" the first time a Helpr's Stripe Connect account turns payouts-enabled (stripe-connect status check or the recheck-pending-accepts sweep); the shared accounts' Connect state is fixed and a journey never completes Connect onboarding on live Stripe",
   },
+  "edge:_shared/payDelayNotice": { uncovered: "tells a Helpr a payout is 12 hours past its promised day, on a failed transfer or an account that cannot be paid; never about a test job, and a journey cannot wait out a payout day. Proven in src/test/payDelayNotice.test.ts." },
   "edge:_shared/chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
   "edge:_shared/checkoutNudge": { uncovered: STRIPE_EVENT("checkout.session.expired on a new job's unpaid checkout (one \"Finish posting your job\" notice, switch checkout_nudge 'testers'); asserted in src/test/edge/checkoutNudge.test.ts") },
   // Q2399 card hold at post: the poster's hold notices and the Helpr's "waiting on payment" notice need a card HOLD

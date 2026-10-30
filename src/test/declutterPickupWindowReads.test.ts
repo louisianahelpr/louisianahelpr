@@ -10,7 +10,7 @@
  */
 // @mutate supabase/migrations/20261028195840_declutter_pickup_window_reads.sql | (o.buyer_id = v_uid AND o.status = 'paid') | (o.buyer_id = v_uid)
 // @mutate supabase/migrations/20261028195840_declutter_pickup_window_reads.sql | AND t.source_id = o.id AND t.helpr_id = v_uid | AND t.source_id = o.id
-// @mutate supabase/migrations/20261028195840_declutter_pickup_window_reads.sql | i.status IN ('live', 'reserved') AND NOT i.seller_hidden | i.status IN ('live', 'reserved', 'paused')
+// @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql | i.status IN ('live', 'reserved') AND NOT i.seller_hidden | i.status IN ('live', 'reserved', 'paused')
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

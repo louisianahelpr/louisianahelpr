@@ -134,7 +134,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // The quote is for the cart as it was priced: a changed cart total asks again.
   const [quotedFor, setQuotedFor] = useState<number | null>(null);
   const priceIt = useMutation({
-    mutationFn: () => fetchDeliveryQuote(sellerId, address.trim()),
+    mutationFn: async () => {
+      await porchPlaces.whenPicked();
+      return fetchDeliveryQuote(sellerId, address.trim());
+    },
     onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); setSdChecked(null); }, // DB-9: it stored a new drop-off: seller delivery checks again
     onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); void porchPlaces.reread(err); },
   });
@@ -142,8 +145,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const delivering = chosen === "delivery";
   // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
   // refuses checkout and a delivery price without it, porch_place_needed).
-  const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents);
   const needsPlace = chosen === "porch" || delivering;
+  const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents, needsPlace);
   const placeReady = !needsPlace || porchPlaces.ready;
   // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
   // never paid it (declutter_start_checkout freezes the same platform amount on the order, outside the sale's
@@ -282,6 +285,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           setOpening(true);
           rememberPaying(sellerId);
           try {
+            await porchPlaces.whenPicked();
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : null);
             if (res.paid || !res.url) {

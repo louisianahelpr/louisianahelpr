@@ -233,10 +233,13 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   const [handover, setHandover] = useState<FreeHandover>(offered[0]);
   const chosen = offered.includes(handover) ? handover : offered[0];
   // D-NEW14: a giver with saved pickup places: the taker picks one for a porch pickup (porch_place_needed otherwise).
-  const porchPlaces = useSellerPorchPlaces(sellerId, 0);
+  const porchPlaces = useSellerPorchPlaces(sellerId, 0, chosen === "porch");
   const placeReady = chosen !== "porch" || porchPlaces.ready;
   const confirm = useMutation({
-    mutationFn: () => checkoutFree(sellerId, chosen),
+    mutationFn: async () => {
+      await porchPlaces.whenPicked();
+      return checkoutFree(sellerId, chosen);
+    },
     onSuccess: () => {
       toast.success("It's set. Next: choose your pickup time.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });

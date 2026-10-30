@@ -46,6 +46,7 @@ import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
+import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -75,6 +76,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const ended = only === null || only === "cancelled" ? t.ended : [];
   return (
     <div className="space-y-6">
+      {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
+      <FreePauseLine />
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
@@ -91,6 +94,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
         </section>
       )}
       {offers && <OffersSection side="buyer" />}
+      {/* The Free change (Q2487): the free items this member asked for, until the giver picks. */}
+      <MyFreeAsks />
     </div>
   );
 }

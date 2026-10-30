@@ -24,6 +24,7 @@ import { ListedWhatNext } from "./ListedWhatNext";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMySales,
+  fetchOpenFreeRequestCounts,
   fetchPhotos,
   fetchDropStates,
   photoPublicUrl,
@@ -174,6 +175,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
+  // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
+  const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
+  const freeAsks = useQuery({ queryKey: ["declutter", "free-request-counts", userId], queryFn: () => fetchOpenFreeRequestCounts(userId), enabled: anyFreeLive });
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
   const anySold = (mine.data ?? []).some((i) => SOLD.has(i.status));
   const sales = useQuery({ queryKey: ["declutter", "sales", userId], queryFn: () => fetchMySales(userId), enabled: anySold });
@@ -314,6 +318,10 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                     Finish listing
+                  </Button>
+                ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>
                 ) : (
                   <Button asChild variant="outline" size="sm">

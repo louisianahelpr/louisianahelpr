@@ -66,7 +66,6 @@ const EXPECTED_CALLERS = [
   // the item's seller the other (a blocked pair cannot watch or ask, B17).
   "declutter_ask_question",
   "declutter_checkout_free",
-  "declutter_claim_free",
   // Declutter slice 3 (20261014210518): lock_buyable_item gets p_buyer =
   // v_uid := declutter_assert_member() (auth.uid()) from make_offer / buy_now;
   // respond_offer passes the thread's two parties, one of whom is v_uid
@@ -79,6 +78,8 @@ const EXPECTED_CALLERS = [
   // A3-8 / A2-18 (20261028210552): the tip line checks the order's buyer against the delivery's own Helpr
   // (helpr_tasks.helpr_id of the order's task), both parties to that delivery, as helpr_task_tip_start does.
   "declutter_delivery_tip_open",
+  // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
+  "declutter_free_requests_for_item",
   "declutter_lock_buyable_item",
   // The paid-order chat (20261030004216, D2-1): the caller must be the order's buyer or seller (declutter_order_side), and
   // each passes the order's own pair (o.buyer_id, o.seller_id), so the caller is always one party.
@@ -87,11 +88,15 @@ const EXPECTED_CALLERS = [
   "declutter_open_handover_talk",
   // The paid-order chat view: declutter_order_side(o.buyer_id, o.seller_id, auth.uid()) must name a side first.
   "declutter_order_talk_view",
+  // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
+  "declutter_pick_free_request",
   // Price-drop alerts (20261027204745, Train D): an AFTER UPDATE trigger on declutter_items passes the
   // pair (the watcher, the item's seller); neither is necessarily auth.uid() (the evening sweep lowers
   // prices as service_role) and it gets the real answer through the pg_trigger_depth() > 0 arm.
   "declutter_price_drop_alert",
     "declutter_question_notice",
+  // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
+  "declutter_request_free",
   "declutter_respond_offer",
   // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
   // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.

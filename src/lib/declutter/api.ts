@@ -915,14 +915,75 @@ export async function respondOffer(offerId: string, action: OfferAction, amountC
 
 /** Buy at the price the member SAW; the server refuses if it is higher now. */
 /**
- * Claim a FREE item (20261027170717): reserved to the buyer like a purchase (48 hours to choose a
- * pickup), no card asked, at most 3 open free claims. Returns the cart line id.
+ * The Free change (Q2487, owner 2026-10-29): ASK for a free item. The item stays up; the giver picks who gets it,
+ * and only that person then has 48 hours to choose a pickup. At most 3 at a time (asks + free items waiting).
+ * Returns the ask's id. (declutter_claim_free, which installed app builds still call, now asks the same way.)
  */
-export async function claimFree(itemId: string): Promise<string> {
+export async function requestFree(itemId: string): Promise<string> {
   return rpcData(
-    await supabase.rpc("declutter_claim_free", { p_item_id: itemId }),
-    (e) => rpcErrorMessage("declutter_claim_free", e),
+    await supabase.rpc("declutter_request_free", { p_item_id: itemId }),
+    // The pause refusal carries its end date in the hint ("You can ask for free items again on November 29.").
+    (e) => {
+      const r = e as { message?: unknown; hint?: unknown } | null;
+      return r?.message === "free_paused" && typeof r.hint === "string" && r.hint ? r.hint : rpcErrorMessage("declutter_request_free", e);
+    },
   ) as string;
+}
+
+/** Take back the member's own ask. */
+export async function withdrawFreeRequest(requestId: string): Promise<void> {
+  rpcData(
+    await supabase.rpc("declutter_withdraw_free_request", { p_request_id: requestId }),
+    (e) => rpcErrorMessage("declutter_withdraw_free_request", e),
+  );
+}
+
+export type MyFreeRequest = { id: string; item_id: string; status: string; created_at: string; declutter_items?: { title: string } | null };
+
+/** The member's own open asks, with each item's title (RLS: the asker or the giver reads a row). */
+export async function fetchMyFreeRequests(userId: string): Promise<MyFreeRequest[]> {
+  return (unwrap(
+    await supabase.from("declutter_free_requests").select("id, item_id, status, created_at, declutter_items(title)")
+      .eq("requester_id", userId).eq("status", "open").order("created_at", { ascending: true }),
+  ) ?? []) as MyFreeRequest[];
+}
+
+/** The giver's open asks per free listing (RLS lets the giver read the rows), for the Selling list's "Requests (n)". */
+export async function fetchOpenFreeRequestCounts(userId: string): Promise<Map<string, number>> {
+  const rows = (unwrap(
+    await supabase.from("declutter_free_requests").select("item_id").eq("seller_id", userId).eq("status", "open"),
+  ) ?? []) as { item_id: string }[];
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.item_id, (out.get(r.item_id) ?? 0) + 1);
+  return out;
+}
+
+export type FreeRequester = {
+  request_id: string; requester_id: string; display_name: string; avg_rating: number | null; review_count: number | null; created_at: string;
+};
+
+/** The giver's list of who asked for one of their free items, oldest first. */
+export async function fetchFreeRequestsForItem(itemId: string): Promise<FreeRequester[]> {
+  return (rpcData(
+    await supabase.rpc("declutter_free_requests_for_item", { p_item_id: itemId }),
+    (e) => rpcErrorMessage("declutter_free_requests_for_item", e),
+  ) ?? []) as FreeRequester[];
+}
+
+/** The giver picks one person; everyone else who asked is told. Returns the picked person's cart line id. */
+export async function pickFreeRequest(requestId: string): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_pick_free_request", { p_request_id: requestId }),
+    (e) => rpcErrorMessage("declutter_pick_free_request", e),
+  ) as string;
+}
+
+/** The member's 30-day pause on free items after a missed free pickup: its end, or null. */
+export async function fetchMyFreePause(): Promise<string | null> {
+  return (rpcData(
+    await supabase.rpc("declutter_my_free_pause"),
+    (e) => rpcErrorMessage("declutter_my_free_pause", e),
+  ) ?? null) as string | null;
 }
 
 /**

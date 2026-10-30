@@ -899,18 +899,40 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   // The Free section (20261027170717): claim a free item, and finish an all-free cart.
-  declutter_claim_free: {
+  // The Free change (Q2487, 20261030064021): ask for a free item; the giver picks. (declutter_claim_free, still called by
+  // installed builds, now asks through declutter_request_free.)
+  declutter_request_free: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     free_claim_limit: DC.free_claim_limit,
+    free_paused: DC.free_paused,
     item_not_available: DC.item_not_available,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     not_free: DC.not_free,
-    offer_not_open: DC.offer_not_open,
     own_item: DC.own_item,
     sale_mode_unavailable: DC.sale_mode_unavailable,
+    under_18: DC.under_18,
+  },
+  declutter_withdraw_free_request: {
+    not_authenticated: DC.not_authenticated,
+    request_not_found: DC.request_not_found,
+  },
+  declutter_free_requests_for_item: {
+    item_not_found: DC.item_not_found,
+  },
+  declutter_pick_free_request: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_available: DC.item_not_available,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    offer_not_open: DC.offer_not_open,
+    request_not_found: DC.request_not_found,
+    request_not_open: DC.request_not_open,
+    requester_unavailable: DC.requester_unavailable,
     under_18: DC.under_18,
   },
   declutter_checkout_free: {

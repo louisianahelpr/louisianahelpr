@@ -28,10 +28,14 @@ import {
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
+import { RadioCardList } from "@/components/ui/RadioCardList";
+import { hapticLight } from "@/lib/haptics";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
+/** Audit 1028 part 2, D2-15: the amount is a few digits; a full-width box read as a text field. */
+const amountInput = `${input} max-w-[12rem]`;
 
 export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
   not_as_described: "Not as described",
@@ -141,12 +145,14 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     return (
       <fieldset className="space-y-2 rounded-xl border border-border p-3" data-refund-ask="">
         <legend className="px-1 text-sm font-semibold">Ask for a refund</legend>
-        {reasons.map((k) => (
-          <label key={k} className="flex min-h-11 items-center gap-2 text-sm">
-            <input type="radio" name={`${id}-reason`} value={k} checked={reason === k} onChange={() => setReason(k)} />
-            {REFUND_REASON_WORDS[k]}
-          </label>
-        ))}
+        {/* D2-15: the app's one "pick one reason" list, not browser radios. */}
+        <RadioCardList
+          label="What's wrong?"
+          required
+          options={reasons.map((k) => ({ value: k, label: REFUND_REASON_WORDS[k] }))}
+          value={reason}
+          onChange={(k, via) => { if (via === "click") hapticLight(); setReason(k as RefundReason); }}
+        />
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">Tell them more</label>
         <textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={ask.isPending} />}
@@ -273,35 +279,28 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
       <p className="text-sm">
         <span className="font-medium">{REFUND_REASON_WORDS[r.reason]}.</span> {cap(who)} says: "{r.note}"
       </p>
-      <label className="flex min-h-11 items-start gap-2 text-sm">
-        <input type="radio" name={id} checked={choice === "full"} onChange={() => setChoice("full")} className="mt-1" />
-        <span>
-          <span className="font-medium">Refund in full</span>
-          <span className="block text-ds-12 text-muted-foreground">
-            {cap(who)} gives the item back, then gets {refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.
-          </span>
-        </span>
-      </label>
-      <label className="flex min-h-11 items-start gap-2 text-sm">
-        <input type="radio" name={id} checked={choice === "part"} onChange={() => setChoice("part")} className="mt-1" />
-        <span>
-          <span className="font-medium">Offer part of it</span>
-          <span className="block text-ds-12 text-muted-foreground">{cap(who)} keeps the item; the amount comes out of your payout.</span>
-        </span>
-      </label>
+      {/* D2-15: the app's one "pick one" list, not browser radios. */}
+      <RadioCardList
+        label="Your answer"
+        required
+        options={[
+          {
+            value: "full",
+            label: "Refund in full",
+            sub: `${cap(who)} gives the item back, then gets ${refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.`,
+          },
+          { value: "part", label: "Offer part of it", sub: `${cap(who)} keeps the item; the amount comes out of your payout.` },
+          { value: "decline", label: "I don't agree", sub: `${cap(who)} can ask Louisiana Helpr to decide.` },
+        ]}
+        value={choice}
+        onChange={(c, via) => { if (via === "click") hapticLight(); setChoice(c as Answer); }}
+      />
       {choice === "part" && (
-        <div className="pl-6">
+        <div>
           <label htmlFor={`${id}-amount`} className="block text-xs font-medium">How much back? (less than {refundDollars(v.items_cents)})</label>
-          <input id={`${id}-amount`} className={input} inputMode="decimal" value={amount} placeholder="$" onChange={(e) => setAmount(e.target.value)} />
+          <input id={`${id}-amount`} className={amountInput} inputMode="decimal" value={amount} placeholder="$" onChange={(e) => setAmount(e.target.value)} />
         </div>
       )}
-      <label className="flex min-h-11 items-start gap-2 text-sm">
-        <input type="radio" name={id} checked={choice === "decline"} onChange={() => setChoice("decline")} className="mt-1" />
-        <span>
-          <span className="font-medium">I don't agree</span>
-          <span className="block text-ds-12 text-muted-foreground">{cap(who)} can ask Louisiana Helpr to decide.</span>
-        </span>
-      </label>
       <button type="button" className={primary} disabled={send.isPending || (choice === "part" && offerCents === null)} onClick={() => send.mutate()}>
         Send answer
       </button>

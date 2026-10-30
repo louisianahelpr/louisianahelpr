@@ -6,10 +6,11 @@
  * "Post it" that runs the same list path as a draft's "List it" (useSellFlowState.onPublish). A saved draft
  * (?item=) keeps the step form (DeclutterSellView).
  *
- * What still blocks Post is said beside it only once it is tapped (audit #45), and the screen scrolls to the
- * first row that needs it.
+ * What still blocks Post is said only once it is tapped (audit #45): IN the row that needs it (audit DC-2: with
+ * drops on and no lowest price it scrolled to Price but printed the words only by the button, off screen), and the
+ * screen scrolls to that row. By the button a short pointer says to fix what is marked above.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,13 +41,13 @@ function windowsSummary(windows: PickupWindow[]): string {
   return `${days} ${timeLabel(windows[0].starts)}–${timeLabel(windows[0].ends)}`;
 }
 
-type Where = "photos" | SummaryField | "ways" | "tax";
+type Where = "photos" | SummaryField | "drops" | "ways" | "tax";
 
 /** The first thing that blocks Post, top to bottom, and the row it belongs to. */
 function postProblem(s: SellFlow): { message: string; at: Where } | null {
   if (s.photoTotal < DECLUTTER_MIN_PHOTOS) return { message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" };
   const f = formProblem(s.form);
-  if (f) return { message: f, at: /name/i.test(f) ? "title" : /price|drop/i.test(f) ? "price" : "ways" };
+  if (f) return { message: f, at: /name/i.test(f) ? "title" : /lowest|drops/i.test(f) ? "drops" : /price/i.test(f) ? "price" : "ways" };
   if (s.savedWays.length === 0) return { message: "Tick at least one way buyers can get it.", at: "ways" };
   const w = pickupWindowsProblem(s.windows);
   if (w) return { message: w, at: "ways" };
@@ -75,11 +76,14 @@ export function SellOneScreen() {
 
   const waysExpanded = waysOpen ?? !usedLastSetup;
   const bad = postProblem(s);
+  /** The words for what blocks Post, shown in the row they belong to once Post was tapped. */
+  const problemAt = (at: Where): ReactNode =>
+    tried && bad?.at === at ? <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem" data-problem-at={at}>{bad.message}</p> : null;
   const post = () => {
     if (bad) {
       setTried(true);
       if (bad.at === "ways") setWaysOpen(true);
-      if (bad.at === "title" || bad.at === "price") setOpen(bad.at);
+      if (bad.at === "title" || bad.at === "price" || bad.at === "drops") setOpen(bad.at === "drops" ? "price" : bad.at);
       requestAnimationFrame(() => document.querySelector(`[data-sell-row="${bad.at}"]`)?.scrollIntoView?.({ block: "center" }));
       return;
     }
@@ -105,16 +109,18 @@ export function SellOneScreen() {
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
           <SellItForMeEntry />
+          {problemAt("photos")}
         </section>
 
         <SellSummaryCard
           s={s}
           open={open}
           setOpen={setOpen}
+          problems={{ title: problemAt("title"), price: problemAt("price") }}
           priceExtras={<div className="space-y-3 pt-1">
             <SellFreeToggle s={s} />
             {/* DeclutterOfferRules slot (builder 28) */}
-            {!form.free && <SellDropsCard s={s} />}
+            {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} />{problemAt("drops")}</div>}
             <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-keep-up={keepUpWanted ? "on" : "off"}>
               <span className="min-w-0 flex-1">
                 <span id="sell-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
@@ -138,11 +144,12 @@ export function SellOneScreen() {
               <LastSetupNote onChange={() => setWaysOpen(true)} />
             </div>
           )}
+          {problemAt("ways")}
         </section>
 
-        <div data-sell-row="tax"><SellTaxBox s={s} /></div>
+        <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
 
-        {tried && bad && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem">{bad.message}</p>}
+        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving} onClick={post}>
           {s.publishing ? "Posting…" : "Post it"}
         </Button>

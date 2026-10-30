@@ -211,11 +211,54 @@ describe("photo-first selling, one screen", () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     // Audit #45: nothing is printed under the live Post until it is tapped.
-    // @mutate src/components/declutter/SellOneScreen.tsx | {tried && bad && <p role="alert" | {bad && <p role="alert"
+    // @mutate src/components/declutter/SellOneScreen.tsx |     tried && bad?.at === at ? |     bad?.at === at ?
     expect(screen.queryByTestId("sell-form-problem")).toBeNull();
     // @mutate src/components/declutter/SellOneScreen.tsx |     if (bad) { |     if (false) {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Add at least 1 photo.");
+    expect(calls).toEqual([]);
+  });
+
+  // Audit DC-2: drops on and no lowest price scrolled to Price but printed the words only by the button, off
+  // screen. Each blocker is said IN its own row; by the button only a short pointer.
+  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} />{problemAt("drops")}</div>} | {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} /></div>}{problemAt("drops")}
+  // @mutate src/components/declutter/SellOneScreen.tsx | ? "drops" : /price/i.test(f) | ? "price" : /price/i.test(f)
+  // @mutate src/components/declutter/SellSummaryCard.tsx |       {open && children}\n      {problem} |       {open && children}
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {problemAt("ways")}\n |           \n
+  it("what blocks Post is said in the row that needs it, not only by the button (DC-2)", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("Claude wrote your listing");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    const problem = screen.getByRole("alert");
+    expect(problem).toHaveTextContent("Set your lowest price");
+    expect(problem.closest('[data-sell-row="drops"]')).not.toBeNull();
+    expect(problem.closest('[data-sell-row="drops"]')!.contains(screen.getByLabelText("Lowest you'll take"))).toBe(true);
+    expect(screen.getAllByTestId("sell-form-problem")).toHaveLength(1);
+    expect(screen.getByTestId("sell-form-pointer")).toHaveTextContent("Fix what's marked above, then post.");
+    expect(calls).toEqual([]);
+    // A price out of range: in the Price row. A name too short: in the Title row.
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByRole("alert").closest('[data-summary-row="price"]')).not.toBeNull();
+    expect(screen.getByRole("alert").closest('[data-sell-row="drops"]')).toBeNull();
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "ab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByRole("alert").closest('[data-summary-row="title"]')).not.toBeNull();
+    // How buyers get it: in that section.
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Walnut dresser" } });
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Add the pickup address");
+    expect(screen.getByRole("alert").closest('[data-sell-row="ways"]')).not.toBeNull();
     expect(calls).toEqual([]);
   });
 

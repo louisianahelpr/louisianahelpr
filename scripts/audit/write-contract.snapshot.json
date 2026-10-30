@@ -18595,7 +18595,7 @@
    "policies": [
     {
      "cmd": "SELECT",
-     "name": "Admins can view all messages",
+     "name": "Admins can view reported or hidden messages",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"

@@ -95,11 +95,3 @@ export function floorFromPct(priceDollars: string, floorPct: number): string {
   // Always at least $1 and below the price: $1.50 gives $1, $2 gives $1, $3 at 95% gives $2.
   return String(Math.min(Math.ceil(p) - 1, Math.max(1, Math.round((p * floorPct) / 100))));
 }
-
-/** The percent a typed lowest price is of the asking price, for saving; null when either is not usable. */
-export function pctFromFloor(priceDollars: string, floorDollars: string): number | null {
-  const p = Number(priceDollars);
-  const f = Number(floorDollars);
-  if (!Number.isFinite(p) || !Number.isFinite(f) || p <= 0 || f <= 0 || f >= p) return null;
-  return Math.min(95, Math.max(10, Math.round((f / p) * 100)));
-}

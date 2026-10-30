@@ -50,7 +50,7 @@ import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
 import { BunchChoicesCard, bunchDropsLine, samePickupWindows, useBunchChoices } from "./BunchChoices";
-import { LastSetupNote } from "./SellLastSetup";
+import { UsesSettingsNote } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useBunchThumbs } from "./useBunchThumbs";
@@ -157,8 +157,6 @@ export default function BunchFlow() {
     setAreaLabel((a) => (!a.trim() || a === lastSetup.data?.areaLabel ? p.areaLabel : a));
     setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
   });
-  const [whereOpen, setWhereOpen] = useState(false);
-  const [listOptionsOpen, setListOptionsOpen] = useState(false);
   const placeLoaded = useRef(false);
   useEffect(() => {
     const s = lastSetup.data;
@@ -186,6 +184,9 @@ export default function BunchFlow() {
       : AREA_ADDRESS_RE.test(areaLabel) ? "Use your neighborhood or town for the area, not a street address."
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
+  // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
+  const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
+  const firstStep = whereFolded ? 1 : 2;
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
   const ready = bunchListable(items, feeDue != null);
   const heldForFee = feeDue != null ? bunchListable(items, false).length - ready.length : 0;
@@ -378,14 +379,8 @@ export default function BunchFlow() {
         Your photos, item details and prices on this page are removed from this device. Listings you already posted stay up.
       </ConfirmSheet>
 
+      {whereFolded ? null : (
       <Section id="bunch-where" title="1. Where buyers pick up">
-        {savedSetup.pickup && !whereOpen && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address ? (
-          <div className="space-y-1" data-bunch-where-saved="">
-            <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[savedSetup.pickup.line, areaLabel.trim()].join(" · ")}</p>
-            <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
-            <LastSetupNote saved onChange={() => setWhereOpen(true)} />
-          </div>
-        ) : (<>
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
         <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
@@ -397,10 +392,10 @@ export default function BunchFlow() {
           }} />
         <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
         <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
-        </>)}
       </Section>
+      )}
 
-      <Section id="bunch-photos" title="2. Add photos">
+      <Section id="bunch-photos" title={`${firstStep}. Add photos`}>
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
         </p>
@@ -421,7 +416,7 @@ export default function BunchFlow() {
       </Section>
 
       {items.length > 0 && (
-        <Section id="bunch-check" title={`3. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
+        <Section id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
           </p>
@@ -463,12 +458,13 @@ export default function BunchFlow() {
       )}
 
       {items.length > 0 && (
-        <Section id="bunch-list" title={`4. List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}>
-          {savedSetup.hasSettings && !listOptionsOpen && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
+        <Section id="bunch-list" title={`${firstStep + 2}. List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}>
+          {savedSetup.hasSettings && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
             <div className="space-y-1" data-bunch-list-saved="">
               <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[handoverSummary(savedWays), windowsSummary(windows)].filter(Boolean).join(" · ")}</p>
               {items.some((it) => !it.free) && <p className="text-ds-14 text-foreground" data-bunch-outcome="">{bunchDropsLine(choices.choices)}</p>}
-              <LastSetupNote saved onChange={() => setListOptionsOpen(true)} />
+              {savedSetup.pickup && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{savedSetup.pickup.line}</p>}
+              <UsesSettingsNote />
             </div>
           ) : (<>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>
@@ -487,7 +483,7 @@ export default function BunchFlow() {
           {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
           <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
           <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item you list now.</p>
-          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} />
+          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free)} />
           {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>

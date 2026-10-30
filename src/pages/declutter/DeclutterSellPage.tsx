@@ -4,7 +4,8 @@ import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterSellSkeleton } from "@/components/declutter/DeclutterSkeletons";
 import SellFlow from "@/components/declutter/DeclutterSellView";
 import SellChooser from "@/components/declutter/DeclutterSellChooser";
-import { wantsSellChooser } from "@/lib/declutter/sellChooser";
+import { SellerSetupGate } from "@/components/declutter/SellerSetup";
+import { startsFree, wantsSellChooser } from "@/lib/declutter/sellChooser";
 
 // "Sell a bunch" (owner 2026-10-29) loads only when it is asked for.
 const BunchFlow = lazy(() => import("@/components/declutter/DeclutterBunchView"));
@@ -22,11 +23,17 @@ export default function DeclutterSellPage() {
       {wantsSellChooser(params) ? (
         <SellChooser />
       ) : params.get("mode") === "bunch" ? (
-        <Suspense fallback={<DeclutterSellSkeleton />}>
-          <BunchFlow />
-        </Suspense>
-      ) : (
+        <SellerSetupGate>
+          <Suspense fallback={<DeclutterSellSkeleton />}>
+            <BunchFlow />
+          </Suspense>
+        </SellerSetupGate>
+      ) : params.get("item") ? (
         <SellFlow />
+      ) : (
+        <SellerSetupGate free={startsFree(params)}>
+          <SellFlow />
+        </SellerSetupGate>
       )}
     </DeclutterGate>
   );

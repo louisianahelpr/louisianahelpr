@@ -149,7 +149,19 @@ describe("geocodeAddress", () => {
 // over on the way out of the geocoder, which puts every job posted with a
 // street address somewhere it is not — and sends any helpr who hires on it to
 // the wrong address.
-// @mutate src/lib/geocode.ts | return { latitude: lat, longitude: lon }; | return { latitude: lon, longitude: lat };
+// @mutate src/lib/geocode.ts | return { latitude: lat, longitude: lon, ...(town ? { town } : {}) }; | return { latitude: lon, longitude: lat };
 // A job without coordinates is a job that is not on the map; a job with the
 // FIRST match of an unscoped search is a job in the wrong state.
 // @mutate src/lib/geocode.ts | url.searchParams.set("countrycodes", "us"); | url.searchParams.set("countrycodes", "de");
+
+describe("geocodeAddress: the town, for the area buyers see (audit single-free #16)", () => {
+  // @mutate src/lib/geocode.ts |     const town = a?.city ?? a?.town ?? a?.village ?? a?.hamlet ?? a?.suburb; |     const town = undefined;
+  it("names the town OpenStreetMap gives, and nothing when it gives none", async () => {
+    const answer = (address?: Record<string, string>) => vi.fn(async () => ({ ok: true, json: async () => [{ lat: "30.45", lon: "-91.15", address }] }));
+    vi.stubGlobal("fetch", answer({ city: "Baton Rouge", road: "Main St" }));
+    expect(await geocodeAddress("1 Main St, Baton Rouge")).toEqual({ latitude: 30.45, longitude: -91.15, town: "Baton Rouge" });
+    vi.stubGlobal("fetch", answer());
+    expect(await geocodeAddress("1 Main St, Baton Rouge")).toEqual({ latitude: 30.45, longitude: -91.15 });
+    vi.unstubAllGlobals();
+  });
+});

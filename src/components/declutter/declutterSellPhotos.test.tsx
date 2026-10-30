@@ -1,7 +1,7 @@
 /**
  * Photo-first selling on ONE screen (owner 2026-10-19 photo first, as on Mercari / OfferUp; owner 2026-10-29 "ai
  * should always be doing most of the work for declutter listing"): a NEW listing is one screen, photos at the top,
- * Claude's listing as summary rows, How buyers get it, the tax box and one "Post it". Before Post the photos wait on
+ * Claude's listing as summary rows, the tax box and one "Post it". Before Post the photos wait on
  * the device (previews only, nothing uploaded); Post creates the draft and uploads them to it, then lists it.
  * The API is stubbed: this checks the order of calls, not the backend.
  *
@@ -12,10 +12,16 @@
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {uploaded.length === 0 && i === 0 && <CoverChip />} |             {<CoverChip />}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { DropSchedule } from "./DeclutterSellSteps";
+import { SellHandoverChoices } from "./SellHandoverChoices";
 
+const PLACE = { id: "pl", position: 1, label: "Home", address: "100 Main Street, Baton Rouge, LA 70802", area: "Mid-City, Baton Rouge", lat: 30.45, lng: -91.15, weekdays: [6] };
+const savedRow = vi.hoisted(() => ({ value: null as unknown, places: [] as unknown[] }));
 const NEW_ID = "0f0e0d0c-0b0a-4908-8706-0504030201ff";
 const calls: string[] = [];
 const aiCalls: string[][] = [];
@@ -29,6 +35,7 @@ const DRAFT = {
 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
+  fails: false,
   hold: false,
   release: null as null | (() => void),
   // Photo coach (owner 2026-10-29): a test may add a cover pick and a photo tip.
@@ -40,6 +47,8 @@ const aiAnswer = {
   },
 };
 
+// The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -64,9 +73,9 @@ vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 // No earlier listing: the form starts blank (the last-setup prefill has its own test, declutterSellLastSetup).
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 // No remembered listing choices saved (owner 2026-10-30): the app's defaults; the save at Post goes nowhere.
-vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
-// The seller's saved places (D-NEW14; proved in porchPlacesUi.test.tsx): none.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => savedRow.value, saveSellerDefaults: async () => true }));
+// The seller's saved place, from the one-time setup: what a new listing uses (sellerSetup.test.tsx asks for it).
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => savedRow.places }));
 // The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -88,10 +97,10 @@ vi.mock("@/lib/declutter/api", () => ({
   removePhoto: async () => undefined,
   requestAiDraft: async () => ({}),
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
-  requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.next(); },
+  requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.fails ? Promise.reject(new Error("ai_unavailable")) : aiAnswer.next(); },
   requestAiCheck: async () => ({ checked: true, flagged: false }),
   requestAiCheckWithRetry: async () => ({ checked: true, flagged: false }),
-  setPickupWindows: async () => 1,
+  setPickupWindows: async () => { calls.push("windows"); return 1; },
   attestItem: async () => { calls.push("attest"); },
   publishItem: async () => { calls.push("publish"); return "live"; },
 }));
@@ -119,19 +128,20 @@ const jpg = (name: string) => new File(["x"], name, { type: "image/jpeg" });
 const addPhotos = (...names: string[]) => fireEvent.change(document.getElementById("sell-files")!, { target: { files: names.map(jpg) } });
 const rowValue = (field: string) => document.querySelector(`[data-summary-row="${field}"] [data-summary-value]`)?.textContent ?? null;
 
-/** How buyers get it and the tax box: what Post needs besides the photos and Claude's listing. */
+/** The tax box: all Post needs besides the photos and Claude's listing (the rest comes from the seller's settings). */
 function fillWaysAndTax() {
-  fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
-  fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
   fireEvent.click(document.getElementById("sell-tax")!);
 }
 
 describe("photo-first selling, one screen", () => {
   beforeEach(() => {
+    savedRow.value = null;
+    savedRow.places = [PLACE];
     calls.length = 0;
     aiCalls.length = 0;
     drafts.length = 0;
     drops.length = 0;
+    aiAnswer.fails = false;
     aiAnswer.hold = false;
     aiAnswer.release = null;
     aiAnswer.extra = {};
@@ -143,8 +153,8 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
   // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? "Posting…" : "Post it"} |           {s.publishing ? "Posting…" : "Continue"}
-  // @mutate src/components/declutter/SellSummaryCard.tsx |         <Row {...row("size")} title="Size" | <Row {...row("size")} title="Size" field="title"
-  it("a NEW listing is one screen: photos, the summary rows, How buyers get it, the tax box and Post it, no step walk", async () => {
+  // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title="Size" value="" empty> | <Row {...row("size")} title="Size" value="" empty field="title">
+  it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
     expect(await screen.findByRole("heading", { name: "Show it off" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
@@ -152,20 +162,26 @@ describe("photo-first selling, one screen", () => {
     expect(screen.getByRole("button", { name: "Post it" })).toBeInTheDocument();
     const rows = [...document.querySelectorAll("[data-summary-row]")].map((r) => r.getAttribute("data-summary-row"));
     expect(rows).toEqual(["title", "price", "category", "condition", "size", "description"]);
-    expect(screen.getByRole("heading", { name: "How buyers get it" })).toBeInTheDocument();
+    // Size is asked only while nothing has answered it (audit single-free #15), with nothing picked for them.
+    expect(rowValue("size")).toBe("Add a size");
+    expect(screen.queryByRole("heading", { name: "How buyers get it" })).toBeNull();
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
+    expect(document.querySelector("[data-auto-free]")).toBeNull();
+    expect(document.querySelector("[data-uses-settings]")).not.toBeNull();
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();
+    // Once the photo tool answers it, the owner's six are what is left.
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect([...document.querySelectorAll("[data-summary-row]")].map((r) => r.getAttribute("data-summary-row"))).toEqual(["title", "price", "category", "condition", "description"]);
   });
 
   // DA-5 (Declutter audit 2026-10-30): a free listing's private address said "Only the buyer who pays sees it".
   // @mutate src/components/declutter/SellFormParts.tsx | : (form.free ? "Private. Only the person who gets it sees it." : | : (false ? "Private. Only the person who gets it sees it." :
   it("DA-5: the private pickup address names who sees it: the buyer who pays, or (free) the person who gets it", async () => {
-    open();
-    await screen.findByRole("heading", { name: "Show it off" });
-    const hint = () => screen.getByLabelText("Pickup address").parentElement?.textContent ?? "";
-    expect(hint()).toContain("Only the buyer who pays sees it.");
-    fireEvent.click(within(document.querySelector("[data-sell-free]") as HTMLElement).getByRole("checkbox"));
-    await waitFor(() => expect(hint()).toContain("Only the person who gets it sees it."));
-    expect(hint()).not.toMatch(/pays/);
+    // The words now live on a saved draft's step form (a new listing has no address box).
+    const src = readFileSync(join(process.cwd(), "src/components/declutter/SellFormParts.tsx"), "utf8");
+    expect(src).toContain('(form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it.")');
   });
 
   it("held photos wait on the device; Post creates the draft, uploads them, saves the price choice, then lists it", async () => {
@@ -184,19 +200,9 @@ describe("photo-first selling, one screen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    // Owner 2026-10-30 (via the lead): drops are ON by default, with the lowest price filled in at half the asking
-    // price so the listing is valid without typing (was OFF until turned on, owner 2026-10-28). Still the seller's.
+    // Owner 2026-10-30 (via the lead): drops are ON by default, with the lowest price at half the asking price.
     // @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: true, drops: false, dropPct: 5,
-    expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true");
-    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("20"));
-    fireEvent.click(screen.getByRole("radio", { name: "10%" }));
-    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
-    // Board 31b: the drop strip follows the real rule (the seller's step, down to a whole dollar, never below the lowest).
-    // @mutate src/components/declutter/DeclutterSellSteps.tsx |     cur = Math.max(floorCents, dropStepCents(cur, pct)); |     cur = Math.max(floorCents, Math.floor(cur * 0.95));
-    const strip = document.querySelector("[data-drop-schedule]")!;
-    expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$36", "$32", "$30"]);
-    expect(strip.textContent).toMatch(/10% less each evening/);
-    expect(strip.textContent).toMatch(/may stop sooner/);
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening, never below $20."));
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() =>
@@ -204,24 +210,32 @@ describe("photo-first selling, one screen", () => {
     );
     // The seller's choice is what the server stores: their lowest price and their step.
     // @mutate src/components/declutter/useSellFlowState.ts |       if (!form.free) await setDropPct(id, choice.dropPct); |       void choice;
-    expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 3000 })]);
-    expect(drops).toEqual([[NEW_ID, 10]]);
+    expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 2000 })]);
+    expect(drops).toEqual([[NEW_ID, 5]]);
   });
 
-  it("price drops left off: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
+  // Board 31b: the drop strip follows the real rule (the seller's step, down to a whole dollar, never below the lowest).
+  // @mutate src/components/declutter/DeclutterSellSteps.tsx |     cur = Math.max(floorCents, dropStepCents(cur, pct)); |     cur = Math.max(floorCents, Math.floor(cur * 0.9));
+  it("the drop strip on a saved draft's step form follows the real rule", () => {
+    render(<DropSchedule priceCents={4000} floorCents={3000} pct={10} />);
+    const strip = document.querySelector("[data-drop-schedule]")!;
+    expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$36", "$32", "$30"]);
+    expect(strip.textContent).toMatch(/10% less each evening/);
+    expect(strip.textContent).toMatch(/may stop sooner/);
+  });
+
+  it("price drops off in settings: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
+    savedRow.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    // On by default (owner 2026-10-30); the seller turns it off.
-    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true"));
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
-    expect(screen.getByText("Off. It stays at your price until you change it.")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off. It stays at $40 until you change it."));
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    // @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 5 };
+    // @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 };
     await waitFor(() => expect(drops).toEqual([[NEW_ID, 0]]));
     expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 })]);
   });
@@ -238,12 +252,9 @@ describe("photo-first selling, one screen", () => {
     expect(calls).toEqual([]);
   });
 
-  // Audit DC-2: drops on and no lowest price scrolled to Price but printed the words only by the button, off
-  // screen. Each blocker is said IN its own row; by the button only a short pointer.
-  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} />{problemAt("drops")}</div>} | {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} /></div>}{problemAt("drops")}
-  // @mutate src/components/declutter/SellOneScreen.tsx | ? "drops" : /price/i.test(f) | ? "price" : /price/i.test(f)
+  // Audit DC-2: each blocker is said IN its own row; by the button only a short pointer.
   // @mutate src/components/declutter/SellSummaryCard.tsx |       {open && children}\n      {problem} |       {open && children}
-  // @mutate src/components/declutter/SellOneScreen.tsx |           {problemAt("ways")}\n |           \n
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {problemAt("settings")}\n |           \n
   it("what blocks Post is said in the row that needs it, not only by the button (DC-2)", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -251,36 +262,56 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
-    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    // Drops are on by default with a filled-in lowest price; the seller clears it (theirs once changed).
-    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("20"));
-    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    const problem = screen.getByRole("alert");
-    expect(problem).toHaveTextContent("Set your lowest price");
-    expect(problem.closest('[data-sell-row="drops"]')).not.toBeNull();
-    expect(problem.closest('[data-sell-row="drops"]')!.contains(screen.getByLabelText("Lowest you'll take"))).toBe(true);
-    expect(screen.getAllByTestId("sell-form-problem")).toHaveLength(1);
-    expect(screen.getByTestId("sell-form-pointer")).toHaveTextContent("Fix what's marked above, then post.");
-    expect(calls).toEqual([]);
-    // A price out of range: in the Price row. A name too short: in the Title row.
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "0" } });
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     expect(screen.getByRole("alert").closest('[data-summary-row="price"]')).not.toBeNull();
-    expect(screen.getByRole("alert").closest('[data-sell-row="drops"]')).toBeNull();
+    expect(screen.getAllByTestId("sell-form-problem")).toHaveLength(1);
+    expect(screen.getByTestId("sell-form-pointer")).toHaveTextContent("Fix what's marked above, then post.");
+    expect(calls).toEqual([]);
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "ab" } });
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     expect(screen.getByRole("alert").closest('[data-summary-row="title"]')).not.toBeNull();
-    // How buyers get it: in that section.
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Walnut dresser" } });
-    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Add the pickup address");
-    expect(screen.getByRole("alert").closest('[data-sell-row="ways"]')).not.toBeNull();
     expect(calls).toEqual([]);
+  });
+
+  it("settings missing somehow: Post says so beside them", async () => {
+    savedRow.places = [];
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByRole("alert").closest('[data-sell-row="settings"]')).not.toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  it("the photo tool failed: Size is asked, not guessed, and Post waits for it (audit single-free #15)", async () => {
+    aiAnswer.fails = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await waitFor(() => expect(aiCalls).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('[data-summary-row="size"]')).not.toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Add title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Blue couch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Pick a size, so buyers know what it takes to move it.");
+    expect(calls).toEqual([]);
+    // Nothing is preselected for them.
+    const row = document.querySelector('[data-summary-row="size"]') as HTMLElement;
+    expect(within(row).queryAllByRole("radio").filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.click(within(row).getByRole("radio", { name: /Large/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(drafts[0]).toEqual(expect.objectContaining({ deliverySize: "large" }));
+    // A new listing uses the saved pickup times: Post never writes over them.
+    expect(calls).not.toContain("windows");
   });
 
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the
@@ -294,8 +325,6 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
     expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you save$/);
-    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
     const words = document.body.textContent ?? "";
     expect(words.length).toBeGreaterThan(200);
     expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);
@@ -393,27 +422,35 @@ describe("photo-first selling, one screen", () => {
   // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
   // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);
   // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>} |
-  it("How buyers get it: the seller ticks the ways (no door pickup, no Helpr delivery tick), at least one, and those are what is saved", async () => {
+  it("the ways come from the seller's settings, and the choices never offer door pickup or a Helpr delivery tick", async () => {
     vi.mocked(api.setHandovers).mockClear();
+    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery"] };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
-    const tiles = [...document.querySelectorAll("[data-handover-tile]")].map((t) => t.getAttribute("data-handover-tile"));
-    expect(tiles).toEqual(["porch", "seller_delivery", "meetup"]);
+    fillWaysAndTax();
+    // None usable: it will not post, and says where to fix it.
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")).not.toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Choose a way buyers can get it in Settings.");
+    expect(calls).toEqual([]);
+    cleanup();
+    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["meetup"] };
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Safe meeting spot"));
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup"]));
+    cleanup();
+    render(<QueryClientProvider client={new QueryClient()}><SellHandoverChoices ways={["porch"]} setWays={() => {}} free={false} sellerDeliveryOpen /></QueryClientProvider>);
+    expect([...document.querySelectorAll("[data-handover-tile]")].map((t) => t.getAttribute("data-handover-tile"))).toEqual(["porch", "seller_delivery", "meetup"]);
     expect(screen.queryByRole("checkbox", { name: "Helpr delivery" })).toBeNull();
     expect(document.querySelector("[data-helpr-delivery-always]")?.textContent).toBe(
       "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.");
     expect(screen.queryByText(/Pickup at your door/)).toBeNull();
-    expect(screen.getByRole("checkbox", { name: "Porch pickup" })).toHaveAttribute("aria-checked", "true");
-    // None ticked: it will not post.
-    fireEvent.click(screen.getByRole("checkbox", { name: "Porch pickup" }));
-    fillWaysAndTax();
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Tick at least one way buyers can get it.");
-    expect(calls).toEqual([]);
-    fireEvent.click(screen.getByRole("checkbox", { name: "Safe meeting spot" }));
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup"]));
   });
 });

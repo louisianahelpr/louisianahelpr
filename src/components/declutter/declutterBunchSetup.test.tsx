@@ -55,12 +55,12 @@ beforeEach(() => { state.last = null; state.gate = null; state.geocodes = []; })
 afterEach(cleanup);
 
 describe("Sell a bunch: where buyers pick up starts from the last listing", () => {
-  it("fills both boxes, with the saved point: leaving the address box looks nothing up", async () => {
+  it("a saved address asks nothing, with its saved point: nothing is looked up, and the steps start at the photos", async () => {
     state.last = LAST;
     renderFlow();
-    await waitFor(() => expect(box("Area buyers see").value).toBe("Mid-City"));
-    expect(box("Pickup address").value).toBe("1 Main St, Baton Rouge");
-    fireEvent.blur(box("Pickup address"));
+    await screen.findByRole("heading", { name: "1. Add photos" });
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    expect(screen.queryByLabelText("Area buyers see")).toBeNull();
     await settle();
     expect(state.geocodes).toEqual([]);
   });

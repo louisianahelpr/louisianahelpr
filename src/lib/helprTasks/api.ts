@@ -72,6 +72,10 @@ export interface TaskView {
   dropoff_lng: number | null;
   pickup_photo_path: string | null;
   dropoff_photo_path: string | null;
+  /** The seller's "Handed over" for the current Helpr (20261030012018); null for a candidate or before the tap. */
+  handed_over_at?: string | null;
+  /** A problem holds the sale (the Helpr's "The seller wasn't there" among them); null for a candidate. */
+  problem_open?: boolean | null;
 }
 
 export interface MyTask {
@@ -234,6 +238,15 @@ export async function releaseTask(taskId: string): Promise<{ result: string; str
 /** "Picked up": a photo taken at the pickup point (the server checks within 200 m). */
 export async function markPickedUp(taskId: string, photoPath: string, where: { lat: number; lng: number }): Promise<void> {
   data(await supabase.rpc("helpr_task_picked_up", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }), (e) => rpcErrorMessage("helpr_task_picked_up", e));
+}
+
+/**
+ * The seller's "Handed over" (20261030012018): the seller says they gave the item to the assigned Helpr.
+ * It changes no status and moves no money; it lets that Helpr mark it picked up before the 30-minute window.
+ */
+export async function markHandedOver(taskId: string): Promise<{ result: "handed_over" | "already_handed_over" }> {
+  return data<{ result: "handed_over" | "already_handed_over" }>(await supabase.rpc("helpr_task_handed_over", { p_task_id: taskId }),
+    (e) => rpcErrorMessage("helpr_task_handed_over", e));
 }
 
 /** The drop-off: a photo at the door (no code: owner 2026-10-18); the customer's "I got it" or 24 h confirms it. */

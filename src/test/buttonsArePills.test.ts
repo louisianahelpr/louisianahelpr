@@ -68,7 +68,7 @@ function constInitializers(sf: ts.SourceFile): Map<string, ts.Expression> {
 
 export interface Hit { where: string; tokens: string[] }
 
-/** Check 2 on one file: `<Button>` className strings, following same-file constants one level. */
+/** The second check, for one file: `<Button>` className strings, following same-file constants one level. */
 export function buttonRadiusHits(file: string, src: string): { buttons: number; hits: Hit[] } {
   const sf = parse(file, src);
   const consts = constInitializers(sf);
@@ -100,7 +100,7 @@ export function buttonRadiusHits(file: string, src: string): { buttons: number; 
   return { buttons, hits };
 }
 
-/** Check 3 on one file: every string literal wearing btn-grad-primary. */
+/** The third check, for one file: every string literal wearing btn-grad-primary. */
 export function primaryRadiusHits(file: string, src: string): { primaries: number; hits: Hit[] } {
   const sf = parse(file, src);
   const hits: Hit[] = [];

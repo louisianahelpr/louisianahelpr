@@ -39,6 +39,8 @@ function fakeGoTrue({ generateMs = 10, verifyMs = 30 } = {}) {
   const fetchImpl = async (url: string, init: { body?: string }) => {
     const body = JSON.parse(init.body ?? "{}");
     const json = (status: number, obj: unknown) => new Response(JSON.stringify(obj), { status });
+    // The Q2398 test-account lookup: this inbox is an is_seed profile.
+    if (url.includes("/rest/v1/profiles?")) return json(200, [{ user_id: "u1", is_seed: true }]);
     if (url.endsWith("/auth/v1/admin/generate_link")) {
       calls.generate++;
       await sleep(generateMs);
@@ -123,6 +125,7 @@ describe("mintAdminSession: one mint per account at a time", () => {
   it("a 403 that is not otp_expired is not retried", async () => {
     let generates = 0;
     vi.stubGlobal("fetch", async (url: string) => {
+      if (url.includes("/rest/v1/profiles?")) return new Response(JSON.stringify([{ user_id: "u1", is_seed: true }]), { status: 200 });
       if (url.endsWith("/auth/v1/admin/generate_link")) {
         generates++;
         return new Response(JSON.stringify({ hashed_token: "h" }), { status: 200 });

@@ -18,8 +18,21 @@
  * @mutate scripts/lib/adminSession.mjs |   const refused = mintRefusal(email);\n  if (refused) throw new Error(refused); |   const refused = null;
  * @mutate scripts/lib/adminSession.mjs | const FIXTURE_INBOX = /^[a-z0-9._+-]+@mailinator\.com$/; | const FIXTURE_INBOX = /@/;
  * @mutate scripts/lib/adminSession.mjs |   "helpr-seed-admin-0912@louisianahelpr.com",\n]); |   "helpr-seed-admin-0912@louisianahelpr.com",\n  "admin@louisianahelpr.com",\n]);
+ *
+ * Q2398 (finding lh-authz-rls@2f4bc154e0#3): a @mailinator.com address alone is
+ * no longer enough, since 20261025161836 dropped the trigger that made every
+ * mailinator sign-up is_seed. A non-shared mailinator inbox is minted only when
+ * its profile is is_seed or enrolled in public.test_accounts, checked before
+ * generate_link, and the session must be for that user.
+ * @mutate scripts/lib/adminSession.mjs |   const mustBeUserId = await mintEligibility({ email, serviceKey, base, timeoutMs }); |   const mustBeUserId = null;
+ * @mutate scripts/lib/adminSession.mjs |   if (profiles[0].is_seed === true) return userId; |   return userId;
+ * @mutate scripts/lib/adminSession.mjs |   if (enrolled.length === 1) return userId; |   return userId;
+ * @mutate scripts/lib/adminSession.mjs |     if (mustBeUserId !== null && String(session.user.id) !== mustBeUserId) { |     if (false) {
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { mintAdminSession, mintRefusal, SHARED_TEST_EMAILS } from "../../scripts/lib/adminSession.mjs";
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
@@ -64,5 +77,68 @@ describe("the service-role mint signs in test accounts only (Q1422)", () => {
     ).rejects.toThrow(/refusing to mint/);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(transportCalls).toBe(0);
+  });
+});
+
+describe("a mailinator inbox is minted only when it is a test account (Q2398)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const STRANGER = "someone-real-123@mailinator.com";
+
+  /** A fake GoTrue + PostgREST: `profile` is the profiles row for the address, `enrolled` its test_accounts rows. */
+  function fake({ profile, enrolled = [] as unknown[], sessionUserId = "u-1" }: { profile: unknown[]; enrolled?: unknown[]; sessionUserId?: string }) {
+    const calls: string[] = [];
+    let linked = STRANGER;
+    vi.stubGlobal("fetch", async (url: string, init?: { body?: string }) => {
+      const json = (status: number, obj: unknown) => new Response(JSON.stringify(obj), { status });
+      if (url.includes("/rest/v1/profiles?")) return calls.push("profiles"), json(200, profile);
+      if (url.includes("/rest/v1/test_accounts?")) return calls.push("test_accounts"), json(200, enrolled);
+      if (url.endsWith("/auth/v1/admin/generate_link")) {
+        calls.push("generate_link");
+        linked = JSON.parse(init?.body ?? "{}").email;
+        return json(200, { hashed_token: "h" });
+      }
+      if (url.endsWith("/auth/v1/verify")) {
+        calls.push("verify");
+        return json(200, { access_token: "a", refresh_token: "r", user: { id: sessionUserId, email: linked } });
+      }
+      return json(404, {});
+    });
+    return calls;
+  }
+  const mint = (email = STRANGER) =>
+    mintAdminSession({ email, serviceKey: "service", supabaseUrl: "https://x.supabase.co", retries: 0, lockDir: mkdtempSync(join(tmpdir(), "mint-")) });
+
+  it("refuses a mailinator stranger (not is_seed, not enrolled) before generate_link", async () => {
+    const calls = fake({ profile: [{ user_id: "u-1", is_seed: false }] });
+    await expect(mint()).rejects.toThrow(/refusing to mint.*Q2398/);
+    expect(calls).toEqual(["profiles", "test_accounts"]);
+  });
+
+  it("refuses an address with no profile, and a lookup that fails, before generate_link", async () => {
+    const calls = fake({ profile: [] });
+    await expect(mint()).rejects.toThrow(/0 profiles have this address/);
+    expect(calls).not.toContain("generate_link");
+    vi.stubGlobal("fetch", async () => new Response("nope", { status: 500 }));
+    await expect(mint()).rejects.toThrow(/lookup answered HTTP 500/);
+  });
+
+  it("mints an is_seed fixture inbox, and an enrolled one", async () => {
+    let calls = fake({ profile: [{ user_id: "u-1", is_seed: true }] });
+    await expect(mint()).resolves.toMatchObject({ access_token: "a" });
+    expect(calls).toEqual(["profiles", "generate_link", "verify"]);
+    calls = fake({ profile: [{ user_id: "u-1", is_seed: false }], enrolled: [{ user_id: "u-1" }] });
+    await expect(mint()).resolves.toMatchObject({ access_token: "a" });
+    expect(calls).toEqual(["profiles", "test_accounts", "generate_link", "verify"]);
+  });
+
+  it("refuses a session that is for a different user than the one checked", async () => {
+    fake({ profile: [{ user_id: "u-1", is_seed: true }], sessionUserId: "u-2" });
+    await expect(mint()).rejects.toThrow(/not the checked test account u-1/);
+  });
+
+  it("a shared test account needs no lookup", async () => {
+    const calls = fake({ profile: [] });
+    await expect(mint(SHARED_TEST_EMAILS[0])).resolves.toMatchObject({ access_token: "a" });
+    expect(calls).toEqual(["generate_link", "verify"]);
   });
 });

@@ -7,13 +7,17 @@
  *
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setSentCents(cents); |       toast.success("Offer sent. The seller has 48 hours to answer.");
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx |         returnFocusTo.current.focus({ preventScroll: true }); |         void returnFocusTo;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | cents={sentCents} returnFocusTo={panel} onClose | cents={sentCents} onClose
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
  * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?view=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?view=selling");
  */
+import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OfferSentWhatNext } from "@/components/declutter/OfferSentWhatNext";
@@ -67,6 +71,37 @@ describe("board 79: after an offer", () => {
     render(<OfferSentWhatNext cents={5000} onClose={() => {}} onBrowse={() => {}} />);
     expect(within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem")[2].textContent).toContain("check out: $53.20 + any one-time setup fee for pickup");
     fee.known = true;
+  });
+});
+
+describe("board 79: closing Offer sent", () => {
+  function Sent() {
+    const panel = useRef<HTMLElement>(null);
+    const [cents, setCents] = useState<number | null>(5000);
+    return (
+      <section ref={panel} tabIndex={-1} aria-label="the panel">
+        <OfferSentWhatNext cents={cents} returnFocusTo={panel} onClose={() => setCents(null)} onBrowse={() => setCents(null)} />
+      </section>
+    );
+  }
+
+  it("focus goes to the offer panel, because Send offer's form has already left the page", async () => {
+    render(<Sent />);
+    const sheet = await screen.findByTestId("what-next-sheet");
+    const panel = document.querySelector<HTMLElement>('[aria-label="the panel"]')!;
+    await act(async () => {
+      fireEvent.keyDown(sheet, { key: "Escape" });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("what-next-sheet")).toBeNull();
+      expect(document.activeElement).toBe(panel);
+    });
+  });
+
+  it("the real panel gives its section as the target, and the section can take focus", () => {
+    const panel = code("src/components/declutter/DeclutterOfferPanel.tsx");
+    expect(panel).toMatch(/cents=\{sentCents\} returnFocusTo=\{panel\}/);
+    expect(panel).toMatch(/<section ref=\{panel\} tabIndex=\{-1\}/);
   });
 });
 

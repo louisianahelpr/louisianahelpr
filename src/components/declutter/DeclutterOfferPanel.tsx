@@ -309,7 +309,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
   }
   return (
-    <section ref={panel} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label="Buy or make an offer">
+    <section ref={panel} tabIndex={-1} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
       {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
       <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
@@ -453,7 +453,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           </div>,
           document.body,
         )}
-      <OfferSentWhatNext way={way} cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
+      <OfferSentWhatNext way={way} cents={sentCents} returnFocusTo={panel} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );
 }

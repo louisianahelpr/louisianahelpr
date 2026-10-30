@@ -20,6 +20,7 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import { useFeature } from "@/hooks/useFeature";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
@@ -126,16 +127,18 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
   const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
   const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
+  // Owner 2026-10-30: the giveaway shows its $50 with no words and no setup-fee line.
+  const fixedPay = isGiveawayFixedPayJob(job);
   // Owner 2026-10-25: members never see the Helpr fee, its rate or its maths,
   // only the take-home (and the one-time setup fee on the payout it comes out of).
   const lines = [
     helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
-    firstPayoutFee > 0 && job.status !== "disputed" ? setupFeeWords(firstPayoutFee) : null,
+    firstPayoutFee > 0 && job.status !== "disputed" && !fixedPay ? setupFeeWords(firstPayoutFee) : null,
   ].filter(Boolean);
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-15 font-semibold">You take home</p>
+        {!fixedPay && <p className="text-ds-15 font-semibold">You take home</p>}
         <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
       </div>
       {lines.length > 0 && <p className="mt-1.5 text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}

@@ -1,5 +1,6 @@
 import type { PayoutLedgerRow, StripePayout } from "./types";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
+import { type FlatFeeStamp, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 export const formatCents = (cents: number, currency = "usd") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
@@ -173,7 +174,7 @@ export const UNEARNED_PAYMENT_STATUSES: readonly string[] = [
   "held",
 ];
 
-type MoneyJob = { status: string; payment_status?: string | null };
+type MoneyJob = FlatFeeStamp & { status: string; payment_status?: string | null };
 
 /**
  * Did this job earn the helper money?
@@ -202,10 +203,11 @@ export const isAwaitingTransfer = (job: MoneyJob): boolean =>
 /**
  * The one-time setup fee (Q753) still to come out of a set of jobs: the fee
  * while any of them awaits its transfer (the server takes it from a payout
- * that has not happened), else 0. A set of settled rows never pays it again.
+ * that has not happened), else 0. A set of settled rows never pays it again,
+ * and the giveaway's payout never takes it (owner 2026-10-30).
  */
 export const firstPayoutFeeDueFrom = (jobs: readonly MoneyJob[], firstPayoutFeeDollars: number): number =>
-  jobs.some(isAwaitingTransfer) ? firstPayoutFeeDollars : 0;
+  jobs.some((j) => isAwaitingTransfer(j) && !isGiveawayFixedPayJob(j)) ? firstPayoutFeeDollars : 0;
 
 /**
  * Q1272 (8) / Q1273: what a set of earned jobs is worth, where a job already

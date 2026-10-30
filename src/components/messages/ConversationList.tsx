@@ -1522,7 +1522,7 @@ export function ConversationList({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />}
               {(() => {
                 const visibleConvos = showAllConvos
                   ? filteredConversations

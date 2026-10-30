@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SECTIONS, sectionByKey } from "@/components/sections/sectionsConfig";
+import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
+import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import type { Conversation } from "@/components/messages/types";
+import { DeclutterOrderTalkRows } from "@/components/messages/DeclutterOrderTalkInbox";
+import type { SectionEmpty } from "@/components/messages/SectionInboxEmpty";
+import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY } from "@/lib/declutter/orderTalk";
 import {
   coerceInboxFilter,
   messageSectionTabs,
@@ -34,10 +38,14 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   } as const;
 
   const jobThreads = useMemo(() => conversations.filter((c) => threadSection(c) === "jobs").length, [conversations]);
+  // D2-1: Declutter's order chats (DeclutterOrderTalkInbox, same query key, so one request). A paid sale carries on
+  // with the switch off (row 62), so a member who has one keeps the Declutter chip that lists it.
+  const orderTalks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks, staleTime: 30_000 });
+  const hasOrderTalks = (orderTalks.data?.length ?? 0) > 0;
   // Owner 2026-10-21: no chip for a section that isn't open yet (Declutter / Shops / Homes while their switch is
   // off), unless the member already has threads there, so no thread is ever unreachable by its chip.
   const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads).filter(
-    (k) => live[k] || conversations.some((c) => threadSection(c) === k),
+    (k) => live[k] || conversations.some((c) => threadSection(c) === k) || (k === "declutter" && hasOrderTalks),
   );
   // A3-L8 (app audit 2026-10-29): a lone section chip ("Jobs" while it is the
   // only section) shows exactly what All shows, so it is not drawn; a
@@ -109,12 +117,14 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     </div>
   );
 
-  let empty: { icon: typeof SECTIONS[number]["icon"]; title: string; body: string; action?: { label: string; to: string } } | null = null;
+  let empty: SectionEmpty | null = null;
   if (section !== "all" && section !== "unread" && section !== "jobs") {
     const def = sectionByKey(section);
     const copy = SECTION_INBOX_EMPTY[section];
     // A closed section only has a chip while it holds threads, so its chip never shows an empty list.
     empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
+    // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
+    if (section === "declutter") empty.Lead = DeclutterOrderTalkRows;
   }
 
   return {

@@ -256,7 +256,7 @@ const BEFORE_ACTIONS = {
     { role: "button", name: /^Delete\b/ },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
     // D4-12: the row's button names its item.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Manage ${item.title}`} | aria-label="Manage"
+    // @mutate src/components/declutter/DeclutterSellingTab.tsx | aria-label={`Manage ${item.title}`} | aria-label="Manage"
     { role: "button", name: /^Manage .+/ },
     // Moving out sale (with Sell a bunch and Sell it for me) is a choice in the sell chooser now, reached from this one
     // row (owner 2026-10-30; src/components/declutter/declutterSellChooser.test.tsx).

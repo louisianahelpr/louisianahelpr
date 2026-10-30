@@ -151,7 +151,7 @@ describe("every Sell button opens the chooser", () => {
     const stale = [...ALLOWED].filter((f) => !files.includes(f) || !namesBarePath(f));
     expect(stale, "stale baseline entry in the bare-path list: remove it").toEqual([]);
     // The Sell buttons this guard was built for each name the chooser.
-    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterHomeView.tsx", "src/components/sections/sectionsConfig.ts"]) {
+    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterSellingTab.tsx", "src/components/sections/sectionsConfig.ts"]) {
       expect(blankComments(readFileSync(join(process.cwd(), f), "utf8")), f).toMatch(/SELL_CHOOSER_PATH/);
     }
   });

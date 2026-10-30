@@ -260,8 +260,8 @@ describe("Declutter screens", () => {
     expect(await screen.findByText(/^Waiting for a review\./)).toBeInTheDocument();
     expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
     // D4-12: every Selling row's actions name their item, so a list of rows is not "View, Manage, View, Manage".
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`View ${item.title}`} | aria-label="View"
+    // @mutate src/components/declutter/DeclutterSellingTab.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
+    // @mutate src/components/declutter/DeclutterSellingTab.tsx | aria-label={`View ${item.title}`} | aria-label="View"
     expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: `View ${ITEM.title}` })).toBeInTheDocument();
     expect(screen.queryByText("pending_review")).toBeNull();

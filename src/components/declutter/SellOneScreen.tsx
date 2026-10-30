@@ -15,10 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { PickupWindow } from "@/lib/declutter/api";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, StepHead } from "./DeclutterSellSteps";
+import { StepHead } from "./DeclutterSellSteps";
 import { pickupWindowsProblem, sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
-import { KEEP_UP_EXPLAINER, KEEP_UP_TITLE } from "./KeepUpRow";
+import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel } from "./SellAiDraft";
@@ -118,8 +118,7 @@ export function SellOneScreen() {
             <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-keep-up={keepUpWanted ? "on" : "off"}>
               <span className="min-w-0 flex-1">
                 <span id="sell-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
-                <span className="block text-ds-13 text-muted-foreground">{KEEP_UP_EXPLAINER}</span>
-                <span className="block text-ds-13 text-muted-foreground" data-sell-lifetime="">{keepUpWanted ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME}</span>
+                <span className="block text-ds-13 text-muted-foreground" data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span>
               </span>
               <Switch aria-labelledby="sell-keep-up" checked={keepUpWanted} onCheckedChange={(v) => setKeepUpWanted(v === true)} />
             </div>

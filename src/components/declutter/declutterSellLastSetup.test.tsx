@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/SellLastSetup.tsx |     ...(s.dropPct !== null && !f.drops ? { drops: true, dropPct: s.dropPct } : {}), |
  * @mutate src/components/declutter/SellLastSetup.tsx |     if (s.ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? s.ways : w)); |
  * @mutate src/components/declutter/SellOneScreen.tsx |               <LastSetupNote onChange={() => setWaysOpen(true)} /> | <span />
+ * The Keep it up card says one line for its current setting (lead 2026-10-30; describe block at the bottom).
+ * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(false)}</span>
+ * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span><span className="block text-ds-13 text-muted-foreground">It renews every 30 days until someone buys it.</span>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -142,5 +145,28 @@ describe("a new listing remembers the last listing's setup", () => {
     const typed = { ...EMPTY, areaLabel: "Garden District", pickupAddress: "1 Elm Street" };
     expect(applyLastSetup(typed, LAST)).toMatchObject({ areaLabel: "Garden District", pickupAddress: "1 Elm Street", drops: true, dropPct: 10 });
     expect(applyLastSetup(EMPTY, { ...LAST, dropPct: null })).toMatchObject({ drops: false, areaLabel: LAST.areaLabel });
+  });
+});
+
+// Lead 2026-10-30 (~/.lh-shots/b69-free-tab/after2-sell-375.png): the new listing's "Keep it up until it sells" card
+// said "It renews every 30 days until someone buys it" AND "it goes back up by itself up to 3 more times (about 4
+// months)" at once. It shows one line, for the setting it is on now.
+describe("the new listing's Keep it up card", () => {
+  beforeEach(() => {
+    last.value = null;
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  it("says one thing, and it follows the switch", async () => {
+    open();
+    await addPhotoAndWait();
+    const card = document.querySelector("[data-keep-up]")!;
+    const lines = () => [...card.querySelectorAll(".text-muted-foreground")].map((e) => e.textContent);
+    expect(card.getAttribute("data-keep-up")).toBe("off");
+    expect(lines()).toEqual(["Off. It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends."]);
+    fireEvent.click(screen.getByRole("switch", { name: "Keep it up until it sells" }));
+    await waitFor(() => expect(card.getAttribute("data-keep-up")).toBe("on"));
+    expect(lines()).toEqual(["On. It renews every 30 days until someone buys it, with no reminders."]);
   });
 });

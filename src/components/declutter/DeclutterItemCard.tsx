@@ -9,6 +9,7 @@ import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { photoPublicUrl, type DeclutterItem, type DeclutterPhoto } from "@/lib/declutter/api";
+import { buildImageUrl } from "@/lib/imageUrl";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
@@ -43,11 +44,17 @@ export type CardTag = "drop" | "delivery";
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
 const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
+/** The photo's CSS width asked of the image edge: 384 px at 2x, the size a phone's two-column card needs. */
+const CARD_PHOTO_WIDTH = 192;
 
 export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle, firstRow }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean }) {
   const away = milesLabel(miles, approximate);
-  // A photo that fails to load drops out, leaving the icon under it (never a blank tile).
-  const [photoFailed, setPhotoFailed] = useState(false);
+  // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The small copy is tried first
+  // (a seller's photo is the full 1920 px upload, 1.3 MB measured on prod; this box needs about 20 KB), then the original.
+  const [photoFails, setPhotoFails] = useState(0);
+  const original = photoPath ? photoPublicUrl(photoPath) : "";
+  const small = buildImageUrl(original, { width: CARD_PHOTO_WIDTH });
+  const photoSrc = photoFails === 0 ? small : photoFails === 1 && small !== original ? original : null;
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -60,8 +67,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             loading, one that fails, or one with nothing opaque in it (prod's E2E
             fixture photos are 1x1 transparent PNGs) shows the icon, never a blank box. */}
         <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
-        {photoPath && !photoFailed && (
-          <img src={photoPublicUrl(photoPath)} alt="" {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)} onError={() => setPhotoFailed(true)} className="relative h-full w-full object-cover" />
+        {photoSrc && (
+          <img src={photoSrc} alt="" {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)} onError={() => setPhotoFails((n) => n + 1)} className="relative h-full w-full object-cover" />
         )}
         {tag && (
           // Opaque card under the tint, so the tag reads the same on any photo.

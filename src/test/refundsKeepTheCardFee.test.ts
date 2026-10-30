@@ -556,6 +556,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refuses with refund_amount_unknown: only declutter_refund_after_handover writes it, with the offered amount).
       // D2-6 (20261029232103, lh-money-escrow approve 2026-10-29): restated verbatim from 20261026155251 plus one seller notice when a NEW debt row is inserted; reasons, policies, amounts and the debt row unchanged.
       declutter_record_refund: "20261029232103_declutter_refund_debt_notice.sql 5198c482b12f0611",
+      // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
+      // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
+      declutter_withdraw_problem: "20261030134109_declutter_take_back_problem_report.sql 8b0c8f5aa12ed43a",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout

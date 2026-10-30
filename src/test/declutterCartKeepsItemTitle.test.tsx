@@ -15,8 +15,9 @@
  * @mutate src/components/declutter/BuyingOrders.tsx | {itemPriceLabel(line.price_cents)}</span> | </span>
  * @mutate src/components/declutter/DeclutterEndedSales.tsx | {endedOnPrefix(l.closed_at)}{endedSaleWords(l)} | {endedSaleWords(l)}
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 import { render } from "@testing-library/react";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { newestFunction } from "./helpers/parityReaders";

@@ -122,6 +122,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/AdminCredentialQueue.tsx::url": "SignedOpenLink's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "components/admin/settings/RentalsOwnershipCard.tsx::url": "the ownership-proof button's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "components/admin/AdminSupport.tsx::url": "ViewScreenshotButton's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
+  "components/admin/AdminSupport.tsx::guestReplyHref(guest, subject)": "always mailto: with the typed address and subject encoded (src/lib/supportGuest.ts)",
   "components/admin/userDetail/DocumentsTab.tsx::url": "SignedPortfolioTile's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "lib/rentals/rentReceipt.ts::url": OBJECT_URL + " (the rent receipt text, revoked after 1 s)",
   "lib/openSignedDocument.ts::url": STORAGE_SIGNED + " (Q295: deps.sign() is SignedOpenLink's createSignedUrl behind isStorageObjectPath; null closes the tab)",

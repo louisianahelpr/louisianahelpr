@@ -581,8 +581,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_request_view: "20261030071818_declutter_returns.sql 45d58a5152dd88ba",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
       declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
-      // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
-      declutter_return_dropped_off: "20261030071818_declutter_returns.sql 9c5c6f84b76cb85b",
+      // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
+      declutter_return_dropped_off: "20261030164712_declutter_porch_places.sql 93f622c906990eb9",
       // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the collect address only).
       declutter_set_return_address: "20261030071818_declutter_returns.sql 43bb0b4a006506dd",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",

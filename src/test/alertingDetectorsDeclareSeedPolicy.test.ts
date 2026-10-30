@@ -29,7 +29,7 @@
  *
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql | coalesce(j.is_seed, false)\n             OR (coalesce(sp.is_seed, false)\n                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed | false AS seed
  * @mutate supabase/functions/execute-dispute-split/index.ts | // seed-policy: | // seed policy -
- * @mutate supabase/migrations/20260924130917_lock_seed_read_in_dispute_alert.sql | SELECT j.is_seed INTO v_seed FROM public.jobs j WHERE j.id = _job_id FOR KEY SHARE; | SELECT false INTO v_seed;
+ * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql | SELECT j.is_seed OR public.is_test_subject(j.customer_id) OR public.is_test_subject(j.helper_id)\n    INTO v_seed FROM public.jobs j WHERE j.id = _job_id FOR KEY SHARE; | SELECT false INTO v_seed;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

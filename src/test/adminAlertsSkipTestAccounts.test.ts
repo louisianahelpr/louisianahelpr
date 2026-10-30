@@ -34,7 +34,7 @@
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |       IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |       IF NOT (o.is_seed) THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   IF NOT (public.is_test_subject(_uid) OR public.is_test_subject(_customer) OR public.is_test_subject(_helper)) THEN |   IF true THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |                     WHERE NOT d.is_seed AND d.status = 'handed_over'\n                      AND NOT public.is_test_subject(d.buyer_id) AND NOT public.is_test_subject(d.seller_id) |                     WHERE NOT d.is_seed AND d.status = 'handed_over'
-// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |     OR public.is_test_subject(_opener_id)\n |     OR false\n
+// @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |     OR public.is_test_subject(_opener_id); |     OR false;
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

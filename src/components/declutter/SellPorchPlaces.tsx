@@ -9,7 +9,6 @@ import { type ReactNode, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -18,6 +17,7 @@ import {
   deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
   saveMyPorchPlace, type MyPorchPlace,
 } from "@/lib/declutter/porchPlaces";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { DayChip, shortDays } from "./DeclutterPickupTimes";
 
 type Draft = { id: string | null; label: string; address: string; area: string; weekdays: number[] };
@@ -124,10 +124,11 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
         <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onEdit} aria-label={`Edit ${place.label}`}>Edit</Button>
         <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>Remove</Button>
       </div>
-      <BrandConfirmDialog open={asking} onOpenChange={setAsking} title={`Remove ${place.label}?`}
-        description="Buyers can't pick it anymore. Orders already placed still use it."
-        primaryLabel={remove.isPending ? "Removing…" : "Remove place"} primaryTone="sienna" primaryDisabled={remove.isPending}
-        onPrimary={() => remove.mutate()} secondaryLabel="Keep it" />
+      <ConfirmSheet open={asking} onClose={() => setAsking(false)} title={`Remove ${place.label}?`}
+        confirmLabel={remove.isPending ? "Removing…" : "Remove place"} cancelLabel="Keep it" pending={remove.isPending}
+        onConfirm={() => remove.mutate()}>
+        Buyers can't pick it anymore. Orders already placed still use it.
+      </ConfirmSheet>
     </li>
   );
 }

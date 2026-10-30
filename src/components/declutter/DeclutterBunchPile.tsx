@@ -29,7 +29,7 @@ export function BunchPileCard({ item, urls, busy, onSortAgain, onOneItem, onDrop
           const url = urls.get(k);
           return (
             <li key={k} className="block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty">
-              {url?.startsWith("blob:") && <img src={url} alt={`Not sorted, photo ${i + 1}`} loading="lazy" decoding="async" className="aspect-square w-full object-cover" data-bunch-thumb="" />}
+              {url?.startsWith("blob:") && <img src={url} alt={`Not sorted, photo ${i + 1}`} loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
             </li>
           );
         })}

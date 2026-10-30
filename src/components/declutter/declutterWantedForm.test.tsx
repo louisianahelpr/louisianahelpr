@@ -9,7 +9,7 @@
  *
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |           <BarkPillButton type="button" onClick={() => setPosting(true)}>Post what you're looking for</BarkPillButton> |           <BarkPillButton type="button" onClick={() => setPosting(false)}>Post what you're looking for</BarkPillButton>
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>{WANTED_SELLERS_SEE}</p> |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>Your Wanted stays up 30 days. You can close it anytime.</p> |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold outline-none
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });\n      onClose(); |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p> | <p />
@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         try { await addWantedPhoto(userId, id, f); } |         try { void f; }
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |             photos={<ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={where} /> |             photos={null} where={where} />
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where= | photos={null} where=
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.photo_path && ( |             {false && (
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"} | text-[hsl(var(--burnt-sienna))]
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p> |
@@ -30,10 +30,19 @@
  * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" /> | groups={CATEGORY_PICKER_GROUPS} />
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <div className="min-w-0 space-y-1" data-wanted-category-row=""> | <div className="grid grid-cols-2 gap-3" data-wanted-category-row="">
+ * Audit 10-30, one registration per finding:
+ * @mutate src/lib/declutter/wanted.ts |   if (!f.category) out.category = "Pick a category."; |   if (!f.category && what === null) out.category = "Pick a category.";
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | <FieldProblem id="wanted-what-problem" text={problems.what} /> |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | placeholder="Kids bike" enterKeyHint | placeholder="Kids bike, 16 inch" enterKeyHint
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted"); |   const gotIt = false;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const matches = post.matches.filter((m) => !answered.has(m.id)); |   const matches = post.matches;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | onConfirm={() => remove.mutate()} | onConfirm={() => {}}
  * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_POST_PARAM);\n |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { saveWantedDraft(form); }, [form]); |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |       clearWantedDraft();\n |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (!editing) clearWantedDraft();\n |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -47,6 +56,8 @@ const mine = { rows: [] as WantedPost[] };
 const photoCalls: unknown[][] = [];
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const closed: string[] = [];
+const edits: unknown[][] = [];
+const lifecycle: unknown[][] = [];
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
@@ -61,6 +72,9 @@ vi.mock("@/lib/declutter/wanted", async (orig) => ({
   addWantedPhoto: async (...a: unknown[]) => { photoCalls.push(["add", ...a]); return 1; },
   removeWantedPhoto: async (...a: unknown[]) => { photoCalls.push(["remove", ...a]); return 0; },
   closeWanted: async (id: string) => { closed.push(id); return "closed"; },
+  updateWanted: async (id: string, f: { what: string; maxPrice: string }) => { edits.push([id, f.what, f.maxPrice]); return id; },
+  reopenWanted: async (id: string) => { lifecycle.push(["reopen", id]); return "2026-12-01"; },
+  removeWanted: async (id: string) => { lifecycle.push(["remove", id]); },
 }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
@@ -81,7 +95,7 @@ function open(url = "/declutter?tab=wanted") {
 }
 
 describe("the Wanted hub", () => {
-  beforeEach(() => { posted.length = 0; near.rows = []; mine.rows = []; photoCalls.length = 0; localStorage.clear(); });
+  beforeEach(() => { posted.length = 0; near.rows = []; mine.rows = []; photoCalls.length = 0; edits.length = 0; lifecycle.length = 0; localStorage.clear(); });
 
   it("#13: post=1 opens the form once and leaves the address, so Cancel and a reload don't bring it back", async () => {
     open("/declutter?tab=wanted&post=1");
@@ -89,7 +103,8 @@ describe("the Wanted hub", () => {
     await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter?tab=wanted"));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // The sheet hides the page from the role query while it is open, so this finds the pill only once it has closed.
+    await screen.findByRole("button", { name: "Post what you're looking for" });
     const after = screen.getByTestId("where").textContent!;
     cleanup();
     open(after);
@@ -100,11 +115,11 @@ describe("the Wanted hub", () => {
   it("#13: words typed survive a reload, a broken draft is ignored, and a successful post forgets them", async () => {
     open("/declutter?tab=wanted&post=1");
     fireEvent.change(await screen.findByLabelText("I'm looking for"), { target: { value: "Oak dresser" } });
-    fireEvent.change(screen.getByLabelText("Up to"), { target: { value: "40" } });
+    fireEvent.change(screen.getByLabelText("The most you'd pay for the item"), { target: { value: "40" } });
     cleanup();
     open("/declutter?tab=wanted&post=1");
     expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Oak dresser");
-    expect(screen.getByLabelText("Up to")).toHaveValue("40");
+    expect(screen.getByLabelText("The most you'd pay for the item")).toHaveValue("40");
     cleanup();
     localStorage.setItem("helpr_wanted_draft", "{not json");
     open("/declutter?tab=wanted&post=1");
@@ -115,7 +130,8 @@ describe("the Wanted hub", () => {
     expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Crib");
     fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(posted.length).toBe(1));
-    await waitFor(() => expect(localStorage.getItem("helpr_wanted_draft")).toBeNull());
+    await screen.findByRole("button", { name: "Post what you're looking for" });
+    expect(localStorage.getItem("helpr_wanted_draft")).toBeNull();
   });
 
   const POST: WantedPost = {
@@ -171,7 +187,7 @@ describe("the Wanted hub", () => {
     expect(sheet.querySelector("[data-wanted-where]")!.textContent).toBe("Measured from your ZIP code on file (a rough area, never your address).");
     const dollar = sheet.querySelector("[data-wanted-dollar]")!;
     expect(dollar.className).toContain("text-muted-foreground");
-    fireEvent.change(within(sheet).getByLabelText("Up to"), { target: { value: "30" } });
+    fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "30" } });
     expect(sheet.querySelector("[data-wanted-dollar]")!.className).toContain("--burnt-sienna");
     expect(wantedWhereWords("device")).toBe("Measured from where you are now (a rough area, never your address).");
     expect(wantedWhereWords("parish")).toContain("your parish");
@@ -192,6 +208,94 @@ describe("the Wanted hub", () => {
     expect(category.closest("[data-wanted-category-row]")!.parentElement).toBe(form);
   });
 
+  it("#22/#18: a blank form says everything at once, each beside its field, tied to it for a screen reader", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post wanted" }));
+    const alerts = await within(sheet).findAllByRole("alert");
+    expect(alerts.map((a) => a.textContent)).toEqual([
+      "Say what you want in 3 to 60 letters, like \"crib\" or \"oak dresser\".",
+      "Pick a category.",
+      "Set your highest price in whole dollars, $1 to $1,000.",
+    ]);
+    const what = within(sheet).getByLabelText("I'm looking for");
+    expect(what).toHaveAttribute("aria-invalid", "true");
+    expect(what).toHaveAttribute("aria-describedby", "wanted-what-problem");
+    expect(what).toHaveAttribute("aria-required", "true");
+    expect(what).toHaveAttribute("enterkeyhint", "next");
+    expect(document.activeElement).toBe(what);
+    expect(alerts[0].closest("div")).toBe(what.closest("div"));
+    expect(posted).toHaveLength(0);
+  });
+
+  it("#10: says what the most you'd pay comes to with the fee, from the price typed", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toContain("A $30 item costs $32.20 with our fee.");
+    fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "100" } });
+    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toContain("A $100 item costs $105.70 with our fee.");
+  });
+
+  it("#4: the toast says what matching does and the placeholder is what it finds", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByLabelText("I'm looking for")).toHaveAttribute("placeholder", "Kids bike");
+  });
+
+  it("#9: an open post can be edited, on its own words, without touching the new-post draft", async () => {
+    mine.rows = [{ ...POST, replies: [] }];
+    open();
+    localStorage.setItem("helpr_wanted_draft", JSON.stringify({ what: "Kept draft", category: "", maxPrice: "", radius: 10 }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Edit your Wanted")).toBeInTheDocument();
+    const what = within(sheet).getByLabelText("I'm looking for");
+    expect(what).toHaveValue("Kids bike");
+    expect(within(sheet).getByLabelText("The most you'd pay for the item")).toHaveValue("30");
+    fireEvent.change(what, { target: { value: "Blue bike" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(edits).toEqual([["w9", "Blue bike", "30"]]));
+    expect(posted).toHaveLength(0);
+    expect(JSON.parse(localStorage.getItem("helpr_wanted_draft")!).what).toBe("Kept draft");
+  });
+
+  it("#9: closed and expired posts offer Post again and Remove (with a confirm), not Edit or Close", async () => {
+    mine.rows = [{ ...POST, status: "closed", replies: [] }];
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Post again" }));
+    await waitFor(() => expect(lifecycle).toEqual([["reopen", "w9"]]));
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    const confirm = await screen.findByRole("dialog");
+    expect(lifecycle).toHaveLength(1);
+    fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(lifecycle).toEqual([["reopen", "w9"], ["remove", "w9"]]));
+  });
+
+  it("#16: once an answer is accepted, the post asks to be closed", async () => {
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted" }] }];
+    open();
+    expect(await screen.findByText(/Got what you needed\? Close this post/)).toBeInTheDocument();
+    cleanup();
+    mine.rows = [POST];
+    open();
+    await screen.findByText("Red bike");
+    expect(screen.queryByText(/Got what you needed/)).toBeNull();
+  });
+
+  it("#19: a reply shows its photo, and a listing that answered isn't listed again as a match", async () => {
+    mine.rows = [{ ...POST, matches: [{ id: "i1", title: "Red bike", price_cents: 2500 }, { id: "i7", title: "Green bike", price_cents: 2000 }],
+      replies: [{ ...POST.replies[0], photo_path: "s/declutter/i1/a.jpg" }] }];
+    open();
+    await screen.findByText(/Green bike/);
+    expect(screen.getAllByText(/Red bike/)).toHaveLength(1);
+    expect(document.querySelector("[data-wanted-reply-photo]")).toHaveAttribute("src", "https://cdn/s/declutter/i1/a.jpg");
+  });
+
   it("a post with no replies says so", async () => {
     mine.rows = [{ ...POST, replies: [] }];
     open();
@@ -208,7 +312,7 @@ describe("the Wanted hub", () => {
     const file = new File(["x"], "bike.jpg", { type: "image/jpeg" });
     fireEvent.change(sheet.querySelector('input[type="file"]')!, { target: { files: [file] } });
     fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike" } });
-    fireEvent.change(within(sheet).getByLabelText("Up to"), { target: { value: "30" } });
+    fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "30" } });
     fireEvent.click(within(sheet).getByLabelText("Category"));
     fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Baby and kids" }));
@@ -255,9 +359,9 @@ describe("the Wanted hub", () => {
     expect(within(sheet).getByText("What are you looking for?")).toBeInTheDocument();
     expect(within(sheet).queryByRole("switch"), "no 'Let sellers near me reply' switch").toBeNull();
     for (const gone of [/Let sellers near me reply/, /Only you see your post/, /How you'd get it/, /Details/]) expect(within(sheet).queryByText(gone)).toBeNull();
-    expect(within(sheet).getByText("Sellers near you see your first name, what you want and your max price, never your address.")).toBeInTheDocument();
-    expect(within(sheet).getByText("Your Wanted stays up 30 days. You can close it anytime.")).toBeInTheDocument();
-    const price = within(sheet).getByLabelText("Up to");
+    expect(within(sheet).getByText("Sellers near you see your first name and last initial, what you want and your max price, never your address.")).toBeInTheDocument();
+    expect(within(sheet).getByText("Your Wanted stays up 30 days. You can edit or close it anytime.")).toBeInTheDocument();
+    const price = within(sheet).getByLabelText("The most you'd pay for the item");
     expect(price.className).toContain("--burnt-sienna");
     fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike, 16 inch" } });
     fireEvent.change(price, { target: { value: "30" } });

@@ -8,8 +8,8 @@
  * Nothing listed that fits: "List it now" opens the shared sell flow, which answers this post once the new listing
  * is live (quickListHref / answerAfterListing, owner 2026-10-30).
  */
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -21,19 +21,25 @@ import { FallbackImg } from "./FallbackImg";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
+import { canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedFromAlert, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 import { focusSheetItself } from "./focusSheetItself";
 
 
 const firstName = (posterName: string) => (posterName === "A neighbor" ? "them" : posterName.split(" ")[0]);
 const money = "font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]";
 
-function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; userId: string; onClose: () => void }) {
+function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: WantedNear | null; userId: string; onClose: () => void; startItemId?: string | null }) {
   const qc = useQueryClient();
   // Any listing of yours for sale now can answer (audit W7); the server also checks it is inside the post's distance.
-  const mine = useQuery({ queryKey: ["declutter", "reply-listings", userId], queryFn: () => fetchMyReplyListings(userId), enabled: !!post });
-  const listings = (mine.data ?? []).filter(canAnswerWanted);
-  const freeLeftOut = (mine.data ?? []).length - listings.length;
+  const mine = useQuery({ queryKey: ["declutter", "reply-listings", userId, post?.id ?? null], queryFn: () => fetchMyReplyListings(userId, post!.id), enabled: !!post });
+  // Audit 10-30 #12: only what Send would take is a choice; the sheet says why the others aren't.
+  const listings = (mine.data ?? []).filter((i) => canAnswerWanted(i) && !i.refuses);
+  const freeLeftOut = (mine.data ?? []).some((i) => !canAnswerWanted(i));
+  const tooFar = (mine.data ?? []).filter((i) => canAnswerWanted(i) && i.refuses === "too_far");
+  const hasOffer = (mine.data ?? []).filter((i) => canAnswerWanted(i) && i.refuses === "open_offer");
+  const [bigPhoto, setBigPhoto] = useState<number | null>(null);
+  const photos = post?.photo_paths?.length ? post.photo_paths : post?.photo_path ? [post.photo_path] : [];
   const [itemId, setItemId] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const item = listings.find((i) => i.id === itemId) ?? null;
@@ -58,6 +64,12 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
     const it = listings.find((i) => i.id === id);
     if (post && it) setPrice(String(Math.min(post.max_price_cents, it.current_price_cents) / 100));
   };
+  // Audit 10-30 #5: from the seller's alert, their listing is already picked (when it can still answer).
+  const startAt = post && startItemId && listings.some((i) => i.id === startItemId) ? startItemId : null;
+  useEffect(() => {
+    if (startAt) pick(startAt);
+    // pick is rebuilt each render; the listing it was asked for is the trigger.
+  }, [startAt]);
   return (
     <Sheet open={!!post} onOpenChange={(o) => { if (!o && !send.isPending) { clearPick(); onClose(); } }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-i-have-this="">
@@ -71,6 +83,19 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                 {/* The server already shortens (member_display_name); its own "A neighbor" fallback is a label: formatName keeps it as is. */}
                 {formatName(post.poster_name === "A neighbor" ? null : post.poster_name)} · up to <span className={money}>{formatPrice(post.max_price_cents)}</span> · about {post.miles} mi away
               </p>
+              {/* Audit 10-30 #19: every photo the poster added, each tap opens the shared full-screen viewer. */}
+              {photos.length > 0 && (
+                <ul className="mt-2 flex flex-wrap gap-2" aria-label="Photos" data-wanted-sheet-photos="">
+                  {photos.map((p, i) => (
+                    <li key={p}>
+                      <button type="button" className="block h-20 w-20 overflow-hidden rounded-xl" aria-label={`See photo ${i + 1} of ${post.what}`} onClick={() => setBigPhoto(i)}>
+                        <FallbackImg src={photoPublicUrl(p)} alt="" className="h-full w-full bg-photo-empty object-cover" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <PhotoLightbox photos={photos.map((p) => photoPublicUrl(p))} lightboxIndex={bigPhoto} setLightboxIndex={setBigPhoto} />
             </div>
             {mine.isLoading ? null : listings.length === 0 ? (
               <p className="text-ds-14">Nothing listed yet? List it now: add photos and a price, and it answers {who} as soon as it's live.</p>
@@ -86,8 +111,14 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                 />
               </div>
             )}
-            {!mine.isLoading && freeLeftOut > 0 && (
+            {!mine.isLoading && freeLeftOut && (
               <p className="text-ds-13 text-muted-foreground" data-wanted-free-note="">Free listings can't answer a Wanted, because there's no price to offer.</p>
+            )}
+            {tooFar.length > 0 && (
+              <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-wanted-too-far="">Too far for this post: {tooFar.map((i) => i.title).join(", ")}.</p>
+            )}
+            {hasOffer.length > 0 && (
+              <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-wanted-has-offer="">Has an open offer, so it can answer once that closes: {hasOffer.map((i) => i.title).join(", ")}.</p>
             )}
             {!mine.isLoading && (
               <Button asChild variant="outline" className="w-full" data-quick-list="">
@@ -128,6 +159,32 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
 export function WantedNearSection({ at, userId }: { at: { lat: number; lng: number }; userId: string }) {
   const near = useQuery({ queryKey: ["declutter", "wanted-near", at.lat, at.lng], queryFn: () => fetchWantedNear(at) });
   const [replying, setReplying] = useState<WantedNear | null>(null);
+  // Audit 10-30 #5: the seller's alert opens I have this on that post, with their listing picked.
+  const [params, setParams] = useSearchParams();
+  const answerId = params.get("answer");
+  const answerItem = params.get("item");
+  const [startItemId, setStartItemId] = useState<string | null>(null);
+  const fromAlert = useQuery({
+    queryKey: ["declutter", "wanted-from-alert", answerId, answerItem],
+    queryFn: () => fetchWantedFromAlert(answerId!, answerItem!),
+    enabled: !!answerId && !!answerItem,
+  });
+  useEffect(() => {
+    if (!answerId || !answerItem || fromAlert.isLoading) return;
+    if (fromAlert.data && !fromAlert.data.replied) {
+      setStartItemId(answerItem);
+      setReplying(fromAlert.data);
+    } else if (fromAlert.data?.replied) {
+      toast.success("You already answered this post.");
+    } else {
+      toast.error(fromAlert.isError ? declutterErrorMessage(fromAlert.error) : "That post has closed, or your listing is no longer close enough to answer it.");
+    }
+    // Used up once read, so Back or a reload doesn't open it again.
+    const next = new URLSearchParams(params);
+    next.delete("answer");
+    next.delete("item");
+    setParams(next, { replace: true });
+  }, [answerId, answerItem, fromAlert.isLoading, fromAlert.data, fromAlert.isError, fromAlert.error, params, setParams]);
   // The Wanted tab is a hub (owner 2026-10-30): this section always stands, with its own empty state and error.
   return (
     <section className="space-y-2" aria-labelledby="wanted-near-title" data-wanted-near="">
@@ -161,7 +218,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
         ))}
       </ul>
       )}
-      <IHaveThisSheet post={replying} userId={userId} onClose={() => setReplying(null)} />
+      <IHaveThisSheet post={replying} userId={userId} startItemId={startItemId} onClose={() => { setReplying(null); setStartItemId(null); }} />
     </section>
   );
 }

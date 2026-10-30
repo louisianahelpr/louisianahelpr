@@ -42,6 +42,7 @@ export function SellPhotos({
   onRemoveHeld,
   uploading,
   heldFailed = false,
+  refusedNote = null,
   aiPanel,
 }: {
   uploaded: DeclutterPhoto[];
@@ -53,6 +54,8 @@ export function SellPhotos({
   uploading: number;
   /** The held photos are ones that failed to upload at Post: each says so. */
   heldFailed?: boolean;
+  /** Photos that couldn't be added, by name and why. */
+  refusedNote?: string | null;
   /** Claude's listing panel (SellAiDraftPanel), once there is a photo. */
   aiPanel: ReactNode;
 }) {
@@ -103,6 +106,7 @@ export function SellPhotos({
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
       </p>
+      {refusedNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink [overflow-wrap:anywhere]" data-photo-refused="">{refusedNote}</p>}
       {aiPanel}
       <div className="rounded-[20px] border border-border bg-card p-4">
         <p className="text-ds-15 font-semibold text-foreground">Photos that sell</p>

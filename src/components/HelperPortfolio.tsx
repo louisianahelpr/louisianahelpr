@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
-import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
+import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 
 type PortfolioItem = {
   jobTitle: string;
@@ -65,12 +66,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
           <div key={idx} className="rounded-ds-md liquid-glass overflow-hidden group">
             {/* Show the first after photo as the main image */}
             <div className="relative aspect-[4/3]">
-              <img
-                src={coverSrcs[idx] ?? PENDING_PHOTO_SRC}
-                alt={`${item.jobTitle} - completed`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <ProofPhotoImg src={coverSrcs[idx]} alt={`${item.jobTitle} - completed`} className="w-full h-full object-cover" />
               {item.beforeUrls.length > 0 && (
                 <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-background/80 text-ds-10 font-medium text-foreground backdrop-blur-sm">
                   Before & After

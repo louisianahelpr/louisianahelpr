@@ -18,6 +18,7 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
+import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
 import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
@@ -324,6 +325,8 @@ function PostedJobCardInner({
                   helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
                 />
               )}
+              // The Helpr's photos, as soon as they're submitted; opening them releases nothing.
+              extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />}
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
               progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction } })} /* the 8 steps on the card (owner, 2026-10-22) */
             />

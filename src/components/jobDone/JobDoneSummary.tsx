@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
-import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
+import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchPayoutStatus, payoutStatusQueryOptions } from "@/lib/payoutSetupQueries";
 import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
@@ -114,7 +115,7 @@ export function JobDoneSummary({
   const photos = [
     before ? { label: "Before", src: beforeSrc } : null,
     after ? { label: "After", src: afterSrc } : null,
-  ].filter(Boolean) as { label: string; src: string | undefined }[];
+  ].filter(Boolean) as { label: string; src: string | null | undefined }[];
 
   return (
     <div className="space-y-3 min-w-0">
@@ -126,12 +127,7 @@ export function JobDoneSummary({
         <div className={`grid gap-2 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
           {photos.map((p) => (
             <div key={p.label} className="relative aspect-[16/10] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--photo-empty, 40 23% 82%))" }}>
-              <img
-                src={p.src ?? PENDING_PHOTO_SRC}
-                alt={`${p.label} photo of ${job.title}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <ProofPhotoImg src={p.src} alt={`${p.label} photo of ${job.title}`} className="w-full h-full object-cover" />
               <span
                 className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full font-sans font-bold text-ds-11"
                 style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}

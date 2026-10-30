@@ -7,6 +7,7 @@ import { hapticError } from "@/lib/haptics";
 import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 interface DeleteAccountDialogProps {
   open: boolean;

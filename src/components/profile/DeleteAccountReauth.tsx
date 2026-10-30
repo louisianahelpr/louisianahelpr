@@ -5,6 +5,7 @@ import { useCaptcha } from "@/hooks/useCaptcha";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useLanguage } from "@/lib/i18n/language";
 import { hasPasswordSignIn, reauthWithPassword, sendDeleteCode, verifyDeleteCode } from "@/lib/deleteAccountReauth";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 /**
  * Step 2 of account deletion asks "is it really you?" before the delete runs

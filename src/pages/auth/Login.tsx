@@ -34,6 +34,7 @@ import { LOGIN_ATTEMPT_LIMIT, LOGIN_ATTEMPT_WINDOW_MS, LOGIN_LOCKOUT_MS, clearAt
 import { safeInternalRedirect } from "@/lib/authRedirects";
 import { useLanguage } from "@/lib/i18n/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 const Login = () => {
   const { t } = useLanguage();

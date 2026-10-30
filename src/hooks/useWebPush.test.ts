@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
 const subscribe = vi.fn();
 const explain = vi.fn();
@@ -22,6 +22,12 @@ vi.mock("@/lib/webPush", () => ({
   hasWebPushApis: () => env.apis,
   isIosOutsideHomeScreen: () => env.iosTab,
   subscribeWebPush: () => subscribe(),
+}));
+// The sync checks live in webPushSupport.ts (bundle split); subscribeWebPushOnUse stays real, so it loads the mocked webPush.ts.
+vi.mock("@/lib/webPushSupport", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/webPushSupport")>()),
+  hasWebPushApis: () => env.apis,
+  isIosOutsideHomeScreen: () => env.iosTab,
 }));
 vi.mock("@/hooks/usePermissionRationale", () => ({
   explainPermission: (kind: string, run: () => unknown) => explain(kind, run),
@@ -66,9 +72,10 @@ beforeEach(() => {
 });
 
 describe("useWebPushBootSync", () => {
-  it("syncs this browser's row for a signed-in member", () => {
+  it("syncs this browser's row for a signed-in member", async () => {
     renderHook(() => useWebPushBootSync("user-1"));
-    expect(subscribe).toHaveBeenCalledOnce();
+    // webPush.ts loads on use (bundle split), so the call lands a tick later.
+    await waitFor(() => expect(subscribe).toHaveBeenCalledOnce());
   });
   it("does nothing signed out", () => {
     renderHook(() => useWebPushBootSync(null));

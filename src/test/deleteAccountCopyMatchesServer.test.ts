@@ -11,7 +11,7 @@
  * server does not produce. It states the refusal instead, and that statement
  * is only allowed while the server really refuses on held AND pending money.
  *
- * @mutate src/lib/i18n/en.ts | or money is still on its way to you.", | or your pending payouts will be forfeited.",
+ * @mutate src/lib/i18n/enScreens.ts | or money is still on its way to you.", | or your pending payouts will be forfeited.",
  * @mutate supabase/functions/_shared/accountPurge.ts |   const owed = await findMoneyOwedToMember(admin, userId); |   const owed = { ok: true, active: false } as ActiveWorkResult;
  * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending,held)"; |   "payment_status.in.(escrow,held)";
  */

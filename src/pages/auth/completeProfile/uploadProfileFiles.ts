@@ -3,6 +3,7 @@ import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { withTimeout } from "./constants";
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 /** What `saveRow` is given: the uploaded files the profile row should name. */
 export interface UploadedProfileFiles {

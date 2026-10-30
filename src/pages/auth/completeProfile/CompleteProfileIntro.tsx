@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
-import { en } from "@/lib/i18n/en";
+import { enScreens } from "@/lib/i18n/enScreens";
 import { useLanguage } from "@/lib/i18n/language";
 
 /** The owner's wording (2026-10-12, Q1286). */
 /** The owner's English wording (the Spanish is es.ts "profileGate.wiped"). */
-export const WIPE_NOTICE = en["profileGate.wiped"];
+export const WIPE_NOTICE = enScreens["profileGate.wiped"];
 
 /**
  * Whether the signed-in account's details were cleared by the Q447

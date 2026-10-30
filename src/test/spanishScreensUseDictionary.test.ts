@@ -18,7 +18,7 @@
  *
  * @mutate src/pages/auth/Login.tsx | {t("login.passwordMissing")} | Add your password
  * @mutate src/pages/auth/Login.tsx | aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} | aria-label={showPassword ? "Hide password" : "Show password"}
- * @mutate src/lib/i18n/en.ts | "hero.subhead": "Hire help or find work. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
+ * @mutate src/lib/i18n/enScreens.ts | "hero.subhead": "Hire help or find work. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
  * @mutate src/components/MobileNav.tsx |           {shown}\n        </span> |           {label}\n        </span>
  * @mutate src/lib/i18n/navLabels.ts |   "/messages": "nav.messages",\n | \n
  */

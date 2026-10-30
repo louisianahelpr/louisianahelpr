@@ -27,6 +27,7 @@ import {
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useLanguage } from "@/lib/i18n/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 export interface SignupStep1Props {
   /** First and last name, side by side, both required (owner 2026-10-26: names on screen 1). */

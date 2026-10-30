@@ -78,6 +78,42 @@
       "function": "public.helpr_set_vehicle",
       "code": "vehicle_photo_required",
       "reason": "Not dropped (Q2452, 20261028012406): the 3-argument helpr_set_vehicle is kept only for installed app builds and now delegates to the new 4-argument helpr_set_vehicle(p_has_car, ...) defined in the same migration, which raises this guard on the same inputs (proven in src/test/pglite/helprVehicleMatch.pglite.mjs). The check reads both overloads as one name."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_buyer_cancel_delivery",
+      "code": "problem_open",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_buyer_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_buyer_cancel_delivery",
+      "code": "seller_delivered",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_buyer_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_buyer_cancel_delivery",
+      "code": "cancel_window_closed",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_buyer_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_seller_cancel_delivery",
+      "code": "problem_open",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_seller_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_seller_cancel_delivery",
+      "code": "seller_delivered",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_seller_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030002630_declutter_paid_order_never_cancelled.sql",
+      "function": "public.declutter_seller_cancel_delivery",
+      "code": "not_reschedulable",
+      "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_seller_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
     }
   ]
 }

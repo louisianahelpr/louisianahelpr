@@ -32,7 +32,10 @@ export const SELLER_DELIVERY_ERROR_COPY: Record<string, string> = {
   not_reschedulable: "This delivery can't be moved now.",
   no_proposal: "There's no new time waiting for an answer.",
   invalid_handoff: "Choose \"Leave it at my door\" or \"Hand it to me\".",
+  // Raised only by 20261027153244's buyer cancel, which 20261030002630 replaced; kept because the exact guard reads every file.
   cancel_window_closed: "It's less than 24 hours to the delivery, so you can't cancel now. Report a problem if something is wrong.",
+  // Q2477 (owner 2026-10-29): both cancel RPCs refuse every paid order (20261030002630).
+  paid_order_not_cancellable: "A paid order can't be cancelled. You can ask for a new delivery time once, or report a problem.",
 };
 
 /** Delivery words for codes the shared table words for pickups. */
@@ -41,7 +44,6 @@ const D = {
   too_early: "You can say it wasn't delivered 15 minutes after the delivery time ends.",
   wrong_side_delivered: "Only the seller marks it delivered.",
   wrong_side_not_delivered: "Only the buyer can say it wasn't delivered.",
-  wrong_side_cancel: "Only the seller can cancel the delivery.",
   wrong_side_accept: "The other side accepts the time you asked for.",
   reschedule_used: "You can't ask for another new time on this order.",
 };
@@ -130,24 +132,6 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     too_early: D.too_early,
     wrong_side: D.wrong_side_not_delivered,
   },
-  declutter_seller_cancel_delivery: {
-    account_restricted: DC.account_restricted,
-    // Raised inside declutter_close_paid_order (and the Helpr task steps it takes on a Helpr order).
-    already_paid_out: DC.already_paid_out,
-    delivery_not_done: DC.delivery_not_done,
-    invalid_method: DC.invalid_method,
-    invalid_status: DC.invalid_status,
-    order_not_paid: DC.order_not_paid,
-    refund_amount_unknown: DC.refund_amount_unknown,
-    item_not_found: DC.item_not_found,
-    not_a_seller_delivery: S.not_a_seller_delivery,
-    not_authenticated: DC.not_authenticated,
-    problem_open: DC.problem_open,
-    seller_delivered: "You already marked it delivered. Report a problem instead.",
-    // While the buyer picks a new time (theirs was lost): not a seller-fault cancel; report a problem.
-    not_reschedulable: "The buyer is picking a new time. To cancel, report a problem and Louisiana Helpr will sort it out.",
-    wrong_side: D.wrong_side_cancel,
-  },
   declutter_set_delivery_handoff: {
     account_restricted: DC.account_restricted,
     invalid_handoff: S.invalid_handoff,
@@ -156,23 +140,6 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     not_reschedulable: "The seller already marked it delivered, so this can't be changed now.",
     wrong_side: "Only the buyer chooses how the delivery is handed over.",
-  },
-  declutter_buyer_cancel_delivery: {
-    account_restricted: DC.account_restricted,
-    // Raised inside declutter_close_paid_order (and the Helpr task steps it takes on a Helpr order).
-    already_paid_out: DC.already_paid_out,
-    cancel_window_closed: S.cancel_window_closed,
-    delivery_not_done: DC.delivery_not_done,
-    invalid_method: DC.invalid_method,
-    invalid_status: DC.invalid_status,
-    item_not_found: DC.item_not_found,
-    not_a_seller_delivery: S.not_a_seller_delivery,
-    not_authenticated: DC.not_authenticated,
-    order_not_paid: DC.order_not_paid,
-    problem_open: DC.problem_open,
-    refund_amount_unknown: DC.refund_amount_unknown,
-    seller_delivered: S.seller_delivered,
-    wrong_side: "Only the buyer can cancel this way.",
   },
   declutter_propose_delivery_time: {
     account_restricted: DC.account_restricted,

@@ -185,7 +185,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-28: 27.) 20261028223036 (#37, notices open the recipient's tab) re-created
     // declutter_handover_sweep the same way.
     // (2026-10-28: 26.) 20261028225038 (the porch DAY) re-created declutter_report_no_show the same way.
-    expect(rewritten.length).toBe(26);
+    // (2026-10-30: 25.) 20261030002630 (Q2477, a paid order is never cancelled) re-created
+    // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
+    expect(rewritten.length).toBe(25);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

@@ -5255,7 +5255,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 60,
+      "line": 62,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5305,7 +5305,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 68,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5791,7 +5791,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 152,
+      "line": 153,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5801,7 +5801,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 153,
+      "line": 154,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5811,7 +5811,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 157,
+      "line": 161,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg",
+        "branches": [
+          {
+            "form": "template",
+            "text": "${msg} We kept what you typed."
+          },
+          {
+            "form": "dynamic",
+            "text": "msg"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5821,7 +5841,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 215,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5831,17 +5851,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 216,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 270,
+      "line": 275,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5861,7 +5871,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 275,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

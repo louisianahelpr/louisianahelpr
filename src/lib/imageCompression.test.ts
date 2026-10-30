@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { compressImage } from "./imageCompression";
 
 // imageCompression mostly exercises canvas + Image which jsdom doesn't
@@ -74,10 +76,34 @@ describe("compressImage has no size early-exit — every image re-encodes, or EX
   });
 });
 
+// Audit posting 1030 #4: a listing photo tries the canvas, because WebKit can decode HEIC, and refuses only if that fails.
+// @mutate src/lib/imageCompression.ts | (file.type === "image/heic" && !tryHeic) | file.type === "image/heic"
+// @mutate src/lib/declutter/photos.ts | cleaned = await compressImage(file, maxDimension, quality, undefined, { tryHeic: true }); | cleaned = await compressImage(file, maxDimension, quality);
+describe("tryHeic: a caller that refuses what it can't clean", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("goes to the canvas instead of handing the HEIC back", async () => {
+    vi.useFakeTimers();
+    const file = new File([new Uint8Array(10)], "photo.heic", { type: "image/heic" });
+    const outcome = compressImage(file, 1920, 0.8, undefined, { tryHeic: true }).then(
+      (result) => (result === file ? "RETURNED THE ORIGINAL" : "re-encoded"),
+      () => "entered the canvas path",
+    );
+    await vi.advanceTimersByTimeAsync(11_000);
+    expect(await outcome).toBe("entered the canvas path");
+  });
+
+  it("a listing photo uses it", () => {
+    expect(readFileSync(resolve(__dirname, "declutter/photos.ts"), "utf8")).toContain("{ tryHeic: true }");
+  });
+});
+
 // The EXIF leak, reproduced exactly: a size threshold in front of the canvas
 // re-encode. Small photos — which is most phone screenshots and every cropped
 // thumbnail — would upload with the poster's home GPS coordinates attached.
 // @mutate src/lib/imageCompression.ts | onProgress?.(0); | if (file.size < 1024 * 1024) return file;
 // The HEIC exit is the other direction: without it an iPhone photo goes into a
 // canvas that cannot decode it, and the upload silently produces a blank image.
-// @mutate src/lib/imageCompression.ts | if (!file.type.startsWith("image/") \|\| file.type === "image/heic") { | if (!file.type.startsWith("image/")) {
+// @mutate src/lib/imageCompression.ts | if (!file.type.startsWith("image/") \|\| (file.type === "image/heic" && !tryHeic)) { | if (!file.type.startsWith("image/")) {

@@ -43,6 +43,7 @@ import {
   type PickupWindow,
 } from "@/lib/declutter/api";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
+import { cleanListingPhoto, unusablePhotosNote } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { answerAfterListing, readWantedAnswer } from "@/lib/declutter/wanted";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -79,6 +80,8 @@ export function useSellFlowState(urlItemId: string | null) {
   // Why the last photos didn't go up (audit posting 1030 #2); the photos themselves stay in `held`.
   const [photoFailure, setPhotoFailure] = useState<string | null>(null);
   const failedPhotos = useRef(0);
+  // Photos this device can't prepare, said when they are added (audit posting 1030 #4), never counted or held.
+  const [refusedNote, setRefusedNote] = useState<string | null>(null);
   // A listing brought back from this device (useSellSaved): the prefills below never overwrite it, and Claude isn't
   // asked again for what it already wrote.
   const [broughtBack, setBroughtBack] = useState<"no" | "unwritten" | "written">("no");
@@ -345,7 +348,23 @@ export function useSellFlowState(urlItemId: string | null) {
     const list = Array.from(files).slice(0, Math.max(0, room));
     if (files.length > room) toast.error("A listing can have up to 12 photos.");
     if (!itemId) {
-      setHeld((h) => [...h, ...list]);
+      // Each is tried now, so one that can't be used is said at once, on the screen, instead of being lost at Post.
+      const good: File[] = [];
+      const refused: { key: string; name: string; error: unknown }[] = [];
+      setUploading(list.length);
+      for (const f of list) {
+        try {
+          await cleanListingPhoto(f);
+          good.push(f);
+        } catch (error) {
+          // Not swallowed: unusablePhotosNote names this photo and says why, under the photos.
+          refused.push({ key: f.name, name: f.name, error });
+        } finally {
+          setUploading((n) => n - 1);
+        }
+      }
+      setHeld((h) => [...h, ...good]);
+      setRefusedNote(unusablePhotosNote(refused));
       return;
     }
     if (urlItemId) await uploadPhotos(itemId, list);
@@ -443,7 +462,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote,
   };
 }
 

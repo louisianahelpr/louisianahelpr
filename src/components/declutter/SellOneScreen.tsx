@@ -105,6 +105,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
             uploading={uploading}
             heldFailed={s.failedHeld > 0}
+            refusedNote={s.refusedNote}
             aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}

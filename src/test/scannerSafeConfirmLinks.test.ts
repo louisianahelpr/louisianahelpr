@@ -14,7 +14,9 @@
  *   reminders always use it;
  * - the page renders the Confirm panel for a token or an expired link.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "./helpers/blankNonCode";
 import { describe, expect, it } from "vitest";
 import {
   CONFIRM_LINK_PATH,
@@ -64,9 +66,15 @@ describe("scanner-safe confirm links", () => {
     expect(hook).toMatch(/confirmLinkUrl\(getAppUrl\(\),\s*emailData\.token_hash,\s*'signup'\)/);
     expect(hook).toMatch(/:\s*verifyUrl\.toString\(\)/);
     expect(SCANNER_SAFE_CONFIRM_SWITCH).toBe("scanner_safe_confirm_links");
-    const mig = code("supabase/migrations/20261025190000_confirm_reminders.sql");
-    expect(mig).toMatch(/\('scanner_safe_confirm_links',\s*'testers'/);
-    expect(mig).toMatch(/feature_enabled_for_user\('scanner_safe_confirm_links', p_user_id\)/);
+    // The switch is created at 'testers' (any migration), and the hook's question reads it on
+    // the NEWEST definition of scanner_safe_confirm_link_for (guardsReadTheNewestMigration).
+    const created = readdirSync("supabase/migrations").filter((f) =>
+      /\('scanner_safe_confirm_links',\s*'testers'/.test(blankSqlComments(code(`supabase/migrations/${f}`))),
+    );
+    expect(created.length).toBeGreaterThan(0);
+    const askDef = effectiveDefs("supabase/migrations").get("scanner_safe_confirm_link_for");
+    expect(askDef, "scanner_safe_confirm_link_for is gone").toBeTruthy();
+    expect(blankSqlComments(askDef!.stmt)).toMatch(/feature_enabled_for_user\('scanner_safe_confirm_links', p_user_id\)/);
   });
 
   it("the reminders always send the scanner-safe link", () => {

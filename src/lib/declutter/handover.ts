@@ -43,6 +43,8 @@ export interface MyBooking {
   seller_reschedules?: number;
   /** Porch pickup DAY (yyyy-mm-dd, owner 2026-10-28; 20261028225038). Absent before that migration reaches prod. */
   pickup_day?: string | null;
+  /** D-NEW11: when the buyer last said "I'm on my way". Absent before that migration reaches prod. */
+  buyer_on_way_at?: string | null;
 }
 
 export interface MyPayout {
@@ -65,6 +67,11 @@ export async function fetchMyBookings(orderIds: string[]): Promise<MyBooking[]> 
     await supabase.from("declutter_bookings").select("*").in("order_id", orderIds),
   );
   return (rows ?? []) as MyBooking[];
+}
+
+/** D-NEW11: the buyer tells the seller they're coming, on the pickup day. It only sends a notice. */
+export async function onMyWay(orderId: string): Promise<"on_way" | "already"> {
+  return data<"on_way" | "already">(await supabase.rpc("declutter_on_my_way", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_on_my_way", e));
 }
 
 /** The seller's payout rows (row 93): what was paid, minus any card-fee debt. */

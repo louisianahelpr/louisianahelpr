@@ -38,6 +38,7 @@ import { myItemsQuery } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
 import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
+import { PickupDayCard } from "./DeclutterPickupDayCard";
 import { ORDER_BUCKETS } from "./OrderSteps";
 import { usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting, useWaitingChipLabel } from "./DeclutterSalesWaiting";
@@ -86,6 +87,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
       <FreePauseLine />
+      {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
+      <PickupDayCard orders={t.live} bookings={t.bookings} />
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">

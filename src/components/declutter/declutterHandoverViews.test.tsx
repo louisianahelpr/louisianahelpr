@@ -16,7 +16,7 @@
  */
 // @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     out: !!h.data?.set_out_at, |     out: false,
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           itemsCents={items} |           itemsCents={order.lines[0]?.total_cents ?? 0}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | day={booking?.pickup_day ?? null}\n          itemsCents={items} | day={booking?.pickup_day ?? null}\n          itemsCents={order.lines[0]?.total_cents ?? 0}
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -42,7 +42,13 @@ const state = {
   problems: [] as unknown[],
   /** D2-7: whether the server takes problem photos (problemPhotos.ts; off until it does). */
   problemPhotos: false,
+  /** DC-16: the seller-delivery booking the card's tracker reads (declutter_seller_delivery_booking); null = none yet. */
+  sd: null as Record<string, unknown> | null,
 };
+vi.mock("@/lib/declutter/sellerDelivery", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/declutter/sellerDelivery")>()),
+  fetchSellerDeliveryBooking: async () => state.sd,
+}));
 vi.mock("@/lib/declutter/problemPhotos", () => ({
   PROBLEM_PHOTO_MAX: 3,
   get PROBLEM_FORM_PHOTOS_READY() { return state.problemPhotos; },
@@ -471,7 +477,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // Boards 71/72: the one tracker, where it stands, and the money note, from the real handover row.
   // A1-B2: "what the buyer paid" is the card charge (declutter_my_paid_cents): here a first purchase, $42.70 sale + the
   // $2 setup fee = $44.70, never the line's total_cents.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null; |   const totalCents = itemsCents + 270;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | no figure.\n  const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null; | no figure.\n  const totalCents = itemsCents + 270;
   it("board 71: porch, the buyer: On the porch once the seller's photo is in, the photo shown, what the buyer paid", async () => {
     state.paid = { o1: 4470 };
     state.bookings = [slot(-120)];
@@ -536,7 +542,6 @@ describe("Declutter slice 4: paid-order cards", () => {
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time."; |     if (at === 0) return side === "buyer" ? "Paid · book a pickup time." : "Paid. The buyer books a pickup time.";
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done ? "." : ". The seller is paid after you pick it up."} | {done ? "." : " · the seller is paid after you pick it up."}
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
@@ -555,6 +560,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(read).toBeGreaterThan(1);
   });
 
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done ? "." : `. The seller is paid after you ${after}.`} | {done ? "." : ` · the seller is paid after you ${after}.`}
   it("lead 10-28: every pickup step reads as plain sentences, and the buyer's card does not say \"You're buying\"", async () => {
     const STEPS: Record<"porch" | "pickup_home", Record<number, () => void>> = {
       porch: {
@@ -1059,8 +1065,9 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD | {false ? PROBLEM_ON_HOLD
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | itemsCents={items}\n          problemOpen={!!problem} | itemsCents={items}
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD : standing( | {false ? PROBLEM_ON_HOLD : standing(
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n        /> | />
+
 describe("D2-2: an open problem shows on both cards", () => {
   const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
   beforeEach(() => {
@@ -1205,5 +1212,75 @@ describe("DB-2: no I got it while a problem is open", () => {
     state.problems = [damaged];
     show([line({ handover: "seller_delivery", delivery_cents: 1500 })]);
     expect(await screen.findByText("Seller delivery panel, problem open")).toBeInTheDocument();
+  });
+});
+
+// DC-16 (Declutter selling audit 2026-10-30, ~/.lh-shots/declutter-audit-1030/selling/dc-sold-handover-p1/p2-375wk.png):
+// a porch sale card showed the tracker, where it stands and "You get $10 once the sale is final"; the seller-delivers
+// card under it showed none of the three, and the porch tracker's third step read "On the po..." at 375. ONE sale card:
+// every handover kind on the seller's side draws the same three parts, and a step name wraps instead of being cut.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus | {false && order.handover === "seller_delivery" && <SellerDeliveryStatus
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | order.handover === "pickup_home" \|\| order.handover === "meetup") && ( | order.handover === "pickup_home") && (
+// @mutate src/components/tracker/StepTracker.tsx | mt-1.5 block break-words text-ds-12 leading-tight | mt-1.5 block truncate text-ds-12
+describe("DC-16: one sale card on the seller's side, every handover kind", () => {
+  beforeEach(() => {
+    state.bookings = [];
+    state.payouts = [];
+    state.problems = [];
+    state.handover = null;
+    state.meetup = null;
+    state.sd = null;
+  });
+
+  const parts = async (handover: string) => {
+    const steps = await waitFor(() => {
+      const el = document.querySelector(`[data-order-steps="${handover}"]`);
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(await screen.findByText(/once the sale is final: 24 hours after the handover/)).toBeInTheDocument();
+    return steps;
+  };
+
+  it("a seller-delivers sale shows the tracker, where it stands and the money note, from its booking", async () => {
+    state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    const steps = await parts("seller_delivery");
+    expect(steps.getAttribute("data-order-step")).toBe("1");
+    expect(within(steps).getByText("Time booked")).toBeInTheDocument();
+    expect(screen.getByText("Booked. The delivery time is below.")).toBeInTheDocument();
+    // The panel below still draws the booking itself.
+    expect(screen.getByText("Seller delivery panel")).toBeInTheDocument();
+  });
+
+  it("delivered: step 3, and the seller is told the buyer confirms", async () => {
+    state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: null, delivered_at: "2026-10-31T14:20:00Z" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    const steps = await parts("seller_delivery");
+    expect(steps.getAttribute("data-order-step")).toBe("2");
+    expect(screen.getByText("Delivered. The buyer says when they have it.")).toBeInTheDocument();
+  });
+
+  it("a meetup sale shows the same three parts, in meetup words", async () => {
+    show([line({ handover: "meetup", my_side: "seller" })]);
+    const steps = await parts("meetup");
+    expect(within(steps).getByText("Met")).toBeInTheDocument();
+    expect(screen.getByText("Paid. The buyer books a time to meet.")).toBeInTheDocument();
+  });
+
+  it("porch and door pickup keep theirs (the kinds that had it)", async () => {
+    for (const handover of ["porch", "pickup_home"]) {
+      const { unmount } = show([line({ handover, my_side: "seller" })]);
+      await parts(handover);
+      unmount();
+    }
+  });
+
+  it("a step name wraps, never cut with an ellipsis", async () => {
+    show([line({ handover: "porch", my_side: "seller" })]);
+    const steps = await parts("porch");
+    const label = within(steps).getByText("On the porch");
+    expect(label.className).not.toMatch(/\btruncate\b/);
+    expect(label.className).toMatch(/\bbreak-words\b/);
   });
 });

@@ -29,6 +29,8 @@ import { WantedNearSection } from "./DeclutterWantedReplies";
 import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
 import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
+import { checkoutAmounts } from "@/lib/declutter/money";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
 import {
@@ -37,10 +39,15 @@ import {
   addWantedPhoto,
   closeWanted,
   createWanted,
+  dollarsToCents,
   fetchMyWanted,
+  removeWanted,
   removeWantedPhoto,
-  wantedFormProblem,
+  reopenWanted,
+  updateWanted,
+  wantedFormProblems,
   type WantedForm,
+  type WantedFormProblems,
   type WantedPost,
   type WantedReply,
 } from "@/lib/declutter/wanted";
@@ -89,12 +96,12 @@ function saveWantedDraft(form: WantedForm) {
 }
 
 /** What sellers near the poster see (shown under the form, in place of the old switch). */
-const WANTED_SELLERS_SEE = "Sellers near you see your first name, what you want and your max price, never your address.";
+const WANTED_SELLERS_SEE = "Sellers near you see your first name and last initial, what you want and your max price, never your address.";
 
 type FieldsProps = {
   form: WantedForm;
   setForm: (next: (f: WantedForm) => WantedForm) => void;
-  problem: string | null;
+  problems: WantedFormProblems;
   onSubmit: () => void;
   /** The photo picker (optional, up to 3: the problem form's shared ProblemPhotoPicker). */
   photos: ReactNode;
@@ -102,8 +109,25 @@ type FieldsProps = {
   where: string;
 };
 
+/** Audit 10-30 #18, #22: a field's problem sits beside it, and the field points at it for a screen reader. */
+function FieldProblem({ id, text }: { id: string; text?: string }) {
+  if (!text) return null;
+  return <p id={id} className="text-sm text-destructive-ink" role="alert">{text}</p>;
+}
+
+/** What the most you'd pay comes to for the buyer (audit 10-30 #10): the fee is 5% + 70 cents, money.ts's own sum. */
+function feeLine(maxPrice: string): string {
+  const typed = dollarsToCents(maxPrice);
+  const cents = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0 ? typed : 3000;
+  return `A ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
+}
+
+function formatMoneyExact(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 /** The form's fields; the sheet's footer holds Cancel and "Post wanted" (it submits this form). */
-function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: FieldsProps) {
+function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: FieldsProps) {
   const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
   return (
     // Board 116 "Post a Wanted", kept to what the server stores (declutter_create_wanted: words, category, highest price,
@@ -119,8 +143,10 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
     >
       <div className="space-y-1">
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
-        <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike, 16 inch"
+        <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike" enterKeyHint="next" aria-required="true"
+          aria-invalid={problems.what ? true : undefined} aria-describedby={problems.what ? "wanted-what-problem" : undefined}
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
+        <FieldProblem id="wanted-what-problem" text={problems.what} />
       </div>
       {/* Its own row (tester 10-30): beside "Up to" at 375 its subs wrapped in a half-width column, and opening it left
           an empty column under "Up to". */}
@@ -128,16 +154,20 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
         <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
           onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" />
+        <FieldProblem id="wanted-category-problem" text={problems.category} />
       </div>
       <div className="min-w-0 space-y-1">
-        <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>
+        <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">The most you'd pay for the item</label>
         <div className={`${input} flex items-center gap-1`}>
           {/* Audit W8: the "$" turns rust only once a price is typed, so the grey 30 never reads as a set price. */}
           <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
           <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
-            inputMode="numeric" value={form.maxPrice} placeholder="30"
+            inputMode="numeric" value={form.maxPrice} placeholder="30" enterKeyHint="done" aria-required="true"
+            aria-invalid={problems.maxPrice ? true : undefined} aria-describedby={problems.maxPrice ? "wanted-max-problem wanted-max-fee" : "wanted-max-fee"}
             onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
         </div>
+        <p id="wanted-max-fee" className="text-ds-13 text-muted-foreground" data-wanted-fee="">{feeLine(form.maxPrice)}</p>
+        <FieldProblem id="wanted-max-problem" text={problems.maxPrice} />
       </div>
       <div className="space-y-1">
         <p id="wanted-within" className="text-ds-15 font-semibold">Within</p>
@@ -153,27 +183,34 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
       {/* Owner 2026-10-30: a photo of what you're looking for, like a quick listing (shown on your post and on
           "Wanted near you" cards). */}
       {photos}
-      {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
+      <FieldProblem id="wanted-radius-problem" text={problems.radius} />
       <div className="space-y-1 text-ds-13 text-muted-foreground" data-wanted-privacy="">
         <p>{WANTED_SELLERS_SEE}</p>
-        <p>Your Wanted stays up 30 days. You can close it anytime.</p>
+        <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p>
       </div>
     </form>
   );
 }
 
 /** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
-function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string }) {
+function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
-  const [form, setForm] = useState<WantedForm>(readWantedDraft);
-  useEffect(() => { saveWantedDraft(form); }, [form]);
+  // Audit 10-30 #9: Edit opens this form on the post's own words. An edit never touches the new-post draft.
+  const [form, setForm] = useState<WantedForm>(() => editing
+    ? { what: editing.what, category: editing.category, maxPrice: String(editing.max_price_cents / 100), radius: WANTED_RADIUS_CHOICES.find((m) => m === editing.radius_miles) ?? EMPTY.radius }
+    : readWantedDraft());
+  useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]);
   const [files, setFiles] = useState<File[]>([]);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problems, setProblems] = useState<WantedFormProblems>({});
   const post = useMutation({
     // The post first, then its photos (each attaches to the new post's own folder). A photo that fails never takes
     // the post down with it: the post stays up, and the poster is told to add that photo again from the post.
     mutationFn: async () => {
+      if (editing) {
+        await updateWanted(editing.id, form);
+        return 0;
+      }
       const id = await createWanted(form, at);
       let failed = 0;
       for (const f of files.slice(0, WANTED_PHOTO_MAX)) {
@@ -183,11 +220,13 @@ function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; 
     },
     onSuccess: (failed) => {
       setForm(EMPTY);
-      clearWantedDraft();
+      if (!editing) clearWantedDraft();
       setFiles([]);
-      setProblem(null);
-      if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
-      else toast.success("Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price.");
+      setProblems({});
+      if (editing) toast.success("Saved. Sellers near you see the new words and price.");
+      else if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
+      // Audit 10-30 #4: what matching really does. It looks for any of the words, and a match can be missed.
+      else toast.success("Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price.");
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
       onClose();
     },
@@ -199,22 +238,26 @@ function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; 
   });
   const submit = () => {
     if (post.isPending) return;
-    const p = wantedFormProblem(form);
-    setProblem(p);
-    if (!p) post.mutate();
+    const p = wantedFormProblems(form);
+    setProblems(p);
+    if (Object.keys(p).length === 0) post.mutate();
+    else if (p.what) document.getElementById("wanted-what")?.focus();
+    else if (p.category) document.getElementById("wanted-category")?.focus();
+    else if (p.maxPrice) document.getElementById("wanted-max")?.focus();
   };
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
-        <SheetHero title="What are you looking for?" />
+        <SheetHero title={editing ? "Edit your Wanted" : "What are you looking for?"} />
         <div className="mt-2">
-          <WantedFormFields form={form} setForm={setForm} problem={problem} onSubmit={submit}
-            photos={<ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={where} />
+          <WantedFormFields form={form} setForm={setForm} problems={problems} onSubmit={submit}
+            photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={editing ? "Measured from where you first posted it." : where} />
         </div>
-        <SheetFooter className="mt-4">
+        {/* Audit 10-30 #18: at 375 the form is taller than the sheet; the buttons stay in view as it scrolls. */}
+        <SheetFooter className="sticky bottom-0 z-10 mt-4 bg-premium-page pt-2" data-wanted-footer="">
           <SheetSecondaryAction onClick={onClose}>Cancel</SheetSecondaryAction>
-          <SheetPrimaryAction type="submit" form={FORM_ID} disabled={post.isPending}>{post.isPending ? "Posting…" : "Post wanted"}</SheetPrimaryAction>
+          <SheetPrimaryAction type="submit" form={FORM_ID} disabled={post.isPending}>{post.isPending ? (editing ? "Saving…" : "Posting…") : editing ? "Save" : "Post wanted"}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -236,14 +279,18 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
       <p className="text-xs font-medium">{replies.length === 1 ? "1 reply from a seller:" : `${replies.length} replies from sellers:`}</p>
       <ul className="space-y-1">
         {replies.map((r) => (
-          <li key={r.offer_id} className="min-w-0 text-sm" data-wanted-reply={r.offer_id}>
-            <Link to={`/declutter/item/${r.item_id}`} className="link-standard">{r.item_title}</Link>
-            {" · "}{r.seller_name}{" · "}{formatPrice(r.amount_cents)}{" · "}
-            <span className="text-muted-foreground">{replyStatus(r)}</span>
+          <li key={r.offer_id} className="flex min-w-0 items-center gap-2 text-sm" data-wanted-reply={r.offer_id}>
+            {/* Audit 10-30 #19: the listing's photo, not only a line of text. */}
+            {r.photo_path && <FallbackImg src={photoPublicUrl(r.photo_path)} alt="" className="h-11 w-11 shrink-0 rounded-lg bg-photo-empty object-cover" data-wanted-reply-photo="" />}
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              <Link to={`/declutter/item/${r.item_id}`} className="link-standard inline-flex min-h-11 items-center">{r.item_title}</Link>
+              {" · "}{r.seller_name}{" · "}{formatPrice(r.amount_cents)}{" · "}
+              <span className="text-muted-foreground">{replyStatus(r)}</span>
+            </span>
           </li>
         ))}
       </ul>
-      {yourTurn && <Link to="/declutter?tab=buying" className="link-standard text-sm font-semibold">Answer in Buying</Link>}
+      {yourTurn && <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold">Answer in Buying</Link>}
     </div>
   );
 }
@@ -301,8 +348,22 @@ const STATUS_WORDS: Record<WantedPost["status"], string> = {
   expired: "Expired",
 };
 
-function WantedRow({ post, userId }: { post: WantedPost; userId: string | null }) {
+function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string | null; onEdit: (post: WantedPost) => void }) {
   const qc = useQueryClient();
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
+  const again = useMutation({
+    mutationFn: () => reopenWanted(post.id),
+    onSuccess: () => { toast.success("Posted again for another 30 days."); refresh(); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const remove = useMutation({
+    mutationFn: () => removeWanted(post.id),
+    onSuccess: () => { toast.success("Removed."); setConfirmRemove(false); refresh(); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  // Audit 10-30 #16: buying from an answer doesn't close the post, so ask once one is accepted.
+  const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted");
   const openReplies = post.replies.filter((r) => r.status === "open").length;
   const close = useMutation({
     mutationFn: () => closeWanted(post.id),
@@ -315,7 +376,9 @@ function WantedRow({ post, userId }: { post: WantedPost; userId: string | null }
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const matches = post.matches;
+  // Audit 10-30 #19: a listing that already answered is shown as its answer, not a second time as a match.
+  const answered = new Set(post.replies.map((r) => r.item_id));
+  const matches = post.matches.filter((m) => !answered.has(m.id));
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2" data-wanted-post={post.id}>
       <div className="flex items-start justify-between gap-3 min-w-0">
@@ -340,7 +403,7 @@ function WantedRow({ post, userId }: { post: WantedPost; userId: string | null }
             <ul className="space-y-1">
               {matches.map((m) => (
                 <li key={m.id} className="min-w-0">
-                  <Link to={`/declutter/item/${m.id}`} className="link-standard text-sm block truncate" title={`${m.title}, ${formatPrice(m.price_cents)}`}>
+                  <Link to={`/declutter/item/${m.id}`} className="link-standard flex min-h-11 items-center truncate text-sm" title={`${m.title}, ${formatPrice(m.price_cents)}`}>
                     {m.title} · {formatPrice(m.price_cents)}
                   </Link>
                 </li>
@@ -349,11 +412,23 @@ function WantedRow({ post, userId }: { post: WantedPost; userId: string | null }
           </div>
         )
       )}
-      {post.status === "open" && (
-        <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={close.isPending} onClick={() => close.mutate()}>
-          Close
-        </Button>
+      {gotIt && <p className="text-sm font-medium" data-wanted-got-it="">You accepted an answer. Got what you needed? Close this post.</p>}
+      {post.status === "open" ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onEdit(post)}>Edit</Button>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={close.isPending} onClick={() => close.mutate()}>
+            Close
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={again.isPending} onClick={() => again.mutate()}>Post again</Button>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setConfirmRemove(true)}>Remove</Button>
+        </div>
       )}
+      <ConfirmSheet open={confirmRemove} title="Remove this post?" confirmLabel="Remove" pending={remove.isPending} onConfirm={() => remove.mutate()} onClose={() => setConfirmRemove(false)} testId="wanted-remove">
+        It comes off your list for good, with its photos. Any answer you already have stays in Buying.
+      </ConfirmSheet>
     </li>
   );
 }
@@ -374,6 +449,7 @@ export function WantedView() {
     next.delete(WANTED_POST_PARAM);
     setParams(next, { replace: true });
   }, [params, setParams]);
+  const [editing, setEditing] = useState<WantedPost | null>(null);
   const at = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
 
   return (
@@ -408,13 +484,13 @@ export function WantedView() {
           <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p>
         ) : (
           <ul className="space-y-3">
-            {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} userId={user?.id ?? null} />)}
+            {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} userId={user?.id ?? null} onEdit={setEditing} />)}
           </ul>
         )}
       </section>
       {/* Q2267: other members' open posts near you that you can answer with one of your listings. */}
       {!underAge && user && at && <WantedNearSection at={at} userId={user.id} />}
-      {at && user && <WantedFormSheet open={posting} at={at} userId={user.id} onClose={() => setPosting(false)} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
+      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
     </div>
   );
 }

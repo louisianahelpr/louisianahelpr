@@ -63,6 +63,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   // "On your way" has its own test (routeSuggestions.test.tsx).
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   fetchMyVehicle: async () => state.vehicle,
+  fetchOpenCount: async () => null,
   fetchTaskPickupWindows: async () => state.taskWindows,
   taskPhotoUrl: async (p: string) => { if (p.includes("broken")) throw new Error("photo_unavailable"); return `https://signed.test/${p}`; },
   acceptTask: async (...a: unknown[]) => { state.calls.push(["accept", ...a]); },

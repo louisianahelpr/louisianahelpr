@@ -132,6 +132,7 @@ const EXPECTED_CALLERS = [
   // the delivery's Helpr (t.helpr_id) the other.
   "helpr_task_tip_start",
   "helpr_task_view",
+  "helpr_tasks_open_count", // audit 1c D3-6 (20261030044539): open_near's check, (the caller, the buyer / the seller)
   "helpr_tasks_open_near",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
   // participant blocked with the poster. Neither is necessarily auth.uid() (the

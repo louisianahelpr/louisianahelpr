@@ -16,12 +16,12 @@ import {
   parishForAreaLabel,
 } from "./busyAreas";
 
-// @mutate src/lib/busyAreas.ts |   for (const d of deliveries) add(parishForAreaLabel(d.pickup_area), "deliveries"); |
-// @mutate src/lib/busyAreas.ts |     if (!parish \|\| !center) {\n      elsewhere++;\n      return;\n    } |     if (!parish) {\n      elsewhere++;\n      return;\n    }
+// @mutate src/lib/busyAreas.ts |   for (const d of deliveries) add(parishForAreaLabel(d.pickup_area), "deliveries", Math.max(0, d.open_count ?? 1)); |
+// @mutate src/lib/busyAreas.ts |     if (!parish \|\| !center) {\n      elsewhere += n;\n      return;\n    } |     if (!parish) {\n      elsewhere += n;\n      return;\n    }
 // @mutate src/lib/busyAreas.ts |     .sort((a, b) => b.total - a.total \|\| a.parish.localeCompare(b.parish)); |
 // @mutate src/lib/busyAreas.ts |   return Math.round(5000 + 15000 * Math.sqrt(Math.min(total, maxTotal) / maxTotal)); |   return 5000;
 // @mutate src/components/BrowseMap.tsx |   useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435 |
-// @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {openList.length > 0 && <BusyAreasCard deliveries={openList} />} |
+// @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />} |
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -66,6 +66,6 @@ describe("busy areas (Q2435)", () => {
   it("is drawn on the Jobs Browse map and on the Deliver page", () => {
     expect(code("src/components/BrowseMap.tsx")).toContain("useBusyAreaShading(mapRef, mapReady, visibleJobs);");
     expect(code("src/components/browseMap/useMapLayersSync.ts")).toContain("drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current)");
-    expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("{openList.length > 0 && <BusyAreasCard deliveries={openList} />}");
+    expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("{busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />}");
   });
 });

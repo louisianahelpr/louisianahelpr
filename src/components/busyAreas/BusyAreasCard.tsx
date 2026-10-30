@@ -27,7 +27,7 @@ import { drawBusyAreas } from "./busyAreaOverlays";
  * DELIVERIES only (it showed Jobs on the Deliver tab; open jobs have the Jobs
  * Browse map), and each count prints once.
  */
-export function BusyAreasCard({ deliveries }: { deliveries: ReadonlyArray<{ pickup_area?: string | null }> }) {
+export function BusyAreasCard({ deliveries }: { deliveries: ReadonlyArray<{ pickup_area?: string | null; open_count?: number }> }) {
   const summary = useMemo(() => busyAreas([], deliveries), [deliveries]);
   const top = summary.areas.slice(0, 6);
 

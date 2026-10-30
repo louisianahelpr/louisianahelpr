@@ -8,6 +8,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { isPartyRefusal, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
+import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -221,8 +222,10 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    const customerId = customers.data[0]?.id;
+    // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
+    // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
+    // found by email (an address can belong to someone else's old customer).
+    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     // Carry everything the webhook needs to MINT the credit. The webhook is the
     // only writer of gift_cards (client mint is removed), so amount_cents and
@@ -241,12 +244,16 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       // automatic_tax needs a tax location. An existing Stripe Customer with no
       // address made Stripe refuse the session (customer_tax_location_invalid,
       // proved on create-pro-checkout 2026-09-06), so save the one Checkout
-      // collects. `customer_update` is invalid without `customer` (ME-043).
-      ...(customerId ? { customer_update: { address: "auto" as const } } : {}),
+      // collects (ME-043).
+      customer_update: { address: "auto" as const },
+      // Q2084 (owner: never eat a fee): card only (Apple Pay and Google Pay ride on
+      // card), never the account default list (Klarna, Afterpay, Affirm, Cash App,
+      // Amazon Pay cost more than the card fee covers), and dollars only.
+      payment_method_types: ["card"],
+      adaptive_pricing: { enabled: false },
       line_items: [{
         price_data: {
           currency: "usd",
@@ -284,7 +291,8 @@ serve(async (req) => {
       // The mode is in a TEST key (lh-money-escrow review of Q1750, finding 4),
       // so the two Stripe environments never rely on keys being separate; the
       // LIVE key is unchanged.
-      idempotencyKey: `gift-card:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}`,
+      // v2: the wallet customer and payment methods changed the request (Q2084).
+      idempotencyKey: `gift-card:v2:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}`,
     });
 
     // ── Pre-register the gift BEFORE the donor can pay ──

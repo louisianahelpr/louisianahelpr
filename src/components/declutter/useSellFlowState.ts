@@ -177,6 +177,9 @@ export function useSellFlowState(urlItemId: string | null) {
     setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
   });
   const problem = useMemo(() => formProblem(form), [form]);
+  // Size is never guessed as chosen (audit single-free #15): the photo tool's answer, or the seller's own pick.
+  const [sizePicked, setSizePicked] = useState(false);
+  const sizeKnown = sizePicked || ai.state.status === "done";
   const keepUp = useKeepUp(urlItemId);
   // A new listing's "Keep it up until it sells": there is no draft to save it on until Post. ON by default (owner
   // 2026-10-30), or the seller's remembered choice (useSellerDefaultsPrefill).
@@ -324,7 +327,8 @@ export function useSellFlowState(urlItemId: string | null) {
           toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
         }
       }
-      await setPickupWindows(windows);
+      // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
+      if (urlItemId) await setPickupWindows(windows);
       await attestItem(id);
       // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
       await requestAiCheckWithRetry(id);
@@ -360,7 +364,7 @@ export function useSellFlowState(urlItemId: string | null) {
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
   return {
-    saved, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
+    saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish,

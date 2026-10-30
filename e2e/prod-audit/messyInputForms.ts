@@ -832,6 +832,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",
+  "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
   "src/components/declutter/DeclutterListingDefaults.tsx": "no typed text: switches and choices only, saved as the seller's listing defaults.",
   // Message quiet time (Messages audit): the browser's own time picker.
   "src/components/notificationPreferences/QuietTimeInput.tsx": "no text input: one native type=time control, which only ever yields a valid HH:MM or empty.",

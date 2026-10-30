@@ -35,6 +35,8 @@ import type { BunchItem } from "@/lib/declutter/bunch";
 const calls = { listed: [] as string[][] };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+// The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));

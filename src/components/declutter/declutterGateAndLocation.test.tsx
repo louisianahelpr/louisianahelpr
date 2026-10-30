@@ -40,6 +40,8 @@ const state = { feature: true, featureSettled: true };
 // DeclutterHome reads its tab-row switches with useFeatureStatus (Q?declutter-settle):
 // each answers at once, like useFeature, so only the gate's own read is ever pending.
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+// The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,

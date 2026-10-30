@@ -62,7 +62,7 @@ import { movingDayPostJobPath } from "@/lib/declutter/movingDayJob";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { AREA_ADDRESS_RE } from "./sellForm";
 import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
-import { LastSetupNote } from "./SellLastSetup";
+import { UsesSettingsNote } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 
 // The shared field look (DatePickerField / Input): one height and radius on this page (board 164).
@@ -104,8 +104,6 @@ export default function MoveFlow() {
     setAreaLabel((a) => a || p.areaLabel);
     setPickupAddress((a) => a || p.address);
   });
-  const [whereOpen, setWhereOpen] = useState(false);
-  const [listOptionsOpen, setListOptionsOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
@@ -200,7 +198,7 @@ export default function MoveFlow() {
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
   // Saved settings fold to one line; Change opens them, and a move already under way shows its own address.
-  const whereFolded = !!savedSetup.pickup && !whereOpen && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
+  const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const moveDetailsProblem = dateProblem ?? placeProblem;
   const kept = rows.filter((r) => r.keep);
   const rowProblem = kept.map(moveRowProblem).find((p) => p) ?? null;
@@ -346,7 +344,7 @@ export default function MoveFlow() {
         {whereFolded ? (
           <div className="space-y-1" data-move-where-saved="">
             <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[savedSetup.pickup?.line, areaLabel.trim()].join(" · ")}</p>
-            <LastSetupNote saved onChange={() => setWhereOpen(true)} />
+            <UsesSettingsNote />
           </div>
         ) : (<>
         <label className="block text-sm font-medium" htmlFor="move-address">Pickup address</label>
@@ -495,10 +493,10 @@ export default function MoveFlow() {
 
       {ready.length > 0 && !photos.isError && (
         <Section id="move-list" title={`${stepNo("list")}. List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}>
-          {savedSetup.hasSettings && !listOptionsOpen && savedWindows.isSuccess && !pickupWindowsProblem(windows) ? (
+          {savedSetup.hasSettings && savedWindows.isSuccess && !pickupWindowsProblem(windows) ? (
             <div className="space-y-1" data-move-list-saved="">
               <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{windowsSummary(windows)}</p>
-              <LastSetupNote saved onChange={() => setListOptionsOpen(true)} />
+              <UsesSettingsNote />
             </div>
           ) : (<>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>

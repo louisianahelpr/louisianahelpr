@@ -1,5 +1,6 @@
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterMoveSkeleton } from "@/components/declutter/DeclutterSkeletons";
+import { SellerSetupGate } from "@/components/declutter/SellerSetup";
 import MoveFlow, { MovingOutGate } from "@/components/declutter/DeclutterMoveView";
 
 /**
@@ -10,7 +11,9 @@ export default function DeclutterMovePage() {
   return (
     <DeclutterGate skeleton={<DeclutterMoveSkeleton />}>
       <MovingOutGate skeleton={<DeclutterMoveSkeleton />}>
-        <MoveFlow />
+        <SellerSetupGate>
+          <MoveFlow />
+        </SellerSetupGate>
       </MovingOutGate>
     </DeclutterGate>
   );

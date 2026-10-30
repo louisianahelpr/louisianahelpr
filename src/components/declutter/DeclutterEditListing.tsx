@@ -124,7 +124,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       <p className="text-ds-13 text-muted-foreground" data-edit-review={big ? "yes" : "no"} aria-live="polite">
         {big ? EDIT_RULE.checked : EDIT_RULE.instant}
       </p>
-      <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} />
+      <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} free={free} />
       <button type="submit" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 w-full rounded-full px-5 text-ds-15 font-semibold" disabled={!ready}>
         {save.isPending ? "Saving…" : "Save changes"}
       </button>

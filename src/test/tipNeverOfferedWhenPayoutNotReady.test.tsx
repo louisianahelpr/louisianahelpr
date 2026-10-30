@@ -17,7 +17,7 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return job.is_group_job \|\| h.tipsReady === false |       return job.is_group_job
  * @mutate src/components/reviewPanel/ReviewForm.tsx |       if (rating === 5 && canTip && takesTips !== false) { |       if (rating === 5 && canTip) {
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |   if (!m.tipped && takesTips === false) { |   if (false) {
- * @mutate src/components/CompletionPrompts.tsx |       <Dialog open={step === "tip" && takesTips !== false} onOpenChange={() => setStep("share")}> |       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
+ * @mutate src/components/CompletionPrompts.tsx |       <Dialog open={step === "tip" && offerTip && takesTips !== false} onOpenChange={() => setStep("share")}> |       <Dialog open={step === "tip" && offerTip} onOpenChange={() => setStep("share")}>
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -178,7 +178,7 @@ describe("F29: a Helpr whose payout setup is not finished is never offered a tip
     expect(review).toContain("if (rating === 5 && canTip && takesTips !== false) {");
     const prompts = blankComments(readFileSync(join(__dirname, "../components/CompletionPrompts.tsx"), "utf8"));
     expect(prompts).toContain("const takesTips = useHelprTakesTips(revieweeId);");
-    expect(prompts).toMatch(/if \(step === "tip" && takesTips === false\) setStep\("share"\);/);
-    expect(prompts).toContain('<Dialog open={step === "tip" && takesTips !== false}');
+    expect(prompts).toMatch(/if \(step === "tip" && \(!offerTip \|\| takesTips === false\)\) setStep\("share"\);/);
+    expect(prompts).toContain('<Dialog open={step === "tip" && offerTip && takesTips !== false}');
   });
 });

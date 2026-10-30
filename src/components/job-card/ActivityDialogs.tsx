@@ -18,7 +18,7 @@ import { NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { helperIsCommitted } from "../../../supabase/functions/_shared/cancellationFee";
 import { crewMemberCommitted } from "../../../supabase/functions/_shared/crewShares";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
-import type { Job, EnrichedApplication } from "./activityConstants";
+import type { Job, EnrichedApplication, CompletionPromptTarget } from "./activityConstants";
 
 // Dialogs are conditionally rendered — none are visible on first paint. Each
 // is code-split and only the dialogs the user actually opens get fetched,
@@ -71,8 +71,8 @@ interface ActivityDialogsProps {
   cancelDialogJob: Job | null;
   setCancelDialogJob: (job: Job | null) => void;
   // Completion prompts
-  completionPromptJob: { job: Job; revieweeId: string; revieweeName: string } | null;
-  setCompletionPromptJob: (v: { job: Job; revieweeId: string; revieweeName: string } | null) => void;
+  completionPromptJob: CompletionPromptTarget | null;
+  setCompletionPromptJob: (v: CompletionPromptTarget | null) => void;
   // Deadline
   deadlineDialogApp: DeadlineDialogApp | null;
   setDeadlineDialogApp: (app: DeadlineDialogApp | null) => void;
@@ -247,6 +247,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           revieweeId={props.completionPromptJob.revieweeId} revieweeName={props.completionPromptJob.revieweeName}
           userId={props.user.id} onDone={() => props.setCompletionPromptJob(null)}
           isHelper={props.user.id === props.completionPromptJob.job.helper_id}
+          alreadyTipped={props.completionPromptJob.tipped === true}
           jobCategory={props.completionPromptJob.job.category}
         />
       )}

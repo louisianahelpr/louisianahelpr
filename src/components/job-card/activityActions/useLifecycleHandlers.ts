@@ -18,6 +18,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
+import type { CompletionPromptTarget } from "@/components/job-card/activityConstants";
 
 /**
  * Dependencies for the in-progress → completion → review lifecycle handlers,
@@ -37,7 +38,7 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setReportingNoShow: (v: boolean) => void;
   setNoShowJobId: (id: string | null) => void;
   setCancelDialogJob: (job: Job | null) => void;
-  setCompletionPromptJob: (v: { job: Job; revieweeId: string; revieweeName: string } | null) => void;
+  setCompletionPromptJob: (v: CompletionPromptTarget | null) => void;
   setReviewTarget: (v: { id: string; name: string } | null) => void;
   setReviewJob: (job: Job | null) => void;
   setConfirmingArrivalJobId: (id: string | null) => void;
@@ -195,13 +196,27 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         await refresh();
         setStatusFilter("completed");
 
-        // Tip-after-completion prompt — only for the poster (customer) side.
-        // Gate on per-job relationship: the poster is the one who isn't the
-        // helper on this job. Also suppress if a tip was already recorded
-        // for this job (e.g. tipped earlier via the Tip button on the card).
-        const isPoster = !isHelper;
-        const alreadyTipped = completedJobMeta[jobId]?.tipped === true;
-        if (isPoster && !alreadyTipped) {
+        // The review prompt opens right after the tap that finished the job,
+        // for BOTH sides (UX-7, owner-approved 2026-10-29: "Review prompts
+        // right after I got it / Mark done"). The poster's "I got it" opens
+        // review → tip → share; the Helpr's "Mark done" that completes the
+        // job (the poster had already confirmed) opens review → share, with
+        // no tip step (the Helpr does not tip the poster). A poster who
+        // already tipped still gets the review; CompletionPrompts skips the
+        // tip step for them. The reviews INSERT policy only accepts a review
+        // once the job is completed and released, which is exactly bothDone.
+        if (isHelper) {
+          const app = appliedApps.find((a) => a.job_id === jobId && a.helper_id === user?.id);
+          const doneJob = app?.job;
+          if (doneJob?.customer_id) {
+            hapticLight();
+            setCompletionPromptJob({
+              job: doneJob,
+              revieweeId: doneJob.customer_id,
+              revieweeName: app?.posterName || "the poster",
+            });
+          }
+        } else {
           const postedJob = postedJobs.find((j) => j.id === jobId);
           if (postedJob?.helper_id) {
             const helperName = helperNames[postedJob.helper_id] || "your Helpr";
@@ -210,6 +225,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
               job: postedJob,
               revieweeId: postedJob.helper_id,
               revieweeName: helperName,
+              tipped: completedJobMeta[jobId]?.tipped === true,
             });
           }
         }

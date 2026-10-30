@@ -14,7 +14,7 @@
  * Stars are olive (spec §1.1: rust is money only): the same --primary as
  * src/lib/starColor.ts on the shell branch.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
+import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
@@ -74,7 +75,8 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
     enabled: refundPanel,
   });
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  // UX-7: right after this buyer's "I got it" the sheet opens by itself (src/lib/declutter/reviewPrompt.ts).
+  const [open, setOpen] = useState(() => side === "buyer" && !rememberedReviewed(orderId, side) && reviewPromptWaiting(orderId));
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -99,6 +101,10 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
       toast.error(declutterErrorMessage(err));
     },
   });
+
+  useEffect(() => {
+    if (open || sent) clearReviewPrompt(orderId);
+  }, [open, sent, orderId]);
 
   if (sent) return <p className="text-sm text-muted-foreground" data-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
   return (

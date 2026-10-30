@@ -169,6 +169,7 @@ describe("completeJob — duplicate release response", () => {
       job: POSTED_JOB,
       revieweeId: "helper-1",
       revieweeName: "Hallie H.",
+      tipped: false,
     });
   });
 });

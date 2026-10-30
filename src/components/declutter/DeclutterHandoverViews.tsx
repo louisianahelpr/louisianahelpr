@@ -409,6 +409,12 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: 
   if (!porchReady) {
     return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;
   }
+  // Audit 1030 DB-3: at a safe meeting spot or a door pickup "I got it" opens an hour before the booked time, as
+  // "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753; declutter_meetup_rules()
+  // here_from_minutes_before).
+  if ((order.handover === "meetup" || order.handover === "pickup_home") && Date.now() < new Date(slotStart).getTime() - 60 * 60_000) {
+    return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" from an hour before the {order.handover === "meetup" ? "meeting" : "pickup"} time.</p>;
+  }
   // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.
   return (
     <div>

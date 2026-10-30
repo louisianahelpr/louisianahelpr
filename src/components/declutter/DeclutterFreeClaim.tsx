@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
-  checkoutFree, fetchFreeRequestsForItem, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest, requestFree,
-  withdrawFreeRequest, type DeclutterItem, type Handover,
+  checkoutFree, fetchFreeRequestsForItem, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest,
+  requestFree, withdrawFreeRequest, type DeclutterItem, type Handover,
 } from "@/lib/declutter/api";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
@@ -29,8 +29,34 @@ export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): bo
   return item.current_price_cents === 0;
 }
 
+/**
+ * The ways a free item can be collected (porch pickup, or at the giver's home): porch only when porch is on, and of
+ * those only what the giver ticked (null = an older item with no ticks: both, as before). One rule for the ask line
+ * on the item page and for the free checkout, so the page never promises a way that checkout then leaves out.
+ */
+export function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandover[] {
+  return (porchOk ? (["porch", "pickup_home"] as FreeHandover[]) : (["pickup_home"] as FreeHandover[])).filter((h) => wayAllowed(ways, h));
+}
+
+/**
+ * DA-5 (Declutter audit 2026-10-30): the ask line named "their home or from their porch" whatever the giver ticked.
+ * It now names only the ways this item offers (undefined = still loading: no way named yet).
+ */
+export function freeAskLine(offered: FreeHandover[] | undefined): string {
+  const how = offered === undefined ? "to choose a pickup"
+    : offered.length === 2 ? "to choose a pickup at their home or from their porch"
+    : offered[0] === "porch" ? "to choose a time to collect it from their porch"
+    : offered[0] === "pickup_home" ? "to choose a time to pick it up at their home"
+    : "to agree with them how you'll get it";
+  return `Free, nothing is charged. The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
+}
+
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
+  // Same query (and cache) as the item page's "You can get it by" lines (ItemPickupWays). A failed read keeps the
+  // older behaviour (null: every free way), as there.
+  const ticks = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
+  const offered = ticks.isLoading ? undefined : freeWaysOffered(item.porch_ok !== false, Array.isArray(ticks.data) ? (ticks.data as Handover[]) : null);
   const { user } = useCurrentUser();
   const { underAge } = useAgeGate();
   // Deep audit #3: a free item the member was picked for says so, with the way to choose a pickup.
@@ -88,10 +114,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={ask.isPending || asks.isLoading} onClick={() => ask.mutate()}>
         Ask for it
       </Button>
-      <p className="text-xs text-muted-foreground">
-        Free, nothing is charged. The giver picks who gets it; if it's you, you'll have 48 hours to choose a pickup at their
-        home or from their porch. You can ask for up to 3 free items at a time.
-      </p>
+      <p className="text-xs text-muted-foreground">{freeAskLine(offered)}</p>
     </section>
   );
 }
@@ -205,7 +228,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   const qc = useQueryClient();
   // An item made free on day 12 whose giver ticked only other ways offers nothing here: no fallback to the giver's
   // door (Q2462); NoWayWorks below opens the chat with them.
-  const offered: FreeHandover[] = (porchOk ? (["porch", "pickup_home"] as FreeHandover[]) : (["pickup_home"] as FreeHandover[])).filter((h) => wayAllowed(ways, h));
+  const offered = freeWaysOffered(porchOk, ways);
   const [handover, setHandover] = useState<FreeHandover>(offered[0]);
   const chosen = offered.includes(handover) ? handover : offered[0];
   const confirm = useMutation({

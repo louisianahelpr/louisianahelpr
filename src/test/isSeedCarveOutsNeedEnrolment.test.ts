@@ -141,6 +141,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_public_profile_reviews: "hides",
   get_public_profile_stats: "hides",
   get_ranked_open_jobs: "hides",
+  // Q2480 (20261030031223): the reply bucket skips test jobs and hides test posters by seed_hidden_from_caller
+  get_reply_speed: "hides",
   get_safe_profiles: "hides",
   guard_profile_phone: "safety-skip",
   // The ID/payout step at accept: an enrolled, fixture-shaped account only (20261020043346).

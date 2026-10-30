@@ -30,6 +30,7 @@
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -349,6 +350,20 @@ for (const role of ["anon", "authenticated"]) {
   check(`${role} cannot run the sweep`, !!x.error, x.error ?? "allowed");
   const y = await asRole(role, `SELECT count(*) FROM public.helpr_start_reminder_sends`);
   check(`${role} cannot read the sends log`, !!y.error, y.error ?? "allowed");
+}
+
+// ---- 8. The cron path: cron passes no p_now, so the sweep reads now(). Run the
+// newest "sweep_helpr_start_reminders" with now() pinned (Q1357, fixedClock.mjs).
+if (!MODE) {
+  await installClock(db);
+  await db.exec(onFixedClock(newestFunction("sweep_helpr_start_reminders").stmt));
+  await job(90, H(1), "2026-11-05", "14:00");
+  await setClock(db, "2026-11-05T17:59:59.999Z");
+  let c = await tryq(`SELECT public.sweep_helpr_start_reminders(NULL) AS n`);
+  check("cron clock: 1 ms before the 2-hour edge, nothing", !c.error && (await rows(90, TWO)).length === 0, c.error ?? "");
+  await setClock(db, "2026-11-05T18:00:00.000Z");
+  c = await tryq(`SELECT public.sweep_helpr_start_reminders(NULL) AS n`);
+  check("cron clock: at the edge, sent once", !c.error && (await rows(90, TWO, H(1))).length === 1, c.error ?? fmt(await rows(90, TWO)));
 }
 
 console.log(`\n${passes} passed, ${failures} failed`);

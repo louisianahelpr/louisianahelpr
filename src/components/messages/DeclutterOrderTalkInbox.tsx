@@ -53,19 +53,20 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
       <ul className="space-y-1">
         {rows.map((row) => (
           <li key={row.order_id}>
-            <button type="button" className={`${CONVERSATION_ROW_FRAME} rounded-xl transition-colors hover:bg-muted/40`}
+            <button type="button" className={`${CONVERSATION_ROW_FRAME} rounded-xl ctl-tint`}
               onClick={() => openTalk(row.order_id)} data-order-talk-row={row.order_id}>
-              <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center`}
-                style={{ background: "hsl(var(--burnt-sienna) / 0.1)" }} aria-hidden="true">
+              <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center bg-muted text-muted-foreground`}
+                aria-hidden="true">
                 <Sofa className="w-5 h-5" strokeWidth={1.75} />
               </span>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-1.5">
-                  <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15">{row.title ?? "Your order"}</span>
+                  <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15" title={row.title ?? "Your order"}>{row.title ?? "Your order"}</span>
                   {!row.open && <span className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground">Ended</span>}
                   <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
                 </span>
-                <span className="block text-ds-12 text-muted-foreground truncate">
+                <span className="block text-ds-12 text-muted-foreground truncate"
+                  title={`${row.side === "buyer" ? "You bought this" : "You sold this"} · ${orderTalkRowLine(row)}`}>
                   {row.side === "buyer" ? "You bought this" : "You sold this"} · {orderTalkRowLine(row)}
                 </span>
               </span>

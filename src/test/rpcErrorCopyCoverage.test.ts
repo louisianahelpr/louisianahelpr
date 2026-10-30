@@ -316,7 +316,11 @@ const PROFILE = PROFILE_RPC_ERROR_COPY as CopyTable;
 const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
-const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
+/** Reads a party OR an admin may call: has_role(.., 'admin') is one branch of an OR, so members get the copy too. */
+const PARTY_OR_ADMIN = new Set([
+  "declutter_order_problem", // the order's buyer or seller, or an admin (B81, 20261030044444); members see its refusals
+]);
+const adminGated = new Set([...calls.keys()].filter((rpc) => !PARTY_OR_ADMIN.has(rpc) && ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");
 
 describe("the inventory still sees the world", () => {

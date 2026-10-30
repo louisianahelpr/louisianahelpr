@@ -147,7 +147,7 @@ describe("start reminders for hired Helprs (Q2483)", () => {
     // The 8 AM one asks a Helpr who still owes the day-of confirm for it (lead 2026-10-30).
     expect(sweep).toMatch(/v_message := CASE WHEN rec\.owes_dayof THEN format\('You have a job today at %s: "%s"\. Confirm you''ll be there\.'/);
     expect(sweep).toMatch(/VALUES \(rec\.user_id, 'job_update', v_title, v_message, '\/jobs\?job=' \|\| rec\.job_id::text, false, rec\.job_id\)/);
-    const reg = migrations.filter((m) => /INSERT INTO public\.job_reminder_types/.test(m.sql)).at(-1)!.sql;
+    const reg = migrations.filter((m) => /INSERT INTO public\.job_reminder_types/.test(m.sql)).slice(-1)[0].sql;
     for (const [kind, col, title] of [
       ["two_hours", "remind_two_hours", TWO],
       ["morning_of", "remind_morning_of", DAY],

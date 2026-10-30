@@ -49,6 +49,8 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
  */
 // @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
 const NOT_FROM_A_REVIEW: Record<string, string> = {
+  Q2484: "the owner-approved Jobs ease-of-use list (2026-10-29, audit page UX-3/4/6/7, builder 73); \"review\" is the review prompt it adds after I got it / Mark done, not a filed finding",
+  Q2478: "the owner's Jobs best-in-class item (2026-10-29: trust line, reply speed, Get help now); \"review\" names the lh-authz-rls pass on get_reply_speed and the reviews feature, not a filed finding",
   Q2475: "Declutter edit a live listing (audit 1028 D1-1, owner decision 2026-10-29 via the lead); \"review\" names the lh-authz-rls + lh-money-escrow passes on its own build and the listing going back to pending_review, not a filed finding",
   Q2476: "the lead's photo-edit follow-up to Q2475 (2026-10-29); \"review\" is the listing going back to pending_review, not a filed finding",
   Q2468: "Declutter 'Mark sold elsewhere' (deep audit A2-5, 2026-10-28): an audit finding built by builder 1/2; \"review\" names the lead's lh-authz-rls pass on it, not a filed finding",

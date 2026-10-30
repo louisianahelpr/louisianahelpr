@@ -127,8 +127,9 @@ function assertNoMoneyMoved() {
   // …and no admin action was fabricated.
   expect(scenario.writes.filter((w) => w.table === "admin_audit_log")).toEqual([]);
   expect(scenario.writes.filter((w) => w.table === "admin_user_notes")).toEqual([]);
-  // The seed-boundary question (Q139) is a read-only STABLE function.
-  expect((scenario.rpcCalls ?? []).map((c) => c.name).filter((n) => n !== "notification_crosses_seed_boundary")).toEqual([]);
+  // The seed-boundary question (Q139) and the reminder-switch question (job_reminder_switched_off,
+  // 20261030031059) are read-only STABLE functions.
+  expect((scenario.rpcCalls ?? []).map((c) => c.name).filter((n) => n !== "notification_crosses_seed_boundary" && n !== "job_reminder_switched_off")).toEqual([]);
 }
 
 describe("stalled-completion-reminder", () => {

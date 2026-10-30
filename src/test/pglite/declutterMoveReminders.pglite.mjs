@@ -109,7 +109,7 @@ ok((await run())?.told === 0, "the sale's date is its newest item's, as the bann
 // A failed notice is logged, the rest go on (declutter_notify is the wrapper, so this is the sweep's own net).
 await db.exec(`create or replace function public.declutter_notify(p_user uuid, p_type text, p_title text, p_message text, p_link text, p_other uuid default null)
   returns void language plpgsql as $$ begin raise exception 'boom'; end $$;`);
-const bad = u(0).replace(/^0/, "0").replace("00000000-0000", "00000000-0001");
+const bad = u(0).replace("00000000-0000", "00000000-0001");
 await db.exec(`insert into auth.users values ('${bad}'); insert into profiles values ('${bad}', false);`);
 await add(bad, 1);
 const r5 = await run();

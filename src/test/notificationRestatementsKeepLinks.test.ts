@@ -312,6 +312,8 @@ describe("Q139: a restated notification producer keeps the links the database wr
       "20261027172503_declutter_notices_name_no_fee.sql",
       // Not links: the setup-job card-fee debt is capped at the order total (code edits only).
       "20261027174633_declutter_setup_job_fee_debt_order_cap.sql",
+      // Copy: members never read "escrow"; notify_on_application's not-selected branch also gains a /jobs?tab=browse link.
+      "20261030220537_notices_say_no_escrow.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

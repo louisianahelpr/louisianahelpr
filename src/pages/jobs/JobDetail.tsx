@@ -12,6 +12,7 @@ import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { queryKeys } from "@/lib/queryKeys";
+import { signupUrlFor } from "@/lib/jobIntent";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -38,9 +39,9 @@ const JobPage = lazy(() => import("./jobPage/JobPage"));
  *   - Signed-in members get the job page (jobPage/JobPage.tsx): poster
  *     view on their own job, take-home + Apply (the quick-apply sheet)
  *     otherwise.
- *   - Guests get the same read-only preview the Browse grid opens, with
- *     apply/report routed to /signup. Closing returns them to the public
- *     Browse list rather than a blank backdrop.
+ *   - Guests get a read-only preview, with apply/report routed to /signup
+ *     carrying this job. Closing returns them to the public Browse list
+ *     rather than a blank backdrop.
  */
 const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +58,10 @@ const JobDetail = () => {
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users: they get the job page below.
+  // This column list is the guest's whole view of a job, so it names nothing
+  // private: no customer_id (the poster's id; the guest sheet has no use for
+  // it), no coordinates, no applicant or direct-offer fields. The view masks
+  // `location` to the town. Guard: src/test/guestOpensSharedJobLink.test.tsx.
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
@@ -64,7 +69,7 @@ const JobDetail = () => {
       // serve this build; readJobsAheadOfDb asks again without it on 42703.
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, description, scope_video_url, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode, helper_fee_flat_cents, helper_fee_percent",
+          "id, title, description, scope_video_url, category, budget, date_needed, location, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode, helper_fee_flat_cents, helper_fee_percent",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
           { browseView: true },
         ),
@@ -126,7 +131,7 @@ const JobDetail = () => {
     );
   }
 
-  const requireSignup = () => navigate("/signup");
+  const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}` : null));
 
   // Every branch of this page (loading / error / not-found / job) needs its
   // own <h1>: this is the share-link landing page, and it previously rendered
@@ -168,7 +173,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/home")}
+                  onClick={() => navigate("/browse")}
                   className="squircle"
                 >
                   Browse open Jobs
@@ -185,7 +190,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/home")}
+                  onClick={() => navigate("/browse")}
                   className="squircle"
                 >
                   Browse open Jobs
@@ -209,7 +214,7 @@ const JobDetail = () => {
                 guest
                 job={job}
                 effectiveFee={TIER_PERKS.free.platformFeePercent}
-                onClose={() => navigate("/home")}
+                onClose={() => navigate("/browse")}
                 onApply={requireSignup}
                 onReport={requireSignup}
               />

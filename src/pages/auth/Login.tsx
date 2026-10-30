@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loginNotice } from "./loginNotice";
 import { AlertCircle, Clock } from "lucide-react";
-import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
+import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
 import { rememberReferralFromUrl } from "@/lib/pendingReferral";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HelprMark } from "@/components/HelprMark";
@@ -106,13 +106,9 @@ const Login = () => {
     rememberReferralFromUrl(window.location.search);
   }, [pendingRedirect]);
   const bouncedFromGatedRoute = Boolean(safeInternalRedirect(pendingRedirect));
-  // The job a bounced guest was trying to reach, if any — /jobs/<uuid> is the
-  // only gated route whose destination is a single object worth carrying.
-  const signupHref = (() => {
-    const r = searchParams.get("redirect");
-    const m = r?.match(/^\/jobs\/([^/?#]+)$/);
-    return m?.[1] ? `/signup?job=${encodeURIComponent(m[1])}` : "/signup";
-  })();
+  // Where a bounced guest was headed, in the one sign-up link form
+  // (`/signup?redirect=`). A job link keeps its query (`/jobs/<id>?ref=share`).
+  const signupHref = signupUrlFor(pendingRedirect);
   // ONE notice slot, highest-priority reason first — three independent banners
   // could otherwise stack into a wall of yellow above the form.
   // OA-018: a web Apple/Google sign-in the auth server refused (unverified

@@ -35,6 +35,13 @@ interface ProtectedRouteProps {
    * both places collapses that hop into one continuous state.
    */
   fallback?: React.ReactNode;
+  /**
+   * A definite guest sees `children` instead of the bounce to /login. Every gate
+   * below still applies to anyone signed in (ban, under-13, email, profile), so
+   * this widens the route for guests only. Only /jobs/:id passes it: the page
+   * under it must have its own guest branch reading public data only.
+   */
+  allowGuest?: boolean;
 }
 
 // Routes a half-onboarded user is allowed to visit without being bounced
@@ -173,6 +180,7 @@ export const isProfileComplete = (profile: GateProfile | null, user: GateUser): 
 const ProtectedRoute = ({
   children,
   fallback = <RouteSuspenseFallback />,
+  allowGuest = false,
 }: ProtectedRouteProps) => {
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
   const location = useLocation();
@@ -251,7 +259,9 @@ const ProtectedRoute = ({
   /**
    * A GUEST BOUNCED OFF A JOB LINK MUST NOT LOSE THE JOB.
    *
-   * `/jobs/:id` became signed-in-only on 2026-09-02, and the bounce below sends
+   * `/jobs/:id` was signed-in-only from 2026-09-02 to 2026-10-30 and now opens
+   * for guests (`allowGuest`), which skips this. It still guards a job path
+   * mounted without that prop. Back then the bounce below sent
    * the visitor to /login. That is correct, but on its own it ends the journey:
    * sign-in deliberately lands on the home dashboard ("log in → home", Login's
    * `postLoginDest`), so a guest who tapped a SHARED job link created an account
@@ -272,10 +282,10 @@ const ProtectedRoute = ({
    * <Navigate> below unmounts this component on the same tick.
    */
   useEffect(() => {
-    if (isLoading || user) return;
+    if (isLoading || user || allowGuest) return;
     const m = location.pathname.match(/^\/jobs\/([^/]+)$/);
     if (m?.[1]) rememberJobIntent(m[1]);
-  }, [isLoading, user, location.pathname]);
+  }, [isLoading, user, allowGuest, location.pathname]);
 
   /**
    * START THE PAGE'S JS CHUNK NOW, NOT AFTER AUTH ANSWERS.
@@ -346,6 +356,8 @@ const ProtectedRoute = ({
     // bones for this one beat.
     return <>{fallback}</>;
   }
+
+  if (!user && allowGuest) return <>{children}</>;
 
   if (!user) {
     // Preserve where the user was headed so /login can return them there

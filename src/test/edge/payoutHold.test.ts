@@ -315,6 +315,85 @@ describe("money-reconciliation does not page on a payout a hold keeps back", () 
     expect(((b.defectReasons as string[] | undefined) ?? []).join(" ")).not.toContain("payout_pending_stranded");
   });
 
+  // Money alert triage, owner 10-30: job 9c6ff2de paged critical because its
+  // payee had no Connect account. That payout is waiting on them, not stranded.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (awaitingConnectJobIds.has(job.id as string)) { | if (false) {
+  it("a payee with NO Connect account is listed as awaiting, and does not page", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ id: "helper-1", stripe_account_id: null, anonymized_at: null }] };
+    const b = await json(await run());
+    expect(checks(b)).not.toContain("payout_pending_stranded");
+    const listed = b.payout_pending_awaiting_connect as Array<{ job_id: string; helper_ids: string[] }>;
+    expect(listed.map((j) => [j.job_id, j.helper_ids])).toEqual([["job-1", ["helper-1"]]]);
+    expect(scenario.writes.some((w) => w.table === "notifications")).toBe(false);
+  });
+
+  it("a payee WITH a Connect account still pages", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ id: "helper-1", stripe_account_id: "acct_1", anonymized_at: null }] };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect(b.payout_pending_awaiting_connect).toEqual([]);
+  });
+
+  // @mutate supabase/functions/money-reconciliation/index.ts | .filter((r) => !r.stripe_account_id && !r.anonymized_at) | .filter((r) => !r.stripe_account_id)
+  it("an anonymized payee can never finish setup, so it still pages", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ id: "helper-1", stripe_account_id: null, anonymized_at: overdue }] };
+    expect(checks(await json(await run()))).toContain("payout_pending_stranded");
+  });
+
+  it("an unreadable profile exempts nothing and degrades the run", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { error: { message: "boom" } };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect((b.notes as string[]).join(" ")).toContain("awaiting-Connect exemption skipped");
+  });
+
+  it("a crew with one member who has Connect and is unpaid still pages", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
+    scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [
+      { id: "helper-1", stripe_account_id: null, anonymized_at: null },
+      { id: "helper-2", stripe_account_id: "acct_2", anonymized_at: null },
+    ] };
+    expect(checks(await json(await run()))).toContain("payout_pending_stranded");
+  });
+
+  // Audit 10-30 H1: a critical money alert only reached Slack and the ledger.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (notices.length && !(await insertNotifications(admin, notices))) { | if (false) {
+  it("a critical finding tells every admin in the app, naming the job", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ id: "helper-1", stripe_account_id: "acct_1", anonymized_at: null }] };
+    scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }, { user_id: "admin-2" }] };
+    await run();
+    const rows = scenario.writes.filter((w) => w.table === "notifications").flatMap((w) => w.payload as Array<Record<string, unknown>>);
+    expect(rows.map((r) => r.user_id).sort()).toEqual(["admin-1", "admin-2"]);
+    for (const r of rows) {
+      expect(r.type).toBe("admin_alert");
+      expect(r.job_id).toBe("job-1");
+      expect(String(r.message)).toContain("payout_pending_stranded");
+    }
+  });
+
+  it("an is_seed job's finding never reaches an admin's bell", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_seed: true };
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ id: "helper-1", stripe_account_id: "acct_1", anonymized_at: null }] };
+    scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+    await run();
+    expect(scenario.writes.some((w) => w.table === "notifications")).toBe(false);
+  });
+
   it("a crew job is held when every UNPAID roster member is held", async () => {
     seed(scenario);
     scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };

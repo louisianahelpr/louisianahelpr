@@ -200,7 +200,9 @@ const FUNCTIONS = join(ROOT, "supabase", "functions");
 
 /** Edge-cron job actors that need no status test, each with why. */
 // @two-way src/test/cronJobNotificationsCheckJobStatus.test.ts:listed but now checks status, or no longer an edge cron acting on a job
-const EDGE_NO_STATUS_CHECK: Record<string, string> = {};
+const EDGE_NO_STATUS_CHECK: Record<string, string> = {
+  "money-reconciliation": "a read-only alarm: its admin notice reports that a job's money rows disagree, which matters at any job status",
+};
 /** Edge-cron chargers that need no payment-state / dispute test, each with why. */
 // @two-way src/test/cronJobNotificationsCheckJobStatus.test.ts:listed but now checks the payment state, or no longer charges
 const CHARGE_NO_PAYMENT_CHECK: Record<string, string> = {};

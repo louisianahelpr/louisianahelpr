@@ -32,7 +32,7 @@ export const DashboardHome = ({
   rangeLabel, prevLabel, dataError,
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
-  const alertCount = [stats.disputedJobs, stats.openReports, stats.supportTickets].filter((n) => n > 0).length;
+  const alertCount = [stats.criticalAlerts, stats.errorAlerts, stats.disputedJobs, stats.openReports, stats.supportTickets].filter((n) => n > 0).length;
   const hasAlerts = alertCount > 0;
   // A SUM OF NULLS IS NOT ZERO PROFIT.
   // `totalFees` adds up `jobs.platform_fee_amount + customer_fee_amount` across
@@ -136,6 +136,9 @@ export const DashboardHome = ({
               on first. `[grid-template-columns:repeat(auto-fit,minmax(...))]`
               would over-stretch a lone row, so the count drives it directly. */}
           <div className={cn("grid gap-2.5 sm:gap-3", alertCount > 1 && "sm:grid-cols-2")}>
+            {stats.criticalAlerts > 0 && (
+              <PriorityAlert label="Critical alerts" count={stats.criticalAlerts} color="destructive" onClick={() => onNavigate("health")} />
+            )}
             {stats.disputedJobs > 0 && (
               <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
             )}
@@ -144,6 +147,9 @@ export const DashboardHome = ({
             )}
             {stats.supportTickets > 0 && (
               <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
+            )}
+            {stats.errorAlerts > 0 && (
+              <PriorityAlert label="Open errors" count={stats.errorAlerts} color="accent" onClick={() => onNavigate("health")} />
             )}
           </div>
         </AdminCard>

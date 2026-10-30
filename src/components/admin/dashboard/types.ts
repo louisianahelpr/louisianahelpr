@@ -9,6 +9,10 @@ interface PriorityAlertCounts {
   openReports: number;
   supportTickets: number;
   disputedJobs: number;
+  /** Open ops_alert_ledger rows, critical or fatal (useOpenAlertCounts). */
+  criticalAlerts: number;
+  /** Open ops_alert_ledger rows, error. */
+  errorAlerts: number;
 }
 
 /** What the Dashboard renders: the loaded stats plus the shared queue counts. */

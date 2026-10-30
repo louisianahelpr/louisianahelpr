@@ -20,7 +20,7 @@ const stats = (lateCancellationRevenue: number): DashboardStats => ({
   totalUsers: 243, activeJobs: 2, completedJobs: 30, totalRevenue: 3295, totalFees: 120, lateCancellationRevenue,
   newUsersInRange: 4, newUsersPrev: 3, revenueInRange: 100, revenuePrev: 80, completedJobsInRange: 3, completedJobsPrev: 2,
   feesThisQuarter: 40, newUsersSeries: [], revenueSeries: [], completedJobsSeries: [], activeJobsSeries: [],
-  openReports: 0, supportTickets: 0, disputedJobs: 0,
+  openReports: 0, supportTickets: 0, disputedJobs: 0, criticalAlerts: 0, errorAlerts: 0,
 });
 
 function renderHome(late: number) {

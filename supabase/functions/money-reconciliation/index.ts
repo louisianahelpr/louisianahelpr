@@ -54,6 +54,8 @@ import { helperCommissionDollars, feePercentForTier, jobHelprCommissionDollars }
 import { isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { APPROVAL_WINDOW_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../_shared/adminIds.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
@@ -117,6 +119,9 @@ const HELD_REDRIVE_STUCK_HOURS = 24;
  */
 const HELD_NEVER_TRIED_HOURS = 72;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
+
+/** Most jobs one run names to admins in the app; Slack and Health carry the full list. */
+const ADMIN_NOTICE_JOB_CAP = 5;
 
 /**
  * How long a job may legitimately sit in `payout_pending` past its scheduled
@@ -1010,6 +1015,12 @@ serve(async (req) => {
     const pendingRows = jobRows.filter((j) => j.payment_status === "payout_pending");
     const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[] }> = [];
     const heldJobIds = new Set<string>();
+    // Owner 2026-10-30 (money alert triage): a payee with no Connect account is
+    // waiting on their own setup, not stranded by us. process-scheduled-payouts
+    // keeps the job and tells them daily, and it pays once they finish.
+    const awaitingConnectJobIds = new Set<string>();
+    const awaitingConnectJobs: Array<{ job_id: string; helper_ids: string[]; hours_overdue: number }> = [];
+    const noConnectByJob = new Map<string, string[]>();
     if (pendingRows.length) {
       const membersByJob = new Map<string, string[]>();
       for (const j of pendingRows) if (j.helper_id) membersByJob.set(j.id as string, [j.helper_id as string]);
@@ -1061,6 +1072,47 @@ serve(async (req) => {
           }
         }
       }
+      // FAIL CLOSED, like the hold exemption: a short payout ledger, an unread
+      // roster or an unread profile exempts nothing, and only a profile we READ
+      // with no Connect account counts. An anonymized account can never finish
+      // setup, so its money still pages. Without a hold read, everyone counts
+      // as unheld, so a held member with Connect keeps the job paging.
+      if (!transferCap) {
+        const holds = holdLookup.ok ? holdLookup.holds : new Set<string>();
+        const connectIds = [...new Set([...membersByJob.values()].flat())];
+        const connectScan = await scanAllIn<Record<string, unknown>>(
+          "profiles",
+          connectIds,
+          (chunk, countOpt) =>
+            admin
+              .from("profiles")
+              .select("id, stripe_account_id, anonymized_at", countOpt)
+              .order("id", { ascending: true })
+              .in("id", chunk),
+        );
+        const connectCap = connectScan.error
+          ? `profiles read failed (${connectScan.error.message})`
+          : scanDefect("profiles", connectScan);
+        if (connectCap) {
+          notes.push(`payout awaiting-Connect exemption skipped: ${connectCap}`);
+        } else {
+          const noConnect = new Set(
+            connectScan.rows
+              .filter((r) => !r.stripe_account_id && !r.anonymized_at)
+              .map((r) => r.id as string),
+          );
+          for (const [jobId, members] of membersByJob) {
+            if (heldJobIds.has(jobId)) continue;
+            if (crewPending.includes(jobId) && !rosterOk) continue;
+            const paid = paidMembersByJob.get(jobId);
+            const waiting = members.filter((m) => !paid?.has(m) && !holds.has(m));
+            if (waiting.length > 0 && waiting.every((m) => noConnect.has(m))) {
+              awaitingConnectJobIds.add(jobId);
+              noConnectByJob.set(jobId, [...new Set(waiting)]);
+            }
+          }
+        }
+      }
     }
     for (const job of jobRows) {
       if (job.payment_status !== "payout_pending") continue;
@@ -1072,6 +1124,14 @@ serve(async (req) => {
       // a silent pass, which is the same rule the escrow check above follows.
       const dueAt = ts(job.payout_scheduled_at) ?? ts(job.updated_at) ?? 0;
       if (nowMs - dueAt <= PAYOUT_WINDOW_MS) continue;
+      if (awaitingConnectJobIds.has(job.id as string)) {
+        awaitingConnectJobs.push({
+          job_id: job.id as string,
+          helper_ids: noConnectByJob.get(job.id as string) ?? [],
+          hours_overdue: Math.round(((nowMs - dueAt) / 3_600_000) * 100) / 100,
+        });
+        continue;
+      }
       checks.payoutStranded.add({
         job_id: job.id,
         budget: money(job.budget),
@@ -2218,6 +2278,9 @@ serve(async (req) => {
       // Q764: payout_pending jobs an admin's payout hold is keeping there on
       // purpose. Excluded from payout_pending_stranded; reported, never paged.
       payout_pending_held: heldPayoutJobs,
+      // The payee has no Connect account yet. Excluded from
+      // payout_pending_stranded; reported, never paged.
+      payout_pending_awaiting_connect: awaitingConnectJobs,
       // Q1241: a held Helpr's cancellation fee waits on purpose; reported, never warned.
       cancellation_fee_held: heldFeeRows,
       // Hits on is_seed jobs (only possible with ?include_seed=1). Reported,
@@ -2296,6 +2359,41 @@ serve(async (req) => {
       });
     } else {
       console.log(`[money-reconciliation] clean — ${jobRows.length} jobs, ${summary.checks_run.length} checks`);
+    }
+
+    // ── Tell the admins in the app, not only Slack (audit 10-30 H1) ──────────
+    // One notice per job named, each carrying its job_id so the notifications
+    // seed gate (notification_crosses_seed_boundary) can refuse a test job's.
+    // `findings` never holds an is_seed job's hit; the check below is the second
+    // lock. A hit naming no job has no notice: the admin home's "Critical
+    // alerts" count (its ledger row) is what shows it.
+    const namedJobs = new Map<string, string[]>();
+    for (const f of findings) {
+      if (f.severity !== "critical") continue;
+      for (const s of f.sample) {
+        const id = (s as { job_id?: unknown }).job_id;
+        if (typeof id !== "string") continue;
+        namedJobs.set(id, [...(namedJobs.get(id) ?? []), f.check]);
+      }
+    }
+    const realNamed = [...namedJobs].filter(([id]) => !seedJobIds.has(id)).slice(0, ADMIN_NOTICE_JOB_CAP);
+    if (realNamed.length) {
+      const adminIds = realNamed.some(([id]) => jobRows.find((j) => j.id === id)?.is_seed === true)
+        ? { ok: true, ids: [] as string[] }
+        : await loadAdminIds(admin, "money-reconciliation.critical");
+      if (!adminIds.ok) notes.push("admin id read failed, the critical money notice reached no admin");
+      const notices = adminIds.ids.flatMap((user_id) =>
+        realNamed.map(([job_id, names]) => ({
+          user_id,
+          job_id,
+          title: "Money check found a problem",
+          message: `Job ${job_id}: ${names.join(", ")}. Nothing was changed. Details are in Health.`,
+          type: "admin_alert",
+          link: `/admin?view=jobs&job=${job_id}`,
+        })));
+      if (notices.length && !(await insertNotifications(admin, notices))) {
+        notes.push("the critical money notice could not be written");
+      }
     }
 
     // ── Answer the watchers, not just Slack ──────────────────────────────────

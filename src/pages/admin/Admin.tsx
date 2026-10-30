@@ -9,6 +9,7 @@ import { lazy } from "react";
 import { AdminFrame } from "./AdminFrame";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
+import { useOpenAlertCounts } from "@/components/admin/dashboard/useOpenAlertCounts";
 import type { Stats, DateRange } from "@/components/admin/dashboard/types";
 import { RANGE_PRESETS } from "@/components/admin/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -150,6 +151,7 @@ const Admin = () => {
   // (src/components/admin/adminRailBadges.ts). The SAME hook feeds the left
   // nav's red counts on every page and the Dashboard's Priority Alerts below.
   const pendingCounts = useAdminPendingCounts(!loading);
+  const openAlertCounts = useOpenAlertCounts(!loading);
   const openQueues = pendingCounts.data;
   const qc = useQueryClient();
 
@@ -532,6 +534,8 @@ const Admin = () => {
             disputedJobs: openQueues.disputes ?? 0,
             openReports: openQueues.reports ?? 0,
             supportTickets: openQueues.support ?? 0,
+            criticalAlerts: openAlertCounts.data?.critical ?? 0,
+            errorAlerts: openAlertCounts.data?.error ?? 0,
           }}
           statsLoading={statsLoading}
           onNavigate={handleViewChange}
@@ -541,7 +545,7 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
-          dataError={statsLoadError || unreadCountsError || pendingCounts.isError}
+          dataError={statsLoadError || unreadCountsError || pendingCounts.isError || openAlertCounts.isError}
         />
       );
     }

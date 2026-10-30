@@ -16,9 +16,11 @@ import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
+import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import {
   fetchItem,
   fetchItemDropState,
+  fetchItemHandovers,
   fetchManageState,
   fetchMyItemReview,
   fetchPhotos,
@@ -97,6 +99,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
     queryFn: () => fetchMyItemReview(itemId),
     enabled: isSeller && (item.data?.status === "rejected" || item.data?.status === "removed"),
   });
+  // Audit 1030 DB-4: the Pickup block says pickup only when the seller offers one (ItemPickupWays reads the same key).
+  const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId), enabled: validId });
+  const way = noDeliveryWay(ways.data);
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
@@ -219,11 +224,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
           </section>
 
           <section className="space-y-1" aria-labelledby="declutter-pickup">
-            <h2 id="declutter-pickup" className="text-base font-semibold">Pickup</h2>
+            <h2 id="declutter-pickup" className="text-base font-semibold">{way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2>
             {/* The miles sit once, under the title (board 4). */}
-            <p className="text-sm">Pickup in {it.area_label}</p>
+            <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
-            <ItemPickupTimes itemId={itemId} />
+            {way !== "none" && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>

@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
-import { buyNow, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
+import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
+import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { minOfferCents } from "@/lib/declutter/money";
@@ -155,6 +156,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   // (and keys) as Buying, so they are usually already in.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers, enabled: item.status === "live" });
+  // Audit 1030 DB-4: the plain total is said for a way the seller offers (the item page's ItemPickupWays reads the same key).
+  const ways = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
+  const way = noDeliveryWay(ways.data);
   const myHold = myHoldOn(cart.data, item.id);
   const myOffer = myOpenOfferOn(offers.data, item.id);
   // Smart offers (20261029162620): the seller turned offers off = Buy only. An open offer of the buyer's still shows.
@@ -339,7 +343,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               </div>
               {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
                   and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}
-              <p className="text-ds-12 text-muted-foreground">At most, with pickup. A price drop or more items from this seller makes it less.</p>
+              <p className="text-ds-12 text-muted-foreground">At most, {totalPhrase(way)}. A price drop or more items from this seller makes it less.</p>
             </dl>
           )}
           <p id="declutter-offer-help" className="text-xs text-muted-foreground">
@@ -410,8 +414,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         onReserve={() => buy.mutate()}
         onClose={() => setReserve(null)}
         onCheckout={() => { setReserve(null); navigate("/declutter?tab=buying"); }}
+        way={way}
       />
-      <OfferSentWhatNext cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
+      <OfferSentWhatNext way={way} cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );
 }

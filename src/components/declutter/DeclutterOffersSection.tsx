@@ -71,6 +71,8 @@ function OfferRow({ o }: { o: MyOffer }) {
   });
   const myTurn = o.status === "open" && o.awaiting === o.my_side;
   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents;
+  // D4-3: a seller's answer to the buyer's Wanted post (stored as a seller counter) is a reply, never "their counter".
+  const wantedReply = o.from_wanted === true && o.my_side === "buyer";
   // What accepting really sells for: least(offer, price now) (live declutter_respond_offer -> declutter_take_item).
   const takeCents = Math.min(o.amount_cents, o.current_price_cents);
   // Audit 1030 DB-4: the counter's plain total is said for a way the seller offers (the item page's read and key).
@@ -81,6 +83,7 @@ function OfferRow({ o }: { o: MyOffer }) {
     <li className="rounded-[20px] border border-border bg-card p-4 space-y-2.5" data-offer-row="">
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
+          {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
           <Link to={`/declutter/item/${o.item_id}`} className="text-ds-15 font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
           <p className="text-ds-13 text-muted-foreground">Price now {formatPrice(o.current_price_cents)}</p>
         </div>
@@ -88,7 +91,7 @@ function OfferRow({ o }: { o: MyOffer }) {
           {/* Spec v2 §1.1: amounts wear the money ink. */}
           <p className="text-ds-20 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</p>
           <p className="text-ds-12 text-muted-foreground">
-            {o.awaiting === o.my_side ? (o.my_side === "seller" ? "their offer" : "their counter") : o.my_side === "buyer" ? "your offer" : "your price"}
+            {o.awaiting === o.my_side ? (o.my_side === "seller" ? "their offer" : wantedReply ? "their price" : "their counter") : o.my_side === "buyer" ? "your offer" : "your price"}
           </p>
         </div>
       </div>
@@ -172,7 +175,7 @@ function OfferRow({ o }: { o: MyOffer }) {
           </div>
         </form>
       )}
-      {o.status === "open" && o.my_side === "buyer" && (
+      {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
         <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
           Take back my offer
         </button>

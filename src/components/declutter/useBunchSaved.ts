@@ -22,10 +22,10 @@ export interface BunchSnapshot {
 }
 
 const SAVE_DELAY_MS = 400;
-export const BUNCH_NOT_SAVED = "We couldn't save your work on this device, so keep this page open until you've listed your items.";
+const BUNCH_NOT_SAVED = "We couldn't save your work on this device, so keep this page open until you've listed your items.";
 
 /** Items and their photos, as saved; a photo no item holds becomes an item to name, so none is lost. */
-export function restoredItems(items: BunchItem[], photos: BunchPhoto[]): BunchItem[] {
+function restoredItems(items: BunchItem[], photos: BunchPhoto[]): BunchItem[] {
   const present = new Set(photos.map((p) => p.key));
   const kept = items
     .map((it) => ({ ...it, photoKeys: it.photoKeys.filter((k) => present.has(k)) }))

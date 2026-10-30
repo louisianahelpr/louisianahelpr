@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { Check, CheckSquare, ListFilter, Menu, Pin, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -73,7 +75,7 @@ export function InboxOptionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button aria-label="Conversation list options" className={triggerClassName}>
+        <button aria-label={t("chat.listOptions")} className={triggerClassName}>
           <Menu className={iconClassName} />
         </button>
       </DropdownMenuTrigger>
@@ -108,8 +110,8 @@ export function MessagesMoreMenu({
           type="button"
           // Owner 2026-10-21: a bare "…" read as nothing. A filter icon, a name that says what the menu holds
           // (Active / All, pinned, archived, recently deleted, select), and the same words as a tooltip.
-          aria-label="Inbox views and options"
-          title="Inbox views and options"
+          aria-label={t("chat.inboxOptions")}
+          title={t("chat.inboxOptions")}
           data-testid="messages-more"
           className={`btn-press relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDefaultFilter ? "text-muted-foreground" : "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]"}`}
         >

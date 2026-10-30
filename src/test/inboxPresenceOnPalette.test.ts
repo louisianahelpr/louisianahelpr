@@ -5,7 +5,7 @@
  *
  * @mutate src/components/messages/ConversationRow.tsx | olive presence dot.\n                        background: "hsl(var(--bark))", | olive presence dot.\n                        background: "hsl(var(--live))",
  * @mutate src/components/messages/ConversationRow.tsx | className="text-ds-11 font-sans font-semibold px-1.5 py-0.5 rounded-full shrink-0" | className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
- * @mutate src/components/RichMessageInput.tsx |               : "Message" |               : "Type a message…"
+ * @mutate src/components/RichMessageInput.tsx |               : t("chat.placeholder") |               : "Type a message…"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,6 +27,6 @@ describe("inbox presence and chips are on palette", () => {
     expect(row.slice(i, i + 300)).not.toMatch(/uppercase|text-ds-9/);
   });
   it("the composer placeholder is short", () => {
-    expect(read("src/components/RichMessageInput.tsx")).toMatch(/: "Message"/);
+    expect(read("src/components/RichMessageInput.tsx")).toMatch(/: t\("chat\.placeholder"\)/);
   });
 });

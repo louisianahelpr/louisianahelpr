@@ -381,6 +381,27 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_sources: {
+        Row: {
+          created_at: string
+          helpr_id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          helpr_id: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          helpr_id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cancellation_fee_transfers: {
         Row: {
           commission_percent: number

@@ -70,6 +70,19 @@ AS $function$
        )
   );
 $function$;
+-- display_name_for_viewer as in 20261021131322 (member_display_name simplified to "First L."; is_server_context false).
+CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE FUNCTION public.member_display_name(p_full_name text, p_fallback text DEFAULT 'A neighbor') RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN coalesce(btrim(p_full_name), '') = '' THEN p_fallback
+              WHEN position(' ' in btrim(p_full_name)) > 0 THEN split_part(btrim(p_full_name), ' ', 1) || ' ' || left(regexp_replace(btrim(p_full_name), '^.* ', ''), 1) || '.'
+              ELSE btrim(p_full_name) END $$;
+CREATE FUNCTION public.display_name_for_viewer(p_full_name text, p_owner_id uuid) RETURNS text LANGUAGE sql STABLE SET search_path = '' AS $$
+  SELECT CASE
+           WHEN p_owner_id IS NOT NULL AND p_owner_id = (SELECT auth.uid()) THEN p_full_name
+           WHEN (SELECT public.is_server_context()) THEN p_full_name
+           WHEN (SELECT auth.uid()) IS NOT NULL AND public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN p_full_name
+           ELSE public.member_display_name(p_full_name, NULL)
+         END $$;
 INSERT INTO auth.users VALUES ('${ADMIN}'),('${HELPR}'),('${HELPR2}'),('${BANNED}'),('${NEWBIE}'),('${VETERAN}'),('${TESTER}');
 INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');
 INSERT INTO public.profiles (user_id, full_name, ban_status, is_seed) VALUES

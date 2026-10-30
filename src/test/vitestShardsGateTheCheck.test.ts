@@ -24,7 +24,7 @@ const PAIRS = [
 ];
 // @mutate .github/workflows/vitest.yml |           test "$COV_SHARDS" = "success" |           true
 // @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4] |         shard: [1, 2, 3]
-// @mutate .github/workflows/vitest.yml |     needs: coverage-shard\n    if: ${{ always() }} |     needs: coverage-shard
+// @mutate .github/workflows/vitest.yml |     needs: coverage-shard\n    if: ${{ always() && github.event_name != 'merge_group' }} |     needs: coverage-shard
 describe("each sharded check passes only when every one of its shards passed", () => {
   const entries = Object.entries(wf.jobs);
   const shardJobs = entries.filter(([, j]) => (j.steps ?? []).some((s) => /vitest run[^\n]*--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.test(s.run ?? "")));

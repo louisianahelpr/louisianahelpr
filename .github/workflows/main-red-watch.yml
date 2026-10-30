@@ -33,6 +33,7 @@ on:
     workflows:
       - Branch prune
       - Bundle Size Check
+      - CodeQL
       - Supabase DB Deploy
       - Deploy iOS (TestFlight / App Store)
       - E2E happy-path smoke

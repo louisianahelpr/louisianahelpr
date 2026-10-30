@@ -16,8 +16,8 @@ on:
   workflow_run:
     workflows: ["Vitest", "Test", "E2E happy-path smoke", "Mobile viewport spot-check", "DB Smoke", "Supabase Migration Lint", "Migration Timestamp Guard"]
     types: [completed]
-  # ...and CodeQL, which is GitHub's default setup (no workflow file here); its
-  # check runs come from the github-advanced-security app (the job filters).
+  # ...and CodeQL, whose check runs come from the github-advanced-security app,
+  # not from a job in codeql.yml (the job filters).
   check_run:
     types: [completed]
   # A PR joined the queue, and every 10 minutes while land.sh waits on one:
@@ -33,7 +33,8 @@ jobs:
   advance:
     name: Advance the land queue
     # check_run fires for every check of every app; only CodeQL's matters here.
-    if: github.event_name != 'check_run' || github.event.check_run.app.slug == 'github-advanced-security'
+    # A merge queue run finishing moves nothing in this queue, so it starts no job.
+    if: (github.event_name != 'check_run' || github.event.check_run.app.slug == 'github-advanced-security') && github.event.workflow_run.event != 'merge_group'
     # One queue step at a time; a burst of events collapses into one pending
     # job. JOB level, after the `if` above (Q1674): at workflow level every
     # check_run event of every app joined the group and cancelled the pending

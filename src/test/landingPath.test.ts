@@ -43,8 +43,8 @@ const ROOT = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 
 // The required status checks on main (one copy: ./helpers/requiredChecks), and
-// the workflow each comes from. CodeQL is posted by GitHub's code scanning
-// default setup, not by a workflow file here.
+// the workflow each comes from. CodeQL is posted by the github-advanced-security
+// app from the analyses codeql.yml uploads, not by a job in that file.
 const REQUIRED_CHECKS: Record<string, string> = Object.fromEntries(WORKFLOW_CHECKS.map((c) => [c.name, c.workflow]));
 
 const COUNT_GUARDS = [
@@ -71,7 +71,7 @@ describe("landing path (Q44)", () => {
 
   it("names every required check and every count guard", () => {
     expect(ALL_REQUIRED.map((c) => c.name)).toEqual([...Object.keys(REQUIRED_CHECKS), "CodeQL"]);
-    expect(Object.keys(REQUIRED_CHECKS)).toHaveLength(4);
+    expect(Object.keys(REQUIRED_CHECKS)).toHaveLength(5);
     expect(COUNT_GUARDS).toHaveLength(5);
   });
 
@@ -170,12 +170,17 @@ describe("landing path (Q44)", () => {
       expect(trigger.test(f), `${f} triggers a needless build`).toBe(false);
   });
 
-  it("CodeQL comes from code scanning default setup, so no workflow file may compete with it", () => {
-    // An advanced codeql.yml cannot upload while default setup is on (the
-    // owner's louisianahelpr-patch-1 PR runs failed exactly so); a job named
-    // "CodeQL" would post a second check under the required name.
-    expect(existsSync(join(ROOT, ".github/workflows/codeql.yml"))).toBe(false);
+  it("CodeQL comes from codeql.yml's uploads, and no job there competes with the required name", () => {
+    // Advanced setup, because default setup has no merge_group trigger and the
+    // queue would wait on it. It cannot upload while default setup is on (the
+    // owner's louisianahelpr-patch-1 PR runs failed exactly so), so the lead
+    // turns default setup off as this lands; a job named "CodeQL" would post a
+    // second check under the required name.
+    expect(existsSync(join(ROOT, ".github/workflows/codeql.yml"))).toBe(true);
     expect(existsSync(join(ROOT, ".github/workflows/codeql.yaml"))).toBe(false);
+    const jobs = (parse(read(".github/workflows/codeql.yml")) as { jobs: Record<string, { name?: string }> }).jobs;
+    expect(Object.values(jobs).length).toBeGreaterThan(0);
+    for (const j of Object.values(jobs)) expect(j.name).not.toBe("CodeQL");
     for (const c of ALL_REQUIRED.filter((r) => r.workflow === null)) {
       expect(c.app, `${c.name} is posted by github-advanced-security`).toBe(57789);
     }

@@ -32,6 +32,7 @@ export const REQUIRED_ACTIVE = [
   "branch-prune.yml",
   "broken-links.yml",
   "code-scanning-alerts.yml",
+  "codeql.yml",
   "core-loop-canary.yml",
   "db-backup.yml",
   "db-drift-detect.yml",

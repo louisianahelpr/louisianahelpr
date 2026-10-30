@@ -61,15 +61,17 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export const PROTECTED = new Set(["main", "HEAD"]);
-export const PROTECTED_PREFIXES = ["land/"];
+export const PROTECTED_PREFIXES = ["land/", "gh-readonly-queue/"];
 export const MIN_AGE_HOURS = 24;
 export const STRANDED_AFTER_HOURS = 1;
 
 /**
  * A lane's claim marker on a queue item, never work to land (2026-10-12: the
  * old auto-land opened #2814 claim/Q1357, #2815 claim/Q1500, #2848, #2849).
+ * gh-readonly-queue/* is GitHub's merge queue, which makes and removes its own
+ * branches; pruning one would throw its PR out of the queue.
  */
-export const NEVER_STRANDED_PREFIXES = ["claim/"];
+export const NEVER_STRANDED_PREFIXES = ["claim/", "gh-readonly-queue/"];
 
 /**
  * The landing train's queue (lanes push ready/* and append it to

@@ -278,7 +278,7 @@ runs:
             exit 1
           fi
           if [ "$GH_TOKEN" = "$DEFAULT_TOKEN" ]; then
-            for wf in ${CHECK_WORKFLOWS:-test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml}; do
+            for wf in ${CHECK_WORKFLOWS:-test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml db-smoke.yml codeql.yml}; do
               gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
               echo "Dispatched $wf on $BRANCH (a github.token PR triggers no pull_request runs)."
             done

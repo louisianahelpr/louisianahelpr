@@ -15,6 +15,7 @@ import {
   bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
 import { useNotificationFeed } from "@/components/notificationPanel/notificationFeed";
+import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
 
 /**
  * Owns the Messages badge unread count for the bottom nav: the durable-cache
@@ -139,9 +140,14 @@ export function useNavUnreadCount(user: User | null | undefined) {
   // query overwrites this on success and also writes back to the cache so
   // the next session is up to date.
   const [unreadCount, setUnreadCount] = useState<number>(() => readCachedUnread(user?.id));
+  // On a launch into Declutter, blocks, unread messages and the bell's feed start
+  // after the page's own reads (the cached count above holds the badge until then;
+  // no Declutter screen reads the block list on the client); the realtime bindings
+  // open with their first load, so nothing that arrives in between is missed.
+  const chromeReadsMayStart = useChromeReadsMayStart();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !chromeReadsMayStart) return;
     const userId = user.id;
     let store = stores.get(userId);
     if (!store) {
@@ -159,7 +165,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
         if (stores.get(userId) === s) stores.delete(userId);
       }
     };
-  }, [user?.id]);
+  }, [user?.id, chromeReadsMayStart]);
 
   /** Set the count for every nav showing it (optimistic mark-all-read). */
   const setSharedCount = useCallback((n: number) => {
@@ -177,7 +183,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
   // and only once the feed has answered: before that the store holds nothing
   // for us, and a messages-only number would overwrite the correct sum the
   // push just put on the icon. So leave the icon alone until then.
-  useNotificationFeed(user?.id);
+  useNotificationFeed(chromeReadsMayStart ? user?.id : null);
   const bell = useSyncExternalStore(subscribeNotifications, getNotificationSnapshot, getNotificationServerSnapshot);
   const bellCounted = !!user && bell.userId === user.id && (bell.listLoaded || bell.unreadTotal !== null);
   const notificationsUnread = bellCounted ? bellUnreadCount(bell) : null;

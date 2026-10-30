@@ -1,22 +1,30 @@
 import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NeedsYouMount, { PAGE_READS_CAP_MS, PAGE_READS_QUIET_MS } from "./NeedsYouMount";
+import NeedsYouMount from "./NeedsYouMount";
+import {
+  __resetPageReadsWatch,
+  PAGE_READS_CAP_MS,
+  PAGE_READS_QUIET_MS,
+  startPageReadsWatch,
+} from "@/hooks/usePageReadsSettled";
 
 // @mutate src/components/NeedsYouMount.tsx | return usePageReadsSettled() ? <>{children}</> : null; | return <>{children}</>;
-// @mutate src/components/NeedsYouMount.tsx | const cap = setTimeout(() => setSettled(true), PAGE_READS_CAP_MS); | const cap = setTimeout(() => {}, PAGE_READS_CAP_MS);
-// @mutate src/components/NeedsYouMount.tsx | useState(() => window.location.pathname === "/home") | useState(() => false)
+// @mutate src/hooks/usePageReadsSettled.ts | const cap = setTimeout(settle, PAGE_READS_CAP_MS); | const cap = setTimeout(() => {}, PAGE_READS_CAP_MS);
+// @mutate src/hooks/usePageReadsSettled.ts | if (window.location.pathname === "/home") return; | // home waits too
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("./NeedsYouBridge", () => ({ default: () => <div>badge reads running</div> }));
 
 const client = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
-const mount = (qc: QueryClient) =>
-  render(
+const mount = (qc: QueryClient) => {
+  startPageReadsWatch(qc);
+  return render(
     <QueryClientProvider client={qc}>
       <NeedsYouMount />
     </QueryClientProvider>,
   );
+};
 /** Lets the lazy chunk's promise resolve under fake timers. */
 const flush = async (ms = 0) => {
   await act(async () => {
@@ -25,6 +33,7 @@ const flush = async (ms = 0) => {
 };
 
 beforeEach(() => {
+  __resetPageReadsWatch();
   vi.useFakeTimers();
   window.history.pushState({}, "", "/declutter");
 });

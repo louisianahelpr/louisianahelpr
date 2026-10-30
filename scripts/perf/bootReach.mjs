@@ -100,6 +100,9 @@ export function publicRoots(root) {
   return [path.join(root, "src/main.tsx"), ...roots];
 }
 
+/** A first screen whose code must not ride in signed-in-shared: see declutterOnly below. */
+const DECLUTTER_ROOT = "src/pages/declutter/DeclutterPage.tsx";
+
 /**
  * Components App.tsx mounts beside EVERY page, each a lazy chunk fetched once
  * the page has settled. scripts/check-deferred-vendors.mjs walks the same
@@ -129,7 +132,9 @@ export function firstScreenRoots(root) {
   for (const r of EVERY_PAGE_ROOTS) {
     if (!fs.existsSync(path.join(root, r))) throw new Error(`bootReach: EVERY_PAGE_ROOTS names ${r}, which does not exist. Fix the list.`);
   }
-  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
+  // /declutter starts its page through src/boot/declutterRoute.ts, a dynamic import
+  // the walk does not follow, so the page itself is named.
+  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, DECLUTTER_ROOT))];
 }
 
 /**
@@ -137,13 +142,21 @@ export function firstScreenRoots(root) {
  * `firstScreen` rides in `signed-in-shared`, `deep` in `signed-in-deep`.
  * Over-approximating the reach is harmless here too (a module stays in
  * signed-in-shared, as before).
+ *
+ * `declutterOnly` is the part of `firstScreen` only Declutter's page reaches. It
+ * gets its own chunk: when /declutter joined the first screens (2026-10-30, to
+ * start its page on the first round) these flipped out of signed-in-deep into
+ * signed-in-shared, and every other signed-in first screen then downloaded them
+ * (about 16 KB gz).
  */
 export function signedInSplit(root) {
   const { signedInOnly } = signedInOnlyModules(root);
   const reach = staticReach(root, firstScreenRoots(root));
   const firstScreen = new Set([...signedInOnly].filter((f) => reach.has(f)));
   const deep = new Set([...signedInOnly].filter((f) => !reach.has(f)));
-  return { signedInOnly, firstScreen, deep };
+  const others = staticReach(root, firstScreenRoots(root).filter((r) => !toPosix(r).endsWith(DECLUTTER_ROOT)));
+  const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f)));
+  return { signedInOnly, firstScreen, deep, declutterOnly };
 }
 
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */

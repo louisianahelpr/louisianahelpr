@@ -21,6 +21,7 @@ import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
+import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import {
   authPages,
@@ -137,9 +138,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // behind the static tiles beside it (375px, production build, 200ms/request).
   // Warming it here spends that round trip in the user's reading time instead
   // of on their tap. Deliberately a separate idle pass from the chunk warm
-  // above so a slow data fetch can never hold up the chunk prefetch.
+  // above so a slow data fetch can never hold up the chunk prefetch. It also
+  // waits for Declutter's own reads, which an idle callback alone did not.
+  const chromeReadsMayStart = useChromeReadsMayStart();
   useEffect(() => {
-    if (dockHidden || !user?.id) return;
+    if (dockHidden || !user?.id || !chromeReadsMayStart) return;
     const userId = user.id;
     const w = window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
@@ -154,7 +157,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // prefetchRoutesWhenIdle uses, held back until the current route settles.
     const t = window.setTimeout(run, 1500);
     return () => window.clearTimeout(t);
-  }, [dockHidden, user?.id, queryClient]);
+  }, [dockHidden, user?.id, queryClient, chromeReadsMayStart]);
 
   // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, so the
   // top bar's avatar (AppTopBar, pixelSize 72) paints from the memory cache in

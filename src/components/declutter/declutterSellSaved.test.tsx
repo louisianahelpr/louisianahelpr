@@ -34,6 +34,14 @@ vi.mock("idb-keyval", () => ({
   keys: async () => [...h.disk.keys()],
   createStore: () => ({}),
 }));
+// Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.
+vi.mock("@/lib/declutter/photos", async (orig) => ({
+  ...(await orig<object>()),
+  cleanListingPhoto: async (f: File) => {
+    if (f.name.startsWith("bad")) throw new (await import("@/lib/declutter/errors")).ListingPhotoError("We couldn't prepare this photo.");
+    return f;
+  },
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));

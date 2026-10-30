@@ -55,6 +55,14 @@ const aiAnswer = {
 
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
+// Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.
+vi.mock("@/lib/declutter/photos", async (orig) => ({
+  ...(await orig<object>()),
+  cleanListingPhoto: async (f: File) => {
+    if (f.name.startsWith("bad")) throw new (await import("@/lib/declutter/errors")).ListingPhotoError("We couldn't prepare this photo.");
+    return f;
+  },
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -311,6 +319,18 @@ describe("photo-first selling, one screen", () => {
       await screen.findByText(/1 photo didn't upload/);
       expect(screen.queryByRole("button", { name: /^Post with/ })).toBeNull();
     });
+  });
+
+  // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.
+  // @mutate src/components/declutter/useSellFlowState.ts |           await cleanListingPhoto(f);\n |           void cleanListingPhoto;\n
+  it("a photo this device can't prepare is said when it is added, by name, and isn't counted", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "bad.heic");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("1 of 12");
+    expect(document.querySelector("[data-photo-refused]")?.textContent).toMatch(/bad\.heic/);
+    expect(aiCalls).toEqual([["a.jpg"]]);
   });
 
   // Audit posting 1030 #5: a slow Post said only "Posting…".

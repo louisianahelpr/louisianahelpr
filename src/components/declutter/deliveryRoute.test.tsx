@@ -135,6 +135,22 @@ describe("My route", () => {
     await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });
 
+  it("audit 1c #1: days ahead, the server saying not handed over closes Picked up; after Handed over it opens and the note goes", async () => {
+    const ahead = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: ahead, handed_over_at: null })] };
+    const first = show();
+    const list = await screen.findByRole("list", { name: "Stops in order" });
+    // @mutate src/components/declutter/StopActions.tsx | disabled={pickedUp.isPending \|\| (opensAt !== null && stop.handed_over_at === null)} | disabled={pickedUp.isPending}
+    expect(within(list).getByLabelText(/Picked up: a photo of the item/)).toBeDisabled();
+    first.unmount();
+    state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: ahead, handed_over_at: new Date().toISOString() })] };
+    show();
+    const again = await screen.findByRole("list", { name: "Stops in order" });
+    // @mutate src/components/declutter/StopActions.tsx |     const opensAt = stop.handed_over_at ? null : pickupOpensAt(stop.slot_start); |     const opensAt = pickupOpensAt(stop.slot_start);
+    expect(within(again).getByLabelText(/Picked up: a photo of the item/)).toBeEnabled();
+    expect(within(again).queryByText(/You can mark it picked up from/)).toBeNull();
+  });
+
   it("audit 1c #1: a pickup stop days ahead says when Picked up opens; before 15 minutes past, no no-show", async () => {
     state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: new Date(Date.now() + 2 * 86_400_000).toISOString() })] };
     show();

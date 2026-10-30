@@ -7,9 +7,10 @@
  *   MUTANT=<name> node src/test/pglite/helprRouteSameSellerVisit.pglite.mjs  # a planted defect: must FAIL
  *
  * World: the REAL helpr_task_distance_m + helpr_route_leg_miles (newest definitions), the migration verbatim, and
- * helpr_tasks / declutter_orders with the columns the functions read. Stubbed, and said so: who may deliver
- * (helpr_task_assert_helpr: reads the test's current user), the feature switch, vehicle fit, blocks, Stripe mode, the
- * hold (a table of held orders) and the seller's times (a table of refused times).
+ * helpr_tasks / declutter_orders with the columns the functions read. Stubbed, and said so: auth.uid() and who may
+ * deliver (helpr_task_assert_helpr: the test's current user), the feature switch, vehicle fit, blocks, Stripe mode, the
+ * hold (a table of held orders), the seller's times (a table of refused times), and for helpr_my_route
+ * helpr_task_dropoff_shows_at (always shown) and helpr_task_items (none).
  */
 import os from "node:os";
 import { readFileSync, readdirSync } from "node:fs";
@@ -41,8 +42,16 @@ function newest(name, before = THIS) {
 const MUTANTS = {
   // A pickup whose Picked up is not open yet joins the visit anyway.
   window: ["AND (v_s->>'slot' IS NULL OR (v_s->>'slot')::timestamptz - interval '30 minutes' <= v_visit) THEN", "THEN"],
-  // Any pickup joins, wherever it is.
-  point: ["AND (v_s->>'lat')::numeric = v_lat AND (v_s->>'lng')::numeric = v_lng", ""],
+  // Any pickup from this seller joins, wherever it is.
+  point: ["           AND public.helpr_task_distance_m(v_lat, v_lng, (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) <= 50\n", ""],
+  // Only the exact same point joins (the accept card's 50 m would offer a time that still shows two stops).
+  exact: ["(v_s->>'lat')::numeric, (v_s->>'lng')::numeric) <= 50\n", "(v_s->>'lat')::numeric, (v_s->>'lng')::numeric) = 0\n"],
+  // The neighbour's pickup joins.
+  neighbour: ["           AND v_s->>'seller' = v_seller\n", ""],
+  // helpr_my_route does not tell the plan the seller, so nothing ever joins.
+  passes: ["        'seller', t.pickup_contact_id));", "        'nobody', t.pickup_contact_id));"],
+  // A handover to whoever had it before counts for this Helpr.
+  handed: ["WHEN p->>'kind' = 'pickup' AND t.handed_over_to = v_uid THEN t.handed_over_at END", "WHEN p->>'kind' = 'pickup' THEN t.handed_over_at END"],
   // A drop-off counts as the visit a pickup can join.
   kind: ["v_at_pickup := v_best->>'kind' = 'pickup';", "v_at_pickup := true;"],
   // A joined stop costs another stop.
@@ -76,11 +85,17 @@ await db.exec(`
   CREATE TABLE public.helpr_tasks (
     id uuid PRIMARY KEY, source_kind text NOT NULL DEFAULT 'declutter_delivery', source_id uuid, status text NOT NULL,
     size text NOT NULL DEFAULT 'small', pickup_lat numeric, pickup_lng numeric, customer_id uuid, pickup_contact_id uuid,
-    helpr_id uuid, open_until timestamptz, latest_pickup_at timestamptz, pickup_slot_start timestamptz);
+    helpr_id uuid, open_until timestamptz, latest_pickup_at timestamptz, pickup_slot_start timestamptz,
+    title text DEFAULT 'Item', pickup_area text, dropoff_area text, pickup_address text DEFAULT 'A St', dropoff_address text DEFAULT 'B St',
+    dropoff_lat numeric DEFAULT 30.46, dropoff_lng numeric DEFAULT -91.18, handed_over_at timestamptz, handed_over_to uuid);
   CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, paid_at timestamptz);
   CREATE TABLE public.test_held (order_id uuid PRIMARY KEY);
   CREATE TABLE public.test_refused_slots (at timestamptz PRIMARY KEY);
   CREATE TABLE public.test_me (id uuid);
+  CREATE SCHEMA auth;
+  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $f$ SELECT id FROM public.test_me $f$;
+  CREATE FUNCTION public.helpr_task_dropoff_shows_at(uuid, text, timestamptz) RETURNS timestamptz LANGUAGE sql STABLE AS $f$ SELECT '-infinity'::timestamptz $f$;
+  CREATE FUNCTION public.helpr_task_items(text, uuid) RETURNS jsonb LANGUAGE sql STABLE AS $f$ SELECT '[]'::jsonb $f$;
   CREATE FUNCTION public.helpr_task_source_require_feature(text) RETURNS void LANGUAGE sql AS $f$ SELECT $f$;
   CREATE FUNCTION public.helpr_task_assert_helpr() RETURNS uuid LANGUAGE sql STABLE AS $f$ SELECT id FROM public.test_me $f$;
   CREATE FUNCTION public.helpr_task_vehicle_fits(uuid, text) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;
@@ -94,6 +109,7 @@ await db.exec(`
 await db.exec(newest("helpr_task_distance_m"));
 await db.exec(newest("helpr_route_leg_miles"));
 await db.exec(newest("helpr_route_plan")); // The plan before this migration: what NEW_MIGRATION=skip tests.
+await db.exec(newest("helpr_my_route"));
 if (!SKIP) for (let i = 0; i < 3; i++) await db.exec(sql);
 
 let failed = 0;
@@ -107,7 +123,7 @@ const NOW = "2026-11-02T13:00:00Z";
 const AT = (hhmm) => `2026-11-02T${hhmm}:00Z`;
 const SELLER = { lat: 30.45, lng: -91.18 };
 const NEAR = { lat: 30.46, lng: -91.18 }; // A drop-off close by, so the old plan stops there between two pickups.
-const pick = (k, slot, p = SELLER) => ({ key: `p${k}`, task: k, kind: "pickup", ...p, slot });
+const pick = (k, slot, p = SELLER, seller = "s1") => ({ key: `p${k}`, task: k, kind: "pickup", ...p, slot, ...(seller ? { seller } : {}) });
 const drop = (k, p = NEAR) => ({ key: `d${k}`, task: k, kind: "dropoff", ...p, slot: null });
 async function plan(stops, from = SELLER) {
   const r = await db.query(`SELECT public.helpr_route_plan($1::jsonb, $2, $3, $4::timestamptz) AS p`, [JSON.stringify(stops), from?.lat ?? null, from?.lng ?? null, NOW]);
@@ -138,10 +154,22 @@ check(new Date(pb.arrive_at).getTime() === Date.parse(AT("16:00")), `[window] an
 
 const another = { lat: 30.5, lng: -91.1 };
 const elsewhere = await plan([pick("a", AT("14:00")), pick("b", AT("14:00"), another), drop("a"), drop("b")]);
-check(new Set(elsewhere.stops.map((s) => s.seq)).size === 4, `[point] another address never joins (${seqs(elsewhere)})`);
+check(new Set(elsewhere.stops.map((s) => s.seq)).size === 4, `[point] the same seller's other address never joins (${seqs(elsewhere)})`);
+
+// The accept card's own rule: the same seller within 50 m. About 11 m per 0.0001 degree of latitude.
+const m10 = { lat: 30.4501, lng: -91.18 };
+const m70 = { lat: 30.4506, lng: -91.18 };
+const near10 = await plan([pick("a", AT("14:00")), pick("b", AT("14:00"), m10), drop("a"), drop("b")]);
+check(near10.stops[0].seq === near10.stops[1].seq && near10.stops[1].kind === "pickup", `[50m] the same seller 11 m away joins, as the accept card offers (${seqs(near10)})`);
+const near70 = await plan([pick("a", AT("14:00")), pick("b", AT("14:00"), m70), drop("a"), drop("b")]);
+check(near70.stops[0].seq !== near70.stops.find((s) => s.key === "pb").seq, `[50m] the same seller 67 m away stays its own stop (${seqs(near70)})`);
+const neighbour = await plan([pick("a", AT("14:00")), pick("b", AT("14:00"), SELLER, "s2"), drop("a"), drop("b")]);
+check(neighbour.stops[0].seq !== neighbour.stops.find((s) => s.key === "pb").seq, `[seller] another seller at the same point never joins (${seqs(neighbour)})`);
+const anon = await plan([pick("a", AT("14:00"), SELLER, null), pick("b", AT("14:00"), SELLER, null), drop("a"), drop("b")]);
+check(anon.stops[0].seq !== anon.stops.find((s) => s.key === "pb").seq, `[seller] stops with no seller (helpr_route_suggestions) never join: that plan is as it was (${seqs(anon)})`);
 
 // A drop-off at the seller's point is no pickup visit: a pickup there starts its own.
-const afterDrop = await plan([{ ...drop("z", SELLER) }, pick("b", null)], another);
+const afterDrop = await plan([{ ...drop("z", SELLER), seller: "s1" }, pick("b", null)], another);
 check(afterDrop.stops[0].seq !== afterDrop.stops[1].seq, `[kind] a drop-off is not a visit a pickup joins (${seqs(afterDrop)})`);
 
 const noSlot = await plan([pick("a", AT("13:10")), pick("b", null), drop("a"), drop("b")], SELLER);
@@ -153,10 +181,35 @@ for (const p of [repro, later, sameTime, elsewhere]) {
   check(new Set(keys).size === keys.length && keys.indexOf("da") > keys.indexOf("pa") && keys.indexOf("db") > keys.indexOf("pb"), `[order] every stop once, each pickup first (${keys.join()})`);
 }
 
+const U = (n) => `00000000-0000-0000-0000-00000000000${n}`;
+const ME = U(1); const OTHER = U(2); const SELLER_A = U(3); const SELLER_B = U(4); const BUYER = U(5);
+
+// helpr_my_route, end to end: the seller reaches the plan, and never the screen.
+{
+  await db.query(`INSERT INTO public.test_me VALUES ($1)`, [ME]);
+  const R = (n) => `30000000-0000-0000-0000-00000000000${n}`;
+  const soon = new Date(Date.now() + 2 * 86_400_000).toISOString();
+  const add = (id, o) => db.query(
+    `INSERT INTO public.helpr_tasks (id, status, pickup_lat, pickup_lng, customer_id, pickup_contact_id, helpr_id, pickup_slot_start, handed_over_at, handed_over_to)
+     VALUES ($1, 'accepted', $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [id, o.lat ?? SELLER.lat, o.lng ?? SELLER.lng, BUYER, o.seller ?? SELLER_A, ME, soon, o.handed ?? null, o.handedTo ?? null]);
+  await add(R(1), { handed: new Date().toISOString(), handedTo: ME });
+  await add(R(2), { lat: 30.4501, handed: new Date().toISOString(), handedTo: OTHER });
+  await add(R(3), { seller: SELLER_B });
+  const route = (await db.query(`SELECT public.helpr_my_route(NULL, NULL) AS r`)).rows[0].r;
+  const stop = (id) => route.stops.find((s) => s.task_id === id && s.kind === "pickup");
+  check(stop(R(1)).seq === stop(R(2)).seq, "[route] two deliveries from one seller, 11 m apart: one visit");
+  check(stop(R(3)).seq !== stop(R(1)).seq, "[route] another seller at the same point: its own stop");
+  check(route.stops.every((s) => !("seller" in s) && !("pickup_contact_id" in s)), "[route] no seller id reaches the Helpr's screen");
+  check(!SKIP ? stop(R(1)).handed_over_at !== null && stop(R(1)).handed_over_at !== undefined : false, "[route] handed over to me: the stop says when");
+  check(stop(R(2)).handed_over_at === null, "[route] handed over to someone else (before a reopen): not for me");
+  check(!SKIP ? route.stops.filter((s) => s.kind === "dropoff").every((s) => s.handed_over_at === null) : false, "[route] a drop-off stop has none");
+  await db.query(`DELETE FROM public.helpr_tasks`);
+  await db.query(`DELETE FROM public.test_me`);
+}
+
 // helpr_task_same_pickup_slot.
 if (!SKIP) {
-  const U = (n) => `00000000-0000-0000-0000-00000000000${n}`;
-  const ME = U(1); const OTHER = U(2); const SELLER_A = U(3); const SELLER_B = U(4); const BUYER = U(5);
   const task = async (id, o) => db.query(
     `INSERT INTO public.helpr_tasks (id, source_id, status, pickup_lat, pickup_lng, customer_id, pickup_contact_id, helpr_id, open_until, latest_pickup_at, pickup_slot_start)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now() + interval '1 day', now() + interval '6 days', $9)`,

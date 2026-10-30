@@ -12,7 +12,7 @@
  *
  * @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql |      AND (t.pickup_slot_start IS NULL OR now() < t.pickup_slot_start - interval '30 minutes') THEN |      AND false THEN
  * @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql |   IF t.pickup_contact_id IS DISTINCT FROM v_uid THEN |   IF v_uid IS NULL THEN
- * @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql |               AND NOT (x.status = 'accepted' AND public.helpr_task_source_held(x.source_kind, x.source_id)) |               AND true
+ * @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |               AND NOT (x.status = 'accepted' AND public.helpr_task_source_held(x.source_kind, x.source_id)) |               AND true
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

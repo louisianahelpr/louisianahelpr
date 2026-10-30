@@ -12,6 +12,11 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
+import { buildImageUrl } from "@/lib/imageUrl";
+
+/** CSS width asked of the image edge: 828 px at 2x, a full-width phone photo. */
+const GALLERY_PHOTO_WIDTH = 414;
+const FIRST_PHOTO: Record<string, string> = { fetchpriority: "high" };
 
 const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
 // Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
@@ -63,12 +68,23 @@ export function DeclutterGallery({ urls, category, title, icon, shape = "item" }
               aria-label={`Open photo ${i + 1} of ${urls.length} full screen`}
               onClick={() => setOpen(i)}
             >
+              {/* The page's largest paint: a phone-sized copy, not the full upload (1.3 MB measured on prod). The full-screen
+                  view keeps the original; if the small copy fails, the original is tried before the empty box. */}
               <FallbackImg
-                src={url}
+                src={buildImageUrl(url, { width: GALLERY_PHOTO_WIDTH })}
                 alt={`Photo ${i + 1} of ${urls.length}`}
                 loading={i === 0 ? "eager" : "lazy"}
+                {...(i === 0 ? FIRST_PHOTO : {})}
                 className="h-full w-full object-cover"
-                fallback={<span aria-hidden className="block h-full w-full bg-photo-empty" />}
+                fallback={
+                  <FallbackImg
+                    src={url}
+                    alt={`Photo ${i + 1} of ${urls.length}`}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    fallback={<span aria-hidden className="block h-full w-full bg-photo-empty" />}
+                  />
+                }
               />
             </button>
           ))}

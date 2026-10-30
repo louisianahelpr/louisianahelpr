@@ -472,7 +472,7 @@ describe("Declutter location ask", () => {
   });
 
   it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {
-    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoPath && !photoFailed && ( |         {photoPath && (
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoSrc && ( |         {photoPath && (
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />\n |
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {

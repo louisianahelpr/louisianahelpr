@@ -42,6 +42,8 @@ const state = {
   problems: [] as unknown[],
   /** D2-7: whether the server takes problem photos (problemPhotos.ts; off until it does). */
   problemPhotos: false,
+  /** DB-12: the order's newest problem as declutter_order_problem returns it (decision once decided). */
+  orderProblem: null as Record<string, unknown> | null,
 };
 vi.mock("@/lib/declutter/problemPhotos", () => ({
   PROBLEM_PHOTO_MAX: 3,
@@ -71,6 +73,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
   fetchOpenProblems: async () => state.problems,
+  fetchOrderProblem: async () => state.orderProblem,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, ...state.handover }),
   handoverPhotoUrl: async (path: string) => `https://signed.test/${path}`,
   fetchOrderPickupWindows: async () => state.windows,
@@ -435,6 +438,25 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(state.calls).toContainEqual(["problem_photo", "o1", "crack.jpg"]);
     state.problemPhotos = false;
     state.features = [];
+  });
+
+  // Audit 1030 DB-12: after Louisiana Helpr paid the seller, the card said only "Handed over."; it now says what was
+  // decided (declutter_order_problem's decision, 20261030080104), on the card itself, not only in a notice.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}\n |
+  it("DB-12: a sale Louisiana Helpr decided says what it decided on the card, for each side", async () => {
+    state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
+    state.problems = [];
+    state.orderProblem = { id: "p1", reporter_side: "buyer", reason: "damaged", note: "Cracked.", photo_paths: [], status: "decided",
+      created_at: "2026-10-20T14:00:00Z", decision: "pay_seller", decided_at: "2026-10-20T15:00:00Z" };
+    const buyer = show([line({ order_status: "handed_over", handover: "seller_delivery" })]);
+    expect((await buyer.findByText("Louisiana Helpr decided:")).closest("p")?.textContent)
+      .toBe("Louisiana Helpr decided: The seller keeps the payment, and the sale is final.");
+    buyer.unmount();
+    const seller = show([line({ order_status: "handed_over", handover: "seller_delivery", my_side: "seller" })]);
+    expect((await seller.findByText("Louisiana Helpr decided:")).closest("p")?.textContent).toBe("Louisiana Helpr decided: You keep the payment.");
+    seller.unmount();
+    state.orderProblem = null;
+    state.handover = null;
   });
 
   it("after handover: the seller sees the payout (minus a fee debt) and both can review (rows 45, 93)", async () => {

@@ -36,6 +36,12 @@ export const BUNDLE_RPC_ERROR_COPY = {
   declutter_bundle_preview: {
     not_authenticated: DC.not_authenticated,
   },
+  // D-NEW12 (20261030135334): which sellers on a Browse page have a bundle discount ("Bundle deal" chip).
+  declutter_bundle_sellers: {
+    feature_disabled: DC.feature_disabled,
+    invalid_request: "Ask about at most 200 sellers at a time.",
+    not_authenticated: DC.not_authenticated,
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type BundleRpc = keyof typeof BUNDLE_RPC_ERROR_COPY;

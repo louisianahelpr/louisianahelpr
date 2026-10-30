@@ -483,6 +483,7 @@
     "declutter_bundle_rule(uuid)": "client",
     "declutter_bundle_preview(uuid)": "client",
     "declutter_bundle_applies(uuid[])": "client",
+    "declutter_bundle_sellers(uuid[])": "client",
     "declutter_my_paid_cents(uuid[])": "client",
     "declutter_set_offer_rules(uuid, boolean, boolean)": "client",
     "declutter_porch_days(uuid)": "client",

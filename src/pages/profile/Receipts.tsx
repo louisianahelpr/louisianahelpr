@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -13,6 +15,7 @@ import { rowMs as spentRowMs } from "@/components/profile/earningsTab/SpentSecti
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useFeesOwed } from "@/components/money/payoutProblems";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { fetchMyCart } from "@/lib/declutter/api";
 
 /**
  * Board 177, RECEIPTS, FEES OWED, TAX FORMS (You → Money → Receipts).
@@ -23,6 +26,11 @@ import { TAB_TITLES } from "@/pages/profile/types";
  * payout runs take (useFeesOwed, the same read as the Money tab's line). The
  * tax row says only what is true: Stripe issues a 1099-K in January to anyone
  * who passes the federal threshold; nothing is generated here.
+ *
+ * Audit 2026-10-30 DB-13: a Declutter receipt said only "Declutter purchase" and a total, and did nothing when
+ * tapped. It now names the items (from declutter_my_cart, the order card's own read, which keeps 30 days; an older
+ * order keeps the plain title) and opens to its lines: items, delivery, tax, the total, and the service fee in
+ * words only (owner 2026-10-25: members never see a fee name or number), with a way to the order.
  */
 
 interface Receipt {
@@ -32,6 +40,10 @@ interface Receipt {
   /** null: no figure (a refunded order). */
   cents: number | null;
   note: string;
+  /** A Declutter order's lines (what the order row holds), shown when the receipt is opened. */
+  lines?: { label: string; cents: number }[];
+  /** The total holds more than the lines (the buyer's service fee), said in words only. */
+  feeWords?: boolean;
 }
 
 /** A Declutter order this member paid for (RLS: the two sides read). */
@@ -40,20 +52,51 @@ export interface PaidOrderRow {
   status: string;
   total_cents: number;
   paid_at: string | null;
+  /** The items after any bundle discount, and the delivery, shipping and tax the order froze (absent in older reads). */
+  items_cents?: number | null;
+  delivery_cents?: number | null;
+  shipping_cents?: number | null;
+  tax_cents?: number | null;
 }
 
-export function orderReceipts(orders: readonly PaidOrderRow[]): Receipt[] {
+/** "Blue mug", "Blue mug and 1 more", or the plain title when the items aren't known. */
+function itemsTitle(titles: readonly string[] | undefined): string {
+  if (!titles?.length) return "Declutter purchase";
+  return titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
+}
+
+export function orderReceipts(orders: readonly PaidOrderRow[], titles: ReadonlyMap<string, string[]> = new Map()): Receipt[] {
   return orders
     .filter((o) => o.paid_at && (o.status === "paid" || o.status === "handed_over" || o.status === "refunded"))
-    .map((o) => ({
-      key: `order-${o.id}`,
-      title: "Declutter purchase",
-      ms: Date.parse(o.paid_at!),
-      // A refund returns the order less the card fee Stripe keeps, so a refunded
-      // order shows "Refunded", not a total that no longer left the card.
-      cents: o.status === "refunded" ? null : o.total_cents,
-      note: o.status === "refunded" ? " · Refunded" : "",
-    }));
+    .map((o) => {
+      const lines = [
+        { label: "Items", cents: o.items_cents ?? 0 },
+        { label: "Delivery", cents: o.delivery_cents ?? 0 },
+        { label: "Shipping", cents: o.shipping_cents ?? 0 },
+        { label: "Tax", cents: o.tax_cents ?? 0 },
+      ].filter((l) => l.cents > 0);
+      return {
+        key: `order-${o.id}`,
+        title: itemsTitle(titles.get(o.id)),
+        ms: Date.parse(o.paid_at!),
+        // A refund returns the order less the card fee Stripe keeps, so a refunded
+        // order shows "Refunded", not a total that no longer left the card.
+        cents: o.status === "refunded" ? null : o.total_cents,
+        note: o.status === "refunded" ? " · Refunded" : "",
+        lines,
+        feeWords: o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0),
+      };
+    });
+}
+
+/** The item titles of each order this member bought (the order card's read; lines the buyer sees). */
+function titlesByOrder(lines: readonly { order_id: string | null; item_title: string; my_side: string }[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const l of lines) {
+    if (!l.order_id || l.my_side !== "buyer") continue;
+    out.set(l.order_id, [...(out.get(l.order_id) ?? []), l.item_title]);
+  }
+  return out;
 }
 
 const card = "rounded-2xl liquid-glass";
@@ -74,12 +117,15 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       (unwrap(
         await supabase
           .from("declutter_orders")
-          .select("id, status, total_cents, paid_at")
+          .select("id, status, total_cents, paid_at, items_cents, delivery_cents, shipping_cents, tax_cents")
           .eq("buyer_id", uid!)
           .not("paid_at", "is", null),
       ) ?? []) as PaidOrderRow[],
   });
   const owed = useFeesOwed();
+  // The names only: a failed read keeps the plain title, it never hides a receipt.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!uid, staleTime: 60_000 });
+  const [open, setOpen] = useState<string | null>(null);
 
   const loading = spend.isLoading || orders.isLoading;
   const failed = spend.isError || orders.isError;
@@ -98,7 +144,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       });
     }
   }
-  receipts.push(...orderReceipts(orders.data ?? []));
+  receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? [])));
   receipts.sort((a, b) => b.ms - a.ms);
 
   const year = new Date().getFullYear();
@@ -120,15 +166,41 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
           <p className="text-ds-13 px-1" style={quiet}>Nothing paid by card yet. Jobs and Declutter buys you pay for show here.</p>
         ) : (
           <ul data-receipts="" className={`${card} px-4 divide-y`} style={{ borderColor: "hsl(var(--border))" }}>
-            {receipts.map((r) => (
-              <li key={r.key} className="py-3 flex items-center justify-between gap-3">
-                <span className="min-w-0">
-                  <span className="block text-ds-14 font-semibold truncate" style={ink}>{r.title}</span>
-                  <span className="block text-ds-12 mt-0.5" style={quiet}>{r.ms ? formatShortDate(new Date(r.ms)) : ""}{r.note}</span>
-                </span>
-                <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{r.cents == null ? "Refunded" : formatCents(r.cents)}</span>
-              </li>
-            ))}
+            {receipts.map((r) => {
+              const row = (
+                <>
+                  <span className="min-w-0">
+                    <span className="block text-ds-14 font-semibold truncate" style={ink}>{r.title}</span>
+                    <span className="block text-ds-12 mt-0.5" style={quiet}>{r.ms ? formatShortDate(new Date(r.ms)) : ""}{r.note}</span>
+                  </span>
+                  <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{r.cents == null ? "Refunded" : formatCents(r.cents)}</span>
+                </>
+              );
+              if (!r.lines) return <li key={r.key} className="py-3 flex items-center justify-between gap-3">{row}</li>;
+              const shown = open === r.key;
+              return (
+                <li key={r.key} className="py-3">
+                  <button type="button" className="flex w-full min-h-11 items-center justify-between gap-3 text-left" aria-expanded={shown}
+                    onClick={() => setOpen(shown ? null : r.key)} data-receipt-toggle="">
+                    {row}
+                  </button>
+                  {shown && (
+                    <div className="mt-2 space-y-1.5 text-ds-13" data-receipt-detail="">
+                      <dl className="space-y-1">
+                        {r.lines.map((l) => (
+                          <div key={l.label} className="flex justify-between gap-3"><dt style={quiet}>{l.label}</dt><dd className="tabular-nums" style={ink}>{formatCents(l.cents)}</dd></div>
+                        ))}
+                        {r.cents != null && (
+                          <div className="flex justify-between gap-3 font-semibold"><dt style={ink}>Total</dt><dd className="tabular-nums" style={ink}>{formatCents(r.cents)}</dd></div>
+                        )}
+                      </dl>
+                      {r.feeWords && <p className="text-ds-12" style={quiet}>Includes a small Louisiana Helpr service fee.</p>}
+                      <Link to="/declutter?view=buying" className="link-standard text-ds-13 font-medium">See the order</Link>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 

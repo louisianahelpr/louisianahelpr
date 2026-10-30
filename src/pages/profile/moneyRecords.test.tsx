@@ -14,7 +14,7 @@
  * @mutate src/pages/profile/PayoutHistory.tsx | {data.bank_last4 ? `To bank ending ${data.bank_last4}` : "To your bank"} | {"To your bank"}
  * @mutate src/pages/profile/Receipts.tsx |     .filter((o) => o.paid_at && (o.status === "paid" \|\| o.status === "handed_over" \|\| o.status === "refunded")) |     .filter((o) => !!o.paid_at)
  * @mutate src/pages/profile/Receipts.tsx |           .eq("buyer_id", uid!) |           .eq("seller_id", uid!)
- * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [])); |
+ * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []))); |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -45,7 +45,8 @@ function builder(table: string) {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (t: string) => builder(t),
-    rpc: () => Promise.resolve({ data: [], error: null }),
+    // DB-13: declutter_my_cart gives a receipt its item names (the order card's read).
+    rpc: (fn: string) => Promise.resolve({ data: fn === "declutter_my_cart" ? (tables.my_cart ?? []) : [], error: null }),
     functions: {
       invoke: (_fn: string, opts: { body: Record<string, unknown> }) => {
         invokes.push(opts.body);
@@ -153,6 +154,30 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(text()).toContain("Taken from your next payout");
     expect(text()).toContain("$3.10");
     expect(text()).toContain("Available in January if you qualify");
+  });
+
+  // Audit 2026-10-30 DB-13: the receipt was bare ("Declutter purchase" and a total) and did nothing when tapped.
+  // @mutate src/pages/profile/Receipts.tsx |         title: itemsTitle(titles.get(o.id)), |         title: "Declutter purchase",
+  // @mutate src/pages/profile/Receipts.tsx |               if (!r.lines) return | if (true) return
+  // @mutate src/pages/profile/Receipts.tsx |         feeWords: o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0), |         feeWords: false,
+  it("DB-13: a Declutter receipt names its items and opens to its lines, the total, the fee in words and the order", async () => {
+    tables.declutter_orders = [{ id: "o1", status: "handed_over", total_cents: 3540, paid_at: "2026-10-05T12:00:00Z",
+      items_cents: 2200, delivery_cents: 800, shipping_cents: 0, tax_cents: 0 }];
+    tables.my_cart = [
+      { line_id: "l1", order_id: "o1", item_title: "Blue mug", my_side: "buyer" },
+      { line_id: "l2", order_id: "o1", item_title: "Green vase", my_side: "buyer" },
+      { line_id: "l3", order_id: "o9", item_title: "Someone else's sale", my_side: "seller" },
+    ];
+    renderAt(<Receipts />, "?tab=receipts");
+    const toggle = await screen.findByRole("button", { name: /Blue mug and 1 more/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(document.querySelector("[data-receipt-detail]")).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const detail = document.querySelector("[data-receipt-detail]")!;
+    expect(detail.textContent).toBe("Items$22.00Delivery$8.00Total$35.40Includes a small Louisiana Helpr service fee.See the order");
+    expect(screen.getByRole("link", { name: "See the order" })).toHaveAttribute("href", "/declutter?view=buying");
+    expect(text()).not.toContain("Someone else's sale");
   });
 
   it("an order counts only once it was paid (paid, handed over, or refunded and said so)", () => {

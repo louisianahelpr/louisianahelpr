@@ -31,6 +31,7 @@ import {
   fetchItemHandovers,
   setHandovers,
   setKeepUp,
+  setAutoFreeDays,
   type SellerHandover,
   requestAiCheck,
   requestAiDraft,
@@ -162,6 +163,8 @@ export function useSellFlowState(urlItemId: string | null) {
   const keepUp = useKeepUp(urlItemId);
   // A new listing's "Keep it up until it sells": there is no draft to save it on until Post.
   const [keepUpWanted, setKeepUpWanted] = useState(false);
+  // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
+  const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   async function saveDetails(): Promise<string | null> {
@@ -293,6 +296,14 @@ export function useSellFlowState(urlItemId: string | null) {
           toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
         }
       }
+      // The same for "make it free after __ days": a free listing has nothing to choose.
+      if (!urlItemId && autoFreeWanted !== null && !form.free) {
+        try {
+          await setAutoFreeDays(id, autoFreeWanted);
+        } catch (err) {
+          toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
+        }
+      }
       await setPickupWindows(windows);
       await attestItem(id);
       try {
@@ -318,7 +329,7 @@ export function useSellFlowState(urlItemId: string | null) {
   return {
     user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
-    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, photoCount, photoTotal, priceCents,
+    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish,
   };
 }

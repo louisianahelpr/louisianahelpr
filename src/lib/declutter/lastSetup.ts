@@ -7,8 +7,8 @@
  * point (declutter_seller_item_private, the seller's own row only), and the price-drop step
  * (drop_pct; 0 = drops off). What is already per SELLER, and so needs nothing here: the pickup times
  * (declutter_pickup_windows, keyed by seller_id, loaded by the sell form) and porch days (read from
- * those windows). "Free on day 12" is per listing but the sell form has no control for it (Manage
- * listing only), so it is not copied: the seller would have no way to see or change it here.
+ * those windows). "Make it free after __ days" is per listing and NOT copied: every new listing starts at
+ * Never (OWN-FREE, lead 2026-10-30), and the sell form shows the choice.
  *
  * Reads only; nothing is saved until the seller saves the listing.
  */

@@ -2,7 +2,7 @@
  * "Keep it up until it sells" (owner 2026-10-29, pop-up answer: a seller switch, off by default). With it on, the
  * hourly listing-rounds sweep renews the listing every 30 days with no cap and sends no "ends soon" or "back up"
  * notices; off, the normal rule (LISTING_LIFETIME) runs. Server: migration 20261029154323 (declutter_set_keep_up /
- * declutter_keep_up_state). Shown in Manage listing (next to "Free on day 12") and on the sell flow's last step,
+ * declutter_keep_up_state). Shown in Manage listing (next to "make it free after __ days") and on the sell flow's last step,
  * where the listing is already a saved draft. Hidden until the migration is on prod (PGRST202 -> "not_deployed").
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

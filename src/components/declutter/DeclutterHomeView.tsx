@@ -6,7 +6,7 @@
  * filter in the slide-up sheet, area + miles only: rows 5, 27) · Buying (cart, your offers,
  * purchases) · Selling (your listings with every status in plain words, incl.
  * waiting for a review: row 33; offers on your items; sales waiting to be paid;
- * paid sales and payouts) · Wanted · Deliver. Old links (?view=mine|offers|cart)
+ * paid sales and payouts) · Deliver · Wanted · Free (the live free items nearby, OWN-FREE). Old links (?view=mine|offers|cart)
  * open the tab that now holds them. Hidden unless the 'declutter' switch is on
  * for the member (DeclutterGate).
  */
@@ -65,6 +65,7 @@ import {
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
 import { WantedView } from "./DeclutterWantedViews";
+import { FreeView } from "./DeclutterFreeView";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
 import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
@@ -433,8 +434,10 @@ function MovingOutEntry({ on }: { on: boolean }) {
 }
 
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
-// The Wanted tab, last (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
-const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted"] as const;
+// The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
+// The Free tab, last, next to Wanted (OWN-FREE, owner via the lead 2026-10-30): for everyone, as the Free section is.
+const MINE_TABS_FREE = [...MINE_TABS, "free"] as const;
+const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted", "free"] as const;
 
 /**
  * Five tabs do not fit one line at 375 (Browse's count and two badges): the row scrolls sideways (SectionTabs'
@@ -474,7 +477,7 @@ export default function DeclutterHome() {
   const { todo, settled: todoSettled } = useDeclutterTodo();
   const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled);
   const wantedOn = wanted.on;
-  const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS);
+  const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS_FREE);
   const asked = params.get("view");
   const legacy = OLD_DECLUTTER_VIEWS.includes(asked as OldDeclutterView) ? (asked as OldDeclutterView) : null;
   // ?view= is the pre-2026-10-19 address (still in sent notifications and
@@ -523,6 +526,7 @@ export default function DeclutterHome() {
         { value: "selling", label: "Selling", count: todo?.selling },
         { value: "deliver", label: "Deliver" },
         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
+        { value: "free", label: "Free" },
       ]}
     />
     </div>
@@ -541,7 +545,8 @@ export default function DeclutterHome() {
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
-              : <WantedView />}
+              : view === "free" ? <FreeView userId={user.id} />
+                : <WantedView />}
     </SectionScreen>
   );
 }

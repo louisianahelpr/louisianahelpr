@@ -267,12 +267,13 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     where = "";
   });
 
-  it("owner 10-19 + 10-28: Browse | Buying | Selling | Deliver | Wanted, one word each, Browse leftmost and the default", async () => {
+  it("owner 10-19 + 10-28 + 10-30: Browse | Buying | Selling | Deliver | Wanted | Free, one word each, Browse leftmost and the default", async () => {
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     const tabs = screen.getAllByRole("tab");
-    // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling); Wanted last (owner 2026-10-28, "Both").
-    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Wanted"]);
+    // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling); Wanted (owner 2026-10-28, "Both");
+    // Free next to Wanted (OWN-FREE, owner via the lead 2026-10-30).
+    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]);
     for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(tabs.length).toBeGreaterThan(2);
@@ -311,11 +312,40 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.wantedOn = false;
     at("/declutter?tab=wanted");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Free"]);
     expect(tab(/^Browse/)).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
     expect(screen.queryByText(/Wanted/)).toBeNull();
+  });
+
+  // OWN-FREE (owner via the lead, 2026-10-30): a Free tab next to Wanted, for everyone (the Free section has no
+  // switch of its own), listing the live free items of OTHER members by Browse's own read and "Free" rule.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "free", label: "Free" },\n |
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |               : view === "free" ? <FreeView userId={user.id} /> |               : view === "free" ? <WantedView />
+  // @mutate src/components/declutter/DeclutterFreeView.tsx | const FREE_ONLY = { ...NO_FILTERS, freeOnly: true }; | const FREE_ONLY = { ...NO_FILTERS };
+  // @mutate src/components/declutter/DeclutterFreeView.tsx | (items.data ?? []).filter((i) => i.seller_id !== userId) | (items.data ?? [])
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | const MINE_TABS_FREE = [...MINE_TABS, "free"] as const; | const MINE_TABS_FREE = [...MINE_TABS] as const;
+  it("the Free tab lists only other members' live free items, and says so when there are none", async () => {
+    state.live = [
+      { ...ITEM, id: "f1", seller_id: "s9", title: "Free bookshelf", price_cents: 0, current_price_cents: 0 },
+      { ...ITEM, id: "f2", seller_id: "s9", title: "Brass floor lamp" },
+      { ...ITEM, id: "f3", seller_id: "u1", title: "My own free crib", price_cents: 0, current_price_cents: 0 },
+    ];
+    const first = at("/declutter?tab=free");
+    expect(await screen.findByText("Free bookshelf")).toBeInTheDocument();
+    expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText("Brass floor lamp")).toBeNull();
+    expect(screen.queryByText("My own free crib")).toBeNull();
+    expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(1);
+    first.unmount();
+    // Wanted off: Free is still a tab.
+    state.wantedOn = false;
+    state.live = [{ ...ITEM, id: "f2", seller_id: "s9", title: "Brass floor lamp" }];
+    at("/declutter?tab=free");
+    expect(await screen.findByText("Nothing free right now.")).toBeInTheDocument();
+    expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText("Brass floor lamp")).toBeNull();
   });
 
   it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Show all items and the Wanted link", async () => {

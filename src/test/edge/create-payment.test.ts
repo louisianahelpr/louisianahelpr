@@ -1751,7 +1751,19 @@ describe("create-payment edge function", () => {
       expect(Math.abs(Date.parse(String(jobUpdatePayload()?.payout_scheduled_at)) - (approvedAt + 72 * 3600e3))).toBeLessThan(1000);
     });
 
-    // @mutate supabase/functions/create-payment/index.ts | `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.` | `"${job.title}" is complete. Payment has been captured.`
+    // @mutate supabase/functions/create-payment/index.ts | `"${job.title}" was approved. ${promised} will be sent to your account ${payDay}.` | `"${job.title}" is complete. Payment has been captured.`
+    // Lead 2026-10-30: a first payout loses the setup fee, so the promise must not read higher.
+    // @mutate supabase/functions/create-payment/index.ts |           const promised = await payoutPromiseWords(supabaseAdmin, job.helper_id, job, helperPayout); |           const promised = `$${formatPayoutDollars(helperPayout)}`;
+    it("the approval notice promises the figure after a setup fee still owed", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [bothDoneRow()] };
+      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: false }] };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+      await releaseAs();
+      const toHelper = notes().filter((n) => n.user_id === HELPER.id);
+      expect(String(toHelper[0].message)).toMatch(/^"Mow two lawns" was approved\. \$88 will be sent to your account /);
+    });
+
     it("the approval notices name the DAY and never say 'captured' or 'being processed'", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = { rows: [bothDoneRow()] };

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
-import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { SORT_LABEL, type DeclutterFilters, type DeclutterSort } from "@/lib/declutter/browseFilters";
 import { CONDITION_LABEL } from "./declutterUi";
 import type { OriginAsk } from "./DeclutterBrowseBar";
@@ -177,14 +177,24 @@ export function declutterFilterSections({
       key: "category",
       title: "Category",
       content: (
-        <Row>
-          <Chip on={!filters.category} onClick={() => onChange({ ...filters, category: null })}>All</Chip>
-          {Object.keys(CATEGORY_LABEL).map((key) => (
-            <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}>
-              {CATEGORY_LABEL[key]}
-            </Chip>
+        // About 32 categories (owner 2026-10-30), so they sit under the same headings as the Sell picker.
+        <div className="space-y-3">
+          <Row>
+            <Chip on={!filters.category} onClick={() => onChange({ ...filters, category: null })}>All</Chip>
+          </Row>
+          {CATEGORY_GROUPS.map((g) => (
+            <div key={g.heading} role="group" aria-label={g.heading} className="space-y-1.5" data-category-group={g.heading}>
+              <p className="text-ds-13 text-muted-foreground" aria-hidden>{g.heading}</p>
+              <Row>
+                {g.values.map((key) => (
+                  <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}>
+                    {CATEGORY_LABEL[key]}
+                  </Chip>
+                ))}
+              </Row>
+            </div>
           ))}
-        </Row>
+        </div>
       ),
     },
   ];

@@ -63,6 +63,8 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 // No earlier listing: the form starts blank (the last-setup prefill has its own test, declutterSellLastSetup).
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+// No remembered listing choices saved (owner 2026-10-30): the app's defaults; the save at Post goes nowhere.
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 // The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -168,12 +170,11 @@ describe("photo-first selling, one screen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    // Owner 2026-10-28: drops are the seller's own yes/no, OFF until they turn them on, so no lowest price is asked.
-    // @mutate src/components/declutter/sellForm.ts |   drops: false,\n  dropPct: DEFAULT_DROP_PCT, |   drops: true,\n  dropPct: DEFAULT_DROP_PCT,
-    expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "false");
-    expect(screen.queryByLabelText("Lowest you'll take")).toBeNull();
-    expect(document.querySelector("[data-drop-schedule]")).toBeNull();
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    // Owner 2026-10-30 (via the lead): drops are ON by default, with the lowest price filled in at half the asking
+    // price so the listing is valid without typing (was OFF until turned on, owner 2026-10-28). Still the seller's.
+    // @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: true, drops: false, dropPct: 5,
+    expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true");
+    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("20"));
     fireEvent.click(screen.getByRole("radio", { name: "10%" }));
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     // Board 31b: the drop strip follows the real rule (the seller's step, down to a whole dollar, never below the lowest).
@@ -200,6 +201,9 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    // On by default (owner 2026-10-30); the seller turns it off.
+    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true"));
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
     expect(screen.getByText("Off. It stays at your price until you change it.")).toBeInTheDocument();
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
@@ -234,7 +238,9 @@ describe("photo-first selling, one screen", () => {
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    // Drops are on by default with a filled-in lowest price; the seller clears it (theirs once changed).
+    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("20"));
+    fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     const problem = screen.getByRole("alert");
     expect(problem).toHaveTextContent("Set your lowest price");

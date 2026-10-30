@@ -113,6 +113,8 @@ vi.mock("@/lib/declutter/haulAway", () => ({
 }));
 // The sell form's "remember my setup" read (SellLastSetup.tsx; its own test is declutterSellLastSetup): no earlier listing.
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+// No remembered listing choices saved (owner 2026-10-30): the app's defaults; the save at Post goes nowhere.
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 // The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({

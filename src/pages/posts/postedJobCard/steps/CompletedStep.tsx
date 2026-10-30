@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, CheckCircle2, Star, RotateCcw, Image } from "lucide-react";
+import { DollarSign, CheckCircle2, Star, RotateCcw, Image, CalendarPlus } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { PhotoProofDialog } from "@/components/PhotoProof";
@@ -7,6 +7,7 @@ import type { PosterStepCtx } from "./posterStepContract";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
 import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 
 /**
@@ -198,6 +199,21 @@ export function CompletedStep({
               />
             )
           : null,
+        /* Book <Helpr> again (Q2471 #3, owner 2026-10-29): the SAME job copied
+           (never its date) as a direct offer to this Helpr, opening at When
+           and where so only the date is left. One Helpr only: a crew job has
+           no one Helpr to offer it to. */
+        job.helper_id && !crew ? (
+          <JobActionChip
+            key="book-again"
+            icon={CalendarPlus}
+            label={bookAgainLabel(helperName)}
+            ariaLabel={`${bookAgainLabel(helperName)} — the same job for ${helperName}, you pick the date`}
+            tone="primary"
+            onClick={ageGate("post", () => navigate(bookAgainLink(job.id, job.helper_id as string)))}
+            ageGated={ageGatedProps("post")}
+          />
+        ) : null,
         /* Hire again — direct offer to the same helper for ANY job: a blank
            PostJob with offerTo only (owner 2026-10-25: not prefilled from this
            job). Post again below is the prefilled copy. */

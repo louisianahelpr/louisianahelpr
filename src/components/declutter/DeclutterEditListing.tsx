@@ -24,7 +24,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { ChipGroup } from "./DeclutterSellSteps";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
@@ -118,7 +118,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
         <FieldLabel htmlFor="edit-description" text="Description" />
         <textarea id="edit-description" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
-      <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} value={category} onChange={setCategory} />
+      <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
       <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(condition)} onChange={(v) => setCondition(Number(v))} />
       <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={size} onChange={(v) => setSize(v as DeliverySize)} />
       <SellHandoverChoices ways={ways} setWays={setWays} free={free} sellerDeliveryOpen={sellerDeliveryOpen} />

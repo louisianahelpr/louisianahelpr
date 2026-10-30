@@ -121,16 +121,20 @@ export function SellOneScreen() {
           priceExtras={<div className="space-y-3 pt-1">
             <SellFreeToggle s={s} />
             {/* DeclutterOfferRules slot (builder 28) */}
-            {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} />{problemAt("drops")}</div>}
+            {/* The two switches sit together (owner 2026-10-30: "group all the toggles together"): Lower the price,
+                then Keep it up, both ON by default; "make it free after" (a choice, not a switch) comes after them. */}
+            <div className="space-y-3" data-sell-switches="">
+              {!form.free && <div className="space-y-2" data-sell-row="drops"><SellDropsCard s={s} />{problemAt("drops")}</div>}
+              <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-keep-up={keepUpWanted ? "on" : "off"}>
+                <span className="min-w-0 flex-1">
+                  <span id="sell-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
+                  <span className="block text-ds-13 text-muted-foreground" data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span>
+                </span>
+                <Switch aria-labelledby="sell-keep-up" checked={keepUpWanted} onCheckedChange={(v) => setKeepUpWanted(v === true)} />
+              </div>
+            </div>
             {/* OWN-FREE: "If it doesn't sell, make it free after __ days", Never by default; saved at Post. */}
             {!form.free && <div className="rounded-[20px] border border-border bg-card p-4"><AutoFreeChoice days={autoFreeWanted} onChange={setAutoFreeWanted} /></div>}
-            <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-keep-up={keepUpWanted ? "on" : "off"}>
-              <span className="min-w-0 flex-1">
-                <span id="sell-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
-                <span className="block text-ds-13 text-muted-foreground" data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span>
-              </span>
-              <Switch aria-labelledby="sell-keep-up" checked={keepUpWanted} onCheckedChange={(v) => setKeepUpWanted(v === true)} />
-            </div>
           </div>}
         />
 

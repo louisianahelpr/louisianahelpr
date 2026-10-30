@@ -49,7 +49,8 @@ export function ReservedForYou({ line, free }: { line: CartLine; free: boolean }
         <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft(line.checkout_by)}</span>
       </p>
       <p className="text-ds-13 text-muted-foreground">
-        {free ? "Choose it by" : "Check out by"} {by}. If you don't, you get a strike and it goes back up{free ? "" : " for sale"}.
+        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep). */}
+        {free ? `Choose it by ${by}. If you don't, it goes back up. No strike.` : `Check out by ${by}. If you don't, you get a strike and it goes back up for sale.`}
       </p>
       <Button asChild size="wrap" className="w-full rounded-full">
         <Link to={CHECKOUT_LINK}>{free ? "Choose a pickup" : "Go to checkout"}</Link>

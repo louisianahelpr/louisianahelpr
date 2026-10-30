@@ -107,7 +107,8 @@ export function CartHold({ sellerId, checkoutBy, allFree, timeLeft }: { sellerId
         <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft}</span>
       </p>
       <p className="text-ds-13 text-muted-foreground">
-        {allFree ? "Confirm it by" : "Check out by"} {by}. If you don't, you get a strike and the item goes back up{allFree ? "" : " for sale"}.
+        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep). */}
+        {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.` : `Check out by ${by}. If you don't, you get a strike and the item goes back up for sale.`}
         {!allFree && rule.data ? " Add more from this seller first to save with their bundle discount." : ""}
       </p>
     </div>

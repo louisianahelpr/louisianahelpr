@@ -806,6 +806,9 @@ export interface MyOffer {
   /** The seller's own hidden floor; always null on the buyer's rows (B26). */
   floor_price_cents: number | null;
   updated_at: string;
+  /** Audit 1d D4-3 (20261030134231): a seller's answer to the buyer's Wanted post, not an offer the buyer made.
+   *  Absent before that migration is on prod (read as false). */
+  from_wanted?: boolean;
 }
 
 export interface CartLine {

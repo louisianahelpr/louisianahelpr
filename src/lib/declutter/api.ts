@@ -987,7 +987,8 @@ export async function pickFreeRequest(requestId: string): Promise<string> {
 export async function fetchMyFreePause(): Promise<string | null> {
   return (rpcData(
     await supabase.rpc("declutter_my_free_pause"),
-    (e) => rpcErrorMessage("declutter_my_free_pause", e),
+    // A plain SELECT of the member's own row: it raises nothing, so it has no RPC_ERROR_COPY entry (like declutter_has_agreed_sales).
+    () => null,
   ) ?? null) as string | null;
 }
 

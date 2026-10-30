@@ -796,6 +796,18 @@ export default defineConfig(({ mode }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The parish tables and the job-list filter hook. Only the job lists,
+            // the location hook and address checks read them, but several lazy
+            // screens share them, so app-shared captured them onto EVERY page's
+            // boot (/posts 279 KB gz against a 278 edge, 2026-10-30). Same shape
+            // as rentals: they ride with their importers only.
+            {
+              name: "parish-data",
+              test: /[\\/]src[\\/](lib[\\/](parishes|parishCentroids)|hooks[\\/](useDashboardFilters|useUserLocation))\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Shared code no signed-OUT cold load reaches (Q654). app-shared sits
             // on the boot path of every page, and the modules two SIGNED-IN pages
             // share (useActivityData, subscriptionTiers, nativePush, ...) rode in

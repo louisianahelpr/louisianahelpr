@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
+import { t } from "@/lib/i18n/language";
 import { SKILL_GROUPS } from "@/lib/jobCategoryGroups";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -261,7 +262,7 @@ export function ProfileEditForm({
             {unknownZip && (
               <p role="status" className="flex items-start gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 <MapPin className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
-                {UNKNOWN_ZIP_MESSAGE}
+                {t(UNKNOWN_ZIP_MESSAGE)}
               </p>
             )}
           </div>

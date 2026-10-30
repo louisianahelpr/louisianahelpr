@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { withTimeout } from "./constants";
+import { t } from "@/lib/i18n/language";
 
 /** What `saveRow` is given: the uploaded files the profile row should name. */
 export interface UploadedProfileFiles {
@@ -85,7 +86,7 @@ export const uploadProfileFiles = async <T>(
       },
       read: () => readProfileAvatarUrl(userId),
     }),
-    "File upload",
+    t("upload.fileLabel"),
     120_000,
   );
   const done = saved as { value: T } | null;

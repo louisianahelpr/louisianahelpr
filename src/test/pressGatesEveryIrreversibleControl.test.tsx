@@ -32,6 +32,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 import { readdirSync } from "./helpers/trackedFiles";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Dialog, DialogContent, DialogHero, DialogPrimaryAction, DialogDestructiveAction } from "@/components/ui/dialog";
@@ -108,8 +109,10 @@ function propValue(el: string, name: string): string | null {
  * `primaryLabel`, minus the operands of a comparison (`mode === "leave"`),
  * minus the busy labels ("Ending…"), with `${...}` taken out of a template.
  */
-function commitLabels(value: string): string[] {
+function commitLabels(raw: string): string[] {
   const out: string[] = [];
+  // A label from the dictionary (Spanish option, 2026-10-29) is judged by its English words.
+  const value = raw.replace(/\bt\(\s*"([\w.]+)"[^)]*\)/g, (m, k: string) => (k in en ? JSON.stringify(en[k as keyof typeof en]) : m));
   for (const m of value.matchAll(/"([^"]*)"|`([^`]*)`|'([^']*)'/g)) {
     const before = value.slice(0, m.index).trimEnd();
     if (/[=!]==$/.test(before)) continue;

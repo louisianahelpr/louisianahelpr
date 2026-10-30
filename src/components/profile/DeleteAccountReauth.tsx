@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useLanguage } from "@/lib/i18n/language";
 import { hasPasswordSignIn, reauthWithPassword, sendDeleteCode, verifyDeleteCode } from "@/lib/deleteAccountReauth";
 
 /**
@@ -32,9 +33,10 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const captcha = useCaptcha();
+  const { t } = useLanguage();
 
   const sendCode = async () => {
-    if (!email) { setMessage("Your account has no email address on file. Contact support to delete it."); return; }
+    if (!email) { setMessage(t("deleteAccount.noEmail")); return; }
     setSending(true);
     setMessage(null);
     const res = await captcha.run((captchaToken) => sendDeleteCode(email, captchaToken));
@@ -48,7 +50,7 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
   const ready = mode === "password" ? password.length > 0 : codeSent && /^\d{6,10}$/.test(code.trim());
 
   const confirm = async (): Promise<boolean> => {
-    if (!email) { setMessage("Your account has no email address on file. Contact support to delete it."); return false; }
+    if (!email) { setMessage(t("deleteAccount.noEmail")); return false; }
     setMessage(null);
     const res = mode === "password"
       ? await captcha.run((captchaToken) => reauthWithPassword(email, password, captchaToken))
@@ -62,7 +64,7 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
     <div className="flex flex-col gap-2 my-1">
       {mode === "password" ? (
         <>
-          <label htmlFor="delete-reauth-password" className="text-ds-13 font-medium text-foreground">Your password</label>
+          <label htmlFor="delete-reauth-password" className="text-ds-13 font-medium text-foreground">{t("deleteAccount.yourPassword")}</label>
           <Input
             id="delete-reauth-password"
             type="password"
@@ -73,17 +75,17 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
             disabled={busy}
           />
           <button type="button" className={linkClass} disabled={busy} onClick={() => switchTo("code")}>
-            No password? Email me a code
+            {t("deleteAccount.noPassword")}
           </button>
         </>
       ) : (
         <>
           <p className="text-ds-13 text-foreground">
-            {codeSent ? <>We sent a 6-digit code to <span className="font-semibold break-all">{email}</span>.</> : <>We&rsquo;ll email a 6-digit code to <span className="font-semibold break-all">{email}</span>.</>}
+            {codeSent ? t("deleteAccount.codeSentTo") : t("deleteAccount.codeWillSend")} <span className="font-semibold break-all">{email}</span>.
           </p>
           {codeSent ? (
             <>
-              <label htmlFor="delete-reauth-code" className="text-ds-13 font-medium text-foreground">Code from the email</label>
+              <label htmlFor="delete-reauth-code" className="text-ds-13 font-medium text-foreground">{t("deleteAccount.codeLabel")}</label>
               <Input
                 id="delete-reauth-code"
                 inputMode="numeric"
@@ -95,16 +97,16 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
                 disabled={busy}
               />
               <button type="button" className={linkClass} disabled={busy} onClick={() => { void sendCode(); }}>
-                {sending ? "Sending…" : "Send a new code"}
+                {sending ? t("deleteAccount.sending") : t("deleteAccount.newCode")}
               </button>
             </>
           ) : (
             <button type="button" className={linkClass} disabled={busy} onClick={() => { void sendCode(); }}>
-              {sending ? "Sending…" : "Email me a code"}
+              {sending ? t("deleteAccount.sending") : t("deleteAccount.emailCode")}
             </button>
           )}
           <button type="button" className={linkClass} disabled={busy} onClick={() => switchTo("password")}>
-            Use my password instead
+            {t("deleteAccount.usePassword")}
           </button>
         </>
       )}

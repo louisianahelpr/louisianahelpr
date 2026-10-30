@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -112,7 +113,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const miles =
     geo.status === "ready" ? milesBetween({ lat: geo.lat, lng: geo.lng }, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null;
   const away = milesLabel(miles, geo.status === "ready" && geo.approximate);
-  const canAct = !isSeller && (it.status === "live" || it.status === "reserved");
+  const forSale = it.status === "live" || it.status === "reserved";
+  const canAct = !isSeller && forSale;
+  // DA-6 (Declutter audit 2026-10-30): a member who is not the seller reads an item that is no longer for sale only
+  // through a PAID cart line of their own (items read policy, 20261030080020): they bought or claimed it.
+  const boughtByMe = !isSeller && !forSale;
 
   const free = isFreeItem(it);
   const dropped = it.current_price_cents < it.price_cents;
@@ -198,6 +203,15 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </DeclutterNotice>
           )}
 
+          {boughtByMe && (
+            <div data-item-bought="">
+              <DeclutterNotice title={free ? "You claimed this." : "You bought this."}>
+                Your pickup and messages are in{" "}
+                <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">Buying</Link>.
+              </DeclutterNotice>
+            </div>
+          )}
+
           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
 
           {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
@@ -222,10 +236,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {/* The miles sit once, under the title (board 4). */}
             <p className="text-sm">Pickup in {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
-            <ItemPickupTimes itemId={itemId} />
+            {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
+            {forSale && <ItemPickupTimes itemId={itemId} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
-            <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>
+            {!boughtByMe && <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>}
           </section>
 
           <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />

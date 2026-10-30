@@ -7,6 +7,10 @@
  * screen. The API is stubbed: these check what each state renders.
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !isSeller && !forSale; |   const boughtByMe = false;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             {forSale && <ItemPickupTimes itemId={itemId} />} |             <ItemPickupTimes itemId={itemId} />
+ *   DA-6 (Declutter audit 2026-10-30): the buyer's own sold item says "You bought this." / "You claimed this." with
+ *   Buying, asks no item pickup times (that read answers only while it is for sale) and no "shared after you pay".
  * @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => setOpen(i)} |               onClick={() => undefined}
  * @mutate src/components/declutter/DeclutterGallery.tsx |             if (el.clientWidth > 0) setAt(Math.round(el.scrollLeft / el.clientWidth)); |             void el;
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {reviews > 0 && (\n              <span data-seller-rating | {true && (\n              <span data-seller-rating
@@ -492,5 +496,35 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
     await screen.findByText("More from this seller");
     expect(document.querySelector("[data-bundle-row]")).toBeNull();
+  });
+
+  it("DA-6: the buyer's own sold item says You bought this (free: You claimed this), with Buying, and asks no item pickup times", async () => {
+    const rpcSpy = vi.fn();
+    const { supabase } = await import("@/integrations/supabase/client");
+    const realRpc = supabase.rpc;
+    (supabase as { rpc: unknown }).rpc = async (fn: string, ...rest: unknown[]) => { rpcSpy(fn); return (realRpc as (f: string, ...r: unknown[]) => unknown)(fn, ...rest); };
+    try {
+      state.item = { ...ITEM, status: "sold" };
+      const sold = open();
+      expect(await screen.findByText("You bought this.")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Buying" })).toHaveAttribute("href", "/declutter?tab=buying");
+      expect(screen.queryByText("The exact address is shared after you pay.")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Buy now" })).toBeNull();
+      expect(rpcSpy.mock.calls.map((c) => c[0])).not.toContain("declutter_item_pickup_windows");
+      sold.unmount();
+      state.item = { ...ITEM, status: "completed", price_cents: 0, current_price_cents: 0 };
+      const claimed = open();
+      expect(await screen.findByText("You claimed this.")).toBeInTheDocument();
+      claimed.unmount();
+      // Still for sale: no such line, and the pickup times are asked for.
+      rpcSpy.mockClear();
+      state.item = { ...ITEM };
+      open();
+      await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+      expect(screen.queryByText("You bought this.")).toBeNull();
+      await waitFor(() => expect(rpcSpy.mock.calls.map((c) => c[0])).toContain("declutter_item_pickup_windows"));
+    } finally {
+      (supabase as { rpc: unknown }).rpc = realRpc;
+    }
   });
 });

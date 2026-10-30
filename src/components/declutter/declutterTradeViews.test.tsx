@@ -473,7 +473,10 @@ describe("Declutter slice 3 screens", () => {
     expect(sheet.textContent).toContain("the buyer is told you said no");
     expect(state.responded).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
-    await waitFor(() => expect(declineSheet()).toBeNull());
+    await waitFor(() => {
+      expect(declineSheet()).toBeNull();
+      expect(screen.getByRole("button", { name: "Say no" })).toBeInTheDocument();
+    });
     expect(state.responded).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Say no" }));
     await waitFor(() => expect(declineSheet()).not.toBeNull());

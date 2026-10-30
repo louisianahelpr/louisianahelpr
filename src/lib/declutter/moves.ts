@@ -13,7 +13,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
-import { attestItem, publishItem, requestAiCheck, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
+import { attestItem, publishItem, requestAiCheckWithRetry, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 
 // The calendar helpers live in moveDates.ts (shared with the banner).
@@ -240,12 +240,8 @@ export async function publishMany(
       const gap = lastCheck + AI_CHECK_GAP_MS - clock();
       if (gap > 0) await wait(gap);
       lastCheck = clock();
-      try {
-        await requestAiCheck(id);
-      } catch (err) {
-        // Fail-safe: an unchecked listing publishes to an admin's review.
-        console.warn("[declutter] photo check unavailable; the listing goes to review", err);
-      }
+      // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
+      await requestAiCheckWithRetry(id);
       out.push({ id, status: await publishItem(id) });
     } catch (error) {
       // Not swallowed: the refusal is returned for this item, and the screen

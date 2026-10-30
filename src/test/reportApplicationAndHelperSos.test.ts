@@ -17,14 +17,14 @@
 // @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
-// @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
+// @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "declutter_item";
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | SELECT a.helper_id INTO v_subject FROM public.applications a WHERE a.id = NEW.reported_id; | v_subject := NEW.reported_id;
 // @mutate src/components/admin/AdminReports.tsx | r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null | r.reported_type === "application" ? r.reported_id
-// @mutate src/components/admin/AdminReports.tsx | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application"; | const isUserSubject = (r: Report) => r.reported_type !== "job";
+// @mutate src/components/admin/AdminReports.tsx | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT; | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== LISTING_REPORT;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

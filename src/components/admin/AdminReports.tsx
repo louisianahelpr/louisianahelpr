@@ -36,6 +36,8 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
 import { reportsQueueKey, type ReportQueueFilter } from "@/components/admin/adminQueueKeys";
 import { REPORT_FILTERS } from "@/components/admin/adminReports/reportFilters";
+import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_REPORT } from "@/components/admin/adminReports/reportedListings";
+import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
 
 type Report = {
   id: string;
@@ -54,6 +56,8 @@ type Report = {
   reporter_exists?: boolean;
   reported_exists?: boolean;
   reported_job_exists?: boolean;
+  /** Item B: a reported listing still up (live, paused or held), so an admin can take it down. */
+  reported_listing_down_ok?: boolean;
   /** Q366: the person behind the subject — `reported_id` for a user report,
    *  the application's helper for an application report, null otherwise. */
   subject_user_id?: string | null;
@@ -99,7 +103,9 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
   // queue could not tell WHAT had been reported, and the two states the
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application";
+  // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT;
+  const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
   // Q366: an 'application' report holds an APPLICATION id. The person is
   // its helper and the context is its job; both are read from the row.
   const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
@@ -118,6 +124,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
   }
   const subjectUserOf = (r: Report): string | null =>
     r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
+      : r.reported_type === LISTING_REPORT ? listings.get(r.reported_id)?.seller_id ?? null
       : isUserSubject(r) ? r.reported_id : null;
   const userIds = [
     ...new Set(reportRows.flatMap(r => [
@@ -193,6 +200,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
         const title = jobTitles.get(appJob.get(r.reported_id) ?? "");
         return title ? `${nameFor(helper)} · application on "${title}"` : `${nameFor(helper)} · application`;
       }
+      if (r.reported_type === LISTING_REPORT) return listingSubject(listings.get(r.reported_id), listingsFailed);
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 
@@ -208,8 +216,10 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
       subject_user_id: subjectUserOf(r),
       // A job subject that still exists is one the admin can open.
       reported_job_exists: r.reported_type === "job" && jobTitles.has(r.reported_id),
+      reported_listing_down_ok: r.reported_type === LISTING_REPORT && listingCanComeDown(listings.get(r.reported_id)),
       assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
       is_test: seedIds.has(r.reported_id)
+        || (r.reported_type === LISTING_REPORT && listings.get(r.reported_id)?.is_seed === true)
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
           && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
@@ -409,7 +419,7 @@ const AdminReports = () => {
 
   const typeIcon = (type: string) => {
     if (type === "user") return <User className="w-4 h-4" />;
-    if (type === "job" || type === "application") return <Briefcase className="w-4 h-4" />;
+    if (type === "job" || type === "application" || type === LISTING_REPORT) return <Briefcase className="w-4 h-4" />;
     if (type === "review") return <Clock className="w-4 h-4" />;
     return <MessageSquare className="w-4 h-4" />;
   };
@@ -559,6 +569,10 @@ const AdminReports = () => {
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Job
                   </Button>
+                ) : report.reported_type === LISTING_REPORT ? (
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/declutter/item/${report.reported_id}`)}>
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Listing
+                  </Button>
                 ) : report.reported_type === "review" || report.reported_type === "message" ? null : (
                   <Button
                     size="sm"
@@ -637,6 +651,9 @@ const AdminReports = () => {
                       >
                         Remove Review
                       </Button>
+                    )}
+                    {report.reported_listing_down_ok && (
+                      <DeclutterTakeDown itemId={report.reported_id} reportId={report.id} title={report.reported_name ?? "This listing"} onDone={loadReports} />
                     )}
                     <Button
                       size="sm"

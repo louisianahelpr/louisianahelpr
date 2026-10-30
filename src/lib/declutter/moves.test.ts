@@ -63,6 +63,19 @@ vi.mock("@/lib/declutter/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/declutter/api")>()),
   attestItem: h.api.attestItem,
   requestAiCheck: h.api.requestAiCheck,
+  // The real retry helper calls its own module's requestAiCheck, which this mock cannot reach; mapped here so the
+  // order tests read the mocked check (asked twice on a failure, as the helper does).
+  requestAiCheckWithRetry: async (id: string) => {
+    for (let i = 0; i < 2; i++) {
+      try {
+        return await h.api.requestAiCheck(id);
+      } catch (err) {
+        // A failed try is the case under test; the second try or null follows.
+        void err;
+      }
+    }
+    return null;
+  },
   publishItem: h.api.publishItem,
 }));
 

@@ -155,6 +155,7 @@ vi.mock("@/lib/declutter/api", () => ({
   setPickupWindows: vi.fn(async () => 1),
   attestItem: vi.fn(async () => undefined),
   requestAiCheck: vi.fn(async () => ({ checked: true, flagged: false })),
+  requestAiCheckWithRetry: vi.fn(async () => ({ checked: true, flagged: false })),
   publishItem: vi.fn(async () => "live"),
 }));
 import * as api from "@/lib/declutter/api";

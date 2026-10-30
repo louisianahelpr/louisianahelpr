@@ -224,6 +224,20 @@ export const ADMIN_RPC_ERROR_COPY = {
     review_note_too_long: DC.review_note_too_long,
     seller_not_eligible: DC.seller_not_eligible,
   },
+  // Item B (owner 2026-10-29): a reported listing, taken down from the reports queue (DeclutterTakeDown).
+  declutter_admin_take_down_item: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    item_not_removable: "This listing has a buyer now, so it can't be taken down here. Handle it as a problem on the order.",
+    not_admin: DC.not_admin,
+    own_listing: "Another admin has to decide on your own listing.",
+    report_not_for_item: "That report is about something else. Refresh the reports list.",
+    review_note_required: "Say why it's taken down. The seller reads it.",
+    review_note_too_long: DC.review_note_too_long,
+  },
+  // The reports queue names a reported listing whatever its status (AdminReports via src/lib/declutter/api.ts).
+  declutter_admin_reported_items: { feature_disabled: DC.feature_disabled, not_admin: DC.not_admin },
   // "Suggest a category" review (I1, migration 20261015051141): CategorySuggestionsCard.
   admin_list_category_suggestions: {
     feature_disabled: "Category suggestions are switched off for your account.",

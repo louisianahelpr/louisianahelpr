@@ -155,6 +155,11 @@
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/money.ts",
+    // The approval notice's figure and the late payout notice, read by their own tests.
+    "supabase/functions/_shared/payoutPromise.ts",
+    "supabase/functions/_shared/payDelayNotice.ts",
+    "supabase/functions/_shared/helprFaultFee.ts",
+    "supabase/functions/_shared/insertNotifications.ts",
     // Board 141 (Q2272): src/test/edge/refundRequestHold.test.ts reads the REAL liveness rule.
     "supabase/functions/_shared/refundRequestHold.ts",
     // Q2399 card hold: the pure copy, listing set and hold plan the app and src/test/edge/card-hold.test.ts read.

@@ -103,7 +103,16 @@ export function AppTopBar({
   // Help (UX-6), the bell and the photo: the same controls on every phone bar.
   const personal = (
     <>
-      {!isWebDesktop && <HelpEntry />}
+      {!isWebDesktop && (chipsRow ? (
+        // EXPLORE'S ROW (lead, 2026-10-30, UX-6): the four chips come first. Below 360px, where Help would push a chip
+        // off the row, it is hidden here (You > Help and every sub-screen still have it). At 375 Help is 40px wide and
+        // the row drops its 4px gaps, so the three narrower chips stay even. Guard: src/test/oneHelpEntry.test.tsx.
+        <span data-testid="explore-row-help" className="inline-flex max-[359px]:hidden">
+          <HelpEntry triggerClassName="h-11 w-10" />
+        </span>
+      ) : (
+        <HelpEntry />
+      ))}
       {!isWebDesktop && (
       <span data-testid="top-bar-bell">
         <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
@@ -149,7 +158,7 @@ export function AppTopBar({
             <div className="min-w-0 flex-1">
               <ExploreSwitcher current={section} />
             </div>
-            <div className="flex items-center gap-1 shrink-0">{personal}</div>
+            <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{personal}</div>
           </header>
         )
       }

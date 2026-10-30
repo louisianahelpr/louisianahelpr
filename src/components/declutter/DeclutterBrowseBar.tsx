@@ -22,6 +22,14 @@ export interface OriginAsk {
   canAskAgain: boolean;
   deviceNote: string | null;
   askDevice: () => void;
+  /** The profile's ZIP code, for "Miles from 70501" (DA-10); absent where the screen does not name it. */
+  zip?: string | null;
+}
+
+/** Whether to offer "Use my location" / "Try my location again": not while asking, not once the device gave a fix. */
+export function offerAsk(ask: OriginAsk): boolean {
+  const fromDevice = ask.origin.status === "ready" && ask.origin.source === "device";
+  return !fromDevice && (!ask.asked || ask.canAskAgain);
 }
 
 /** The phone's one search row under the tabs. */

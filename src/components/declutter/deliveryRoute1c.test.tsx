@@ -9,6 +9,10 @@
  * @mutate src/lib/declutter/route.ts |   const unique = addressed.filter((a, i) => i === 0 \|\| !same(a, addressed[i - 1])); |   const unique = addressed;
  * @mutate src/components/declutter/DeliveryRoute.tsx |               : maps.count === 1 ? "Opens the stop." : `Opens all ${maps.count} stops in this order.`} |               : `Opens all ${maps.count} ${maps.count === 1 ? "stop" : "stops"} in this order.`}
  * @mutate src/components/declutter/DeliveryRouteMap.tsx |       map.current.showItems(pins, fitOptions(mk)); |       map.current.showItems(pins);
+ * @mutate src/components/declutter/DeliveryRouteMap.tsx |   const pinned = useMemo(() => routeVisits(stops).map((v) => v[0]).filter((s) => s.lat !== null && s.lng !== null), [stops]); |   const pinned = useMemo(() => stops.filter((s) => s.lat !== null && s.lng !== null), [stops]);
+ * @mutate src/components/declutter/DeliveryRoute.tsx |   const visits = routeVisits(stops); |   const visits = stops.map((s) => [s]);
+ * @mutate src/lib/declutter/route.ts |     if (last && last[0].seq === s.seq) last.push(s); |     if (false) last.push(s);
+ * @mutate src/components/declutter/DeliveryRoute.tsx | about {Math.ceil(s.leg_miles)} mi from | about {s.leg_miles} mi from
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -85,6 +89,30 @@ describe("My route (audit 1c D3-2, D3-9)", () => {
     expect(link.getAttribute("href")).not.toContain("waypoints=");
     expect(screen.getByText(/Opens the stop\./)).toBeInTheDocument();
     expect(screen.queryByText(/Opens all 1 stop/)).toBeNull();
+  });
+
+  it("D3-2: pickups the server joined (one seq) are one visit: one card, one pin, counted once, each with its own photo step", async () => {
+    state.route = { miles: 3.3, drive_minutes: 20, finish_at: null, stops: [
+      stop({ seq: 1, task_id: "t1", leg_miles: 3.3 }),
+      stop({ seq: 1, task_id: "t2", title: "Brass lamp", leg_miles: 0 }),
+      stop({ seq: 2, task_id: "t1", kind: "dropoff", address: "22 Buyer Ln", lat: 30.5, lng: -91.1, place: "door" }),
+      stop({ seq: 3, task_id: "t2", kind: "dropoff", title: "Brass lamp", address: "33 Buyer Ln", lat: 30.6, lng: -91.1, place: "door" }),
+    ] };
+    show();
+    const list = await screen.findByRole("list", { name: "Stops in order" });
+    expect(screen.getByText(/3 stops · about 4 mi/)).toBeInTheDocument();
+    const cards = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list);
+    expect(cards).toHaveLength(3);
+    expect(cards[0]).toHaveTextContent("Pick up 2 deliveries here");
+    expect(cards[0]).toHaveTextContent("Blue mug");
+    expect(cards[0]).toHaveTextContent("Brass lamp");
+    // D3-9: the same whole-mile rounding as the delivery's own quote: 3.3 reads 4, and a joined pickup has no leg.
+    expect(cards[0]).toHaveTextContent("about 4 mi from you");
+    expect(within(cards[0]).getByLabelText("Picked up: a photo of the item, taken here (Blue mug, stop 1)")).toBeInTheDocument();
+    expect(within(cards[0]).getByLabelText("Picked up: a photo of the item, taken here (Brass lamp, stop 1)")).toBeInTheDocument();
+    // One pin for the visit: 3 pins, not 4.
+    await waitFor(() => expect(state.shown.length).toBeGreaterThan(0));
+    expect(state.shown[0].n).toBe(3);
   });
 
   it("D3-9: the map never zooms closer than the minimum span, and the photo step shows once (on the stop card)", async () => {

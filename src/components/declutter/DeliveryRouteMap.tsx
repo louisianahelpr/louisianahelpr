@@ -13,7 +13,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
-import { nextStep, type LatLng, type NavStep } from "@/lib/declutter/route";
+import { nextStep, routeVisits, type LatLng, type NavStep } from "@/lib/declutter/route";
 import type { RouteStop } from "@/lib/helprTasks/api";
 
 // The MapKit JS members this map touches (Apple's runtime is loosely typed; see AppleMapPreview).
@@ -94,7 +94,8 @@ export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
   const [locError, setLocError] = useState<string | null>(null);
   const [steps, setSteps] = useState<NavStep[]>([]);
   const [stepIdx, setStepIdx] = useState(1);
-  const pinned = useMemo(() => stops.filter((s) => s.lat !== null && s.lng !== null), [stops]);
+  // One pin per visit (D3-2: pickups joined into one visit share a seq and a point).
+  const pinned = useMemo(() => routeVisits(stops).map((v) => v[0]).filter((s) => s.lat !== null && s.lng !== null), [stops]);
   const current = stops[0];
   const ready = status === "ready" && !!window.mapkit;
 

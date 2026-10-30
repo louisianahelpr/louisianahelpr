@@ -5,6 +5,9 @@
 //     reference_oauth_client_ids.md / Supabase Studio. Drift here means
 //     auth silently fails for native users.
 //   - sign-in throws on any failure so the caller can toast properly
+//   - Q1791: on iOS the Apple authorization code goes to apple-token-store
+// @mutate src/lib/socialAuth.ts |   storeAppleToken(appleCode); |   void appleCode;
+// @mutate src/lib/socialAuth.ts |   if (Capacitor.getPlatform() !== "ios") return null; |   if (Capacitor.getPlatform() === "ios") return null;
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -12,10 +15,13 @@ const initializeMock = vi.fn();
 const loginMock = vi.fn();
 const signInWithIdTokenMock = vi.fn();
 const isNativePlatformMock = vi.fn();
+const getPlatformMock = vi.fn();
+const invokeMock = vi.fn();
 
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
     isNativePlatform: () => isNativePlatformMock(),
+    getPlatform: () => getPlatformMock(),
   },
 }));
 
@@ -31,6 +37,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       signInWithIdToken: (...args: unknown[]) => signInWithIdTokenMock(...args),
     },
+    functions: { invoke: (...args: unknown[]) => invokeMock(...args) },
   },
 }));
 
@@ -40,6 +47,8 @@ beforeEach(() => {
   loginMock.mockReset();
   signInWithIdTokenMock.mockReset();
   isNativePlatformMock.mockReset();
+  getPlatformMock.mockReset().mockReturnValue("android");
+  invokeMock.mockReset().mockResolvedValue({ data: { stored: true }, error: null });
 });
 
 async function load() {
@@ -100,6 +109,32 @@ describe("nativeAppleSignIn", () => {
       provider: "apple",
       token: "apple-jwt",
     });
+  });
+
+  // Q1791: on iOS the one-time Apple code goes to apple-token-store (App ID client) so
+  // account deletion can revoke the Apple token; nowhere else, and never on failure.
+  it("iOS: hands the Apple authorization code to apple-token-store after sign-in", async () => {
+    getPlatformMock.mockReturnValue("ios");
+    loginMock.mockResolvedValue({ result: { idToken: "apple-jwt", accessToken: { token: "apple-code" } } });
+    signInWithIdTokenMock.mockResolvedValue({ error: null });
+    const { nativeAppleSignIn } = await load();
+    await nativeAppleSignIn();
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(invokeMock).toHaveBeenCalledWith("apple-token-store", {
+      body: { authorizationCode: "apple-code", clientId: "com.Helpr" },
+    });
+  });
+
+  it("no code is stored off iOS, or when sign-in fails", async () => {
+    loginMock.mockResolvedValue({ result: { idToken: "apple-jwt", accessToken: { token: "apple-code" } } });
+    signInWithIdTokenMock.mockResolvedValue({ error: null });
+    const { nativeAppleSignIn } = await load();
+    await nativeAppleSignIn();
+    expect(invokeMock).not.toHaveBeenCalled();
+    getPlatformMock.mockReturnValue("ios");
+    signInWithIdTokenMock.mockResolvedValue({ error: { message: "boom" } });
+    await expect(nativeAppleSignIn()).rejects.toBeTruthy();
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
   it("throws when no idToken returned (defensive)", async () => {

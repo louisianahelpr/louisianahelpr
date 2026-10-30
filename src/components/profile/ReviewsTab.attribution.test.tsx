@@ -20,6 +20,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ReviewsTab } from "./ReviewsTab";
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/components/profile/reviewsTab/reviewsAboutYou", async (orig) => ({
   ...(await orig<object>()),
   useDeclutterReviewsAboutYou: () => ({ data: [], isLoading: false }),

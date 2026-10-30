@@ -51,6 +51,7 @@ const getUser = vi.fn(async () => {
   return { data: { user: USER }, error: null };
 });
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({

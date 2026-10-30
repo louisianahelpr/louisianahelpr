@@ -31,6 +31,7 @@ const KNOWN = [
   "src/hooks/useActivityData.ts -> src/components/job-card/trackerMounts",
   "src/hooks/useActivityData.ts -> src/pages/posts/postedJobs/applicantBadge",
   "src/hooks/useDashboardFilters.ts -> src/pages/home/viewerFeedExclusions",
+  "src/lib/declutter/bunch.ts -> src/components/declutter/sellForm", // no React; sellForm imports only src/lib
   "src/lib/jobDisplayPay.ts -> src/components/dashboard/JobPrice",
   "src/lib/prePaintShellClasses.ts -> src/components/sidePanelOpen",
 ];

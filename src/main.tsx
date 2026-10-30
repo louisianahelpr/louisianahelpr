@@ -505,7 +505,7 @@ void hydrateStorage();
   // prefetchRoutesWhenIdle. Here, not in entry.ts, to keep the entry small; the
   // readyState check is because this module can run after `load` has fired.
   const warmLikelyNextRoutes = () => {
-    void import("@/lib/routePrefetch")
+    void backgroundImport(() => import("@/lib/routePrefetch"), "route-prefetch")
       .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(tokenProbeAtBoot(), window.location.pathname))
       .catch(() => {
         /* speculative: the real navigation loads its own chunk */

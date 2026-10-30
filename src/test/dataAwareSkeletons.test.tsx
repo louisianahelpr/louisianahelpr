@@ -23,6 +23,7 @@ import { NOTIFICATION_ROWS, ProfileTabBodyReserve, TAB_SHAPES } from "@/componen
 import { ReviewsTab } from "@/components/profile/ReviewsTab";
 
 // Board 179: ReviewsTab's own Declutter read; here only the job count's shape is under test.
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/components/profile/reviewsTab/reviewsAboutYou", async (orig) => ({
   ...(await orig<object>()),
   useDeclutterReviewsAboutYou: () => ({ data: [], isLoading: false }),

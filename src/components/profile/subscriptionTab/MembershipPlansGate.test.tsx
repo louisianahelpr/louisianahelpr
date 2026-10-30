@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const sw = vi.hoisted(() => ({ on: false, settled: true }));
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => sw.on,
   useFeatureStatus: () => ({ on: sw.on, settled: sw.settled, lastAnswer: null }),

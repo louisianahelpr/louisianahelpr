@@ -11,7 +11,7 @@
  * drops on and no lowest price it scrolled to Price but printed the words only by the button, off screen), and the
  * screen scrolls to that row. By the button a short pointer says to fix what is marked above.
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -32,13 +32,17 @@ import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
-/** The first thing that blocks Post, top to bottom, and the row it belongs to. */
+/**
+ * The first thing that blocks Post, top to bottom, and the row it belongs to. While the AI is writing, the title and
+ * price it is about to fill are not problems yet (audit posting 1030 #7: tapping Post then said "Give the item a name").
+ */
 function postProblem(s: SellFlow): { message: string; at: Where } | null {
   if (s.photoTotal < DECLUTTER_MIN_PHOTOS) return { message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" };
-  const f = formProblem(s.form);
+  const writing = s.ai.state.status === "busy";
+  const f = formProblem(writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form);
   if (f) return { message: f, at: /name/i.test(f) ? "title" : /price|lowest|drops/i.test(f) ? "price" : "settings" };
   if (s.savedWays.length === 0) return { message: "Choose a way buyers can get it in Settings.", at: "settings" };
-  if (!s.sizeKnown) return { message: "Pick a size, so buyers know what it takes to move it.", at: "size" };
+  if (!writing && !s.sizeKnown) return { message: "Pick a size, so buyers know what it takes to move it.", at: "size" };
   if (!s.attested) return { message: "Tick the box about this item before you list it.", at: "tax" };
   return null;
 }
@@ -54,6 +58,19 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   const [open, setOpen] = useState<SummaryField | null>(null);
   const [tried, setTried] = useState(false);
+  // Post was tapped while the AI was still writing: it posts by itself when that finishes, unless something is missing.
+  const [postWhenWritten, setPostWhenWritten] = useState(false);
+  const writing = ai.state.status === "busy";
+  const postNow = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!postWhenWritten || writing) return;
+    // After this commit's own effects: the lowest price follows the AI's price in one (useSellerDefaultsPrefill).
+    const t = setTimeout(() => {
+      setPostWhenWritten(false);
+      postNow.current();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [postWhenWritten, writing]);
 
   if (!user) return null;
   if (underAge) {
@@ -78,8 +95,14 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
       requestAnimationFrame(() => document.querySelector(`[data-sell-row="${bad.at}"]`)?.scrollIntoView?.({ block: "center" }));
       return;
     }
+    if (writing) {
+      setTried(false);
+      setPostWhenWritten(true);
+      return;
+    }
     void s.onPublish();
   };
+  postNow.current = post;
 
   return (
     <AppPage title="Sell an item" backTo="/declutter?tab=selling" phoneHidesTitle>
@@ -149,7 +172,13 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           </div>
         )}
         {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
-        <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving} onClick={post}>
+        {postWhenWritten && (
+          <div className="flex flex-wrap items-center justify-between gap-2" role="status" data-post-when-written="">
+            <p className="min-w-0 flex-1 text-ds-14 text-foreground">Still writing your listing. It posts when that's done.</p>
+            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setPostWhenWritten(false)}>Don't post yet</Button>
+          </div>
+        )}
+        <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten} onClick={post}>
           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"}
         </Button>
         <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>

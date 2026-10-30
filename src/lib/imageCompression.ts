@@ -11,7 +11,8 @@ export type CompressionProgress = (progress: number) => void;
  * through a canvas. Every image goes through this path — skipping small files
  * would preserve EXIF on uncompressed originals.
  *
- * HEIC files are returned as-is: most browsers cannot canvas-decode HEIC.
+ * HEIC files are returned as-is: most browsers cannot canvas-decode HEIC. `tryHeic` tries the canvas anyway (a
+ * browser that can decode it gets a clean JPEG; one that can't rejects), for a caller that refuses what it can't clean.
  *
  * `onProgress` (optional) is invoked at the synchronous milestones in the
  * pipeline (load, draw, encoded). It's the best-effort signal we can give
@@ -23,9 +24,10 @@ export async function compressImage(
   maxDimension = 1920,
   quality = 0.8,
   onProgress?: CompressionProgress,
+  { tryHeic = false }: { tryHeic?: boolean } = {},
 ): Promise<File> {
   // Skip non-image files and HEIC (canvas cannot decode HEIC in most browsers).
-  if (!file.type.startsWith("image/") || file.type === "image/heic") {
+  if (!file.type.startsWith("image/") || (file.type === "image/heic" && !tryHeic)) {
     onProgress?.(1);
     return file;
   }

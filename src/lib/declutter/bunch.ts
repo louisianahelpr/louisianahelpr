@@ -21,8 +21,7 @@
  * Nothing here is the protection: every write is a declutter_* RPC behind the
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
-import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
-import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { blobToBase64, cleanListingPhoto, unusablePhotosNote } from "@/lib/declutter/photos";
 import { addPhoto, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -139,14 +138,8 @@ export interface GroupResult {
   unusable: { key: string; name: string; error: unknown }[];
 }
 
-/** The screen's words for the photos left out, by file name, or null when there are none. */
-export function unusablePhotosNote(unusable: GroupResult["unusable"]): string | null {
-  if (unusable.length === 0) return null;
-  const shown = unusable.slice(0, 5).map((u) => u.name || "A photo").join(", ");
-  const more = unusable.length > 5 ? ` and ${unusable.length - 5} more` : "";
-  const subject = unusable.length === 1 ? `This photo wasn't added (${shown}):` : `${unusable.length} photos weren't added (${shown}${more}):`;
-  return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
-}
+/** The screen's words for the photos left out (it lives with the photo rules, for the one-item form too). */
+export { unusablePhotosNote };
 
 /**
  * Sort every photo into items, GROUP_BATCH at a time, in the order picked (the

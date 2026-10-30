@@ -58,6 +58,14 @@ const last = { value: LAST as LastSetup | null };
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 const places = vi.hoisted(() => ({ value: [] as unknown[] }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => places.value, fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+// Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.
+vi.mock("@/lib/declutter/photos", async (orig) => ({
+  ...(await orig<object>()),
+  cleanListingPhoto: async (f: File) => {
+    if (f.name.startsWith("bad")) throw new (await import("@/lib/declutter/errors")).ListingPhotoError("We couldn't prepare this photo.");
+    return f;
+  },
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));

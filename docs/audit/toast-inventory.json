@@ -4312,7 +4312,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 152,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7010,7 +7010,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 72,
+      "line": 82,
       "kind": "toast",
       "title": {
         "form": "template",

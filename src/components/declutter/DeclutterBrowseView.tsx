@@ -33,7 +33,7 @@ import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SectionScreen } from "@/components/sections/SectionScreen";
-import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
@@ -103,9 +103,27 @@ function WantedLink() {
   );
 }
 
+/**
+ * Browse with nothing for sale near the member at all (owner 2026-10-30, via the lead). It said "Opens soon" to the
+ * owner and admins, who already HAVE Declutter, because the only live listings were test accounts' (hidden from real
+ * accounts). Now the two ways forward, as the app's pill buttons: Sell something (the sell form) and, while Wanted is
+ * on for the viewer, Post what you're looking for (the Wanted tab).
+ */
+function NothingForSaleActions() {
+  const wanted = useFeature("declutter_wanted");
+  return (
+    <div className="flex flex-col items-center gap-2" data-nothing-for-sale="">
+      <BarkPillButton asChild><Link to="/declutter/sell">Sell something</Link></BarkPillButton>
+      {wanted && (
+        <Button asChild variant="outline" className="rounded-full">
+          <Link to="/declutter?tab=wanted">Post what you're looking for</Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
-  // A tester inside Declutter before it opens to everyone: nothing for sale yet "Opens soon" (owner, 2026-10-22).
-  const preview = useSectionPreview("declutter");
   const desktop = useIsWebDesktop();
   const [params] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
@@ -248,11 +266,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           <EmptyState
             variant="bare"
             icon={Sofa}
-            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : "Nothing for sale this close."}
+            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
-            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "Check back soon, or sell something of your own." : "Try a bigger distance."}
+            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "Be the first to sell something, or say what you're looking for." : "Try a bigger distance."}
             action={
+              // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
+              // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).
+              !searched && others.length === 0 ? <NothingForSaleActions /> :
               <div className="flex flex-col items-center gap-2">
                 {searched && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>

@@ -120,8 +120,11 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     const screens = trackedFiles("src").filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !f.startsWith("src/test/"));
     expect(screens.length).toBeGreaterThan(200);
     expect(screens.filter((f) => /early preview/i.test(code(f)))).toEqual([]);
-    for (const f of ["src/components/declutter/DeclutterBrowseView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
+    for (const f of ["src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
       expect({ f, opensSoon: /preview \? "Opens soon"/.test(code(f)) }).toEqual({ f, opensSoon: true });
     }
+    // Owner 2026-10-30: Declutter reads as open to everyone who has it (useSectionTabs OPEN_FOR_THOSE_WHO_HAVE_IT),
+    // so its Browse never says "Opens soon" (declutterTabs.test.tsx renders the real empty state).
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).not.toMatch(/Opens soon/);
   });
 });

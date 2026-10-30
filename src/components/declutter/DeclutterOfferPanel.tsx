@@ -25,7 +25,8 @@ import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
 import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
 import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
-import { dollarsInputToCents, invalidateTrades } from "./DeclutterTradeViews";
+import { dollarsInputToCents } from "@/lib/declutter/money";
+import { invalidateTrades } from "./DeclutterOffersSection";
 
 /**
  * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer

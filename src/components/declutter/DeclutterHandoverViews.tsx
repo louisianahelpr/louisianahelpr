@@ -34,6 +34,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
 import type { CartLine } from "@/lib/declutter/api";
+import { invalidate, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
   bookPickup,
   confirmHandover,
@@ -89,48 +90,6 @@ const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then(
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
-
-/** One paid order as the cart lists it (its lines share order_id). */
-interface PaidOrder {
-  orderId: string;
-  side: "buyer" | "seller";
-  handover: string | null;
-  status: string | null;
-  lines: CartLine[];
-  /** Slice 5: the Helpr task of a delivery order. */
-  deliveryTaskId: string | null;
-}
-
-/** Group the cart's paid lines into orders. */
-function paidOrdersFromCart(cart: CartLine[]): PaidOrder[] {
-  const byOrder = new Map<string, PaidOrder>();
-  for (const l of cart) {
-    if (l.status !== "paid" || !l.order_id) continue;
-    const o = byOrder.get(l.order_id) ?? {
-      orderId: l.order_id, side: l.my_side, handover: l.handover, status: l.order_status, lines: [], deliveryTaskId: l.delivery_task_id ?? null,
-    };
-    o.lines.push(l);
-    byOrder.set(l.order_id, o);
-  }
-  return [...byOrder.values()];
-}
-
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-/** `<input type="datetime-local">` value -> ISO (the device's own time zone). */
-function localInputToIso(v: string): string | null {
-  if (!v) return null;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
-  void qc.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
-  void qc.invalidateQueries({ queryKey: ["declutter", "bookings"] });
-  void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
-  void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
-  void qc.invalidateQueries({ queryKey: ["declutter", "problems"] });
-}
 
 /**
  * Every paid order in `cart` (the cart's paid lines). The Buying and Selling

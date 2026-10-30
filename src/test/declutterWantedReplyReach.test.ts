@@ -8,9 +8,9 @@
  * Behaviour is proven in src/test/pglite/declutterWantedPhotosReplies.pglite.mjs (farListingRefused,
  * auctionListingAnswers, privatePostStillOneAnswer).
  *
- * @mutate supabase/migrations/20261030064727_declutter_wanted_photos_and_replies.sql |   IF (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) IS NOT TRUE THEN | IF false THEN
- * @mutate supabase/migrations/20261030064727_declutter_wanted_photos_and_replies.sql |   IF (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) IS NOT TRUE THEN |   IF NOT (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) THEN
- * @mutate supabase/migrations/20261030064727_declutter_wanted_photos_and_replies.sql |   IF i.status <> 'live' THEN\n    RAISE EXCEPTION 'item_not_available' | IF i.sale_mode <> 'offers' THEN RAISE EXCEPTION 'sale_mode_unavailable'; END IF;\n  IF i.status <> 'live' THEN\n    RAISE EXCEPTION 'item_not_available'
+ * @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql |   IF (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) IS NOT TRUE THEN | IF false THEN
+ * @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql |   IF (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) IS NOT TRUE THEN |   IF NOT (public.declutter_miles(w.area_lat, w.area_lng, i.area_lat, i.area_lng) <= w.radius_miles) THEN
+ * @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql |   IF i.status <> 'live' THEN\n    RAISE EXCEPTION 'item_not_available' | IF i.sale_mode <> 'offers' THEN RAISE EXCEPTION 'sale_mode_unavailable'; END IF;\n  IF i.status <> 'live' THEN\n    RAISE EXCEPTION 'item_not_available'
  * @mutate src/lib/declutter/wanted.ts |       .eq("status", "live")\n | .eq("status", "live").eq("sale_mode", "offers")\n
  * @mutate src/components/declutter/useSellFlowState.ts |   const answer = urlItemId ? null : readWantedAnswer(params); |   const answer = readWantedAnswer(params);
  * @mutate src/components/declutter/useSellFlowState.ts |           const out = await answerAfterListing(answer, id, status, form.free ? null : dollarsToCents(form.price)); |           const out = await answerAfterListing(answer, id, "live", form.free ? null : dollarsToCents(form.price));

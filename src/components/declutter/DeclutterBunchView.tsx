@@ -279,7 +279,7 @@ export default function BunchFlow() {
             <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
           )}
           <h3 className="pt-2 text-sm font-semibold">How buyers can get them</h3>
-          <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} />
+          <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
           <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
           <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Each statement counts for every item you list now.</p>
           {TAX_STATEMENTS.map((s, i) => (

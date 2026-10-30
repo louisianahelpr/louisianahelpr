@@ -111,7 +111,7 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
 export function SellWaysFields({ s }: { s: SellFlow }) {
   const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows } = s;
   return (<>
-    <SellHandoverChoices ways={ways} setWays={(w: SellerHandover[]) => setWays(w)} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} />
+    <SellHandoverChoices ways={ways} setWays={(w: SellerHandover[]) => setWays(w)} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
     {/* Owner 2026-10-28: no "Area buyers see" field; buyers see the town the server works out from this
         address (declutter_town_for_pickup), and the seller can fill it from where they are. */}
     <div className="space-y-2">

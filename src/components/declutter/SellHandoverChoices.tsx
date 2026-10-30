@@ -27,11 +27,13 @@ export function handoverSummary(ways: SellerHandover[]): string {
   return (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
 }
 
-export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen }: {
+export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, pickupDays }: {
   ways: SellerHandover[];
   setWays: (w: SellerHandover[]) => void;
   free: boolean;
   sellerDeliveryOpen: boolean;
+  /** The weekdays of the pickup times being edited beside this (porch days are offered only from these). */
+  pickupDays?: number[];
 }) {
   const shown = (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
   const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
@@ -63,7 +65,7 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen }:
       </ul>
       {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">A free item is picked up from your porch.</p>}
       {!free && sellerDeliveryOpen && <SellDeliveryOffNotice ticked={ways.includes("seller_delivery")} />}
-      {(free || ways.includes("porch")) && <SellPorchDays />}
+      {(free || ways.includes("porch")) && <SellPorchDays pickupDays={pickupDays} />}
     </div>
   );
 }

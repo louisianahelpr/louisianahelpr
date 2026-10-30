@@ -151,6 +151,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // trg_declutter_items_price_drop_alert trigger function
   // declutter_price_drop_alert (v_link, the same link), which every price drop runs.
   "20261027204745_declutter_price_drop_alerts.sql::declutter_price_drop_sweep",
+  // Messages audit H1 (owner 2026-10-30): the bell's two '/messages?…' links are
+  // unchanged (nothing gone; held in v_link so the email links the same place);
+  // the only addition is the send-notification-email URL the new email posts to.
+  "20261030141139_message_email_throttle_mute.sql::notify_message_recipient",
 ]);
 
 /**

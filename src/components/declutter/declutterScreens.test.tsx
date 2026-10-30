@@ -247,7 +247,7 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Declutter" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Declutter" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
-    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
   });
 
   it("My listings shows each status in plain words, incl. waiting for a review", async () => {
@@ -394,7 +394,7 @@ describe("Declutter screens", () => {
 
     it("nothing remembered: stays on Declutter", async () => {
       returnTo("/declutter?card=saved");
-      expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+      expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     });
   });
 });

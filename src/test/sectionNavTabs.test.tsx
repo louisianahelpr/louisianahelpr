@@ -168,15 +168,36 @@ describe("the section tabs (owner 2026-10-18)", () => {
   });
 
   it("a live section open to testers only ALSO says 'Coming soon' (one word for everyone, owner 2026-10-22), and still opens for the tester", () => {
-    switches.on = new Set(["declutter", "shops"]);
+    switches.on = new Set(["rentals", "shops"]);
+    everyone.open = new Set(["shops"]);
+    renderExplore();
+    const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
+    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
+    expect(homes.querySelector("[data-preview-pill]")).toBeNull();
+    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
+    fireEvent.click(homes);
+    expect(screen.getByTestId("where").textContent).toBe("/rentals");
+  });
+
+  // Owner 2026-10-30 (via the lead): the owner and admins HAVE Declutter, yet the chip said "Declutter / Soon".
+  it("Declutter for someone who has it, before it opens to everyone: its plain name, no 'Soon', and a tap opens it", () => {
+    switches.on = new Set(["declutter"]);
+    everyone.open = new Set();
+    renderExplore();
+    const declutter = screen.getByRole("radio", { name: "Declutter" });
+    expect(declutter.querySelector("[data-coming-soon]")).toBeNull();
+    fireEvent.click(declutter);
+    expect(screen.getByTestId("where").textContent).toBe("/declutter");
+  });
+
+  it("Declutter for someone WITHOUT it still says 'Soon', and a tap does nothing", () => {
+    switches.on = new Set(["shops"]);
     everyone.open = new Set(["shops"]);
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
     expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Soon");
-    expect(declutter.querySelector("[data-preview-pill]")).toBeNull();
-    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
     fireEvent.click(declutter);
-    expect(screen.getByTestId("where").textContent).toBe("/declutter");
+    expect(screen.getByTestId("where").textContent).not.toBe("/declutter");
   });
 
   it("while the open-to-everyone answer is loading or failed, no open tab says 'Coming soon'", () => {

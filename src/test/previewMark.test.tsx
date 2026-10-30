@@ -20,7 +20,10 @@
  * "Coming soon" to every viewer, and a tester's empty Browse says "Opens soon" instead (no banner, owner 2026-10-28)
  * (src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts).
  *
- * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature); |   return on && !openToEveryone?.has(feature);
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature) && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature); |   return on && !openToEveryone?.has(feature) && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature);
+ * Owner 2026-10-30: Declutter reads as open to everyone who has it (no tester mark), Shops and Homes keep theirs.
+ * @mutate src/components/mobileNav/useSectionTabs.ts | && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature); | ;
+ * @mutate src/components/mobileNav/useSectionTabs.ts | new Set(["declutter"]); | new Set(["declutter", "shops", "rentals"]);
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isError ? new Set() : q.data ? new Set(q.data) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isSuccess ? new Set(q.data ?? []) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
@@ -76,22 +79,38 @@ beforeEach(() => {
 
 describe("(a) the decision", () => {
   it("a preview only when live for the viewer AND the answer is in AND it is not open to everyone", () => {
-    expect(sectionIsPreview(true, "declutter", new Set())).toBe(true);
-    expect(sectionIsPreview(true, "declutter", new Set(["shops"]))).toBe(true);
-    expect(sectionIsPreview(true, "declutter", new Set(["declutter"])), "open to everyone").toBe(false);
-    expect(sectionIsPreview(true, "declutter", null), "answer loading or failed").toBe(false);
-    expect(sectionIsPreview(false, "declutter", new Set()), "not live for the viewer").toBe(false);
-    expect(sectionIsPreview(false, "declutter", null)).toBe(false);
+    expect(sectionIsPreview(true, "rentals", new Set())).toBe(true);
+    expect(sectionIsPreview(true, "rentals", new Set(["shops"]))).toBe(true);
+    expect(sectionIsPreview(true, "rentals", new Set(["rentals"])), "open to everyone").toBe(false);
+    expect(sectionIsPreview(true, "rentals", null), "answer loading or failed").toBe(false);
+    expect(sectionIsPreview(false, "rentals", new Set()), "not live for the viewer").toBe(false);
+    expect(sectionIsPreview(false, "rentals", null)).toBe(false);
+  });
+
+  // Owner 2026-10-30 (via the lead): the owner and admins HAVE Declutter, so it is never marked "Coming soon" /
+  // "Soon" for them, even while it is not yet open to everyone. Shops and Homes keep the tester mark.
+  it("Declutter is open to everyone who has it: never a preview", () => {
+    expect(sectionIsPreview(true, "declutter", new Set()), "live for the viewer, not yet for everyone").toBe(false);
+    expect(sectionIsPreview(true, "declutter", new Set(["shops"]))).toBe(false);
+    expect(sectionIsPreview(true, "shops", new Set(["declutter"])), "Shops keeps its mark").toBe(true);
   });
 });
 
 describe("(b) useSectionTabs `preview`", () => {
   it("tester: a section open to testers only is a preview; one open to everyone is not; one off is not", async () => {
-    serve({ declutter: true, shops: true, rentals: false }, () => ({ data: ["shops"], error: null }));
+    serve({ declutter: false, shops: true, rentals: true }, () => ({ data: ["shops"], error: null }));
     const { result } = renderHook(() => useSectionTabs(), { wrapper });
-    await waitFor(() => expect(previews(result.current).declutter).toBe(true));
-    expect(previews(result.current)).toEqual({ declutter: true, shops: false, rentals: false });
-    expect(ons(result.current)).toEqual({ declutter: true, shops: true, rentals: false });
+    await waitFor(() => expect(previews(result.current).rentals).toBe(true));
+    expect(previews(result.current)).toEqual({ declutter: false, shops: false, rentals: true });
+    expect(ons(result.current)).toEqual({ declutter: false, shops: true, rentals: true });
+  });
+
+  it("owner 2026-10-30: a tester who has Declutter (not yet open to everyone) sees it live with no mark", async () => {
+    serve({ declutter: true, shops: true, rentals: true }, () => ({ data: [], error: null }));
+    const { result } = renderHook(() => useSectionTabs(), { wrapper });
+    await waitFor(() => expect(previews(result.current).shops).toBe(true));
+    expect(previews(result.current)).toEqual({ declutter: false, shops: true, rentals: true });
+    expect(ons(result.current).declutter).toBe(true);
   });
 
   it("member: a live section is open to everyone, so never a preview", async () => {
@@ -112,7 +131,7 @@ describe("(b) useSectionTabs `preview`", () => {
     await waitFor(() => expect(askedOpen()).toBe(1));
     expect(previews(result.current)).toEqual({ declutter: false, shops: false, rentals: false });
     answer({ data: ["rentals"], error: null });
-    await waitFor(() => expect(previews(result.current)).toEqual({ declutter: true, shops: true, rentals: false }));
+    await waitFor(() => expect(previews(result.current)).toEqual({ declutter: false, shops: true, rentals: false }));
   });
 
   it("failed: no mark (a failure never reads as 'open to nobody')", async () => {
@@ -126,13 +145,13 @@ describe("(b) useSectionTabs `preview`", () => {
 
   it("a failed REFETCH drops the marks it had", async () => {
     let fail = false;
-    serve({ declutter: true, shops: false, rentals: false }, () => (fail ? { data: null, error: { message: "boom", code: "500" } } : { data: [], error: null }));
+    serve({ declutter: false, shops: true, rentals: false }, () => (fail ? { data: null, error: { message: "boom", code: "500" } } : { data: [], error: null }));
     const { result } = renderHook(() => useSectionTabs(), { wrapper });
-    await waitFor(() => expect(previews(result.current).declutter).toBe(true));
+    await waitFor(() => expect(previews(result.current).shops).toBe(true));
     fail = true;
     await client.refetchQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY });
     await waitFor(() => expect(client.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status).toBe("error"));
-    await waitFor(() => expect(previews(result.current).declutter).toBe(false));
+    await waitFor(() => expect(previews(result.current).shops).toBe(false));
   });
 
   it("not deployed (PGRST202 naming no other function): no mark", async () => {

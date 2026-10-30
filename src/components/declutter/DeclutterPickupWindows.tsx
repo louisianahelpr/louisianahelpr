@@ -17,12 +17,12 @@ import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
 import { DateTimeField } from "@/components/DateTimeField";
 
-export function ItemPickupTimes({ itemId }: { itemId: string }) {
+export function ItemPickupTimes({ itemId, label = "Pickup times" }: { itemId: string; label?: string }) {
   const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });
   if (q.isError) return <ErrorState variant="inline" title="We couldn't load the pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   const line = q.data ? windowsSummary(q.data) : "";
   if (!line) return null;
-  return <p className="text-sm" data-testid="declutter-pickup-times">Pickup times: <span className="font-medium">{line}</span></p>;
+  return <p className="text-sm" data-testid="declutter-pickup-times">{label}: <span className="font-medium">{line}</span></p>;
 }
 
 /**

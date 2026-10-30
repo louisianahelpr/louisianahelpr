@@ -40,6 +40,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   underAge: false,
+  handovers: null as string[] | null,
   card: null as unknown,
   bought: 0,
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
@@ -97,6 +98,8 @@ vi.mock("@/lib/declutter/meetup", () => ({
   chooseMeetupSpot: async (_seller: string, spotId: string) => { state.chosenSpots = [spotId]; },
 }));
 vi.mock("@/lib/declutter/api", () => ({
+  // Audit 1030 DB-4: the ways the seller ticked (null = an older item: "with pickup").
+  fetchItemHandovers: async () => state.handovers,
   fetchMyCard: async () => state.card,
   fetchMyActiveStrikes: async () => state.strikes,
   fetchMyOffers: async () => state.offers,
@@ -452,6 +455,21 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent).toMatch(/Their price\$30/);
     expect(bill.textContent).not.toMatch(/fee|%|¢|\$2\.20/i);
     expect(bill.textContent).toMatch(/You pay with pickup\$32\.20/);
+  });
+
+  // Audit 1030 DB-4: the counter said "You pay with pickup" on an item the seller offers no pickup for.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | You pay {totalPhrase(noDeliveryWay(ways.data))}</dt> | You pay with pickup</dt>
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn | queryFn: () => fetchItemHandovers(o.item_id), enabled: false && myTurn
+  it("DB-4: the counter's total names the way the seller offers", async () => {
+    for (const [ways, words] of [[["meetup", "seller_delivery"], "at a safe meetup"], [["delivery"], "before delivery"], [["porch"], "with porch pickup"]] as const) {
+      state.handovers = [...ways];
+      state.offers = [{ ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp", counter_count: 1 }];
+      const { unmount } = show(<OffersSection side="buyer" />);
+      await waitFor(() => expect(document.querySelector("[data-offer-bill]")?.textContent).toContain(`You pay ${words}`));
+      expect(document.querySelector("[data-offer-bill]")?.textContent).not.toMatch(/with pickup/);
+      unmount();
+    }
+    state.handovers = null;
   });
 
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in

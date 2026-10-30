@@ -327,7 +327,7 @@ describe("Declutter screens", () => {
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
-  // @mutate src/components/declutter/DeclutterItemView.tsx |             <ItemPickupTimes itemId={itemId} /> |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |             {way !== "none" && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />} |
   it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
@@ -355,6 +355,35 @@ describe("Declutter screens", () => {
     state.itemHandovers = null;
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByTestId("declutter-porch-line")).toHaveTextContent("Porch pickup available");
+  });
+
+  // Audit 1030 DB-4: an item the seller offers only by delivery still said "Pickup", "Pickup in ..." and "Pickup times",
+  // and checkout then had no pickup. The block follows the ways the seller ticked; an older item keeps "Pickup".
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2> | Pickup</h2>
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label} | Pickup in {it.area_label}
+  // @mutate src/components/declutter/DeclutterItemView.tsx | label={way === "meetup" ? "Meeting times" : "Pickup times"} | label="Pickup times"
+  it("DB-4: the item page says pickup only when the seller offers one", async () => {
+    state.item = { ...ITEM, seller_id: "u2", status: "live" };
+    state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
+    const cases: [string[] | null, string, string, string | null][] = [
+      [["seller_delivery", "delivery"], "Delivery", "Comes from Mid-City, Baton Rouge", null],
+      [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meeting times: Mon–Fri 5–8 PM"],
+      [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
+      [null, "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
+    ];
+    for (const [ways, heading, area, times] of cases) {
+      state.itemHandovers = ways;
+      const { unmount } = at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
+      expect(await screen.findByText(area)).toBeInTheDocument();
+      expect(document.getElementById("declutter-pickup")?.textContent).toBe(heading);
+      if (times) expect(await screen.findByTestId("declutter-pickup-times")).toHaveTextContent(times);
+      else {
+        await new Promise((r) => setTimeout(r, 50));
+        expect(screen.queryByTestId("declutter-pickup-times")).toBeNull();
+      }
+      unmount();
+    }
+    state.itemHandovers = null;
   });
 
   describe("back from Stripe's card page (declutter-card returns to /declutter?card=saved or =cancelled)", () => {

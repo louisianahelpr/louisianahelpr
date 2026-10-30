@@ -260,7 +260,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
               safeStorage.setItem(OFFER_KEY, new Date().toISOString());
               toast("Enjoying smooth jobs?", {
                 description:
-                  "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait.",
+                  "Turn on Instant Release to approve automatically when your Helpr marks done with photo proof. They're paid 3 days later.",
                 duration: 10_000,
                 action: { label: "Turn It On", onClick: () => { window.location.href = "/profile?tab=auto_tip"; } },
               });

@@ -64,7 +64,9 @@ export const rateLimitState = {
 };
 
 /** Every checkRateLimit() call's options, in order: a per-bucket limit is a behaviour. */
-export const rateLimitCalls: Array<{ windowMs?: number; maxRequests?: number; keyPrefix?: string }> = [];
+export const rateLimitCalls: Array<{ windowMs?: number; maxRequests?: number; keyPrefix?: string; ipMaxRequests?: number; subject?: string }> = [];
+/** Buckets (keyPrefix) that refuse while everything else is allowed: one limit among several. */
+export const rateLimitRefusedBuckets = new Set<string>();
 /** Per call, in order: did the Request handed to checkRateLimit carry an Authorization header? */
 export const rateLimitAuthSeen: boolean[] = [];
 
@@ -83,6 +85,7 @@ export function resetSharedMocks() {
   deleteUnder13Account.mockClear();
   alertWaitingOnMoney.mockClear();
   rateLimitCalls.length = 0;
+  rateLimitRefusedBuckets.clear();
   rateLimitAuthSeen.length = 0;
   rateLimitState.allowed = true;
   rateLimitState.remaining = 9;
@@ -128,7 +131,7 @@ export function installNotificationEmailFetch() {
 
 export async function checkRateLimit(
   req?: Request,
-  opts?: { windowMs?: number; maxRequests?: number; keyPrefix?: string },
+  opts?: { windowMs?: number; maxRequests?: number; keyPrefix?: string; ipMaxRequests?: number; subject?: string },
 ): Promise<{
   allowed: boolean;
   remaining: number;
@@ -137,7 +140,7 @@ export async function checkRateLimit(
   rateLimitCalls.push({ ...(opts ?? {}) });
   rateLimitAuthSeen.push(!!req?.headers?.get("authorization"));
   return {
-    allowed: rateLimitState.allowed,
+    allowed: rateLimitState.allowed && !rateLimitRefusedBuckets.has(opts?.keyPrefix ?? ""),
     remaining: rateLimitState.remaining,
     retryAfter: rateLimitState.retryAfter,
   };

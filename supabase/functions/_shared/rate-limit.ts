@@ -96,6 +96,12 @@ export interface RateLimitOptions {
    * subject rotation is bounded instead of unbounded.
    */
   ipMaxRequests?: number;
+  /**
+   * The narrow window's key, set by the SERVER, in place of the token's `sub`.
+   * For a request with no verified identity: on a `verify_jwt = false` function
+   * the caller can forge `sub`, and an override also ignores that forgery.
+   */
+  subject?: string;
 }
 
 export interface RateLimitVerdict {
@@ -204,7 +210,7 @@ export async function checkRateLimit(
   const { windowMs, maxRequests, keyPrefix } = options;
   const ipMax = options.ipMaxRequests ?? Math.max(maxRequests * 10, 60);
 
-  const subject = jwtSubject(req);
+  const subject = options.subject ?? jwtSubject(req);
   const ip = serverDerivedIp(req);
   // The fallback key mirrors the durable one so a request graded in memory
   // during an outage lands in the same conceptual bucket it would have used.

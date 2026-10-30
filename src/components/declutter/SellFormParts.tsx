@@ -151,12 +151,12 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
 
 /** The four statements above ONE checkbox (row 54; owner 2026-10-28 and 2026-10-30; attestItem records all four). */
 export function SellTaxBox({ s }: { s: SellFlow }) {
-  const { attested, setAttested } = s;
+  const { attested, setAttested, form } = s;
   return (
     <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax-head" data-sell-tax="">
       <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
-      <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>
-      <TaxStatementsCheck id="sell-tax" checked={attested} onChange={setAttested} />
+      {!form.free && <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>}
+      <TaxStatementsCheck id="sell-tax" checked={attested} onChange={setAttested} free={form.free} />
     </div>
   );
 }

@@ -603,7 +603,7 @@ async function sendMoneyEmail(
       logStep("Declutter email skipped (no address)", { template: templateName, error: error?.message });
       return;
     }
-    const link = `${getAppUrl()}/declutter?view=cart`;
+    const link = `${getAppUrl()}/declutter?tab=buying`;
     const result = await queueEmail(supabase, {
       to,
       subject,

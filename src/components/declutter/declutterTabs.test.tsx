@@ -256,7 +256,9 @@ const BEFORE_ACTIONS = {
     { role: "button", name: "Delete" },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
     { role: "button", name: "Manage" },
-    { role: "link", name: /Moving out sale/ },
+    // Moving out sale (with Sell a bunch and Sell it for me) is a choice in the sell chooser now, reached from this one
+    // row (owner 2026-10-30; src/components/declutter/declutterSellChooser.test.tsx).
+    { role: "link", name: /More ways to sell/ },
     { role: "button", name: "Cancel sale" },
   ],
   buying: [
@@ -396,7 +398,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByText("Opens soon")).toBeNull();
     expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
-    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
+    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     empty.unmount();
     // A list: the link closes the end card under the cards.
     state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass floor lamp" }];

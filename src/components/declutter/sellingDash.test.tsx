@@ -7,7 +7,7 @@
  *   3. Every listing row: a thumbnail, ONE status line ("Not listed yet" + "Finish the listing to put it up for
  *      sale." read as two), its actions in one group (right-aligned from sm up).
  *   4. "Offers on your items" and "Sold: pickup and payout" empty: a designed empty state, not a bare sentence.
- *   5. "Sell it for me" and "Moving out sale": rows in one card, never loose pills.
+ *   5. "More ways to sell": one row (to the sell chooser, owner 2026-10-30) in a card, never a loose pill.
  *   6. The seller's settings (I can deliver, pickup times, bundle discount) in ONE area after the lists, never a
  *      card in among them.
  * The Declutter API module and the account hooks are stubbed (what each STATE renders), as in declutterTabs.test.tsx.
@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
- * @mutate src/components/declutter/SellItForMe.tsx |     ? "flex min-h-14 w-full items-center | ? "rounded-full flex min-h-14 w-full items-center
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
@@ -248,11 +248,12 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
-  it("'Sell it for me' and 'Moving out sale' are rows in one card, never pills", async () => {
+  it("'More ways to sell' is one row to the sell chooser, never a pill", async () => {
     at("/declutter?tab=selling");
     const more = await screen.findByRole("region", { name: "More ways to sell" });
-    const entries = [within(more).getByTestId("sell-it-for-me-entry"), within(more).getByRole("link", { name: /Moving out sale/ })];
-    expect(entries.length).toBeGreaterThan(1);
+    const entries = within(more).getAllByRole("link");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].getAttribute("href")).toBe("/declutter/sell?mode=choose");
     for (const e of entries) {
       expect(e.className).not.toMatch(/rounded-full/);
       // A row says what it is and what it does: a title and a line under it.

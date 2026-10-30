@@ -63,9 +63,9 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 import { toast } from "sonner";
 import { WantedView, wantedWhereWords } from "./DeclutterWantedViews";
 
-function open() {
+function open(url = "/declutter?tab=wanted") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><MemoryRouter><WantedView /></MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[url]}><WantedView /></MemoryRouter></QueryClientProvider>);
 }
 
 describe("the Wanted hub", () => {
@@ -166,6 +166,14 @@ describe("the Wanted hub", () => {
     expect(await screen.findByText("You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
     expect(await screen.findByText(/No one near you has posted a Wanted yet/)).toBeInTheDocument();
+  });
+
+  // The sell chooser's "Looking for something? Post a Wanted" (owner 2026-10-30) links ?post=1: the form opens at once.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1"); |   const [posting, setPosting] = useState(false); void params;
+  it("?post=1 (from the sell chooser) opens the form straight away", async () => {
+    open("/declutter?tab=wanted&post=1");
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("What are you looking for?")).toBeInTheDocument();
   });
 
   it("Wanted near you lists other members' posts with I have this", async () => {

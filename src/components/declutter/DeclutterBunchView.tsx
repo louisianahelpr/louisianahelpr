@@ -32,7 +32,7 @@ import { geocodeAddress } from "@/lib/geocode";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, splitItem,
+  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, rewrittenPrice, splitItem,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -144,6 +144,18 @@ export default function BunchFlow() {
     return c;
   }
 
+  /** Where the price suggestions look: the located address, or none. A failed lookup never stops the photos. */
+  async function hintPoint(): Promise<{ lat: number; lng: number } | null> {
+    if (pickupAddress.trim().length < 5) return null;
+    try {
+      const c = await locate();
+      return c ? { lat: c.lat, lng: c.lng } : null;
+    } catch (err) {
+      console.warn("[declutter] could not locate the pickup address for price suggestions", err);
+      return null;
+    }
+  }
+
   async function onPhotos(list: FileList | null) {
     const picked = Array.from(list ?? []);
     if (fileRef.current) fileRef.current.value = "";
@@ -159,7 +171,8 @@ export default function BunchFlow() {
     setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
     setSorting({ done: 0, total: Math.ceil(added.length / GROUP_BATCH) });
     try {
-      const res = await groupPhotos(added, (done, total) => setSorting({ done, total }));
+      const at = await hintPoint();
+      const res = await groupPhotos(added, (done, total) => setSorting({ done, total }), (batch) => askGroup(batch, at));
       setItems((its) => [...its, ...res.items]);
       if (res.failed.length > 0) {
         const n = res.failed.reduce((s, f) => s + f.photos, 0);
@@ -175,9 +188,9 @@ export default function BunchFlow() {
     if (!it) return;
     setRewriting(key);
     try {
-      const d = await requestAiDraftFromPhotos(it.photoKeys.map((k) => files.get(k)!).filter(Boolean));
+      const d = await requestAiDraftFromPhotos(it.photoKeys.map((k) => files.get(k)!).filter(Boolean), await hintPoint());
       setItems((its) => its.map((x) => (x.key === key
-        ? { ...x, title: d.title, description: d.description, category: d.category, deliverySize: d.deliverySize, conditionStars: d.conditionStars, flagged: d.flagged !== false }
+        ? { ...x, title: d.title, description: d.description, category: d.category, deliverySize: d.deliverySize, conditionStars: d.conditionStars, flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) }
         : x)));
     } catch (err) {
       // Not silent: the reason is shown above the list; the seller can fill the item in themselves.

@@ -14,7 +14,7 @@
  * @mutate src/lib/declutter/bunch.ts |       for (const p of batch) items.push(blankItem([p.key])); |       void batch;
  * @mutate src/lib/declutter/bunch.ts |   const next = { ...blankItem(take), flagged: src.flagged }; |   const next = blankItem(take);
  * @mutate src/lib/declutter/bunch.ts |       if (problem) throw Object.assign(new Error("bunch_item_not_ready"), { userMessage: problem }); |       void problem;
- * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id }); |       throw error;
+ * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true }); |       throw error;
  */
 import { describe, expect, it, vi } from "vitest";
 import {

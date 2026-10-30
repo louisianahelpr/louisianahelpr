@@ -544,7 +544,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
-      declutter_notice_type: "20261029194046_declutter_auto_offer_notice_kinds.sql 434895227e0fa7a1",
+      // 20261030170443 (Q2488, lead lh-authz-rls approve "no money") adds the declutter_questions kind; still records nothing.
+      declutter_notice_type: "20261030170443_declutter_question_kind.sql e7a9c90bee616b5e",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).
@@ -747,7 +748,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_executed: "20261019071055_shops_refunds_cancels_strikes.sql c9dd716154e3d67f",
       shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
-      shop_refund_sweep: "20261019071055_shops_refunds_cancels_strikes.sql 8851f4c472395adc",
+      // 20261030150104 (lead lh-authz-rls approve "refunds ... unchanged"): only the admin alert skips test accounts.
+      shop_refund_sweep: "20261030150104_admin_alerts_skip_test_gaps.sql 073f789da078c7c4",
       shop_refund_tax_kept: "20261019071055_shops_refunds_cancels_strikes.sql 55fb2a820bce5eca",
       shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
       shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",

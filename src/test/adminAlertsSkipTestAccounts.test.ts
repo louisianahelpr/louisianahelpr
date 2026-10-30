@@ -27,7 +27,7 @@
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_admin_row AND (SELECT auth.uid()) IS NOT NULL |   IF false AND (SELECT auth.uid()) IS NOT NULL
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | AND v_actor <> p_recipient AND public.is_test_subject(v_actor) THEN | AND v_actor <> p_recipient AND public.is_test_member(v_actor) THEN
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |     IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |     IF true THEN
-// @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
+// @mutate supabase/migrations/20261030151252_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

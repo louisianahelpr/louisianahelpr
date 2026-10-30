@@ -261,7 +261,7 @@ describe("stalled-completion-reminder", () => {
     for (const who of [POSTED_BY, WORKED_BY]) {
       const n = sent.find((x) => x.user_id === who);
       expect(n, who).toBeTruthy();
-      expect(n!.message).toMatch(/stays in escrow/i);
+      expect(n!.message).toMatch(/stays on hold/i);
       expect(n!.message).toMatch(/nothing has been released or refunded/i);
     }
     // The queue item itself: escalated_at stamped, conditionally, on the ledger.

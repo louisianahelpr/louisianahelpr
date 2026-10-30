@@ -19,6 +19,7 @@ import { LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, StepHead } from "./Declutte
 import { pickupWindowsProblem, sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { KEEP_UP_EXPLAINER, KEEP_UP_TITLE } from "./KeepUpRow";
+import { AutoFreeChoice } from "./AutoFreeRow";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel } from "./SellAiDraft";
@@ -56,7 +57,7 @@ function postProblem(s: SellFlow): { message: string; at: Where } | null {
 
 export function SellOneScreen() {
   const s = useSellFlowState(null);
-  const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, usedLastSetup, savedWays, windows, keepUpWanted, setKeepUpWanted } = s;
+  const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, usedLastSetup, savedWays, windows, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted } = s;
   const [open, setOpen] = useState<SummaryField | null>(null);
   // null: follow the last setup (folded when it was used, open when there was none).
   const [waysOpen, setWaysOpen] = useState<boolean | null>(null);
@@ -115,6 +116,8 @@ export function SellOneScreen() {
             <SellFreeToggle s={s} />
             {/* DeclutterOfferRules slot (builder 28) */}
             {!form.free && <SellDropsCard s={s} />}
+            {/* OWN-FREE: "If it doesn't sell, make it free after __ days", Never by default; saved at Post. */}
+            {!form.free && <div className="rounded-[20px] border border-border bg-card p-4"><AutoFreeChoice days={autoFreeWanted} onChange={setAutoFreeWanted} /></div>}
             <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-keep-up={keepUpWanted ? "on" : "off"}>
               <span className="min-w-0 flex-1">
                 <span id="sell-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>

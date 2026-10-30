@@ -161,7 +161,7 @@ export function ManageListingSheet({
               {/* Smart offers (owner 2026-10-29): Accept offers, Lowest you'll take (with Claude's suggestion), auto answers. */}
               <DeclutterOfferRules itemId={item.id} priceCents={item.current_price_cents} acceptsOffers={item.accepts_offers} floorCents={manage?.floor_price_cents ?? null} rowClassName={ROW} />
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
-              {/* Q2430: free on day 12 if unsold (only while it is live or paused and still priced). */}
+              {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
               </>)}
               {/* Owner 2026-10-29: renews every 30 days until it sells (free listings run in the same rounds). */}

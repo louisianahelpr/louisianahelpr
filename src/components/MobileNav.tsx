@@ -32,8 +32,12 @@ import { CreateSheet } from "@/components/create/CreateSheet";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
+import { useLanguage } from "@/lib/i18n/language";
+import { navKey } from "@/lib/i18n/navLabels";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
+  // Spanish option (2026-10-29): the dock's words come from the dictionary.
+  const { t: tr } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
@@ -391,6 +395,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
+    const shownKey = navKey(path, label);
+    const shown = shownKey ? tr(shownKey) : label;
     const guestLocked = isGuest && !["/home", "/profile"].includes(path);
     const locked = guestLocked;
     const effectivePath = isGuest
@@ -478,7 +484,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         key={path}
         onTap={handleClick}
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
-        ariaLabel={locked ? `${label} — locked until your account is approved` : label}
+        ariaLabel={locked ? `${shown} — locked until your account is approved` : shown}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }}
@@ -559,7 +565,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {/* One-word label under each icon (owner, 2026-10-19): ONE line, never cut, 10px at 320, 11px from 360; no clip,
             so a wide word spills into the slot gap. Guards: dockLabelsOneLine + nav-hide-on-scroll.spec.ts "dock labels". */}
         <span data-dock-label className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}>
-          {label}
+          {shown}
         </span>
         {/* No underline: the active tab is its filled icon + bold olive label (spec v2 §3;
             the rust underline broke "rust is money only", lead review 2026-10-20). */}
@@ -615,7 +621,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     <>
       <nav
         ref={ref}
-        aria-label="Bottom navigation"
+        aria-label={tr("nav.bottom")}
         aria-hidden={navHidden || undefined}
         // `aria-hidden` alone on a bar full of buttons is an
         // aria-hidden-focus failure, not an accommodation: the dock is
@@ -696,7 +702,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 <button
                   type="button"
                   data-testid="dock-create"
-                  aria-label="Create"
+                  aria-label={tr("nav.create")}
                   aria-haspopup="dialog"
                   aria-expanded={createOpen}
                   onClick={() => {

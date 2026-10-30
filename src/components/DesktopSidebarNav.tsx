@@ -11,7 +11,7 @@ import {
 import HelprMark from "@/components/HelprMark";
 import { CreateSheet } from "@/components/create/CreateSheet";
 import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
-import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import type { DockItem } from "@/components/mobileNav/dockItems";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -26,6 +26,8 @@ import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { useLanguage } from "@/lib/i18n/language";
+import { navKey } from "@/lib/i18n/navLabels";
 
 /**
  * DesktopSidebarNav — the persistent LEFT sidebar (owner 2026-10-19: left and
@@ -102,6 +104,8 @@ const DesktopSidebarNav = () => {
 };
 
 const DesktopSidebarRail = () => {
+  // Spanish option (2026-10-29): the rail's words come from the dictionary.
+  const { t: tr } = useLanguage();
   const { open: sidePanelOpen } = useSidePanel();
   const location = useLocation();
   const navigate = useNavigate();
@@ -181,7 +185,7 @@ const DesktopSidebarRail = () => {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={tr("nav.primary")}
       aria-hidden={!sidePanelOpen}
       // @ts-expect-error — `inert` is valid HTML; React's types lag it.
       inert={!sidePanelOpen ? "" : undefined}
@@ -211,13 +215,15 @@ const DesktopSidebarRail = () => {
           className="btn-grad-primary btn-press w-full h-12 rounded-full inline-flex items-center justify-center gap-2 text-ds-15 font-semibold"
         >
           <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden />
-          Create
+          {tr("nav.create")}
         </button>
       </div>
 
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
         {navItems.map((item) => {
           const { path, icon: Icon, label } = item;
+          const shownKey = navKey(path, label);
+          const shown = shownKey ? tr(shownKey) : label;
           const badgeKey = "badgeKey" in item ? item.badgeKey : undefined;
           const soon = "comingSoon" in item && !!item.comingSoon;
           const preview = !soon && "preview" in item && !!item.preview;
@@ -230,7 +236,7 @@ const DesktopSidebarRail = () => {
                 onMouseEnter={() => !soon && prefetchRoute(path)}
                 aria-current={active ? "page" : undefined}
                 aria-disabled={soon ? true : undefined}
-                aria-label={soon ? comingSoonLabel(label) : undefined}
+                aria-label={soon ? tr("nav.comingSoon", { label: shown }) : undefined}
                 data-sidebar-item={path}
                 className={`group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
                 style={{
@@ -263,7 +269,7 @@ const DesktopSidebarRail = () => {
                   className="font-sans text-ds-15"
                   style={{ fontWeight: active ? 700 : 500 }}
                 >
-                  {label}
+                  {shown}
                   {/* Audit #42: a closed section says "Coming soon" under its name, as the phone chips do. */}
                   {soon && <SoonPill variant="rail" aria-hidden="true" />}
                   {/* A2-L17: a tester's open section says "Coming soon" too (olive), as the phone's chips do. */}

@@ -187,6 +187,7 @@ const READERS: Record<string, string> = {
   // Read only through the waiting helpers above:
   "src/pages/home/DashboardGuest.tsx": "via definitelyGuest()",
   "src/components/MobileNav.tsx": "via useStoredSessionHint()",
+  "src/components/SignedInChrome.tsx": "via useStoredSessionHint(): before the restore the chrome waits, and the hint is read again when it lands",
   // Web only: the native app never reaches the read.
   "src/components/MarketingRedirect.tsx": "web only: gated on !isNativePlatform",
   "src/lib/prePaintShellClasses.ts": "web only: the value only matters with web-desktop, which native never sets",

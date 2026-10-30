@@ -70,11 +70,6 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
     reason: "the 24h admin_alert notification sent only to user_roles admins, who triage by side of the job.",
   },
   {
-    file: "supabase/functions/auto-resolve-disputes/index.ts",
-    text: "expired without poster action",
-    reason: "admin_alert notification sent only to admins.",
-  },
-  {
     file: "supabase/functions/release-payout/index.ts",
     text: "not a poster problem",
     reason: "admin_alert notification sent only to admins.",

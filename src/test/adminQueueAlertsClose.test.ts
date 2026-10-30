@@ -247,9 +247,12 @@ const edge = edgeFanOuts();
 const ALL = [...sql, ...edge.found].map((f) => ({ ...f, key: f.title.toLowerCase() }));
 
 describe("every admin fan-out title has a close rule (Q355)", () => {
-  it("found the fan-outs (inventory floor, 2026-09-25: 8 SQL titles, 19 edge titles)", () => {
+  it("found the fan-outs (inventory floor, 2026-09-25: 8 SQL titles, 19 edge titles; 17 edge titles from 2026-10-30, Q2362)", () => {
     expect(sql.length).toBeGreaterThanOrEqual(8);
-    expect(edge.found.length).toBeGreaterThanOrEqual(19);
+    // Q2362 (2026-10-30): auto-resolve-disputes no longer settles an expired
+    // dispute, so its "Dispute auto-resolved" admin notice and its in-claim
+    // unsettleable reminder are gone.
+    expect(edge.found.length).toBeGreaterThanOrEqual(17);
     // The shorthand object literal is auto-resolve-disputes' remindAdmins;
     // its titles are read at the calls. Any other shorthand is unread: fail.
     expect(edge.shorthand).toEqual(["supabase/functions/auto-resolve-disputes/index.ts"]);
@@ -286,8 +289,24 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
     expect(problems).toEqual([]);
   });
 
+  /**
+   * Titles no fan-out sends any more whose close rule is KEPT, so the admin
+   * notices already sent still close themselves. EXACT and two-way: each is
+   * still a rule, and none is sent again.
+   * - "dispute auto-resolved": auto-resolve-disputes stopped settling expired
+   *   disputes (Q2362, 2026-10-30); prod holds rows sent before that.
+   */
+  const RETIRED_RULE_PREFIXES = ["dispute auto-resolved"];
+
   it("two-way: no stale rule prefix, no stale manual prefix", () => {
-    expect(RULES.filter((r) => !ALL.some((f) => f.key.startsWith(r.prefix))).map((r) => r.prefix), "stale rule").toEqual([]);
+    expect(
+      RULES.filter((r) => !RETIRED_RULE_PREFIXES.includes(r.prefix) && !ALL.some((f) => f.key.startsWith(r.prefix))).map((r) => r.prefix),
+      "stale rule",
+    ).toEqual([]);
+    for (const p of RETIRED_RULE_PREFIXES) {
+      expect(RULES.some((r) => r.prefix === p), `retired prefix "${p}" is still a close rule`).toBe(true);
+      expect(ALL.filter((f) => f.key.startsWith(p)).map((f) => f.site), `retired prefix "${p}" is not sent again`).toEqual([]);
+    }
     expect(MANUAL.filter((p) => !ALL.some((f) => f.key.startsWith(p))), "stale manual").toEqual([]);
   });
 

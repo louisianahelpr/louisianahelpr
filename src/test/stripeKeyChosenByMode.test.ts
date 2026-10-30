@@ -66,7 +66,6 @@ for (const [file, s] of sources) {
 /** Functions whose every Stripe client is chosen by mode (owner 2026-10-12). EXACT. */
 const ROUTED = [
   "auto-release-payment/index.ts",
-  "auto-resolve-disputes/index.ts",
   "auto-tip-charge/index.ts",
   "card-hold-sweep/index.ts",
   "cash-out-credits/index.ts",

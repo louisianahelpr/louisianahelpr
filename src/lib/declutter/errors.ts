@@ -11,6 +11,8 @@
  * in the declutter migrations and fails on one that has no line here, and on a
  * line here no migration raises.
  */
+import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
+
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // The Free section (20261027170717).
   free_item_claim_it: "This item is free. Tap Ask for it.",
@@ -321,6 +323,14 @@ export class ListingPhotoError extends Error {}
 
 const GENERIC = "Something went wrong. Please try again.";
 
+/** Audit 1d D4-14: the device is offline (the browser says so). Any typed text stays where it was. */
+export const DECLUTTER_OFFLINE_COPY = "You're offline. Try again when you're back online.";
+
+/** True when the device says it has no connection (never throws where there is no navigator). */
+function deviceOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 /** The plain-words message for any error a Declutter call threw or returned. */
 export function declutterErrorMessage(err: unknown): string {
   if (!err) return GENERIC;
@@ -335,6 +345,9 @@ export function declutterErrorMessage(err: unknown): string {
   if (message && Object.prototype.hasOwnProperty.call(DECLUTTER_CLIENT_ERROR_COPY, message)) {
     return DECLUTTER_CLIENT_ERROR_COPY[message];
   }
+  // D4-14: a call that never reached the server (offline, signal lost) says so, never "Something went wrong".
+  if (deviceOffline()) return DECLUTTER_OFFLINE_COPY;
+  if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY;
   // The contact-leak filter (check_violation) speaks to the member already.
   // Other check_violations are table constraints written for developers.
   if (e.code === "23514" && /Keep contact details and payment (off the listing|out)/.test(message)) return message;

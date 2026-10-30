@@ -57,6 +57,8 @@ import {
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, sellerStatusLabel, TAX_STATEMENTS } from "./declutterUi";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { readMoveDraft, writeMoveDraft } from "@/lib/declutter/moveDraft";
+import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
+import { movingDayPostJobPath } from "@/lib/declutter/movingDayJob";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { AREA_ADDRESS_RE } from "./sellForm";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
@@ -111,6 +113,8 @@ export default function MoveFlow() {
     [moveItems.data],
   );
   const drafts = useMemo(() => inPlay.filter((i) => i.status === "draft"), [inPlay]);
+  // D4-6: the listed, unsold sale items "Haul away what's left" pre-fills (Post a job keeps the ones a haul-away takes).
+  const haulIds = useMemo(() => inPlay.filter((i) => i.status === "live" || i.status === "paused").map((i) => i.id), [inPlay]);
   const photos = useQuery({
     queryKey: ["declutter", "move-photos", drafts.map((d) => d.id).join(",")],
     queryFn: () => fetchPhotos(drafts.map((d) => d.id)),
@@ -499,11 +503,12 @@ export default function MoveFlow() {
           Need a hand carrying things out, or a truck for whatever doesn't sell? Hire a Helpr for the job.
         </p>
         <div className="flex flex-wrap gap-2">
+          {/* D4-6: both open a pre-filled job, never a blank Post a job. */}
           <Button asChild variant="outline" size="sm">
-            <Link to="/post-job">Hire a Helpr for moving day</Link>
+            <Link to={movingDayPostJobPath(current)}>Hire a Helpr for moving day</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link to="/post-job">Haul away what's left</Link>
+            <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current)}>Haul away what's left</Link>
           </Button>
         </div>
         {current && (

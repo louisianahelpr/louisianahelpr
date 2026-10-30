@@ -176,13 +176,22 @@ async function check(plant) {
     acknowledged: CONFIG.acknowledged,
     runs,
     expiredRun: CONFIG.expiredRun,
+    lostRuns: CONFIG.lostRuns.pairs,
     shaEvidence,
   });
   console.log(`Judged ${f.judged} prod version(s) newer than cutoff ${CONFIG.cutoff}; ${ledger.length} receipt(s); ${CONFIG.acknowledged.length} acknowledged.`);
-  if (f.expired.length) {
+  const byAge = f.expired.filter((x) => !x.listedLoss);
+  const listed = f.expired.filter((x) => x.listedLoss);
+  if (byAge.length) {
     console.log(
-      `${f.expired.length} receipt(s) name a run GitHub no longer has (runs ${[...new Set(f.expired.map((x) => x.run_id))].join(", ")}); ` +
-        `each is over ${CONFIG.expiredRun.minAgeDays} days old and its head_sha is on main carrying the migration, so it is judged by the receipt: ${f.expired.map((x) => x.version).join(", ")}.`,
+      `${byAge.length} receipt(s) name a run GitHub no longer has (runs ${[...new Set(byAge.map((x) => x.run_id))].join(", ")}); ` +
+        `each is over ${CONFIG.expiredRun.minAgeDays} days old and its head_sha is on main carrying the migration, so it is judged by the receipt: ${byAge.map((x) => x.version).join(", ")}.`,
+    );
+  }
+  if (listed.length) {
+    console.log(
+      `${listed.length} receipt(s) name a run listed as deleted on ${CONFIG.lostRuns.date} (runs ${[...new Set(listed.map((x) => x.run_id))].join(", ")}); ` +
+        `each may be under ${CONFIG.expiredRun.minAgeDays} days old, and its head_sha is on main carrying the migration: ${listed.map((x) => x.version).join(", ")}.`,
     );
   }
   for (const v of f.unrecorded) {
@@ -194,7 +203,8 @@ async function check(plant) {
   }
   for (const x of f.forged) console.error(`::error::receipt for ${x.version}: ${x.why}.`);
   for (const v of f.staleAck) console.error(`::error::acknowledged ${v} no longer matches an unreceipted prod version newer than the cutoff — remove it from scripts/audit/migration-provenance.json.`);
-  if (f.unrecorded.length || f.forged.length || f.staleAck.length) return 1;
+  for (const p of f.staleLostRun) console.error(`::error::lostRuns entry ${p} no longer matches a receipt whose run is gone — remove it from scripts/audit/migration-provenance.json.`);
+  if (f.unrecorded.length || f.forged.length || f.staleAck.length || f.staleLostRun.length) return 1;
   console.log("OK: every prod migration newer than the cutoff carries a db-deploy receipt.");
   return 0;
 }

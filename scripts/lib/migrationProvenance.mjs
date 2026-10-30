@@ -45,9 +45,10 @@ export function receiptInsertSql(versions, { runId, runAttempt, headSha }) {
  * @param {Map<string, {path:string, head_branch:string}|null>} a.runs  GitHub run lookups by run id
  * @param {{minAgeDays:number}} [a.expiredRun]  when a receipt's run is gone (see expiredRunVerdict)
  * @param {Map<string, {onMain:boolean, fileAtSha:boolean}>} [a.shaEvidence]  by version, for gone runs
+ * @param {{version:string, run_id:string}[]} [a.lostRuns]  exact pairs whose run we deleted ourselves (see expiredRunVerdict)
  * @param {Date} [a.now]
  */
-export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged, runs, expiredRun, shaEvidence, now = new Date() }) {
+export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged, runs, expiredRun, shaEvidence, lostRuns = [], now = new Date() }) {
   if (!/^[0-9]{14}$/.test(String(cutoff))) throw new Error(`bad cutoff: ${cutoff}`);
   const prod = new Set(prodVersions.map(String));
   const receipts = new Map(ledger.map((r) => [String(r.version), r]));
@@ -68,8 +69,8 @@ export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged,
     }
     const run = runs.get(String(r.run_id));
     if (!run) {
-      const why = expiredRunVerdict(r, shaEvidence?.get(v), { now, minAgeDays: expiredRun?.minAgeDays });
-      if (why === null) expired.push({ version: v, run_id: String(r.run_id) });
+      const why = expiredRunVerdict(r, shaEvidence?.get(v), { now, minAgeDays: expiredRun?.minAgeDays, lostRuns });
+      if (why === null) expired.push({ version: v, run_id: String(r.run_id), ...(isListedLoss(r, lostRuns) ? { listedLoss: true } : {}) });
       else forged.push({ version: v, why: `run ${r.run_id} does not exist in this repository (${why})` });
     }
     else if (run.path !== DEPLOY_WORKFLOW_PATH) forged.push({ version: v, why: `run ${r.run_id} is ${run.path}, not ${DEPLOY_WORKFLOW_PATH}` });
@@ -78,7 +79,20 @@ export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged,
   forged.sort((a, b) => a.version.localeCompare(b.version));
 
   expired.sort((a, b) => a.version.localeCompare(b.version));
-  return { unrecorded, staleAck, forged, expired, judged: [...prod].filter((v) => v > cutoff).length };
+
+  // The list is exact, like acknowledged: an entry must be a receipt that names
+  // that run, and that run must still be gone. Anything else is stale.
+  const staleLostRun = lostRuns.filter((p) => {
+    const r = receipts.get(String(p.version));
+    return !r || String(r.run_id) !== String(p.run_id) || !!runs.get(String(p.run_id));
+  }).map((p) => `${p.version} ${p.run_id}`).sort();
+
+  return { unrecorded, staleAck, staleLostRun, forged, expired, judged: [...prod].filter((v) => v > cutoff).length };
+}
+
+/** Both halves must match: a listed version with another run id is not listed. */
+function isListedLoss(receipt, lostRuns) {
+  return (lostRuns ?? []).some((p) => String(p.version) === String(receipt.version) && String(p.run_id) === String(receipt.run_id));
 }
 
 /**
@@ -95,13 +109,20 @@ export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged,
  *   - its head_sha is a commit on main, and that commit carries the
  *     version's migration file (db-deploy applies main's migrations).
  * Returns null when all hold, else the reason it is still judged forged.
+ *
+ * lostRuns (migration-provenance.json) names the exact version + run id pairs
+ * whose run we deleted ourselves on 2026-10-30, so their young age says nothing.
+ * A listed pair skips ONLY the age test; everything else still applies.
  */
-export function expiredRunVerdict(receipt, evidence, { now, minAgeDays }) {
+export function expiredRunVerdict(receipt, evidence, { now, minAgeDays, lostRuns }) {
   if (!Number.isFinite(minAgeDays) || minAgeDays < 1) return "no expired-run rule configured";
   const at = Date.parse(String(receipt.recorded_at ?? ""));
   if (!Number.isFinite(at)) return "the receipt has no recorded_at";
   const ageDays = (now.getTime() - at) / 86_400_000;
-  if (ageDays < minAgeDays) return `the receipt is ${Math.floor(ageDays)} day(s) old; a run missing within ${minAgeDays} days is not taken as lost`;
+  const listedLoss = isListedLoss(receipt, lostRuns);
+  if (!listedLoss) {
+    if (ageDays < minAgeDays) return `the receipt is ${Math.floor(ageDays)} day(s) old; a run missing within ${minAgeDays} days is not taken as lost`;
+  }
   if (!evidence) return "no commit evidence was read for it";
   if (!evidence.onMain) return `head_sha ${receipt.head_sha} is not a commit on main`;
   if (!evidence.fileAtSha) return `head_sha ${receipt.head_sha} does not carry migration ${receipt.version}`;

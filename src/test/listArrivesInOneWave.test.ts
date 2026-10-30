@@ -49,7 +49,7 @@
 // @mutate src/pages/profile/Profile.tsx | const showSkeleton = tab === "landing" ? !landingReady : loading; | const showSkeleton = loading;
 // @mutate src/pages/profile/Profile.tsx |   if (showSkeleton) { |   if (loading) {
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
-// @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled && questions.settled) | useArrivalGate(true, true)
+// @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && (browseFirst \|\| (todoSettled && questions.settled))) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (listLoading) { |   } else if (false) {
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |  \|\| origin.status === "pending"; | ;

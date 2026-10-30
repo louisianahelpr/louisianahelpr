@@ -383,7 +383,7 @@ export const TermsContent = () => {
         title="Refunds and when the sale is final"
         body={
           <>
-            <p><strong className="text-foreground">You always get 24 hours.</strong> However the pickup is confirmed, you have 24 hours after pickup to ask for a refund. The seller can refund all of it (most of the payment comes back to you, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.</p>
+            <p><strong className="text-foreground">You always get 24 hours.</strong> However the pickup is confirmed, you have 24 hours after pickup to ask for a refund, unless Louisiana Helpr has already decided a problem on that order. The seller can refund all of it (most of the payment comes back to you, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.</p>
             <p><strong className="text-foreground">The seller is paid when the sale is final:</strong> 24 hours after pickup with no refund asked and no problem open, or once Louisiana Helpr has decided. After that the item is yours as is, with no returns.</p>
             <ul className="list-disc pl-4 space-y-0.5">
               <li><strong className="text-foreground">Our mistake</strong> (a duplicate charge, a payment on a closed order): everything back.</li>

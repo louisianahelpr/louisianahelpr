@@ -17588,6 +17588,10 @@ export type Database = {
         Args: { p_user: string }
         Returns: Json
       }
+      shipping_rate_buyable: {
+        Args: { p_rate_cents: number; p_shipment_id: string }
+        Returns: boolean
+      }
       shop_active_strike_count: {
         Args: { p_user_id: string }
         Returns: number

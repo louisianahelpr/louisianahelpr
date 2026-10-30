@@ -11,6 +11,7 @@
  * and the webhook refused every TEST-mode gift as not routed.
  *
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | if (stripeMode === "test") | if (stripeMode === "nope")
+ * @mutate supabase/functions/create-gift-card-checkout/index.ts |     const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }); |     const customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? "cus_byemail";
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | if (!bothTest) | if (bothTest && false)
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | const stripe = new Stripe(stripeSecretKeyFor(stripeMode), | const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | recipientUserId = String(eligibleProfile.user_id); | recipientUserId = null;
@@ -110,6 +111,19 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       const res = await buyGift(REAL_BUYER, { recipient_email: REAL_RECIPIENT_EMAIL });
       expect(res.status).toBe(200);
       expect(stripeMock.__keys).toEqual([LIVE_KEY]);
+      // Q2139 + Q2084: the buyer's LIVE wallet customer (read by member AND mode,
+      // never found by email), card only, dollars only.
+      const params = stripeMock.checkout.sessions.create.mock.calls[0][0] as Record<string, unknown>;
+      expect(stripeMock.customers.list).not.toHaveBeenCalled();
+      const wallet = scenario.readQueries.find((q) => q.table === "stripe_customers");
+      expect(wallet?.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ op: "eq", column: "user_id", value: REAL_BUYER }),
+        expect.objectContaining({ op: "eq", column: "wallet_mode", value: "live" }),
+      ]));
+      expect(params.customer).toMatch(/^cus_/);
+      expect(params.customer_email).toBeUndefined();
+      expect(params.payment_method_types).toEqual(["card"]);
+      expect(params.adaptive_pricing).toEqual({ enabled: false });
     });
 
     it("a real buyer gifting a TEST account still pays LIVE (real money stays real)", async () => {
@@ -131,7 +145,7 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       expect(stripeMock.__keys).toEqual([TEST_KEY]);
       expect(giftWrites()).toHaveLength(1);
       // The mode is part of the idempotency key (lh-money-escrow review, finding 4).
-      expect(stripeMock.checkout.sessions.create.mock.calls[0][1]).toEqual({ idempotencyKey: `gift-card:test:${TEST_BUYER}:${TEST_RECIPIENT_EMAIL}:2500` });
+      expect(stripeMock.checkout.sessions.create.mock.calls[0][1]).toEqual({ idempotencyKey: `gift-card:v2:test:${TEST_BUYER}:${TEST_RECIPIENT_EMAIL}:2500` });
     });
 
     it("a test buyer gifting a test account picked by name pays on the TEST key", async () => {

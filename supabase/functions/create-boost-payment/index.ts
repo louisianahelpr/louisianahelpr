@@ -11,6 +11,7 @@ import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
 import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -371,21 +372,28 @@ serve(async (req) => {
 
     // Stripe mode (owner 2026-10-12): a test account pays on the TEST key, everyone
     // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
+    const stripeMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+    const stripe = new Stripe(stripeSecretKeyFor(stripeMode), {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    const customerId = customers.data[0]?.id;
+    // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
+    // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
+    // found by email (an address can belong to someone else's old customer).
+    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       // automatic_tax needs a tax location. An existing Stripe Customer with no
       // address made Stripe refuse the session (customer_tax_location_invalid,
       // proved on create-pro-checkout 2026-09-06), so save the one Checkout
-      // collects. `customer_update` is invalid without `customer` (ME-043).
-      ...(customerId ? { customer_update: { address: "auto" as const } } : {}),
+      // collects (ME-043).
+      customer_update: { address: "auto" as const },
+      // Q2084 (owner: never eat a fee): card only (Apple Pay and Google Pay ride on
+      // card), never the account default list (Klarna, Afterpay, Affirm, Cash App,
+      // Amazon Pay cost more than the card fee covers), and dollars only.
+      payment_method_types: ["card"],
+      adaptive_pricing: { enabled: false },
       line_items: [{
         price_data: {
           currency: "usd",
@@ -443,6 +451,13 @@ serve(async (req) => {
     });
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);
+    if (error instanceof StripeCustomerUnavailable) {
+      console.error(`[create-boost-payment] ${error.message}`);
+      return new Response(JSON.stringify({ error: "We couldn't start the payment just now. Please try again." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 503,
+      });
+    }
     console.error("[create-boost-payment] error:", error);
     return fail(500, "Something went wrong starting your boost. Please try again.");
   }

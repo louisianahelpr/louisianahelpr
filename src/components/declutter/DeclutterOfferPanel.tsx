@@ -2,7 +2,7 @@
  * The buy / offer panel on someone else's live Declutter item and its card
  * step (rows 36, 53, 56-59; owner 2026-10-19: Buy now and Make an offer always
  * show, and with no saved card either one asks for a card and comes back to
- * itself). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
+ * itself; DA-11: an offer asks at Send, after the amount is typed). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -20,7 +20,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { minOfferCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
+import { afterCardFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
 import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
@@ -35,9 +35,11 @@ import { invalidateTrades } from "./DeclutterOffersSection";
  * on the web via the return from Stripe's page, in the app on return from the
  * in-app browser). Nothing is charged by saving a card.
  */
-function AddCardStep({ action, itemId, onReturned, onCancel }: {
+function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel }: {
   action: AfterCardAction;
   itemId: string;
+  /** DA-11: the amount already typed, kept across the trip to Stripe's page. */
+  offerAmount?: string;
   onReturned: () => void;
   onCancel: () => void;
 }) {
@@ -47,7 +49,7 @@ function AddCardStep({ action, itemId, onReturned, onCancel }: {
       <p className="text-sm font-semibold">Add a card to finish.</p>
       <p className="text-xs text-muted-foreground">
         {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
-        We save your card now; you're only charged when you check out. {action === "buy" ? "Then you confirm the buy." : "Then you enter your offer."}
+        We save your card now; you're only charged when you check out. {action === "buy" ? "Then you confirm the buy." : "Then you send your offer."}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button
@@ -59,7 +61,7 @@ function AddCardStep({ action, itemId, onReturned, onCancel }: {
             setOpening(true);
             try {
               const url = await startCardSave();
-              rememberAfterCard(itemId, action);
+              rememberAfterCard(itemId, action, undefined, offerAmount);
               await openExternalUrl(url, () => { setOpening(false); onReturned(); });
             } catch (err) {
               toast.error(declutterErrorMessage(err));
@@ -121,7 +123,9 @@ const CARD_POLL_MS = 1_500;
  * Buy now and Make an offer ALWAYS show (owner, 2026-10-19: as on Marketplace,
  * OfferUp and Mercari); with no saved card, either one goes through
  * AddCardStep and comes back to itself: Buy to its confirm, Offer to the
- * amount entry. The age, reserved and own-item gates stay as they were, and
+ * amount entry with what was typed still there. DA-11 (Declutter audit
+ * 2026-10-30): Make an offer opens the amount box at once and the card is asked
+ * for at Send, so nobody hands over a card before knowing what they would pay. The age, reserved and own-item gates stay as they were, and
  * the server checks every buy and offer (strikes, card, sold) on its own.
  */
 /**
@@ -148,7 +152,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   const { underAge } = useAgeGate();
   const location = useLocation();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  // DA-11: the amount typed before the trip to Stripe's page comes back with the member (router state, like the action).
+  const [amount, setAmount] = useState(() => offerAmountFromState(location.state) ?? "");
+  const [open, setOpen] = useState(() => !!offerAmountFromState(location.state));
   const panel = useRef<HTMLElement>(null);
   const buttons = useRef<HTMLDivElement>(null);
   // Phone (owner, 2026-10-19): while the in-page buttons are scrolled out of
@@ -156,7 +162,6 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   const barShown = useOffScreen(buttons);
   // The bar owns the bottom strip while it shows; the dock steps aside (Q1646).
   useDockYield(barShown && !underAge && item.status === "live");
-  const [amount, setAmount] = useState("");
   /** The action waiting for a card: shown as AddCardStep, then resumed once a card is on file. */
   const [needCard, setNeedCard] = useState<AfterCardAction | null>(null);
   /**
@@ -224,6 +229,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   };
   const tap = (action: AfterCardAction) => {
     setResume(null);
+    // DA-11: the amount comes first; the card is asked for at Send (sendOffer).
+    if (action === "offer") {
+      setNeedCard(null);
+      setOpen(true);
+      return;
+    }
     if (card.data) {
       setNeedCard(null);
       run(action);
@@ -232,11 +243,18 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
       setNeedCard(action);
     }
   };
+  // DA-11: Send with no saved card asks for one here and keeps the typed amount. A failed card read does not block:
+  // the server checks the card itself and says so.
+  const sendOffer = () => {
+    if (offerProblem || send.isPending) return;
+    if (card.data || card.isError) send.mutate();
+    else setNeedCard("offer");
+  };
 
   // The action came back in the router state: drop it from history so a
   // reload or Back never replays it.
   useEffect(() => {
-    if (afterCardFromState(location.state)) {
+    if (afterCardFromState(location.state) || offerAmountFromState(location.state)) {
       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
     }
   }, []);
@@ -262,6 +280,22 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   }, [resume]);
 
   const showCardStep = !!needCard && !resume && !card.isError;
+  // Back from Stripe's page: the Send press comes once the card is in.
+  const checkingCard = !!resume && !hasCard && !card.isError;
+
+  const cardStep = (action: AfterCardAction) => (
+    <AddCardStep
+      action={action}
+      itemId={item.id}
+      offerAmount={action === "offer" ? amount.trim() : undefined}
+      onReturned={() => {
+        setResume(action);
+        setNeedCard(null);
+        void card.refetch();
+      }}
+      onCancel={() => setNeedCard(null)}
+    />
+  );
 
   // Until the cart read is in, say nothing yet: "Someone is buying" would flash before "Reserved for you".
   if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;
@@ -298,7 +332,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
             size="wrap"
             className="w-full rounded-full"
             aria-expanded={open}
-            disabled={card.isLoading || offers.isLoading}
+            disabled={offers.isLoading}
             onClick={() => (open ? setOpen(false) : tap("offer"))}
           >
             Make an offer
@@ -312,27 +346,16 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
       {card.isError && (
         <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
       )}
-      {resume && !hasCard && !card.isError && (
+      {checkingCard && (
         <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
       )}
-      {showCardStep && needCard && (
-        <AddCardStep
-          action={needCard}
-          itemId={item.id}
-          onReturned={() => {
-            setResume(needCard);
-            setNeedCard(null);
-            void card.refetch();
-          }}
-          onCancel={() => setNeedCard(null)}
-        />
-      )}
+      {showCardStep && needCard === "buy" && cardStep("buy")}
       {open && (
         <form
           className="space-y-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!offerProblem) send.mutate();
+            sendOffer();
           }}
         >
           <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
@@ -346,7 +369,13 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               placeholder={`At least ${formatPrice(minCents)}`}
               aria-describedby="declutter-offer-help"
             />
-            <Button type="submit" size="sm" className="rounded-full" disabled={send.isPending || !!offerProblem}>
+            <Button
+              type="submit"
+              size="sm"
+              variant={needCard === "offer" ? "outline" : undefined}
+              className="rounded-full"
+              disabled={send.isPending || !!offerProblem || card.isLoading || checkingCard}
+            >
               Send offer
             </Button>
           </div>
@@ -371,6 +400,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           </p>
         </form>
       )}
+      {showCardStep && needCard === "offer" && cardStep("offer")}
       <p className="text-xs text-muted-foreground">
         You see one total before you pay. The seller keeps the whole price.
       </p>
@@ -396,7 +426,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                   variant="outline"
                   size="wrap"
                   className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
-                  disabled={card.isLoading || offers.isLoading}
+                  disabled={offers.isLoading}
                   onClick={() => {
                     tap("offer");
                     panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });

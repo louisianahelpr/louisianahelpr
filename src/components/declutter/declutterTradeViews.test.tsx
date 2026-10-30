@@ -7,7 +7,15 @@
  * Owner 2026-10-19: Buy now and Make an offer always show; with no saved card either one asks for a
  * card (AddCardStep) and comes back to itself (src/lib/declutter/afterCard.ts).
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (card.data) {\n      setNeedCard(null); |     if (true) {\n      setNeedCard(null);
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               rememberAfterCard(itemId, action);\n | \n
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               rememberAfterCard(itemId, action, undefined, offerAmount);\n | \n
+ * DA-11 (Declutter audit 2026-10-30): the amount first, the card at Send, and the typed amount survives the trip.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (action === "offer") {\n      setNeedCard(null);\n      setOpen(true);\n      return;\n    } |     void 0;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => !!offerAmountFromState(location.state)); | useState(false);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | \|\| card.isLoading \|\| checkingCard} | }
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | variant={needCard === "offer" ? "outline" : undefined} | variant={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) run(resume); |     if (false) run(resume);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState<AfterCardAction \| null>(() => afterCardFromState(location.state)); | useState<AfterCardAction \| null>(() => null);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     refetchInterval: resume ? CARD_POLL_MS : false, |     refetchInterval: false,
@@ -225,15 +233,63 @@ describe("Declutter slice 3 screens", () => {
     expect(state.bought).toBe(0);
   });
 
-  it("no saved card: Make an offer asks for a card, and Not now puts the buttons back", async () => {
+  it("DA-11, no saved card: Make an offer opens the amount box first; the card is asked for at Send and the amount stays", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const offer = await screen.findByRole("button", { name: "Make an offer" });
     await waitFor(() => expect(offer).toBeEnabled());
     fireEvent.click(offer);
-    expect(await screen.findByText(/Then you enter your offer\./)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Your offer")).toBeNull();
+    const input = await screen.findByLabelText("Your offer");
+    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    fireEvent.change(input, { target: { value: "30" } });
+    // What they would pay shows before any card is asked for.
+    expect(document.querySelector("[data-offer-bill]")?.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
+    // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
+    expect(state.sent).toEqual([]);
+    expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
+    // Not now only closes the card step.
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+    // The trip to Stripe's page remembers the amount for the way back.
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
+    await waitFor(() => expect(state.opened).toHaveLength(1));
+    expect(JSON.parse(sessionStorage.getItem("declutter.afterCard") ?? "{}")).toMatchObject({ itemId: "i1", action: "offer", offerAmount: "30" });
+    expect(state.sent).toEqual([]);
+  });
+
+  it("DA-11, in the app (the sheet closes with the card saved): the amount is still there and Send sends it", async () => {
+    state.returnWithCard = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const offer = await screen.findByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(offer).toBeEnabled());
+    fireEvent.click(offer);
+    fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
+    await waitFor(() => expect(screen.queryByText("Add a card to finish.")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Checking for your card…")).toBeNull());
+    // Never sent on its own: the member's own press sends it.
+    expect(state.sent).toEqual([]);
+    expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    await waitFor(() => expect(state.sent).toEqual([{ itemId: "i1", cents: 3000 }]));
+  });
+
+  it("DA-11, back on the web with the typed amount: Send waits for the card read, then the box is ready", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer", offerAmount: "30" } });
+    expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+    expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+    expect(screen.getByRole("button", { name: "Send offer" })).toBeDisabled();
+    state.card = { brand: "visa", last4: "4242" };
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled(), { timeout: 4_000 });
+    expect(state.sent).toEqual([]);
+    await waitFor(() => expect(screen.getByTestId("router-state")).toHaveTextContent("null"));
   });
 
   it("back from saving a card in the app (the sheet closes): Buy goes straight to that seller's checkout (DB-5)", async () => {
@@ -320,7 +376,7 @@ describe("Declutter slice 3 screens", () => {
       await act(async () => {
         vi.advanceTimersByTime(10_001);
       });
-      expect(await screen.findByText(/Then you enter your offer\./)).toBeInTheDocument();
+      expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
       expect(screen.queryByText("Checking for your card…")).toBeNull();
       expect(window.confirm).not.toHaveBeenCalled();
     } finally {

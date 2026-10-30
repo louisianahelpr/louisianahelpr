@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | cents={sentCents} returnFocusTo={panel} onClose | cents={sentCents} onClose
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
- * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?view=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?view=selling");
+ * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?tab=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?tab=selling");
  */
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";

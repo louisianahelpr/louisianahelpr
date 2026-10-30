@@ -192,6 +192,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('deliver_job_match',             'action',   'job_match_queue send (writes; true = sent)'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
   ('deliver_parish_match_alert',    'action',   'parish-match alert send (writes; true = sent)'),
+  ('message_attachment_locked',     'deny',     'TRUE refuses deleting a locked message''s attachment (20261030144615); EXISTS, so a NULL path is FALSE, never NULL'),
+  ('message_delete_locked',         'deny',     'TRUE refuses a member deleting the message (20261030144615); EXISTS and COALESCE, so NULL arguments are FALSE, never NULL'),
   ('mark_crew_dispute_executed',    'action',   'service-only crew dispute close (writes; true = closed a crew_fanout decision, Q728)'),
   ('ops_alert_close',               'action',   'RPC'),
   ('ops_alert_condition',           'action',   'ops ledger probe (writes)'),

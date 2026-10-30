@@ -86,6 +86,7 @@ vi.mock("@/lib/declutter/api", () => ({
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
   requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.next(); },
   requestAiCheck: async () => ({ checked: true, flagged: false }),
+  requestAiCheckWithRetry: async () => ({ checked: true, flagged: false }),
   setPickupWindows: async () => 1,
   attestItem: async () => { calls.push("attest"); },
   publishItem: async () => { calls.push("publish"); return "live"; },

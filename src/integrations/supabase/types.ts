@@ -14108,8 +14108,16 @@ export type Database = {
           title: string
         }[]
       }
+      declutter_admin_reported_items: {
+        Args: { p_item_ids: string[] }
+        Returns: { is_seed: boolean; item_id: string; seller_id: string; status: string; title: string }[]
+      }
       declutter_admin_review_item: {
         Args: { p_approve: boolean; p_item_id: string; p_note: string }
+        Returns: string
+      }
+      declutter_admin_take_down_item: {
+        Args: { p_item_id: string; p_note: string; p_report_id?: string }
         Returns: string
       }
       declutter_answer_refund: {

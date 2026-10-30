@@ -11,7 +11,7 @@ import { AdminCard } from "../AdminViewShell";
 
 /**
  * Declutter listings waiting for an admin (spec row 33, build decision B8):
- * a new seller's first 3 listings, and any listing the photo check flagged
+ * since item B (owner 2026-10-29) only a listing the photo check flagged
  * or could not check (row 34, B19). Approve puts it up for sale; reject
  * needs a reason, which the seller reads. The server refuses a non-admin,
  * an admin's own listing, and approving a seller who cannot sell right now
@@ -36,9 +36,8 @@ interface PendingRow {
   photo_paths: string[];
 }
 
-function whyWaiting(row: Pick<PendingRow, "ai_checked_at" | "ai_flag_reason" | "approved_listings">): string {
+function whyWaiting(row: Pick<PendingRow, "ai_checked_at" | "ai_flag_reason">): string {
   if (row.ai_flag_reason) return `Photo check flagged it: ${row.ai_flag_reason}`;
-  if (row.approved_listings < 3) return `New seller (${row.approved_listings} of 3 approved listings)`;
   if (!row.ai_checked_at) return "The photo check did not run";
   return "Waiting for a review";
 }
@@ -103,7 +102,7 @@ export function DeclutterReviewCard({ showTest: shown, onShowTestChange }: { sho
       title="Declutter: listings to review"
       subtitle={showTest
         ? "Test accounts' listings are included."
-        : "New sellers' first 3 listings and anything the photo check flagged."}
+        : "Listings the automatic check flagged or could not check. Everything else goes live when posted."}
       action={
         <label htmlFor="dcl-show-test" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
           Show test listings

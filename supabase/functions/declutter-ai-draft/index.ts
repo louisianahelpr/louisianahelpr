@@ -224,12 +224,15 @@ serve(async (req) => {
     if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
     const mode: "draft" | "check" = body?.mode === "check" ? "check" : "draft";
 
-    // The caller's own DRAFT only (a stranger is never told it exists).
+    // The caller's own DRAFT only (a stranger is never told it exists). Item B (owner 2026-10-29): a `check` may
+    // also judge a Declutter listing an edit sent back (pending_review); declutter_record_ai_check decides
+    // whether that one may be judged (it was live and its check was cleared) and refuses anything else.
+    const declutterStatuses = mode === "check" ? ["draft", "pending_review"] : ["draft"];
     const { data: item, error: itemErr } = shopItem
       ? await admin.from("shop_items").select("id, kind, subtype, title, description")
           .eq("id", itemId).eq("owner_id", userId).eq("status", "draft").maybeSingle()
       : await admin.from("declutter_items").select("id, title, description, category")
-          .eq("id", itemId).eq("seller_id", userId).eq("status", "draft").maybeSingle();
+          .eq("id", itemId).eq("seller_id", userId).in("status", declutterStatuses).maybeSingle();
     if (itemErr) {
       console.error("[declutter-ai-draft] item read failed:", itemErr.message);
       return json({ error: "ai_unavailable" }, 500);

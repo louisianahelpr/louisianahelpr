@@ -766,6 +766,23 @@ export async function requestAiCheck(itemId: string): Promise<{ checked: boolean
 }
 
 /**
+ * The check, asked twice before giving up (lead 2026-10-30, item B): a listing whose check never comes back is held
+ * for an admin (the server's fail-safe), so one retry keeps a passing blip from holding it. Resolves null when both
+ * tries failed; the caller then publishes or saves as usual and the server holds it.
+ */
+export async function requestAiCheckWithRetry(itemId: string): Promise<{ checked: boolean; flagged: boolean } | null> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await requestAiCheck(itemId);
+    } catch (err) {
+      // Not silent: said in the console, and the server holds the listing for an admin (the screen says so).
+      console.warn(`[declutter] photo check try ${attempt} of 2 failed`, err);
+    }
+  }
+  return null;
+}
+
+/**
  * Admin queue (row 33, B8). Test accounts' listings are left out (20261028022715)
  * unless `includeTest`: the card's "Show test listings" switch, so an admin can
  * approve a test listing in the UI. `p_include_test` is the server half
@@ -783,6 +800,26 @@ export async function reviewListing(itemId: string, approve: boolean, note: stri
   const res = await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" });
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_review_item", e) ?? null) as string;
+}
+
+/**
+ * Item B (owner 2026-10-29, 20261030043553): an admin takes a reported listing down. The server closes its open
+ * offers (buyers told), tells the seller the reason, resolves the report and logs the report id.
+ */
+export async function takeDownListing(itemId: string, note: string, reportId: string | null): Promise<string> {
+  const res = await supabase.rpc("declutter_admin_take_down_item", { p_item_id: itemId, p_note: note, p_report_id: reportId ?? undefined });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_take_down_item", e) ?? null) as string;
+}
+
+export type ReportedListing = { item_id: string; title: string; seller_id: string; status: DeclutterStatus; is_seed: boolean };
+
+/** The reports queue's names for reported listings, whatever their status (admin only, 20261030043553). */
+export async function fetchReportedListings(itemIds: string[]): Promise<ReportedListing[]> {
+  if (!itemIds.length) return [];
+  const res = await supabase.rpc("declutter_admin_reported_items", { p_item_ids: itemIds });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_reported_items", e) ?? null) ?? []) as ReportedListing[];
 }
 
 /* ------------------------------------------------------------------------ *

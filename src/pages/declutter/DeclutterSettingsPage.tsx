@@ -38,7 +38,7 @@ function DeclutterSettings() {
         <section className="space-y-2" aria-label="Notifications">
           <SectionHeading title="Notifications" />
           <Link
-            to="/profile?tab=notifications"
+            to="/profile?tab=notifications&show=declutter"
             className="flex min-h-11 items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Bell className="h-5 w-5 shrink-0" aria-hidden />

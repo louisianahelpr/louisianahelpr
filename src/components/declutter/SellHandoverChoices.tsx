@@ -39,8 +39,14 @@ export function handoverSummary(ways: SellerHandover[]): string {
   return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
 }
 
-/** The tick tiles themselves, shared by this step and the listing defaults in Declutter settings. `fixed`: ticked and not changeable. */
-export function SellWayTiles({ shown, ways, setWays, fixed = false }: { shown: SellerHandover[]; ways: SellerHandover[]; setWays: (w: SellerHandover[]) => void; fixed?: boolean }) {
+/** On Declutter settings itself the "I can deliver" card is further down the same page, so the tile doesn't send them to it. */
+const DELIVER_WORDS_ON_SETTINGS = "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under \"I can deliver\" below.";
+
+/**
+ * The tick tiles themselves, shared by this step and the listing defaults in Declutter settings. `fixed`: ticked and
+ * not changeable. `onSettingsPage`: the tiles are on Declutter settings.
+ */
+export function SellWayTiles({ shown, ways, setWays, fixed = false, onSettingsPage = false }: { shown: SellerHandover[]; ways: SellerHandover[]; setWays: (w: SellerHandover[]) => void; fixed?: boolean; onSettingsPage?: boolean }) {
   const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
   return (
     <ul className="grid gap-2 lg:grid-cols-2">
@@ -57,7 +63,7 @@ export function SellWayTiles({ shown, ways, setWays, fixed = false }: { shown: S
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-semibold text-foreground">{c.title}</span>
-                <span className="block text-ds-13 text-muted-foreground">{c.words}</span>
+                <span className="block text-ds-13 text-muted-foreground">{onSettingsPage && w === "seller_delivery" ? DELIVER_WORDS_ON_SETTINGS : c.words}</span>
               </span>
               <Checkbox id={`sell-way-${w}`} className="mt-1" checked={on} disabled={fixed}
                 onCheckedChange={(v) => toggle(w, v === true)} aria-label={c.title} />

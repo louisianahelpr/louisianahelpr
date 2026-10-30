@@ -141,6 +141,26 @@ describe("the Declutter group", () => {
     expect(screen.getByLabelText("Offers push")).toBeTruthy();
   });
 
+  it("?show=declutter (Declutter settings' row) opens at the group; the plain link stays at the top", async () => {
+    FEATURES = { declutter: true };
+    PREFS_ROW = withDeclutterColumns();
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+    try {
+      const plain = render(<NotificationPreferences />);
+      await waitFor(() => expect(screen.getByTestId("declutter-notification-group")).toBeTruthy());
+      expect(scrolled).not.toContain(screen.getByTestId("declutter-notification-group"));
+      plain.unmount();
+      window.history.pushState({}, "", "/profile?tab=notifications&show=declutter");
+      render(<NotificationPreferences />);
+      await waitFor(() => expect(scrolled).toContain(screen.getByTestId("declutter-notification-group")));
+    } finally {
+      window.history.pushState({}, "", "/");
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("is not shown to a member without Declutter", async () => {
     FEATURES = {};
     PREFS_ROW = withDeclutterColumns();
@@ -160,3 +180,4 @@ describe("the Declutter group", () => {
 
 // Proof the group test can fail: the group renders nothing.
 // @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |   if (!declutterOn) return null; |   return null;
+// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |     heading.current?.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" }); |     void reduce;

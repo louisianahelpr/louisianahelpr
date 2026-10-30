@@ -2902,6 +2902,27 @@ export type Database = {
         Relationships: [
         ]
       }
+      declutter_move_reminders: {
+        Row: {
+          kind: string
+          move_out_on: string
+          notified_at: string
+          seller_id: string
+        }
+        Insert: {
+          kind: string
+          move_out_on: string
+          notified_at?: string
+          seller_id: string
+        }
+        Update: {
+          kind?: string
+          move_out_on?: string
+          notified_at?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
       declutter_price_nudges: {
         Row: {
           item_id: string
@@ -15129,6 +15150,7 @@ export type Database = {
         Args: { p_current: number; p_floor: number }
         Returns: number
       }
+      declutter_move_reminder_sweep: { Args: never; Returns: Json }
       declutter_price_nudge_sweep: { Args: never; Returns: Json }
       declutter_price_hint: {
         Args: {

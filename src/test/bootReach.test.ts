@@ -17,7 +17,7 @@
  * @mutate vite.config.ts | const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>(); const declutterOnly = new Set<string>();
  * @mutate vite.config.ts | name: "declutter-first-screen", | name: "signed-in-shared",
  * @mutate scripts/perf/bootReach.mjs | const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f))); | const declutterOnly = new Set();
- * @mutate src/pages/auth/Signup.tsx | void import("@/lib/cityZipMismatch").then( | void Promise.resolve(staticHint).then(
+ * @mutate src/pages/auth/signup/useCityZipMismatch.ts | void import("@/lib/cityZipMismatch").then( | void Promise.resolve(staticHint).then(
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

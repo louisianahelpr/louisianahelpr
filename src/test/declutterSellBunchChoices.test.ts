@@ -12,7 +12,7 @@
  * @mutate src/lib/declutter/bunch.ts |           keepUpFailed = true; |           keepUpFailed = false;
  */
 import { describe, expect, it, vi } from "vitest";
-import { blankItem, bunchItemProblem, listBunch, type BunchChoices, type BunchItem, type ListDeps } from "@/lib/declutter/bunch";
+import { blankItem, bunchItemProblem, bunchListable, listBunch, type BunchChoices, type BunchItem, type ListDeps } from "@/lib/declutter/bunch";
 
 const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.4, pickupLng: -91.1 };
 const ON: BunchChoices = { keepUp: true, drops: true, dropPct: 10, floorPct: 50 };
@@ -37,6 +37,17 @@ function deps(over: Partial<ListDeps> = {}): ListDeps {
 const photos = new Map(["p1", "p2"].map((k) => [k, new File([k], `${k}.jpg`, { type: "image/jpeg" })]));
 const run = (items: BunchItem[], d: ListDeps, choices: BunchChoices, ways: ("porch" | "meetup")[] = ["porch", "meetup"]) =>
   listBunch("seller", items, photos, place, ways, () => {}, d, undefined, choices);
+
+describe("while the setup fee is due", () => {
+  const ready = (over: Partial<BunchItem>): BunchItem => ({ ...blankItem(["a"]), title: "Rug", price: "20", ...over });
+  it("only free items go; a priced one and an unready one do not, and with no fee due every ready item goes", () => {
+    const free = ready({ key: "free", free: true, price: "" });
+    const priced = ready({ key: "priced" });
+    const unnamed = ready({ key: "unnamed", free: true, title: "" });
+    expect(bunchListable([free, priced, unnamed], true).map((i) => i.key)).toEqual(["free"]);
+    expect(bunchListable([free, priced, unnamed], false).map((i) => i.key)).toEqual(["free", "priced"]);
+  });
+});
 
 describe("Sell a bunch: the batch's choices reach each item", () => {
   it("drops on: the lowest price is the seller's share of the price, and the step is saved", async () => {

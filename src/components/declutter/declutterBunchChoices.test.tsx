@@ -3,6 +3,7 @@
  * with nothing saved; a Free tick takes the price box away and makes the item ready; the choices reach listBunch and
  * are remembered; pickup times already saved are not written over.
  *
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
  * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
@@ -24,6 +25,7 @@ const state = vi.hoisted(() => ({
   windows: [] as { weekday: number; starts_local: string; ends_local: string }[],
   windowWrites: 0,
   listed: [] as { ways: string[]; choices: BunchChoices | undefined; items: BunchItem[] }[],
+  feeDue: null as number | null,
 }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -31,7 +33,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => <p>fair price hint</p> }));
-vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));
+vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => state.feeDue }));
 vi.mock("@/components/declutter/BunchDraftsSection", () => ({ BunchDraftsSection: () => null }));
 vi.mock("@/components/declutter/useBunchSaved", () => ({
   useBunchSaved: () => ({ note: null, restoredCount: 0, dismissRestored: () => {}, applyStep: () => {}, clearSaved: () => {} }),
@@ -75,7 +77,7 @@ beforeAll(() => {
   URL.createObjectURL = () => `blob:test/${++n}`;
   URL.revokeObjectURL = () => {};
 });
-beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; });
+beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; });
 afterEach(cleanup);
 
 async function open() {
@@ -139,6 +141,23 @@ describe("Sell a bunch: listing choices", () => {
     expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
     await listIt();
     expect(state.listed[0].items[0].free).toBe(true);
+  });
+});
+
+describe("Sell a bunch while the setup fee is due", () => {
+  it("a free item lists together with no fee (the server asks none at price 0); a priced one waits and is named", async () => {
+    state.feeDue = 200;
+    await open();
+    const card = document.querySelector("[data-bunch-item]") as HTMLElement;
+    fireEvent.change(within(card).getByLabelText("Price ($)"), { target: { value: "40" } });
+    expect(screen.getByRole("heading", { name: "3. Check each item (1 of 1 ready)" })).toBeTruthy();
+    expect(document.querySelector("[data-bunch-fee-held]")?.textContent).toContain("1 priced item waits for the setup fee above");
+    expect((screen.getByRole("button", { name: "List 0 items" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(within(card).getByRole("checkbox", { name: /Give it away free/ }));
+    expect(document.querySelector("[data-bunch-fee-held]")).toBeNull();
+    await listIt();
+    expect(state.listed[0].items.map((i) => i.free)).toEqual([true]);
   });
 });
 

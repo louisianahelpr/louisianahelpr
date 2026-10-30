@@ -11,7 +11,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf } from "../_shared/helprFlatFee.ts";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
@@ -3656,6 +3656,7 @@ serve(async (req) => {
             stripe, supabaseAdmin, job.helper_id, helperPayout, captureResult.paymentIntentId, job.id,
             feeAmt / dpHelpersCount, user.id,
             () => stampDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim),
+            isGiveawayFixedPayJob(job),
           );
         } catch (transferErr) {
           // Hand the claim back ONLY when no money left. transferToHelper also
@@ -6162,6 +6163,41 @@ async function alreadyResolvedDispute(
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
 }
 
+/**
+ * Owner 2026-10-30: mark the giveaway winner's one-time setup fee paid, atomically,
+ * and say how many cents THIS call claimed (0 when it was already paid). Fails
+ * closed: an unreadable setting or a failed write refuses before any money moves.
+ */
+async function claimGiveawaySetupFee(
+  supabaseAdmin: any,
+  helperId: string,
+): Promise<{ cents: number; error?: undefined } | { cents?: undefined; error: string }> {
+  const { data: settings, error: settingsErr } = await supabaseAdmin
+    .from("platform_settings").select("onboarding_fee_cents").limit(1).single();
+  if (settingsErr || settings?.onboarding_fee_cents == null) return { error: settingsErr?.message ?? "no onboarding_fee_cents" };
+  const feeCents = Number(settings.onboarding_fee_cents);
+  if (feeCents <= 0) return { cents: 0 };
+  const { data: claimed, error: claimErr } = await supabaseAdmin
+    .from("profiles")
+    .update({ onboarding_fee_paid: true, onboarding_fee_charged_at: new Date().toISOString() })
+    .eq("user_id", helperId)
+    .eq("onboarding_fee_paid", false)
+    .select("user_id");
+  if (claimErr) return { error: claimErr.message ?? String(claimErr) };
+  return { cents: claimed && claimed.length > 0 ? feeCents : 0 };
+}
+
+/** No money moved: hand the claim back so the fee is neither lost nor taken twice. Logged loudly when it cannot. */
+async function unclaimGiveawaySetupFee(supabaseAdmin: any, helperId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+    .eq("user_id", helperId);
+  if (error) {
+    console.error(`CRITICAL: [create-payment] no money moved AND the setup fee un-claim failed for ${helperId} — onboarding_fee_paid is incorrectly true; manual reconciliation needed:`, error);
+  }
+}
+
 async function transferToHelper(
   stripe: any,
   supabaseAdmin: any,
@@ -6176,6 +6212,8 @@ async function transferToHelper(
   // here (round 3, M2), so every no-money exit above it — the profile read,
   // the ledger check, the charge link — leaves an unstamped claim.
   beforeTransfer?: () => Promise<boolean>,
+  // Owner 2026-10-30: the giveaway job sends exactly its $50 (isGiveawayFixedPayJob).
+  fixedPayGiveaway = false,
 ) {
   // Get helper's connected account. Distinguish a READ ERROR from a missing
   // account so a transient failure doesn't send admins chasing "helper never
@@ -6263,15 +6301,28 @@ async function transferToHelper(
   // same payout_ref as release-payout and process-scheduled-payouts
   // (_shared/helprFaultFee.ts). Fails closed, before any money moves.
   const unroundedCents = Math.round(amount * 100);
-  const helprFaultTake = await takeHelprFaultFee(supabaseAdmin, helperId, jobId, helprFaultFeeCapCents(unroundedCents));
+  // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
+  const helprFaultTake = fixedPayGiveaway
+    ? { cents: 0, error: undefined }
+    : await takeHelprFaultFee(supabaseAdmin, helperId, jobId, helprFaultFeeCapCents(unroundedCents));
   if (helprFaultTake.error !== undefined) {
     console.error(`[create-payment] transferToHelper — Helpr-fault card fee read failed for job ${jobId}: ${helprFaultTake.error}`);
     throw new PublicError("Could not read the Helpr's card-fee debt — no money was moved. Try again.");
   }
   const helprFaultFeeCents = helprFaultTake.cents;
+  // Owner 2026-10-30: a setup fee the giveaway's winner owes is covered from the
+  // $10 Louisiana Helpr keeps. Marked paid once like the other two payout paths;
+  // the transfer stays $50 and the ledger books $8 commission + $2 setup fee.
+  const giveawaySetupFee = fixedPayGiveaway ? await claimGiveawaySetupFee(supabaseAdmin, helperId) : { cents: 0 };
+  if (giveawaySetupFee.error !== undefined) {
+    console.error(`[create-payment] transferToHelper — setup fee claim failed for job ${jobId}: ${giveawaySetupFee.error}`);
+    throw new PublicError("Could not settle the Helpr's setup fee — no money was moved. Try again.");
+  }
+  const giveawaySetupFeeCents = giveawaySetupFee.cents;
   // Every exit below that moves NO money gives the withheld fee back.
   const restoreHelprFault = async () => {
     if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, jobId, "create-payment.transferToHelper");
+    if (giveawaySetupFeeCents > 0) await unclaimGiveawaySetupFee(supabaseAdmin, helperId);
   };
 
   // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). Then
@@ -6373,17 +6424,18 @@ async function transferToHelper(
         stripe_transfer_id: transfer.id,
         stripe_account_id: helperProfile.stripe_account_id,
         amount_cents: amountCents,
-        platform_fee_cents: Math.round(platformFeeAmount * 100),
+        platform_fee_cents: Math.round(platformFeeAmount * 100) - giveawaySetupFeeCents,
         status: "paid",
         paid_at: new Date().toISOString(),
         initiated_by: "admin",
         initiated_by_user_id: initiatedByUserId,
-        // Q1520: the cents rounded off (no onboarding fee on this path).
+        // Q1520: the cents rounded off. The only onboarding fee on this path is the
+        // giveaway's, which came out of Louisiana Helpr's share, not the transfer.
         // Named keys, no spread: checkoutMetadataKeysAreWritten reads every
         // metadata literal in this file and a spread makes its inventory blind.
         metadata: {
           source: "admin_release_dispute",
-          onboarding_fee_cents: payoutWithheldMetadata(unroundedCents, 0, amountCents, helprFaultFeeCents).onboarding_fee_cents,
+          onboarding_fee_cents: giveawaySetupFeeCents,
           rounding_remainder_cents: payoutWithheldMetadata(unroundedCents, 0, amountCents, helprFaultFeeCents).rounding_remainder_cents,
           // Q2082 (b): the Helpr-fault card fee kept back (the earnings export adds it back).
           helpr_fault_fee_cents: helprFaultFeeCents,

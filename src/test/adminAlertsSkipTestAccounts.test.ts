@@ -57,6 +57,7 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   enforce_retained_payment_ban: "explicit",
   facilitator_threshold_check: "sum",
   notify_admins_new_member: "explicit",
+  notify_admins_support_ticket: "explicit",
   open_dispute_as: "explicit",
   rentals_submit_landlord_id: "caller",
   rentals_submit_ownership_proof: "caller",

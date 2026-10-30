@@ -15,6 +15,7 @@ import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { checkDrift } from "@/lib/checkDrift";
 import { composeLocationString, parseLocationIntoFields } from "./postJobFormHelpers";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
+import { recordBookingSourceFor } from "@/lib/bookMe";
 
 /**
  * useJobFormEffects — owns the mount/reactive side effects that populate
@@ -473,6 +474,8 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     const offerTo = searchParams.get("offerTo");
     if (!offerTo) return;
     setOfferToHelperId(offerTo);
+    // "Book me" (B59): if this offer came through that Helpr's /book link, record who brought this new poster.
+    void recordBookingSourceFor(offerTo);
     supabase
       .rpc("get_safe_profiles", { user_ids: [offerTo] })
       .then(({ data, error }) => {

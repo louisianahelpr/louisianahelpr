@@ -99,6 +99,8 @@ const OWNERS = {
   // The Jobs rows that left Profile (dashboards build, 2026-10-19).
   "/jobs/settings": ["lh-input-boundary", "lh-design-holes"],
   "/user/:userId": ["lh-trust-safety"],
+  // "Book me on Helpr" (B59): a Helpr's public booking page, open to anyone with the link.
+  "/book/:userId": ["lh-trust-safety", "lh-browse-discovery"],
   "/admin": ["lh-admin-moderation"],
   // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).
   "/declutter": ["lh-long-tail-features"],

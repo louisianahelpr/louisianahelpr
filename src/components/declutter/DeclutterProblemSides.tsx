@@ -5,7 +5,7 @@
  *
  * Reads the order's newest problem through declutter_order_problem (audit 1030 DB-1: the two sides and admins, only
  * the columns below; the old direct select("*") was refused for every member on prod); shows nothing once it is decided
- * (the decision notices and the refund panel say what happened). Photos are signed links (the bucket is private).
+ * (DeclutterProblemDecided below then says what Louisiana Helpr decided, DB-12). Photos are signed links (the bucket is private).
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +41,25 @@ function ProblemPhotos({ paths }: { paths: string[] }) {
         : null)}
     </div>
   );
+}
+
+/**
+ * Audit 1030 DB-12: what Louisiana Helpr decided, on the card itself (it said only "Handed over."). The same words as
+ * the "Louisiana Helpr decided" notices (declutter_admin_decide_problem); a refund's amount stays in its own notice.
+ */
+const DECIDED_WORDS: Record<NonNullable<OrderProblem["decision"]>, Record<"buyer" | "seller", string>> = {
+  pay_seller: { buyer: "The seller keeps the payment, and the sale is final.", seller: "You keep the payment." },
+  refund_buyer: { buyer: "We are refunding you. A separate notice says how much.", seller: "We are refunding the buyer." },
+  refund_part: { buyer: "We are refunding you part of the payment. A separate notice says how much.", seller: "We are refunding the buyer part of the payment." },
+  delivery_damage: { buyer: "It was damaged in delivery. A separate notice says what comes back to you.", seller: "It was damaged in delivery." },
+};
+
+export function DeclutterProblemDecided({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
+  const problem = useQuery({ queryKey: ["declutter", "problem", orderId], queryFn: () => fetchOrderProblem(orderId) });
+  const p = problem.data;
+  const words = p?.status === "decided" && p.decision ? DECIDED_WORDS[p.decision]?.[side] : undefined;
+  if (!words) return null;
+  return <p className="text-sm" data-problem-decided=""><span className="font-semibold">Louisiana Helpr decided:</span> {words}</p>;
 }
 
 export function DeclutterProblemSides({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {

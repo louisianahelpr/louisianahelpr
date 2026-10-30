@@ -34,8 +34,8 @@ const ROOT = process.cwd();
 
 /** SQL functions that may write "Someone" for a person. name -> why. Exact and two-way. */
 const SQL_SOMEONE_OK: Record<string, string> = {
-  declutter_claim_free:
-    "HINT 'Someone else got this item first.': the same error as declutter_take_item's, on a free claim; reached by the inventory once it became transitive (20261028162048)",
+  declutter_request_free:
+    "HINT 'Someone else got this item first.': the same error as declutter_take_item's, on an ask for a free item the giver already gave (moved from declutter_claim_free, which now only calls this, Q2487)",
   declutter_question_notice:
     "'Someone asked about ...': who asked a Declutter question is never shown to the seller (Q2278, src/test/declutterQuestionAskerHidden.test.ts; the item page says \"Asked by a neighbor\")",
   declutter_take_item:

@@ -13,7 +13,7 @@
  * and the screens that carry it.
  *
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
+ * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
@@ -46,12 +46,14 @@ describe("the Declutter Free section", () => {
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
     expect(newestFunction("declutter_complete_handover").file).toContain("20261028232338_declutter_damage_no_enjoy_notice.sql");
-    const names = ["declutter_claim_free", "declutter_free_rules",
+    // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
+    expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
+    const names = ["declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
       "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(7);
+    expect(names.length).toBeGreaterThan(6);
     // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
     expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");
@@ -64,12 +66,14 @@ describe("the Declutter Free section", () => {
     expect(freeAt).toBeLessThan(gate.indexOf("IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN RAISE EXCEPTION 'setup_fee_required_to_list'"));
   });
 
-  it("claims are free, held 48 hours like a purchase, at most 3 at a time; a free item is never bought", () => {
-    const claim = code("declutter_claim_free");
-    expect(claim).toContain("PERFORM public.require_feature('declutter')");
-    expect(claim).toContain("pg_advisory_xact_lock(hashtextextended('declutter_free_claims:' || v_uid::text, 0))");
-    expect(claim).toContain("IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN");
-    expect(claim).toContain("RETURN public.declutter_take_item(p_item_id, v_uid, 0, 'buy', NULL)");
+  it("free items are asked for (nothing charged), at most 3 at a time; the picked person gets the 48 hours; a free item is never bought", () => {
+    // The Free change (Q2487): the old claim asks; the ask keeps the claim's gates and cap; only the giver's pick reserves.
+    expect(code("declutter_claim_free")).toContain("RETURN public.declutter_request_free(p_item_id)");
+    const ask = code("declutter_request_free");
+    expect(ask).toContain("PERFORM public.require_feature('declutter')");
+    expect(ask).toContain("pg_advisory_xact_lock(hashtextextended('declutter_free_claims:' || v_uid::text, 0))");
+    expect(ask).toContain("IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN");
+    expect(code("declutter_pick_free_request")).toContain("public.declutter_take_item(v_item.id, v_req.requester_id, 0, 'buy', NULL)");
     expect(code("declutter_free_rules")).toContain("'max_open_claims', 3");
     expect(code("declutter_buy_now")).toContain("IF v_item.o_price_cents = 0 THEN RAISE EXCEPTION 'free_item_claim_it'");
   });
@@ -87,7 +91,7 @@ describe("the Declutter Free section", () => {
     expect(code("payout_setup_hire_allowed")).toContain("AND o.paid_with <> 'free'");
   });
 
-  it("the screens: Free on every price, Get it free instead of Buy or offer, a free cart without a payment page", () => {
+  it("the screens: Free on every price, Ask for it instead of Buy or offer, a free cart without a payment page", () => {
     expect(itemPriceLabel(0)).toBe("Free");
     expect(itemPriceLabel(4050)).toBe("$40.50");
     const view = read("src/components/declutter/DeclutterItemView.tsx");

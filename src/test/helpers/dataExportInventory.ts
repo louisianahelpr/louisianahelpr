@@ -176,6 +176,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_handover_talks: { by: ["buyer_id", "seller_id"] },
   declutter_handover_talk_messages: { by: ["sender_id"] },
   declutter_order_talk_messages: { by: ["sender_id"] },
+  // The Free change (20261030064021, Q2487): asks for free items (asker or giver) and the 30-day pause.
+  declutter_free_requests: { by: ["requester_id", "seller_id"] },
+  declutter_free_pauses: { by: ["user_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations

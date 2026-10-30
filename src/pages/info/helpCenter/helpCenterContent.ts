@@ -142,7 +142,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Can I give things away on Declutter?",
-        a: 'Yes. When you list an item, tick the box to give it away free on the price step. Someone nearby taps "Get it free", then picks it up from your porch or at your door. Nothing is charged to either of you, and each person can hold up to 3 free items at a time.',
+        a: 'Yes. When you list an item, tick the box to give it away free on the price step. Neighbors tap "Ask for it", you pick who gets it, and they pick it up from your porch or at your door. Nothing is charged to either of you, and each person can ask for or hold up to 3 free items at a time.',
       },
     ],
   },

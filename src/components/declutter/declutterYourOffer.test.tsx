@@ -6,7 +6,9 @@
  *   #4 With an offer of theirs open, the page still offered "Make an offer", which the server refuses
  *      (offer_already_open). Now: "Your offer $25", whose turn it is, and Change my offer (take it back after an
  *      in-app confirm, then the amount field) or, when the seller answered, Answer it in Buying.
- *   #24 The free cart's button no longer repeats the item page's "Get it free".
+ *   #24 The free cart's button no longer repeats the item page's button (now "Ask for it", the Free change Q2487).
+ *   Q2487 (owner 2026-10-29): a free item is ASKED for; the page stays put, then says "You asked for this." with
+ *      Take back my ask.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (item.status === "reserved" && myHold) { |   if (false) {
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (item.status === "reserved" && myHold) { |   if (false) {
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |   return offers?.find((o) => o.item_id === itemId && o.my_side === "buyer" && o.status === "open") ?? null; |   return null;
@@ -17,8 +19,8 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |       onChange();\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       navigate("/declutter?tab=buying"); |       navigate("/declutter?view=cart");
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : "Confirm and pick a time" | "Confirming…" : "Get it free"
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (myAsk) { |   if (false) {
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : "Confirm and pick a time" | "Confirming…" : "Ask for it"
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -30,6 +32,9 @@ const state = {
   offers: [] as unknown[],
   responded: [] as { offerId: string; action: string }[],
   claimed: 0,
+  /** The member's own open asks for free items (the Free change, Q2487). */
+  asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
+  withdrawn: [] as string[],
   /** useFirstPayoutFeeCents: the one-time setup fee still owed on this account (0 once paid). */
   setupFeeCents: 0,
   /** useFirstPayoutFeeKnown: false while that answer is not in. */
@@ -37,6 +42,7 @@ const state = {
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/mobileNav/useDockYield", () => ({ useDockYield: () => undefined }));
@@ -55,9 +61,13 @@ vi.mock("@/lib/declutter/api", () => ({
     state.responded.push({ offerId, action });
     return "withdrawn";
   },
-  claimFree: async () => {
+  requestFree: async () => {
     state.claimed++;
-    return "l2";
+    return "r2";
+  },
+  fetchMyFreeRequests: async () => state.asks,
+  withdrawFreeRequest: async (id: string) => {
+    state.withdrawn.push(id);
   },
   checkoutFree: async () => "ord1",
 }));
@@ -105,6 +115,8 @@ beforeEach(() => {
   state.offers = [];
   state.responded = [];
   state.claimed = 0;
+  state.asks = [];
+  state.withdrawn = [];
   state.setupFeeCents = 0;
   state.setupFeeKnown = true;
   where = "";
@@ -134,17 +146,31 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     show(<FreeClaimPanel item={{ ...ITEM, status: "reserved", current_price_cents: 0, price_cents: 0 }} />);
     expect(await screen.findByText("It's yours. Choose how you'll pick it up.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Choose a pickup" })).toHaveAttribute("href", "/declutter?tab=buying");
-    expect(screen.queryByText("Someone claimed this item.")).toBeNull();
+    expect(screen.queryByText("The giver picked someone for this item.")).toBeNull();
   });
 
-  it("claiming a free item opens Buying (never the retired ?view=cart), and the cart says Confirm and pick a time", async () => {
+  it("asking for a free item stays on the page (the giver picks), and the cart says Confirm and pick a time", async () => {
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
-    fireEvent.click(screen.getByRole("button", { name: "Get it free" }));
-    await waitFor(() => expect(where).toBe("/declutter?tab=buying"));
-    expect(state.claimed).toBe(1);
+    const ask = await screen.findByRole("button", { name: "Ask for it" });
+    await waitFor(() => expect(ask).not.toBeDisabled());
+    fireEvent.click(ask);
+    await waitFor(() => expect(state.claimed).toBe(1));
+    expect(where).not.toBe("/declutter?tab=buying");
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
     expect(screen.getByRole("button", { name: "Confirm and pick a time" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Get it free" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
+  });
+
+  it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {
+    state.asks = [
+      { id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z" },
+      { id: "r9", item_id: "other", status: "open", created_at: "2026-10-30T00:00:00Z" },
+    ];
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    expect(await screen.findByText("You asked for this.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask for it" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Take back my ask" }));
+    await waitFor(() => expect(state.withdrawn).toEqual(["r1"]));
   });
 });
 

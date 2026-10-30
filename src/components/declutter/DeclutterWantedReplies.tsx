@@ -22,6 +22,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+import { focusSheetItself } from "./focusSheetItself";
 
 
 const firstName = (posterName: string) => (posterName === "A neighbor" ? "them" : posterName.split(" ")[0]);
@@ -55,7 +56,7 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
   };
   return (
     <Sheet open={!!post} onOpenChange={(o) => { if (!o && !send.isPending) { setItemId(null); setPrice(""); onClose(); } }}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-i-have-this="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-i-have-this="">
         <SheetHero title="I have this" />
         {post && (
           <div className="space-y-4">

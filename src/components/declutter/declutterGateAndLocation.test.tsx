@@ -466,9 +466,32 @@ describe("Declutter location ask", () => {
       await screen.findByRole("region", { name: "Map of items for sale" });
       expect(pins.reads).toBeGreaterThan(0);
       expect(screen.queryByText("Oak rocking chair")).toBeNull();
+      // DA-13: the way back is on the map's own screen.
+      // @mutate src/components/declutter/DeclutterBrowseView.tsx |  data-map-back="" onClick={() => setPhoneView("list")}> |  data-map-back="">
+      fireEvent.click(screen.getByRole("button", { name: "Show list" }));
+      expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
+      expect(container.querySelector("[data-declutter-map]")).toBeNull();
     } finally {
       live.items = [];
     }
+  });
+
+  it("DA-16: the how-you-get-it line is the same at every width: no breakpoint hides it", async () => {
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-how="" className="flex h-[1lh] min-w-0 flex-wrap overflow-hidden"> | <span data-card-how="" className="hidden lg:flex">
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-porch="" className="min-w-0 whitespace-pre" | <span data-card-porch="" className="hidden lg:inline"
+    const { ItemCard } = await import("./DeclutterItemCard");
+    const item = {
+      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true,
+    } as never;
+    const r = render(<MemoryRouter><ItemCard item={item} miles={5} approximate={false} /></MemoryRouter>);
+    const how = r.container.querySelector("[data-card-how]")!;
+    const porch = r.container.querySelector("[data-card-porch]")!;
+    expect(how.textContent).toMatch(/mi.* · Porch pickup/);
+    for (const el of [how, porch]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
+    expect(how.className).toMatch(/flex-wrap/);
+    expect(how.className).toMatch(/overflow-hidden/);
+    r.unmount();
   });
 
   it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {

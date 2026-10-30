@@ -24,6 +24,8 @@ import { fitToPins, laRegion } from "@/components/browseMap/MapLayers";
 import { colorSchemeFor, getMapKit, regionFromBounds, type MKAnnotation, type MKMap } from "@/components/browseMap/mapkitRuntime";
 import { useMapFollowsTheme } from "@/components/browseMap/useMapLayersSync";
 import { FallbackImg } from "./FallbackImg";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
 const ITEM_NOUN = ["item", "items"] as const;
 
@@ -208,8 +210,10 @@ export default function DeclutterMap({
               data-map-preview=""
               className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pr-12 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-                {cover.get(selected.item.id) && <FallbackImg src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="h-full w-full object-cover" />}
+              <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
+                {/* DA-15: the one missing-photo look, the category icon, under the photo as on every card. */}
+                <PhotoPlaceholder icon={categoryIcon(selected.item.category)} seed={selected.item.category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" />
+                {cover.get(selected.item.id) && <FallbackImg src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="relative h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(selected.item.current_price_cents)}</span>

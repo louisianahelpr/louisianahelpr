@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { focusSheetItself } from "./focusSheetItself";
 
 export function ConfirmSheet({
   open,
@@ -38,7 +39,7 @@ export function ConfirmSheet({
         side="bottom"
         floor={!webDesktop}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[440px]" : ""}`}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={focusSheetItself}
         data-confirm-sheet={testId ?? ""}
       >
         <SheetHero title={title} />

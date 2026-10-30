@@ -48,6 +48,7 @@ import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { focusSheetItself } from "./focusSheetItself";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
@@ -174,7 +175,7 @@ function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; 
   };
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={(e) => e.preventDefault()}
+      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
         <SheetHero title="What are you looking for?" />
         <div className="mt-2">

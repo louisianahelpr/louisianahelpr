@@ -419,13 +419,15 @@ describe("#18: taking a listing down asks in the app", () => {
     state.offers = [];
     state.cart = [];
     at("/declutter?tab=selling");
-    fireEvent.click(await screen.findByRole("button", { name: "Take down" }));
+    // D4-12: the row's button names its item.
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |                     aria-label={`${item.status === "draft" ? "Delete" : "Take down"} ${item.title}`} |                     aria-label="Take down"
+    fireEvent.click(await screen.findByRole("button", { name: "Take down Wicker chair" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Take this item off sale?")).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
     expect(screen.queryByRole("dialog")).toBeNull(); // the sheet closes on the press itself
     expect(withdrawSpy).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Take down" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take down Wicker chair" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take down" }));
     await waitFor(() => expect(withdrawSpy).toHaveBeenCalledWith("i7"));
     expect(confirmSpy).not.toHaveBeenCalled();

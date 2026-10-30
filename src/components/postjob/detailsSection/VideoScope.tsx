@@ -8,7 +8,7 @@ interface VideoScopeProps {
 }
 
 // Video scope — optional 30s clip showing the space or work area.
-// Gives helpers better context and leads to more accurate quotes.
+// Gives Helprs better context before they apply.
 export function VideoScope({
   scopeVideoUrl,
   onVideoSelect,
@@ -21,7 +21,7 @@ export function VideoScope({
         <span className="font-normal text-muted-foreground">(optional, 30s max)</span>
       </Label>
       <p className="text-ds-11 font-sans leading-snug mb-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        A short clip gets you more accurate quotes and fewer surprises.
+        A short clip shows Helprs the job up front, so there are fewer surprises.
       </p>
       {scopeVideoUrl ? (
         <div className="relative rounded-ds-md overflow-hidden aspect-video bg-black">

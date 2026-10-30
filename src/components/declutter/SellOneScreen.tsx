@@ -103,6 +103,7 @@ export function SellOneScreen() {
             onRemoveUploaded={(photoId) => void s.onRemovePhoto(photoId)}
             onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
             uploading={uploading}
+            heldFailed={s.failedHeld > 0}
             aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
@@ -169,10 +170,25 @@ export function SellOneScreen() {
             <p className="text-muted-foreground">{autoFreeOutcomeLine(autoFreeWanted)}</p>
           </div>
         )}
+        {s.failedHeld > 0 && (
+          <div role="alert" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-photo-trouble="">
+            <p className="text-ds-15 font-semibold text-foreground">{s.failedHeld === 1 ? "1 photo didn't upload" : `${s.failedHeld} photos didn't upload`}. Your listing isn't up yet.</p>
+            {s.photoFailure && <p className="text-ds-14 text-muted-foreground [overflow-wrap:anywhere]">{s.photoFailure}</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" className="rounded-full" onClick={() => void s.onPublish()}>Try again</Button>
+              {s.photoCount > 0 && (
+                <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.onPublish({ withoutFailed: true })}>
+                  Post with {s.photoCount === 1 ? "1 photo" : `${s.photoCount} photos`}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
         {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving} onClick={post}>
-          {s.publishing ? "Posting…" : "Post it"}
+          {s.publishing ? (s.postStep ?? "Posting…") : "Post it"}
         </Button>
+        <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>
       </div>
     </AppPage>
   );

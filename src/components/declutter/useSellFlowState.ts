@@ -73,6 +73,11 @@ export function useSellFlowState(urlItemId: string | null) {
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
+  // What Post is doing right now, in words (audit posting 1030 #5: a slow Post only said "Posting…").
+  const [postStep, setPostStep] = useState<string | null>(null);
+  // Why the last photos didn't go up (audit posting 1030 #2); the photos themselves stay in `held`.
+  const [photoFailure, setPhotoFailure] = useState<string | null>(null);
+  const failedPhotos = useRef(0);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   // One tick for the four tax facts (owner 2026-10-28); attestItem still records all four.
   const [attested, setAttested] = useState(false);
@@ -187,7 +192,7 @@ export function useSellFlowState(urlItemId: string | null) {
   const prefs = useSellerDefaultsPrefill(urlItemId ? undefined : user?.id, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  async function saveDetails(): Promise<string | null> {
+  async function saveDetails(waiting: File[] = held): Promise<string | null> {
     if (problem) {
       toast.error(problem);
       return null;
@@ -225,7 +230,9 @@ export function useSellFlowState(urlItemId: string | null) {
         await setHandovers(itemId, savedWays);
         // Only once the saved step was read: a failed read must not overwrite it with the form's 5% default.
         if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
-        toast.success("Saved.");
+        // A new listing's second Post: only the photos that failed go up again.
+        if (!urlItemId && waiting.length > 0) await uploadHeld(itemId, waiting);
+        if (urlItemId) toast.success("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
@@ -240,16 +247,13 @@ export function useSellFlowState(urlItemId: string | null) {
       // exists with every way open (an older item's), it is said, and the next Post saves again and retries it.
       waysLoadedFor.current = id;
       await setHandovers(id, savedWays);
-      // The photos chosen first go up now that the draft exists. A photo that
-      // fails says so (uploadPhotos) and can simply be added again.
-      const waiting = held;
-      setHeld([]);
-      const added = await uploadPhotos(id, waiting);
+      // The photos chosen first go up now that the draft exists. One that fails stays held (uploadHeld), and
+      // onPublish stops before publishing (audit posting 1030 #2).
+      await uploadHeld(id, waiting);
       // The seller's step (a new draft starts at 5%), after the photos so a refusal never leaves a draft
       // without them; it is said, and the next Post retries it. With drops off the
       // lowest price is the price, so it never drops whatever the step.
       if (!form.free) await setDropPct(id, choice.dropPct);
-      if (added === 0) toast.success("Saved. Now add photos.");
       return id;
     } catch (err) {
       toast.error(declutterErrorMessage(err));
@@ -277,6 +281,36 @@ export function useSellFlowState(urlItemId: string | null) {
     return added;
   }
 
+  /**
+   * A NEW listing's held photos go up one at a time. One that goes up leaves `held` (it is on the draft now); one that
+   * fails stays on screen, marked, with why (audit posting 1030 #2: they were cleared first and skipped, and the listing
+   * went live without them).
+   */
+  async function uploadHeld(id: string, list: File[]): Promise<void> {
+    const up = new Set<File>();
+    const failed: File[] = [];
+    let why: string | null = null;
+    setUploading(list.length);
+    for (const [i, f] of list.entries()) {
+      setPostStep(`Uploading photo ${i + 1} of ${list.length}`);
+      try {
+        await addPhoto(user!.id, id, f);
+        up.add(f);
+      } catch (err) {
+        // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.
+        failed.push(f);
+        why = declutterErrorMessage(err);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+    setHeld((h) => [...h.filter((f) => !up.has(f)), ...failed.filter((f) => !h.includes(f))]);
+    setPhotoFailure(why);
+    failedPhotos.current = failed.length;
+    // Waited for: the count "Post with n photos" offers is the server's.
+    await qc.invalidateQueries({ queryKey: ["declutter", "item-photos", id] });
+  }
+
   async function onFiles(files: FileList | null) {
     if (!files) return;
     const room = MAX_PHOTOS - photoCount - held.length;
@@ -286,7 +320,8 @@ export function useSellFlowState(urlItemId: string | null) {
       setHeld((h) => [...h, ...list]);
       return;
     }
-    await uploadPhotos(itemId, list);
+    if (urlItemId) await uploadPhotos(itemId, list);
+    else await uploadHeld(itemId, list);
   }
 
   async function onRemovePhoto(photoId: string) {
@@ -298,15 +333,25 @@ export function useSellFlowState(urlItemId: string | null) {
     }
   }
 
-  async function onPublish() {
+  /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
+  async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
     if (!attested) {
       toast.error("Tick the box about this item before you list it.");
       return;
     }
     setPublishing(true);
+    setPostStep("Saving your listing");
+    failedPhotos.current = 0;
     try {
-      const id = await saveDetails();
+      if (withoutFailed) {
+        setHeld([]);
+        setPhotoFailure(null);
+      }
+      const id = await saveDetails(withoutFailed ? [] : held);
       if (!id) return;
+      // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
+      if (failedPhotos.current > 0) return;
+      setPostStep("Saving your listing");
       // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
       // fails it is said, and the seller can turn it on in Manage listing.
       if (!urlItemId && keepUpWanted) {
@@ -326,8 +371,10 @@ export function useSellFlowState(urlItemId: string | null) {
       }
       await setPickupWindows(windows);
       await attestItem(id);
+      setPostStep("Checking your listing");
       // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
       await requestAiCheckWithRetry(id);
+      setPostStep("Putting it up");
       const status = await publishItem(id);
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -353,9 +400,12 @@ export function useSellFlowState(urlItemId: string | null) {
       toast.error(declutterErrorMessage(err));
     } finally {
       setPublishing(false);
+      setPostStep(null);
     }
   }
 
+  // A new listing's draft exists only once Post made it, so a photo still held after that is one that failed.
+  const failedHeld = !urlItemId && !!createdId && !publishing ? held.length : 0;
   const photoTotal = photoCount + held.length;
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
@@ -363,7 +413,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure,
   };
 }
 

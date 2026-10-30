@@ -27,6 +27,12 @@ const DRAFT = {
   // Owner 2026-10-29: Claude sets the starting price too.
   priceDollars: 45, priceReason: "Solid walnut with light wear, so it should sell fast.",
 };
+/** What the upload does: which photos fail, a hold to look at a slow Post, and what reached the draft. */
+const upload = {
+  failing: new Set<string>(),
+  gate: null as Promise<void> | null,
+  onDraft: [] as { id: string; storage_path: string }[],
+};
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
   hold: false,
@@ -73,7 +79,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => null,
   fetchMyItemPrivate: async () => null,
   fetchMyPickupWindows: async () => [],
-  fetchPhotos: async () => [],
+  fetchPhotos: async () => upload.onDraft,
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { calls.push("createDraft"); drafts.push(f); return NEW_ID; },
@@ -84,7 +90,13 @@ vi.mock("@/lib/declutter/api", () => ({
   setKeepUp: async () => true,
   setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
   fetchItemHandovers: async () => null,
-  addPhoto: async (_u: string, id: string, f: File) => { calls.push(`addPhoto:${id}:${f.name}`); return "p"; },
+  addPhoto: async (_u: string, id: string, f: File) => {
+    await upload.gate;
+    if (upload.failing.has(f.name)) throw new Error("photo_not_uploaded");
+    calls.push(`addPhoto:${id}:${f.name}`);
+    upload.onDraft.push({ id: `p-${f.name}`, storage_path: f.name });
+    return "p";
+  },
   removePhoto: async () => undefined,
   requestAiDraft: async () => ({}),
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
@@ -135,6 +147,9 @@ function fillWaysAndTax() {
 describe("photo-first selling, one screen", () => {
   beforeEach(() => {
     calls.length = 0;
+    upload.failing = new Set();
+    upload.gate = null;
+    upload.onDraft.length = 0;
     aiCalls.length = 0;
     drafts.length = 0;
     drops.length = 0;
@@ -148,7 +163,7 @@ describe("photo-first selling, one screen", () => {
 
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
-  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? "Posting…" : "Post it"} |           {s.publishing ? "Posting…" : "Continue"}
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"} |           {s.publishing ? (s.postStep ?? "Posting…") : "Continue"}
   // @mutate src/components/declutter/SellSummaryCard.tsx |         <Row {...row("size")} title="Size" | <Row {...row("size")} title="Size" field="title"
   it("a NEW listing is one screen: photos, the summary rows, How buyers get it, the tax box and Post it, no step walk", async () => {
     open();
@@ -226,6 +241,76 @@ describe("photo-first selling, one screen", () => {
     const landed = await screen.findByTestId("landed");
     expect(landed).toHaveAttribute("data-search", "?tab=selling");
     expect(JSON.parse(landed.getAttribute("data-state")!)).toEqual({ justListed: { itemId: NEW_ID, status: "live" } });
+  });
+
+  // Audit posting 1030 #2: a failed photo was thrown away and the listing went live without it.
+  // @mutate src/components/declutter/useSellFlowState.ts |       if (failedPhotos.current > 0) return; |       void failedPhotos;
+  // @mutate src/components/declutter/useSellFlowState.ts |     setHeld((h) => [...h.filter((f) => !up.has(f)), ...failed.filter((f) => !h.includes(f))]); |     setHeld([]);
+  // @mutate src/components/declutter/SellOneScreen.tsx | onClick={() => void s.onPublish({ withoutFailed: true })} | onClick={() => void s.onPublish()}
+  describe("a photo that fails at Post", () => {
+    async function postWithAFailure() {
+      upload.failing = new Set(["b.jpg", "d.jpg"]);
+      open();
+      await screen.findByRole("heading", { name: "Show it off" });
+      addPhotos("a.jpg", "b.jpg", "c.jpg", "d.jpg");
+      await screen.findByText("We wrote your listing. Check it before you post");
+      fillWaysAndTax();
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      return screen.findByText(/2 photos didn't upload/);
+    }
+
+    it("stays on screen, marked, and nothing is published", async () => {
+      await postWithAFailure();
+      expect(calls).not.toContain("publish");
+      expect(document.querySelectorAll("[data-photo-failed]")).toHaveLength(2);
+      expect(document.querySelector("[data-photo-count]")?.textContent).toContain("4 of 12");
+      expect(screen.queryByTestId("landed")).toBeNull();
+    });
+
+    it("Try again sends only the failed ones, then publishes", async () => {
+      await postWithAFailure();
+      upload.failing = new Set();
+      calls.length = 0;
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      await screen.findByTestId("landed");
+      expect(calls).toEqual([`addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:d.jpg`, "attest", "publish"]);
+    });
+
+    it("Post with 2 photos is the seller's choice: it publishes what went up and drops the rest", async () => {
+      await postWithAFailure();
+      calls.length = 0;
+      fireEvent.click(await screen.findByRole("button", { name: "Post with 2 photos" }));
+      await screen.findByTestId("landed");
+      expect(calls).toEqual(["attest", "publish"]);
+    });
+
+    it("with none up, Post with is not offered", async () => {
+      upload.failing = new Set(["a.jpg"]);
+      open();
+      await screen.findByRole("heading", { name: "Show it off" });
+      addPhotos("a.jpg");
+      await screen.findByText("We wrote your listing. Check it before you post");
+      fillWaysAndTax();
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      await screen.findByText(/1 photo didn't upload/);
+      expect(screen.queryByRole("button", { name: /^Post with/ })).toBeNull();
+    });
+  });
+
+  // Audit posting 1030 #5: a slow Post said only "Posting…".
+  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(`Uploading photo ${i + 1} of ${list.length}`); |       void i;
+  it("a slow Post says which photo it is on", async () => {
+    let release = () => {};
+    upload.gate = new Promise<void>((r) => { release = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(await screen.findByRole("button", { name: "Uploading photo 1 of 2" })).toBeDisabled();
+    release();
+    await screen.findByTestId("landed");
   });
 
   it("price drops left off: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
@@ -313,7 +398,7 @@ describe("photo-first selling, one screen", () => {
     addPhotos("a.jpg", "b.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you save$/);
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you post$/);
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
     const words = document.body.textContent ?? "";

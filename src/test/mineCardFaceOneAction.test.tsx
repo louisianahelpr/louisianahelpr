@@ -163,7 +163,7 @@ describe("the Posted card face (board 14)", () => {
   });
 
   it("Leave a review on a finished job with the review still open", () => {
-    const fin = { ...base, status: "completed", payment_status: "released" } as unknown as Job;
+    const fin = { ...base, status: "completed", payment_status: "released", poster_completed_at: new Date().toISOString() } as unknown as Job;
     const h = renderCard(fin, { meta: { "job-1": { tipped: true, reviewed: false } } });
     const [btn] = faceButtons();
     expect(btn.textContent).toBe("Leave a review");

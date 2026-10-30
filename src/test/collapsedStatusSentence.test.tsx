@@ -340,15 +340,20 @@ const POSTER_FIXTURES: Record<
      fixtures are deliberately identical and the `completion` argument is what
      the cases below vary. */
   done_tip_open: {
-    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released", poster_completed_at: ago(4) }),
     completion: { tipped: false, reviewed: true },
   },
   done_review_open: {
-    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released", poster_completed_at: ago(4) }),
     completion: { tipped: true, reviewed: false },
   },
   done_both_open: {
-    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released", poster_completed_at: ago(4) }),
+    completion: { tipped: false, reviewed: false },
+  },
+  /* Not reviewed, finished 31 days ago: the review window (DH-003) has closed, only the tip is left. */
+  done_tip_open_review_closed: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released", poster_completed_at: ago(31 * 24) }),
     completion: { tipped: false, reviewed: false },
   },
   /* Owner 2026-10-25: a cancelled, refunded job marked into the poster's Done list. */

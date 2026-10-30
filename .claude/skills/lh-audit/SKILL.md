@@ -786,6 +786,11 @@ phone screenshot. These checks make that a formal finding class.*
   tap + Esc dismiss; body scroll-lock engages AND is released (no stuck page
   after close). `ScrollToTop` on route change; anchor links (`#earn-as-a-helper`
   etc.) land on the right element.
+- Every screen is also checked SCROLLED: scroll to the middle and to the bottom on
+  WebKit 375 and screenshot. Headers, tab rows and docks must stay in place with
+  no empty band; a page shorter than the viewport must not scroll. (Owner bug
+  2026-10-30: Jobs' and Declutter's tab words vanished on an iPhone scroll and
+  every audit had looked only at the top; e2e/a11y-prod/sectionTabsStayPut.spec.ts.)
 
 **Navigation & information architecture**
 - Bottom nav / tab bar active states correct; back-button destinations are

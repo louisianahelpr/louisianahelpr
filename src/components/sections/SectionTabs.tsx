@@ -103,8 +103,14 @@ export function SectionTabs<T extends string>({
           420px such a row sets its words by the screen's width (.section-tabs-dense in index.css: 12px at 320, 14px at
           390, never over 15px) 12px apart, and fits (measured 0 overflow at 320/375/390, ~/.lh-shots/b3-1028/a3-6). A
           row that still overflows (two to-do counts at 320) keeps scrolling, as before. */}
+      {/* SIDEWAYS ONLY (owner bug 2026-10-30, iPhone Safari: "the tabs disappear when the page scrolls"). overflow-x:auto
+          alone computes overflow-y to auto, and the selected tab's underline (::after, bottom -1px) made the row 45px
+          of content in a 44px box, so the row was a VERTICAL scroller too: a vertical swipe on it moved its words
+          (measured in WebKit: scrollTop 0 -> 1 on a wheel over the row) and on iOS rubber-banded them out of the clip,
+          leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
+          Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
       <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
-        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
+        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;
           return (

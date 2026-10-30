@@ -17,7 +17,7 @@ export const SELL_ONE_PATH = "/declutter/sell";
 export const SELL_BUNCH_PATH = "/declutter/sell?mode=bunch";
 
 /** Give it away free: the one-screen Sell flow with Free already on (price 0). */
-export const SELL_FREE_PARAM = "free";
+const SELL_FREE_PARAM = "free";
 export const SELL_FREE_PATH = `/declutter/sell?${SELL_FREE_PARAM}=1`;
 
 /** Moving out sale (only while 'declutter_moving_out' is on for the viewer). */

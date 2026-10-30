@@ -9,7 +9,7 @@ import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
-import { SELL_CHOOSER_PATH, SELL_MOVE_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -44,7 +44,7 @@ function useCreateRows() {
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
-    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, ...(movingOut ? [{ label: "Moving out sale", path: SELL_MOVE_PATH }] : [])],
+    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : [])],
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
     homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };

@@ -9,7 +9,7 @@
  *   - "Lowest you'll take" fills itself from the saved percent of the asking price (half by default) until the
  *     seller types their own.
  * Applied once, after the last-listing setup has settled, so the two never fight. A saved draft gets none of this.
- * Guard: src/components/declutter/sellerDefaultsPrefill.test.tsx.
+ * Guard: src/components/declutter/declutterSellLastSetup.test.tsx.
  */
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -76,7 +76,9 @@ export function useSellerDefaultsPrefill(
       keepUp,
       drops: form.drops,
       dropPct: form.dropPct,
-      floorPct: (form.drops && pctFromFloor(form.price, form.floor)) || floorPct.current,
+      // Only a lowest price the seller typed changes the saved share: the filled-in one is the share, rounded to a
+      // whole dollar, and reading it back would creep (half of $45 fills $23, which reads back as 51%).
+      floorPct: (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) || floorPct.current,
       freeAfterDays,
       handovers: ways,
     };

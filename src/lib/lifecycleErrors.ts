@@ -1072,6 +1072,12 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     wanted_not_found: DC.wanted_not_found,
   },
+  declutter_block_wanted_poster: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    wanted_not_found: DC.wanted_not_found,
+    wanted_block_shared_job: DC.wanted_block_shared_job,
+  },
   declutter_my_reply_listings: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

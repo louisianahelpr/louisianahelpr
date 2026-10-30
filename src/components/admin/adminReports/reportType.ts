@@ -1,3 +1,5 @@
+import type { ReportedWanted } from "@/lib/declutter/api";
+
 /** One row of the admin reports queue. */
 export type Report = {
   id: string;
@@ -20,6 +22,8 @@ export type Report = {
   reported_job_exists?: boolean;
   /** Item B: a reported listing still up (live, paused or held), so an admin can take it down. */
   reported_listing_down_ok?: boolean;
+  /** Audit 10-30 #8: a reported Wanted post, read through declutter_admin_reported_wanted. */
+  reported_wanted?: ReportedWanted;
   /** Q366: the person behind the subject — `reported_id` for a user report,
    *  the application's helper for an application report, null otherwise. */
   subject_user_id?: string | null;

@@ -226,6 +226,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   wanted_rate_limited: "You can post up to 5 wanted items a day. Try again tomorrow.",
   wanted_open_limit: "You have 10 wanted posts open. Close one to post another.",
   wanted_not_found: "That wanted post isn't available.",
+  // Audit 10-30 #8: a block from a Wanted post never cancels a job (declutter_block_wanted_poster).
+  wanted_block_shared_job: "You have a job with this person, so nothing changed. To block them, open that job. You'll see any fee first.",
   // Wanted photos (20261030064727).
   wanted_not_open: "That wanted post is closed. Post a new one to add photos.",
   wanted_too_many_photos: "A wanted post can have up to 3 photos.",

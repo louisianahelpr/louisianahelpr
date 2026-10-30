@@ -16,6 +16,8 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     if (startAt) pick(startAt); |
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     next.delete("answer"); |
  * @mutate src/lib/declutter/wanted.ts |   return near.find((w) => w.id === wantedId) ?? null; |   return near[0] ?? null;
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             <div className="w-full"><WantedPostSafety post={w} /></div>\n |
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx | onConfirm={() => block.mutate()} | onConfirm={() => {}}
  *
  * Audit W1 (the sheet slid sideways on WebKit): the listings are the shared RadioCardList inside a min-w-0 box.
  * Quick-list (owner 2026-10-30): "List it now" opens the shared sell flow with the post to answer.
@@ -30,12 +32,21 @@ const state = {
   listings: [] as { id: string; title: string; current_price_cents: number; refuses?: string | null }[],
   sent: [] as unknown[][],
   fromAlert: [] as unknown[],
+  blocked: [] as string[],
+  blockFails: false,
+  blockTries: 0,
 };
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/declutter/wanted", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/wanted")>()),
   fetchWantedNear: async () => state.near,
   fetchMyReplyListings: async () => state.listings,
+  blockWantedPoster: async (id: string) => {
+    state.blockTries += 1;
+    if (state.blockFails) throw new Error("wanted_block_shared_job");
+    state.blocked.push(id);
+    return "blocked";
+  },
   fetchWantedFromAlert: async (id: string) => state.fromAlert.find((p) => (p as { id: string }).id === id) ?? null,
   replyToWanted: async (...a: unknown[]) => { state.sent.push(a); return "o1"; },
 }));
@@ -60,6 +71,9 @@ beforeEach(() => {
   state.listings = [{ id: "i1", title: "Blue kids bike", current_price_cents: 4000 }, { id: "i2", title: "Trike", current_price_cents: 2000 }];
   state.sent = [];
   state.fromAlert = [];
+  state.blocked = [];
+  state.blockFails = false;
+  state.blockTries = 0;
 });
 
 describe("board 117: Wanted near you and I have this", () => {
@@ -175,6 +189,42 @@ describe("board 117: Wanted near you and I have this", () => {
     renderIt("/declutter?tab=wanted&answer=gone&item=i1");
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("That post has closed, or your listing is no longer close enough to answer it."));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  // Audit 10-30 #8: Report and Block on each post.
+  it("each post can be reported and blocked, and a block asks first", async () => {
+    state.near = [POST];
+    renderIt();
+    const card = (await screen.findByRole("button", { name: "I have this" })).closest("li")!;
+    expect(within(card).getByRole("button", { name: "Report" })).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: "Block" }));
+    const confirm = await screen.findByRole("dialog");
+    expect(state.blocked).toEqual([]);
+    expect(confirm.textContent).toContain("If you have a job together, this stops and nothing changes");
+    expect(confirm.textContent).not.toContain("cancelled");
+    fireEvent.click(within(confirm).getByRole("button", { name: "Block" }));
+    await waitFor(() => expect(state.blocked).toEqual(["w1"]));
+  });
+
+  it("a block the server refuses over a shared job closes the question and blocks nothing", async () => {
+    state.near = [POST];
+    state.blockFails = true;
+    renderIt();
+    const card = (await screen.findByRole("button", { name: "I have this" })).closest("li")!;
+    fireEvent.click(within(card).getByRole("button", { name: "Block" }));
+    const confirm = await screen.findByRole("dialog");
+    fireEvent.click(within(confirm).getByRole("button", { name: "Block" }));
+    await waitFor(() => expect(state.blockTries).toBe(1));
+    expect(state.blocked).toEqual([]);
+  });
+
+  it("the I have this sheet offers Report and Block too", async () => {
+    state.near = [POST];
+    renderIt();
+    fireEvent.click(await screen.findByRole("button", { name: "I have this" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByRole("button", { name: "Report" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Block" })).toBeInTheDocument();
   });
 
   // Audit 10-30 #19: the seller sees every photo, and can open it large.

@@ -13,7 +13,8 @@
  * @mutate src/components/NotificationPanel.tsx | (n.type === "warning" \|\| n.title === "Your Helpr cancelled") && | n.type === "warning" &&
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 

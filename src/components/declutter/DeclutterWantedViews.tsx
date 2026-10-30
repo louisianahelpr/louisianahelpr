@@ -45,7 +45,8 @@ import {
 } from "@/lib/declutter/wanted";
 import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
-import { CATEGORY_GROUPS, CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
+import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
+import { CATEGORY_LABEL, CATEGORY_PICKER_GROUPS, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
@@ -100,15 +101,8 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
         </div>
         <div className="min-w-0 space-y-1">
           <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
-          <select id="wanted-category" className={input} value={form.category}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-            <option value="">Pick one</option>
-            {CATEGORY_GROUPS.map((g) => (
-              <optgroup key={g.heading} label={g.heading}>
-                {g.values.map((k) => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
-              </optgroup>
-            ))}
-          </select>
+          <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
+            onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} />
         </div>
       </div>
       <div className="space-y-1">

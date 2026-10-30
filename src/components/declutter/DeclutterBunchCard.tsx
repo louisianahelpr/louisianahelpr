@@ -12,7 +12,8 @@ import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
-import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
+import { CATEGORY_PICKER_GROUPS, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
@@ -117,13 +118,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
-          <select id={`cat-${id}`} className={field} value={item.category} onChange={(e) => onChange({ category: e.target.value })}>
-            {CATEGORY_GROUPS.map((g) => (
-              <optgroup key={g.heading} label={g.heading}>
-                {g.values.map((k) => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
-              </optgroup>
-            ))}
-          </select>
+          <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} />
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>Condition</label>

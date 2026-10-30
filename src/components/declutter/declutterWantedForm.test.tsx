@@ -147,7 +147,9 @@ describe("the Wanted hub", () => {
     fireEvent.change(sheet.querySelector('input[type="file"]')!, { target: { files: [file] } });
     fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike" } });
     fireEvent.change(within(sheet).getByLabelText("Up to"), { target: { value: "30" } });
-    fireEvent.change(within(sheet).getByLabelText("Category"), { target: { value: "baby_kids" } });
+    fireEvent.click(within(sheet).getByLabelText("Category"));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Baby and kids" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(photoCalls).toEqual([["add", "u1", "w1", file]]));
   });
@@ -197,7 +199,9 @@ describe("the Wanted hub", () => {
     expect(price.className).toContain("--burnt-sienna");
     fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike, 16 inch" } });
     fireEvent.change(price, { target: { value: "30" } });
-    fireEvent.change(within(sheet).getByLabelText("Category"), { target: { value: "baby_kids" } });
+    fireEvent.click(within(sheet).getByLabelText("Category"));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Baby and kids" }));
     // "Within" wears Browse's distance chips (lead 2026-10-28, shot 39), one pressed at a time, 10 mi by default.
     // @mutate src/components/declutter/DeclutterWantedViews.tsx |             <Chip key={m} on={form.radius === m} onClick={() => setForm((f) => ({ ...f, radius: m }))}>{`${m} mi`}</Chip> |             <button key={m} type="button" className="text-ds-11" onClick={() => setForm((f) => ({ ...f, radius: m }))}>{`${m} mi`}</button>
     const chips = within(sheet).getByRole("group", { name: "Within" }).querySelectorAll("button");

@@ -108,6 +108,7 @@ export default function BunchFlow() {
       place.setPoint(back.coords);
       setPhotos(back.photos);
       setItems(back.items);
+      setSortNote(unusablePhotosNote(back.unusable));
     },
   );
   const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);

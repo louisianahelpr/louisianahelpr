@@ -25,8 +25,8 @@ const WORDS = {
     cancel: "Cancel sale",
     sheetTitle: "Cancel this sale?",
     keep: "Keep the sale",
-    told: "the buyer is told",
     done: "Sale cancelled.",
+    body: "You'll get a Declutter strike, and the buyer is told. Your listing comes down too; relist it from History. 3 strikes pause Declutter for you.",
   },
   free: {
     heading: "Claimed, they're choosing a pickup",
@@ -34,8 +34,9 @@ const WORDS = {
     cancel: "Cancel claim",
     sheetTitle: "Cancel this claim?",
     keep: "Keep the claim",
-    told: "the person who claimed it is told",
-    done: "Claim cancelled.",
+    done: "Claim cancelled. It's back up.",
+    // Owner 2026-10-30 (B100, 20261030132149): no strike for cancelling a free claim; the item goes back up.
+    body: "No strike for a free item. The person who claimed it is told, and it goes back up so others can ask for it.",
   },
 } as const;
 type Kind = keyof typeof WORDS;
@@ -61,7 +62,8 @@ export function SalesWaiting() {
     mutationFn: ({ itemId }: { itemId: string; kind: Kind }) => sellerCancelSale(itemId),
     onSettled: () => setAsking(null),
     onSuccess: (n, { kind }) => {
-      toast.success(`${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
+      // A free claim gives no strike (20261030132149), so its toast names no strike count.
+      toast.success(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
       // The same as DeclutterTradeViews' invalidateTrades (not imported: that file imports this one).
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -105,9 +107,9 @@ export function SalesWaiting() {
       ))}
       <ConfirmSheet open={asking !== null} title={w.sheetTitle} confirmLabel={w.cancel} cancelLabel={w.keep} pending={cancel.isPending}
         onConfirm={() => { if (asking) cancel.mutate(asking); }} onClose={() => setAsking(null)} testId="cancel-sale">
-        {/* Audit 1028 part 2, D2-10: the cancel also takes the listing down (declutter_seller_cancel_sale: withdrawn,
-            and it gives the seller a strike for a free claim too). */}
-        You'll get a Declutter strike, and {w.told}. Your listing comes down too; relist it from History. 3 strikes pause Declutter for you.
+        {/* Audit 1028 part 2, D2-10: a paid cancel also takes the listing down (declutter_seller_cancel_sale: withdrawn,
+            with a strike). B100: a free claim cancel gives no strike and puts the item back up. */}
+        {w.body}
       </ConfirmSheet>
     </div>
   );

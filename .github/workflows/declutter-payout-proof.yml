@@ -27,6 +27,10 @@ name: Declutter payout proof
 on:
   workflow_dispatch:
     inputs:
+      proof:
+        description: "Which proof: the Declutter sale, or one Helpr job to a landed payout (scripts/e2e/jobPayoutProof.mjs)."
+        required: false
+        default: "declutter"
       price_cents:
         description: "Item price in cents (100..100000). The seller's payout is this amount; the buyer pays it plus 5% + 70c."
         required: false
@@ -88,7 +92,14 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PRICE_CENTS: ${{ inputs.price_cents || '500' }}
-        run: node scripts/e2e/declutterPayoutProof.mjs run --state "$RUNNER_TEMP/declutter-payout-proof.json" --price-cents "$PRICE_CENTS"
+          PROOF: ${{ inputs.proof || 'declutter' }}
+        run: |
+          set -euo pipefail
+          case "$PROOF" in
+            declutter) node scripts/e2e/declutterPayoutProof.mjs run --state "$RUNNER_TEMP/declutter-payout-proof.json" --price-cents "$PRICE_CENTS" ;;
+            job) node scripts/e2e/jobPayoutProof.mjs run --state "$RUNNER_TEMP/declutter-payout-proof.json" --budget 100 ;;
+            *) echo "::error::unknown proof '$PROOF'"; exit 1 ;;
+          esac
 
       # Step 6 of the proof, again, whatever happened above (a cancelled or
       # timed-out step never reaches the script's own finally). Idempotent.
@@ -99,12 +110,13 @@ jobs:
           STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PROOF: ${{ inputs.proof || 'declutter' }}
         run: |
           set -euo pipefail
           STATE="$RUNNER_TEMP/declutter-payout-proof.json"
           # No state file: the run never started (a refused gate, a failed install), so nothing was created.
           if [ -f "$STATE" ]; then
-            node scripts/e2e/declutterPayoutProof.mjs unlink --state "$STATE"
+            if [ "$PROOF" = "job" ]; then node scripts/e2e/jobPayoutProof.mjs unlink --state "$STATE"; else node scripts/e2e/declutterPayoutProof.mjs unlink --state "$STATE"; fi
           else
             echo "no proof state: nothing was created, nothing to close or unlink"
           fi

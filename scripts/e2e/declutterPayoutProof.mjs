@@ -218,16 +218,16 @@ class StripeApiError extends Error {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const log = (msg) => console.log(`[${new Date().toISOString().slice(11, 19)}Z] ${msg}`);
+export const log = (msg) => console.log(`[${new Date().toISOString().slice(11, 19)}Z] ${msg}`);
 
-function env() {
+export function env() {
   const key = process.env.STRIPE_TEST_SECRET_KEY ?? "";
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const url = process.env.SUPABASE_URL || (process.env.SUPABASE_PROJECT_REF ? `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co` : "https://fncmgoasalhdgfwzhsqa.supabase.co");
   return { key, service, base: supabaseBase(url).replace(/\/+$/, "") };
 }
 
-function clients({ key, service, base }) {
+export function clients({ key, service, base }) {
   const stripe = async (method, path, params, { account, idem } = {}) => {
     const headers = { Authorization: `Bearer ${key}`, "Stripe-Version": "2025-08-27.basil" };
     if (account) headers["Stripe-Account"] = account;
@@ -379,7 +379,7 @@ export async function closeAfterFailure(c, state) {
     "otherwise admin_payout_release('declutter', id, note, true) after re-linking, or leave it held (test money only).");
 }
 
-async function payCheckout(browser, url, label) {
+export async function payCheckout(browser, url, label) {
   let host = "";
   try { host = new URL(url).hostname; } catch { /* refused below */ }
   if (host !== "checkout.stripe.com" || !/\/cs_test_[A-Za-z0-9]+/.test(url)) throw new Error(`REFUSED to pay ${label}: not a TEST-mode Checkout page`);
@@ -449,7 +449,7 @@ async function payCheckout(browser, url, label) {
   }
 }
 
-async function poll(what, fn, { every = 3000, timeoutMs = 120_000 } = {}) {
+export async function poll(what, fn, { every = 3000, timeoutMs = 120_000 } = {}) {
   const until = Date.now() + timeoutMs;
   for (;;) {
     const v = await fn();

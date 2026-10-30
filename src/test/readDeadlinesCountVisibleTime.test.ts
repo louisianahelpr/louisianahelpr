@@ -104,7 +104,7 @@ describe("read deadlines count only visible time", () => {
       "src/hooks/useDashboardData.ts",
     ]) {
       const src = blankComments(readFileSync(resolve(REPO, f), "utf8"));
-      expect(src, f).toMatch(/raceVisibleDeadline\(/);
+      expect(src, f).toMatch(/raceVisibleDeadline(?:Abortable|Retrying)?\(/);
     }
   });
 });

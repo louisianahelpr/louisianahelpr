@@ -17,21 +17,30 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
+import { isNetworkFailure } from "@/lib/networkFailure";
 
 /**
  * job id -> offered Helpr's user id, for jobs the caller posted or was offered.
  * `jobIds` scopes the lookup; omit it for every such job.
+ *
+ * `throwOnNetwork` (a React Query queryFn caller): a dropped connection is
+ * thrown instead of read as "no offer", so React Query retries the read and
+ * QueryCache logs a resume burst once (src/test/feedLoadsFastAndLogsQuietly.test.ts).
+ * Callers outside React Query (Messages, PaymentSuccess) keep the quiet degrade.
  */
-export async function fetchJobOfferTargets(jobIds?: string[]): Promise<Map<string, string>> {
+export async function fetchJobOfferTargets(jobIds?: string[], opts: { throwOnNetwork?: boolean } = {}): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   const ids = jobIds === undefined ? undefined : [...new Set(jobIds.filter(Boolean))];
   if (ids !== undefined && ids.length === 0) return out;
 
-  const { data, error } = await supabase.rpc(
+  const res = await supabase.rpc(
     "get_job_offer_targets",
     ids === undefined ? {} : { p_job_ids: ids },
   );
+  const { data, error } = res;
   if (error) {
+    if (opts.throwOnNetwork && isNetworkFailure(error)) unwrap(res);
     if ((error as { code?: string }).code !== "PGRST202") {
       report(error, { severity: "warning", tags: { source: "jobOfferTargets.fetchJobOfferTargets" } });
     }

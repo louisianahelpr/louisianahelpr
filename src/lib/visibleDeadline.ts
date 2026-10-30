@@ -164,6 +164,34 @@ export function raceVisibleDeadlineAbortable<T>(
     .finally(() => outer?.removeEventListener("abort", onOuter));
 }
 
+/**
+ * raceVisibleDeadlineAbortable, tried once per entry of `budgets`: a try that
+ * misses its deadline is aborted and a FRESH request is started with the next
+ * budget. Only a timeout earns another try; a refusal, a transport error or
+ * the caller's own abort is thrown at once (React Query decides those).
+ *
+ * WHY a short first try (owner-approved loading fix, 2026-10-29): the stalled
+ * feed reads behind "Loading jobs timed out" never reached the server
+ * (JAVASCRIPT-44, above), so the first 12 s were pure waiting. A 4 s first try
+ * then a 12 s one shows jobs ~8 s sooner when the first read is lost, and
+ * still gives a slow network its full 12 s. Guard:
+ * src/test/feedLoadsFastAndLogsQuietly.test.ts.
+ */
+export async function raceVisibleDeadlineRetrying<T>(
+  start: (signal: AbortSignal) => PromiseLike<T>,
+  budgets: readonly number[],
+  message: string,
+  outer?: AbortSignal,
+): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await raceVisibleDeadlineAbortable(start, budgets[i], message, outer);
+    } catch (err) {
+      if (!(err instanceof Error && err.message === message) || outer?.aborted || i === budgets.length - 1) throw err;
+    }
+  }
+}
+
 /** Test-only: forget the visibility history so one test cannot feed the next. */
 export function __resetVisibleDeadlineForTests(): void {
   lastHiddenAt = Number.NEGATIVE_INFINITY;

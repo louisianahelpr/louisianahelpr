@@ -42,8 +42,6 @@ import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
-import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
-import { BunchDraftsSection } from "./BunchDraftsSection";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -57,15 +55,12 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 let photoSeq = 0;
-const NO_IDS: ReadonlySet<string> = new Set();
 
 export default function BunchFlow() {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
   const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
-  const feeDue = useSetupFeeDueCents();
-  const [listingDrafts, setListingDrafts] = useState(false);
 
   const [areaLabel, setAreaLabel] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
@@ -130,8 +125,7 @@ export default function BunchFlow() {
           : null;
   const ready = items.filter((it) => !bunchItemProblem(it));
   const savedWays = ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
-  const busy = !!sorting || !!listing || listingDrafts;
-  const blocked = busy || feeDue != null;
+  const busy = !!sorting || !!listing;
 
   async function locate(): Promise<{ lat: number; lng: number } | null> {
     const address = pickupAddress.trim();
@@ -188,8 +182,7 @@ export default function BunchFlow() {
 
   async function onListAll() {
     setProblem(null);
-    const p = (feeDue != null ? "Pay the one-time setup fee above first, then list these items." : null)
-      ?? placeProblem
+    const p = placeProblem
       ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null)
       ?? (ready.length === 0 ? "No item is ready to list yet." : null);
@@ -234,8 +227,6 @@ export default function BunchFlow() {
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
       <SellerPayoutPrompt />
-      {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      {feeDue == null && <BunchDraftsSection userId={user.id} exclude={NO_IDS} busy={busy} onBusy={setListingDrafts} />}
 
       <Section id="bunch-where" title="1. Where buyers pick up">
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
@@ -250,8 +241,8 @@ export default function BunchFlow() {
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
         </p>
-        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
-        {blocked ? (
+        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" aria-label="Add photos" disabled={busy} onChange={(e) => void onPhotos(e.target.files)} />
+        {busy ? (
           <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
         ) : (
           <Button asChild variant="outline" size="sm" className="cursor-pointer">
@@ -315,7 +306,7 @@ export default function BunchFlow() {
             </div>
           ))}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
-          <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
+          <Button type="button" disabled={busy || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
             {listing ? `Listing… (${Math.min(listing.done, listing.total)} of ${listing.total} steps)` : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
           </Button>
           <p className="text-xs text-muted-foreground">

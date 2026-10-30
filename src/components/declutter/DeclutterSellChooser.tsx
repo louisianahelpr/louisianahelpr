@@ -7,20 +7,21 @@
  *   2. A bunch of things: /declutter/sell?mode=bunch.
  *   3. Moving out sale: /declutter/move, only while 'declutter_moving_out' is on for the viewer.
  *   4. Give it away free: the one-screen Sell flow with Free on (?free=1).
- *   5. Have a Helpr list it for me: Post a job, pre-filled (?sellForMe=1, src/lib/declutter/sellForMe.ts).
- *   6. Looking for something? Post a Wanted: the Wanted form, only while 'declutter_wanted' is on for the viewer.
+ *   5. Have a Helpr list it for me: what that means (HelprListExplainSheet), then Post a job, pre-filled (?sellForMe=1).
+ *   6. Post a Wanted: the Wanted form, only while 'declutter_wanted' is on for the viewer.
  * Under 18 sees the same notice as the Sell flow (the server refuses selling and buying anyway).
  * Guard: src/components/declutter/declutterSellChooser.test.tsx.
  */
+import { useState } from "react";
 import { Boxes, Gift, HandHelping, Images, Package, Search } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { sellForMePostJobPath } from "@/lib/declutter/sellForMe";
 import { SELL_BUNCH_PATH, SELL_FREE_PATH, SELL_MOVE_PATH, SELL_ONE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
 import { StepHead } from "./DeclutterSellSteps";
 import { DeclutterNotice } from "./declutterUi";
+import { HelprListExplainSheet } from "./HelprListExplainSheet";
 
 const ICON = "h-5 w-5";
 
@@ -28,6 +29,7 @@ export default function DeclutterSellChooser() {
   const { underAge } = useAgeGate();
   const movingOut = useFeature("declutter_moving_out");
   const wanted = useFeature("declutter_wanted");
+  const [explaining, setExplaining] = useState(false);
   return (
     <AppPage title="Sell" backTo="/declutter?tab=selling" phoneHidesTitle>
       <div className="mx-auto w-full max-w-xl space-y-5" data-sell-chooser="">
@@ -36,18 +38,22 @@ export default function DeclutterSellChooser() {
             You can still look around. Selling opens when your birthday on file says you're 18.
           </DeclutterNotice>
         ) : (
-          <section className="flex flex-col gap-3" aria-labelledby="sell-step">
-            <StepHead title="What do you want to sell?" sub="Pick one. You can come back and choose another." />
+          // Audit 10-30 #17: the cards are shorter here, so all six reach a 375 screen; two sit under their own small heading
+          // since neither is a way to sell it yourself.
+          <section className="flex flex-col gap-3 [&_[data-sell-choice]]:!min-h-[80px]" aria-labelledby="sell-step">
+            <StepHead title="What would you like to do?" sub="Pick one. You can come back and choose another." />
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="A bunch of things" line="Add photos of everything and we write each listing for you to check." />
             {movingOut && (
               <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Photograph each room and list everything at once." />
             )}
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
-            <ChoiceCard data-sell-choice="helpr" to={sellForMePostJobPath()} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A local Helpr takes the photos and writes the listings with you." />
+            <h2 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h2>
+            <ChoiceCard data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A local Helpr takes the photos and writes the listings with you." />
             {wanted && (
-              <ChoiceCard data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Looking for something? Post a Wanted" line="Tell sellers near you what you want and what you'd pay." />
+              <ChoiceCard data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Looking for something? Tell sellers near you." />
             )}
+            <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />
           </section>
         )}
       </div>

@@ -33,7 +33,7 @@ export type PriceMode = "price" | "quotes";
 
 /** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
 const PRICE_MODE_NEXT: Record<PriceMode, string> = {
-  price: "You set the budget, then review and pay. Helprs apply at your price.",
+  price: "You set the budget and review it before anything is charged. Helprs apply at your price.",
   quotes: "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
 };
 

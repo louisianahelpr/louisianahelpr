@@ -129,7 +129,7 @@ describe("Post a job: Set a price or Get quotes", () => {
     expect(group.closest("[data-form-page]")?.getAttribute("data-form-page")).toBe("3");
     expect(screen.getByRole("heading", { name: "What will you pay?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText(/You set the budget, then review and pay/)).toBeInTheDocument();
+    expect(screen.getByText(/You set the budget and review it before anything is charged/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.getByText(/Helprs near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
   });

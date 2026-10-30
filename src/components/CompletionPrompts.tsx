@@ -51,15 +51,21 @@ type CompletionPromptsProps = {
   isHelper?: boolean;
   /** Category of the completed job — drives the "more work" suggestions. */
   jobCategory?: Database["public"]["Enums"]["job_category"] | null;
+  /** The poster already tipped this job: the review still opens, the tip step is skipped (UX-7). */
+  alreadyTipped?: boolean;
 };
 
-export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory }: CompletionPromptsProps) => {
+export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory, alreadyTipped = false }: CompletionPromptsProps) => {
   const [step, setStep] = useState<"review" | "tip" | "share" | "nps" | null>("review");
   // F29: the tip step is skipped when the person reviewed can't receive a tip yet.
   const takesTips = useHelprTakesTips(revieweeId);
+  // UX-7: the prompt now opens for the Helpr too (review the poster after the
+  // "Mark done" that finished the job). A Helpr never tips the poster, and a
+  // poster who already tipped is not asked again: both go review → share.
+  const offerTip = !isHelper && !alreadyTipped;
   useEffect(() => {
-    if (step === "tip" && takesTips === false) setStep("share");
-  }, [step, takesTips]);
+    if (step === "tip" && (!offerTip || takesTips === false)) setStep("share");
+  }, [step, takesTips, offerTip]);
 
   // "More work nearby" — only useful when the viewer is the helper.
   // Fetches up to 3 open jobs in the same category once the share step opens.
@@ -327,7 +333,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
       {/* Tip Prompt (board 180) — close advances to share step (peak
           emotional moment for a referral ask). Skipping the tip still hits
           the share step. */}
-      <Dialog open={step === "tip" && takesTips !== false} onOpenChange={() => setStep("share")}>
+      <Dialog open={step === "tip" && offerTip && takesTips !== false} onOpenChange={() => setStep("share")}>
         <DialogContent
           stepped>
           <DialogHero moment title={`Add a tip for ${firstName}?`} />

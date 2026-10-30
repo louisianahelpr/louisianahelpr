@@ -7,6 +7,7 @@ import type {
   Job,
   Application,
   EnrichedApplication,
+  CompletionPromptTarget,
 } from "@/components/job-card/activityConstants";
 import type { UseActivityActionsArgs } from "./activityActions/types";
 import { useOptimisticJobCache } from "./activityActions/useOptimisticJobCache";
@@ -84,7 +85,7 @@ export function useActivityActions({
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<EnrichedApplication | null>(null);
-  const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
+  const [completionPromptJob, setCompletionPromptJob] = useState<CompletionPromptTarget | null>(null);
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
   // Read-only timeline + follow-up evidence for an already-disputed
   // job. Separate from disputeJob so the file-a-new-dispute and

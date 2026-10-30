@@ -57,6 +57,7 @@ import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhoto
 import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
+import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
@@ -360,6 +361,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: 
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),
     onSuccess: () => {
+      markReviewPrompt(order.orderId);
       toast.success("Handover done. Enjoy your item.");
       setAsking(false);
       invalidate(qc, order.orderId);

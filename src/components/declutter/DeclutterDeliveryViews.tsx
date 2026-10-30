@@ -41,6 +41,7 @@ import { currentPosition } from "@/lib/declutter/position";
 import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
 import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import {
@@ -123,6 +124,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
     mutationFn: () => confirmReceived(taskId),
     onSettled: () => setAskGot(false),
     onSuccess: () => {
+      markReviewPrompt(orderId);
       toast.success("Delivery done. Enjoy your item.");
       invalidateTasks(qc);
       void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });

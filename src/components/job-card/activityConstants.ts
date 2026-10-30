@@ -158,6 +158,10 @@ export type EnrichedApplication = Application & {
   avgRating?: number;
 };
 
+/** Who the after-completion prompt (CompletionPrompts) reviews, and whether
+ *  this poster already tipped (then the tip step is skipped; UX-7). */
+export type CompletionPromptTarget = { job: Job; revieweeId: string; revieweeName: string; tipped?: boolean };
+
 export type AppliedApp = Application & {
   job?: (Job & { revision_note?: string | null }) | null;
   posterName?: string;

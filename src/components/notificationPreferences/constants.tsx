@@ -11,7 +11,8 @@ export const defaultPrefs: Prefs = {
   // Both masters default on, and both are their own DB column — neither one
   // stands in for the eleven category columns below it.
   push_enabled: true, email_enabled: true,
-  email_job_applications: true, email_job_updates: true, email_messages: false,
+  // email_messages: on for everyone since 20261030141139 (owner 2026-10-30, Messages audit H1).
+  email_job_applications: true, email_job_updates: true, email_messages: true,
   // email_promotions: null = never chosen, the column default since
   // 20261021135832 (Q2299); a false here would turn into a written opt-out the
   // first time a member without a row touched any switch.
@@ -30,6 +31,8 @@ export const defaultPrefs: Prefs = {
   declutter_wanted: true, email_declutter_wanted: true,
   email_quote_reminders: true,
   match_digest_mode: false,
+  // Messages audit M6: new-message alerts show the first words unless turned off.
+  message_preview: true,
   // Saved-helper availability nudges are opt-in (owner, 2026-09-15) — off
   // until the user turns them on. Standalone toggle, not in `rows`.
   saved_helper_availability: false,

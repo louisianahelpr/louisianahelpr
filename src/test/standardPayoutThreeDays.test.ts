@@ -75,11 +75,9 @@ describe("standard pay: 3 days after the poster approves (owner 2026-10-23)", ()
 
   it("every standard-path write of payout_scheduled_at uses standardPayoutAtIso", () => {
     // @two-way src/test/standardPayoutThreeDays.test.ts:const staleAllowed =
-    const ALLOWED: Record<string, string> = {
-      // Dispute settlement, not the standard path: a decided dispute pays 24h
-      // after it resolves (unchanged by Q202; the job was done days before).
-      "supabase/functions/auto-resolve-disputes/index.ts": "new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()",
-    };
+    // auto-resolve-disputes' 24h dispute-settlement writer left 2026-10-30
+    // (Q2362: an expired dispute is escalated, never settled).
+    const ALLOWED: Record<string, string> = {};
     const writes: Array<{ file: string; value: string }> = [];
     for (const f of edgeFiles()) {
       const src = blankComments(readFileSync(f, "utf8"));
@@ -96,8 +94,9 @@ describe("standard pay: 3 days after the poster approves (owner 2026-10-23)", ()
         writes.push({ file: rel, value });
       }
     }
-    // 3 since Q343 removed checkoutSessionCompleted's dead `repay` writer (2026-09-26).
-    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(3);
+    // 3 since Q343 removed checkoutSessionCompleted's dead `repay` writer (2026-09-26);
+    // 2 since Q2362 removed auto-resolve-disputes' settlement (2026-10-30).
+    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(2);
     const bad = writes.filter((w) => !/^standardPayoutAtIso\(/.test(w.value) && ALLOWED[w.file] !== w.value);
     expect(bad, JSON.stringify(bad, null, 2)).toEqual([]);
     // Two-way: an ALLOWED entry whose write no longer exists is stale.

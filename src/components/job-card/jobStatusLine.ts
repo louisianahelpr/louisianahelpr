@@ -212,8 +212,8 @@ function disputeDeadline(job: Job): StatusDeadline | null {
   return columnDeadline(
     "dispute_deadline",
     job.dispute_deadline,
-    "until payout",
-    "Paying out now",
+    "until support decides",
+    "With Helpr support",
   );
 }
 

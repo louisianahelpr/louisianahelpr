@@ -80,7 +80,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
         {showDeadline && job.dispute_deadline && (
           <div className="mt-2 space-y-1">
             {/* A clock line, not a second box. */}
-            <DeadlineCountdown compact deadline={job.dispute_deadline} expiredText="Deadline passed: the payment is auto-releasing to your Helpr" consequenceText="left" />
+            <DeadlineCountdown compact deadline={job.dispute_deadline} expiredText="Deadline passed: Helpr support is deciding" consequenceText="left" />
             {/* Derived from the controls actually on this card, not from the
                 happy path — each wording names only moves THIS poster can make,
                 and every one still answers "what happens if I do nothing". */}
@@ -99,7 +99,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
               inside it. Three copies of "72 hours" in one paragraph would also
               trip escrowTiming.copyParity.test.ts. */}
           <p className="text-ds-10 text-muted-foreground leading-relaxed">
-            <strong>Policy:</strong> {policyText} You have 72 hours; if you do nothing, payment auto-releases to the Helpr.
+            <strong>Policy:</strong> {policyText} You have 72 hours; if nobody settles it, Helpr support decides and the payment stays on hold until then.
           </p>
         </div>
       )}

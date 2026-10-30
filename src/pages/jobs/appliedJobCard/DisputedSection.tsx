@@ -177,7 +177,7 @@ export function DisputedSection({
       {job.dispute_deadline && (
         <DeadlineCountdown
           deadline={job.dispute_deadline}
-          expiredText="Deadline passed — payment auto-releasing to you"
+          expiredText="Deadline passed — Helpr support is deciding"
           /* Both branches state the SAME mechanism —
              `auto-resolve-disputes` settles every non-escalated expired
              dispute with `_outcome: "helper"` (index.ts:196) — but only one of

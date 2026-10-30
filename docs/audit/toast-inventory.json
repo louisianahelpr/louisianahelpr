@@ -4618,7 +4618,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 265,
+      "line": 269,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4638,7 +4638,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 271,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4648,7 +4648,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 332,
+      "line": 336,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4658,7 +4658,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 336,
+      "line": 340,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4668,7 +4668,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 345,
+      "line": 349,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4688,7 +4688,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 350,
+      "line": 354,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4698,7 +4698,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 421,
+      "line": 425,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4708,7 +4708,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 422,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4718,7 +4718,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 447,
+      "line": 451,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4738,7 +4738,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 448,
+      "line": 452,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4748,7 +4748,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 449,
+      "line": 453,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4758,7 +4758,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 450,
+      "line": 454,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4768,7 +4768,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 453,
+      "line": 457,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4778,7 +4778,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 509,
+      "line": 513,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4788,7 +4788,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 510,
+      "line": 514,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4798,7 +4798,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 542,
+      "line": 546,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4808,7 +4808,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 548,
+      "line": 552,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4878,7 +4878,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 115,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5188,7 +5188,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 184,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5198,7 +5198,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 196,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5375,7 +5375,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
-      "line": 54,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5385,7 +5385,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
-      "line": 58,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5495,7 +5495,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 252,
+      "line": 267,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5525,7 +5525,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 255,
+      "line": 270,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5535,7 +5535,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 262,
+      "line": 277,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5545,7 +5545,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 263,
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5641,17 +5641,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 25,
+      "line": 64,
       "kind": "toast.success",
       "title": {
         "form": "template",
-        "text": "Sale cancelled. You have ${Math.min(n, 3)} of 3 strikes."
+        "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 29,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5691,7 +5691,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 136,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5701,7 +5701,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 278,
+      "line": 280,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5711,7 +5711,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 287,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5736,7 +5736,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 294,
+      "line": 295,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6061,7 +6061,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliveryOrder.tsx",
-      "line": 97,
+      "line": 99,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6081,7 +6081,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliveryOrder.tsx",
-      "line": 98,
+      "line": 100,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6106,7 +6106,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliveryOrder.tsx",
-      "line": 191,
+      "line": 213,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -6126,7 +6126,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliveryOrder.tsx",
-      "line": 192,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-30T13:14:37.465Z",
-  "guards": 2751,
-  "registered": 2749,
+  "generated": "2026-10-30T13:31:39.043Z",
+  "guards": 2759,
+  "registered": 2757,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
@@ -220,24 +220,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/jobs/AppliedJobCard.tsx",
-      "tests": [
-        "src/test/collapsedJobCardIsASummary.test.tsx",
-        "src/test/collapsedStatusSentence.test.tsx",
-        "src/test/descriptionGroupsWithMeta.test.tsx",
-        "src/test/enRouteAddressVisible.test.tsx",
-        "src/test/jobCardPersonTileAboveRow.test.tsx",
-        "src/test/offerCardHierarchy.test.tsx",
-        "src/pages/jobs/AppliedJobCard.locationTapExpands.test.tsx",
-        "src/pages/jobs/AppliedJobCard.posterTile.test.tsx",
-        "src/components/job-card/activityBadgeListAgreement.test.tsx",
-        "src/components/job-card/photoProofChip.test.tsx"
-      ],
-      "parents": [
-        "src/pages/jobs/AppliedJobsTab.tsx"
       ]
     },
     {

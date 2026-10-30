@@ -10,7 +10,7 @@
  * under-18 post gate. A phone bar carries none (the bottom bar's center "+" creates), and the bell keeps its 44px
  * size. Before 2026-10-19 the phone "+" was a filled olive circle; this file was topBarAddMatchesBell.test.ts.
  *
- * @mutate src/components/sections/AppTopBar.tsx | <div className="flex items-center gap-1 shrink-0">{personal}</div> | <div className="flex items-center gap-1 shrink-0">{section && <button type="button" data-testid="section-add" />}{personal}</div>
+ * @mutate src/components/sections/AppTopBar.tsx | <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{personal}</div> | <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{section && <button type="button" data-testid="section-add" />}{personal}</div>
  * @mutate src/components/sections/AppTopBar.tsx |       {add.cta ?? add.label} |       {add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       variant="ghost"\n      size="sm"\n      aria-label={add.label} |       variant="primary"\n      size="sm"\n      aria-label={add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}

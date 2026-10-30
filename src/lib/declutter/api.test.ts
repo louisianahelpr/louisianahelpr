@@ -14,13 +14,13 @@
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
  * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
  * @mutate src/lib/declutter/api.ts |     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL, |     cacheControl: "3600",
- * @mutate src/lib/declutter/api.ts |     const { error: rmErr } = await bucket.remove([path]); |     const rmErr = null as { message: string } \| null;
+ * @mutate src/lib/declutter/api.ts |   if (error) {\n    const { error: rmErr } = await bucket.remove([path]); |   if (error) {\n    const rmErr = null as { message: string } \| null;
  * @mutate src/lib/declutter/api.ts |   if (itemIds.length === 0) return []; |   if (false) return [];
  * @mutate src/lib/declutter/api.ts |   if (paths.length === 0) return; |   if (false) return;
  * @mutate src/lib/declutter/api.ts |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }) |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note })
  * @mutate src/lib/declutter/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     if (msg) e.userMessage = msg;
  * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
- * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
+ * @mutate src/lib/declutter/api.ts |   const cleaned = await cleanListingPhoto(file);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   const cleaned = await cleanListingPhoto(file);\n  if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/api.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
@@ -96,6 +96,7 @@ vi.mock("@/lib/declutter/photos", async (importOriginal) => ({
 
 import {
   addPhoto,
+  addPhotoSteadily,
   answerQuestion,
   askQuestion,
   attestItem,
@@ -627,6 +628,70 @@ describe("RPC writes", () => {
   it("fetchPendingForAdmin gives [] for a null body", async () => {
     h.queue.push(ok(null));
     await expect(fetchPendingForAdmin()).resolves.toEqual([]);
+  });
+});
+
+// @mutate src/lib/declutter/api.ts |       if (again && /already exists\|duplicate/i.test(error.message)) return; |       void again;
+// @mutate src/lib/declutter/api.ts |       if (isNetworkFailure(error)) throw new Error(error.message); |       void isNetworkFailure;
+// @mutate src/lib/declutter/api.ts | .eq("item_id", itemId).eq("storage_path", path).maybeSingle(); | .eq("item_id", itemId).maybeSingle();
+// @mutate src/lib/declutter/api.ts | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new PhotoUploadRefused("photo_not_uploaded"); | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new Error("photo_not_uploaded");
+// @mutate src/lib/declutter/api.ts | cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY) | cleanListingPhoto(file)
+describe("addPhotoSteadily", () => {
+  const file = new File(["raw"], "raw.png", { type: "image/png" });
+  const cleaned = new File(["clean"], "clean.jpg", { type: "image/jpeg" });
+  const quiet = { pause: async () => {}, whenBack: async () => {}, awayCount: () => 0 };
+  const path = "seller-1/declutter/item-1/uuid-1.jpg";
+  const dropped = { data: null, error: { message: "TypeError: Load failed", code: "" } };
+
+  beforeEach(() => {
+    vi.stubGlobal("crypto", { randomUUID: () => "uuid-1" });
+    h.clean.mockResolvedValue(cleaned);
+  });
+
+  it("makes one smaller copy, and a dropped upload goes again to the same name", async () => {
+    h.queue.push({ error: { message: "Load failed" } }, { error: null }, ok("photo-id"));
+    await expect(addPhotoSteadily("seller-1", "item-1", file, quiet)).resolves.toBe("photo-id");
+    expect(h.clean).toHaveBeenCalledTimes(1);
+    expect(h.clean).toHaveBeenCalledWith(file, 1600, 0.78);
+    expect(h.store.map((s) => s[2])).toEqual([path, path]);
+    expect(h.rpcs).toHaveLength(1);
+  });
+
+  it("an upload whose answer was lost counts as done when the next try finds it there", async () => {
+    h.queue.push({ error: { message: "Load failed" } }, { error: { message: "The resource already exists", status: 400 } }, ok("photo-id"));
+    await expect(addPhotoSteadily("seller-1", "item-1", file, quiet)).resolves.toBe("photo-id");
+    expect(h.rpcs).toHaveLength(1);
+  });
+
+  it("storage refusing the file isn't tried again", async () => {
+    h.queue.push({ error: { message: "Payload too large", status: 413 } });
+    const e = await rejection(addPhotoSteadily("seller-1", "item-1", file, quiet));
+    expect(e.message).toBe("photo_not_uploaded");
+    expect(h.store).toHaveLength(1);
+    expect(h.rpcs).toHaveLength(0);
+  });
+
+  it("a lost answer from attaching asks about this photo first, and adds no second row", async () => {
+    h.queue.push({ error: null }, dropped, ok({ id: "already-there" }));
+    await expect(addPhotoSteadily("seller-1", "item-1", file, quiet)).resolves.toBe("already-there");
+    expect(h.rpcs).toHaveLength(1);
+    expect(h.queries.at(-1)?.ops).toContainEqual(["eq", ["storage_path", path]]);
+    // Its file is on the listing: never removed.
+    expect(h.store.map((s) => s[0])).toEqual(["upload"]);
+  });
+
+  it("attaches again when the first try really didn't land", async () => {
+    h.queue.push({ error: null }, dropped, ok(null), ok("photo-id"));
+    await expect(addPhotoSteadily("seller-1", "item-1", file, quiet)).resolves.toBe("photo-id");
+    expect(h.rpcs).toHaveLength(2);
+  });
+
+  it("a refused attach removes the file, isn't tried again, and keeps its words", async () => {
+    h.queue.push({ error: null }, refused("too_many_photos", { code: "P0001" }), { error: null });
+    const e = await rejection(addPhotoSteadily("seller-1", "item-1", file, quiet));
+    expect(e.userMessage).toBe(DECLUTTER_ERROR_COPY.too_many_photos);
+    expect(h.rpcs).toHaveLength(1);
+    expect(h.store.map((s) => s[0])).toEqual(["upload", "remove"]);
   });
 });
 

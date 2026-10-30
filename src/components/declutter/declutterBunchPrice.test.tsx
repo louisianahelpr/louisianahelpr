@@ -5,8 +5,8 @@
  * @mutate src/lib/declutter/bunch.ts |     const price = suggestedPrice(it.priceDollars); |     const price = "";
  * @mutate src/lib/declutter/bunch.ts |   const theirs = it.price.trim() !== "" && it.price !== it.aiPrice; |   const theirs = false;
  * @mutate src/lib/declutter/bunch.ts | invokeAiBody(at ? { mode: "group", photos, at } : { mode: "group", photos }, GROUP_TIMEOUT_MS) | invokeAiBody({ mode: "group", photos }, GROUP_TIMEOUT_MS)
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       }, (batch) => askGroup(batch, at)); |       }, (batch) => askGroup(batch, null));
- * @mutate src/components/declutter/DeclutterBunchView.tsx | .filter(Boolean), await hintPoint()); | .filter(Boolean));
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       }, (cleaned) => askGroup(cleaned, at), undefined | }, (cleaned) => askGroup(cleaned, null), undefined
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | .filter(Boolean), point), { delays: [4_000] }); | .filter(Boolean)), { delays: [4_000] });
  * @mutate src/components/declutter/DeclutterBunchView.tsx | flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) } | flagged: d.flagged !== false }
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";

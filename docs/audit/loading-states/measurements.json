@@ -29935,6 +29935,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (1 wave(s) of data released)",
       "requests": 2
+    },
+    {
+      "url": "/declutter/settings",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4629",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fdeclutter%2Fsettings",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -30185,6 +30198,14 @@
       "base": "http://localhost:5866",
       "surfaces": [
         "anon /book/7b923b19-aba5-44cb-8730-8c33ba2b9321"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-30T19:38:55.183Z",
+      "base": "http://127.0.0.1:4629",
+      "surfaces": [
+        "anon /declutter/settings"
       ],
       "replaced": []
     }

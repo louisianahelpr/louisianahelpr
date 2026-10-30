@@ -12,16 +12,21 @@
  *     seller is paid (the whole item price) and when, from the real rule.
  *   - The porch photo IS the handover (board 159): once the seller posts it,
  *     both sides see it (private bucket, a short signed link).
+ *   - DC-16 (Declutter selling audit 2026-10-30): ONE sale card. Only porch and door-pickup sales drew this tracker,
+ *     sentence and money note on the seller's side; a seller-delivers sale (and a meetup) opened straight into its
+ *     booking panel with no steps and no "You get $X" note. Every pickup kind uses PickupStatus now, and a
+ *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
+import { fetchSellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 
-type Pickup = "porch" | "pickup_home";
+type Pickup = "porch" | "pickup_home" | "meetup";
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -59,9 +64,22 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
     }
     return "Picked up.";
   }
+  if (handover === "meetup") {
+    if (at === 0) return side === "buyer" ? "Paid. Book a time to meet." : "Paid. The buyer books a time to meet.";
+    if (at === 1) return "Booked. The time and place are below.";
+    return at === 2 ? "Met." : "Handed over.";
+  }
   if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time.";
   if (at === 1) return "Booked. The pickup time is below.";
   return at === 2 ? "Picked up." : "Handed over.";
+}
+
+/** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
+function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean): string {
+  if (at === 0) return `${free ? "Claimed" : "Paid"}. ${side === "buyer" ? "Pick a delivery time." : "The buyer picks a delivery time."}`;
+  if (at === 1) return "Booked. The delivery time is below.";
+  if (at === 2) return side === "buyer" ? "Delivered. Tap I got it once you have it." : "Delivered. The buyer says when they have it.";
+  return "Handed over.";
 }
 
 export function PickupStatus({
@@ -101,26 +119,63 @@ export function PickupStatus({
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
+  return (
+    <div className="space-y-2" data-pickup-status={at}>
+      <OrderSteps facts={facts} />
+      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
+      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
+    </div>
+  );
+}
+
+/** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
+function MoneyNote({ side, free, done, problemOpen, itemsCents, totalCents, after }: {
+  side: "buyer" | "seller"; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+}) {
   const money = free ? null
     : side === "buyer"
-      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
+      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
         ? null
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
-        // after the handover, with no refund request open; 20261026155251). It holds for every pickup kind.
+        // after the handover, with no refund request open; 20261026155251). It holds for every handover kind.
         : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
+  if (!money) return null;
   return (
-    <div className="space-y-2" data-pickup-status={at}>
+    // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
+    <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
+      {money}
+    </p>
+  );
+}
+
+/**
+ * DC-16: a seller-delivers sale's tracker, sentence and money note, the same three parts as PickupStatus. The steps
+ * come from the delivery booking (the same row and query key SellerDeliveryOrderPanel reads): booked with a time,
+ * delivered_at, and the order's handed_over.
+ */
+export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = false }: {
+  orderId: string; side: "buyer" | "seller"; itemsCents: number; problemOpen?: boolean;
+}) {
+  const b = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId) });
+  const free = itemsCents === 0;
+  const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null;
+  if (b.isError || !b.data) return null;
+  const facts: OrderFacts = {
+    handover: "seller_delivery", side, free,
+    booked: b.data.status === "booked" && !!b.data.slot_start,
+    delivered: !!b.data.delivered_at,
+    done: b.data.order_status === "handed_over",
+  };
+  const at = orderStepAt(facts);
+  const done = facts.done || at === 3;
+  return (
+    <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
-      {money && (
-        // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
-        <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
-          {money}
-        </p>
-      )}
+      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
+      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
     </div>
   );
 }

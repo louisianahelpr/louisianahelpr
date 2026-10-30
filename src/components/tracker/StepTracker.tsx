@@ -15,7 +15,9 @@ export function StepTracker({ steps, at }: { steps: readonly string[]; at: numbe
       {steps.map((label, i) => (
         <li key={label} className="min-w-0">
           <span aria-hidden className={`block h-1 rounded-full ${i <= at ? "bg-primary" : "bg-muted"}`} />
-          <span className={`mt-1.5 block truncate text-ds-12 ${i === at ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
+          {/* DC-16 (Declutter selling audit 2026-10-30): a step name wraps to a second line, never cut. At 375 the
+              porch tracker read "On the po..." (truncate), so the step the seller is waiting on was unreadable. */}
+          <span className={`mt-1.5 block break-words text-ds-12 leading-tight ${i === at ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
         </li>
       ))}
     </ol>

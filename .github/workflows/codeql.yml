@@ -1,0 +1,84 @@
+name: CodeQL
+
+# Advanced setup of the scan that was code scanning's default setup (Q1151; same
+# languages and the same query suite as `gh api .../code-scanning/default-setup`
+# on 2026-10-30: actions + javascript-typescript, "extended", weekly).
+# Default setup has no merge_group trigger, so a required "CodeQL" would leave
+# the merge queue waiting. It cannot upload while default setup is on, so default
+# setup goes off as this file lands. Never drop CodeQL from the required checks.
+#
+# The required check is named "CodeQL" and comes from the github-advanced-security
+# app when an analysis is uploaded. No job here may carry that name, or it would
+# post a second check under it (src/test/landingPath.test.ts).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # The merge queue's own run. merge_group takes no paths filter, so it always
+  # starts and the queue cannot wait on it forever. It never deploys.
+  merge_group:
+  schedule:
+    - cron: "37 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Only a PR cancels: a merge queue run or a run on main always finishes.
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # A scheduled or dispatched red on main lands in a nightly-red issue. Push runs
+  # go through main-red-watch.yml; a PR or queue run shows on its own check.
+  notify:
+    name: Report the scheduled result
+    needs: [analyze]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: codeql
+          status: ${{ needs.analyze.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -20,6 +20,9 @@ permissions:
 on:
   pull_request:
     branches: [main]
+  # The merge queue's own run. merge_group takes no paths filter, so it always
+  # starts and the queue cannot wait on it forever. It never deploys.
+  merge_group:
   push:
     branches: [main]
   workflow_dispatch:
@@ -60,8 +63,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Every later step runs in full unless this is a pull_request, so the queue
+      # needs no answer from this step and cannot go red on its git diff.
       - name: Detect UI-relevant changes
         id: filter
+        if: github.event_name != 'merge_group'
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
           filters: |

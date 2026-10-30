@@ -11,8 +11,9 @@
 // checks were never produced.
 //
 // The required checks come from ./helpers/requiredChecks (the one copy of the
-// GitHub setting). Only those a workflow file produces need dispatching; CodeQL
-// is posted by GitHub's code scanning default setup on every PR.
+// GitHub setting). Those a workflow job produces are checked here; CodeQL's
+// workflow is in the list too (src/test/mergeQueueReady.test.ts), though the
+// check itself is posted by the github-advanced-security app.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -64,4 +65,4 @@ describe("refresh-pr dispatches every required check (Q57)", () => {
   }
 });
 
-// @mutate .github/actions/refresh-pr/action.yml | CHECK_WORKFLOWS:-test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml} | CHECK_WORKFLOWS:-test.yml vitest.yml}
+// @mutate .github/actions/refresh-pr/action.yml | CHECK_WORKFLOWS:-test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml db-smoke.yml codeql.yml} | CHECK_WORKFLOWS:-test.yml vitest.yml}

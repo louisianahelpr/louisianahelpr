@@ -4,7 +4,7 @@
 // @mutate scripts/prune-stale-branches.mjs |   if (neverLand(name, uncovered)) return false; |
 // @mutate scripts/prune-stale-branches.mjs | return uncovered.length > 0; | return false;
 // @mutate scripts/prune-stale-branches.mjs | .filter((line) => line.startsWith("+")).length; | .filter((line) => line.startsWith("-")).length;
-// @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/"]; | export const PROTECTED_PREFIXES = [];
+// @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/", "gh-readonly-queue/"]; | export const PROTECTED_PREFIXES = [];
 // @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= MIN_AGE_HOURS)) { | if (false) {
 // @mutate scripts/prune-stale-branches.mjs | `--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`, | 
 // @mutate scripts/prune-stale-branches.mjs |   if (unlanded === 0 && contentStranded) { |   if (false) {

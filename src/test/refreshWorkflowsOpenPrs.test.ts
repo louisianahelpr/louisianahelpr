@@ -320,7 +320,7 @@ describe("no workflow pushes with git directly — refresh-pr is the only pusher
  * main.
  *
  * REQUIRED_CHECKS is the workflow-produced part of the one copy of the GitHub
- * setting (./helpers/requiredChecks; CodeQL is posted by GitHub itself).
+ * setting (./helpers/requiredChecks; CodeQL is posted by the github-advanced-security app).
  */
 const REQUIRED_CHECKS = WORKFLOW_CHECKS.map((c) => c.name);
 

@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
-import { CATEGORY_PICKER_GROUPS, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
+import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";

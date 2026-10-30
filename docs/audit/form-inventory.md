@@ -113,7 +113,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterRefundRequest.tsx` | input×1, textarea×1 | text | 1000 |  |
 | `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Stars · Quick tags · Shown on their profile |
-| `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | 30 · Your cart |
+| `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | Your cart |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×2 | radio, text |  | wanted-reply-item · wanted-reply-price · wanted-near-title |
 | `src/components/declutter/DeclutterWantedViews.tsx` | input×2, select×1, checkbox/switch/radio×2 | text | 60 | wanted-form-title · wanted-what · Kids bike, 16 inch · wanted-max · 30 · wanted-category · wanted-within · wanted-public |
 | `src/components/declutter/DeliveryRaisePanel.tsx` | input×1 | text |  | Raise the pay |

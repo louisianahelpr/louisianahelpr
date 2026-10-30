@@ -39,7 +39,7 @@ export const BUNCH_MAX_PHOTOS = 80;
 /** The grouping call sorts up to 8 photos and writes several listings, so it gets longer than one item's minute. */
 const GROUP_TIMEOUT_MS = 100_000;
 /** The waits before a batch's further tries. A phone that drops one request usually sends the next. */
-export const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
+const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
 
 export interface BunchPhoto {
   key: string;
@@ -110,7 +110,7 @@ export function notSortedPile(photoKeys: string[], sortReason: string): BunchIte
   return { ...blankItem(photoKeys), notSorted: true, sortReason };
 }
 
-export const PILE_NOT_PLACED = "We couldn't tell which item these belong to.";
+const PILE_NOT_PLACED = "We couldn't tell which item these belong to.";
 export const PILE_PAGE_CLOSED = "The page closed before these were sorted.";
 
 /** The screen's list with a batch's items added: everything not sorted is one pile, first, where the seller sees it. */

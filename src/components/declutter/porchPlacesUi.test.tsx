@@ -311,7 +311,7 @@ describe("the buyer's pick", () => {
 
 describe("the sell form says which address wins", () => {
   const flow = (free: boolean) => ({
-    form: { free, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn(),
+    place: { inexact: null, locating: false, shareMyLocation: vi.fn() }, form: { free, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn(),
   }) as unknown as SellFlow;
   const note = (c: HTMLElement) => c.querySelector("[data-sell-address-note]")?.textContent?.trim();
 
@@ -367,7 +367,7 @@ describe("the places editor follows the server's rule, not the porch tick", () =
 });
 
 describe("a place's days and the usual pickup times say which is which", () => {
-  const flow = { form: { free: false, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn() } as unknown as SellFlow;
+  const flow = { place: { inexact: null, locating: false, shareMyLocation: vi.fn() }, form: { free: false, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn() } as unknown as SellFlow;
 
   it("with places: porch uses the place's days, the times are for the other ways", async () => {
     answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });

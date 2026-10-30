@@ -2064,6 +2064,7 @@ export type Database = {
           sale_mode: string
           seller_hidden: boolean
           seller_id: string
+          ship_preset: string | null
           status: string
           submitted_at: string | null
           title: string
@@ -2098,6 +2099,7 @@ export type Database = {
           sale_mode?: string
           seller_hidden?: boolean
           seller_id: string
+          ship_preset?: string | null
           status?: string
           submitted_at?: string | null
           title: string
@@ -2132,6 +2134,7 @@ export type Database = {
           sale_mode?: string
           seller_hidden?: boolean
           seller_id?: string
+          ship_preset?: string | null
           status?: string
           submitted_at?: string | null
           title?: string
@@ -10676,6 +10679,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_quotes: {
+        Row: {
+          buyer_id: string
+          cart_item_ids: string[]
+          created_at: string
+          delivery_days: number | null
+          expires_at: string
+          id: string
+          is_seed: boolean
+          label_mode: string
+          parcel: Json
+          preselected: boolean
+          provider_rate_id: string
+          provider_shipment_id: string
+          rate_cents: number
+          seller_id: string
+          service: string
+          ship_to: Json
+        }
+        Insert: {
+          buyer_id: string
+          cart_item_ids: string[]
+          created_at?: string
+          delivery_days?: number | null
+          expires_at?: string
+          id?: string
+          is_seed?: boolean
+          label_mode: string
+          parcel: Json
+          preselected?: boolean
+          provider_rate_id: string
+          provider_shipment_id: string
+          rate_cents: number
+          seller_id: string
+          service: string
+          ship_to: Json
+        }
+        Update: {
+          buyer_id?: string
+          cart_item_ids?: string[]
+          created_at?: string
+          delivery_days?: number | null
+          expires_at?: string
+          id?: string
+          is_seed?: boolean
+          label_mode?: string
+          parcel?: Json
+          preselected?: boolean
+          provider_rate_id?: string
+          provider_shipment_id?: string
+          rate_cents?: number
+          seller_id?: string
+          service?: string
+          ship_to?: Json
+        }
+        Relationships: []
       }
       shop_categories: {
         Row: {

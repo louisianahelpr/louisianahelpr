@@ -12,13 +12,17 @@
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   if (info.isError && (info.error as { message?: string })?.message === "item_not_found") return null; | 
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |             {...gatedProps("post")}\n | \n
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |             onClick={(e) => { if (underAge) { e.preventDefault(); explain("post"); } }} |             onClick={() => {}}
+ * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   const kinds = setupKindsFor(info.data.item_details, info.data.handover); |   const kinds = setupKindsFor(info.data.item_details, "pickup_home");
+ * @mutate src/components/declutter/DeclutterAddHelpr.tsx | {kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"} | {"Need a hand with it?"}
+ * @mutate src/lib/declutter/setupHelpr.ts |   if (canMove && details.some((d) => d.delivery_size === "large" \|\| d.delivery_size === "xl")) fit.add("move"); |   if (canMove) fit.add("move");
+ * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery"; |   const canMove = true;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { on: true, fail: "" as string, jobs: [] as unknown[], details: undefined as unknown, fetches: 0, underAge: false, explained: [] as string[] };
+const state = { on: true, fail: "" as string, jobs: [] as unknown[], details: undefined as unknown, handover: "pickup_home", fetches: 0, underAge: false, explained: [] as string[] };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.on }));
 // The real hook reads the signed-in birthday; the panel only uses its three outputs.
@@ -37,7 +41,7 @@ vi.mock("@/lib/declutter/setupHelpr", async (orig) => {
       state.fetches++;
       if (state.fail === "closed") throw Object.assign(new Error("item_not_found"), { userMessage: "This item isn't available." });
       if (state.fail === "down") throw Object.assign(new Error("Failed to fetch"), { userMessage: "We couldn't reach Louisiana Helpr. Try again." });
-      return { order_id: orderId, status: "paid", handover: "pickup_home", items: ["Oak bookshelf"], item_details: state.details, pickup_at: null, jobs: state.jobs };
+      return { order_id: orderId, status: "paid", handover: state.handover, items: ["Oak bookshelf"], item_details: state.details, pickup_at: null, jobs: state.jobs };
     },
   };
 });
@@ -72,6 +76,7 @@ function showRouted() {
 describe("Declutter Add a Helpr panel", () => {
   beforeEach(() => {
     state.details = undefined;
+    state.handover = "pickup_home";
     state.on = true;
     state.fail = "";
     state.jobs = [];
@@ -83,7 +88,7 @@ describe("Declutter Add a Helpr panel", () => {
   it("under 18: the choices are greyed out, a tap says why and does not open Post a job (Q1586(c))", async () => {
     state.underAge = true;
     showRouted();
-    expect(await screen.findByText("Need a hand with it?")).toBeTruthy();
+    expect(await screen.findByText("Need help moving it?")).toBeTruthy();
     const links = ["Put it together", "Hang it on the wall", "Set it up"].map((t) => screen.getByRole("link", { name: t }));
     expect(links.length).toBeGreaterThan(2);
     for (const l of links) {
@@ -92,7 +97,7 @@ describe("Declutter Add a Helpr panel", () => {
     }
     expect(state.explained).toEqual(["post", "post", "post"]);
     expect(screen.queryByText("Post a job page")).toBeNull();
-    expect(screen.getByText("Need a hand with it?")).toBeTruthy();
+    expect(screen.getByText("Need help moving it?")).toBeTruthy();
   });
 
   it("18 or older: the choices are live and a tap opens Post a job", async () => {
@@ -113,7 +118,7 @@ describe("Declutter Add a Helpr panel", () => {
   });
 
   // Audit #27: "Put it together" was offered on a mug. Only the choices the items can need show.
-  // @mutate src/components/declutter/DeclutterAddHelpr.tsx | const kinds = setupKindsFor(info.data.item_details); | const kinds = setupKindsFor(undefined);
+  // @mutate src/components/declutter/DeclutterAddHelpr.tsx | const kinds = setupKindsFor(info.data.item_details, info.data.handover); | const kinds = setupKindsFor(undefined, info.data.handover);
   it("a mug gets no Helpr panel; a bookshelf gets put together and hang, not set up", async () => {
     state.details = [{ title: "Blue mug", category: "kitchen", delivery_size: "small" }];
     const mug = show();
@@ -130,7 +135,7 @@ describe("Declutter Add a Helpr panel", () => {
 
   it("offers three one-tap choices, each opening Post a job for this order", async () => {
     show();
-    expect(await screen.findByText("Need a hand with it?")).toBeTruthy();
+    expect(await screen.findByText("Need help moving it?")).toBeTruthy();
     const hrefs = ["Put it together", "Hang it on the wall", "Set it up"].map((t) => screen.getByRole("link", { name: t }).getAttribute("href"));
     expect(hrefs.length).toBeGreaterThan(2);
     expect(hrefs).toEqual([
@@ -138,6 +143,42 @@ describe("Declutter Add a Helpr panel", () => {
       "/post-job?declutterOrder=o1&help=mount",
       "/post-job?declutterOrder=o1&help=setup",
     ]);
+  });
+
+  // GROW-5 (owner 2026-10-29): "Need help moving it?" opens a pre-filled moving job, only when
+  // the buyer collects something big themselves.
+  it("a big item the buyer picks up: Need help moving it? opens a moving job for this order", async () => {
+    state.details = [{ title: "Sectional sofa", category: "furniture", delivery_size: "xl" }];
+    showRouted();
+    expect(await screen.findByText("Need help moving it?")).toBeTruthy();
+    const move = screen.getByRole("link", { name: "Move it to my place" });
+    expect(move.getAttribute("href")).toBe("/post-job?declutterOrder=o1&help=move");
+    // Move comes first, before the set-up choices.
+    const names = screen.getAllByRole("link").map((l) => l.textContent);
+    expect(names.length).toBeGreaterThan(2);
+    expect(names).toEqual(["Move it to my place", "Put it together", "Hang it on the wall"]);
+    fireEvent.click(move);
+    expect(await screen.findByText("Post a job page")).toBeTruthy();
+  });
+
+  it("no moving choice on a Helpr delivery (it is already brought) or for a small item", async () => {
+    const cases = [
+      { handover: "delivery", details: [{ title: "Sectional sofa", category: "furniture", delivery_size: "xl" }] },
+      { handover: "delivery", details: undefined },
+      { handover: "porch", details: [{ title: "Desk lamp", category: "home_decor", delivery_size: "small" }] },
+    ];
+    expect(cases.length).toBeGreaterThan(2);
+    for (const c of cases) {
+      state.handover = c.handover;
+      state.details = c.details;
+      state.fetches = 0;
+      const view = show();
+      await waitFor(() => expect(state.fetches).toBeGreaterThan(0));
+      expect(await screen.findByRole("region", { name: "Add a Helpr" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Move it to my place" }), c.handover).toBeNull();
+      expect(screen.getByText("Need a hand with it?")).toBeTruthy();
+      view.unmount();
+    }
   });
 
   it("lists a paid Helpr job with a link, and leaves an unpaid one out", async () => {

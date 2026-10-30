@@ -1,7 +1,8 @@
 /**
  * Declutter "Add a Helpr" (owner 2026-10-16; docs/specs/declutter-add-a-helpr.md).
- * On the buyer's paid order: one tap books a Helpr to put the item together,
- * hang it on the wall or set it up at their place. Each choice opens Post a
+ * On the buyer's paid order: one tap books a Helpr to move the item to their
+ * place (GROW-5, "Need help moving it?"), put it together, hang it on the wall
+ * or set it up there. Each choice opens Post a
  * Job pre-filled; the buyer sets the price and pays like any job, and the job
  * is linked back here. Behind the hidden switch 'declutter_add_helpr'; the
  * server refuses anyone it is off for (20261017073146).
@@ -36,11 +37,11 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
   if (!info.data) return null;
   const booked = info.data.jobs.filter(isBookedSetupJob);
   // Only the choices these items can need (audit #27: "Put it together" on a mug); none and nothing booked = no panel.
-  const kinds = setupKindsFor(info.data.item_details);
+  const kinds = setupKindsFor(info.data.item_details, info.data.handover);
   if (kinds.length === 0 && booked.length === 0) return null;
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" aria-label="Add a Helpr">
-      <p className="text-sm font-semibold">Need a hand with it?</p>
+      <p className="text-sm font-semibold">{kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"}</p>
       {booked.length > 0 && (
         <ul className="space-y-1 text-sm">
           {booked.map((j) => (
@@ -54,7 +55,9 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
       {kinds.length > 0 && (
         <>
         <p className="text-sm text-muted-foreground">
-          Book a Helpr to come to your place. You set the price and pay like any job.
+          {kinds.includes("move")
+            ? "Book a Helpr to bring it home or set it up. You set the price and pay like any job."
+            : "Book a Helpr to come to your place. You set the price and pay like any job."}
         </p>
         <div className="flex flex-wrap gap-2">
           {kinds.map((k) => (

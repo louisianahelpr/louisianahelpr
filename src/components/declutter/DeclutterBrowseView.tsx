@@ -42,6 +42,7 @@ import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterBrowseBar, DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones } from "./DeclutterSkeletons";
+import { fetchBundleSellers } from "@/lib/declutter/bundle";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -161,6 +162,9 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
     queryFn: () => fetchDropStates(others.map((i) => i.id)),
     enabled: others.length > 0,
   });
+  // D-NEW12: the sellers on this page with a bundle discount on (one read; no chip until it is deployed).
+  const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
+  const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0 });
   // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
   const qc = useQueryClient();
   const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
@@ -291,6 +295,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
               <li key={item.id} className="min-w-0">
                 <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
                   tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
+                  bundle={bundles.data?.has(item.seller_id) ?? false}
                   save={{
                     on: watching.data?.has(item.id) ?? false,
                     toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),

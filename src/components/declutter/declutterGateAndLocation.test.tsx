@@ -44,6 +44,8 @@ vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
   fetchBundlePreview: async () => 0,
+  // D-NEW12: Browse's "Bundle deal" read; no seller has one here.
+  fetchBundleSellers: async () => new Set<string>(),
 }));
 // The item page's pickup-times line (#58, 2026-10-28) reads the seller's windows: none here.
 vi.mock("@/lib/declutter/handover", async (orig) => ({

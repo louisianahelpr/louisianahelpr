@@ -14317,6 +14317,10 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: number
       }
+      declutter_bundle_sellers: {
+        Args: { p_seller_ids: string[] }
+        Returns: string[]
+      }
       declutter_bundle_targets: {
         Args: { p_lines: string[]; p_seller_id: string }
         Returns: {

@@ -2,6 +2,9 @@
  * Sell a bunch audit finding 3: the page said "a few seconds each" while 50 items (2026-10-30) take over 8 minutes, a locked phone
  * failed the later steps, and an item whose upload failed left the list, so its photos were gone.
  *
+ * @mutate src/lib/declutter/bunch.ts |   if (activeRun) return false; |   void activeRun;
+ * @mutate src/lib/declutter/bunch.ts |   activeRun.watcher = watcher; |   void watcher;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (running) setListing(running); |     void running;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   useScreenAwake(!!sorting \|\| !!listing \|\| listingDrafts); |   useScreenAwake(false);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const gone = new Set(out.filter((o) => "status" in o \|\| !o.stays).map((o) => o.key)); |       const gone = new Set(out.map((o) => o.key));
  * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true }); |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id });
@@ -133,6 +136,46 @@ describe("a long run is honest and keeps going", () => {
   });
 });
 
+describe("going back during a run", () => {
+  it("the screen brought back shows the run and takes it over; it can't start a second, and the run's end reaches it", async () => {
+    const list = await reachListing();
+    let finish!: (o: BunchOutcome[]) => void;
+    let runs = 0;
+    h.listResult = () => { runs++; return new Promise((res) => { finish = res; }); };
+    fireEvent.click(list);
+    await waitFor(() => expect(finish).toBeTruthy());
+    cleanup();
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
+    // Back on the screen: photos and items come in again, as the store would bring them.
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
+    const again = await screen.findByRole("button", { name: /^Listing… \(/ });
+    expect((again as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(again);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(runs).toBe(1);
+
+    await act(async () => { finish([{ key: "i0", title: "Thing 0", status: "live" }]); });
+    expect(await screen.findByText(/1 for sale/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Listing… \(/ })).toBeNull();
+  });
+
+  it("a second start is refused while one is going, and allowed once it ends", async () => {
+    const real = await vi.importActual<typeof import("@/lib/declutter/bunch")>("@/lib/declutter/bunch");
+    const watcher = { onProgress: () => {}, onStep: () => {}, onDone: vi.fn() };
+    let finish!: (o: BunchOutcome[]) => void;
+    const first = real.startBunchRun("u1", watcher, 2, () => new Promise((res) => { finish = res; }));
+    const second = real.startBunchRun("u1", watcher, 2, async () => []);
+    expect([first, second]).toEqual([true, false]);
+    expect(real.watchBunchRun("someone-else", watcher)).toBeNull();
+    expect(real.watchBunchRun("u1", watcher)).toEqual({ done: 0, total: 2 });
+    finish([]);
+    await waitFor(() => expect(watcher.onDone).toHaveBeenCalledWith({ out: [] }));
+    expect(real.watchBunchRun("u1", watcher)).toBeNull();
+  });
+});
+
 describe("listBunch marks what stays", () => {
   const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.4, pickupLng: -91.1 };
   const item = (key: string, photoKeys: string[]): BunchItem => ({ key, photoKeys, title: "Oak chair", description: "", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false, price: "40" });
@@ -145,7 +188,7 @@ describe("listBunch marks what stays", () => {
       createDraft: vi.fn(async () => `d${++n}`),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async (_s, id) => {
         if (id === "d1") throw new Error("photo_not_uploaded");

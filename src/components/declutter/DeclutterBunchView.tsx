@@ -36,8 +36,8 @@ import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, unusablePhotosNote,
-  type BunchItem, type BunchOutcome, type BunchPhoto,
+  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
+  type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
 import { AREA_ADDRESS_RE } from "./sellForm";
@@ -111,6 +111,21 @@ export default function BunchFlow() {
     },
   );
   const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);
+
+  // A run outlives this screen (the back link). Coming back during one shows it and takes it over; it never starts a second.
+  const runDone = useRef<BunchRunWatcher["onDone"]>(() => {});
+  const runStep = useRef(saved.applyStep);
+  runStep.current = saved.applyStep;
+  const watcher = useMemo<BunchRunWatcher>(() => ({
+    onProgress: (done, total) => setListing({ done, total }),
+    onStep: (key, patch) => runStep.current(key, patch),
+    onDone: (result) => runDone.current(result),
+  }), []);
+  useEffect(() => {
+    if (!user?.id) return;
+    const running = watchBunchRun(user.id, watcher);
+    if (running) setListing(running);
+  }, [user?.id, watcher]);
 
   const choices = useBunchChoices(user?.id, setWays);
   const savedWindows = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
@@ -247,31 +262,40 @@ export default function BunchFlow() {
       setProblem(p);
       return;
     }
-    setListing({ done: 0, total: ready.length * 2 });
-    try {
+    const total = ready.length * 2;
+    setListing({ done: 0, total });
+    const started = startBunchRun(user!.id, watcher, total, async (onProgress, onStep) => {
       const c = await place.locate(pickupAddress);
       // Only a change is saved: the times on screen may be older than the seller's saved ones (another tab, Settings).
       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows);
-      const out = await listBunch(
+      return listBunch(
         user!.id, ready, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, (done, total) => setListing({ done, total }), undefined, saved.applyStep, choices.choices,
+        savedWays, onProgress, undefined, onStep, choices.choices,
       );
-      setResults(out);
-      if (out.some((o) => "status" in o)) void choices.remember(savedWays);
-      // Listed items and items refused at publish leave the list (that draft is finished under Selling);
-      // an item that failed getting ready stays with its photos, to fix and try again.
-      const gone = new Set(out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
-      setItems((its) => its.filter((it) => !gone.has(it.key)));
-    } catch (err) {
-      // Not silent: the address, pickup-times or listing refusal is shown beside the button (role="alert"),
-      // and the items stay on screen to try again.
-      setProblem(declutterErrorMessage(err));
-    } finally {
+    });
+    if (!started) {
       setListing(null);
-      void qc.invalidateQueries({ queryKey: ["declutter"] });
+      setProblem("Your last listing run is still going. Wait for it to finish, then try again.");
     }
   }
+
+  runDone.current = (result) => {
+    if ("out" in result) {
+      setResults(result.out);
+      if (result.out.some((o) => "status" in o)) void choices.remember(savedWays);
+      // Listed items and items refused at publish leave the list (that draft is finished under Selling);
+      // an item that failed getting ready stays with its photos, to fix and try again.
+      const gone = new Set(result.out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
+      setItems((its) => its.filter((it) => !gone.has(it.key)));
+    } else {
+      // Not silent: the address, pickup-times or listing refusal is shown beside the button (role="alert"),
+      // and the items stay on screen to try again.
+      setProblem(declutterErrorMessage(result.error));
+    }
+    setListing(null);
+    void qc.invalidateQueries({ queryKey: ["declutter"] });
+  };
 
   function startOver() {
     setPhotos([]);

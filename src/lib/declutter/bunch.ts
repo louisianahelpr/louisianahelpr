@@ -355,6 +355,57 @@ async function removeDraftPhoto(deps: ListDeps, photoId: string): Promise<void> 
 
 const NO_CHOICES: BunchChoices = { keepUp: false, drops: false, dropPct: 5, floorPct: 50 };
 
+/** Who hears about the run in progress. A screen opened during it takes over from the one that started it. */
+export interface BunchRunWatcher {
+  onProgress: (done: number, total: number) => void;
+  onStep: (key: string, patch: Partial<BunchItem> | null) => void;
+  onDone: (result: { out: BunchOutcome[] } | { error: unknown }) => void;
+}
+
+interface BunchRun {
+  userId: string;
+  watcher: BunchRunWatcher;
+  done: number;
+  total: number;
+}
+
+let activeRun: BunchRun | null = null;
+
+/**
+ * One listing run at a time on this device. A run outlives its screen (the back link), and the screen brought back holds
+ * the same drafts: a second run would publish them again (item_not_a_draft) and upload their photos twice.
+ * Returns false, and starts nothing, while one is going.
+ */
+export function startBunchRun(
+  userId: string,
+  watcher: BunchRunWatcher,
+  total: number,
+  work: (onProgress: BunchRunWatcher["onProgress"], onStep: BunchRunWatcher["onStep"]) => Promise<BunchOutcome[]>,
+): boolean {
+  if (activeRun) return false;
+  const run: BunchRun = { userId, watcher, done: 0, total };
+  activeRun = run;
+  void work(
+    (done, of) => {
+      run.done = done;
+      run.total = of;
+      run.watcher.onProgress(done, of);
+    },
+    (key, patch) => run.watcher.onStep(key, patch),
+  ).then((out) => ({ out }), (error: unknown) => ({ error })).then((result) => {
+    activeRun = null;
+    run.watcher.onDone(result);
+  });
+  return true;
+}
+
+/** A screen opening during this member's run takes it over; where it has got to, or null when there is none. */
+export function watchBunchRun(userId: string, watcher: BunchRunWatcher): { done: number; total: number } | null {
+  if (activeRun?.userId !== userId) return null;
+  activeRun.watcher = watcher;
+  return { done: activeRun.done, total: activeRun.total };
+}
+
 /**
  * Make each item's draft (every listing rule, on the server), upload its
  * photos, set the ways, then list every item that got that far. Each item's
@@ -376,7 +427,38 @@ export async function listBunch(
   const total = items.length * 2;
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
-  for (const [i, it] of items.entries()) {
+  // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
+  const held = items.flatMap((it) => (it.draftId ? [it.draftId] : []));
+  let statuses: Map<string, string> | null = null;
+  if (held.length > 0) {
+    try {
+      statuses = await deps.itemStatuses(held);
+    } catch (err) {
+      // Extra care lost, not a blocker: each step below still asks the server, and a refusal is named on its item.
+      console.warn("[declutter] could not read the drafts' statuses before listing", err);
+    }
+  }
+  for (const [i, original] of items.entries()) {
+    let it = original;
+    if (it.draftId && statuses) {
+      const status = statuses.get(it.draftId);
+      if (status === "live" || status === "pending_review") {
+        out.set(it.key, { key: it.key, title: it.title, status });
+        onStep(it.key, null);
+        onProgress(i + 1, total);
+        continue;
+      }
+      if (status === undefined) {
+        // Its draft is gone (taken down under Selling). The seller still has it on the list, so it gets a new one.
+        it = { ...it, draftId: undefined, uploaded: undefined };
+        onStep(it.key, { draftId: undefined, uploaded: undefined });
+      } else if (status !== "draft") {
+        out.set(it.key, { key: it.key, title: it.title, error: new Error("item_not_a_draft"), draftId: it.draftId });
+        onStep(it.key, null);
+        onProgress(i + 1, total);
+        continue;
+      }
+    }
     let id: string | null = it.draftId ?? null;
     try {
       // The screen lists only ready items; this is the same rule again, so nothing unready is ever made.

@@ -199,7 +199,7 @@ describe("listBunch", () => {
       }),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async (_s, id) => {
         if (id === "id2") throw new Error("photo_not_uploaded");
@@ -243,7 +243,7 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       setHandovers: vi.fn(async (_id, w) => w),
@@ -272,11 +272,11 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       removePhoto,
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
@@ -312,7 +312,7 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "d9"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async () => new Map()),
+      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
       withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => { throw new Error("photo_not_uploaded"); }),
       setHandovers: vi.fn(async (_id, w) => w),
@@ -356,5 +356,63 @@ describe("a draft the grouping leaves behind", () => {
     const gone = deps();
     expect(await removeBunchDraft("d1", gone)).toBe("removed");
     expect(gone.withdrawItem).not.toHaveBeenCalled();
+  });
+});
+
+// A run cut off after a draft was listed, before that was saved: trying again gave item_not_a_draft (B19's gap, lead 10-30).
+// @mutate src/lib/declutter/bunch.ts |       if (status === "live" \|\| status === "pending_review") { |       if (false) {
+// @mutate src/lib/declutter/bunch.ts |       if (status === undefined) { |       if (false) {
+// @mutate src/lib/declutter/bunch.ts |       } else if (status !== "draft") { |       } else if (false) {
+describe("trying again after a cut-off run", () => {
+  const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.4, pickupLng: -91.1 };
+  const made = (key: string, draftId: string): BunchItem => ({ ...blankItem(["p"]), key, title: `Oak ${key}`, price: "40", draftId, uploaded: { p: "ph-1" } });
+  const files = new Map([["p", new File(["p"], "p.jpg")]]);
+  function makeDeps(statuses: Map<string, string> | "read fails"): ListDeps {
+    return {
+      createDraft: vi.fn(async () => "fresh"),
+      updateDraft: vi.fn(async (id) => id),
+      addPhoto: vi.fn(async () => "ph-2"),
+      removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => {
+        if (statuses === "read fails") throw new Error("offline");
+        return statuses;
+      }),
+      withdrawItem: vi.fn(async () => {}),
+      setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+    };
+  }
+
+  it("an item already listed is reported as listed and leaves the list, with no second publish", async () => {
+    const deps = makeDeps(new Map([["d1", "live"], ["d2", "pending_review"]]));
+    const steps: [string, unknown][] = [];
+    const out = await listBunch("seller", [made("a", "d1"), made("b", "d2")], files, place, ["porch"], () => {}, deps, (k, p) => steps.push([k, p]));
+    expect(out).toEqual([{ key: "a", title: "Oak a", status: "live" }, { key: "b", title: "Oak b", status: "pending_review" }]);
+    expect(steps).toEqual([["a", null], ["b", null]]);
+    expect(deps.updateDraft).not.toHaveBeenCalled();
+    expect(deps.publishMany).not.toHaveBeenCalled();
+  });
+
+  it("a draft that is gone gets a new one, with its photos again", async () => {
+    const deps = makeDeps(new Map());
+    const out = await listBunch("seller", [made("a", "d1")], files, place, ["porch"], () => {}, deps);
+    expect(deps.createDraft).toHaveBeenCalledTimes(1);
+    expect(deps.addPhoto).toHaveBeenCalledWith("seller", "fresh", files.get("p"));
+    expect(deps.publishMany).toHaveBeenCalledWith(["fresh"], expect.any(Function));
+    expect(out[0]).toMatchObject({ key: "a", status: "live" });
+  });
+
+  it("any other status is named and leaves the list; a failed read changes nothing", async () => {
+    const taken = makeDeps(new Map([["d1", "rejected"]]));
+    const out = await listBunch("seller", [made("a", "d1")], files, place, ["porch"], () => {}, taken);
+    expect(out[0]).toMatchObject({ key: "a", draftId: "d1" });
+    expect(String((out[0] as { error: Error }).error.message)).toBe("item_not_a_draft");
+    expect(taken.publishMany).not.toHaveBeenCalled();
+    const blind = makeDeps("read fails");
+    await listBunch("seller", [made("a", "d1")], files, place, ["porch"], () => {}, blind);
+    expect(blind.updateDraft).toHaveBeenCalledWith("d1", expect.anything());
+    expect(blind.publishMany).toHaveBeenCalledWith(["d1"], expect.any(Function));
   });
 });

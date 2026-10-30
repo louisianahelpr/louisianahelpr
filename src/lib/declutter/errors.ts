@@ -13,12 +13,17 @@
  */
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // The Free section (20261027170717).
-  free_item_claim_it: "This item is free. Tap Get it free.",
+  free_item_claim_it: "This item is free. Tap Ask for it.",
   // A2-8 (20261028221904): taking an item out of the cart.
   checkout_open: "You opened checkout for this. Close the payment page, then try again in a few minutes.",
   not_in_cart: "This item isn't in your cart any more.",
   not_free: "This item isn't free any more. Check its price.",
-  free_claim_limit: "You have 3 free items waiting. Pick those up first.",
+  free_claim_limit: "You have 3 free items asked for or waiting. Pick those up or take back an ask first.",
+  // The Free change (Q2487, 20261030064021): asks, the giver's pick, the 30-day pause.
+  free_paused: "You missed a free pickup, so you can't ask for free items for 30 days.",
+  request_not_found: "That ask isn't open any more.",
+  request_not_open: "That person took back their ask. Pick someone else.",
+  requester_unavailable: "That person can't take items right now. Pick someone else.",
   free_order: "These items are free. Choose a pickup and tap Confirm and pick a time.",
   not_free_order: "Some of these items have a price. Check out to pay for them.",
   checkout_page_open: "A payment page for this seller is still open. Close it, then try again in a few minutes.",

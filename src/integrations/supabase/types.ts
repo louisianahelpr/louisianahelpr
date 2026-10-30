@@ -3545,6 +3545,65 @@ export type Database = {
           },
         ]
       }
+      declutter_free_pauses: {
+        Row: {
+          created_at: string
+          free_blocked_until: string
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          free_blocked_until: string
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          free_blocked_until?: string
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      declutter_free_requests: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          item_id: string
+          requester_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          requester_id: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          requester_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_free_requests_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_watchlist: {
         Row: {
           created_at: string
@@ -14253,6 +14312,21 @@ export type Database = {
         Returns: number
       }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_request_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
+      declutter_free_requests_for_item: {
+        Args: { p_item_id: string }
+        Returns: {
+          avg_rating: number
+          created_at: string
+          display_name: string
+          request_id: string
+          requester_id: string
+          review_count: number
+        }[]
+      }
+      declutter_pick_free_request: { Args: { p_request_id: string }; Returns: string }
+      declutter_my_free_pause: { Args: never; Returns: string }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string

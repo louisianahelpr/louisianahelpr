@@ -81,7 +81,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_ask_question: "hides",
   // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.
   declutter_bundle_applies: "hides",
-  declutter_claim_free: "hides",
+  // The Free change (Q2487): the ask carries the old claim's test-listing rule (declutter_claim_free just calls it).
+  declutter_request_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",

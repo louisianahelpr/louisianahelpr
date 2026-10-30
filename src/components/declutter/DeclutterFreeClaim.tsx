@@ -1,17 +1,23 @@
 /**
  * The Free section (20261027170717, owner 2026-10-27 for the launch): on someone else's FREE item, one
- * "Get it free" button in place of Buy now / Make an offer. No card is asked and nothing is charged: the
- * claim reserves the item for 48 hours, like a purchase (declutter_claim_free), and the buyer then picks
- * how to collect it in the cart (pickup at the seller's home, or porch pickup). At most 3 free items wait
- * at once; the server says so in plain words when a fourth is tried.
+ * button in place of Buy now / Make an offer. No card is asked and nothing is charged.
+ * The Free change (Q2487, owner 2026-10-29): the button ASKS for the item (declutter_request_free); the item stays
+ * up and the giver picks who gets it (FreeRequestsForGiver below). Only the picked person gets the 48 hours to
+ * choose how to collect it in the cart (pickup at the giver's home, or porch pickup). At most 3 at a time (asks
+ * plus free items waiting); the server says so in plain words when a fourth is tried.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { checkoutFree, claimFree, fetchMyCart, type DeclutterItem, type Handover } from "@/lib/declutter/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  checkoutFree, fetchFreeRequestsForItem, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest, requestFree,
+  withdrawFreeRequest, type DeclutterItem, type Handover,
+} from "@/lib/declutter/api";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -25,17 +31,31 @@ export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): bo
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const { underAge } = useAgeGate();
-  // Deep audit #3: a free item the member claimed themselves says so, with the way to choose a pickup.
+  // Deep audit #3: a free item the member was picked for says so, with the way to choose a pickup.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
   const myHold = myHoldOn(cart.data, item.id);
-  const claim = useMutation({
-    mutationFn: () => claimFree(item.id),
+  // The Free change (Q2487): the member's own open ask on this item, if any.
+  const asks = useQuery({
+    queryKey: ["declutter", "my-free-requests", user?.id ?? null],
+    queryFn: () => fetchMyFreeRequests(user!.id),
+    enabled: !!user && item.status === "live",
+  });
+  const myAsk = (asks.data ?? []).find((r) => r.item_id === item.id) ?? null;
+  const ask = useMutation({
+    mutationFn: () => requestFree(item.id),
     onSuccess: () => {
-      toast.success("It's yours. Choose how you'll pick it up within 48 hours.");
+      toast.success("Asked. The giver picks who gets it, and we'll tell you.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
-      navigate("/declutter?tab=buying");
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const takeBack = useMutation({
+    mutationFn: (id: string) => withdrawFreeRequest(id),
+    onSuccess: () => {
+      toast.success("Your ask is taken back.");
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -46,21 +66,122 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     return <ReservedForYou line={myHold} free />;
   }
   if (item.status === "reserved") {
-    return <DeclutterNotice title="Someone claimed this item.">If they don't choose a pickup in time, it's free again.</DeclutterNotice>;
+    return <DeclutterNotice title="The giver picked someone for this item.">If they don't choose a pickup in time, it's free again.</DeclutterNotice>;
   }
   if (underAge) {
     return <DeclutterNotice tone="warn" title="You must be 18 or older to use Declutter." />;
   }
+  if (myAsk) {
+    return (
+      <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="You asked for this item" data-free-claim="">
+        <p className="text-ds-15 font-semibold text-foreground">You asked for this.</p>
+        <p className="text-sm text-muted-foreground">The giver picks who gets it. We'll tell you either way.</p>
+        <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}
+          onClick={() => takeBack.mutate(myAsk.id)}>
+          Take back my ask
+        </Button>
+      </section>
+    );
+  }
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Get this item free" data-free-claim="">
-      <Button type="button" size="wrap" className="w-full rounded-full" disabled={claim.isPending} onClick={() => claim.mutate()}>
-        Get it free
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Ask for this item" data-free-claim="">
+      <Button type="button" size="wrap" className="w-full rounded-full" disabled={ask.isPending || asks.isLoading} onClick={() => ask.mutate()}>
+        Ask for it
       </Button>
       <p className="text-xs text-muted-foreground">
-        No card needed and nothing is charged. You pick it up at the seller's home or from their porch. You can hold up to 3
-        free items at a time.
+        Free, nothing is charged. The giver picks who gets it; if it's you, you'll have 48 hours to choose a pickup at their
+        home or from their porch. You can ask for up to 3 free items at a time.
       </p>
     </section>
+  );
+}
+
+/**
+ * The giver's side of the Free change (Q2487): who asked for this free item, oldest first, each with their name and
+ * rating, and one Pick button each. Picking gives that person the item (their 48 hours start); everyone else who
+ * asked is told it went to someone else.
+ */
+export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
+  const qc = useQueryClient();
+  const asks = useQuery({ queryKey: ["declutter", "free-requests", item.id], queryFn: () => fetchFreeRequestsForItem(item.id) });
+  const pick = useMutation({
+    mutationFn: (requestId: string) => pickFreeRequest(requestId),
+    onSuccess: () => {
+      toast.success("Picked. They have 48 hours to choose a pickup.");
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  if (asks.isError) {
+    return <ErrorState variant="inline" title="We couldn't load who asked." body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
+  }
+  if (asks.isLoading) return null;
+  const rows = asks.data ?? [];
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Who asked for this item" data-free-requests="">
+      <h2 className="text-base font-semibold">Requests ({rows.length})</h2>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nobody has asked yet. It stays up until you pick someone.</p>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li key={r.request_id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+              <span className="min-w-0">
+                <span className="block font-semibold truncate">{r.display_name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {r.review_count ? `${Number(r.avg_rating ?? 0).toFixed(1)} stars, ${r.review_count} ${r.review_count === 1 ? "review" : "reviews"}` : "No reviews yet"}
+                </span>
+              </span>
+              <Button type="button" size="sm" className="shrink-0 rounded-full" disabled={pick.isPending} onClick={() => pick.mutate(r.request_id)}>
+                Pick
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Buying: the member's open asks for free items (Q2487), "You asked for <item>", each opening its item page. */
+export function MyFreeAsks() {
+  const { user } = useCurrentUser();
+  const asks = useQuery({
+    queryKey: ["declutter", "my-free-requests", user?.id ?? null],
+    queryFn: () => fetchMyFreeRequests(user!.id),
+    enabled: !!user,
+  });
+  if (asks.isError) {
+    return <ErrorState variant="inline" title="We couldn't load your asks for free items." body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
+  }
+  const rows = asks.data ?? [];
+  if (rows.length === 0) return null;
+  return (
+    <section className="space-y-2" aria-label="Free items you asked for" data-my-free-asks="">
+      <h2 className="text-base font-semibold">Free items you asked for</h2>
+      <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+        {rows.map((r) => (
+          <li key={r.id}>
+            <Link to={`/declutter/item/${r.item_id}`} className="block px-4 py-3 min-h-11">
+              <span className="block truncate text-ds-15 font-semibold">You asked for {r.declutter_items?.title ?? "a free item"}</span>
+              <span className="block text-ds-13 text-muted-foreground">The giver picks who gets it. We'll tell you either way.</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The Buying line while a missed free pickup pauses free asks (Q2487): "You can ask for free items again on <date>." */
+export function FreePauseLine() {
+  const pause = useQuery({ queryKey: ["declutter", "my-free-pause"], queryFn: fetchMyFreePause });
+  if (!pause.data) return null;
+  const on = new Date(pause.data).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
+  return (
+    <DeclutterNotice tone="warn" title={`You can ask for free items again on ${on}.`}>
+      You missed a free pickup, so free items are paused for 30 days.
+    </DeclutterNotice>
   );
 }
 

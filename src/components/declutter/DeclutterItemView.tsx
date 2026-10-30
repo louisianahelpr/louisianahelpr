@@ -39,7 +39,7 @@ import {
   STATUS_HELP,
   sellerStatusLabel,
 } from "./declutterUi";
-import { FreeClaimPanel, isFreeItem } from "./DeclutterFreeClaim";
+import { FreeClaimPanel, FreeRequestsForGiver, isFreeItem } from "./DeclutterFreeClaim";
 import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
@@ -201,6 +201,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             )}
           </section>
 
+          {/* The Free change (Q2487): the giver sees who asked and picks one. */}
+          {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
           {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>

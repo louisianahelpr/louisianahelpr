@@ -20,7 +20,7 @@
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
-import { addPhoto, createDraft, invokeAiBody, setHandovers, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhoto, createDraft, invokeAiBody, setHandovers, updateDraft, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 
@@ -49,6 +49,10 @@ export interface BunchItem {
   flagged: boolean;
   /** Dollars as typed. */
   price: string;
+  /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
+  draftId?: string;
+  /** Photo keys already on that draft. */
+  uploaded?: string[];
 }
 
 /** What the server's 'group' mode answers for one batch (indexes into the photos sent). */
@@ -58,10 +62,11 @@ export interface GroupAnswer {
 }
 
 let seq = 0;
-const nextKey = (p: string) => `${p}${++seq}`;
+/** Unique across reloads: a bunch brought back from the device still holds the keys it was given. */
+const nextKey = (p: string) => `${p}${Date.now().toString(36)}_${++seq}`;
 
 /** An item with only photos: the tool did not place them, or its call failed. The seller names it. */
-function blankItem(photoKeys: string[]): BunchItem {
+export function blankItem(photoKeys: string[]): BunchItem {
   return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" };
 }
 
@@ -198,12 +203,13 @@ export type BunchOutcome =
 
 export interface ListDeps {
   createDraft: typeof createDraft;
+  updateDraft: typeof updateDraft;
   addPhoto: typeof addPhoto;
   setHandovers: typeof setHandovers;
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, addPhoto, setHandovers, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, setHandovers, publishMany: (ids, p) => publishMany(ids, p) };
 
 /**
  * Make each item's draft (every listing rule, on the server), upload its
@@ -219,18 +225,20 @@ export async function listBunch(
   ways: SellerHandover[],
   onProgress: (done: number, total: number) => void,
   deps: ListDeps = realDeps,
+  /** Each lasting step on one item, to save at once: its draft, each photo, and null once it has been listed or refused. */
+  onStep: (key: string, patch: Partial<BunchItem> | null) => void = () => {},
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string }[] = [];
   for (const [i, it] of items.entries()) {
-    let id: string | null = null;
+    let id: string | null = it.draftId ?? null;
     try {
       // The screen lists only ready items; this is the same rule again, so nothing unready is ever made.
       const problem = bunchItemProblem(it);
       if (problem) throw Object.assign(new Error("bunch_item_not_ready"), { userMessage: problem });
       const price = Math.round(Number(it.price.replace(/[$,\s]/g, "")) * 100);
-      id = await deps.createDraft({
+      const fields = {
         title: it.title.trim(),
         description: it.description.trim(),
         category: it.category,
@@ -242,11 +250,22 @@ export async function listBunch(
         pickupAddress: place.pickupAddress,
         pickupLat: place.pickupLat,
         pickupLng: place.pickupLng,
-      });
+      };
+      if (id) {
+        // Its draft exists from an earlier try: the seller's edits go onto it.
+        await deps.updateDraft(id, fields);
+      } else {
+        id = await deps.createDraft(fields);
+        onStep(it.key, { draftId: id });
+      }
+      const uploaded = [...(it.uploaded ?? [])];
       for (const k of it.photoKeys) {
+        if (uploaded.includes(k)) continue;
         const f = photos.get(k);
         if (!f) throw new Error("photo_not_uploaded");
         await deps.addPhoto(sellerId, id, f);
+        uploaded.push(k);
+        onStep(it.key, { uploaded: [...uploaded] });
       }
       await deps.setHandovers(id, ways);
       prepared.push({ key: it.key, title: it.title, id });
@@ -257,7 +276,11 @@ export async function listBunch(
     onProgress(i + 1, total);
   }
   if (prepared.length > 0) {
-    const results = await deps.publishMany(prepared.map((p) => p.id), (done) => onProgress(items.length + done, total));
+    const results = await deps.publishMany(prepared.map((p) => p.id), (done) => {
+      onProgress(items.length + done, total);
+      const p = prepared[done - 1];
+      if (p) onStep(p.key, null);
+    });
     results.forEach((r, i) => {
       const p = prepared[i];
       out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status });

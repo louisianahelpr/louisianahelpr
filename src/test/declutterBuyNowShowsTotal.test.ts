@@ -29,7 +29,8 @@
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents))}{suffix}
  * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
  * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | <BuyerTotal priceCents={takeCents} /> | {takeCents}
+ * @mutate src/components/declutter/DeclutterReserveSheet.tsx | <BuyerTotal priceCents={priceCents} /> | {formatPrice(buyNowTotalCents(priceCents))}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | burnt-sienna))]"><BuyerTotal priceCents={takeCents} /> | burnt-sienna))]">{takeCents}
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /> | {cents}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;

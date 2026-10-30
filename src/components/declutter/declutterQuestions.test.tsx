@@ -22,6 +22,8 @@
  * @mutate src/components/declutter/DeclutterSuggestedReply.tsx |   const { reply, needsSeller } = s.data; |   const { reply, needsSeller } = s.data; if (!needsSeller) onSend(reply);
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -190,5 +192,11 @@ describe("board 162: public questions", () => {
     expect(askedWhen(new Date(2026, 9, 19, 23).toISOString(), now)).toBe("yesterday");
     expect(askedWhen(new Date(2026, 9, 17, 9).toISOString(), now)).toBe("3 days ago");
     expect(askedWhen(new Date(2026, 9, 1, 9).toISOString(), now)).toMatch(/Oct/);
+  });
+  // B48 live check 2026-10-29 (375): the inline Ask error sat under the floating dock when scrolled to.
+  // @mutate src/components/declutter/DeclutterQuestions.tsx | className="space-y-2 pb-[var(--bottom-nav-h,0px)] [&_*]:scroll-mb-[calc(var(--bottom-nav-h,0px)+1rem)]" | className="space-y-2"
+  it("the Ask box keeps the dock's height below it, and scrolls its error clear of the dock", () => {
+    const src = readFileSync(resolve(__dirname, "DeclutterQuestions.tsx"), "utf8");
+    expect(src).toContain('className="space-y-2 pb-[var(--bottom-nav-h,0px)] [&_*]:scroll-mb-[calc(var(--bottom-nav-h,0px)+1rem)]"');
   });
 });

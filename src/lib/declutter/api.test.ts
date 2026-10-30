@@ -277,7 +277,8 @@ describe("reads", () => {
     expect(h.queries[0]).toEqual({
       table: "declutter_items",
       ops: [
-        ["select", [COLUMNS]],
+        // B48 live check 2026-10-29: the seller's own list also reads the ticked ways (handovers).
+        ["select", [`${COLUMNS}, handovers`]],
         ["eq", ["seller_id", "u1"]],
         ["order", ["created_at", { ascending: false }]],
       ],

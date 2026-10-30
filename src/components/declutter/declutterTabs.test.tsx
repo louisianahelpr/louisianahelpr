@@ -449,7 +449,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
   // ONCE; a chosen chip still shows its own list's empty state.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = t.ready && (only === null \|\| only === "needs_you") && (t.checkouts > 0 \|\| settling.settling); |   const showCart = t.ready;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers === false && !settling.settling && ( |       {false && (
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && ( |       {false && (
   it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
     state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
     // ?status=done with nothing done (a group that just emptied): every order shows, never a blank tab.
@@ -486,6 +486,25 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       <PaidOrders side="buyer" views={t.views} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> |       <PaidOrders side="buyer" views={t.views} />
+  // Audit DB-6 (2026-10-30): a seller's counter to answer sat under every order, below the fold. It now comes before
+  // the orders; offers that wait on the seller stay below them.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}\n |
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |     toAnswer: mine.some((o) => o.status === "open" && o.awaiting === "buyer"), |     toAnswer: false,
+  it("DB-6: a counter to answer puts Your offers above the orders; offers waiting on the seller stay below", async () => {
+    const paid = { ...LINE, line_id: "p1", item_id: "p1", item_title: "Desk", status: "paid", order_id: "o-done", order_status: "handed_over", handover: "porch" };
+    const before = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    for (const [awaiting, offersFirst] of [["buyer", true], ["seller", false]] as const) {
+      state.offers = [{ ...OFFER, my_side: "buyer", awaiting, item_id: "i7", item_title: "Rug" }];
+      state.cart = [paid];
+      const { unmount } = at("/declutter?tab=buying");
+      const order = await screen.findByText("paid order o-done as buyer");
+      const offers = await screen.findByRole("region", { name: "Your offers" });
+      expect([awaiting, before(offers, order)]).toEqual([awaiting, offersFirst]);
+      expect(screen.getAllByRole("region", { name: "Your offers" })).toHaveLength(1);
+      unmount();
+    }
+  });
+
   it("owner 10-28: Buying is an order tracker: one chip per group that holds orders, each count = the orders it shows", async () => {
     const LATER = new Date(Date.now() + 48 * 3_600_000).toISOString();
     state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "seller", item_id: "i7", item_title: "Rug" }];

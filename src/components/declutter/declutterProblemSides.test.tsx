@@ -9,19 +9,23 @@
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       <ProblemPhotos paths={p.photo_paths ?? []} />\n | \n
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   const words = p?.status === "decided" && p.decision ? DECIDED_WORDS[p.decision]?.[side] : undefined; |   const words = p?.decision ? DECIDED_WORDS[p.decision]?.buyer : undefined;
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   pay_seller: { buyer: "The seller keeps the payment, and the sale is final.", seller: "You keep the payment." }, |   pay_seller: { buyer: "Handed over.", seller: "Handed over." },
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |       {mine && (p.reporter_side === "buyer" \|\| p.reporter_side === "seller") && ( |       {(p.reporter_side === "buyer" \|\| p.reporter_side === "seller") && (
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |         pending={takeBack.isPending} onConfirm={() => takeBack.mutate(p)} |         pending={takeBack.isPending} onConfirm={() => setTakingBack(false)}
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |         <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => setTakingBack(true)}> |         <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => takeBack.mutate(p)}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { OrderProblem } from "@/lib/declutter/handover";
 
-const state = vi.hoisted(() => ({ problem: null as unknown, added: [] as unknown[][] }));
+const state = vi.hoisted(() => ({ problem: null as unknown, added: [] as unknown[][], withdrawn: [] as unknown[] }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchOrderProblem: async () => state.problem,
   addProblemSide: async (...a: unknown[]) => { state.added.push(a); return { result: "added", problem_id: "p1" }; },
   handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
+  withdrawProblem: async (id: unknown) => { state.withdrawn.push(id); return { result: "withdrawn", problem_id: id }; },
 }));
 
 import { DeclutterProblemDecided, DeclutterProblemSides } from "./DeclutterProblemSides";
@@ -37,7 +41,7 @@ function show(side: "buyer" | "seller", problem: OrderProblem | null) {
   return render(<QueryClientProvider client={qc}><DeclutterProblemSides orderId="o1" side={side} /></QueryClientProvider>);
 }
 
-beforeEach(() => { state.added = []; });
+beforeEach(() => { state.added = []; state.withdrawn = []; });
 
 describe("DeclutterProblemSides", () => {
   it("the seller sees the buyer's report with its photo, and adds their side (exactly the words)", async () => {
@@ -57,6 +61,35 @@ describe("DeclutterProblemSides", () => {
     expect(screen.getByText(/The seller's side:/).closest("p")?.textContent).toBe('The seller\'s side: "It left here in one piece."');
     expect(await screen.findByAltText("Problem photo 1", {}, { timeout: 2000 })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /your side/i })).toBeNull();
+  });
+
+  it("B100: the reporter can take back their report, only after confirming; the other side and a Helpr's report cannot", async () => {
+    const mine = show("buyer", OPEN);
+    fireEvent.click(await screen.findByRole("button", { name: "Take back my report" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take back your report?");
+    expect(sheet).toHaveTextContent("You can't report this sale again after taking it back.");
+    expect(state.withdrawn).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Keep my report" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.withdrawn).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take back my report" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
+    await waitFor(() => expect(state.withdrawn).toEqual(["p1"]));
+    mine.unmount();
+    const other = show("seller", OPEN);
+    expect(await screen.findByRole("button", { name: "Add your side" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Take back my report" })).toBeNull();
+    other.unmount();
+    show("seller", { ...OPEN, reporter_side: "helpr" });
+    expect(await screen.findByText(/The Helpr reported a problem/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Take back my report" })).toBeNull();
+  });
+
+  it("a withdrawn problem shows nothing here", async () => {
+    const { container } = show("buyer", { ...OPEN, status: "withdrawn" });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(container.querySelector("[data-problem-sides]")).toBeNull();
   });
 
   it("a decided problem, or none, shows nothing here", async () => {

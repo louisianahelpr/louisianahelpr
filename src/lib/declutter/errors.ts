@@ -167,6 +167,10 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   problem_already_open: "A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.",
   problem_already_reported: "You already reported a problem on this sale. Louisiana Helpr is looking at it and will tell you both what it decides.",
   problem_side_is_yours: "You reported this problem. Louisiana Helpr is looking at it.",
+  // B100 (20261030134109): "Take back my report" until Louisiana Helpr decides.
+  problem_has_return: "A return was agreed on this sale, so Louisiana Helpr decides it.",
+  problem_has_refund_request: "The buyer's refund request went to Louisiana Helpr with your report, so it stays with them.",
+  problem_taken_back: "You took back your report on this sale, so it can't be reported again.",
   too_many_problem_photos: "Add up to 3 photos.",
   // D2-14 (20261029231235): Louisiana Helpr's part refund is for an item the buyer keeps.
   part_refund_after_handover_only: "A part refund is for an item the buyer keeps. Before the handover, refund in full or pay the seller.",

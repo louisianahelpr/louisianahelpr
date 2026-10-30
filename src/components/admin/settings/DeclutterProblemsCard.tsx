@@ -222,7 +222,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
             <Button variant="outline" onClick={() => decide.mutate("refund_part")} disabled={decide.isPending || !partOk}>Refund part</Button>
           </div>
           {part.trim() && !partOk ? (
-            <p className="text-xs text-destructive" role="alert">Enter an amount above $0 and below the item price{itemsCents ? ` (${formatPrice(itemsCents)})` : ""}.</p>
+            <p className="text-xs text-destructive-ink" role="alert">Enter an amount above $0 and below the item price{itemsCents ? ` (${formatPrice(itemsCents)})` : ""}.</p>
           ) : null}
         </div>
       )}

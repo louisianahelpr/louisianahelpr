@@ -201,6 +201,34 @@ export async function groupPhotos(
   return { items, failed, unusable };
 }
 
+/**
+ * Photos brought back after a crash. One still being sorted was never cleaned, and one that can't be would come back as
+ * a blank item and fail only at listing: it is left out here and named, as a live sort does. One on an item already passed.
+ */
+export async function keepCleanablePhotos(
+  photos: BunchPhoto[],
+  items: BunchItem[],
+  clean: (file: File) => Promise<File> = cleanForGroup,
+): Promise<{ photos: BunchPhoto[]; unusable: GroupResult["unusable"] }> {
+  const held = new Set(items.flatMap((it) => it.photoKeys));
+  const kept: BunchPhoto[] = [];
+  const unusable: GroupResult["unusable"] = [];
+  for (const p of photos) {
+    if (held.has(p.key)) {
+      kept.push(p);
+      continue;
+    }
+    try {
+      await clean(p.file);
+      kept.push(p);
+    } catch (error) {
+      // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
+      unusable.push({ key: p.key, name: p.file.name, error });
+    }
+  }
+  return { photos: kept, unusable };
+}
+
 /* ---- Fixing the grouping (pure) ----------------------------------------- */
 
 const withoutEmpty = (items: BunchItem[]) => items.filter((it) => it.photoKeys.length > 0);

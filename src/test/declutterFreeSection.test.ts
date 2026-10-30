@@ -38,7 +38,8 @@ describe("the Declutter Free section", () => {
   it("reads the newest definitions (floor)", () => {
     // declutter_start_checkout: restated again by Q2425 (20261027204500) with the free_order rule kept (asserted below).
     // declutter_take_item: restated by the notice copy (20261028171944) with the free claim kept (asserted below).
-    expect(newestFunction("declutter_take_item").file).toContain("20261028171944_declutter_notice_copy.sql");
+    // DA-12 (20261030063015): then the free claim notice without the strike threat (free claim kept).
+    expect(newestFunction("declutter_take_item").file).toContain("20261030063015_declutter_free_no_strike_for_48h.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     expect(newestFunction("declutter_checkout_free").file).toContain("20261028235247_declutter_handover_choices.sql");

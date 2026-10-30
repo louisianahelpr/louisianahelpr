@@ -2,7 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { closeUnpaidShopPages, describeDeleteError, findActiveWork, purgeAccount, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
+import { closeUnpaidShopPages, describeDeleteError, findActiveWork, findFeeDebtOwed, purgeAccount, FEE_DEBT_BLOCKS_DELETION_MESSAGE, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 import { REAUTH_REQUIRED_CODE, REAUTH_REQUIRED_MESSAGE, REAUTH_WINDOW_SECONDS, signedInWithin } from "../_shared/recentSignIn.ts";
 
@@ -115,6 +115,23 @@ serve(async (req) => {
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Q2171: a card fee the member still OWES (a Helpr-at-fault ruling, or a
+    // Declutter seller's fee debt) is lost with the account, so the delete
+    // waits until it is paid. Self-delete only (findFeeDebtOwed says why).
+    const debt = await findFeeDebtOwed(supabaseAdmin, user.id);
+    if (!debt.ok) {
+      return new Response(
+        JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (debt.active) {
+      return new Response(JSON.stringify({ error: FEE_DEBT_BLOCKS_DELETION_MESSAGE }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Erase what must be erased and anonymise what must be retained, BEFORE

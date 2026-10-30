@@ -23,6 +23,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * '/declutter?view=' || CASE ... (side-chosen: sales/selling or cart). Lower it when a sender moves to ?tab=.
  */
 const VIEW_LINKS_LEFT: Record<string, string> = {
+  declutter_accept_refund_with_return: "buying,selling",
   declutter_add_handover: "cart",
   declutter_admin_decide_delivery_damage: "cart,deliver",
   declutter_admin_decide_problem: "cart,selling",
@@ -56,15 +57,16 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_refund_request_to_admin: "cart,selling",
   declutter_report_no_show: "cart",
   declutter_report_problem: "<dynamic>",
+  declutter_return_dropped_off: "selling",
   declutter_seller_cancel_sale: "cart",
   declutter_seller_delivered: "cart",
   declutter_seller_delivery_on_order: "cart",
   declutter_seller_out_fee_notice: "sales",
   declutter_set_delivery_handoff: "sales",
+  declutter_set_return_address: "selling",
   declutter_setup_fee_refunded: "cart",
   declutter_setup_job_fee_debt: "mine",
   declutter_take_item: "cart,selling",
-  declutter_wanted_reply: "offers",
   declutter_withdraw_refund: "selling",
   helpr_task_close: "deliver",
   helpr_task_offer_online: "deliver",

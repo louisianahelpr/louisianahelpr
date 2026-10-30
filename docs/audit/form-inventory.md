@@ -163,7 +163,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, select×5 | text | 80, 2000 | Oak rocking chair · Set a price |
-| `src/components/declutter/DeclutterBunchView.tsx` | input×3, checkbox/switch/radio×1 | text, file | 80, 300 | bunch-where · bunch-area · Mid-City, Baton Rouge · bunch-address · Street, city, ZIP · bunch-photos · bunch-files · bunch-check |
+| `src/components/declutter/DeclutterBunchView.tsx` | input×3, checkbox/switch/radio×1 | text, file | 80, 300 | bunch-where · bunch-area · Mid-City, Baton Rouge · bunch-address · Street, city, ZIP · bunch-photos · bunch-files · Add photos |
 | `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | Photos · sell-files |
 | `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · e.g. Oak rocking chair · sell-desc · How buyers get it · sell-form-problem |
 | `src/components/declutter/KeepUpRow.tsx` | checkbox/switch/radio×1 |  |  |  |
@@ -290,8 +290,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/EarningsExport.tsx` | select×2, date/calendar×2 |  |  | Date Range · Month · Choose a start date · Choose an end date |
 | `src/components/HelperAvailability.tsx` | checkbox/switch/radio×2 |  |  |  |
-| `src/components/NotificationPreferences.tsx` | input×2, date/calendar×2 | time |  | Quiet hours start time · Quiet hours end time · Send test notification |
 | `src/components/notificationPreferences/constants.tsx` | input×1, date/calendar×1 | time |  |  |
+| `src/components/notificationPreferences/QuietTimeInput.tsx` | input×1, date/calendar×1 | time |  |  |
 | `src/components/notificationPreferences/SwitchSlot.tsx` | checkbox/switch/radio×1 |  |  | Saving |
 | `src/components/profile/AvailabilityTab.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/profile/CredentialsTab.tsx` | input×3 | text, file |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |

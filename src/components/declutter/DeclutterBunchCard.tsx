@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
@@ -113,10 +114,18 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
           <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>Name</label>
           <input id={`title-${id}`} className={field} maxLength={80} value={item.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Oak rocking chair" />
         </div>
-        <div className="min-w-0">
-          <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>Price ($)</label>
-          <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" />
-          {item.aiPrice && item.price === item.aiPrice && <p className="mt-1 text-ds-13 text-muted-foreground" data-bunch-price-suggested="">Our suggestion. Change it if you like.</p>}
+        <div className="min-w-0 space-y-2">
+          {!item.free && (
+            <div>
+              <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>Price ($)</label>
+              <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" />
+              {item.aiPrice && item.price === item.aiPrice && <p className="mt-1 text-ds-13 text-muted-foreground" data-bunch-price-suggested="">Our suggestion. Change it if you like.</p>}
+            </div>
+          )}
+          <label className="flex min-h-11 items-center gap-3 text-ds-14 font-medium" data-bunch-free="">
+            <Checkbox checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} />
+            Give it away free
+          </label>
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
@@ -135,7 +144,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
           </select>
         </div>
       </div>
-      <PriceHint category={item.category} conditionStars={item.conditionStars} at={at} place="near_you" />
+      {!item.free && <PriceHint category={item.category} conditionStars={item.conditionStars} at={at} place="near_you" />}
       <div className="min-w-0">
         <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>Details</label>
         <textarea id={`desc-${id}`} rows={3} maxLength={2000} className="w-full min-w-0 rounded-2xl border border-input glass-field px-3 py-2 text-ds-15"

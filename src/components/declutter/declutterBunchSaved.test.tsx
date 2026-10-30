@@ -37,6 +37,9 @@ vi.mock("@/hooks/useOnboardingFee", async (orig) => ({ ...(await orig<object>())
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
+vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyItems: async () => [], fetchMyPickupWindows: async () => [], fetchHasAgreedSales: async () => false }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/bunch", async (orig) => {

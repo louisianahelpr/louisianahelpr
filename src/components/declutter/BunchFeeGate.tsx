@@ -8,6 +8,7 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -46,7 +47,7 @@ export function BunchFeeGate({ cents }: { cents: number }) {
           Pay it now, before you add photos, and nothing gets held up later. It's charged once per account, and never again if you already paid it for Jobs. After you pay, you'll land on your listings: come back here to Sell a bunch.
         </p>
         <p className="mt-1">
-          Giving something away? Free items never need it: <Link className="underline" to="/declutter/sell">list it on its own</Link>.
+          Giving something away? Free items never need it: <Link className="underline" to={SELL_ONE_PATH}>list it on its own</Link>.
         </p>
         <Button type="button" size="sm" className="mt-3 rounded-full" disabled={opening} onClick={() => void pay()}>
           {opening ? "Opening…" : `Pay ${formatFeeLabel(cents)}`}

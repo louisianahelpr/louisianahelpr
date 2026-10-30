@@ -43,6 +43,8 @@ vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("@/lib/declutter/setupFee", async (orig) => ({ ...(await orig<object>()), payAccountSetupFee: h.pay }));
 vi.mock("@/lib/declutter/moves", async (orig) => ({ ...(await orig<object>()), publishMany: h.publishMany }));
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   fetchMyItems: async () => h.mine,

@@ -29,6 +29,8 @@ vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => nul
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   fetchMyItems: async () => [],
@@ -146,6 +148,8 @@ describe("listBunch marks what stays", () => {
         return "ph";
       }),
       setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: async (_id: string, p: number) => p,
+      setKeepUp: async (_id: string, on: boolean) => on,
       publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, error: new Error("attestation_required") }))),
     };
     const out = await real.listBunch("seller", [item("up", ["a"]), item("pub", ["b"])], files, place, ["porch"], () => {}, deps);

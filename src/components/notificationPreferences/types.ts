@@ -61,6 +61,8 @@ export interface Prefs {
   email_declutter_listings: boolean;
   declutter_offers: boolean;
   email_declutter_offers: boolean;
+  declutter_questions: boolean;
+  email_declutter_questions: boolean;
   declutter_sales: boolean;
   email_declutter_sales: boolean;
   declutter_pickups: boolean;

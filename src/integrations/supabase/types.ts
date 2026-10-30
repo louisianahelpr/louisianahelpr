@@ -7617,6 +7617,7 @@ export type Database = {
           declutter_refunds: boolean
           declutter_sales: boolean
           declutter_wanted: boolean
+          declutter_questions: boolean
           email_declutter_listings: boolean
           email_declutter_offers: boolean
           email_declutter_pickups: boolean
@@ -7624,6 +7625,7 @@ export type Database = {
           email_declutter_refunds: boolean
           email_declutter_sales: boolean
           email_declutter_wanted: boolean
+          email_declutter_questions: boolean
           email_enabled: boolean
           email_financial_alerts: boolean
           email_job_applications: boolean
@@ -7677,6 +7679,7 @@ export type Database = {
           declutter_refunds?: boolean
           declutter_sales?: boolean
           declutter_wanted?: boolean
+          declutter_questions?: boolean
           email_declutter_listings?: boolean
           email_declutter_offers?: boolean
           email_declutter_pickups?: boolean
@@ -7684,6 +7687,7 @@ export type Database = {
           email_declutter_refunds?: boolean
           email_declutter_sales?: boolean
           email_declutter_wanted?: boolean
+          email_declutter_questions?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
@@ -7737,6 +7741,7 @@ export type Database = {
           declutter_refunds?: boolean
           declutter_sales?: boolean
           declutter_wanted?: boolean
+          declutter_questions?: boolean
           email_declutter_listings?: boolean
           email_declutter_offers?: boolean
           email_declutter_pickups?: boolean
@@ -7744,6 +7749,7 @@ export type Database = {
           email_declutter_refunds?: boolean
           email_declutter_sales?: boolean
           email_declutter_wanted?: boolean
+          email_declutter_questions?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean

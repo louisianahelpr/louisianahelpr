@@ -53,7 +53,7 @@ export interface DeclutterBrowseHeader {
   below?: ReactNode;
 }
 
-/** Persisted like Jobs' "helpr.browseMapVisible", default ON (the split view is the desktop layout). */
+/** Persisted like Jobs' "helpr.jobsMapVisible", default ON (the split view is the desktop layout). */
 const MAP_KEY = "helpr.declutterMapVisible";
 
 /** The next DISTANCE_CHOICES step above `miles`; null = "Any distance". */

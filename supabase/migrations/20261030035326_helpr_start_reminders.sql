@@ -85,6 +85,14 @@ CREATE INDEX IF NOT EXISTS helpr_start_reminder_sends_user_id_idx ON public.help
 ALTER TABLE public.helpr_start_reminder_sends ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.helpr_start_reminder_sends FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.helpr_start_reminder_sends TO service_role;
+-- Q807: writes from an unconfirmed email are refused on every public table (the gate's own statement trigger).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 
 -- p_now: the clock the windows read (NULL = now()). Cron never passes it; the
 -- PGlite proof does, to test each edge to the millisecond and a DST day.

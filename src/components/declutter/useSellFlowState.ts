@@ -356,7 +356,8 @@ export function useSellFlowState(urlItemId: string | null) {
       } catch (err) {
         // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.
         failed.push(f);
-        why = declutterErrorMessage(err);
+        // The plain upload failure is what the panel's own words already say; a refusal says its own reason.
+        why = (err as { message?: string } | null)?.message === "photo_not_uploaded" ? why : declutterErrorMessage(err);
       } finally {
         setUploading((n) => n - 1);
       }

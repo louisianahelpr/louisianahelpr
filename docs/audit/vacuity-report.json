@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-30T19:33:21.283Z",
-  "guards": 2802,
-  "registered": 2800,
+  "generated": "2026-10-30T21:07:15.195Z",
+  "guards": 2819,
+  "registered": 2817,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
@@ -134,28 +134,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/DeclutterItemCard.tsx",
-      "tests": [
-        "src/test/declutterBundleChip.test.tsx",
-        "src/components/declutter/DeclutterItemCard.firstRow.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterBrowseView.tsx",
-        "src/components/declutter/DeclutterFreeView.tsx",
-        "src/components/declutter/DeclutterItemRows.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/DeclutterMilesFrom.tsx",
-      "tests": [
-        "src/components/declutter/declutterMilesFrom.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterBrowseView.tsx",
-        "src/components/declutter/DeclutterFreeView.tsx"
       ]
     },
     {

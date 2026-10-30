@@ -21,7 +21,7 @@ import { FallbackImg } from "./FallbackImg";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+import { canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 import { focusSheetItself } from "./focusSheetItself";
 
 
@@ -32,7 +32,8 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
   const qc = useQueryClient();
   // Any listing of yours for sale now can answer (audit W7); the server also checks it is inside the post's distance.
   const mine = useQuery({ queryKey: ["declutter", "reply-listings", userId], queryFn: () => fetchMyReplyListings(userId), enabled: !!post });
-  const listings = mine.data ?? [];
+  const listings = (mine.data ?? []).filter(canAnswerWanted);
+  const freeLeftOut = (mine.data ?? []).length - listings.length;
   const [itemId, setItemId] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const item = listings.find((i) => i.id === itemId) ?? null;
@@ -40,10 +41,13 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
   const cents = dollarsToCents(price);
   const tooHigh = cents !== null && limit !== null && cents > limit;
   const who = post ? firstName(post.poster_name) : "";
+  // Audit 10-30 #6: every way out of the sheet clears the pick, or the next post opens with this listing and price.
+  const clearPick = () => { setItemId(null); setPrice(""); };
   const send = useMutation({
     mutationFn: () => replyToWanted(post!.id, itemId!, cents!),
     onSuccess: () => {
       toast.success(`Sent. ${who === "them" ? "They have" : `${who} has`} 48 hours to accept.`);
+      clearPick();
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onClose();
     },
@@ -55,7 +59,7 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
     if (post && it) setPrice(String(Math.min(post.max_price_cents, it.current_price_cents) / 100));
   };
   return (
-    <Sheet open={!!post} onOpenChange={(o) => { if (!o && !send.isPending) { setItemId(null); setPrice(""); onClose(); } }}>
+    <Sheet open={!!post} onOpenChange={(o) => { if (!o && !send.isPending) { clearPick(); onClose(); } }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-i-have-this="">
         <SheetHero title="I have this" />
         {post && (
@@ -81,6 +85,9 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                   options={listings.map((it) => ({ value: it.id, label: it.title, sub: <span className={money}>{itemPriceLabel(it.current_price_cents)}</span> }))}
                 />
               </div>
+            )}
+            {!mine.isLoading && freeLeftOut > 0 && (
+              <p className="text-ds-13 text-muted-foreground" data-wanted-free-note="">Free listings can't answer a Wanted, because there's no price to offer.</p>
             )}
             {!mine.isLoading && (
               <Button asChild variant="outline" className="w-full" data-quick-list="">

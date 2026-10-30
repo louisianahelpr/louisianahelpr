@@ -329,6 +329,12 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
+        // Web push (owner approved 2026-10-29): the push and notificationclick
+        // handlers live in public/sw-push-handlers.js and are loaded INTO this
+        // one Workbox worker. A second worker (the old /sw-push.js) at the same
+        // "/" scope replaced this one and was replaced by it in turn, so only
+        // one of offline support and push ever worked at a time.
+        importScripts: ["/sw-push-handlers.js"],
         // navigateFallback DISABLED (empty string is falsy, so workbox-build
         // emits no NavigationRoute).
         //

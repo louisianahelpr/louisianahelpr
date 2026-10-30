@@ -8959,6 +8959,39 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_tokens: {
         Row: {
           app_version: string | null
@@ -16722,6 +16755,15 @@ export type Database = {
         Returns: undefined
       }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
+      register_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
       redeem_gift_card: {
         Args: {
           p_credit_id: string
@@ -18364,6 +18406,10 @@ export type Database = {
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
+      }
+      unregister_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: number
       }
       user_error_screen_is_real: {
         Args: { p_tags: Json; p_user_id: string }

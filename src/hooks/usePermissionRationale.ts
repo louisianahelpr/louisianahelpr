@@ -16,7 +16,14 @@
 import { useState, useCallback } from "react";
 import { isNativePlatform } from "@/lib/nativeInit";
 
-export type PermissionKind = "camera" | "photos" | "location" | "declutter_location" | "contacts" | "notifications";
+export type PermissionKind =
+  | "camera"
+  | "photos"
+  | "location"
+  | "declutter_location"
+  | "contacts"
+  | "notifications"
+  | "notifications_home_screen";
 
 interface RationaleCopy {
   icon: string;
@@ -76,6 +83,15 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     // (audit 2026-10-29 A2-C24).
     body: "Get notified about new jobs near you, messages, and updates on jobs you've posted or are working. You can change what you receive anytime in Settings.",
     cta: "Turn On Notifications",
+  },
+  // Web push (2026-10-29): iPhone and iPad Safari give web push ONLY to a site
+  // added to the Home Screen (iOS 16.4+), so in a normal tab there is no prompt
+  // to ask for; this sheet says how instead (src/hooks/useWebPush.ts).
+  notifications_home_screen: {
+    icon: "🔔",
+    title: "Notifications",
+    body: "To get notifications on your iPhone, add Louisiana Helpr to your Home Screen: tap the Share button, choose Add to Home Screen, then open Helpr from your Home Screen and turn notifications on.",
+    cta: "Got It",
   },
 };
 
@@ -228,6 +244,15 @@ export function usePermissionRationale() {
   );
 
   return { request };
+}
+
+/**
+ * Always show the explainer for `kind`, even when it was confirmed before, and
+ * run `run` only on a yes (inside the sheet's button tap). For asks that ARE
+ * the moment to explain, such as web push after a job action (useWebPush.ts).
+ */
+export function explainPermission(kind: PermissionKind, run: () => Promise<void> | void): Promise<boolean> {
+  return explainThenRun(kind, run);
 }
 
 /** Open the explainer; on a yes, record it and run the OS call. */

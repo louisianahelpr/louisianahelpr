@@ -13,6 +13,7 @@ import {
   isPushSupported,
   getPushPermission,
   registerServiceWorker,
+  SW_READY_TIMEOUT_MS,
   requestPushPermission,
 } from "./pushNotifications";
 
@@ -129,23 +130,42 @@ describe("getPushPermission", () => {
 });
 
 describe("registerServiceWorker", () => {
+  // Web push (2026-10-29): the website runs ONE service worker, the Workbox
+  // /sw.js with the push handlers imported into it (vite.config.ts
+  // workbox.importScripts). This only waits for it; registering /sw-push.js
+  // beside it replaced it at the same "/" scope.
+  // @mutate src/lib/pushNotifications.ts | return await Promise.race([navigator.serviceWorker.ready, timeout]); | return await navigator.serviceWorker.register("/sw-push.js");
+  // @mutate src/lib/pushNotifications.ts | timer = setTimeout(() => resolve(null), SW_READY_TIMEOUT_MS); | timer = setTimeout(() => resolve(null), 10 * SW_READY_TIMEOUT_MS);
+  const installSW = (sw: Record<string, unknown>) =>
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, writable: true, value: sw });
+
   it("returns null when serviceWorker is missing", async () => {
     Reflect.deleteProperty(navigator, "serviceWorker");
     expect(await registerServiceWorker()).toBeNull();
   });
 
-  it("returns the registration on success", async () => {
+  it("returns the one running worker's registration and never registers a second worker", async () => {
     const fakeReg = { scope: "/" };
-    installPushAPI({ swRegister: async () => fakeReg });
+    const register = vi.fn(async () => ({ scope: "/sw-push" }));
+    installSW({ ready: Promise.resolve(fakeReg), register });
     expect(await registerServiceWorker()).toBe(fakeReg);
+    expect(register).not.toHaveBeenCalled();
   });
 
-  it("returns null and reports on registration failure", async () => {
-    installPushAPI({
-      swRegister: async () => {
-        throw new Error("SW unavailable");
-      },
-    });
+  it("gives up after a bounded wait when no worker ever becomes ready (dev, blocked)", async () => {
+    vi.useFakeTimers();
+    try {
+      installSW({ ready: new Promise(() => {}), register: vi.fn() });
+      const p = registerServiceWorker();
+      await vi.advanceTimersByTimeAsync(SW_READY_TIMEOUT_MS + 1);
+      expect(await p).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns null and reports when waiting for the worker fails", async () => {
+    installSW({ ready: Promise.reject(new Error("SW unavailable")), register: vi.fn() });
     expect(await registerServiceWorker()).toBeNull();
     expect(reportMock).toHaveBeenCalledOnce();
     const [, opts] = reportMock.mock.calls[0];

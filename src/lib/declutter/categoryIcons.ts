@@ -48,7 +48,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const CATEGORY_GROUP_HEADINGS = ["Home", "Outdoors", "Family", "Hobbies and fun", "Other"] as const;
+const CATEGORY_GROUP_HEADINGS = ["Home", "Outdoors", "Family", "Hobbies and fun", "Other"] as const;
 export type CategoryGroupHeading = (typeof CATEGORY_GROUP_HEADINGS)[number];
 
 interface CategoryEntry {

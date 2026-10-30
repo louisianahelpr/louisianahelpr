@@ -20,6 +20,12 @@
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       floorEdited.current = true;\n |       autoFloor.current = form.floor;\n
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts | (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) \|\| floorPct.current | (form.drops && pctFromFloor(form.price, form.floor)) \|\| floorPct.current
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts | (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) \|\| floorPct.current | floorPct.current
+ * A $1 listing: drops don't apply, no error, nothing remembered as off (lead 2026-10-30).
+ * @mutate src/components/declutter/sellForm.ts |   const dropsApply = f.drops && !priceTooLowForDrops(f.price); |   const dropsApply = f.drops;
+ * @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 0 };
+ * @mutate src/components/declutter/SellFormParts.tsx |   const on = form.drops && !tooLow; |   const on = form.drops;
+ * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       drops: form.drops, |       drops: form.drops && Number(form.price) > 1,
+ * @mutate src/lib/declutter/sellerDefaults.ts | Math.min(Math.ceil(p) - 1, | Math.min(Math.floor(p) - 1,
  * @mutate src/components/declutter/useSellFlowState.ts |       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);\n |       \n
  * @mutate src/lib/declutter/sellerDefaults.ts | Math.round((p * floorPct) / 100) | Math.round(p)
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="space-y-3" data-sell-switches=""> | <div className="space-y-3">
@@ -30,7 +36,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
-import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import { floorFromPct, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { EMPTY } from "./sellForm";
 
 const NEW_ID = "0f0e0d0c-0b0a-4908-8706-0504030201bb";
@@ -258,6 +264,34 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     await new Promise((r) => setTimeout(r, 0));
     expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("30");
+  });
+
+  it("a $1 listing posts without an error: drops off for it, with a note, and the seller's choice stays remembered as on", async () => {
+    open();
+    await addPhotoAndWait();
+    await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("23"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "1" } });
+    const sw = () => screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ });
+    await waitFor(() => expect(sw()).toHaveAttribute("aria-checked", "false"));
+    expect(sw()).toBeDisabled();
+    expect(screen.getByText(/nothing lower to drop to/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Lowest you'll take")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(remembered.saves).toHaveLength(1));
+    expect(drafts[0]).toMatchObject({ priceCents: 100, floorPriceCents: 100 });
+    expect(remembered.saves[0]).toMatchObject({ drops: true, floorPct: 50 });
+  });
+
+  it("the filled-in lowest price is always at least $1 and below the price", () => {
+    expect(floorFromPct("1", 50)).toBe("");
+    expect(floorFromPct("1.50", 50)).toBe("1");
+    expect(floorFromPct("2", 50)).toBe("1");
+    expect(floorFromPct("3", 95)).toBe("2");
+    expect(floorFromPct("45", 50)).toBe("23");
   });
 
   it("a lowest price the seller cleared or typed stays theirs when the asking price changes", async () => {

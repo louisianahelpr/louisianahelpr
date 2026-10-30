@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/MovingSaleBanner.tsx | ) : (\n                  <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | ) : (\n                  null
  * @mutate src/components/shops/ShopBrowseCard.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
  * @mutate src/components/rentals/listings/RentBrowse.tsx | <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" /> | <Home className="h-8 w-8" />
- * @mutate src/lib/declutter/categoryIcons.ts |   books_media: BookOpen, |   books_mediaz: BookOpen,
+ * @mutate src/lib/declutter/categoryIcons.ts | { key: "books_media", label: "Books and media", icon: BookOpen, | { key: "books_media", label: "Books and media", icon: undefined as never,
  * @mutate src/lib/shops/categoryIcons.ts |   pets: PawPrint, |   petz: PawPrint,
  */
 import { readFileSync } from "node:fs";

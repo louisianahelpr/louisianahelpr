@@ -15,12 +15,22 @@ import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
  */
 export const DROPS_SWITCH_LABEL = "Lower the price if it doesn't sell?";
 
+/**
+ * A $1 price has nothing lower to drop to (the lowest price is at least $1 and below the price), so drops don't apply
+ * to that listing: it posts with no error and no drops. The seller's own switch is left as it is, so it comes back if
+ * they raise the price and is what gets remembered (lead 2026-10-30).
+ */
+export function priceTooLowForDrops(price: string): boolean {
+  const cents = dollarsToCents(price);
+  return cents !== null && cents <= 100;
+}
+
 /** What the server stores for the form's price choice: off saves the lowest price as the price and step 0. */
 export function priceChoiceToSave(f: Pick<FormState, "free" | "price" | "floor" | "drops" | "dropPct">): { floorCents: number; dropPct: number } | null {
   if (f.free) return { floorCents: 0, dropPct: 0 };
   const price = dollarsToCents(f.price);
   if (price === null) return null;
-  if (!f.drops) return { floorCents: price, dropPct: 0 };
+  if (!f.drops || priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 };
   const floor = dollarsToCents(f.floor);
   return floor === null ? null : { floorCents: floor, dropPct: f.dropPct };
 }
@@ -72,10 +82,11 @@ export function formProblem(f: FormState): string | null {
   const price = dollarsToCents(f.price);
   const floor = dollarsToCents(f.floor);
   if (!f.free && (price === null || price < 100 || price > 100_000)) return "Set a price between $1 and $1,000.";
-  if (!f.free && f.drops && (price === null || floor === null || floor < 100 || floor >= price)) {
+  const dropsApply = f.drops && !priceTooLowForDrops(f.price);
+  if (!f.free && dropsApply && (price === null || floor === null || floor < 100 || floor >= price)) {
     return "Set your lowest price: at least $1 and below your price. Or turn price drops off.";
   }
-  if (!f.free && f.drops && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "Pick how much the price drops each evening.";
+  if (!f.free && dropsApply && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "Pick how much the price drops each evening.";
   if (f.areaLabel.trim().length < 2) return "Add your neighborhood or town.";
   if (AREA_ADDRESS_RE.test(f.areaLabel)) return "Use your neighborhood or town for the area, not a street address.";
   if (f.pickupAddress.trim().length < 5) return "Add the pickup address. Buyers only see it after they pay.";

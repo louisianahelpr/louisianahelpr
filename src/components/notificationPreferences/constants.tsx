@@ -1,7 +1,7 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert, Sparkles,
-  Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search,
+  Tag, HandCoins, MessageCircleQuestion, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -23,6 +23,7 @@ export const defaultPrefs: Prefs = {
   job_matches: true, email_job_matches: true,
   declutter_listings: true, email_declutter_listings: true,
   declutter_offers: true, email_declutter_offers: true,
+  declutter_questions: true, email_declutter_questions: true,
   declutter_sales: true, email_declutter_sales: true,
   declutter_pickups: true, email_declutter_pickups: true,
   declutter_refunds: true, email_declutter_refunds: true,
@@ -117,6 +118,7 @@ const NO_EMAIL = "In the app only, no email for this";
 export const declutterRows: Row[] = [
   { key: "declutter_listings", emailKey: "email_declutter_listings", label: "Listings", icon: <Tag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "declutter_offers", emailKey: "email_declutter_offers", label: "Offers", icon: <HandCoins className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Sales", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", icon: <CalendarClock className="w-3.5 h-3.5" /> },
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },

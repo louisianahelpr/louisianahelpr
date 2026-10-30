@@ -7,7 +7,7 @@
  * generic type its caller passed ('new_offers', 'payment', 'info' ...), so the
  * JOBS switch of that type gated its push: muting "Job offers" silently muted
  * new offers on a member's Declutter items. declutter_notice_type now maps
- * every Declutter notice to one of seven declutter_* kinds, by title, with a
+ * every Declutter notice to one of eight declutter_* kinds, by title, with a
  * fallback by the old type. The fallback keeps an unlisted notice inside the
  * Declutter group, but it guesses; this guard makes the choice explicit.
  *
@@ -24,7 +24,7 @@
  * real database in src/test/pglite/declutterNoticeKinds.pglite.mjs, where 16
  * planted defects each turn it red.
  */
-// @mutate supabase/migrations/20261029194046_declutter_auto_offer_notice_kinds.sql | 'Buyer did not check out', 'The seller cancelled', | 'The seller cancelled',
+// @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | 'Buyer did not check out', 'The seller cancelled', | 'The seller cancelled',
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -33,7 +33,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 const MIGRATIONS = resolve(__dirname, "../../supabase/migrations");
 const DEFS = effectiveDefs(MIGRATIONS);
 const KINDS = ["declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
-  "declutter_refunds", "declutter_price_drops", "declutter_wanted"];
+  "declutter_refunds", "declutter_price_drops", "declutter_wanted", "declutter_questions"];
 
 /** Single-quoted literals in an SQL expression, '' unescaped. */
 const literals = (expr: string): string[] => [...expr.matchAll(/'((?:[^']|'')*)'/g)].map((m) => m[1].replace(/''/g, "'"));
@@ -124,7 +124,7 @@ describe("Declutter notices land under a Declutter switch, by choice", () => {
     expect(unmapped).toEqual([]);
   });
 
-  it("every kind the function returns is one of the seven", () => {
+  it("every kind the function returns is one of the eight", () => {
     const def = blankSqlComments(DEFS.get("declutter_notice_type")!.stmt);
     const returned = [...new Set([...def.matchAll(/THEN\s+'(declutter_\w+)'/g)].map((m) => m[1]))];
     expect(returned.length).toBeGreaterThan(5);

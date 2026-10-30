@@ -29,7 +29,7 @@ const { inferCategoryFromLink } = (await import(/* @vite-ignore */ CATEGORY_PATH
 const MIGRATIONS = resolve(__dirname, "../../../supabase/migrations");
 const DEFS = effectiveDefs(MIGRATIONS);
 const KINDS = ["declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
-  "declutter_refunds", "declutter_price_drops", "declutter_wanted"];
+  "declutter_refunds", "declutter_price_drops", "declutter_wanted", "declutter_questions"];
 
 /** Every literal Declutter link a declutter_notify caller writes (the push's `link`). */
 function declutterLinks(): string[] {

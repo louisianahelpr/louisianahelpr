@@ -17,6 +17,10 @@
  * left "Checking…" and the order went through) says so under the field, in words,
  * and clears and hides the times until the address is changed or checks out, so
  * Pay stays off: checkout never goes ahead on an address nobody checked.
+ * Audit 2026-10-30 DB-9: the server keeps the last drop-off per buyer and seller (the Helpr delivery
+ * box writes the same row), and the box used to open empty with Pay on, silently delivering to an
+ * address the buyer never saw here. Now the buyer types and checks the full address in THIS checkout
+ * (`checked`), sees it written out in full, and only then gets the times; Pay waits for it.
  */
 
 /** The door choice's words (owner 2026-10-22). */
@@ -75,9 +79,10 @@ export function sellerDeliveryTermsLine(offer: SellerDeliveryOffer | null | unde
 
 /**
  * Under the chosen option: the address (always changeable) and the times.
- * `onOffer` receives a new answer after an address check.
+ * `onOffer` receives a new answer after an address check; `checked` is the address checked in this
+ * checkout (null until then, and again as soon as the buyer edits it).
  */
-export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onOffer, handoff, onHandoff }: {
+export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onOffer, handoff, onHandoff, checked, onChecked }: {
   sellerId: string;
   offer: SellerDeliveryOffer | null | undefined;
   state: SellerDeliveryState;
@@ -86,18 +91,20 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
   onOffer: (offer: SellerDeliveryOffer) => void;
   handoff: DeliveryHandoff | null;
   onHandoff: (h: DeliveryHandoff) => void;
+  checked: string | null;
+  onChecked: (address: string | null) => void;
 }) {
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(checked ?? "");
   const days = groupSlotsByDay(offer?.slots ?? []);
   const [day, setDay] = useState<string | null>(null);
   const shownDay = days.find((d) => d.day === day) ?? days.find((d) => d.slots.some((s) => sameSlot(s, slot))) ?? days[0];
   // The words of the last failed check, shown until the address changes or a check succeeds.
   const [failed, setFailed] = useState<string | null>(null);
   const check = useMutation({
-    mutationFn: () => quoteSellerDelivery(sellerId, address.trim()),
-    // A new check drops the time picked before it: Pay waits for this answer.
-    onMutate: () => { setFailed(null); onSlot(null); },
-    onSuccess: (o) => { onSlot(null); setDay(null); onOffer(o); },
+    mutationFn: (typed: string) => quoteSellerDelivery(sellerId, typed),
+    // A new check drops the time picked before it and the address checked before: Pay waits for this answer.
+    onMutate: () => { setFailed(null); onSlot(null); onChecked(null); },
+    onSuccess: (o, typed) => { onSlot(null); setDay(null); onOffer(o); onChecked(typed); },
     onError: (err) => setFailed(sellerDeliveryErrorMessage(err)),
   });
   const errorId = `dcl-sd-address-error-${sellerId}`;
@@ -106,15 +113,15 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
     <div className="space-y-3 rounded-xl border border-border p-3" data-seller-delivery-picker="">
       <div className="space-y-2">
         <label htmlFor={addressId} className="block text-xs font-medium">
-          {offer?.dropoff_area && state !== "address" ? `Deliver to: ${offer.dropoff_area}. Change it here` : "Deliver to (street number, street and town)"}
+          Deliver to (street number, street and town)
         </label>
         <div className="flex gap-2">
           <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
             autoComplete="street-address" maxLength={300} value={address}
             aria-invalid={failed ? true : undefined} aria-describedby={failed ? errorId : undefined}
-            onChange={(e) => { setAddress(e.target.value); setFailed(null); }} />
+            onChange={(e) => { setAddress(e.target.value); setFailed(null); if (checked !== null && e.target.value.trim() !== checked) onChecked(null); }} />
           <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
-            disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate()}>
+            disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate(address.trim())}>
             {check.isPending ? "Checking…" : "Check"}
           </button>
         </div>
@@ -123,8 +130,12 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
             data-sd-check-failed="">
             {failed} Delivery can't be booked until the address checks out. Try again, or choose another way to get it.
           </p>
+        ) : checked !== null && state === "pick" ? (
+          <p className="rounded-lg bg-muted px-3 py-2 text-sm" data-sd-deliver-to="">
+            Delivering to <span className="font-semibold">{checked}</span>. The seller sees this address only after you pay.
+          </p>
         ) : (
-          <p className="text-xs text-muted-foreground">The seller sees your address only after you pay.</p>
+          <p className="text-xs text-muted-foreground" data-sd-address-needed="">Type the full address and tap Check to see the delivery times. The seller sees it only after you pay.</p>
         )}
       </div>
       {state === "out_of_range" && (
@@ -136,7 +147,7 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
       {state === "pick" && !failed && sellerDeliveryTermsLine(offer) && (
         <p className="text-sm font-medium" data-sd-terms="">{sellerDeliveryTermsLine(offer)}</p>
       )}
-      {state === "pick" && shownDay && !failed && (
+      {state === "pick" && shownDay && checked !== null && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Pick a day</p>
           <div role="radiogroup" aria-label="Delivery day" className="flex flex-wrap gap-2">

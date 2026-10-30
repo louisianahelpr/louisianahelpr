@@ -93,7 +93,7 @@ describe("instant-job-match edge function (Q392)", () => {
     expect(args.p_matches.map((m) => m.user_id)).toEqual(["u-near"]);
     expect(args.p_matches[0]).toEqual({
       user_id: "u-near",
-      title: "🧹 Match for you",
+      title: "Match for you",
       message: "Clean gutters in New Orleans, LA · $80. Tap to review and apply.",
       link: `/home?quickApply=${JOB}`,
     });
@@ -270,7 +270,7 @@ describe("instant-job-match edge function (Q392)", () => {
   // nearby FIRST, whatever their skills; an offline one, or one far away, gets
   // no boost. The title says "Today". A job for another day is unchanged.
   // @mutate supabase/functions/instant-job-match/index.ts |         score += sameDayBoost(job, h, matchedAt); |
-  // @mutate supabase/functions/instant-job-match/index.ts |         title: `${emoji} ${sameDay ? "Today: " : ""}Match for you |         title: `${emoji} Match for you
+  // @mutate supabase/functions/instant-job-match/index.ts |         title: `${sameDay ? "Today: " : ""}Match for you |         title: `Match for you
   it("Q2438: a same-day job goes first to online, nearby Helprs and says Today", async () => {
     const run = async (dateNeeded: string) => {
       resetSupabaseMock(); resetSharedMocks();
@@ -302,10 +302,10 @@ describe("instant-job-match edge function (Q392)", () => {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     const sameDay = await run(today);
     expect(sameDay.map((m) => m.user_id)).toEqual(["u-online", "u-online-coords", "u-skill"]);
-    expect(sameDay.every((m) => m.title === "🧹 Today: Match for you")).toBe(true);
+    expect(sameDay.every((m) => m.title === "Today: Match for you")).toBe(true);
     const later = await run("2099-01-01");
     expect(later.map((m) => m.user_id)).toEqual(["u-skill"]);
-    expect(later[0].title).toBe("🧹 Match for you");
+    expect(later[0].title).toBe("Match for you");
   });
 
   it("the edge label table is the app's category and skill-chip table", () => {

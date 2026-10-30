@@ -85,7 +85,7 @@ export async function emailSeller(
     }
     const items = await itemsNamed(db, orderId, log);
     const { templateName, subject, body } = sellerEmailCopy(kind, items, cents);
-    const link = `${getAppUrl()}/declutter?view=selling`;
+    const link = `${getAppUrl()}/declutter?tab=selling`;
     const result = await queueEmail(db, {
       to,
       subject,

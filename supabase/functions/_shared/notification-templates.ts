@@ -226,7 +226,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   arrival_confirmed: {
     sender: "poster",
     build: (f) => !f.job.poster_confirmed_arrival_at ? null : ({
-      title: "✅ Arrival confirmed",
+      title: "Arrival confirmed",
       message: `The person who posted this job confirmed you've arrived for "${jobTitle(f)}".`,
       type: "success",
       link: `/jobs?job=${f.job.id}`,
@@ -235,7 +235,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   work_confirmed: {
     sender: "poster",
     build: (f) => !f.job.poster_confirmed_working_at ? null : ({
-      title: "✅ Work confirmed",
+      title: "Work confirmed",
       message: `The person who posted this job confirmed you're working on "${jobTitle(f)}".`,
       type: "success",
       link: `/jobs?job=${f.job.id}`,

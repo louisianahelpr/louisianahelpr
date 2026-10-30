@@ -141,10 +141,10 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
   for (const r of sales as { stripe_transfer_id: string; order_id: string; items_cents: number; debt_cents: number; amount_cents: number }[]) {
     const titles = titlesByOrder.get(r.order_id) ?? [];
     const label = titles.length === 0 ? "A Declutter sale" : titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
-    out.set(r.stripe_transfer_id, saleLines("sale", label, "/declutter?view=selling", r));
+    out.set(r.stripe_transfer_id, saleLines("sale", label, "/declutter?tab=selling", r));
   }
   for (const r of shops as { stripe_transfer_id: string; items_cents: number; debt_cents: number; amount_cents: number }[]) {
-    out.set(r.stripe_transfer_id, saleLines("shop_sale", "A Shops order", "/declutter?view=selling", r));
+    out.set(r.stripe_transfer_id, saleLines("shop_sale", "A Shops order", "/declutter?tab=selling", r));
   }
   for (const r of deliveries as { stripe_transfer_id: string; helpr_tasks: { title?: string } | null }[]) {
     out.set(r.stripe_transfer_id, [{ kind: "delivery", label: titleOr(r.helpr_tasks?.title, "A delivery"), amount_cents: 0, href: "/declutter?view=deliver" }]);

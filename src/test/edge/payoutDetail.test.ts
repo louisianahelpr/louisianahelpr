@@ -35,7 +35,7 @@ describe("linesFor: what one payout carried", () => {
   const named = new Map<string, PayoutLine[]>([
     ["tr_job", [{ kind: "job", label: "Mow front and back yard", amount_cents: 0, href: "/jobs/j1" }]],
     ["tr_sale", [
-      { kind: "sale", label: "Vintage film camera", amount_cents: 6400, href: "/declutter?view=selling" },
+      { kind: "sale", label: "Vintage film camera", amount_cents: 6400, href: "/declutter?tab=selling" },
       { kind: "fee_owed", label: "Fee owed, paid back", amount_cents: -310, href: null },
     ]],
   ]);
@@ -71,7 +71,7 @@ describe("linesFor: what one payout carried", () => {
 
   it("a split whose parts do not add up to what Stripe moved is one line at Stripe's net", () => {
     const lines = linesFor([payment("tr_sale", 6000)], named);
-    expect(lines).toEqual([{ kind: "sale", label: "Vintage film camera", amount_cents: 6000, href: "/declutter?view=selling" }]);
+    expect(lines).toEqual([{ kind: "sale", label: "Vintage film camera", amount_cents: 6000, href: "/declutter?tab=selling" }]);
   });
 
   it("reads an expanded source_transfer object as well as an id", () => {
@@ -128,7 +128,7 @@ describe("payoutDetail reads the caller's own account and ledgers", () => {
     // A sale that paid a fee back is two lines, the sale's items and the fee, from the payout row's own parts.
     expect(d.lines).toEqual([
       { kind: "job", label: "Mow front and back yard", amount_cents: 3255, href: "/jobs/j1" },
-      { kind: "sale", label: "Vintage film camera", amount_cents: 6400, href: "/declutter?view=selling" },
+      { kind: "sale", label: "Vintage film camera", amount_cents: 6400, href: "/declutter?tab=selling" },
       { kind: "fee_owed", label: "Fee owed, paid back", amount_cents: -310, href: null },
     ]);
     expect(stripeCalls.map((c) => c[0])).toEqual(["payouts.retrieve", "balanceTransactions.list"]);

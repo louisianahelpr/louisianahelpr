@@ -4,7 +4,7 @@ import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
-import { formatPrice } from "@/lib/format";
+import { applySheetPrice } from "@/components/dashboard/applyConfirmDialog/applyTakeHome";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 /**
@@ -24,7 +24,7 @@ function ApplyJobSummary({ job }: { job: EnrichedJob }) {
         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>}
       </div>
       {job.budget > 0 && (
-        <span className="shrink-0 font-sans text-ds-17 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">${formatPrice(job.budget)}</span>
+        <span className="shrink-0 font-sans text-ds-17 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">${applySheetPrice(job)}</span>
       )}
     </div>
   );

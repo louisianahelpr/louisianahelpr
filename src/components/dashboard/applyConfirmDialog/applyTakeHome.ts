@@ -1,9 +1,21 @@
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
+import { floorPayoutDollars, helperShareCount } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 import { helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { computeNet } from "@/components/dashboard/JobPrice";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
+
+/**
+ * The figure the apply sheet's job card and button name: the job's price, except on the giveaway,
+ * where it is the amount the job page shows, so a Helpr applying sees one figure (owner 2026-10-30).
+ * Display only: apply_to_job stores no amount.
+ */
+export function applySheetPrice(job: EnrichedJob): string {
+  if (!isGiveawayFixedPayJob(job)) return formatPrice(job.budget);
+  return formatPriceFloor(computeNet(job.budget, 0, job.urgent_fee ?? 0, helperShareCount(job), 0, job).netEarnings);
+}
 
 /**
  * The Helpr's take-home on a job they apply to: the ONE copy of the maths, read by the apply

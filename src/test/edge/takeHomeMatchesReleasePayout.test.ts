@@ -150,6 +150,35 @@ describe("the take-home shown is the amount release-payout sends (owner 2026-10-
     });
   }
 
+  // Owner 2026-10-30: a Helpr-fault debt never comes off the giveaway; it waits for the next payout.
+  // The same debt on an ordinary $60 job is taken in exact cents, so the mocked debt is proven live.
+  // @mutate supabase/functions/release-payout/index.ts |   if (!isGiveawayFixedPayJob(job)) { |   if (true) {
+  const DEBT_CENTS = 1500;
+  const faultCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "take_helpr_fault_fee");
+  for (const feeOwed of [false, true]) {
+    it(`a Helpr-fault debt leaves the giveaway's transfer at 5000 cents${feeOwed ? ", setup fee owed" : ""}`, async () => {
+      seed(60, 0, feeOwed);
+      (scenario.reads.jobs!.rows![0] as Record<string, unknown>).helper_fee_flat_cents = 700;
+      scenario.rpc.take_helpr_fault_fee = DEBT_CENTS;
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe(5000);
+      expect(faultCalls()).toHaveLength(0);
+    });
+
+    it(`the same debt comes off an ordinary $60 job${feeOwed ? ", setup fee owed" : ""}`, async () => {
+      seed(60, 0, feeOwed);
+      scenario.rpc.take_helpr_fault_fee = DEBT_CENTS;
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe((feeOwed ? 5400 : 5600) - DEBT_CENTS);
+      expect(faultCalls()).toHaveLength(1);
+    });
+  }
+
   it("the $60 job pays $56 ($54 on a first payout), never $56.30", () => {
     expect(shownCents(60, 0, false)).toBe(5600);
     expect(shownCents(60, 0, true)).toBe(5400);

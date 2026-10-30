@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 449,
-      "template": 97,
-      "dynamic": 530,
+      "template": 96,
+      "dynamic": 531,
       "jsx": 0
     }
   },
@@ -5491,17 +5491,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 64,
+      "line": 66,
       "kind": "toast.success",
       "title": {
-        "form": "template",
-        "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
+        "form": "dynamic",
+        "text": "kind === \"free\" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "WORDS.free.done"
+          },
+          {
+            "form": "template",
+            "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
+          }
+        ]
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 68,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

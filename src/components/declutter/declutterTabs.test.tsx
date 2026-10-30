@@ -152,6 +152,8 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
 }));
 // Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
+// The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => state.live,
   fetchWatching: async () => new Set(),

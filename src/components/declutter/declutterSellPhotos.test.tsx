@@ -65,6 +65,8 @@ vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 // No remembered listing choices saved (owner 2026-10-30): the app's defaults; the save at Post goes nowhere.
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
+// The seller's saved places (D-NEW14; proved in porchPlacesUi.test.tsx): none.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 // The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -155,7 +157,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // DA-5 (Declutter audit 2026-10-30): a free listing's private address said "Only the buyer who pays sees it".
-  // @mutate src/components/declutter/SellFormParts.tsx | {form.free ? "Private. Only the person who gets it sees it." : | {false ? "Private. Only the person who gets it sees it." :
+  // @mutate src/components/declutter/SellFormParts.tsx | : (form.free ? "Private. Only the person who gets it sees it." : | : (false ? "Private. Only the person who gets it sees it." :
   it("DA-5: the private pickup address names who sees it: the buyer who pays, or (free) the person who gets it", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });

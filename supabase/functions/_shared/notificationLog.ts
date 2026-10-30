@@ -39,54 +39,26 @@
 
 // deno-lint-ignore-file no-explicit-any
 
+import { notificationLogCategory } from "./notificationTypes.ts";
+
 /** Statuses this module writes. `token_deleted` is new; the rest match email. */
 type PushLogStatus = "sent" | "failed" | "skipped" | "token_deleted";
 
 /**
- * notification type -> notification_logs.category.
- *
- * Deliberately a copy of `TYPE_MAP` in send-notification-email/index.ts rather
- * than an import: that function is a separately-deployed unit and the shape
- * there also carries `prefCol`, which has no meaning for push (push preferences
- * are resolved in the DB by `fan_out_push_on_notification` before this function
- * is ever called). The CATEGORY halves must stay in step so an operator
- * filtering "Financial" in the admin log sees the email and the push for the
- * same event side by side.
+ * Category for a push: the SAME table send-notification-email logs email
+ * under (`_shared/notificationTypes.ts`), so an operator filtering one
+ * category in the admin log sees the email and the push for one event side
+ * by side. This file used to keep its own copy "in step" by hand; it had
+ * drifted (no Declutter type at all, so every Declutter push logged as
+ * `system`; five job/payment types under a different category than their
+ * email). Unmapped falls back to 'system', as email does, so a row is never
+ * dropped for want of a category.
  *
  * The key arrives as the push payload's `thread_id`, which
  * `fan_out_push_on_notification` sets to `notifications.type`.
  */
-const CATEGORY_BY_TYPE: Record<string, string> = {
-  new_offers: "new_offers",
-  transit_updates: "transit_updates",
-  work_status: "work_status",
-  financial_alerts: "financial_alerts",
-  application: "new_offers",
-  job_update: "work_status",
-  job_updates: "work_status",
-  job_match: "new_offers",
-  info: "work_status",
-  success: "work_status",
-  warning: "system",
-  system_alert: "system",
-  message: "messages",
-  payment: "financial_alerts",
-  review: "reviews",
-  reviews: "reviews",
-  promotion: "promotions",
-  expired: "work_status",
-  verified: "system",
-};
-
-/**
- * Best-effort category for a push. Falls back to 'system' — the same bucket
- * send-notification-email's TYPE_MAP defaults to — so a row is never dropped
- * for want of a category, and an unmapped type shows up as System rather than
- * as nothing at all.
- */
-function pushLogCategory(notificationType?: string | null): string {
-  if (!notificationType) return "system";
-  return CATEGORY_BY_TYPE[notificationType] ?? "system";
+export function pushLogCategory(notificationType?: string | null): string {
+  return notificationLogCategory(notificationType);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

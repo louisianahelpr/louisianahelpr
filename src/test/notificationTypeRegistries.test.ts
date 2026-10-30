@@ -166,11 +166,12 @@ function allowedTypes(): Set<string> {
 
 function emailTypeMap(): Map<string, string> {
   const src = readFileSync(
-    resolve(repoRoot, "supabase/functions/send-notification-email/index.ts"),
+    // send-notification-email's TYPE_MAP is this shared table (audit E2-12).
+    resolve(repoRoot, "supabase/functions/_shared/notificationTypes.ts"),
     "utf8",
   );
-  const m = src.match(/const\s+TYPE_MAP:[^=]*=\s*\{([\s\S]*?)\n\}/);
-  if (!m) throw new Error("TYPE_MAP not found in send-notification-email/index.ts");
+  const m = src.match(/const\s+NOTIFICATION_TYPE_MAP:[^=]*=\s*\{([\s\S]*?)\n\}/);
+  if (!m) throw new Error("NOTIFICATION_TYPE_MAP not found in _shared/notificationTypes.ts");
   const out = new Map<string, string>();
   for (const e of m[1].replace(/\/\/[^\n]*/g, "").matchAll(/(\w+):\s*\{\s*prefCol:\s*'(\w+)'/g)) {
     out.set(e[1], e[2]);

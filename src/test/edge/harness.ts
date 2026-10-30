@@ -555,6 +555,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/reservedRecipient.ts";`,
   );
 
+  // Notification type table (audit E2-12): `_shared/notificationTypes.ts` has
+  // ZERO imports (the type -> email switch + log category table), so the REAL
+  // module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/notificationTypes\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/notificationTypes.ts";`,
+  );
+
   // Test recipients (Q840): `_shared/testRecipient.ts` imports only the
   // zero-import reservedRecipient.ts, so the generated file runs the REAL
   // predicate. Its is_seed lookup reaches the test's own Supabase mock.

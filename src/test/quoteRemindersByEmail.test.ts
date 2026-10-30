@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |                               AND q.quoter_id IS NOT NULL AND q.last_offer_side = 'quoter') |                               AND q.quoter_id IS NOT NULL)
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |       CASE WHEN r.too_late AND v_count = 0 |       CASE WHEN false AND v_count = 0
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql | 'type', COALESCE(p_email_type, 'new_offers') | 'type', 'new_offers'
- * @mutate supabase/functions/send-notification-email/index.ts |   quote_reminder:    { prefCol: 'email_quote_reminders',  category: 'quote_reminders' }, |   quote_reminder:    { prefCol: 'email_new_offers',  category: 'quote_reminders' },
+ * @mutate supabase/functions/_shared/notificationTypes.ts |   quote_reminder:    { prefCol: 'email_quote_reminders',  category: 'quote_reminders' }, |   quote_reminder:    { prefCol: 'email_new_offers',  category: 'quote_reminders' },
  * @mutate src/components/NotificationPreferences.tsx |         onToggle={() => toggle("email_quote_reminders")} |         onToggle={() => undefined}
  */
 import { describe, expect, it } from "vitest";
@@ -44,9 +44,10 @@ const body = (fn: string) => {
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
 
 function emailTypeMap(): Map<string, string> {
-  const src = blankComments(read("supabase/functions/send-notification-email/index.ts"));
-  const m = src.match(/const\s+TYPE_MAP:[^=]*=\s*\{([\s\S]*?)\n\}/);
-  if (!m) throw new Error("TYPE_MAP not found in send-notification-email/index.ts");
+  // The table moved to a shared module both senders read (audit E2-12).
+  const src = blankComments(read("supabase/functions/_shared/notificationTypes.ts"));
+  const m = src.match(/const\s+NOTIFICATION_TYPE_MAP:[^=]*=\s*\{([\s\S]*?)\n\}/);
+  if (!m) throw new Error("NOTIFICATION_TYPE_MAP not found in _shared/notificationTypes.ts");
   const out = new Map<string, string>();
   for (const e of m[1].matchAll(/(\w+):\s*\{\s*prefCol:\s*'(\w+)'/g)) out.set(e[1], e[2]);
   return out;

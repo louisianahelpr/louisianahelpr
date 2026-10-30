@@ -129,8 +129,9 @@ const EDGE_MENTIONS: Record<string, "producer" | "not-a-producer"> = {
   "supabase/functions/instant-job-match/index.ts": "producer",
   // daily-match-digest was retired with the digest (Q1657, 20261018035944).
   // Preference / type maps and the mailer for a row that already exists.
-  "supabase/functions/_shared/notificationLog.ts": "not-a-producer",
-  "supabase/functions/send-notification-email/index.ts": "not-a-producer",
+  // One table both senders read since audit E2-12 (send-notification-email's
+  // TYPE_MAP and the push log's category both come from it).
+  "supabase/functions/_shared/notificationTypes.ts": "not-a-producer",
   // ALLOWED_TYPES for an admin's free text; no template emits job_match (asserted).
   "supabase/functions/create-notification/index.ts": "not-a-producer",
   // SMS alerts: names job_match only to REFUSE it. No nearby-job text is ever sent (owner 2026-10-23,

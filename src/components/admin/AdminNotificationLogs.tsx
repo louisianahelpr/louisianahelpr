@@ -35,14 +35,30 @@ interface LogRow {
   is_seed?: boolean;
 }
 
+// One label per category the senders log under. Push and email read ONE table
+// (supabase/functions/_shared/notificationTypes.ts, audit E2-12), and
+// src/test/edge/pushLogCategoryMatchesEmail.test.ts fails when a category there
+// has no label here, so the filter can reach every row the log holds.
 const CATEGORY_LABEL: Record<string, string> = {
   new_offers: "New Offers",
   transit_updates: "Transit",
   work_status: "Work Status",
   financial_alerts: "Financial",
+  job_applications: "Applications",
+  job_updates: "Job Updates",
+  job_matches: "Job Matches",
+  payments: "Payments",
+  quote_reminders: "Quote Reminders",
   reviews: "Reviews",
   messages: "Messages",
   promotions: "Promotions",
+  declutter_listings: "Declutter Listings",
+  declutter_offers: "Declutter Offers",
+  declutter_sales: "Declutter Sales",
+  declutter_pickups: "Declutter Pickups",
+  declutter_refunds: "Declutter Refunds",
+  declutter_price_drops: "Declutter Price Drops",
+  declutter_wanted: "Declutter Wanted",
   system: "System",
 };
 

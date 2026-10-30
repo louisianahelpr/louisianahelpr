@@ -336,6 +336,7 @@ function errorCopyLines(src: string): number[] {
 
 const EXCUSED_INLINE: Record<string, string> = {
   "components/admin/settings/MeetupSpotsCard.tsx": "one line inside the admin's Declutter meetup spots card when the list read fails (Q2425); the card and its add form stay; not a screen",
+  "components/declutter/DeclutterPickupDayCard.tsx": "one line on the pickup-day card when a place read fails; the card and the order below stay; not a screen",
   "components/declutter/DeclutterMeetup.tsx": "one line inside a Declutter order's handover panel when its meeting spot read fails (Q2425); the order and its other controls stay; not a screen",
   "components/admin/settings/DonationPartnersCard.tsx": "one line inside the admin's Declutter partner charities card when the list read fails (Q2428); the card and its add form stay; not a screen",
   "components/declutter/DeclutterDonate.tsx": "one line on the haul-away card when the donation receipts read fails (Q2428); the card and its buttons stay; not a screen",

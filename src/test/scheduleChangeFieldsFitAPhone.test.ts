@@ -86,8 +86,6 @@ function nativeDateTimeTags(): Map<string, string> {
 // and an entry that gains min-w-0 or disappears fails as stale.
 // @two-way src/test/scheduleChangeFieldsFitAPhone.test.ts:stale KNOWN_NO_SHRINK entry
 const KNOWN_NO_SHRINK: Record<string, string> = {
-  "src/components/NotificationPreferences.tsx#1": "quiet-hours From: inline-flex label in a flex-wrap row, wraps instead of overlapping",
-  "src/components/NotificationPreferences.tsx#2": "quiet-hours to: inline-flex label in a flex-wrap row, wraps instead of overlapping",
   "src/components/TimePickerWheel.tsx#1": "desktop-website-only native field (phones and the app keep the wheels)",
   "src/components/admin/credentialQueue/ExpiryField.tsx#1": "AdminCredentialQueue's expiry date, alone in its card; the card grid is one column below sm",
   "src/components/admin/marketing/MarketingComposerDialog.tsx#1": "Scheduled for: alone in a space-y column",

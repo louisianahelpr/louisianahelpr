@@ -60,6 +60,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   // ── SQL functions ───────────────────────────────────────────────────────
   "sql:admin_reverse_violation": { uncovered: ADMIN_ONLY("reverses a violation from the admin user view") },
   "sql:apply_consequence_ladder": { uncovered: STRIKE },
+  "sql:sweep_unanswered_applications": { uncovered: "needs a pending application 24 to 72 hours old in daytime; the journeys apply and answer in the same pass. Proven in src/test/pglite/applicantNudgesAndFilledNotice.pglite.mjs." },
   "sql:nudge_confirm": { uncovered: "a Nudge needs a booked job inside its day-before window with the other side unconfirmed; the journeys book same-pass seed jobs that never sit in that window. Proven in src/test/pglite/confirmRepost.pglite.mjs (sent, too soon, already confirmed, not a party, restricted)." },
   "sql:end_recurring_series_by_platform": { uncovered: "ends a recurring series for the platform (an admin with a reason, or a chargeback); the journeys create no recurring series with a booked Helpr, and Stripe is live, so a chargeback cannot be made. Proven in src/test/pglite/seriesEndByPlatform.pglite.mjs and src/test/edge/chargebackEndsSeries.test.ts." },
   "sql:sweep_unfilled_series_visit_reminders": { uncovered: "tells a poster a funded series visit is still empty the day before it; the journeys create no recurring series, and the sweep runs once a day. Proven on a fixed clock in src/test/pglite/unfilledSeriesVisitReminder.pglite.mjs." },

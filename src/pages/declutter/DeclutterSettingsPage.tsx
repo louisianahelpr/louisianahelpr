@@ -21,7 +21,7 @@ function DeclutterSettings() {
   if (!user) return null;
   return (
     <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
-      <div className="space-y-6 pb-6" data-testid="declutter-settings">
+      <div className="space-y-section pb-6" data-testid="declutter-settings">
         <section className="space-y-2" aria-label="Listing defaults">
           <SectionHeading title="Listing defaults" />
           <ListingDefaultsCard userId={user.id} />

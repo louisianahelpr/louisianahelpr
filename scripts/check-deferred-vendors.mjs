@@ -339,6 +339,15 @@ for (const { label, name } of ROUTE_ROOTS) {
       chain: chainFrom(chunk),
     });
   }
+  // The entry-only walk above could not see this one: shops/storageCleanup.ts
+  // imported @/lib/sentry statically, so signed-in-shared carried all of Sentry
+  // onto every first screen that fetches it (and, through SuccessMomentHost, onto
+  // guest /browse; Lighthouse run 41080594282, 2026-10-30, 73 KB gzip).
+  for (const { prefix, why } of DEFERRED) {
+    for (const chunk of [...par.keys()].filter((f) => f.startsWith(prefix))) {
+      routeFound.push({ label, pkg: `${prefix}*`, chunk, why: `${prefix}*: ${why}`, gzip: bytes(chunk), chain: chainFrom(chunk) });
+    }
+  }
   for (const { pkg, why } of DEFERRED_PACKAGES) {
     for (const chunk of [...par.keys()].filter((f) => packagesIn(f)?.has(pkg))) {
       routeFound.push({ label, pkg, chunk, why: `${pkg}: ${why}`, gzip: bytes(chunk), chain: chainFrom(chunk) });

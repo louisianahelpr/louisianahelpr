@@ -4,9 +4,13 @@
  * object left behind stays fetchable until the owner's account deletion
  * removes <uid>/: a failed or short delete is reported to Sentry with its
  * count, never only logged (lh-silent-failure review nit 6 and re-review).
+ *
+ * Through `report()`, never a static `@/lib/sentry` import: this file sits in
+ * signed-in-shared, so that one line put all of Sentry (73 KB gzip) on every
+ * signed-in first screen (Lighthouse run 41080594282, 2026-10-30).
  */
 import { supabase } from "@/integrations/supabase/client";
-import { captureException } from "@/lib/sentry";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Delete `paths` from `bucket`. Never throws: the caller's server write has
@@ -28,6 +32,10 @@ export async function removeShopObjects(bucket: string, paths: string[], what: s
   if (failure || removed < paths.length) {
     const reason = failure instanceof Error ? failure.message : `${removed} of ${paths.length}`;
     console.warn(`[shops] ${what} not removed`, reason);
-    captureException(failure ?? new Error(`shops: ${what} not removed`), { what, removed, wanted: paths.length }, "warning");
+    report(failure ?? new Error(`shops: ${what} not removed`), {
+      severity: "warning",
+      tags: { source: "shops.storageCleanup" },
+      context: { what, removed, wanted: paths.length },
+    });
   }
 }

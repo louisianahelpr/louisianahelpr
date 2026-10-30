@@ -18,7 +18,7 @@
 // @mutate src/lib/userBlocks.ts |   forgetBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
 // @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
 // @mutate src/hooks/useDashboardData.ts |     unwrap(blocksRes); |     void blocksRes;
-// @mutate src/hooks/useDashboardData.ts | ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>()) | ctxData?.blockedUserIds ?? new Set<string>()
+// @mutate src/hooks/useDashboardData.ts | ctxData?.blockedUserIds ?? (user ? await feedPhase(() => getBlockedUserIds(user.id), signal) : new Set<string>()) | ctxData?.blockedUserIds ?? new Set<string>()
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -132,7 +132,7 @@ describe("user_blocks: one read per moment, never a cache (Q330)", () => {
       /ctxData\?\.blockedUserIds \?\? new Set/,
     );
     expect(src, "with no ctx, the feed re-reads the block list via getBlockedUserIds (which throws)").toMatch(
-      /ctxData\?\.blockedUserIds \?\? \(user \? await withTimeout\(getBlockedUserIds\(user\.id\)/,
+      /ctxData\?\.blockedUserIds \?\? \(user \? await feedPhase\(\(\) => getBlockedUserIds\(user\.id\)/,
     );
   });
 });

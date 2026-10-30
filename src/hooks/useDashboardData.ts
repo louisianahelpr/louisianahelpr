@@ -18,7 +18,7 @@ import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import { useMembershipsOn } from "@/hooks/useMembershipsOn";
-import { raceVisibleDeadline, raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
+import { raceVisibleDeadlineRetrying } from "@/lib/visibleDeadline";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -75,11 +75,18 @@ export function splitFeedPage<T>(
 // so React Query surfaces the existing ErrorState (with its manual retry).
 const JOBS_QUERY_TIMEOUT_MS = 12_000;
 const JOBS_TIMEOUT_MESSAGE = "Loading jobs timed out";
+// A 4 s first try, then ONE fresh 12 s try (owner-approved loading fix,
+// 2026-10-29; raceVisibleDeadlineRetrying says why). The second try is the
+// whole timeout retry: React Query does not retry a timeout again (retry
+// below), so the error card shows after at most 16 s of visible time instead
+// of 24 s. Guard: src/test/feedLoadsFastAndLogsQuietly.test.ts.
+const JOBS_DEADLINES = [4_000, JOBS_QUERY_TIMEOUT_MS] as const;
+const isJobsTimeout = (err: unknown): boolean => err instanceof Error && err.message === JOBS_TIMEOUT_MESSAGE;
 
 // Visible time only: a phone put away mid-load is not a stall
-// (src/lib/visibleDeadline.ts).
-const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> =>
-  raceVisibleDeadline(promise, ms, label);
+// (src/lib/visibleDeadline.ts). Each try of a feed phase is a raceVisibleDeadline.
+const feedPhase = <T,>(start: (abort: AbortSignal) => PromiseLike<T>, signal?: AbortSignal): Promise<T> =>
+  raceVisibleDeadlineRetrying(start, JOBS_DEADLINES, JOBS_TIMEOUT_MESSAGE, signal);
 
 const NO_IDS: Set<string> = new Set<string>();
 
@@ -352,10 +359,10 @@ export function useDashboardData() {
             // select asked for them.
                       "id, title, description, scope_video_url, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, recurrence_days, recurrence_weeks, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish, helper_fee_flat_cents, helper_fee_percent";
 
-        // Cancellable (raceVisibleDeadlineAbortable): a read that misses its
-        // deadline is aborted, so the one fresh retry below does not queue
-        // behind it (JAVASCRIPT-44: the stalled read never reached the server).
-        rawJobsRes = unwrap(await raceVisibleDeadlineAbortable((abort) => readJobsAheadOfDb(browseColumns, (columns) => supabase
+        // Cancellable (feedPhase): a try that misses its deadline is aborted,
+        // so the fresh second try does not queue behind it (JAVASCRIPT-44: the
+        // stalled read never reached the server).
+        rawJobsRes = unwrap(await feedPhase((abort) => readJobsAheadOfDb(browseColumns, (columns) => supabase
           .from("open_jobs_browse")
           .select(columns)
           .neq("payment_status", "abandoned")
@@ -365,9 +372,11 @@ export function useDashboardData() {
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(offset, offset + PAGE_SIZE)
-          .abortSignal(abort), { browseView: true }), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) as unknown as BrowseJobRow[];
+          .abortSignal(abort), { browseView: true }), signal)) as unknown as BrowseJobRow[];
       } catch (viewErr) {
-        report(viewErr, {
+        // A timeout is logged once, by QueryCache, as a warning (the query's
+        // meta below), and only after the second try also timed out.
+        if (!isJobsTimeout(viewErr)) report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
           // BrowseTasksFeed for every signed-in user (PR #355 / #358
           // symptom). The 2026-05-28 alert rule for "permission denied for"
@@ -385,7 +394,7 @@ export function useDashboardData() {
       // (Q573): with no ctx, read the block list directly. getBlockedUserIds
       // throws on a failed read, so the feed shows its error state rather
       // than jobs from people the viewer blocked.
-      const blockedUserIds = ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>());
+      const blockedUserIds = ctxData?.blockedUserIds ?? (user ? await feedPhase(() => getBlockedUserIds(user.id), signal) : new Set<string>());
 
       const { rows: rawJobs, hasMore } = splitFeedPage(
         rawJobsRes ?? [],
@@ -407,11 +416,11 @@ export function useDashboardData() {
       // Q1409: a crew's open-spot count rides its own read (fetchCrewSpotsOpen
       // says why it is never in the select above); it never fails the page.
       const crewIds = rawJobs.filter((j) => j.is_group_job).map((j) => j.id as string);
-      const [profilesRes, reviewStatsMap, crewSpots] = await withTimeout(Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
+      const [profilesRes, reviewStatsMap, crewSpots] = await feedPhase((abort) => Promise.all([
+        supabase.rpc("get_safe_profiles", { user_ids: posterIds }).abortSignal(abort),
         fetchRatingStats(posterIds),
         fetchCrewSpotsOpen(crewIds),
-      ]), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out");
+      ]), signal);
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
@@ -531,9 +540,10 @@ export function useDashboardData() {
     // updating state instead of collapsing to skeletons mid-scroll. Only the
     // very first ever load shows the loader. See queryClient.ts / queryPersister.ts.
     placeholderData: keepPreviousData,
-    // A timeout gets ONE fresh try, not two silent ones (~36 s) and not none:
-    // the stalled read is aborted at its deadline (raceVisibleDeadlineAbortable)
-    // and, measured on JAVASCRIPT-44's newest events, every sibling read the
+    // A timeout gets ONE fresh try, not two silent ones (~36 s) and not none.
+    // That try now happens INSIDE each phase (feedPhase: 4 s, then 12 s), so
+    // React Query adds none on a timeout. The stalled read is aborted at its
+    // deadline and, measured on JAVASCRIPT-44's newest events, every sibling read the
     // same phone sent in that second was answered, so a new request is the
     // recovery the "Try again" button used to be the only way to reach. Other
     // transient errors keep their two retries; a refused read (4xx) gets none,
@@ -543,8 +553,11 @@ export function useDashboardData() {
     // again when the person comes back to the app or the network returns.
     retry: (failureCount, error) =>
       error instanceof Error && error.message === JOBS_TIMEOUT_MESSAGE
-        ? shouldRetryQuery(failureCount, error, 1)
+        ? shouldRetryQuery(failureCount, error, 0)
         : shouldRetryQuery(failureCount, error, 2),
+    // Final failures are logged by QueryCache (queryClient.ts); this one's
+    // timeout is a warning there, not an error (owner-approved, 2026-10-29).
+    meta: { warnOnMessage: JOBS_TIMEOUT_MESSAGE },
     // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last
     // visit stay fresh long enough that the user lands on a populated feed
     // instantly on re-entry; refetchOnWindowFocus (queryClient.ts default)

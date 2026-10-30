@@ -12,8 +12,8 @@
  * @mutate src/lib/visibleDeadline.ts |         arm(ms);\n        return;\n      }\n      const frozen |         return;\n      }\n      const frozen
  * @mutate src/lib/visibleDeadline.ts |       if (err instanceof Error && err.message === message) ctrl.abort(err); |       void err;
  * @mutate src/lib/visibleDeadline.ts |   else outer?.addEventListener("abort", onOuter, { once: true }); |   else void onOuter;
- * @mutate src/hooks/useDashboardData.ts |           .abortSignal(abort), { browseView: true }), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) | , { browseView: true }), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal))
- * @mutate src/hooks/useDashboardData.ts |         ? shouldRetryQuery(failureCount, error, 1) |         ? false
+ * @mutate src/hooks/useDashboardData.ts |           .abortSignal(abort), { browseView: true }), signal)) | , { browseView: true }), signal))
+ * @mutate src/hooks/useDashboardData.ts | const JOBS_DEADLINES = [4_000, JOBS_QUERY_TIMEOUT_MS] as const; | const JOBS_DEADLINES = [JOBS_QUERY_TIMEOUT_MS] as const;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -219,8 +219,12 @@ describe("raceVisibleDeadlineAbortable", () => {
   it("the browse feed cancels its read at the deadline and retries a timeout once", () => {
     const src = blankComments(readFileSync(resolvePath(__dirname, "../hooks/useDashboardData.ts"), "utf8"));
     const browse = src.slice(src.indexOf('.from("open_jobs_browse")') - 400, src.indexOf('.from("open_jobs_browse")') + 900);
-    expect(browse).toMatch(/raceVisibleDeadlineAbortable\(\(abort\) =>/);
+    // feedPhase = raceVisibleDeadlineRetrying over JOBS_DEADLINES: two cancellable tries
+    // (builder 67, 2026-10-29: the one retry moved inside the phase, 4 s then 12 s).
+    expect(browse).toMatch(/feedPhase\(\(abort\) =>/);
+    expect(src).toMatch(/raceVisibleDeadlineRetrying\(start, JOBS_DEADLINES, JOBS_TIMEOUT_MESSAGE, signal\)/);
+    expect(src).toMatch(/const JOBS_DEADLINES = \[4_000, JOBS_QUERY_TIMEOUT_MS\] as const;/);
     expect(browse).toMatch(/\.abortSignal\(abort\)(?:\)|, \{ browseView: true \}\))/);
-    expect(src).toMatch(/error\.message === JOBS_TIMEOUT_MESSAGE\s*\?\s*shouldRetryQuery\(failureCount, error, 1\)/);
+    expect(src).toMatch(/error\.message === JOBS_TIMEOUT_MESSAGE\s*\?\s*shouldRetryQuery\(failureCount, error, 0\)/);
   });
 });

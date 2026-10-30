@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
+import { isNetworkFailure } from "@/lib/networkFailure";
 import { isNotDeployedYet } from "@/lib/seriesDates";
 import { formatShortDate } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
@@ -20,9 +22,14 @@ export type ScheduleClash = { otherJobId: string; otherTitle: string | null; oth
 
 /** Job id -> the first booking it overlaps (by date, then start). Empty on any failure: the notice explains, it gates nothing. */
 export async function fetchMyScheduleClashes(): Promise<Map<string, ScheduleClash>> {
-  const { data, error } = await supabase.rpc("my_schedule_clashes");
+  const res = await supabase.rpc("my_schedule_clashes");
+  const { data, error } = res;
   const out = new Map<string, ScheduleClash>();
   if (error) {
+    // A dropped connection is thrown, so React Query retries it and QueryCache
+    // logs a resume burst once (feedLoadsFastAndLogsQuietly.test.ts); anything
+    // else still degrades to "no clash" with its own warning.
+    if (isNetworkFailure(error)) unwrap(res);
     if (!isNotDeployedYet(error)) report(error, { severity: "warning", tags: { source: "fetchMyScheduleClashes" } });
     return out;
   }

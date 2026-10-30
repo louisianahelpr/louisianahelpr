@@ -21,6 +21,7 @@ import { currentScreen } from "./currentScreen";
 import { PERSIST_MAX_AGE_MS } from "./queryPersister";
 import { shouldRetryQuery } from "./queryRetry";
 import { keepOrderReadsFresh } from "./declutter/orderFreshness";
+import { isNetworkFailure } from "./networkFailure";
 
 // A query that has exhausted its retries is about to drive an <ErrorState>;
 // a failed mutation is about to drive an error toast. Neither used to be
@@ -29,13 +30,57 @@ import { keepOrderReadsFresh } from "./declutter/orderFreshness";
 // per cache reports every one, tagged with the screen and the query key's
 // first segment (never the arguments: those can carry ids). Offline is not
 // a defect and is skipped, matching the boundaries.
-function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, key: unknown) {
+//
+// Two refinements (owner-approved loading fix, builder 67, 2026-10-29; guard
+// src/test/feedLoadsFastAndLogsQuietly.test.ts):
+//   - `timeoutMessage` (a query's `meta.warnOnMessage`): that query's own
+//     deadline message is a warning, not an error. The jobs feed passes its
+//     "Loading jobs timed out", which only reaches here after its second try.
+//   - A dropped connection is ONE event per burst. A WebKit page resumed from
+//     the background fails every read in flight with "Load failed" in the same
+//     second; measured 2026-10-23..29, one such burst wrote a warning per read
+//     (fetchJobOfferTargets 14 rows in 8 seconds, fetchMyScheduleClashes 11 in
+//     7). Transport failures are collected for NETWORK_BURST_MS and logged
+//     once, as a warning, with how many reads failed and which screens' keys.
+export function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, key: unknown, timeoutMessage?: string) {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   const head = Array.isArray(key) ? key[0] : key;
+  const keyName = typeof head === "string" ? head : String(head ?? "");
+  if (kind === "QueryCache" && isNetworkFailure(error)) return noteNetworkBurst(error, kind, keyName);
+  const severity = timeoutMessage !== undefined && error instanceof Error && error.message === timeoutMessage ? "warning" : "error";
   report(error, {
-    severity: "error",
-    tags: { source: kind, screen: currentScreen(), key: typeof head === "string" ? head : String(head ?? "") },
+    severity,
+    tags: { source: kind, screen: currentScreen(), key: keyName },
   });
+}
+
+/** How long one burst of transport failures is collected before its one log line. */
+export const NETWORK_BURST_MS = 3_000;
+
+let burst: { error: unknown; kind: string; count: number; keys: string[] } | null = null;
+
+function noteNetworkBurst(error: unknown, kind: string, keyName: string): void {
+  if (burst) {
+    burst.count += 1;
+    if (!burst.keys.includes(keyName)) burst.keys.push(keyName);
+    return;
+  }
+  burst = { error, kind, count: 1, keys: [keyName] };
+  setTimeout(() => {
+    const done = burst;
+    burst = null;
+    if (!done) return;
+    report(done.error, {
+      severity: "warning",
+      tags: { source: done.kind, screen: currentScreen(), key: done.keys[0], network_burst: "true" },
+      context: { burst_count: done.count, burst_keys: done.keys },
+    });
+  }, NETWORK_BURST_MS);
+}
+
+/** Test-only: forget a burst still being collected. */
+export function __resetNetworkBurstForTests(): void {
+  burst = null;
 }
 
 /**
@@ -64,7 +109,8 @@ export const queryClient = new QueryClient({
     // skipped here, so one bad deploy does not log an error on every anon visit.
     onError: (error, query) => {
       if (query.meta?.reportsItself === true) return;
-      reportCacheError("QueryCache", error, query.queryKey);
+      const warnOn = query.meta?.warnOnMessage;
+      reportCacheError("QueryCache", error, query.queryKey, typeof warnOn === "string" ? warnOn : undefined);
     },
   }),
   mutationCache: new MutationCache({

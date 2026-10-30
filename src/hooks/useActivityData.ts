@@ -201,8 +201,9 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // ones already declined.
     supabase.from("applications").select("job_id, status, closed_reason, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
     // Every job this user posted that carries an offer (poster-scoped server
-    // side). Enrichment: a failure is reported inside and reads as "no offer".
-    fetchJobOfferTargets(),
+    // side). Enrichment: a refusal is reported inside and reads as "no offer";
+    // a dropped connection throws, so React Query retries this read.
+    fetchJobOfferTargets(undefined, { throwOnNetwork: true }),
   ]);
 
   // Surface a failed primary fetch so the screen can show an ErrorState

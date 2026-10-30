@@ -29,6 +29,8 @@ interface BunchCardProps {
   urls: Map<string, string>;
   at: { lat: number; lng: number } | null;
   rewriting: boolean;
+  /** Why the last "Write it" didn't work, on the card it was tapped on. */
+  rewriteNote?: string | null;
   onChange: (patch: Partial<BunchItem>) => void;
   onMove: (photoKeys: string[], toKey: string) => void;
   onSplit: (photoKeys: string[]) => void;
@@ -42,7 +44,7 @@ export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, index, others, urls, at, rewriting, onChange, onMove, onSplit, onMerge, onDrop, onRewrite }: BunchCardProps) {
+export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNote, onChange, onMove, onSplit, onMerge, onDrop, onRewrite }: BunchCardProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [moveTo, setMoveTo] = useState("");
   const [mergeInto, setMergeInto] = useState("");
@@ -51,6 +53,8 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
   const live = chosen.filter((k) => item.photoKeys.includes(k));
   const toggle = (k: string) => setChosen((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]));
   const name = bunchItemName(item, index);
+  const noWords = !item.title.trim() && !item.description.trim();
+  const mergeTarget = item.mergeHint ? others.find((o) => o.key === item.mergeHint) : undefined;
 
   return (
     <li className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-bunch-item="" data-flagged={item.flagged ? "" : undefined}>
@@ -58,9 +62,18 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
         <h3 className="min-w-0 break-words text-ds-15 font-semibold">{name}</h3>
         <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
-          {rewriting ? "Writing…" : "Write it again"}
+          {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"}
         </Button>
       </div>
+
+      {noWords && !rewriting && <p className="text-ds-13 text-muted-foreground" data-bunch-no-words="">This one has no words yet. Tap Write it with AI, or fill it in below.</p>}
+      {rewriteNote && <p className="text-ds-13 text-foreground" role="alert" data-bunch-rewrite-note="">{rewriteNote}</p>}
+      {mergeTarget && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-merge-hint="">
+          <p className="min-w-0 flex-1 text-ds-13 text-foreground">This may be the same thing as "{mergeTarget.name}".</p>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => onMerge(mergeTarget.key)}>Merge them</Button>
+        </div>
+      )}
 
       {item.flagged && (
         <p className="rounded-xl border border-border bg-muted/40 p-3 text-ds-13 font-semibold text-foreground" data-bunch-flag="">

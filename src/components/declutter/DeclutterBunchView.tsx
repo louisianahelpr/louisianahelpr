@@ -34,8 +34,9 @@ import { geocodeAddress } from "@/lib/geocode";
 import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
+  addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -44,6 +45,7 @@ import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
+import { BunchPileCard } from "./DeclutterBunchPile";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
@@ -77,9 +79,10 @@ export default function BunchFlow() {
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [photos, setPhotos] = useState<BunchPhoto[]>([]);
   const [items, setItems] = useState<BunchItem[]>([]);
-  const [sorting, setSorting] = useState<{ done: number; total: number } | null>(null);
+  const [sorting, setSorting] = useState<{ done: number; total: number; retrying?: boolean } | null>(null);
   const [sortNote, setSortNote] = useState<string | null>(null);
   const [rewriting, setRewriting] = useState<string | null>(null);
+  const [rewriteNote, setRewriteNote] = useState<{ key: string; text: string } | null>(null);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   const [ways, setWays] = useState<SellerHandover[]>(["porch"]);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
@@ -208,20 +211,41 @@ export default function BunchFlow() {
     const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
     setPhotos((ps) => [...ps, ...added]);
     setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
-    setSorting({ done: 0, total: Math.ceil(added.length / GROUP_BATCH) });
+    await sortPhotos(added);
+  }
+
+  /** Sort these photos. Each batch's items reach the list as it finishes; what can't be sorted comes back together, with why. */
+  async function sortPhotos(batch: BunchPhoto[]) {
+    setSorting({ done: 0, total: Math.ceil(batch.length / GROUP_BATCH) });
     try {
       const at = await hintPoint();
-      const res = await groupPhotos(added, (done, total, made) => {
+      const res = await groupPhotos(batch, (done, total, made) => {
         setSorting({ done, total });
-        setItems((its) => [...its, ...made]);
-      }, (batch) => askGroup(batch, at));
+        setItems((its) => addSorted(its, made));
+      }, (cleaned) => askGroup(cleaned, at), undefined, undefined, undefined, {
+        onRetry: () => setSorting((s) => (s ? { ...s, retrying: true } : s)),
+        onJoined: (into, from) => setItems((its) => joinSorted(its, into, from)),
+      });
       const n = res.failed.reduce((s, f) => s + f.photos, 0);
-      const notSorted = n > 0 ? `${n} ${n === 1 ? "photo wasn't" : "photos weren't"} sorted: ${declutterErrorMessage(res.failed[0].error)} They're below as items for you to name, or tap Write it again.` : null;
+      const notSorted = n > 0 ? `${n} ${n === 1 ? "photo isn't" : "photos aren't"} sorted yet: ${declutterErrorMessage(res.failed[0].error)} ${n === 1 ? "It's" : "They're"} kept together below. Tap Sort again.` : null;
       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" ");
       if (note) setSortNote(note);
     } finally {
       setSorting(null);
     }
+  }
+
+  /** The pile, sorted again. It leaves the list while it goes; whatever still can't be sorted comes back as a pile. */
+  async function onSortAgain(key: string) {
+    const pile = items.find((it) => it.key === key);
+    if (!pile) return;
+    const batch = pile.photoKeys.flatMap((k) => {
+      const file = files.get(k);
+      return file ? [{ key: k, file }] : [];
+    });
+    setSortNote(null);
+    setItems((its) => its.filter((it) => it.key !== key));
+    await sortPhotos(batch);
   }
 
   /** A change to the grouping. A draft it leaves with no item comes off the server, or it would stay under Selling. */
@@ -248,14 +272,16 @@ export default function BunchFlow() {
     const it = items.find((x) => x.key === key);
     if (!it) return;
     setRewriting(key);
+    setRewriteNote(null);
     try {
-      const d = await requestAiDraftFromPhotos(it.photoKeys.map((k) => files.get(k)!).filter(Boolean), await hintPoint());
+      const point = await hintPoint();
+      const d = await withRetries(() => requestAiDraftFromPhotos(it.photoKeys.map((k) => files.get(k)!).filter(Boolean), point), { delays: [4_000] });
       setItems((its) => its.map((x) => (x.key === key
         ? { ...x, title: d.title, description: d.description, category: d.category, deliverySize: d.deliverySize, conditionStars: d.conditionStars, flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) }
         : x)));
     } catch (err) {
-      // Not silent: the reason is shown above the list; the seller can fill the item in themselves.
-      setSortNote(`We couldn't write "${bunchItemName(it, items.indexOf(it))}" again: ${declutterErrorMessage(err)}`);
+      // Not silent: the reason is shown on its card; the seller can try again or fill the item in themselves.
+      setRewriteNote({ key, text: `We couldn't write "${bunchItemName(it, items.indexOf(it))}": ${declutterErrorMessage(err)}` });
     } finally {
       setRewriting(null);
     }
@@ -317,7 +343,7 @@ export default function BunchFlow() {
     saved.clearSaved();
   }
 
-  const others = (key: string) => items.map((it, i) => ({ key: it.key, name: bunchItemName(it, i) })).filter((o) => o.key !== key);
+  const others = (key: string) => items.flatMap((it, i) => (it.key === key || it.notSorted ? [] : [{ key: it.key, name: bunchItemName(it, i) }]));
   const live = results?.filter((r) => "status" in r && r.status === "live").length ?? 0;
   const review = results?.filter((r) => "status" in r && r.status === "pending_review").length ?? 0;
   const keepUpFailed = results?.filter((r) => "keepUpFailed" in r && r.keepUpFailed).length ?? 0;
@@ -366,7 +392,7 @@ export default function BunchFlow() {
         )}
         {sorting && (
           <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done). Keep this page open.
+            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done). {sorting.retrying ? "The connection dropped, so we're trying again. " : ""}Keep this page open.
           </p>
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
@@ -380,7 +406,17 @@ export default function BunchFlow() {
           {/* Nothing on a card can change while a run works on it: a draft dropped mid-run would be listed or lost. */}
           <fieldset disabled={!!listing || listingDrafts} className="contents">
           <ul className="space-y-3">
-            {items.map((it, i) => (
+            {items.map((it, i) => it.notSorted ? (
+              <BunchPileCard
+                key={it.key}
+                item={it}
+                urls={thumbs}
+                busy={busy}
+                onSortAgain={() => void onSortAgain(it.key)}
+                onOneItem={() => setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined }))}
+                onDrop={() => regroup((its) => dropItem(its, it.key))}
+              />
+            ) : (
               <BunchCard
                 key={it.key}
                 item={it}
@@ -389,6 +425,7 @@ export default function BunchFlow() {
                 urls={thumbs}
                 at={coords}
                 rewriting={rewriting === it.key}
+                rewriteNote={rewriteNote?.key === it.key ? rewriteNote.text : null}
                 onChange={(patch) => setItems((its) => editBunchItem(its, it.key, patch))}
                 onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its))}
                 onSplit={(keys) => setItems((its) => splitItem(its, it.key, keys))}

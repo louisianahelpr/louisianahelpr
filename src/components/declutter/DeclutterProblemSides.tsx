@@ -6,13 +6,18 @@
  * Reads the order's newest problem through declutter_order_problem (audit 1030 DB-1: the two sides and admins, only
  * the columns below; the old direct select("*") was refused for every member on prod); shows nothing once it is decided
  * (the decision notices and the refund panel say what happened). Photos are signed links (the bucket is private).
+ *
+ * B100 (owner 2026-10-30, 20261030134109): the member who reported it can "Take back my report" (with a confirm)
+ * while it is open, as the buyer or the seller. The money hold lifts and the 24-hour clocks run on; a withdrawn
+ * problem shows nothing here, like a decided one.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
+import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FallbackImg } from "./FallbackImg";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 const REASON_WORDS: Record<ProblemReason, string> = {
   not_as_described: "It isn't as described",
@@ -57,6 +62,17 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const [takingBack, setTakingBack] = useState(false);
+  const takeBack = useMutation({
+    mutationFn: (q: OrderProblem) => withdrawProblem(q.id),
+    onSettled: () => setTakingBack(false),
+    onSuccess: () => {
+      toast.success("Report taken back. Nothing is held for it now.");
+      // The order card's hold, refund panel and steps all read from the order, so refresh every Declutter read.
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const p = problem.data;
   if (!p || p.status !== "open") return null;
   const mine = p.reporter_side === side;
@@ -74,6 +90,15 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
           <ProblemPhotos paths={p.other_side_photo_paths ?? []} />
         </div>
       )}
+      {mine && (p.reporter_side === "buyer" || p.reporter_side === "seller") && (
+        <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => setTakingBack(true)}>
+          Take back my report
+        </button>
+      )}
+      <ConfirmSheet open={takingBack} title="Take back your report?" confirmLabel="Take it back" cancelLabel="Keep my report"
+        pending={takeBack.isPending} onConfirm={() => takeBack.mutate(p)} onClose={() => setTakingBack(false)} testId="take-back-report">
+        Louisiana Helpr stops looking at it and the money is no longer held for it. You can&apos;t report this sale again after taking it back.
+      </ConfirmSheet>
       {!mine && !open && (
         <button type="button" className={btn} onClick={() => { setNote(p.other_side_note ?? ""); setOpen(true); }}>
           {p.other_side_note ? "Change your side" : "Add your side"}

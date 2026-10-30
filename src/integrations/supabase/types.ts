@@ -2797,6 +2797,7 @@ export type Database = {
           reporter_side: string
           status: string
           strike_given: boolean
+          withdrawn_at: string | null
         }
         Insert: {
           other_side_at?: string | null
@@ -2818,6 +2819,7 @@ export type Database = {
           reporter_side: string
           status?: string
           strike_given?: boolean
+          withdrawn_at?: string | null
         }
         Update: {
           other_side_at?: string | null
@@ -2839,6 +2841,7 @@ export type Database = {
           reporter_side?: string
           status?: string
           strike_given?: boolean
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -15327,6 +15330,7 @@ export type Database = {
         Returns: number
       }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
+      declutter_withdraw_problem: { Args: { p_problem_id: string }; Returns: Json }
       declutter_withdraw_refund: { Args: { p_request_id: string }; Returns: Json }
       declutter_refund_item_returned: { Args: { p_photo_path?: string; p_request_id: string }; Returns: Json }
       declutter_accept_refund_with_return: {

@@ -700,8 +700,21 @@ export const RPC_ERROR_COPY = {
     // D2-3 (20261029225634): a second report is refused, never dropped.
     problem_already_open: DC.problem_already_open,
     problem_already_reported: DC.problem_already_reported,
+    // B100 (20261030134109): the member who took back their report on this sale.
+    problem_taken_back: DC.problem_taken_back,
     sale_final: DC.sale_final,
     too_many_photos: DC.too_many_photos,
+  },
+  // B100 (20261030134109): the reporter takes back an open problem until Louisiana Helpr decides.
+  declutter_withdraw_problem: {
+    account_restricted: DC.account_restricted,
+    // declutter_lock_order: the order behind the problem is gone.
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    problem_already_decided: DC.problem_already_decided,
+    problem_has_refund_request: DC.problem_has_refund_request,
+    problem_has_return: DC.problem_has_return,
+    problem_not_found: DC.problem_not_found,
   },
   // D2-3 (20261029225634): the other side adds theirs to an open problem.
   declutter_problem_add_side: {

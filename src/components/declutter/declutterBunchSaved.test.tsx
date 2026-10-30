@@ -5,6 +5,9 @@
  * @mutate src/components/declutter/useBunchSaved.ts |     window.addEventListener("beforeunload", warn); |     void warn;
  * @mutate src/components/declutter/useBunchSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
  * @mutate src/components/declutter/useBunchSaved.ts |       const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key)); |       const keep = s.photos;
+ * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
  * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +16,10 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BunchItem } from "@/lib/declutter/bunch";
 
+const { ListingPhotoError } = await vi.hoisted(async () => await import("@/lib/declutter/errors"));
 const h = vi.hoisted(() => ({
+  withdrawn: [] as string[],
+  statuses: new Map<string, string>(),
   disk: new Map<string, unknown>(),
   failWrites: false,
   user: "u1",
@@ -40,9 +46,16 @@ vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: Rea
 vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
-vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyItems: async () => [], fetchMyPickupWindows: async () => [], fetchHasAgreedSales: async () => false }));
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyItems: async () => [], fetchMyPickupWindows: async () => [], fetchHasAgreedSales: async () => false, fetchItemStatuses: async () => h.statuses, withdrawItem: async (id: string) => void h.withdrawn.push(id) }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
-vi.mock("@/lib/declutter/photos", async (orig) => ({ ...(await orig<object>()), bunchThumbnail: async (f: File) => f }));
+vi.mock("@/lib/declutter/photos", async (orig) => ({
+  ...(await orig<object>()),
+  bunchThumbnail: async (f: File) => f,
+  cleanListingPhoto: async (f: File) => {
+    if (f.name.startsWith("bad")) throw new ListingPhotoError("This photo can't be used. Try another one.");
+    return f;
+  },
+}));
 vi.mock("@/lib/declutter/bunch", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/bunch")>();
   return {
@@ -86,6 +99,8 @@ beforeEach(() => {
   h.disk.clear();
   h.failWrites = false;
   h.user = "u1";
+  h.withdrawn = [];
+  h.statuses = new Map();
 });
 afterEach(cleanup);
 
@@ -144,6 +159,33 @@ describe("Sell a bunch survives leaving", () => {
     renderFlow();
     await screen.findByText(/We kept your work from last time: 1 item,/);
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
+  });
+
+  it("a photo mid-sort at a crash that can't be cleaned is named and left out, never a blank item that fails at listing", async () => {
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: [{ key: "ok", name: "ok.jpg", type: "image/jpeg" }, { key: "x", name: "bad.jpg", type: "image/jpeg" }] });
+    h.disk.set("lh-bunch-v1-photo:ok", new File(["o"], "ok.jpg", { type: "image/jpeg" }));
+    h.disk.set("lh-bunch-v1-photo:x", new File(["x"], "bad.jpg", { type: "image/jpeg" }));
+    renderFlow();
+    expect((await screen.findByText(/This photo wasn't added \(bad\.jpg\)/)).textContent).toContain("can't be used");
+    expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
+    expect(await screen.findByText(/We kept your work from last time: 1 item,/)).toBeTruthy();
+    await waitFor(() => expect(photoEntries()).toEqual(["lh-bunch-v1-photo:ok"]));
+  });
+
+  it("Don't sell this on an item with a draft takes the draft off the server; an item without one asks nothing", async () => {
+    h.statuses = new Map([["d1", "draft"]]);
+    const base = { description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "40" };
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, photos: [{ key: "a", name: "a.jpg", type: "image/jpeg" }, { key: "b", name: "b.jpg", type: "image/jpeg" }], items: [{ ...base, key: "plain", photoKeys: ["a"], title: "No draft" }, { ...base, key: "made", photoKeys: ["b"], title: "Has draft", draftId: "d1", uploaded: { b: "pb" } }] });
+    h.disk.set("lh-bunch-v1-photo:a", new File(["a"], "a.jpg", { type: "image/jpeg" }));
+    h.disk.set("lh-bunch-v1-photo:b", new File(["b"], "b.jpg", { type: "image/jpeg" }));
+    renderFlow();
+    await screen.findByText(/We kept your work from last time: 2 items/);
+    const cards = () => [...document.querySelectorAll("[data-bunch-item]")] as HTMLElement[];
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    await waitFor(() => expect(cards()).toHaveLength(1));
+    expect(h.withdrawn).toEqual([]);
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    await waitFor(() => expect(h.withdrawn).toEqual(["d1"]));
   });
 
   it("Start over asks first, then removes it from the device", async () => {

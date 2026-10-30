@@ -12,6 +12,7 @@ import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
+import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
 import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
@@ -113,20 +114,26 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
 /** How buyers get it: the ways, the area, the private pickup address and the seller's pickup times. */
 export function SellWaysFields({ s }: { s: SellFlow }) {
   const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows } = s;
+  const hasPlaces = useHasPorchPlaces();
   return (<>
     <SellHandoverChoices ways={ways} setWays={(w: SellerHandover[]) => setWays(w)} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
+    {hasPlaces && <SavedPlacesComeFirst free={form.free} />}
     {/* Owner 2026-10-28: no "Area buyers see" field; buyers see the town the server works out from this
         address (declutter_town_for_pickup), and the seller can fill it from where they are. */}
     <div className="space-y-2">
       <FieldLabel htmlFor="sell-area" text="Area buyers see" />
       <input id="sell-area" className={SELL_INPUT} maxLength={80} value={form.areaLabel} onChange={(e) => set("areaLabel", e.target.value)} placeholder="e.g. Mid-City, Baton Rouge" />
-      <p className="text-ds-13 text-muted-foreground">Your neighborhood or town, never your street address.</p>
+      <p className="text-ds-13 text-muted-foreground">Your neighborhood or town, never your street address.{hasPlaces ? " It shows on this listing; each saved place shows its own area." : ""}</p>
     </div>
     <div className="space-y-2">
       <FieldLabel htmlFor="sell-address" text="Pickup address" />
       <input id="sell-address" className={SELL_INPUT} maxLength={300} value={form.pickupAddress} onChange={(e) => set("pickupAddress", e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
       {/* DA-5: nobody pays for a free item; the address shows to the person it goes to once their pickup is set. */}
-      <p className="text-ds-13 text-muted-foreground">{form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it."}</p>
+      <p className="text-ds-13 text-muted-foreground" data-sell-address-note="">
+        {hasPlaces
+          ? (form.free ? "Private. Only used if you remove your saved places." : "Private. Only used when a buyer gets it another way, or if you remove your saved places.")
+          : (form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it.")}
+      </p>
     </div>
     <div className="space-y-2" aria-labelledby="sell-pickup">
       <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">Your usual pickup times</h3>

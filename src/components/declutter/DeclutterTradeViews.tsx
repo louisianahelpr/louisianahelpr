@@ -124,9 +124,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Owner 2026-10-29 (DC-4): Helpr delivery is always a choice for what the buyer pays for, whatever was ticked.
   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
   const offered = ticked; // None open to this buyer: no fallback to the seller's door (Q2462); NoWayWorks opens the chat.
-  const [handover, setHandover] = useState<Handover>(offered[0]);
-  // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
-  const chosen = offered.includes(handover) ? handover : offered[0];
+  // DB-15: the buyer's tap, never useState(offered[0]) (it froze Helpr delivery before spots loaded); else the first way now.
+  const [picked, setPicked] = useState<Handover | null>(null);
+  const chosen = picked && offered.includes(picked) ? picked : offered[0];
   const [opening, setOpening] = useState(false);
   const [address, setAddress] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
@@ -180,7 +180,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           <label key={h}
             className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
           >
-            <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
+            <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
               <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>

@@ -42,6 +42,7 @@ import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
+import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
@@ -139,6 +140,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
+  // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
+  // refuses checkout and a delivery price without it, porch_place_needed).
+  const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents);
+  const needsPlace = chosen === "porch" || delivering;
+  const placeReady = !needsPlace || porchPlaces.ready;
   // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
   // never paid it (declutter_start_checkout freezes the same platform amount on the order, outside the sale's
   // total). The same "still owed" answer every payout preview reads: 0 once paid, and 0 until known.
@@ -200,6 +206,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
       {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
+      {needsPlace && <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} loadError={porchPlaces.query.error}
+        onRetry={() => void porchPlaces.query.refetch()} onChosen={() => setQuote(null)} />}
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
@@ -213,7 +221,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               autoComplete="street-address" maxLength={300} value={address}
               onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
             <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
-              disabled={priceIt.isPending || address.trim().length < 5} onClick={() => priceIt.mutate()}>
+              disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate()}>
               {priceIt.isPending ? "Pricing…" : "Get price"}
             </button>
           </div>
@@ -269,7 +277,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       <button
         type="button"
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
+        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady}
         onClick={async () => {
           setOpening(true);
           rememberPaying(sellerId);

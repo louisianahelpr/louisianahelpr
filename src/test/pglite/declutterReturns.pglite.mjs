@@ -309,5 +309,46 @@ ok(refused(await anon(`SELECT public.declutter_refund_item_returned('${rA.id}', 
 ok(refused(await anon(`SELECT public.declutter_return_dropped_off('${rA.id}', NULL, 0, 0)`), /permission denied/), "anon cannot execute the drop-off");
 ok(refused(await anon(`SELECT public.declutter_set_return_address('${rA.id}', 'x', 0, 0)`), /permission denied/), "anon cannot execute the address");
 
+// R8. Q2486 (porch places, 20261030164712): the drop-off is measured from the place frozen on the order, never the
+// item's old address; an order with no place keeps the item's address. Applied 3x here; without it (PORCH_MIGRATION=skip)
+// the "at the frozen place" case fails and the "at the old address" one is let through.
+if (!skip) {
+  const porchSkip = process.env.PORCH_MIGRATION === "skip";
+  if (!porchSkip) {
+    const porchSql = readFileSync(process.env.PORCH_PATH ?? new URL("../../../supabase/migrations/20261030164712_declutter_porch_places.sql", import.meta.url), "utf8");
+    // The refund chain has no meeting spots or porch days, which the checkout restatements read, so this applies the
+    // migration's own text around them: its tables and readers, and this restatement. The whole file is applied 3x on
+    // the full chain by declutterPorchPlaces.pglite.mjs.
+    await db.exec(readFileSync(new URL("../../../supabase/migrations/20261029161347_declutter_porch_weekdays.sql", import.meta.url), "utf8"));
+    const restated = (from) => { const i = porchSql.indexOf(`-- Restated from ${from}`); if (i < 0) throw new Error(`no restatement from ${from}`); return i; };
+    const slice = porchSql.slice(0, restated("20261028235247")) + porchSql.slice(restated("20261030071818"));
+    for (let i = 0; i < 3; i++) await db.exec(slice);
+    ok(true, "the porch places tables, readers and the drop-off restatement apply 3x on the returns chain");
+  }
+  const PLACE = { lat: 29.95, lng: -90.07 };
+  const ITEM_LAT = 30.4513;
+  const ITEM_LNG = -91.1544;
+  const returning = async (n) => {
+    const { o, r } = await asked(n, BUYER, SELLER);
+    await acceptRet(SELLER, r.id, "drop_off", await dayPlus(1));
+    await svc(`UPDATE public.declutter_refund_requests SET return_day = (now() AT TIME ZONE 'America/Chicago')::date WHERE id = '${r.id}'`);
+    return { o, r };
+  };
+  const { o: Fro, r: rFro } = await returning(81);
+  if (!porchSkip) {
+    await svc(`INSERT INTO public.declutter_order_porch_places (order_id, seller_id, label, address, area, lat, lng, weekdays)
+      VALUES ('${Fro.order_id}', '${SELLER}', 'Camp', '99 Camp Road, New Orleans', 'New Orleans', ${PLACE.lat}, ${PLACE.lng}, ARRAY[0,1,2,3,4,5,6]::smallint[])`);
+  }
+  const pFro = `${BUYER}/declutter/return/${Fro.order_id}/drop.jpg`;
+  await upload(pFro);
+  ok(refused(await dropOff(BUYER, rFro.id, pFro, ITEM_LAT, ITEM_LNG), /not_at_pickup/), "Q2486: a drop-off at the item's old address is refused when a place is frozen on the order");
+  ok(one(await dropOff(BUYER, rFro.id, pFro, PLACE.lat, PLACE.lng))?.result === "dropped_off", "Q2486: a drop-off at the frozen place passes");
+  const { o: Old, r: rOld } = await returning(82);
+  const pOld = `${BUYER}/declutter/return/${Old.order_id}/drop.jpg`;
+  await upload(pOld);
+  ok(refused(await dropOff(BUYER, rOld.id, pOld, PLACE.lat, PLACE.lng), /not_at_pickup/), "Q2486: an order with no place: a drop-off at someone's porch place is refused");
+  ok(one(await dropOff(BUYER, rOld.id, pOld, ITEM_LAT, ITEM_LNG))?.result === "dropped_off", "Q2486: an order with no place: the item's own address still passes");
+}
+
 console.log(`\n${pass} passed, ${fail} failed${skip ? " (NEW_MIGRATION=skip: expected RED)" : ""}`);
 process.exit(fail ? 1 : 0);

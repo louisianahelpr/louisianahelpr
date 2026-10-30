@@ -14,7 +14,7 @@
  */
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   SELECT COALESCE((SELECT so.created_at > now() - interval '10 minutes' |   SELECT COALESCE((SELECT so.created_at > now() - interval '1 day'
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF NOT public.handover_photo_is_fresh('helpr-tasks', p_path) THEN |   IF false THEN
-// @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   -- Live camera only (20261029002010): uploaded in the last 10 minutes, by the storage server's own clock.\n  IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN |   IF false THEN
+// @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   -- Live camera only (20261029002010): uploaded in the last 10 minutes, by the storage server's own clock.\n  IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN |   IF false THEN
 // @mutate src/lib/declutter/handover.ts |   assertLivePhoto(file);\n  const cleaned |   const cleaned
 // @mutate src/lib/helprTasks/api.ts |   assertLivePhoto(file);\n  return uploadCleaned(`${userId}/task/ |   return uploadCleaned(`${userId}/task/
 // @mutate src/components/ui/PhotoPickButton.tsx |         capture="environment"\n |

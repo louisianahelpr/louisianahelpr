@@ -972,7 +972,7 @@ export const RPC_ERROR_COPY = {
     porch_unavailable: DC.porch_unavailable,
     // Owner 2026-10-28 (20261028235247): a way the giver did not tick.
     handover_not_offered: DC.handover_not_offered,
-    // D-NEW14 (20261029224749): a giver with saved porch places, and no place picked yet.
+    // D-NEW14 (20261030164712): a giver with saved porch places, and no place picked yet.
     porch_place_needed: DC.porch_place_needed,
     under_18: DC.under_18,
   },
@@ -1399,6 +1399,50 @@ export const RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     invalid_porch_days: DC.invalid_porch_days,
+    not_authenticated: DC.not_authenticated,
+  },
+  // D-NEW14 porch places (20261030164712).
+  declutter_my_porch_places: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_save_porch_place: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_porch_days: DC.invalid_porch_days,
+    invalid_porch_place: DC.invalid_porch_place,
+    not_authenticated: DC.not_authenticated,
+    porch_place_not_found: DC.porch_place_not_found,
+    porch_places_full: DC.porch_places_full,
+    under_18: DC.under_18,
+  },
+  declutter_delete_porch_place: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    porch_place_not_found: DC.porch_place_not_found,
+    under_18: DC.under_18,
+  },
+  declutter_seller_porch_places: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_set_porch_place: {
+    account_restricted: DC.account_restricted,
+    cart_empty: DC.cart_empty,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    porch_place_unavailable: DC.porch_place_unavailable,
+    under_18: DC.under_18,
+  },
+  declutter_order_place: {
+    item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
   declutter_set_porch_ok: {

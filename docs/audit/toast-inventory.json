@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1040,
-    "files": 281,
+    "files": 282,
     "rendering": 875,
     "suppressedByPolicy": 165,
     "byKind": {
@@ -2491,7 +2491,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 412,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4618,7 +4618,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 306,
+      "line": 265,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4638,7 +4638,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 312,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4648,7 +4648,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 373,
+      "line": 332,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4658,7 +4658,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 377,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4668,7 +4668,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 386,
+      "line": 345,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4688,7 +4688,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 391,
+      "line": 350,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4698,7 +4698,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 462,
+      "line": 421,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4708,7 +4708,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 463,
+      "line": 422,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4718,7 +4718,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 488,
+      "line": 447,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4738,7 +4738,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 489,
+      "line": 448,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4748,7 +4748,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 490,
+      "line": 449,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4758,7 +4758,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 491,
+      "line": 450,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4768,7 +4768,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 494,
+      "line": 453,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4778,7 +4778,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 550,
+      "line": 509,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4788,7 +4788,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 551,
+      "line": 510,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4798,7 +4798,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 583,
+      "line": 542,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4808,7 +4808,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 589,
+      "line": 548,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5178,7 +5178,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 64,
+      "line": 65,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5188,7 +5188,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 183,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5198,7 +5198,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5246,6 +5246,66 @@
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
       "line": 58,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersSection.tsx",
+      "line": 60,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "res === \"accepted\" ? (o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\") : res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Accepted. Check out within 48 hours."
+              },
+              {
+                "form": "literal",
+                "text": "Accepted. The buyer has 48 hours to pay."
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Sent. They have 48 hours to answer."
+              },
+              {
+                "form": "dynamic",
+                "text": "res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "Offer taken back."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "Declined."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersSection.tsx",
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5631,57 +5691,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 124,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "res === \"accepted\" ? (o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\") : res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\"",
-            "branches": [
-              {
-                "form": "literal",
-                "text": "Accepted. Check out within 48 hours."
-              },
-              {
-                "form": "literal",
-                "text": "Accepted. The buyer has 48 hours to pay."
-              }
-            ]
-          },
-          {
-            "form": "dynamic",
-            "text": "res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
-            "branches": [
-              {
-                "form": "literal",
-                "text": "Sent. They have 48 hours to answer."
-              },
-              {
-                "form": "dynamic",
-                "text": "res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
-                "branches": [
-                  {
-                    "form": "literal",
-                    "text": "Offer taken back."
-                  },
-                  {
-                    "form": "literal",
-                    "text": "Declined."
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 132,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5691,17 +5701,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 368,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 510,
+      "line": 278,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5711,7 +5711,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 519,
+      "line": 287,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5736,7 +5736,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 526,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10433,7 +10433,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 181,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10443,7 +10443,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 273,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10453,7 +10453,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 377,
+      "line": 376,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10463,7 +10463,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 433,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10573,7 +10573,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 197,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10583,7 +10583,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 198,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10593,7 +10593,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 199,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10603,7 +10603,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 219,
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10613,7 +10613,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 220,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10623,7 +10623,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 221,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10633,7 +10633,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 237,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10643,7 +10643,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 320,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10653,7 +10653,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 328,
+      "line": 327,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10663,7 +10663,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 397,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10673,7 +10673,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 458,
+      "line": 457,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

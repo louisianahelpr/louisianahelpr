@@ -44,7 +44,8 @@ const VISIBLE_RESULT: Record<string, { marker: string; test: string; proof: stri
   },
   // A3-I5 (batch 3): the delete-account "is it really you?" code. The send is in the helper; the dialog step shows it.
   "src/lib/deleteAccountReauth.ts": {
-    marker: "We sent a 6-digit code to",
+    // Its words are in the dictionary (Spanish option, 2026-10-29): en "deleteAccount.codeSentTo" = "We sent a 6-digit code to".
+    marker: 't("deleteAccount.codeSentTo")',
     shownIn: "src/components/profile/DeleteAccountReauth.tsx",
     test: "src/test/deleteAccountAsksWhoYouAre.test.tsx",
     proof: "we sent a 6-digit code to",

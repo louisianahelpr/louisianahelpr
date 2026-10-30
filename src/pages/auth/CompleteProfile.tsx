@@ -248,7 +248,7 @@ const CompleteProfile = () => {
     try {
       const { data, error } = await withTimeout(
         Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
-        "Profile check",
+        t("profileGate.checkLabel"),
         12000,
       );
       if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data, user))) return false;
@@ -357,7 +357,7 @@ const CompleteProfile = () => {
               Promise.resolve(
                 supabase.from("profiles").update(updates).eq("user_id", userId).select("*"),
               ),
-              "Profile save",
+              t("profileGate.saveLabel"),
             ),
             {
               action: "save your profile",
@@ -698,7 +698,7 @@ const CompleteProfile = () => {
             {unknownZip && (
               <p role="status" className="flex items-start gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--sienna-ink))" }}>
                 <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
-                {UNKNOWN_ZIP_MESSAGE}
+                {t(UNKNOWN_ZIP_MESSAGE)}
               </p>
             )}
             {cityZipMismatch && (

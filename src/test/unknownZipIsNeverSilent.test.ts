@@ -35,6 +35,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
+import { en } from "@/lib/i18n/en";
+import { es } from "@/lib/i18n/es";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const parse = (p: string) => ts.createSourceFile(p, read(p), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -144,14 +146,18 @@ describe("the warning itself", () => {
   it("does not call an out-of-state ZIP invalid", () => {
     // A Texas ZIP is a real ZIP. Telling someone their address is wrong when
     // it is merely outside our coverage is a different, worse failure.
-    expect(UNKNOWN_ZIP_MESSAGE).not.toMatch(/invalid|not a valid|incorrect/i);
+    // UNKNOWN_ZIP_MESSAGE is the dictionary key (Spanish option, 2026-10-29); the words are en/es.
+    expect(en[UNKNOWN_ZIP_MESSAGE]).not.toMatch(/invalid|not a valid|incorrect/i);
+    expect(es[UNKNOWN_ZIP_MESSAGE]).not.toMatch(/inválid|no es válid|incorrect/i);
   });
 
   it("says what the consequence is, not just that something is off", () => {
     // The point of the message is that "nothing will reach you" is invisible
     // otherwise — the account works, it is simply never matched.
-    expect(UNKNOWN_ZIP_MESSAGE).toMatch(/Louisiana/);
-    expect(UNKNOWN_ZIP_MESSAGE).toMatch(/parish/i);
-    expect(UNKNOWN_ZIP_MESSAGE).toMatch(/won't reach you/);
+    expect(en[UNKNOWN_ZIP_MESSAGE]).toMatch(/Louisiana/);
+    expect(en[UNKNOWN_ZIP_MESSAGE]).toMatch(/parish/i);
+    expect(en[UNKNOWN_ZIP_MESSAGE]).toMatch(/won't reach you/);
+    expect(es[UNKNOWN_ZIP_MESSAGE]).toMatch(/Louisiana/);
+    expect(es[UNKNOWN_ZIP_MESSAGE]).toMatch(/parroquia/i);
   });
 });

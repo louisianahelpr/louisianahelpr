@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { MsgKey } from "@/lib/i18n/en";
 import { resolveCityByZip, resolveParishByZip, type ParishResolution } from "@/lib/parishLookup";
 
 /**
@@ -62,12 +63,11 @@ export function useParishForZip(zipCode: string, town?: string, setTown?: (town:
 /**
  * The one sentence every ZIP field shows for an unrecognised ZIP. Shared so the
  * three surfaces cannot drift into three different explanations of the same
- * thing. Deliberately does NOT say "invalid": an out-of-state ZIP is a real ZIP,
+ * thing. It is the dictionary key (en.ts / es.ts): render it as t(UNKNOWN_ZIP_MESSAGE).
+ * Deliberately does NOT say "invalid": an out-of-state ZIP is a real ZIP,
  * it is just not one this Louisiana-only app can place.
  */
-export const UNKNOWN_ZIP_MESSAGE =
-  "We don't recognise that as a Louisiana ZIP code. Jobs are matched by parish, " +
-  "so double-check it — otherwise nearby work won't reach you.";
+export const UNKNOWN_ZIP_MESSAGE: MsgKey = "zip.unknown";
 
 /**
  * A3-I1 (app audit 2026-10-28): a recognised ZIP fills an EMPTY town field

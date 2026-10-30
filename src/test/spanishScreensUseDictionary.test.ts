@@ -44,17 +44,17 @@ const CONVERTED = [
   "src/pages/auth/signup/SignupStep2.tsx",
   "src/pages/auth/CompleteProfile.tsx",
   "src/pages/auth/completeProfile/CompleteProfileIntro.tsx",
+  "src/components/profile/DeleteAccountDialog.tsx",
+  "src/components/profile/DeleteAccountReauth.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
 // @two-way src/test/spanishScreensUseDictionary.test.ts:stale ALLOWED
 const ALLOWED: Record<string, string[]> = {
   // Report tags and a thrown Error the member never reads (userFacingError shows the t() fallback).
-  // "Profile picture" and "Finishing your account" are labels the shared helpers validateFile and
-  // withTimeout put inside their own English sentences; those helpers are not converted yet.
-  "src/pages/auth/Signup.tsx": ["Profile picture", "Account creation failed", "Finishing your account", "Signup.completeProfile", "Signup.createAccountAndFinish"],
-  // withTimeout labels (its own English "timed out" sentence, not converted yet) and a report tag.
-  "src/pages/auth/CompleteProfile.tsx": ["Profile check", "Profile save", "CompleteProfile.legalAcceptances"],
+  "src/pages/auth/Signup.tsx": ["Account creation failed", "Signup.completeProfile", "Signup.createAccountAndFinish"],
+  // A report tag.
+  "src/pages/auth/CompleteProfile.tsx": ["CompleteProfile.legalAcceptances"],
   // Keyboard key names (e.key / getModifierState), not words.
   "src/pages/auth/signup/SignupStep1.tsx": ["CapsLock", "Enter", "Enter", "Enter", "Enter"],
 };

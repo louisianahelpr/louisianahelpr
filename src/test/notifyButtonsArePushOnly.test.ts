@@ -23,7 +23,7 @@
  * @mutate src/pages/auth/Signup.tsx | subtitle: notifySignupSubtitle(searchParams.get("reason")) | subtitle: undefined
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast("You're set. We'll ping you when paid work lands."); | toast.success("You're set. We'll ping you when paid work lands.");
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast.warning("Job alerts are on | toast.message("Job alerts are on
- * @mutate src/lib/jobIntent.ts | return reason === "notify" ? NOTIFY_SIGNUP_SUBTITLE : undefined; | return undefined;
+ * @mutate src/lib/jobIntent.ts | return reason === "notify" ? t("signup.notifySubtitle") : undefined; | return undefined;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

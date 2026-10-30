@@ -6,6 +6,8 @@
 // (Step1/Step2/Step3) once those land in follow-up PRs.
 
 import { toast } from "sonner";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 export const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
@@ -30,11 +32,11 @@ export function validateFile(
   label: string,
 ): boolean {
   if (!allowedTypes.includes(file.type)) {
-    toast.error(`${label}: that file type isn't supported — try JPG, PNG, or WEBP.`);
+    toast.error(t("upload.fileType", { label }));
     return false;
   }
   if (file.size > MAX_FILE_SIZE) {
-    toast.error(`${label}: that file is over 5 MB — try a smaller one.`);
+    toast.error(t("upload.fileSize", { label }));
     return false;
   }
   return true;
@@ -248,6 +250,8 @@ export const PASSWORD_MIN_LENGTH = 12;
 export interface PasswordRule {
   label: string;
   need: string;
+  /** The dictionary key of `need`, so passwordProblem() speaks the member's language. */
+  needKey: MsgKey;
   test: (password: string) => boolean;
 }
 
@@ -255,14 +259,16 @@ export const PASSWORD_RULES: readonly PasswordRule[] = [
   {
     label: `${PASSWORD_MIN_LENGTH}+ characters`,
     need: `${PASSWORD_MIN_LENGTH} characters or more`,
+    needKey: "pw.needLength",
     test: (p) => p.length >= PASSWORD_MIN_LENGTH,
   },
-  { label: "Lowercase", need: "a lowercase letter", test: (p) => /[a-z]/.test(p) },
-  { label: "Uppercase", need: "an uppercase letter", test: (p) => /[A-Z]/.test(p) },
-  { label: "Number", need: "a number", test: (p) => /\d/.test(p) },
+  { label: "Lowercase", need: "a lowercase letter", needKey: "pw.needLower", test: (p) => /[a-z]/.test(p) },
+  { label: "Uppercase", need: "an uppercase letter", needKey: "pw.needUpper", test: (p) => /[A-Z]/.test(p) },
+  { label: "Number", need: "a number", needKey: "pw.needNumber", test: (p) => /\d/.test(p) },
   {
     label: "Symbol",
     need: "a symbol like ! ? # or $",
+    needKey: "pw.needSymbol",
     // Membership in the server's own set — see PASSWORD_SYMBOLS.
     test: (p) => Array.from(p).some((c) => PASSWORD_SYMBOLS.includes(c)),
   },
@@ -281,12 +287,12 @@ export function unmetPasswordRules(password: string): readonly PasswordRule[] {
 export function passwordProblem(password: string): string | null {
   const unmet = unmetPasswordRules(password);
   if (unmet.length === 0) return null;
-  const needs = unmet.map((r) => r.need);
+  const needs = unmet.map((r) => t(r.needKey, { n: PASSWORD_MIN_LENGTH }));
   const joined =
     needs.length === 1
       ? needs[0]
-      : `${needs.slice(0, -1).join(", ")} and ${needs[needs.length - 1]}`;
-  return `Your password still needs ${joined}.`;
+      : `${needs.slice(0, -1).join(", ")} ${t("pw.and")} ${needs[needs.length - 1]}`;
+  return t("pw.stillNeeds", { needs: joined });
 }
 
 /**

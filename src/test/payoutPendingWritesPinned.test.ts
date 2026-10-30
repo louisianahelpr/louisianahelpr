@@ -57,7 +57,8 @@ const sites = walk(FUNCTIONS).flatMap((f) => payoutPendingSites(relative(ROOT, f
 
 describe("Q1326: every edge write that sets payment_status 'payout_pending' pins the state it moves from", () => {
   it("inventory: finds the payout_pending writers (floor)", () => {
-    expect(sites.length).toBeGreaterThan(5);
+    // 5 since Q2362 (b90-dispute-held): auto-resolve-disputes no longer flips an expired dispute to payout_pending; it holds it for support.
+    expect(sites.length).toBeGreaterThan(4);
     expect(sites.some((s) => s.file === "supabase/functions/create-payment/index.ts")).toBe(true);
   });
 

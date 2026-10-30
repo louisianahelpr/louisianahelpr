@@ -115,7 +115,7 @@ describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)"
     expect(sheet).toHaveTextContent("Nikki is told, and is paid once the sale is final. You can't ask for a refund on this sale again.");
     expect(state.withdrawn).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep my request" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(state.withdrawn).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));

@@ -40,6 +40,7 @@ import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors
 import { HANDOFF_WORDS } from "./SellerDeliveryChoice";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { FallbackImg } from "./FallbackImg";
 
 // min-h-11: the 44px tap floor (they were 36px; Declutter audit 2026-10-28).
 const btn = "min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold";
@@ -194,7 +195,7 @@ function DeliveredPhoto({ path, hand, at }: { path: string; hand: boolean; at: s
   return (
     <figure className="space-y-1.5" data-delivered-photo="">
       <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
-        {url.data && <img src={url.data} alt={label} className="h-full w-full object-cover" />}
+        {url.data && <FallbackImg src={url.data} alt={label} className="h-full w-full object-cover" />}
       </div>
       {url.isSuccess && !url.data && <p className="text-xs" role="alert">The photo couldn't load. Try again in a minute.</p>}
       <figcaption className="text-ds-13 text-muted-foreground">{label}, taken {LA_WHEN.format(new Date(at))}</figcaption>

@@ -34,7 +34,7 @@ export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): bo
  * those only what the giver ticked (null = an older item with no ticks: both, as before). One rule for the ask line
  * on the item page and for the free checkout, so the page never promises a way that checkout then leaves out.
  */
-export function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandover[] {
+function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandover[] {
   return (porchOk ? (["porch", "pickup_home"] as FreeHandover[]) : (["pickup_home"] as FreeHandover[])).filter((h) => wayAllowed(ways, h));
 }
 
@@ -42,7 +42,7 @@ export function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): Free
  * DA-5 (Declutter audit 2026-10-30): the ask line named "their home or from their porch" whatever the giver ticked.
  * It now names only the ways this item offers (undefined = still loading: no way named yet).
  */
-export function freeAskLine(offered: FreeHandover[] | undefined): string {
+function freeAskLine(offered: FreeHandover[] | undefined): string {
   const how = offered === undefined ? "to choose a pickup"
     : offered.length === 2 ? "to choose a pickup at their home or from their porch"
     : offered[0] === "porch" ? "to choose a time to collect it from their porch"

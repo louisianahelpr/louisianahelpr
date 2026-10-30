@@ -175,6 +175,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // D-NEW14 porch places (20261030164712, exported by 20261030165438): the seller's own places; the buyer's own pick per seller.
   declutter_porch_places: { by: ["seller_id"] },
   declutter_porch_place_choices: { by: ["buyer_id"] },
+  job_post_drafts: { by: ["user_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.

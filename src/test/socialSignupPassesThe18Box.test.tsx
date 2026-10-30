@@ -23,9 +23,9 @@
  *      below, so a second writer cannot appear without being named here.
  *
  * @mutate src/components/ProtectedRoute.tsx |   return filled(profile.age_attested_at) \|\| filled(profile.date_of_birth); |   return true;
- * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: "Confirm you're 18 or older", done: ageConfirmed }] : []), |
+ * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), done: ageConfirmed }] : []), |
  * @mutate src/pages/auth/CompleteProfile.tsx |         ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
- * @mutate src/pages/auth/CompleteProfile.tsx |                   I confirm I am 18 years of age or older. <span | <span
+ * @mutate src/pages/auth/CompleteProfile.tsx |                   {t("profileGate.ageConfirm")} <span | <span
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = true;
  */

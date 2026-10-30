@@ -16,14 +16,14 @@
  * sign-up to /complete-profile, or "Skip for now" is a redirect loop.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx |     if (!firstName.trim()) {\n      firstNameRef.current?.focus();\n      return;\n    } |
- * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) { toast.error("Add your first name."); return false; } |
- * @mutate src/pages/auth/Signup.tsx |       if (zip && zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code"; |       if (!zip) errors.zipCode = "Add your ZIP code";
+ * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; } |
+ * @mutate src/pages/auth/Signup.tsx |       if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid"); |       if (!zip) errors.zipCode = "Add your ZIP code";
  * @mutate src/pages/auth/Signup.tsx |         location: skipped ? "" : location, |         location,
  * @mutate src/pages/auth/Signup.tsx |             onSkip={() => finishStep2(true)} |             onSkip={() => finishStep2(false)}
  * @mutate src/pages/auth/Signup.tsx |         referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, |         referralCode: referralCode.trim().toUpperCase() \|\| null,
  * @mutate src/components/ProtectedRoute.tsx |   if (!signupFinished(profile)) return false; |
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         onClick={onSkip} |         onClick={onContinue}
- * @mutate src/pages/auth/signup/SignupStep2.tsx |         Skip and create account |         Skip for now
+ * @mutate src/pages/auth/signup/SignupStep2.tsx |         {t("signup.skip")}\n |         Skip for now\n
  * @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "location", label: "City" },
  * @mutate src/pages/auth/CompleteProfile.tsx |             {!providerGaveName && ( |             {true && (
  * @mutate src/pages/auth/CompleteProfile.tsx |     { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail( |     { const zip = zipCode.replace(/\D/g, ""); if (zip.length !== 5) return fail(
@@ -34,6 +34,7 @@ import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { useState } from "react";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 import { SignupStep1 } from "@/pages/auth/signup/SignupStep1";
 import { SignupStep2 } from "@/pages/auth/signup/SignupStep2";
 import { isProfileComplete } from "@/components/ProtectedRoute";
@@ -96,8 +97,10 @@ describe("screen 1: first and last name, side by side, required", () => {
   it("the names come before the email, and the parent refuses a step without them too", () => {
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeGreaterThan(0);
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeLessThan(STEP1.indexOf('htmlFor="email"'));
-    expect(SIGNUP).toContain('if (!firstName.trim()) { toast.error("Add your first name."); return false; }');
-    expect(SIGNUP).toContain('if (!lastName.trim()) { toast.error("Add your last name."); return false; }');
+    expect(SIGNUP).toContain('if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; }');
+    expect(en["signup.firstNameToast"]).toBe("Add your first name.");
+    expect(SIGNUP).toContain('if (!lastName.trim()) { toast.error(t("signup.lastNameToast")); return false; }');
+    expect(en["signup.lastNameToast"]).toBe("Add your last name.");
   });
 });
 
@@ -127,7 +130,8 @@ describe("screen 2: photo, city, ZIP, bio and referral code, all optional, with 
     expect(SIGNUP).not.toMatch(/errors\.location\s*=/);
     expect(SIGNUP).not.toMatch(/errors\.firstName\s*=|errors\.lastName\s*=/);
     expect(SIGNUP).not.toMatch(/errors\.zipCode\s*=\s*"Add your ZIP code"/);
-    expect(SIGNUP).toContain('if (zip && zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";');
+    expect(SIGNUP).toContain('if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid");');
+    expect(en["signup.zipInvalid"]).toBe("Enter a 5-digit ZIP code");
   });
 
   it("Skip creates the account with none of screen 2's fields (only a ?ref= link's code still counts)", () => {

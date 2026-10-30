@@ -22,7 +22,7 @@
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
- * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email once if you don't finish.\n | \n
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |         {t("signup.mayEmailOnce")}\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC;
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
@@ -35,6 +35,7 @@
  * below; the card's render is src/components/admin/adminAnalytics/SignupLeadsCard.test.tsx.
  */
 import { describe, it, expect } from "vitest";
+import { en } from "@/lib/i18n/en";
 import { existsSync, readFileSync } from "node:fs";
 import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
@@ -175,7 +176,9 @@ describe("signup leads: client and unsubscribe layers", () => {
   });
 
   it("step 1 tells the visitor before it happens", () => {
-    expect(step1).toContain("We may email once if you don't finish.");
+    // Spanish option (2026-10-29): the words come from en.ts through t().
+    expect(step1).toContain('{t("signup.mayEmailOnce")}');
+    expect(en["signup.mayEmailOnce"]).toBe("We may email once if you don't finish.");
   });
 
   it("the one-click unsubscribe also stamps the lead, and a failed write is not reported as success", () => {

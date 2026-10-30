@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1021,
+    "calls": 1020,
     "files": 273,
-    "rendering": 861,
+    "rendering": 860,
     "suppressedByPolicy": 160,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 717,
+      "toast.error": 716,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
-      "template": 104,
-      "dynamic": 509,
+      "literal": 447,
+      "template": 98,
+      "dynamic": 525,
       "jsx": 0
     }
   },
@@ -7330,7 +7330,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 109,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7340,7 +7340,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 197,
+      "line": 202,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10236,27 +10236,17 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 178,
+      "line": 180,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "${label} — that file type isn't supported."
+        "form": "dynamic",
+        "text": "t(problem, { label })"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 182,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "${label} is over 5 MB — try a smaller file."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 275,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10266,21 +10256,21 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 379,
+      "line": 376,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+        "form": "dynamic",
+        "text": "t(\"photo.staleAvatar\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 435,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "contactLeakRejectionMessage(err) ?? (isWriteRejected(err) ? mutationErrorMessage(err) : userFacingError(err, \"We couldn't save your profile just yet — give it another try.\"))"
+        "text": "contactLeakRejectionMessage(err) ?? (isWriteRejected(err) ? mutationErrorMessage(err) : userFacingError(err, t(\"profileGate.saveFailed\")))"
       },
       "renders": true
     },
@@ -10306,17 +10296,17 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 184,
+      "line": 187,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
+        "form": "dynamic",
+        "text": "t(\"login.tooManyAttempts\", { minutes: minutesLeft })"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 200,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10326,17 +10316,17 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 221,
+      "line": 224,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
+        "form": "dynamic",
+        "text": "t(\"login.tooManyAttempts\", { minutes: minutesLeft })"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 223,
+      "line": 226,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10346,31 +10336,31 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 236,
+      "line": 239,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Check your inbox first — you'll need to confirm your email before signing in."
+        "form": "dynamic",
+        "text": "t(\"login.confirmEmailFirst\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 264,
+      "line": 267,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't verify your security settings — try again?"
+        "form": "dynamic",
+        "text": "t(\"login.mfaCheckFailed\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 298,
+      "line": 301,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "That code didn't match. Check your app and try again."
+        "form": "dynamic",
+        "text": "t(\"login.mfaWrongCode\")"
       },
       "renders": true
     },
@@ -10386,37 +10376,37 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 194,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Add your first name."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 195,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Add your last name."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
       "line": 196,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Add your email address."
+        "form": "dynamic",
+        "text": "t(\"signup.firstNameToast\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 216,
+      "line": 197,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"signup.lastNameToast\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 198,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"signup.emailToast\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10426,51 +10416,51 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 217,
+      "line": 219,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Check the box to agree to the terms and platform rules."
+        "form": "dynamic",
+        "text": "t(\"signup.termsToast\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 218,
+      "line": 220,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Check the box to confirm you're 18 or older."
+        "form": "dynamic",
+        "text": "t(\"signup.ageToast\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 234,
+      "line": 236,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "We couldn't read your photo. You can add one later from your profile."
+        "form": "dynamic",
+        "text": "t(\"signup.photoReadFailed\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 317,
+      "line": 319,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${secsLeft}s."
+        "form": "dynamic",
+        "text": "t(\"signup.tooManyAttempts\", { seconds: secsLeft })"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 325,
+      "line": 327,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "This password has appeared in ${pwnedCount.toLocaleString()} known data breaches. Please choose a different password."
+        "form": "dynamic",
+        "text": "t(\"signup.passwordPwned\", { count: pwnedCount.toLocaleString() })"
       },
       "renders": true
     },
@@ -10479,8 +10469,8 @@
       "line": 396,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+        "form": "dynamic",
+        "text": "t(\"photo.staleAvatar\")"
       },
       "renders": true
     },
@@ -10490,7 +10480,7 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "authCopy ?? userFacingError(err, \"Couldn't create your account — try again?\")"
+        "text": "authCopy ?? userFacingError(err, t(\"signup.createFailed\"))"
       },
       "renders": true
     },

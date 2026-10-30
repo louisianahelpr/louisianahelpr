@@ -1277,6 +1277,23 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  declutter_set_ship_options: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_choice: "Pick a box, or turn shipping off.",
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    ship_not_free_items: "Free items are picked up, not shipped.",
+    ship_small_only: "Only small items can ship.",
+    under_18: DC.under_18,
+  },
+  declutter_ship_options_state: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_set_keep_up: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

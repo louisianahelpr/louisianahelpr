@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import type { ShipOptions } from "@/lib/declutter/shipOptions";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -593,6 +594,25 @@ export async function setAutoFreeDays(itemId: string, days: number | null): Prom
   // The generated Args type has no null (Postgres arguments are all nullable); null is Never.
   const r = await supabase.rpc("declutter_set_auto_free_days", { p_item_id: itemId, p_days: days as number });
   return rpcData(r, (e) => rpcErrorMessage("declutter_set_auto_free_days", e)) as number | null;
+}
+
+
+/**
+ * Shipping (Q2259, docs/specs/shipping-draft.md section 6): the box a small listing ships in and "I'll pay shipping",
+ * the seller's own listing only, behind the declutter_shipping switch. "not_deployed" before the migration reaches
+ * prod (PGRST202).
+ */
+export async function fetchShipOptions(itemId: string): Promise<ShipOptions | "not_deployed"> {
+  const r = await supabase.rpc("declutter_ship_options_state", { p_item_id: itemId });
+  if (isMissingRpcNamed(r.error, "declutter_ship_options_state")) return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_ship_options_state", e)) as ShipOptions;
+}
+
+export async function setShipOptions(itemId: string, next: ShipOptions): Promise<ShipOptions> {
+  return rpcData(
+    await supabase.rpc("declutter_set_ship_options", { p_item_id: itemId, p_preset: next.preset as string, p_seller_pays: next.seller_pays }),
+    (e) => rpcErrorMessage("declutter_set_ship_options", e),
+  ) as ShipOptions;
 }
 
 /**

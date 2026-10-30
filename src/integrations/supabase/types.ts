@@ -2112,6 +2112,7 @@ export type Database = {
           sale_mode: string
           seller_hidden: boolean
           seller_id: string
+          seller_pays_shipping: boolean
           ship_preset: string | null
           status: string
           submitted_at: string | null
@@ -2147,6 +2148,7 @@ export type Database = {
           sale_mode?: string
           seller_hidden?: boolean
           seller_id: string
+          seller_pays_shipping?: boolean
           ship_preset?: string | null
           status?: string
           submitted_at?: string | null
@@ -2182,6 +2184,7 @@ export type Database = {
           sale_mode?: string
           seller_hidden?: boolean
           seller_id?: string
+          seller_pays_shipping?: boolean
           ship_preset?: string | null
           status?: string
           submitted_at?: string | null
@@ -15306,6 +15309,11 @@ export type Database = {
         Returns: number
       }
       declutter_set_keep_up: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_ship_options: {
+        Args: { p_item_id: string; p_preset: string; p_seller_pays: boolean }
+        Returns: Json
+      }
+      declutter_ship_options_state: { Args: { p_item_id: string }; Returns: Json }
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }
         Returns: boolean

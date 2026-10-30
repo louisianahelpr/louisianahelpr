@@ -2,6 +2,7 @@ import { fetchTurnoverPrefill } from "./turnoverPrefill";
 import { buildSetupJobPrefill, fetchSetupHelpr, isBookedSetupJob, parseSetupKind } from "@/lib/declutter/setupHelpr";
 import { todayYmd } from "@/lib/jobDate";
 import { buildSellForMePrefill, SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
+import { buildMovingDayPrefill, MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 import { useEffect, useCallback } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
@@ -383,6 +384,19 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setCategory(p.category);
     setTitle(p.title);
     setDescription(p.description);
+    // The setters are stable useState setters; the param is the trigger.
+  }, [searchParams]);
+
+  // Moving sale -> "Hire a Helpr for moving day" (`?movingDay=<move-out date|1>`, audit 1d D4-6): a Moving help job
+  // with a title, a description to fill in and the move-out date when it is still ahead. Nothing is read.
+  useEffect(() => {
+    const raw = searchParams.get(MOVING_DAY_PARAM);
+    if (!raw) return;
+    const p = buildMovingDayPrefill(raw, todayYmd());
+    setCategory(p.category);
+    setTitle(p.title);
+    setDescription(p.description);
+    if (p.dateNeeded) setDateNeeded?.(p.dateNeeded);
     // The setters are stable useState setters; the param is the trigger.
   }, [searchParams]);
 

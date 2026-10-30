@@ -180,6 +180,8 @@ describe("Declutter error copy is exact (both ways)", () => {
     // The photo picker's toast reads declutterErrorMessage only (toastCopy.test.ts:
     // no toast shows an error's raw .message).
     expect(declutterErrorMessage(new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE))).toBe(LISTING_PHOTO_UNCLEANABLE);
-    expect(declutterErrorMessage(new Error("Failed to fetch"))).toBe("Something went wrong. Please try again.");
+    expect(declutterErrorMessage(new Error("pg_temp.x does not exist"))).toBe("Something went wrong. Please try again.");
+    // Audit 1d D4-14: a request that never reached the server says so (declutterAudit1dGaps.test.ts), never its raw text.
+    expect(declutterErrorMessage(new Error("Failed to fetch"))).toBe("Connection trouble. Check your signal and try again.");
   });
 });

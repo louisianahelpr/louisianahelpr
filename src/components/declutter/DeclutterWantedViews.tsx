@@ -25,7 +25,8 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { WantedNearSection } from "./DeclutterWantedReplies";
-import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
+import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
@@ -159,7 +160,11 @@ function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; 
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
       onClose();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    // D4-14: offline mid-post says so; the form keeps what was typed (it clears only on success).
+    onError: (err) => {
+      const msg = declutterErrorMessage(err);
+      toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);
+    },
   });
   const submit = () => {
     if (post.isPending) return;

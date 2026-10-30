@@ -124,6 +124,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   end_series_for_banned_account: "alerts",
   enforce_application_job_state: "hides",
   enforce_jobs_insert_column_lock: "locks",
+  enforce_test_account_off_real_jobs: "money-gate", // Q1755 (20261030063902): an enrolled test account (test_accounts) is refused on a job whose is_seed is false
   enforce_poster_jobs_money_lock: "locks",
   enforce_retained_ban: "safety-skip",
   enqueue_instant_job_match: "alerts",

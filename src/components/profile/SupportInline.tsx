@@ -37,6 +37,7 @@ import { hapticError, hapticLight } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
   SUPPORT_TOPICS,
+  SUPPORT_REPLY_PROMISE,
   type SupportTopicKey as SupportCategory,
 } from "@/lib/supportTopics";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -257,7 +258,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
             Message sent
           </h1>
           <p className="font-sans max-w-sm" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Our team will review and get back to you soon.
+            Our team will read it and reply. {SUPPORT_REPLY_PROMISE}
           </p>
         </div>
         <Button variant="outline" onClick={reset}>

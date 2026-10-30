@@ -42,6 +42,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
+import { GetHelpNow } from "@/components/jobs/GetHelpNow";
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow, showStreet: boolean): string {
@@ -237,6 +238,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             </div>
           )}
           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
+          {(isPoster || isHired) && <GetHelpNow job={job} />}
         </section>
 
 

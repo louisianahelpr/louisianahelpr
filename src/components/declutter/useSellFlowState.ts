@@ -51,6 +51,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
 import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
 import { useLastListingSetup } from "./SellLastSetup";
+import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -167,10 +168,13 @@ export function useSellFlowState(urlItemId: string | null) {
   const usedLastSetup = useLastListingSetup(urlItemId ? undefined : user?.id, { setForm, setWays, setCoords });
   const problem = useMemo(() => formProblem(form), [form]);
   const keepUp = useKeepUp(urlItemId);
-  // A new listing's "Keep it up until it sells": there is no draft to save it on until Post.
-  const [keepUpWanted, setKeepUpWanted] = useState(false);
+  // A new listing's "Keep it up until it sells": there is no draft to save it on until Post. ON by default (owner
+  // 2026-10-30), or the seller's remembered choice (useSellerDefaultsPrefill).
+  const [keepUpWanted, setKeepUpWanted] = useState(true);
   // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
+  // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
+  const prefs = useSellerDefaultsPrefill(urlItemId ? undefined : user?.id, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   async function saveDetails(): Promise<string | null> {
@@ -315,6 +319,7 @@ export function useSellFlowState(urlItemId: string | null) {
       // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
       await requestAiCheckWithRetry(id);
       const status = await publishItem(id);
+      if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       if (answer) {
         try {

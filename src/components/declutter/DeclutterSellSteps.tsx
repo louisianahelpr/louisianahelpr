@@ -16,19 +16,37 @@ export function StepHead({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-export function ChipGroup({ label, options, value, onChange }: { label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+/**
+ * One choice from a row of chips. `groups` (the ~32 Declutter categories, owner 2026-10-30) shows the same chips
+ * under small headings, still one radio group, so a long list stays easy to scan.
+ */
+export function ChipGroup({ label, options, value, onChange, groups }: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  groups?: { heading: string; values: string[] }[];
+}) {
+  const chip = (o: { value: string; label: string }) => (
+    <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
+      // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
+      className={`flex min-h-10 items-center rounded-full px-4 text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+      {o.label}
+    </button>
+  );
   return (
     <div className="space-y-2" role="radiogroup" aria-label={label}>
       <p className="text-ds-14 font-semibold text-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
-            // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
-            className={`flex min-h-10 items-center rounded-full px-4 text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
-            {o.label}
-          </button>
-        ))}
-      </div>
+      {groups ? (
+        groups.map((g) => (
+          <div key={g.heading} className="space-y-1.5" role="group" aria-label={g.heading} data-chip-group={g.heading}>
+            <p className="text-ds-13 text-muted-foreground" aria-hidden>{g.heading}</p>
+            <div className="flex flex-wrap gap-2">{options.filter((o) => g.values.includes(o.value)).map(chip)}</div>
+          </div>
+        ))
+      ) : (
+        <div className="flex flex-wrap gap-2">{options.map(chip)}</div>
+      )}
     </div>
   );
 }

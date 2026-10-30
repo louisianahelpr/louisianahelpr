@@ -27,11 +27,9 @@
  * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | SET lock_timeout TO '3s' | SET lock_timeout TO '0'
  * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
  * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |     RETURN 'wipe_failed'; |     NULL;
- * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |   IF v_seed THEN
-    RETURN 'seed'; |   IF false THEN
-    RETURN 'seed';
+ * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF false THEN
  * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | ' just joined and can post and apply now.', | ' just joined. They can start posting + applying as soon as they confirm their email.',
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
+ * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -119,7 +117,10 @@ describe("the new-member admin notice waits for the email confirmation", () => {
   });
 
   it("is server-only: revoked from PUBLIC, anon and authenticated", () => {
-    expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.notify_admins_new_member\(uuid,\s*text\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
+    // The NEWEST revoke is the one in force (20261030143141 restates it).
+    const revokes = [...migrationSql.matchAll(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.notify_admins_new_member\(uuid,\s*text\)\s+FROM\s+([^;]*);/gi)];
+    expect(revokes.length).toBeGreaterThan(0);
+    expect(revokes[revokes.length - 1][1]).toMatch(/^PUBLIC\s*,\s*anon\s*,\s*authenticated$/i);
     expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.notify_admins_on_email_confirm\(\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
     expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+TABLE\s+public\.new_member_admin_notices\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
   });

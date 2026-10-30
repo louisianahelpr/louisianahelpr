@@ -23,7 +23,6 @@ const SECTION = "text-base font-semibold";
 /** Page-level titles, not sections: file -> how many such h2 it may hold. */
 const TITLES: Record<string, number> = {
   "src/components/declutter/DeclutterItemView.tsx": 1,
-  "src/components/declutter/DeclutterWantedViews.tsx": 1,
   "src/components/declutter/DeclutterSellSteps.tsx": 1,
   // The one-screen listing (2026-10-29) carries the sell flow's titles: same page-title style as the old steps.
   "src/components/declutter/SellOneScreen.tsx": 1,

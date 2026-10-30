@@ -5,7 +5,7 @@
  * is src/test/pglite/declutterSlice4.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
@@ -115,10 +115,11 @@ vi.mock("./DeclutterDeliveryViews", () => ({
 }));
 
 // Seller delivery's own panel has its own test (sellerDeliveryOrder.test.tsx); this stub keeps its one
-// "Report a problem" button, which opens the card's problem form (#51).
+// "Report a problem" button, which opens the card's problem form (#51), and says whether the card told it a problem
+// is open (DB-2; what the panel hides then is in sellerDeliveryOrder.test.tsx).
 vi.mock("./SellerDeliveryOrder", () => ({
-  SellerDeliveryOrderPanel: ({ onProblem }: { onProblem: () => void }) => (
-    <div><p>Seller delivery panel</p><button type="button" onClick={onProblem}>Report a problem</button></div>
+  SellerDeliveryOrderPanel: ({ onProblem, problemOpen }: { onProblem: () => void; problemOpen?: boolean }) => (
+    <div><p>Seller delivery panel{problemOpen ? ", problem open" : ""}</p><button type="button" onClick={onProblem}>Report a problem</button></div>
   ),
 }));
 
@@ -1019,7 +1020,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD | {false ? PROBLEM_ON_HOLD
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           problemOpen={!!problem} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | itemsCents={items}\n          problemOpen={!!problem} | itemsCents={items}
 describe("D2-2: an open problem shows on both cards", () => {
   const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
   beforeEach(() => {
@@ -1100,5 +1101,69 @@ describe("D2-2: an open problem shows on both cards", () => {
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText(/It's held while Louisiana Helpr looks at the problem\./)).toBeInTheDocument();
     expect(screen.queryByText(/We send it once the sale is final/)).toBeNull();
+  });
+});
+
+// Audit 1030 DB-2 (live run A): with a problem report open, Details still offered the buyer "I got it", which then
+// failed (the server refuses it: problem_open). The card now offers no "I got it" while a problem is open, on a
+// pickup, a meetup, a porch pickup or a seller delivery (the panel is told); the seller's "Picked up" stays (it records
+// the handover, and the payout stays held).
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (problemOpen) return null; |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); | who={who} problemOpen={false} onProblem={() => { setAtHandover(true);
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onProblem={() => setProblemOpen(true)} problemOpen={!!problem} /> | onProblem={() => setProblemOpen(true)} />
+describe("DB-2: no I got it while a problem is open", () => {
+  const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
+  beforeEach(() => {
+    state.bookings = [];
+    state.payouts = [];
+    state.calls = [];
+    state.handover = null;
+    state.porchDays = null;
+    state.windows = null;
+    state.problems = [];
+    state.meetup = null;
+    state.features = [];
+  });
+
+  for (const handover of ["pickup_home", "meetup"] as const) {
+    it(`${handover}, the pickup time has come: the buyer's I got it is gone while a problem is open`, async () => {
+      state.bookings = [slot(5)];
+      const before = show([line({ handover })]);
+      expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
+      before.unmount();
+      state.problems = [damaged];
+      show([line({ handover })]);
+      await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+      expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+    });
+  }
+
+  it("the seller's Picked up stays while a problem is open", async () => {
+    state.problems = [damaged];
+    state.bookings = [slot(5)];
+    show([line({ my_side: "seller" })]);
+    await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+    expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+  });
+
+  it("porch, not out yet: no 'You can tap I got it' promise while a problem is open", async () => {
+    state.bookings = [slot(-120)];
+    const before = show([line({ handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText(/You can tap "I got it" once the seller puts it out/)).toBeInTheDocument();
+    before.unmount();
+    state.problems = [damaged];
+    show([line({ handover: "porch", porch_ok: true })]);
+    await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+    expect(screen.queryByText(/You can tap "I got it"/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+  });
+
+  it("a seller delivery: the card tells the delivery panel a problem is open", async () => {
+    const before = show([line({ handover: "seller_delivery", delivery_cents: 1500 })]);
+    expect(await screen.findByText("Seller delivery panel")).toBeInTheDocument();
+    before.unmount();
+    state.problems = [damaged];
+    show([line({ handover: "seller_delivery", delivery_cents: 1500 })]);
+    expect(await screen.findByText("Seller delivery panel, problem open")).toBeInTheDocument();
   });
 });

@@ -74,7 +74,12 @@ const ASK = {
   notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "You get everything back, delivery included." },
 } as const;
 
-export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { orderId: string; userId: string; onProblem: () => void }) {
+/**
+ * `problemOpen` (audit 1030 DB-2): a problem report is open on this order, so Louisiana Helpr decides before anyone is
+ * paid. The panel then offers no "I got it" (the server refuses it: problem_open), no "Tap I got it ... 24 hours" line
+ * and no second "Report a problem"; the card's own note says a problem is open.
+ */
+export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOpen = false }: { orderId: string; userId: string; onProblem: () => void; problemOpen?: boolean }) {
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
@@ -120,10 +125,10 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         </p>
         <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
-        {b.side === "buyer" && !can.gotIt && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
+        {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
           <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
         )}
-        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}. {b.side === "buyer" ? "Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : "You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
+        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
       </div>
       {can.changeHandoff && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
@@ -153,7 +158,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        {can.gotIt && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
+        {can.gotIt && !problemOpen && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {can.askNewTime && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
         {can.notDelivered && (
           <button type="button" className={btn} disabled={busy}
@@ -161,7 +166,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
             It wasn't delivered
           </button>
         )}
-        <button type="button" className={btn} onClick={onProblem}>Report a problem</button>
+        {!problemOpen && <button type="button" className={btn} onClick={onProblem}>Report a problem</button>}
       </div>
       {ask && (
         <ConfirmSheet open title={ASK[ask].title} confirmLabel={ASK[ask].confirm} cancelLabel={ASK[ask].cancel} pending={busy} testId={`seller-delivery-${ask}`}

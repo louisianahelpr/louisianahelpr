@@ -7,7 +7,9 @@
  *   1. The seller picks many photos at once. They stay on the device.
  *   2. groupPhotos sends smaller copies, GROUP_BATCH at a time, to
  *      declutter-ai-draft's 'group' mode: it sorts them into items and drafts
- *      each. Nothing is stored or saved.
+ *      each, and each batch's items reach the screen as it finishes. Nothing is
+ *      stored or saved. A photo that can't be cleaned is named and left out; the
+ *      rest of its batch still goes.
  *   3. The seller fixes the grouping with the pure helpers below (move a
  *      photo, merge two items, split one, drop one) and edits each item.
  *   4. listBunch makes each item's draft with the ordinary calls
@@ -20,6 +22,7 @@
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { addPhoto, createDraft, invokeAiBody, setDropPct, setHandovers, setKeepUp, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -47,7 +50,7 @@ export interface BunchItem {
   category: string;
   deliverySize: DeliverySize;
   conditionStars: number;
-  /** The photo tool thinks it may be a banned item: marked, and cannot be listed from here. */
+  /** The photo tool thinks it may be a banned item: marked. It can still be listed; the photo check at listing decides. */
   flagged: boolean;
   /** Dollars as typed. */
   price: string;
@@ -112,13 +115,16 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
   return out;
 }
 
+/** The smaller copy the photo tool sees: cleaned (no location data), sent once and never kept. */
+const cleanForGroup = (file: File) => cleanListingPhoto(file, 1024, 0.7);
+
 /**
- * Ask the photo tool to sort one batch. Smaller copies, cleaned (no location data), sent once and never kept.
+ * Ask the photo tool to sort one batch of cleaned photos.
  * `at` (the located pickup address) lets the server hold each suggested price to our own sold prices nearby.
  */
-export async function askGroup(files: File[], at: AiHintPoint = null): Promise<GroupAnswer> {
+export async function askGroup(cleaned: File[], at: AiHintPoint = null): Promise<GroupAnswer> {
   const photos: string[] = [];
-  for (const f of files) photos.push(await blobToBase64(await cleanListingPhoto(f, 1024, 0.7)));
+  for (const f of cleaned) photos.push(await blobToBase64(f));
   const data = (await invokeAiBody(at ? { mode: "group", photos, at } : { mode: "group", photos }, GROUP_TIMEOUT_MS)) as GroupAnswer | null;
   // An answer without a list is a fault, never "nothing here".
   if (!data || !Array.isArray(data.items)) throw new Error("ai_unavailable");
@@ -129,39 +135,70 @@ export interface GroupResult {
   items: BunchItem[];
   /** Batches whose call failed: their photos are still there, as items without words, and this says why. */
   failed: { photos: number; error: unknown }[];
+  /** Photos that couldn't be cleaned, so can't be sent or listed. They are in no item; the screen names them. */
+  unusable: { key: string; name: string; error: unknown }[];
+}
+
+/** The screen's words for the photos left out, by file name, or null when there are none. */
+export function unusablePhotosNote(unusable: GroupResult["unusable"]): string | null {
+  if (unusable.length === 0) return null;
+  const shown = unusable.slice(0, 5).map((u) => u.name || "A photo").join(", ");
+  const more = unusable.length > 5 ? ` and ${unusable.length - 5} more` : "";
+  const subject = unusable.length === 1 ? `This photo wasn't added (${shown}):` : `${unusable.length} photos weren't added (${shown}${more}):`;
+  return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
 }
 
 /**
  * Sort every photo into items, GROUP_BATCH at a time, in the order picked (the
  * same thing's photos are usually taken together). Calls are spaced to stay
  * under the photo tool's per-minute limit. A failed batch keeps its photos.
+ * `onProgress` also gets the items each batch made, so they can show at once.
+ * Each photo is cleaned on its own: one that can't be is named in `unusable`,
+ * and the others in its batch still go.
  */
 export async function groupPhotos(
   photos: BunchPhoto[],
-  onProgress: (done: number, total: number) => void,
-  ask: (files: File[]) => Promise<GroupAnswer> = askGroup,
+  onProgress: (done: number, total: number, batchItems: BunchItem[]) => void,
+  ask: (cleaned: File[]) => Promise<GroupAnswer> = askGroup,
   wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   clock: () => number = () => Date.now(),
+  clean: (file: File) => Promise<File> = cleanForGroup,
 ): Promise<GroupResult> {
   const batches: BunchPhoto[][] = [];
   for (let i = 0; i < photos.length; i += GROUP_BATCH) batches.push(photos.slice(i, i + GROUP_BATCH));
   const items: BunchItem[] = [];
   const failed: GroupResult["failed"] = [];
+  const unusable: GroupResult["unusable"] = [];
   let last = -Infinity;
   for (const [i, batch] of batches.entries()) {
-    const gap = last + AI_CHECK_GAP_MS - clock();
-    if (gap > 0) await wait(gap);
-    last = clock();
-    try {
-      items.push(...itemsFromAnswer(await ask(batch.map((p) => p.file)), batch));
-    } catch (error) {
-      // Not swallowed: the screen says how many photos were not sorted and why; they stay as items to name.
-      failed.push({ photos: batch.length, error });
-      for (const p of batch) items.push(blankItem([p.key]));
+    const good: BunchPhoto[] = [];
+    const cleaned: File[] = [];
+    for (const p of batch) {
+      try {
+        cleaned.push(await clean(p.file));
+        good.push(p);
+      } catch (error) {
+        // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
+        unusable.push({ key: p.key, name: p.file.name, error });
+      }
     }
-    onProgress(i + 1, batches.length);
+    let made: BunchItem[] = [];
+    if (good.length > 0) {
+      const gap = last + AI_CHECK_GAP_MS - clock();
+      if (gap > 0) await wait(gap);
+      last = clock();
+      try {
+        made = itemsFromAnswer(await ask(cleaned), good);
+      } catch (error) {
+        // Not swallowed: the screen says how many photos were not sorted and why; they stay as items to name.
+        failed.push({ photos: good.length, error });
+        made = good.map((p) => blankItem([p.key]));
+      }
+    }
+    items.push(...made);
+    onProgress(i + 1, batches.length, made);
   }
-  return { items, failed };
+  return { items, failed, unusable };
 }
 
 /* ---- Fixing the grouping (pure) ----------------------------------------- */
@@ -207,9 +244,28 @@ export function dropItem(items: BunchItem[], itemKey: string): BunchItem[] {
   return items.filter((it) => it.key !== itemKey);
 }
 
-/** What stops one item being listed, in plain words, or null. */
+/**
+ * The seller's edit. Changing the name or details clears the flag, which was about the old words. Only the mark
+ * goes: the photo check at listing still runs, and the server holds anything that check flags for an admin.
+ */
+export function editBunchItem(items: BunchItem[], itemKey: string, patch: Partial<BunchItem>): BunchItem[] {
+  const reworded = "title" in patch || "description" in patch;
+  return items.map((it) => (it.key === itemKey ? { ...it, ...patch, flagged: reworded ? false : it.flagged } : it));
+}
+
+/** The photos some item still holds. Listed and dropped items' photos leave, so they stop counting toward the cap. */
+export function photosInItems(photos: BunchPhoto[], items: BunchItem[]): BunchPhoto[] {
+  const held = new Set(items.flatMap((it) => it.photoKeys));
+  const kept = photos.filter((p) => held.has(p.key));
+  return kept.length === photos.length ? photos : kept;
+}
+
+/**
+ * What stops one item being listed, in plain words, or null. A possibly banned item is not stopped: it goes through
+ * the same photo check as any listing, and declutter_publish_item holds a flagged one for an admin (owner's rule:
+ * live at once; admin only on reports or a failed automatic check).
+ */
 export function bunchItemProblem(it: BunchItem): string | null {
-  if (it.flagged) return "This may be an item you can't sell on Declutter, so it can't be listed from here.";
   if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`;
   if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return `Use at most ${photosWord(DECLUTTER_MAX_PHOTOS)}: split this item or move some photos.`;
   return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })

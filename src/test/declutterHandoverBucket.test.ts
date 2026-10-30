@@ -9,7 +9,8 @@
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql | VALUES ('declutter-handover', 'declutter-handover', false, | VALUES ('declutter-handover', 'declutter-handover', true,
  * @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = p_photo_path) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- Live camera only (20261029002010) |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = p_photo_path) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- Live camera only (20261029002010)
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = v_path) THEN\n      RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n    END IF;\n  END LOOP;\n  INSERT INTO public.declutter_problems (order_id, reporter_id |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = v_path) THEN\n      RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n    END IF;\n  END LOOP;\n  INSERT INTO public.declutter_problems (order_id, reporter_id
- * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |     RETURN split_part(p_name, '/', 1) = v_uid::text\n       AND EXISTS | RETURN EXISTS
+ * @mutate supabase/migrations/20261030043920_declutter_returns.sql |     RETURN split_part(p_name, '/', 1) = v_uid::text\n       AND EXISTS | RETURN EXISTS
+ * @mutate supabase/migrations/20261030043920_declutter_returns.sql |       RETURN split_part(p_name, '/', 1) = v_uid::text\n         AND EXISTS | RETURN EXISTS
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -43,7 +44,8 @@ describe("Declutter handover photos: a private bucket (20261017055502)", () => {
 
   it("uploads go into your own folder only; reads are the two parties and admins", () => {
     const b = body("declutter_handover_photo_access").replace(/\s+/g, " ");
-    expect(b).toContain("RETURN split_part(p_name, '/', 1) = v_uid::text AND EXISTS");
+    // Returns (20261030043920): two write paths (the return folder, then handover and problem), each own-folder only.
+    expect(b.split("RETURN split_part(p_name, '/', 1) = v_uid::text AND EXISTS").length - 1).toBe(2);
     expect(b).toContain("public.has_role(v_uid, 'admin')");
     expect(MIG).toMatch(/FOR INSERT TO authenticated\s+WITH CHECK \(bucket_id = 'declutter-handover' AND public\.declutter_handover_photo_access\(name, true\)\)/);
     expect(MIG).toMatch(/FOR SELECT TO authenticated\s+USING \(bucket_id = 'declutter-handover' AND public\.declutter_handover_photo_access\(name, false\)\)/);

@@ -111,6 +111,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterProblemPhotos.tsx` | input×1 | file |  | Photos |
 | `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterRefundRequest.tsx` | input×1, textarea×1 | text | 1000 |  |
+| `src/components/declutter/DeclutterRefundReturn.tsx` | input×4, select×1, date/calendar×1 | datetime-local, file, text | 300 |  |
 | `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Stars · Quick tags · Shown on their profile |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | 30 · Your cart |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×2 | radio, text |  | wanted-reply-item · wanted-reply-price · wanted-near-title |

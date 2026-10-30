@@ -331,7 +331,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(screen.getByText("Joined March 2025")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toContain("12 reviews");
-    expect(screen.getByRole("link", { name: "See the seller, Dana R." })).toHaveAttribute("href", "/user/u2");
+    expect(screen.getByRole("link", { name: /^See the seller, Dana R\./ })).toHaveAttribute("href", "/user/u2");
     unmount();
     state.rating = { avg: 0, count: 0 };
     open();

@@ -224,7 +224,7 @@ export default function BunchFlow() {
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Location data is removed before anything is sent, and nothing goes up until you list.
         </p>
-        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" disabled={busy} onChange={(e) => void onPhotos(e.target.files)} />
+        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" aria-label="Add photos" disabled={busy} onChange={(e) => void onPhotos(e.target.files)} />
         {busy ? (
           <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
         ) : (

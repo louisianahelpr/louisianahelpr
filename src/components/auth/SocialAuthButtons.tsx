@@ -69,6 +69,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
 }
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 interface SocialAuthButtonsProps {
   // Where to navigate after a successful native sign-in. Defaults to /home.

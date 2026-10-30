@@ -22,6 +22,7 @@ import {
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 /**
  * Renders a red inline error message below a form field.

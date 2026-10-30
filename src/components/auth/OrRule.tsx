@@ -1,4 +1,5 @@
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 /**
  * The "or" rule between email + password and the Apple / Google buttons on

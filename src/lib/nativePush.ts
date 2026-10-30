@@ -25,7 +25,7 @@ import {
   requestPushPermission as requestWebPushPermission,
   setNativePushPermission,
 } from "@/lib/pushNotifications";
-import { removeWebPushSubscription, subscribeWebPush } from "@/lib/webPush";
+import { removeWebPushSubscriptionOnUse, subscribeWebPushOnUse } from "@/lib/webPushSupport";
 import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
 import { startDeepLinkRouting } from "@/lib/deepLinkRouter";
 import { captureJobRef } from "@/lib/jobLinkRef";
@@ -541,7 +541,7 @@ export function useRequestPushPermissionOutcome() {
         // (src/lib/webPush.ts waits for the service worker itself; it never
         // throws and reports its own failures).
         granted = await requestWebPushPermission();
-        if (granted) await subscribeWebPush();
+        if (granted) await subscribeWebPushOnUse();
       }
     });
     if (granted) return "granted";
@@ -586,7 +586,7 @@ export async function unregisterPushOnSignOut(userId: string) {
     // Web push (2026-10-29) is that shared-device concern on a browser: drop
     // THIS browser's push_subscriptions row (and its subscription) while the
     // session still exists. It never throws and reports its own failures.
-    if (!isNativePlatform) await removeWebPushSubscription();
+    if (!isNativePlatform) await removeWebPushSubscriptionOnUse();
     if (!isNativePlatform && !currentDeviceToken) return;
 
     let query = supabase.from("push_tokens").delete().eq("user_id", userId);

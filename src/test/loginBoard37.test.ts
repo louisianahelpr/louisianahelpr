@@ -14,8 +14,8 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
  * @mutate src/pages/auth/Login.tsx |               <HelprMark to="/" size="lg" emblemOnly /> |               <HelprMark to="/home" size="lg" emblemOnly />
  * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
- * @mutate src/lib/i18n/en.ts | "login.title": "Log in", | "login.title": "Log In",
- * @mutate src/lib/i18n/en.ts |   "login.forgot": "Forgot password?", |   "login.forgot": "Forgot Password?",
+ * @mutate src/lib/i18n/enScreens.ts | "login.title": "Log in", | "login.title": "Log In",
+ * @mutate src/lib/i18n/enScreens.ts |   "login.forgot": "Forgot password?", |   "login.forgot": "Forgot Password?",
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = providerName;
  * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"
  * @mutate src/pages/auth/Login.tsx | <div className="grid gap-6 w-full [&>*]:min-w-0"> | <div className="grid gap-6 w-full">

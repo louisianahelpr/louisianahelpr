@@ -2,7 +2,7 @@
  * The member's language (English or Spanish) and the t() that reads the
  * dictionary. A tiny module store (useSyncExternalStore), so no provider is
  * needed: a screen rendered in a test, a portal or a lazy chunk reads the same
- * value. English is bundled; Spanish (es.ts) is fetched on first use, so an
+ * value. English is bundled (boot words in enCore.ts; screen words in enScreens.ts, a chunk the screens load); Spanish (es.ts) is fetched on first use, so an
  * English member downloads none of it.
  *
  * Remembered per device in safeStorage ("helpr_lang", mirrored to native
@@ -11,7 +11,8 @@
  */
 import { useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
-import { en, type MsgKey } from "./en";
+import type { MsgKey } from "./en";
+import { englishWords } from "./enRegistry";
 
 export type Lang = "en" | "es";
 export const LANG_KEY = "helpr_lang";
@@ -85,8 +86,9 @@ function fill(s: string, vars?: Record<string, string | number>): string {
 
 /** The words for `key` in the current language (English until Spanish arrives). */
 export function t(key: MsgKey, vars?: Record<string, string | number>): string {
-  const dict = lang === "es" && esDict ? esDict : en;
-  return fill(dict[key] ?? en[key], vars);
+  // English: the boot words plus any screen words already loaded (enRegistry.ts).
+  const dict: Record<string, string | undefined> = lang === "es" && esDict ? esDict : englishWords;
+  return fill(dict[key] ?? englishWords[key] ?? key, vars);
 }
 
 function subscribe(fn: () => void) {

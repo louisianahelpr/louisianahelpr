@@ -40,6 +40,7 @@ import {
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.

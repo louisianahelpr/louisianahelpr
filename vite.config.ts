@@ -784,6 +784,18 @@ export default defineConfig(({ mode }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The auth/account screens' words (Log in, Sign up, Finish your
+            // profile, Delete account). Several lazy screens import them, so
+            // app-shared would capture them onto EVERY page's boot (+~2 KB gz
+            // on / and /posts; 1030c's bundle check, 2026-10-30). Same shape as
+            // rentals: they ride with their importers only. Boot keeps enCore.
+            {
+              name: "i18n-screens",
+              test: /[\\/]src[\\/]lib[\\/]i18n[\\/]enScreens\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Shared code no signed-OUT cold load reaches (Q654). app-shared sits
             // on the boot path of every page, and the modules two SIGNED-IN pages
             // share (useActivityData, subscriptionTiers, nativePush, ...) rode in

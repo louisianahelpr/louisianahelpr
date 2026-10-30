@@ -14,7 +14,7 @@ import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import { explainPermission } from "@/hooks/usePermissionRationale";
 import { waitForNoModal } from "@/lib/pushPermissionNudge";
-import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPush } from "@/lib/webPush";
+import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPushOnUse } from "@/lib/webPushSupport";
 import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
 
 export const WEB_PUSH_ASKED_KEY = "web-push-asked-at";
@@ -24,8 +24,8 @@ export const WEB_PUSH_ASK_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
 export function useWebPushBootSync(userId: string | null | undefined): void {
   useEffect(() => {
     if (!userId || !hasWebPushApis()) return;
-    // subscribeWebPush reports its own failures and never throws.
-    void subscribeWebPush();
+    // Loads webPush.ts on use; reports its own failures (a failed chunk too) and never throws.
+    void subscribeWebPushOnUse();
   }, [userId]);
 }
 
@@ -52,7 +52,7 @@ export async function offerWebPushAfterJobAction(): Promise<void> {
     // only shows the prompt from a user gesture, and an await before this
     // line would spend it.
     const answer = await Notification.requestPermission();
-    if (answer === "granted") await subscribeWebPush();
+    if (answer === "granted") await subscribeWebPushOnUse();
   });
 }
 

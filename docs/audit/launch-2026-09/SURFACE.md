@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 53 |
+| Routes (non-redirect) | route | 54 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 34 |
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 200 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1043 (across 283 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1051 (across 287 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 33 |
 | Multi-step flows — probable | flow | 28 |
 | Back/next navigation only | flow | 56 |
-| Forms (submittable) | form | 89 |
+| Forms (submittable) | form | 91 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 167 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **688** |
-| **Copy surfaces** (strings a person may read) | mixed | **1091** |
-| **Total auditable surface** | mixed | **1779** |
+| **Navigable surfaces** (places a person can stand) | mixed | **691** |
+| **Copy surfaces** (strings a person may read) | mixed | **1099** |
+| **Total auditable surface** | mixed | **1790** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,11 +67,11 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 53 | 34 | agree |
+| Real routes | 54 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 200 | 130 | agree within method (script counts every menu instance) |
-| Forms | 89 | ~38 | agree |
+| Forms | 91 | ~38 | agree |
 | Confirmed multi-step flows | 33 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -103,6 +103,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/declutter`
 - [ ] `/declutter/sell`
 - [ ] `/declutter/move`
+- [ ] `/declutter/settings`
 - [ ] `/declutter/item/:id`
 - [ ] `/quotes/request/:id`
 - [ ] `/tips/:tipId`
@@ -551,6 +552,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterHandoverTalk.tsx` (form tag)
+- [ ] `src/components/declutter/DeclutterListingDefaults.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterOfferPanel.tsx` (form tag)
@@ -564,6 +566,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/KeepUpRow.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellerDeliverySettings.tsx` (form tag)
 - [ ] `src/components/declutter/SellPorchDays.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/SellPorchPlaces.tsx` (dialog/mutation)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/guarantee/HelprGuaranteePanel.tsx` (dialog/mutation)

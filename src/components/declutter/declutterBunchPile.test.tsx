@@ -62,13 +62,13 @@ describe("an item with no words", () => {
     const onRewrite = vi.fn();
     card({ onRewrite });
     expect(document.querySelector("[data-bunch-no-words]")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Write it with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Write it with AI/ }));
     expect(onRewrite).toHaveBeenCalledTimes(1);
   });
 
   it("with words, it is Write it again, and says nothing about being blank", () => {
     card({ item: { ...blankItem(["a"]), title: "Oak chair" } });
-    expect(screen.getByRole("button", { name: "Write it again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Write it again/ })).toBeTruthy();
     expect(document.querySelector("[data-bunch-no-words]")).toBeNull();
   });
 
@@ -85,7 +85,7 @@ describe("a photo that didn't finish sending", () => {
     const onRetryUpload = vi.fn();
     card({ item: { ...blankItem(["a", "b"]), title: "Floor lamp", failedPhoto: "b" }, onRetryUpload });
     expect(document.querySelectorAll("[data-bunch-photo-failed]")).toHaveLength(1);
-    expect(screen.getByLabelText("Floor lamp, photo 2").closest("li")?.hasAttribute("data-bunch-photo-failed")).toBe(true);
+    expect(screen.getByRole("button", { name: "See Floor lamp, photo 2" }).closest("li")?.hasAttribute("data-bunch-photo-failed")).toBe(true);
     expect(document.querySelector("[data-bunch-upload-failed]")?.textContent).toContain("Photo 2");
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetryUpload).toHaveBeenCalledTimes(1);

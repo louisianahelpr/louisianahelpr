@@ -745,12 +745,15 @@ describe("addPhotoSteadily, the one-item form's copy", () => {
   });
 
   it("a failed upload throws photo_not_uploaded and never attaches", async () => {
-    h.queue.push(refused("storage down"));
+    for (let i = 0; i < 12; i++) h.queue.push(refused("storage down"));
     const e = await rejection(addPhoto("seller-1", "item-1", file));
+    h.queue.length = 0;
     expect(e.message).toBe("photo_not_uploaded");
     expect(declutterErrorMessage(e)).toBe(DECLUTTER_ERROR_COPY.photo_not_uploaded);
     expect(h.rpcs).toHaveLength(0);
-    expect(h.store.map((s) => s[0])).toEqual(["upload"]);
+    // Tried again to the same name, by itself, and nothing else was touched.
+    expect(new Set(h.store.map((s) => s[0]))).toEqual(new Set(["upload"]));
+    expect(new Set(h.store.map((s) => s[2])).size).toBe(1);
   });
 
   it("a refused attach deletes the uploaded object again and throws the refusal with its words", async () => {

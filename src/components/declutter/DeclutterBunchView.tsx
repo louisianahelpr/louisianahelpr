@@ -179,7 +179,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     const mine = (address: string) => !address.trim() || address === lastAddress;
     setPickupAddress((a) => (mine(a) ? p.address : a));
     setAreaLabel((a) => (!a.trim() || a === lastSetup.data?.areaLabel ? p.areaLabel : a));
-    setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
+    place.setPoint((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
   });
   const placeLoaded = useRef(false);
   useEffect(() => {

@@ -21,7 +21,8 @@ describe("Declutter price drops are opt-in", () => {
     // Floor (vacuity, nightly-red #2894): 1379 migrations on 2026-10-29.
     expect(migrations.length).toBeGreaterThan(1000);
     for (const f of migrations) {
-      const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
+      // declutter_seller_defaults.drop_pct (20261030144112) is the seller's saved choice, not this column's default.
+      const sql = blankSqlComments(readFileSync(join(dir, f), "utf8")).replace(/CREATE TABLE[^;]*declutter_seller_defaults[^;]*;/gi, "");
       const re = /drop_pct\s+(?:smallint[^;]*?)?(?:SET\s+)?DEFAULT\s+(\d+)/gi;
       for (const m of sql.matchAll(re)) last = m[1];
     }

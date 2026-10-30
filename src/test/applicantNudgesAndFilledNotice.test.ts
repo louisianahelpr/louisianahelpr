@@ -60,7 +60,7 @@ describe("UX-3: the filled notice", () => {
     expect(b).toMatch(/ELSIF NEW\.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW\.helper_id IS DISTINCT FROM job_helper AND \(NEW\.decline_reason IS NULL OR btrim\(NEW\.decline_reason\) = ''\) THEN/);
     const branch = b.slice(b.indexOf("ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL"));
     expect(branch).toMatch(/^[\s\S]*?v_title := 'This job was filled';/);
-    expect(branch).toMatch(/^[\s\S]*?'Thanks for applying to "' \|\| COALESCE\(job_title, 'this job'\) \|\| '"\. The poster picked someone else this time\. Tap to see similar open jobs\.'/);
+    expect(branch).toMatch(/^[\s\S]*?'Thanks for applying to "' \|\| COALESCE\(job_title, 'this job'\) \|\| '"\. They picked someone else this time\. Tap to see similar open jobs\.'/);
     expect(branch).toMatch(/^[\s\S]*?v_link := '\/jobs\?tab=browse' \|\| CASE WHEN job_cat IS NOT NULL THEN '&cat=' \|\| job_cat ELSE '' END;/);
     // The group is the Browse chip id (src/lib/jobCategoryGroups.ts), so ?cat= filters the feed.
     expect(b).toContain("COALESCE(public.job_category_group(category), category::text)");

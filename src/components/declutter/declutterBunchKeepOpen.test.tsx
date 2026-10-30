@@ -6,7 +6,7 @@
  * @mutate src/lib/declutter/bunch.ts |   activeRun.watcher = watcher; |   void watcher;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (running) setListing(running); |     void running;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   useScreenAwake(!!sorting \|\| !!listing \|\| listingDrafts); |   useScreenAwake(false);
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       const gone = new Set(out.filter((o) => "status" in o \|\| !o.stays).map((o) => o.key)); |       const gone = new Set(out.map((o) => o.key));
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       const gone = new Set(result.out.filter((o) => "status" in o \|\| !o.stays).map((o) => o.key)); |       const gone = new Set(result.out.map((o) => o.key));
  * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true }); |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id });
  * @mutate src/hooks/useScreenAwake.ts |       if (document.visibilityState === "visible") void take(); |       void 0;
  */

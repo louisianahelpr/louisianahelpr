@@ -15480,6 +15480,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_update_wanted: {
+        Args: {
+          p_category: string
+          p_max_price_cents: number
+          p_radius_miles: number
+          p_wanted_id: string
+          p_what: string
+        }
+        Returns: string
+      }
+      declutter_reopen_wanted: { Args: { p_wanted_id: string }; Returns: string }
+      declutter_remove_wanted: { Args: { p_wanted_id: string }; Returns: string[] }
+      declutter_my_reply_listings: {
+        Args: { p_wanted_id: string }
+        Returns: {
+          current_price_cents: number
+          id: string
+          refuses: string
+          title: string
+        }[]
+      }
       declutter_wanted_browse: {
         Args: { p_lat: number; p_lng: number }
         Returns: {
@@ -15489,6 +15510,7 @@ export type Database = {
           max_price_cents: number
           miles: number
           photo_path: string
+          photo_paths: string[]
           poster_name: string
           replied: boolean
           what: string

@@ -48,6 +48,8 @@ export interface WantedReply {
   status: "open" | "accepted" | "declined" | "expired" | "withdrawn" | "voided";
   awaiting: "buyer" | "seller";
   created_at: string;
+  /** Audit 10-30 #19: the listing's first photo, or null; absent before the migration is on prod. */
+  photo_path?: string | null;
 }
 
 /** Q2267: a public Wanted post near the reader. Never a user id or coordinates (declutter_wanted_browse). */
@@ -65,6 +67,8 @@ export interface WantedNear {
   replied: boolean;
   /** 20261030064727: the post's first photo (job-photos path), or null; absent before it is on prod. */
   photo_path?: string | null;
+  /** Audit 10-30 #19: all of the post's photos; absent before the migration is on prod. */
+  photo_paths?: string[];
 }
 
 export interface WantedMatch {
@@ -88,24 +92,39 @@ export function dollarsToCents(v: string): number | null {
   return Math.round(Number(t) * 100);
 }
 
-/**
- * The same rules the server applies (declutter_create_wanted, W8), checked
- * first so the member gets the words before a round trip. Returns the problem
- * in plain words, or null when the form can be sent.
- */
-export function wantedFormProblem(f: WantedForm): string | null {
-  const what = f.what.trim().replace(/\s+/g, " ");
+/** Latin letters with accents (Spanish, French, Louisiana words); the server's declutter_wanted_text_problem says the same. */
+const LETTER = "A-Za-zÀ-ÖØ-öø-ÿĀ-ſ";
+const WANTED_ALLOWED_CHAR = new RegExp(`[${LETTER}0-9 .,'’&()/#+"“”-]`);
+const WANTED_LINK = new RegExp(`[${LETTER}]\\.[${LETTER}]`);
+
+function wantedWordsProblem(raw: string): string | null {
+  const what = raw.trim().replace(/\s+/g, " ");
   if (what.length < 3 || what.length > 60) return "Say what you want in 3 to 60 letters, like \"crib\" or \"oak dresser\".";
-  if (!/^[A-Za-z0-9 .,'&()/-]+$/.test(what)) return "Use letters and numbers only. No links, phone numbers or emails.";
-  if (/[A-Za-z]\.[A-Za-z]/.test(what)) return "Leave out web addresses.";
+  // Audit 10-30 #11: names the character, so the member knows what to change.
+  const refused = [...what].find((c) => !WANTED_ALLOWED_CHAR.test(c));
+  if (refused) return `Take out the "${refused}". Use letters and numbers only. No links, phone numbers or emails.`;
+  if (WANTED_LINK.test(what)) return "Leave out web addresses, or put a space after the dot.";
   if (what.replace(/[^0-9]/g, "").length >= 7 || /(\b(zero|oh|one|two|three|four|five|six|seven|eight|nine)\b[^a-z0-9]*){4,}/i.test(what)) {
     return "Leave out phone numbers.";
   }
-  if (!f.category) return "Pick a category.";
-  const cents = dollarsToCents(f.maxPrice);
-  if (cents === null || cents < 100 || cents > 100_000 || cents % 100 !== 0) return "Set your highest price in whole dollars, $1 to $1,000.";
-  if (!WANTED_RADIUS_CHOICES.includes(f.radius)) return "Pick how far you'd go.";
   return null;
+}
+
+export type WantedFormProblems = Partial<Record<"what" | "category" | "maxPrice" | "radius", string>>;
+
+/**
+ * The same rules the server applies (declutter_create_wanted, W8), checked first so the member gets the words before a
+ * round trip. Every problem at once, by field (audit 10-30 #22); empty when the form can be sent.
+ */
+export function wantedFormProblems(f: WantedForm): WantedFormProblems {
+  const out: WantedFormProblems = {};
+  const what = wantedWordsProblem(f.what);
+  if (what) out.what = what;
+  if (!f.category) out.category = "Pick a category.";
+  const cents = dollarsToCents(f.maxPrice);
+  if (cents === null || cents < 100 || cents > 100_000 || cents % 100 !== 0) out.maxPrice = "Set your highest price in whole dollars, $1 to $1,000.";
+  if (!WANTED_RADIUS_CHOICES.includes(f.radius)) out.radius = "Pick how far you'd go.";
+  return out;
 }
 
 /** The server's matches list (jsonb), keeping only well-formed entries. */
@@ -141,11 +160,24 @@ export async function fetchWantedNear(at: { lat: number; lng: number }): Promise
   return (rpcData(res, (e) => rpcErrorMessage("declutter_wanted_browse", e)) ?? []) as WantedNear[];
 }
 
+export interface ReplyListing {
+  id: string;
+  title: string;
+  current_price_cents: number;
+  /** Audit 10-30 #12: what Send would refuse; null or absent when the listing can answer. */
+  refuses?: "too_far" | "open_offer" | null;
+}
+
 /**
  * Q2267: your listings that can answer a Wanted post: any listing for sale now (audit W7, 20261030064727: no longer
  * only sale_mode 'offers'). The server also checks the listing is inside the post's distance (W6, listing_too_far).
  */
-export async function fetchMyReplyListings(userId: string): Promise<{ id: string; title: string; current_price_cents: number }[]> {
+export async function fetchMyReplyListings(userId: string, wantedId: string): Promise<ReplyListing[]> {
+  // Audit 10-30 #12: the server says which listings it would refuse, before Send. Until that is on prod: all of them.
+  const res = await supabase.rpc("declutter_my_reply_listings", { p_wanted_id: wantedId });
+  if (!res.error || !isMissingRpcNamed(res.error, "declutter_my_reply_listings")) {
+    return (rpcData(res, (e) => rpcErrorMessage("declutter_my_reply_listings", e)) ?? []) as ReplyListing[];
+  }
   const rows = unwrap(
     await supabase
       .from("declutter_items")
@@ -154,7 +186,18 @@ export async function fetchMyReplyListings(userId: string): Promise<{ id: string
       .eq("status", "live")
       .order("created_at", { ascending: false }),
   );
-  return (rows ?? []) as { id: string; title: string; current_price_cents: number }[];
+  return (rows ?? []) as ReplyListing[];
+}
+
+/**
+ * Audit 10-30 #5: the post a seller's alert points at, read from their listing's own area (the distance the alert was
+ * measured by), since the reader may be somewhere else today. Null when it is closed, gone or no longer in reach.
+ */
+export async function fetchWantedFromAlert(wantedId: string, itemId: string): Promise<WantedNear | null> {
+  const row = unwrap(await supabase.from("declutter_items").select("area_lat, area_lng").eq("id", itemId).maybeSingle());
+  if (!row || row.area_lat === null || row.area_lng === null) return null;
+  const near = await fetchWantedNear({ lat: Number(row.area_lat), lng: Number(row.area_lng) });
+  return near.find((w) => w.id === wantedId) ?? null;
 }
 
 /** Audit 10-30 #12: a free listing has no price to offer (the server takes at least $1), so it can't answer a post. */
@@ -206,6 +249,30 @@ export async function answerAfterListing(
   if (cents < 100) return { kind: "free" };
   await replyToWanted(a.wantedId, itemId, cents);
   return { kind: "sent", cents };
+}
+
+/** Audit 10-30 #9: change your own open post. The server checks everything again and matches it again. */
+export async function updateWanted(id: string, f: WantedForm): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_update_wanted", {
+      p_wanted_id: id, p_what: f.what.trim(), p_category: f.category, p_max_price_cents: dollarsToCents(f.maxPrice) ?? 0, p_radius_miles: f.radius,
+    }),
+    (e) => rpcErrorMessage("declutter_update_wanted", e),
+  ) as string;
+}
+
+/** Audit 10-30 #9: post a closed or expired post again, for another 30 days. */
+export async function reopenWanted(id: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_reopen_wanted", { p_wanted_id: id }), (e) => rpcErrorMessage("declutter_reopen_wanted", e)) as string;
+}
+
+/** Audit 10-30 #9: take a post off your list for good, and delete its photos (best effort: it no longer holds them). */
+export async function removeWanted(id: string): Promise<void> {
+  const paths = rpcData(await supabase.rpc("declutter_remove_wanted", { p_wanted_id: id }), (e) => rpcErrorMessage("declutter_remove_wanted", e)) as string[] | null;
+  if (paths && paths.length > 0) {
+    const { error } = await supabase.storage.from(DECLUTTER_PHOTO_BUCKET).remove(paths);
+    if (error) console.warn("[declutter] could not delete a removed Wanted post's photos", error.message);
+  }
 }
 
 export async function closeWanted(id: string): Promise<string> {

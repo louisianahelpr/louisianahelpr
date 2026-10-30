@@ -11,43 +11,55 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |                 <Link to={quickListHref(post)}> |                 <Link to="/declutter/sell">
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |               <div className="min-w-0 space-y-2"> |               <div className="space-y-2">
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |       clearPick();\n      void qc.invalidateQueries({ queryKey: ["declutter"] }); |       void qc.invalidateQueries({ queryKey: ["declutter"] });
- * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const listings = (mine.data ?? []).filter(canAnswerWanted); |   const listings = mine.data ?? [];
  * @mutate src/lib/declutter/wanted.ts |   return item.current_price_cents >= 100; |   return true;
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const listings = (mine.data ?? []).filter((i) => canAnswerWanted(i) && !i.refuses); |   const listings = (mine.data ?? []).filter(canAnswerWanted);
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     if (startAt) pick(startAt); |
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     next.delete("answer"); |
+ * @mutate src/lib/declutter/wanted.ts |   return near.find((w) => w.id === wantedId) ?? null; |   return near[0] ?? null;
  *
  * Audit W1 (the sheet slid sideways on WebKit): the listings are the shared RadioCardList inside a min-w-0 box.
  * Quick-list (owner 2026-10-30): "List it now" opens the shared sell flow with the post to answer.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   near: [] as unknown[],
-  listings: [] as { id: string; title: string; current_price_cents: number }[],
+  listings: [] as { id: string; title: string; current_price_cents: number; refuses?: string | null }[],
   sent: [] as unknown[][],
+  fromAlert: [] as unknown[],
 };
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/declutter/wanted", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/wanted")>()),
   fetchWantedNear: async () => state.near,
   fetchMyReplyListings: async () => state.listings,
+  fetchWantedFromAlert: async (id: string) => state.fromAlert.find((p) => (p as { id: string }).id === id) ?? null,
   replyToWanted: async (...a: unknown[]) => { state.sent.push(a); return "o1"; },
 }));
 
+import { toast } from "sonner";
 import { WantedNearSection } from "./DeclutterWantedReplies";
+
+function Where() {
+  const l = useLocation();
+  return <p data-testid="where">{l.search}</p>;
+}
 
 const POST = { id: "w1", what: "Kids bike, 16 inch", category: "baby_kids", max_price_cents: 3000, poster_name: "Lexi L.", miles: 4, expires_at: "2026-11-20", replied: false };
 
-function renderIt() {
+function renderIt(url = "/declutter?tab=wanted") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><MemoryRouter><WantedNearSection at={{ lat: 30, lng: -92 }} userId="s1" /></MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[url]}><Where /><WantedNearSection at={{ lat: 30, lng: -92 }} userId="s1" /></MemoryRouter></QueryClientProvider>);
 }
 
 beforeEach(() => {
   state.near = [POST, { ...POST, id: "w2", what: "Crib", replied: true }];
   state.listings = [{ id: "i1", title: "Blue kids bike", current_price_cents: 4000 }, { id: "i2", title: "Trike", current_price_cents: 2000 }];
   state.sent = [];
+  state.fromAlert = [];
 });
 
 describe("board 117: Wanted near you and I have this", () => {
@@ -101,8 +113,8 @@ describe("board 117: Wanted near you and I have this", () => {
     fireEvent.click(await within(sheet).findByRole("radio", { name: /Blue kids bike/ }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Send to Lexi · $30" }));
     await waitFor(() => expect(state.sent).toEqual([["w1", "i1", 3000]]));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    fireEvent.click(screen.getAllByRole("button", { name: "I have this" })[1]);
+    // The sheet hides the page from the role query while it is open, so these appear only once it has closed.
+    fireEvent.click((await screen.findAllByRole("button", { name: "I have this" }))[1]);
     const next = await screen.findByRole("dialog");
     expect(within(next).getByText("Crib")).toBeInTheDocument();
     for (const r of await within(next).findAllByRole("radio")) expect(r).toHaveAttribute("aria-checked", "false");
@@ -129,6 +141,50 @@ describe("board 117: Wanted near you and I have this", () => {
     expect(await within(sheet).findByRole("link", { name: "List it now" })).toBeInTheDocument();
     expect(within(sheet).queryAllByRole("radio")).toHaveLength(0);
     expect(within(sheet).getByText(/Free listings can't answer a Wanted/)).toBeInTheDocument();
+  });
+
+  // Audit 10-30 #12: what the server would refuse is not a choice, and the sheet says why before Send.
+  it("a listing too far away or with an open offer isn't a choice, and the sheet says why", async () => {
+    state.listings = [
+      { id: "i1", title: "Blue kids bike", current_price_cents: 4000, refuses: null },
+      { id: "i2", title: "Far trike", current_price_cents: 2000, refuses: "too_far" },
+      { id: "i3", title: "Busy scooter", current_price_cents: 2000, refuses: "open_offer" },
+    ];
+    renderIt();
+    fireEvent.click((await screen.findAllByRole("button", { name: "I have this" }))[0]);
+    const sheet = await screen.findByRole("dialog");
+    expect(await within(sheet).findAllByRole("radio")).toHaveLength(1);
+    expect(sheet.querySelector("[data-wanted-too-far]")!.textContent).toContain("Far trike");
+    expect(sheet.querySelector("[data-wanted-has-offer]")!.textContent).toContain("Busy scooter");
+  });
+
+  // Audit 10-30 #5: the seller's alert opens the answer, with their listing picked, once.
+  it("from the seller's alert: I have this opens on that post with that listing picked, and the address forgets it", async () => {
+    state.fromAlert = [{ ...POST, id: "w7", what: "Oak dresser", max_price_cents: 3000 }];
+    renderIt("/declutter?tab=wanted&answer=w7&item=i1");
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Oak dresser")).toBeInTheDocument();
+    expect(await within(sheet).findByRole("radio", { name: /Blue kids bike/ })).toHaveAttribute("aria-checked", "true");
+    expect(within(sheet).getByLabelText("Your price")).toHaveValue("30");
+    await waitFor(() => expect(document.querySelector('[data-testid="where"]')!.textContent).toBe("?tab=wanted"));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send to Lexi · $30" }));
+    await waitFor(() => expect(state.sent).toEqual([["w7", "i1", 3000]]));
+  });
+
+  it("from an alert on a post that has closed: says so, and opens nothing", async () => {
+    renderIt("/declutter?tab=wanted&answer=gone&item=i1");
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("That post has closed, or your listing is no longer close enough to answer it."));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  // Audit 10-30 #19: the seller sees every photo, and can open it large.
+  it("I have this shows every photo of the post, and a tap opens it large", async () => {
+    state.near = [{ ...POST, photo_path: "u/wanted/w1/a.jpg", photo_paths: ["u/wanted/w1/a.jpg", "u/wanted/w1/b.jpg"] }];
+    renderIt();
+    fireEvent.click(await screen.findByRole("button", { name: "I have this" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByRole("button", { name: "See photo 2 of Kids bike, 16 inch" })).toBeInTheDocument();
+    expect(within(sheet).getAllByRole("button", { name: /See photo/ })).toHaveLength(2);
   });
 
   // Owner 2026-10-30: the Wanted tab is a hub, so "Wanted near you" always stands and says when it has nothing.

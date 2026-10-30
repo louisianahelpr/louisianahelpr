@@ -1043,6 +1043,43 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     wanted_not_found: DC.wanted_not_found,
   },
+  // Audit 10-30 #9, #12: edit, post again, remove, and which listings can answer.
+  declutter_update_wanted: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_category: DC.invalid_category,
+    invalid_max_price: DC.invalid_max_price,
+    invalid_radius: DC.invalid_radius,
+    invalid_wanted_text: DC.invalid_wanted_text,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+    wanted_not_found: DC.wanted_not_found,
+    wanted_not_open: DC.wanted_not_open,
+  },
+  declutter_reopen_wanted: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+    wanted_not_found: DC.wanted_not_found,
+    wanted_open_limit: DC.wanted_open_limit,
+  },
+  declutter_remove_wanted: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    wanted_not_found: DC.wanted_not_found,
+  },
+  declutter_my_reply_listings: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+    wanted_not_found: DC.wanted_not_found,
+  },
   // Wanted photos (20261030064727, owner 2026-10-30).
   declutter_add_wanted_photo: {
     account_restricted: DC.account_restricted,

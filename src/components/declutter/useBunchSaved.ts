@@ -7,7 +7,7 @@
  * items to name). A photo the seller dropped is removed, so it never comes back.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { blankItem, type BunchItem, type BunchPhoto } from "@/lib/declutter/bunch";
+import { blankItem, keepCleanablePhotos, type BunchItem, type BunchPhoto, type GroupResult } from "@/lib/declutter/bunch";
 import { clearSavedBunchNow, loadSavedBunch, removeBunchPhoto, saveBunchMeta, saveBunchPhoto } from "@/lib/declutter/bunchSaved";
 
 export interface BunchSnapshot {
@@ -38,7 +38,7 @@ export function useBunchSaved(
   userId: string | undefined,
   snapshot: BunchSnapshot,
   setItems: (update: (items: BunchItem[]) => BunchItem[]) => void,
-  onRestore: (snapshot: Omit<BunchSnapshot, "sorting" | "finished">) => void,
+  onRestore: (snapshot: Omit<BunchSnapshot, "sorting" | "finished"> & { unusable: GroupResult["unusable"] }) => void,
 ) {
   const [note, setNote] = useState<string | null>(null);
   const [restoredCount, setRestoredCount] = useState(0);
@@ -99,10 +99,13 @@ export function useBunchSaved(
       try {
         const found = await loadSavedBunch(userId);
         if (stale || !found) return;
-        const items = restoredItems(found.saved.items, found.photos);
+        const { photos, unusable } = await keepCleanablePhotos(found.photos, found.saved.items);
+        if (stale) return;
+        const items = restoredItems(found.saved.items, photos);
+        // All of them: a photo left out is on disk, so the next save removes it.
         found.photos.forEach((p) => onDisk.current.add(p.key));
         setRestoredCount(items.length);
-        restore.current({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, photos: found.photos, items });
+        restore.current({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, photos, items, unusable });
       } catch (err) {
         // No storage (private mode, blocked site data): the page still works; the first save says so if it fails too.
         console.warn("[declutter] could not read a saved bunch", err);

@@ -36,7 +36,7 @@
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
-// @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
+// @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     NEW.direct_offer_status := 'expired'; |     NULL;
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));

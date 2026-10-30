@@ -11,7 +11,6 @@ import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useExactAddressPoint } from "./useExactAddressPoint";
-import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { meetupMapUrl } from "@/lib/declutter/meetup";
 import { currentPosition } from "@/lib/declutter/position";
 import type { RefundRequestView } from "@/lib/declutter/refundRequests";
@@ -113,10 +112,18 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
   const addr = useMutation({
     mutationFn: async () => {
       if (!r) throw new Error("refund_not_found");
-      const g = await place.locate(address);
-      return setReturnAddress(r.id, address.trim(), { lat: g.lat, lng: g.lng });
+      // No distance check reads this point; it is only the seller's map link, so a refund never waits on the house.
+      const g = await place.locate(address, { allowApproximate: true });
+      await setReturnAddress(r.id, address.trim(), { lat: g.lat, lng: g.lng });
+      return { approximate: g.approximate === true };
     },
-    onSuccess: () => { toast.success(`Saved. ${who} is told where to pick it up.`); setAddress(""); refresh(); },
+    onSuccess: ({ approximate }) => {
+      toast.success(approximate
+        ? `Saved. ${who} is told where to pick it up. Their map may only show the area, but they'll read the address you typed.`
+        : `Saved. ${who} is told where to pick it up.`);
+      setAddress("");
+      refresh();
+    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (!r || r.status !== "returning" || !r.return_way) return null;
@@ -147,7 +154,6 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
         <>
           <label htmlFor={addrId} className="block text-xs font-medium">Where should they pick it up?</label>
           <input id={addrId} className={input} autoComplete="street-address" maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
-          <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
           <button type="button" className={primary} disabled={addr.isPending || address.trim().length < 5} onClick={() => addr.mutate()}>
             {addr.isPending ? "Saving…" : "Send the address"}
           </button>

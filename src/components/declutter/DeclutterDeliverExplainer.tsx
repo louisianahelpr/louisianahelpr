@@ -28,7 +28,7 @@ export function DeliverExplainer({ collapsed = false }: { collapsed?: boolean })
     <section className="space-y-2 rounded-2xl border border-border/60 bg-card p-4" aria-labelledby="deliver-explainer-title" data-deliver-explainer="">
       <div className="flex items-start gap-2">
         <Truck className="mt-1 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
-        <h2 id="deliver-explainer-title" className="min-w-0 flex-1 text-base font-semibold">
+        <h2 id="deliver-explainer-title" className="text-base font-semibold min-w-0 flex-1">
           {collapsed ? (
             <CollapsibleTrigger className="flex min-h-11 w-full items-center justify-between gap-2 text-left" data-deliver-explainer-toggle="">
               {title}

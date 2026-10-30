@@ -20,7 +20,7 @@ const MIG = resolve(__dirname, "../../supabase/migrations");
 const POLICY = `CREATE POLICY "declutter items: seller or switched-on members read live" ON public.declutter_items`;
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
 const withPolicy = files.filter((f) => blankSqlComments(readFileSync(join(MIG, f), "utf8")).includes(POLICY));
-const newest = withPolicy.at(-1) ?? "";
+const newest = withPolicy[withPolicy.length - 1] ?? "";
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const body = flat(blankSqlComments(readFileSync(join(MIG, newest), "utf8")));
 const policy = body.slice(body.indexOf(POLICY), body.indexOf(";", body.indexOf(POLICY)));

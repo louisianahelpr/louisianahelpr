@@ -40,8 +40,9 @@ export function sellerStatusLabel(item: { status: DeclutterStatus; current_price
 export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {
   draft: "Finish the listing to put it up for sale.",
   pending_review:
-    "Someone from Louisiana Helpr checks a new seller's first 3 listings, and any listing the photo check flags. You'll get a notice when it's done.",
+    "Our automatic check flagged something, or it didn't finish, so someone from Louisiana Helpr is looking at it before buyers see it. You'll get a notice when it's done.",
   rejected: "This listing wasn't approved. The reason is below.",
+  removed: "Louisiana Helpr took this listing down after a report. The reason is below.",
   paused: "Hidden from buyers. Relist it any time.",
   withdrawn: "Buyers can't see it. Relist it to put it up again with new photos.",
 };

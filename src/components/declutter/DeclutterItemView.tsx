@@ -52,6 +52,7 @@ import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
+import { DeclutterReportListing } from "./DeclutterReportListing";
 
 /** One label / value row of the details list. */
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -94,7 +95,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const review = useQuery({
     queryKey: ["declutter", "my-review", itemId],
     queryFn: () => fetchMyItemReview(itemId),
-    enabled: isSeller && item.data?.status === "rejected",
+    enabled: isSeller && (item.data?.status === "rejected" || item.data?.status === "removed"),
   });
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
@@ -192,7 +193,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
               {STATUS_HELP[it.status] ?? null}
-              {it.status === "rejected" && review.data?.review_note ? <p className="mt-1">Reason: {review.data.review_note}</p> : null}
+              {(it.status === "rejected" || it.status === "removed") && review.data?.review_note ?<p className="mt-1">Reason: {review.data.review_note}</p> : null}
               {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}
               {it.status === "withdrawn" && <div className="mt-3"><ReopenListingButton itemId={it.id} /></div>}
             </DeclutterNotice>
@@ -229,6 +230,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
           </section>
 
           <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />
+
+          {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
+          {!isSeller && user && <DeclutterReportListing itemId={itemId} />}
         </div>
       </div>
       {!isSeller && (

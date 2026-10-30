@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item";
 
 interface Reason {
   label: string;
@@ -60,6 +60,16 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares private information" },
     { label: "Something else" },
   ],
+  // Item B (owner 2026-10-29): listings go live when posted, so members report the ones that slip through.
+  // The six reasons are the lead's (2026-10-30).
+  declutter_item: [
+    { label: "Prohibited item" },
+    { label: "Scam or fake" },
+    { label: "Wrong category or misleading" },
+    { label: "Offensive" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -74,6 +84,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   user: "User",
   review: "Review",
   application: "Application",
+  declutter_item: "Listing",
 };
 
 /**
@@ -88,6 +99,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   user: "account",
   review: "review",
   application: "application",
+  declutter_item: "listing",
 };
 
 /**
@@ -101,4 +113,5 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   user: "What's wrong with this account?",
   review: "What's wrong with this review?",
   application: "What's wrong with this application?",
+  declutter_item: "What's wrong with this listing?",
 };

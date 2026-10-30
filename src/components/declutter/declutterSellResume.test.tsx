@@ -72,6 +72,7 @@ vi.mock("@/lib/declutter/api", () => ({
   requestAiDraft: vi.fn(async () => DRAFT),
   requestAiDraftFromPhotos: async () => DRAFT,
   requestAiCheck: async () => ({ checked: true, flagged: false }),
+  requestAiCheckWithRetry: async () => ({ checked: true, flagged: false }),
   setPickupWindows: async () => 1,
   attestItem: async () => undefined,
   publishItem: async () => "live",

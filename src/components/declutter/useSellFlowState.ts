@@ -7,7 +7,7 @@
  * A new listing's photos wait on the device until Post (there is no draft to hold them); Claude reads them
  * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft, uploads
  * them, then runs the same list path a draft's "List it" runs: saveDetails -> setPickupWindows -> attestItem ->
- * requestAiCheck (fail-safe) -> publishItem. The server path is the same either way.
+ * requestAiCheckWithRetry (fail-safe) -> publishItem. The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,7 @@ import {
   setKeepUp,
   setAutoFreeDays,
   type SellerHandover,
-  requestAiCheck,
+  requestAiCheckWithRetry,
   requestAiDraft,
   requestAiDraftFromPhotos,
   setDropPct,
@@ -306,12 +306,8 @@ export function useSellFlowState(urlItemId: string | null) {
       }
       await setPickupWindows(windows);
       await attestItem(id);
-      try {
-        await requestAiCheck(id);
-      } catch (err) {
-        // Fail-safe: an unchecked listing publishes to an admin's review.
-        console.warn("[declutter] photo check unavailable; the listing goes to review", err);
-      }
+      // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
+      await requestAiCheckWithRetry(id);
       const status = await publishItem(id);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       // Board 80: the Selling tab opens the "What next" sheet (ListedWhatNext) instead of a toast.

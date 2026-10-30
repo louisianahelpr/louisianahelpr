@@ -171,6 +171,7 @@
     "get_public_profile_stats(uuid[])": "client",
     "get_quotes_for_request(uuid)": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
     "get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric)": "reviewed 2026-10-05 (Q14): public ranked browse data (masked, seed-gated, src/config/showSeedJobs.ts); no app caller since /jobs was deleted, scripts/launch-go.mjs calls it as anon at launch.",
+    "get_reply_speed(uuid[])": "reviewed 2026-10-29 (Q2478, lh-authz-rls approve): public reply-speed bucket (under_1h | few_hours | within_day | NULL) under get_public_profile_stats' visibility gate; floor 5; no counts, times, ids or message data; 100-id cap; NULL for auth.uid() NULL.",
     "get_safe_profiles(uuid[])": "client",
     "get_thread_counterparty_deleted(uuid, uuid)": "client",
     "get_user_credential_tier(uuid)": "client",

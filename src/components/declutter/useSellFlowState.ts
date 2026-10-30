@@ -46,6 +46,7 @@ import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { answerAfterListing, readWantedAnswer } from "@/lib/declutter/wanted";
 import { formatPrice } from "@/lib/declutter/distance";
+import { startsFree } from "@/lib/declutter/sellChooser";
 import { useKeepUp } from "./KeepUpRow";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
@@ -66,7 +67,8 @@ export function useSellFlowState(urlItemId: string | null) {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const itemId = urlItemId ?? createdId;
   const { underAge } = useAgeGate();
-  const [form, setForm] = useState<FormState>(EMPTY);
+  // "Give it away free" from the sell chooser (?free=1, owner 2026-10-30): a NEW listing starts with Free on.
+  const [form, setForm] = useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY));
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);

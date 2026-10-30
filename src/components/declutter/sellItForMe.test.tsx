@@ -22,11 +22,11 @@
  * @mutate src/components/declutter/SellItForMe.tsx |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>\n |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p><button type="button">Hire a Helpr instead</button>\n
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellItForMeEntry grouped />\n | \n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellChooserEntry movingOutOn={movingOutOn} />\n | \n
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
- * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";
+ * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Help me list my things to sell"; | const SELL_FOR_ME_TITLE = "Help me list my things to sell, please";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
@@ -118,11 +118,11 @@ describe("Sell it for me: the entry", () => {
     expect(screen.queryByTestId("sell-it-for-me-entry")).toBeNull();
   });
 
-  it("sits on the Selling tab (with the listings, so the empty state shows it) and on Sell an item for a new listing", () => {
+  it("is reachable from the Selling tab (with the listings, so the empty state shows it) and sits on Sell an item for a new listing", () => {
     const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
-    // Owner 2026-10-28: under the listings, a row in "More ways to sell" beside Moving out sale (so the empty state shows it too).
-    // Owner 2026-10-29: "Sell a bunch" (DeclutterBunchEntry) is the first row of that card, so the run is named in full.
-    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellBunchEntry \/>\s*<SellItForMeEntry grouped \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);
+    // Owner 2026-10-30: under the listings, "More ways to sell" is ONE row to the sell chooser (so the empty state shows
+    // it too), whose "Have a Helpr list it for me" is this option A (src/components/declutter/declutterSellChooser.test.tsx).
+    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,600}?<SellChooserEntry movingOutOn=\{movingOutOn\} \/>/);
     // A NEW listing is the one screen (owner 2026-10-29); a saved draft keeps the step form, without the entry.
     const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/SellOneScreen.tsx"), "utf8"));
     expect(sell).toMatch(/<SellItForMeEntry \/>/);
@@ -166,7 +166,7 @@ describe("Sell it for me: A, hire a Helpr", () => {
     expect(JOB_CATEGORY_LABELS.declutter_help).toBe("Declutter help");
     // public.jobs CHECKs (Q782): title <= 32, description <= 1000 code points.
     expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
-    expect(p.title).toBe("Photograph and list my items");
+    expect(p.title).toBe("Help me list my things to sell");
     expect(Array.from(p.description).length).toBeLessThanOrEqual(1000);
     for (const ask of ["How many items", "Rough size", "pickups"]) expect(p.description).toContain(ask);
     expect(p.description).toContain(SELL_FOR_ME_NO_ACCOUNT_LINE);

@@ -57,6 +57,7 @@ const PROVEN: Record<string, string> = {
   sweep_dayof_confirm_reminders: "sweepCentralStartClock.pglite.mjs",
   sweep_dead_crons: "sweepCronMonitorClock.pglite.mjs",
   sweep_expired_auto_bans: "sweepClockBoundaries.pglite.mjs",
+  sweep_helpr_start_reminders: "helprStartReminders.pglite.mjs",
   sweep_idv_review_waiting: "idvReviewWaitingClock.pglite.mjs",
   sweep_job_match_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_job_start_reminders: "sweepClockBoundaries.pglite.mjs",

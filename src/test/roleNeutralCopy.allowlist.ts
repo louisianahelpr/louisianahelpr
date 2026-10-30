@@ -21,6 +21,11 @@ export type RoleCopyException = {
 
 // @two-way src/test/roleNeutralCopy.test.ts:no longer excuses any copy
 export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
+  {
+    file: "src/lib/trustLine.ts",
+    text: "repeat customer",
+    reason: "The owner's exact trust-line copy (Q2478, OWNER DECIDED 2026-10-29 via lead): \"12 jobs done · 92% on time · 3 repeat customers\". It counts people who hired this member again, not a role anyone holds.",
+  },
   // REMOVED 2026-09-20: { file: "src/", text: "Louisiana Helpr" }. It excused
   // nothing — "Helpr" on its own is never a finding, only identity
   // constructions are — while standing open over EVERY string in src/ that

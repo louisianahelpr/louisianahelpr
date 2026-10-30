@@ -213,7 +213,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             setCompletionPromptJob({
               job: doneJob,
               revieweeId: doneJob.customer_id,
-              revieweeName: app?.posterName || "the poster",
+              revieweeName: app?.posterName || "the person who posted this job",
             });
           }
         } else {

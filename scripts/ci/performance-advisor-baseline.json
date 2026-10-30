@@ -185,6 +185,7 @@
     "public.helpr_task_tips.helpr_task_tips_helpr_idx",
     "public.helpr_task_tips.helpr_task_tips_tipper_idx",
     "public.feature_switch_members.feature_switch_members_user_id_idx",
+    "public.helpr_start_reminder_sends.helpr_start_reminder_sends_user_id_idx",
     "public.job_guarantee_claims.job_guarantee_claims_helper_id_idx",
     "public.job_guarantee_claims.job_guarantee_claims_poster_id_idx",
     "public.declutter_meetup_spots.declutter_meetup_spots_created_by_idx",

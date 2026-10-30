@@ -27,6 +27,8 @@ import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/pages/posts/postedJobs/useApplicantCategoryCounts", () => ({ useApplicantCategoryCounts: () => null }));
 vi.mock("@/hooks/usePaidTierBadge", () => ({ usePaidTierBadge: () => () => null }));
+// B67's trust line reads its own query; this card test renders without a QueryClient, so it reads nothing.
+vi.mock("@/lib/trustLine", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/trustLine")>()), useMemberTrust: () => new Map() }));
 vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};
   for (const m of ["select", "eq", "in", "or", "order", "limit", "maybeSingle", "single"]) chain[m] = () => chain;

@@ -19,7 +19,7 @@ const ROOT = join(__dirname, "..", "..");
 const HOOK = "src/pages/user/useUserProfileData.ts";
 
 // @two-way src/test/profileHookReturnsAreConsumed.test.ts:expect(unconsumed.sort()).toEqual
-const KNOWN_UNCONSUMED = ["postedCancelledCount", "statSamples"];
+const KNOWN_UNCONSUMED = ["postedCancelledCount"];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

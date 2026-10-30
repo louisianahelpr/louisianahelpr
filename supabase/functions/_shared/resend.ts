@@ -128,6 +128,12 @@ export const FROM_DEFAULT = `${SENDER_NAME} <${SENDER_ADDRESS}>`;
  */
 export const FROM_CONTACT = `${SENDER_NAME} Contact <${SENDER_ADDRESS}>`;
 
+/**
+ * From header for an admin's support reply (admin-support-reply): the member
+ * hears from the team, never from one admin by name (owner, 2026-10-29).
+ */
+export const FROM_SUPPORT = `Louisiana Helpr Support <${SENDER_ADDRESS}>`;
+
 /** Human support inbox. Overridable so the address can move without a deploy. */
 export const SUPPORT_EMAIL = Deno.env.get("SUPPORT_INBOX_EMAIL") || `admin@${SENDER_DOMAIN}`;
 

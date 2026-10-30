@@ -1,7 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
+import { FROM_SUPPORT, queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { AdminActionEmail } from '../_shared/email-templates/admin-action.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
@@ -231,7 +231,7 @@ serve(async (req) => {
           .from('notifications')
           .insert({
             user_id: memberId,
-            title: 'Helpr support replied',
+            title: 'Louisiana Helpr Team replied',
             message: subject ? `About "${subject}": ${message}` : message,
             type: 'info',
             link: '/support',
@@ -250,7 +250,7 @@ serve(async (req) => {
         const { html, text } = await renderEmail(
           React.createElement(AdminActionEmail, {
             preheader: subject ? `A reply about "${subject}"` : 'A reply from Helpr support',
-            title: 'Helpr support replied',
+            title: 'Louisiana Helpr Team replied',
             greetingName: greetingOf(member.full_name),
             paragraphs: [
               ...(subject ? [[`About your message "`, { b: subject }, `":`]] : ['About your message to Helpr support:']),
@@ -259,6 +259,7 @@ serve(async (req) => {
             ],
             ctaUrl: `${appUrl}/support`,
             ctaLabel: 'Open Helpr support',
+            signOff: '— Louisiana Helpr Team',
           }),
         )
         const emailResult = await queueEmail(admin, {
@@ -267,6 +268,8 @@ serve(async (req) => {
           html,
           text,
           templateName: 'admin_support_reply',
+          // From the team, never one admin by name (owner, 2026-10-29).
+          from: FROM_SUPPORT,
           // The footer says "just reply to this email": it reaches support.
           replyTo: SUPPORT_EMAIL,
         })

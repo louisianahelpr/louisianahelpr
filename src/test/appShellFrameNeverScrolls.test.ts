@@ -14,8 +14,8 @@
  *
  * @mutate src/index.css |   .app-shell-frame.app-shell-frame {\n    overflow: clip; |   .app-shell-frame.app-shell-frame {\n    overflow: hidden;
  * @mutate src/components/AppShell.tsx | flex flex-col bg-background overflow-hidden", | flex flex-col bg-background overflow-y-auto",
- * @mutate src/lib/largeTitles.ts |  && title !== "" && !desktop); | );
- * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop); |       b.classList.toggle("on", t.scrollTop > 56 && !desktop);
+ * @mutate src/lib/largeTitles.ts |  && title !== "" && !desktop && !ownRow); | );
+ * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop && !ownRow); |       b.classList.toggle("on", t.scrollTop > 56 && !desktop && !ownRow);
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

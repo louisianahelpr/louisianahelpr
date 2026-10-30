@@ -10,6 +10,7 @@
  * must be at least MIN_ALPHA. Sites still below it are an EXACT per-file baseline (two-way): a new one fails, and
  * fixing one fails until its count here is lowered.
  * @mutate src/components/dashboard/PhotoLightbox.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.86)", | backgroundColor: "hsla(38, 18%, 12%, 0.55)",
+ * @mutate src/components/MessageAttachment.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.86)", | backgroundColor: "hsla(38, 18%, 12%, 0.55)",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,12 +22,10 @@ const ROOT = resolve(__dirname, "../..");
 const MIN_ALPHA = 0.85;
 
 /**
- * Below MIN_ALPHA, not yet judged in WebKit. MessageAttachment's own chat-photo viewer is the same scrim at 0.55
- * (reported with DA-2, not changed: a different screen than the one the audit named).
+ * Below MIN_ALPHA. Empty: MessageAttachment's chat-photo viewer, baselined at 0.55 with DA-2, now uses the same
+ * 0.86 tint (lead decision 2026-10-30: the two viewers stay consistent).
  */
-const BELOW: Record<string, number> = {
-  "src/components/MessageAttachment.tsx": 1,
-};
+const BELOW: Record<string, number> = {};
 
 const files = walkSource([join(ROOT, "src")]).filter((f) => f.endsWith(".tsx") && !/\.test\.tsx$/.test(f) && !f.includes("/src/test/"));
 const SCRIM = /backgroundColor:\s*"hsla\([^)]*,\s*([0-9.]+)\)",\s*backdropFilter:/g;
@@ -41,6 +40,7 @@ describe("a full-screen viewer's scrim hides the page with its tint alone (DA-2)
     expect(files.length).toBeGreaterThan(500);
     expect(scrims.length).toBeGreaterThan(1);
     expect(scrims.some((s) => s.file === "src/components/dashboard/PhotoLightbox.tsx")).toBe(true);
+    expect(scrims.some((s) => s.file === "src/components/MessageAttachment.tsx")).toBe(true);
   });
 
   it("every scrim's tint is at least 0.85 opaque, except the exact baseline", () => {

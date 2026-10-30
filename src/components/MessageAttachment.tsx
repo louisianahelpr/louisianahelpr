@@ -357,7 +357,10 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
             ref={lightboxRef}
             className="fixed inset-0 z-[60] flex items-center justify-center animate-in fade-in-0 duration-200"
             style={{
-              backgroundColor: "hsla(38, 18%, 12%, 0.55)",
+              // Same tint as PhotoLightbox's viewer (DA-2, 2026-10-30): at 0.55 the page read straight through
+              // in WebKit where the blur does not paint; 0.86 hides it with the tint alone
+              // (photoViewerScrimHidesPage.test.ts).
+              backgroundColor: "hsla(38, 18%, 12%, 0.86)",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
               // Required by the portal above. Any open Radix modal sets

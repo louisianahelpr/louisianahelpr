@@ -18,8 +18,8 @@ import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 // @mutate src/hooks/useFeature.ts |   const settled = isReady && (!uid \|\| answer.isSuccess \|\| answer.isError); |   const settled = isReady && (!uid \|\| answer.isSuccess);
 // @mutate src/hooks/useFeature.ts |     enabled: signedIn,\n |     enabled: true,\n
 // @mutate src/hooks/useFeature.ts | (all === null ? undefined : all[key] === true) | (all === null ? undefined : Boolean(all[key]))
-// @mutate src/hooks/useFeature.ts |     staleTime: STALE_MS,\n    meta: SWITCH_QUERY_META,\n    queryFn: fetchAllSwitches, |     staleTime: 0,\n    meta: SWITCH_QUERY_META,\n    queryFn: fetchAllSwitches,
-// @mutate src/hooks/useFeature.ts |     meta: SWITCH_QUERY_META,\n    queryFn: fetchAllSwitches, |     queryFn: fetchAllSwitches,
+// @mutate src/hooks/useFeature.ts |     staleTime: STALE_MS,\n    meta: SWITCH_QUERY_META,\n    queryFn: () => fetchAllSwitches(uid), |     staleTime: 0,\n    meta: SWITCH_QUERY_META,\n    queryFn: () => fetchAllSwitches(uid),
+// @mutate src/hooks/useFeature.ts |     meta: SWITCH_QUERY_META,\n    queryFn: () => fetchAllSwitches(uid), |     queryFn: () => fetchAllSwitches(uid),
 // @mutate src/hooks/useFeature.ts |     for (const [k, v] of Object.entries(data)) out[k] = v === true; |     for (const [k, v] of Object.entries(data)) out[k] = Boolean(v);
 // @mutate src/hooks/useFeature.ts |   if (res.error && isMissingRpcNamed(res.error, "feature_switches_for_me")) return null; |   if (res.error && res.error.code === "PGRST202" && !res.error.hint) return null;
 // @mutate src/lib/missingRpc.ts |   return names(e.message) && !names(e.hint); |   return false;

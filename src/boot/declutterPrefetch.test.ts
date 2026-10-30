@@ -13,11 +13,12 @@ import {
   takeFirstScreenPhotos,
   takeFirstScreenSwitches,
   takeFirstScreenWatching,
+  takeFirstScreenZipParish,
 } from "@/lib/declutter/bootPrefetch";
 
 // @mutate src/boot/declutterPrefetch.ts | return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? { token: session.access_token, userId } : null; | return { token: session.access_token, userId };
 // @mutate src/boot/declutterPrefetch.ts | if (path !== "/declutter" \|\| typeof fetch !== "function") return; | if (typeof fetch !== "function") return;
-// @mutate src/boot/declutterPrefetch.ts | .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null)) | .then((r) => r.json() as Promise<unknown>)
+// @mutate src/lib/declutter/bootPrefetch.ts |   return ok ? (x as FirstScreenAnswer) : null; |   return x as FirstScreenAnswer;
 // @mutate src/lib/declutter/api.ts | const prefetched = await takeFirstScreenItems(); | const prefetched = null;
 // @mutate src/lib/declutter/bootPrefetch.ts |   return a && !a.more ? a.items : null; |   return a ? a.items : null;
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (s.taken.has(part)) return null; |
@@ -25,6 +26,7 @@ import {
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!itemIds.every((id) => covered.has(id))) return null; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   return sellerIds.every((id) => asked.has(id)) ? a.bundle_sellers : null; |   return a.bundle_sellers;
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!defaultView) return false; |
+// @mutate src/lib/declutter/bootPrefetch.ts |   return known?.zip === zip && known.parish ? known.parish : null; |   return known?.parish ?? null;
 // @mutate src/entry.ts | .then((m) => m.startDeclutterPrefetch(window.location.pathname)) | .then(() => undefined)
 
 const BASE = "https://x.supabase.co";
@@ -38,6 +40,7 @@ const ANSWER = {
   photos: [{ item_id: "a" }, { item_id: "b" }],
   watching: ["a"],
   bundle_sellers: ["s1"],
+  zip_parish: { zip: "70501", parish: "Lafayette" },
 };
 const stubAnswer = (body: unknown = ANSWER, status = 200) => {
   const f = vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status })));
@@ -160,6 +163,21 @@ describe("the entry's /declutter first screen", () => {
     const p = await readFirstScreenPreview();
     expect(p?.items.map((i) => i.id)).toEqual(["a", "b"]);
     expect(p?.near).toEqual({ lat: 30.45, lng: -91.15 });
+  });
+
+  it("the ZIP's parish is handed over only for that same ZIP, and only when the server knew it", async () => {
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenZipParish("70501")).toBe("Lafayette");
+    expect(await takeFirstScreenZipParish("70501")).toBeNull();
+    (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = undefined;
+    stubAnswer();
+    start();
+    expect(await takeFirstScreenZipParish("70808")).toBeNull();
+    (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = undefined;
+    stubAnswer({ ...ANSWER, zip_parish: { zip: "70501", parish: null } });
+    start();
+    expect(await takeFirstScreenZipParish("70501")).toBeNull();
   });
 
   it("a whole answer is no preview", async () => {

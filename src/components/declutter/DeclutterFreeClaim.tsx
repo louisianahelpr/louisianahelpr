@@ -245,7 +245,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
     onError: (err) => {
       toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
-      if (chosen === "porch") void porchPlaces.query.refetch();
+      if (chosen === "porch") void porchPlaces.reread(err);
     },
   });
   return (
@@ -265,8 +265,8 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
         {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} who="giver" />}
       </fieldset>
-      {chosen === "porch" && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} loadError={porchPlaces.query.error}
-        onRetry={() => void porchPlaces.query.refetch()} />}
+      {chosen === "porch" && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
+        onRetry={() => void porchPlaces.reread()} />}
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>

@@ -25,7 +25,34 @@ type Draft = { id: string | null; label: string; address: string; area: string; 
 const EMPTY: Draft = { id: null, label: "", address: "", area: "", weekdays: [] };
 const WEEK = [0, 1, 2, 3, 4, 5, 6];
 
-function PlaceForm({ initial, onDone }: { initial: Draft; onDone: () => void }) {
+/**
+ * index.css T2 makes every .bg-card border transparent with !important, and dark drops the shadow that draws the edge
+ * in light, so a plain border class paints nothing in dark. These cards sit on another card in Declutter settings, the
+ * same colour, where they vanished altogether.
+ */
+export const PLACE_CARD_EDGE = "dark:!border-border";
+
+/** What the server books: a frozen place's weekdays only (declutter_order_is_porch_day), never the usual pickup times. */
+const PLACE_DAYS_RULE = "Porch pickup uses each place's days, not your usual pickup times.";
+
+/** The words over the places. `free`: nobody pays. `helprOnly`: porch is unticked, so only Helpr delivery reads them. */
+function placesWords(count: number, free: boolean, helprOnly: boolean): string {
+  if (free) {
+    return count > 0
+      ? "The person who gets it picks one of these and sees its address once they confirm. This applies to all your listings."
+      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days. The person who gets it picks one and sees its address once they confirm.`;
+  }
+  if (helprOnly) {
+    return count > 0
+      ? "A buyer choosing Helpr delivery picks one of these, and the Helpr picks it up there. This applies to all your listings."
+      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}. A buyer choosing Helpr delivery picks one, and the Helpr picks it up there.`;
+  }
+  return count > 0
+    ? "Buyers pick one of these. They only get its address after paying. This applies to all your listings."
+    : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days. Buyers pick one and only get its address after paying.`;
+}
+
+function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => void; free: boolean }) {
   const qc = useQueryClient();
   const uid = useId();
   const [d, setD] = useState(initial);
@@ -45,7 +72,7 @@ function PlaceForm({ initial, onDone }: { initial: Draft; onDone: () => void }) 
   const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && d.area.trim().length > 0 && d.weekdays.length > 0;
   const toggle = (day: number) => set({ weekdays: d.weekdays.includes(day) ? d.weekdays.filter((x) => x !== day) : [...d.weekdays, day].sort((a, b) => a - b) });
   return (
-    <div className="space-y-3 rounded-[16px] border border-border bg-card p-4" data-porch-place-form="">
+    <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-label`} className="block text-ds-14 font-semibold text-foreground">Name</label>
         <Input id={`${uid}-label`} maxLength={40} value={d.label} onChange={(e) => set({ label: e.target.value })} placeholder="e.g. Home, Mom's house" />
@@ -53,7 +80,7 @@ function PlaceForm({ initial, onDone }: { initial: Draft; onDone: () => void }) 
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">Address</label>
         <Input id={`${uid}-address`} maxLength={300} value={d.address} onChange={(e) => set({ address: e.target.value })} placeholder="Street, city, ZIP" autoComplete="street-address" />
-        <p className="text-ds-13 text-muted-foreground">Private. Only the buyer who pays and picks this place sees it.</p>
+        <p className="text-ds-13 text-muted-foreground">{free ? "Private. Only the person who picks this place sees it." : "Private. Only the buyer who pays and picks this place sees it."}</p>
       </div>
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-area`} className="block text-ds-14 font-semibold text-foreground">Area buyers see</label>
@@ -87,7 +114,7 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   return (
-    <li className="space-y-2 rounded-[16px] border border-border bg-card p-4" data-porch-place="">
+    <li className={`space-y-2 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place="">
       <div className="min-w-0">
         <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{place.label}</p>
         <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{place.address}</p>
@@ -127,7 +154,7 @@ export function SavedPlacesComeFirst({ free }: { free: boolean }) {
 }
 
 /** `card`: in Declutter settings it sits among the setting cards, so it brings its own (and none while there is nothing to show). */
-export function SellPorchPlaces({ card = false }: { card?: boolean }) {
+export function SellPorchPlaces({ card = false, free = false, helprOnly = false }: { card?: boolean; free?: boolean; helprOnly?: boolean }) {
   const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
   // null: no form open; a draft: adding (id null) or editing that place.
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -144,18 +171,15 @@ export function SellPorchPlaces({ card = false }: { card?: boolean }) {
   return inCard(
     <div className="space-y-2" data-porch-places="">
       <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
-      <p className="text-ds-13 text-muted-foreground">
-        {places.length > 0
-          ? "Buyers pick one of these. They only get its address after paying. This applies to all your listings."
-          : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days. Buyers pick one and only get its address after paying.`}
-      </p>
+      <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly)}</p>
+      {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
       {places.length > 0 && (
         <ul className="grid gap-2 lg:grid-cols-2">
           {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, weekdays: p.weekdays })} />)}
         </ul>
       )}
       {draft
-        ? <PlaceForm key={draft.id ?? "new"} initial={draft} onDone={() => setDraft(null)} />
+        ? <PlaceForm key={draft.id ?? "new"} initial={draft} free={free} onDone={() => setDraft(null)} />
         : places.length < MAX_PORCH_PLACES && (
           <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft(EMPTY)}>Add a pickup place</Button>
         )}

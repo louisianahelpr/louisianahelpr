@@ -68,6 +68,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
   return Dialog;
 }
 import { userFacingError } from "@/lib/userFacingError";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface SocialAuthButtonsProps {
   // Where to navigate after a successful native sign-in. Defaults to /home.
@@ -156,12 +157,13 @@ interface SocialAuthButtonProps {
 function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonProps) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   // Board 37/55 + audit L11 (2026-10-20): "Continue with Apple" / "Continue
   // with Google" on Log in AND Create account, so one wording serves both
   // (Apple's HIG lists "Continue with Apple" among its approved titles).
   const providerName = provider === "apple" ? "Apple" : "Google";
-  const label = `Continue with ${providerName}`;
+  const label = t("auth.continueWith", { provider: providerName });
 
   const handleClick = async () => {
     setLoading(true);
@@ -199,7 +201,7 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
         return;
       case "error":
         hapticError();
-        toast.error(userFacingError(result, `Couldn't sign in with ${provider} — try again?`), { id: `social-auth-${provider}` });
+        toast.error(userFacingError(result, t("auth.socialFailed", { provider })), { id: `social-auth-${provider}` });
         setLoading(false);
         return;
     }
@@ -223,7 +225,7 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
       // Still carries the FULL label ("Sign in with Apple"), not just the
       // provider word rendered beside the mark — a screen reader hears the
       // whole action, a sighted user reads the short form.
-      aria-label={loading ? "Connecting…" : label}
+      aria-label={loading ? t("auth.connecting") : label}
       title={label}
     >
       {loading ? (

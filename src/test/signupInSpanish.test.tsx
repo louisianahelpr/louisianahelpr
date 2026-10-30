@@ -8,6 +8,8 @@
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx | {lang === "es" && <span | {lang === "xx" && <span
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">Create your account</h1>
+ * @mutate src/components/auth/OrRule.tsx | {t("auth.or")} | or
+ * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = `Continue with ${providerName}`;
  * @mutate src/pages/auth/signup/SignupStep2.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you both get $5 once you finish your first job.\n
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -18,6 +20,7 @@ import { es } from "@/lib/i18n/es";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { SignupStep1, type SignupStep1Props } from "@/pages/auth/signup/SignupStep1";
 import { SignupStep2, type SignupStep2Props } from "@/pages/auth/signup/SignupStep2";
+import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 
 vi.mock("@/components/postjob/CityAutocomplete", () => ({ CityAutocomplete: () => <input id="location" /> }));
 
@@ -59,6 +62,9 @@ describe("Sign up in Spanish", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Cree su cuenta");
     expect(screen.getByTestId("legal-in-english").textContent).toBe("Los términos legales están en inglés.");
     expect(screen.getByRole("button", { name: es["signup.continue"] })).toBeTruthy();
+    // The shared "or" rule and the Apple / Google buttons read in Spanish too.
+    expect(screen.queryByText("or")).toBeNull();
+    if (SOCIAL_SIGN_IN_ENABLED) expect(screen.getByRole("button", { name: "Continuar con Apple" })).toBeTruthy();
     // The switch is on the card, and choosing English goes back.
     fireEvent.click(screen.getByRole("button", { name: "English" }));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(en["signup.title"]);

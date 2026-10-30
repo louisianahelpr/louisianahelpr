@@ -155,4 +155,10 @@ export const es: Record<MsgKey, string> = {
   "profileGate.contactSupport": "Contactar a soporte",
   "profileGate.intro": "Necesitamos algunos datos antes de que pueda usar Helpr. Así la comunidad se mantiene segura.",
   "profileGate.wiped": "Por su seguridad, se borraron los datos que escribió antes de confirmar su correo electrónico. Por favor, agréguelos otra vez.",
+
+  // Shared on Log in and Sign up: the "or" rule and the Apple / Google buttons
+  "auth.or": "o",
+  "auth.continueWith": "Continuar con {provider}",
+  "auth.connecting": "Conectando…",
+  "auth.socialFailed": "No pudimos iniciar sesión con {provider}. ¿Lo intenta de nuevo?",
 };

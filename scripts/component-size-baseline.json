@@ -17,7 +17,7 @@
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 841,
     "src/components/profile/SubscriptionTab.tsx": 871,
-    "src/components/ui/dialog.tsx": 790,
+    "src/components/ui/dialog.tsx": 754,
     "src/pages/auth/CompleteProfile.tsx": 897,
     "src/pages/auth/Signup.tsx": 605,
     "src/pages/home/Dashboard.tsx": 788,

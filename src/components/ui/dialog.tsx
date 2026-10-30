@@ -5,6 +5,7 @@ import { AlertTriangle, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { POPUP_DIALOG_CLS, POPUP_FOOTER_ROW, POPUP_HANDLE_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
 import { PopupDismissCtx, usePopupDismissPresence } from "@/components/ui/popupDismiss";
+import { useDialogFocus } from "@/components/ui/useDialogFocus";
 // The footer actions and the confirm context they read live in dialogActions.tsx
 // (a pure move out of this file, which the god-component ratchet caps); this file
 // provides DialogConfirmCtx in DialogContent and re-exports the actions so every
@@ -153,7 +154,8 @@ const DialogContent = React.forwardRef<
      */
     stepped?: boolean;
   }
->(({ className, children, onOpenAutoFocus, topRightSlot, closeDisabled, stepped, ...props }, ref) => {
+>(({ className, children, onOpenAutoFocus, onCloseAutoFocus, topRightSlot, closeDisabled, stepped, ...props }, ref) => {
+  const focus = useDialogFocus(onOpenAutoFocus, onCloseAutoFocus);
   // See popupDismiss.tsx: a dialog whose footer offers Cancel drops the X.
   const [hasDismiss, setHasDismiss] = usePopupDismissPresence();
   // `role` is never set by this component, and `{...props}` is spread after
@@ -165,46 +167,8 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      // Nine dialogs pass `onOpenAutoFocus={(e) => e.preventDefault()}` to stop
-      // Radix focusing their first Input, because on iOS that pops the keyboard
-      // the instant the dialog opens. The intent is right; the raw
-      // preventDefault was not. It left focus on the TRIGGER — outside the
-      // dialog — so a screen reader never announced what had opened and Tab
-      // walked the page BEHIND the modal. (Found by the overlay sweep on
-      // SavedSearches, SecurityTab's change-email, and TwoFactorCard.)
-      //
-      // Park focus on the dialog container instead: no field is focused, so no
-      // keyboard, but the dialog owns focus and Tab starts inside it. Radix's
-      // FocusScope gives Content `tabIndex={-1}`, so it accepts focus. This
-      // runs DURING the AUTOFOCUS_ON_MOUNT dispatch, before FocusScope reads
-      // `defaultPrevented`, so our focus is the one that sticks.
-      onOpenAutoFocus={(event) => {
-        onOpenAutoFocus?.(event);
-        if (event.defaultPrevented) {
-          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
-          return;
-        }
-        // FOCUS THE DIALOG, NOT ITS FIRST BUTTON.
-        //
-        // Radix focuses the first tabbable child on open, which since the
-        // footer rework is Cancel — so every confirm dialog opened with a
-        // visible focus ring drawn around Cancel. The owner read that as a
-        // stray border on the button and asked for it removed. It was not a
-        // border; it was a real focus indicator, and deleting it would have
-        // left keyboard and switch users with no way to see where they are.
-        //
-        // The fix is to stop putting focus on a BUTTON at all. Focus moves to
-        // the dialog itself, which is what a screen reader should land on
-        // anyway — it announces the title and body before the actions, instead
-        // of announcing "Cancel button" as though that were the point of the
-        // screen. Tab then moves to the actions and draws the ring properly,
-        // for the people the ring exists for.
-        //
-        // It also removes a small hazard: with Cancel pre-focused, a stray
-        // Enter or Space dismissed the dialog before it had been read.
-        event.preventDefault();
-        (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
-      }}
+      onOpenAutoFocus={focus.onOpen}
+      onCloseAutoFocus={focus.onClose}
       className={cn(
         // The X gets its OWN ROW now, so the card reserves that row ONLY when
         // the X is actually there. A confirm dialog offers Cancel, drops the X,

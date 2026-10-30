@@ -33,6 +33,7 @@ export function WhatNextSheet({
   children,
   primary,
   secondary,
+  onCloseAutoFocus,
 }: {
   open: boolean;
   onClose: () => void;
@@ -46,6 +47,8 @@ export function WhatNextSheet({
    *  so the press-every-control audit can press it as a read (pressDrivesTheRealPressPath). */
   primary: { label: string; onClick: () => void } | { label: string; acknowledge: true };
   secondary?: { label: string; onClick: () => void };
+  /** Where focus goes when the sheet closes, for a sheet whose opener is gone from the page by then. */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const webDesktop = useIsWebDesktop();
   return (
@@ -55,6 +58,7 @@ export function WhatNextSheet({
         floor={!webDesktop}
         className={`bg-premium-page focus:outline-none ${webDesktop ? "sm:max-w-[440px]" : ""}`}
         data-testid="what-next-sheet"
+        onCloseAutoFocus={onCloseAutoFocus}
         // Focus lands on the sheet itself, not its first button: Radix's default put the
         // focus ring on the outline action at open, so it read as selected (lead, board 77).
         // Tab still reaches both actions, and the ring shows only for keyboard focus.

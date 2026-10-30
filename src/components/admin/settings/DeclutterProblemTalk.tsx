@@ -21,12 +21,27 @@ export function ProblemTalk({ problemId }: { problemId: string }) {
   if (talk.isPending || talk.data === null) return null;
   const chat = talk.data.filter((r) => r.kind === "chat");
   const questions = talk.data.filter((r) => r.kind === "question");
+  // D2-1 (20261030042545): the buyer and seller's chat AFTER paying, where a problem is usually talked through.
+  const orderChat = talk.data.filter((r) => r.kind === "order_chat");
   return (
     <section className="space-y-2" aria-label="Chat and questions" data-problem-talk="">
       <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Chat and questions</h4>
-      {chat.length === 0 && questions.length === 0 ? (
+      {chat.length === 0 && questions.length === 0 && orderChat.length === 0 ? (
         <p className="text-xs text-muted-foreground">No chat and no questions on these items.</p>
       ) : null}
+      {orderChat.length > 0 && (
+        <div className="space-y-1.5">
+          <h5 className="text-xs font-medium text-muted-foreground">Chat after payment</h5>
+          <ol className="space-y-1.5" aria-label="Chat after payment">
+            {orderChat.map((o, i) => (
+              <li key={`o${i}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm">
+                <span className="block text-xs font-medium text-muted-foreground">{SIDE[o.side]} · {when(o.said_at)}</span>
+                <span className="whitespace-pre-line [overflow-wrap:anywhere]">{o.body}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
       {chat.length > 0 && (
         <ol className="space-y-1.5" aria-label="Handover chat">
           {chat.map((m, i) => (

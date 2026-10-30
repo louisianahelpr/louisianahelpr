@@ -321,7 +321,7 @@ describe("listBunch", () => {
     };
     const steps: [string, unknown][] = [];
     await listBunch("seller", [item("x", ["a"])], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
-    expect(steps).toEqual([["x", { draftId: "d9" }]]);
+    expect(steps).toEqual([["x", { draftId: "d9" }], ["x", { failedPhoto: "a" }]]);
     expect(deps.updateDraft).not.toHaveBeenCalled();
   });
 });

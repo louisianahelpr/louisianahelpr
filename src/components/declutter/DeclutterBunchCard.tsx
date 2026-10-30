@@ -37,6 +37,8 @@ interface BunchCardProps {
   onMerge: (intoKey: string) => void;
   onDrop: () => void;
   onRewrite: () => void;
+  /** List this item again, from the photo that didn't go. */
+  onRetryUpload?: () => void;
 }
 
 /** "Item 3" until it has a name. */
@@ -44,7 +46,7 @@ export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNote, onChange, onMove, onSplit, onMerge, onDrop, onRewrite }: BunchCardProps) {
+export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNote, onChange, onMove, onSplit, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [moveTo, setMoveTo] = useState("");
   const [mergeInto, setMergeInto] = useState("");
@@ -88,7 +90,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
             const url = urls.get(k);
             const on = live.includes(k);
             return (
-              <li key={k} className="relative">
+              <li key={k} className="relative" data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined}>
                 <button type="button" aria-pressed={on} aria-label={`${name}, photo ${i + 1}`} onClick={() => toggle(k)}
                   className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
                   {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
@@ -97,6 +99,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
                       <Check className="h-4 w-4" />
                     </span>
                   )}
+                  {item.failedPhoto === k && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>}
                 </button>
               </li>
             );
@@ -122,6 +125,13 @@ export function BunchCard({ item, index, others, urls, at, rewriting, rewriteNot
           </div>
         )}
       </div>
+
+      {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-upload-failed="">
+          <p className="min-w-0 flex-1 text-ds-13 text-foreground" role="alert">Photo {item.photoKeys.indexOf(item.failedPhoto) + 1} didn't finish sending, even after we tried again. It's still here, and so is everything else on this item.</p>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={onRetryUpload}>Try again</Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="min-w-0 sm:col-span-2">

@@ -82,20 +82,20 @@ export function posterDisputeControls(
   const canResolve = isDisputer && disputeLive;
 
   // Escalation is the move EITHER party can make, and the one the poster most
-  // needs when the helper filed: a non-escalated dispute that reaches its
-  // deadline is settled by auto-resolve-disputes with `_outcome: "helper"` and
-  // the full escrow goes out. Without this the accused poster's only move was
-  // to wait and lose. Writable from this seat — the poster's UPDATE policy is
+  // needs when the helper filed: it puts the dispute in front of an admin
+  // now instead of at the deadline. (Since Q2362 a dispute that reaches its
+  // deadline is escalated by auto-resolve-disputes and the escrow stays held;
+  // until then it was settled for the Helpr and the full escrow went out.) Writable from this seat — the poster's UPDATE policy is
   // `auth.uid() = customer_id` with no column clause, `dispute_status` is on
   // neither enforce_poster_jobs_money_lock's nor prevent_job_field_escalation's
   // locked list, and nothing keys on `disputed_by`.
   const canEscalate = disputeLive;
 
   const consequenceText = canResolve
-    ? "Resolve & pay to close this out, or escalate to an admin. If no action is taken, payment auto-releases to the Helpr."
+    ? "Resolve & pay to close this out, or escalate to an admin. If nobody settles it in time, Helpr support decides and the payment stays on hold until then."
     : canEscalate
-      ? "Your Helpr opened this, so only they can withdraw it. Escalate to have an admin decide — otherwise the payment auto-releases to the Helpr when the clock runs out."
-      : "Payment stays on hold until this is decided. If no action is taken, payment auto-releases to the Helpr.";
+      ? "Your Helpr opened this, so only they can withdraw it. Escalate to have an admin decide now; otherwise Helpr support takes it when the clock runs out, and the payment stays on hold."
+      : "Payment stays on hold until this is decided. If nobody settles it in time, Helpr support decides.";
 
   // The clock is stated ONCE, in the trailing sentence, and the branch says
   // only what this poster can do inside it. Three copies of "72 hours" in one

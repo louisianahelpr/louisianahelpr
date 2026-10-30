@@ -249,7 +249,7 @@ export const CommunityContent = () => (
               <li>Photo evidence or documentation</li>
               <li>Description of what went wrong</li>
             </ul>
-            <p className="pt-1">Then you have 72h to either Mark Resolved, Escalate to Admin, or do nothing (auto-releases to Helpr).</p>
+            <p className="pt-1">Then you have 72h to either Mark Resolved or Escalate to Admin. If nobody settles it, Helpr support decides, and the payment stays on hold until then.</p>
           </>
         }
       />

@@ -8,7 +8,7 @@
  * longest card duration ("99d 23h"), and so does the text shown once it runs out; the card's countdown shows two
  * units at most and never wraps. Measured at 375 and 390: ~/.lh-shots/b9-countdown/.
  *
- * @mutate src/components/job-card/jobStatusLine.ts |     "until payout", |     "until payment auto-releases",
+ * @mutate src/components/job-card/jobStatusLine.ts |     "until support decides", |     "until the Helpr support team makes a decision",
  * @mutate src/components/job-card/jobStatusLine.ts |         "for them to review",\n        "Helpr support is stepping in", |         "for them to review",\n        "No response — Helpr support is stepping in",
  * @mutate src/components/job-card/DeadlineCountdown.tsx |   if (days > 0) return `${days}d ${hours}h`; |   if (days > 0) return `${days}d ${hours}h ${m % 60}m`;
  * @mutate src/components/job-card/DeadlineCountdown.tsx |           <span className="whitespace-nowrap">\n            <span className="tabular-nums">{compactTimeStr}</span> |           <span>\n            <span className="tabular-nums">{compactTimeStr}</span>
@@ -70,10 +70,10 @@ describe("a card's countdown is one line at 375 (owner 2026-10-25)", () => {
     expect(long).toEqual([]);
   });
 
-  it("the dispute clock says when the Helpr is paid, in the card's few words", () => {
+  it("the dispute clock says what happens at the deadline (support decides; Q2362), in the card's few words", () => {
     const d = clocks.find(([k]) => k === "poster:dispute")![1];
-    expect(`${compactCountdown(2 * 1440 + 19 * 60 + 23)} ${d.consequenceText}`).toBe("2d 19h until payout");
-    expect(d.expiredText).toBe("Paying out now");
+    expect(`${compactCountdown(2 * 1440 + 19 * 60 + 23)} ${d.consequenceText}`).toBe("2d 19h until support decides");
+    expect(d.expiredText).toBe("With Helpr support");
   });
 
   it("two units at most, and the card's countdown never wraps", () => {

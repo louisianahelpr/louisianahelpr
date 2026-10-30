@@ -20,7 +20,7 @@
  * that nobody shadows the shared classifier with a local stand-in.
  *
  * @mutate supabase/functions/auto-release-payment/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
- * @mutate supabase/functions/auto-resolve-disputes/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
+ * (auto-resolve-disputes left both lists 2026-10-30, Q2362: it no longer reads Stripe at all.)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/execute-dispute-split/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/money-reconciliation/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
@@ -105,7 +105,6 @@ for (const f of files) {
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:SKIP_LOGGING_FILES entry still classifies a retrieve
 const SKIP_LOGGING_FILES = [
   "auto-release-payment/index.ts",
-  "auto-resolve-disputes/index.ts",
   "charge-recurring-visits/index.ts",
   "execute-dispute-split/clearTestModeRecords.ts",
   "execute-dispute-split/index.ts",
@@ -125,9 +124,6 @@ const CLASSIFIED = [
   "_shared/livePayoutGate.ts::stripe.accounts.retrieve(accountId)",
   "auto-release-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "auto-release-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
-  "auto-resolve-disputes/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
-  "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
-  "auto-resolve-disputes/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2",
   "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",

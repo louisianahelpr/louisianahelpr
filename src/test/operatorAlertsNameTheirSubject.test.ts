@@ -1,6 +1,6 @@
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | payout cannot proceed. PI status: ${pi.status}.`,\n                    type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`, | payout cannot proceed. PI status: ${pi.status}.`,\n                    type: "admin_alert", link: "/admin",
-// @mutate supabase/functions/auto-resolve-disputes/index.ts |             link: `/admin?view=jobs&job=${job.id}`, |             link: "/admin",
-// @mutate supabase/functions/auto-resolve-disputes/index.ts | `/admin?view=disputes&job=${job.id}`,\n        `unsettleable dispute reminder job | `/admin?view=disputes`,\n        `unsettleable dispute reminder job
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | `/admin?view=disputes&job=${job.id}`,\n        `expired-dispute escalation job | `/admin?view=disputes`,\n        `expired-dispute escalation job
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | `/admin?view=disputes&job=${job.id}`,\n          `payout-hold dispute reminder job | `/admin?view=disputes`,\n          `payout-hold dispute reminder job
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";

@@ -7,6 +7,7 @@
  *   2. reserved: "Reserved for you", "Not paid yet", check out within 48 hours; Go to checkout / Keep browsing.
  * Members see no fee numbers (only the total), as everywhere in Declutter.
  */
+import { totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -24,6 +25,7 @@ export function ReserveSheet({
   onReserve,
   onClose,
   onCheckout,
+  way = "pickup",
 }: {
   step: ReserveStep;
   title: string;
@@ -33,6 +35,8 @@ export function ReserveSheet({
   onReserve: () => void;
   onClose: () => void;
   onCheckout: () => void;
+  /** Audit 1030 DB-4: which no-delivery way the total is for (pickupWords.ts); "pickup" for an older item. */
+  way?: NoDeliveryWay;
 }) {
   const webDesktop = useIsWebDesktop();
   // The same read as the item page's bundle row (DeclutterBundleRow), so it is usually already in.
@@ -73,7 +77,7 @@ export function ReserveSheet({
                 <dd className="truncate" title={title}>{title}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
-                <dt className="font-bold text-foreground">Total with pickup</dt>
+                <dt className="font-bold text-foreground">Total {totalPhrase(way)}</dt>
                 <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={priceCents} /></dd>
               </div>
             </dl>

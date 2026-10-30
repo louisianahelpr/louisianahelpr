@@ -1,6 +1,7 @@
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatPrice } from "@/lib/declutter/distance";
 import { BuyerTotal } from "@/components/declutter/BuyerTotal";
+import { forPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
 
 const MONEY = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
 const Money = ({ cents }: { cents: number }) => <span className={MONEY}>{formatPrice(cents)}</span>;
@@ -12,7 +13,7 @@ const Money = ({ cents }: { cents: number }) => <span className={MONEY}>{formatP
  * The pickup total is buyNowTotalCents (price + 5% + 70c); Helpr delivery is added at checkout.
  * The board's "Good for 24 hours" and "address unlocks" are not today's rules, so not shown.
  */
-export function OfferSentWhatNext({ cents, onClose, onBrowse }: { cents: number | null; onClose: () => void; onBrowse: () => void }) {
+export function OfferSentWhatNext({ cents, onClose, onBrowse, way = "pickup" }: { cents: number | null; onClose: () => void; onBrowse: () => void; way?: NoDeliveryWay }) {
   return (
     <WhatNextSheet
       open={cents !== null}
@@ -22,8 +23,8 @@ export function OfferSentWhatNext({ cents, onClose, onBrowse }: { cents: number 
       steps={cents === null ? [] : [
         { key: "offered", label: <>You offered <Money cents={cents} /></>, detail: "The seller has 48 hours to answer", state: "done" },
         { key: "answer", label: "The seller accepts, counters or says no", detail: "We'll let you know", state: "now" },
-        { key: "accepted", label: "If the seller accepts", detail: <>You have 48 hours to check out: <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> for pickup</>, state: "later" },
-        { key: "pickup", label: "Pick it up", detail: "Then the seller is paid", state: "later" },
+        { key: "accepted", label: "If the seller accepts", detail: <>You have 48 hours to check out: <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> {forPhrase(way)}</>, state: "later" },
+        { key: "pickup", label: way === "meetup" ? "Meet at the safe spot" : way === "none" ? "Get it delivered" : "Pick it up", detail: "Then the seller is paid", state: "later" },
       ]}
       primary={{ label: "Got it", acknowledge: true }}
       secondary={{ label: "Keep browsing", onClick: onBrowse }}

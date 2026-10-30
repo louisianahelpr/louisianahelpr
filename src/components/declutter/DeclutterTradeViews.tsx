@@ -28,7 +28,9 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
+import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
 import {
+  fetchItemHandovers,
   fetchMyActiveStrikes,
   fetchMyCart,
   fetchMyOffers,
@@ -124,6 +126,8 @@ function OfferRow({ o }: { o: MyOffer }) {
   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents;
   // What accepting really sells for: least(offer, price now) (live declutter_respond_offer -> declutter_take_item).
   const takeCents = Math.min(o.amount_cents, o.current_price_cents);
+  // Audit 1030 DB-4: the counter's plain total is said for a way the seller offers (the item page's read and key).
+  const ways = useQuery({ queryKey: ["declutter", "item-handovers", o.item_id], queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn && o.my_side === "buyer" });
   return (
     // Boards 68-70: the offer as a card (Declutter has no pre-purchase chat): the amount in money ink with who set it,
     // the asking price, whose turn it is, and what the answer means in money, from the real rules.
@@ -170,7 +174,7 @@ function OfferRow({ o }: { o: MyOffer }) {
         // Board 70: what accepting the counter costs at checkout (pickup), from the same rule as Buy now.
         <dl className="space-y-1 rounded-xl border border-border p-3 text-ds-13" data-offer-bill="">
           <div className="flex justify-between gap-3"><dt>Their price</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
-          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay with pickup</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={takeCents} /></dd></div>
+          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay {totalPhrase(noDeliveryWay(ways.data))}</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={takeCents} /></dd></div>
           <p className="text-ds-12 text-muted-foreground">At most. More items from this seller make it less.</p>
         </dl>
       )}

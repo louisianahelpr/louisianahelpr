@@ -49,7 +49,7 @@ export function isIosOutsideHomeScreen(): boolean {
   return !standalone;
 }
 
-function vapidKeyBytes(): Uint8Array {
+function vapidKeyBytes(): Uint8Array<ArrayBuffer> {
   const b64 = VAPID_PUBLIC_KEY.replace(/-/g, "+").replace(/_/g, "/");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));

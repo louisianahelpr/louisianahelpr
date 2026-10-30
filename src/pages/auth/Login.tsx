@@ -32,8 +32,11 @@ import {
 } from "@/lib/lastAuthMethod";
 import { LOGIN_ATTEMPT_LIMIT, LOGIN_ATTEMPT_WINDOW_MS, LOGIN_LOCKOUT_MS, clearAttemptState, readAttemptState, writeAttemptState, type LoginAttemptState } from "./loginAttempts";
 import { safeInternalRedirect } from "@/lib/authRedirects";
+import { useLanguage } from "@/lib/i18n/language";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 const Login = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // One-shot note from useSessionTimeout: the 30-minute inactivity sign-out
@@ -181,7 +184,7 @@ const Login = () => {
       const msLeft = attemptState.lockedUntil - Date.now();
       const minutesLeft = Math.ceil(msLeft / 60000);
       hapticError();
-      toast.error(`Too many attempts — try again in ${minutesLeft} min.`,
+      toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }),
       );
       return;
     }
@@ -218,7 +221,7 @@ const Login = () => {
       hapticError();
       if (next.lockedUntil && next.lockedUntil > now) {
         const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
-        toast.error(`Too many attempts — try again in ${minutesLeft} min.`);
+        toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }));
       } else {
         toast.error(friendlyAuthError(error.message));
       }
@@ -233,7 +236,7 @@ const Login = () => {
       await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
-      toast.error("Check your inbox first — you'll need to confirm your email before signing in.");
+      toast.error(t("login.confirmEmailFirst"));
       return;
     }
 
@@ -261,7 +264,7 @@ const Login = () => {
       await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
-      toast.error("Couldn't verify your security settings — try again?");
+      toast.error(t("login.mfaCheckFailed"));
       return;
     }
 
@@ -295,7 +298,7 @@ const Login = () => {
     setMfaVerifying(false);
     if (error) {
       hapticError();
-      toast.error("That code didn't match. Check your app and try again.");
+      toast.error(t("login.mfaWrongCode"));
       return;
     }
     setMfaChallenge(null);
@@ -342,8 +345,8 @@ const Login = () => {
               {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
               <HelprMark to="/" size="lg" emblemOnly />
             </div>
-            <h1 className="text-page-title text-foreground">Log in</h1>
-            <p className="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p>
+            <h1 className="text-page-title text-foreground">{t("login.title")}</h1>
+            <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p>
           </div>
         )}
         {/* No heading inside the card. The H emblem and the in-card heading
@@ -364,19 +367,19 @@ const Login = () => {
                 className="font-display font-bold leading-tight"
                 style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
               >
-                Two-step verification
+                {t("login.mfaTitle")}
               </h2>
               <p
                 className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Enter the 6-digit code from your authenticator app to finish signing in.
+                {t("login.mfaBody")}
               </p>
             </div>
             <form onSubmit={handleVerifyMfa} className="space-y-3.5">
               <div className="space-y-2">
                 <Label htmlFor="mfa-login-code" className="text-ds-13 font-sans font-medium">
-                  Authentication code
+                  {t("login.mfaCode")}
                 </Label>
                 <Input
                   id="mfa-login-code"
@@ -397,7 +400,7 @@ const Login = () => {
                 size="lg"
                 disabled={mfaVerifying || mfaCode.length !== 6}
               >
-                {mfaVerifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying…</> : "Verify"}
+                {mfaVerifying ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("login.verifying")}</> : t("login.verify")}
               </Button>
               <button
                 type="button"
@@ -405,7 +408,7 @@ const Login = () => {
                 className="w-full text-center text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Use a different account
+                {t("login.differentAccount")}
               </button>
             </form>
           </div>
@@ -424,7 +427,7 @@ const Login = () => {
             the validation on this form. */}
         <form onSubmit={handleLogin} noValidate className="space-y-3.5">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
+            <Label htmlFor="email" className="text-ds-13 font-sans font-medium">{t("login.email")}</Label>
             <div className="relative">
               <Input
                 ref={emailRef}
@@ -450,13 +453,13 @@ const Login = () => {
             {emailError && (
               <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-                {email.trim() ? "Enter a valid email address" : "Add your email address"}
+                {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
               </p>
             )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
+              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">{t("login.password")}</Label>
               {/* Board 37: the recovery link sits on the Password label's row. */}
               {/* The typed email rides along in router state (never the URL, so it stays
                   out of history and logs): audit 2026-10-29 A3-C12. */}
@@ -466,7 +469,7 @@ const Login = () => {
                 className="min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >
-                Forgot password?
+                {t("login.forgot")}
               </Link>
             </div>
             <div className="relative">
@@ -495,7 +498,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                 className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -504,7 +507,7 @@ const Login = () => {
             {passwordError && (
               <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-                Add your password
+                {t("login.passwordMissing")}
               </p>
             )}
           </div>
@@ -521,7 +524,7 @@ const Login = () => {
             // (and focuses it) instead of firing signInWithPassword.
             disabled={loading}
           >
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging in…</> : "Log in"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("login.submitting")}</> : t("login.submit")}
           </Button>
           {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
               Consent is CAPTURED on signup — Signup.tsx has real, recorded
@@ -555,7 +558,7 @@ const Login = () => {
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}
         <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          New to Helpr?{" "}
+          {t("login.newHere")}{" "}
           {/* Carries the job forward. `rememberJobIntent` (called by
               ProtectedRoute when it bounced this visitor) already stores the id
               durably, so this param is a FALLBACK — but a real one: if storage
@@ -569,7 +572,7 @@ const Login = () => {
             className="font-semibold hover:underline whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Create an account
+            {t("login.createAccount")}
           </Link>
         </p>
         {/* Creating an account is the alternative to BOTH sign-in methods, so
@@ -579,6 +582,10 @@ const Login = () => {
 
         </>
         )}
+      </div>
+      {/* English / Español (Spanish language option, 2026-10-29): under the card, remembered on this device. */}
+      <div className="flex justify-center pt-3">
+        <LanguageToggle />
       </div>
 
     </AuthShell>

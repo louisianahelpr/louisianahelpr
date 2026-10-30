@@ -18,7 +18,7 @@ import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
-import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, jobReminderColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
+import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
@@ -689,7 +689,7 @@ const NotificationPreferences = () => {
       </div>
 
       {rows.map(renderRow)}
-      {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={jobReminderColumnsPresent(columns)} onToggle={(key) => void toggle(key)} />}
+      {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={(key) => columns[key]} onToggle={(key) => void toggle(key)} />}
 
       {/* The Declutter group (owner 2026-10-28, via the lead): only once its
           columns are deployed (a switch for a missing column could not save). */}

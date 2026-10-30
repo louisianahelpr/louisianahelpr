@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatPrice } from "@/lib/declutter/distance";
 import { BuyerTotal } from "@/components/declutter/BuyerTotal";
@@ -13,11 +14,17 @@ const Money = ({ cents }: { cents: number }) => <span className={MONEY}>{formatP
  * The pickup total is buyNowTotalCents (price + 5% + 70c); Helpr delivery is added at checkout.
  * The board's "Good for 24 hours" and "address unlocks" are not today's rules, so not shown.
  */
-export function OfferSentWhatNext({ cents, onClose, onBrowse, way = "pickup" }: { cents: number | null; onClose: () => void; onBrowse: () => void; way?: NoDeliveryWay }) {
+export function OfferSentWhatNext({ cents, onClose, onBrowse, way = "pickup", returnFocusTo }: { cents: number | null; onClose: () => void; onBrowse: () => void; way?: NoDeliveryWay; returnFocusTo?: RefObject<HTMLElement> }) {
   return (
     <WhatNextSheet
       open={cents !== null}
       onClose={onClose}
+      // Send offer's form is gone by now, so the sheet has no button to give focus back to.
+      onCloseAutoFocus={(e) => {
+        if (!returnFocusTo?.current?.isConnected) return;
+        e.preventDefault();
+        returnFocusTo.current.focus({ preventScroll: true });
+      }}
       title="Offer sent"
       lead="Your card isn't charged unless the seller accepts and you check out."
       steps={cents === null ? [] : [

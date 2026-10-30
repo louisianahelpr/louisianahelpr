@@ -22,7 +22,7 @@ import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 import { ApplyTimeQuestion, canSuggestATime } from "./ApplyTimeQuestion";
-import { formatPrice } from "@/lib/format";
+import { applySheetPrice } from "./applyTakeHome";
 import {
   MAX_PITCH_LENGTH,
   pitchDraftKey,
@@ -234,7 +234,7 @@ export function ApplyBody({
   // A crew job (is_group_job) splits the price; helpers_needed alone is never read as a split (helpersNeededSplitIsGroupGated).
   const single = !confirmApplyJob?.is_group_job;
   // Only on the standalone sheet (board 58): inline on the job detail sheet the price chip sits right above.
-  const applyLabel = !hideEarnings && confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${formatPrice(confirmApplyJob.budget)}` : "Apply now";
+  const applyLabel = !hideEarnings && confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${applySheetPrice(confirmApplyJob)}` : "Apply now";
 
   const handleConfirm = () => {
     if (underAge) return;

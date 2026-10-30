@@ -54,6 +54,7 @@ const GATED = [
   "declutter-ai-reply",
   "declutter-card",
   "declutter-checkout",
+  "geocode-address",
   "shop-checkout",
   // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.
   "ship-rates",

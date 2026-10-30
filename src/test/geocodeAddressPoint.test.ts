@@ -3,8 +3,8 @@
  *
  * @mutate supabase/functions/_shared/geocodeAddressPoint.ts |   if (!Array.isArray(results)) return { result: "unavailable", status: null }; |   if (!Array.isArray(results)) return { result: "not_found" };
  * @mutate supabase/functions/_shared/geocodeAddressPoint.ts |     if (!res.ok) return { result: "unavailable", status: res.status }; |     if (!res.ok) return { result: "not_found" };
- * @mutate supabase/functions/geocode-address/index.ts |   if (authError \|\| !authData?.user) return errorResponse("not_authenticated", 401, corsHeadersFull); |
- * @mutate supabase/functions/geocode-address/index.ts |   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeadersFull); |
+ * @mutate supabase/functions/geocode-address/index.ts |   if (authError \|\| !authData?.user) return errorResponse("not_authenticated", 401, corsHeaders); |
+ * @mutate supabase/functions/geocode-address/index.ts |   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders); |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { geocodeAddressPoint } from "../../supabase/functions/_shared/geocodeAddressPoint";

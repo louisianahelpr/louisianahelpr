@@ -95,6 +95,17 @@ describe("lookUpAddress", () => {
     expect(await lookUpAddress(TYPED, noWait)).toEqual({ status: "unavailable" });
   });
 
+  it("an unconfirmed email's 403 falls back to OpenStreetMap, and is never read as 'can't find it'", async () => {
+    // supabase.functions.invoke's answer to refuseUnconfirmedEmail's 403: no data, an HTTP error.
+    const refused = { data: null, error: Object.assign(new Error("Edge Function returned a non-2xx status code"), { context: { status: 403 } }) };
+    server.answer = refused;
+    nominatim(place());
+    expect(await lookUpAddress(TYPED, noWait)).toEqual({ status: "exact", lat: 30.5, lng: -92.1 });
+    server.answer = refused;
+    nominatim([], []);
+    expect(await lookUpAddress(TYPED, noWait)).toEqual({ status: "unavailable" });
+  });
+
   it("the server down and OpenStreetMap finding nothing is still 'unavailable': Apple might have known it", async () => {
     server.answer = { data: null, error: new Error("down") };
     nominatim([], []);

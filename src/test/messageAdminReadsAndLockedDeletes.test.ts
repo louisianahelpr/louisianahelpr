@@ -21,7 +21,8 @@
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   BEFORE UPDATE OF content ON public.messages |   AFTER UPDATE OF read ON public.messages
  * @mutate src/pages/messages/Messages.tsx | if (error && /message_locked/.test(error.message)) { | if (false) {
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";

@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
-    "files": 287,
-    "rendering": 883,
-    "suppressedByPolicy": 168,
+    "calls": 1036,
+    "files": 286,
+    "rendering": 872,
+    "suppressedByPolicy": 164,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 73,
-      "toast.error": 737,
+      "toast": 72,
+      "toast.error": 727,
       "toast.info": 4,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 171,
+      "toast.success": 167,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 454,
-      "template": 101,
-      "dynamic": 546,
+      "literal": 451,
+      "template": 97,
+      "dynamic": 538,
       "jsx": 0
     }
   },
@@ -5003,176 +5003,6 @@
             "text": "declutterErrorMessage(err)"
           }
         ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 212,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "Pick up to ${MOVE_ROOM_PHOTOS_MAX} photos of one room at a time."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 220,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "The photo tool didn't find anything to sell in those photos. Try a wider photo of the room."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 224,
-      "kind": "toast.success",
-      "title": {
-        "form": "template",
-        "text": "Found ${found.length} ${found.length === 1 ? \"item\" : \"items\"}. Check each one below."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 226,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 235,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "problem"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 253,
-      "kind": "toast.success",
-      "title": {
-        "form": "template",
-        "text": "Saved ${saved} ${saved === 1 ? \"item\" : \"items\"}. Next, add photos of each one."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 256,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "saved > 0 ? `Saved ${saved} of ${kept.length}. The other ${kept.length - saved} didn't save: ${declutterErrorMessage(err)}` : declutterErrorMessage(err)",
-        "branches": [
-          {
-            "form": "template",
-            "text": "Saved ${saved} of ${kept.length}. The other ${kept.length - saved} didn't save: ${declutterErrorMessage(err)}"
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 267,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Tick the box under the four statements before you list these items."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 279,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "[live > 0 ? `${live} for sale` : null, review > 0 ? `${review} waiting for a review` : null].filter(Boolean).join(\", \") + \".\""
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 285,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "${failed.length} ${failed.length === 1 ? \"item wasn't\" : \"items weren't\"} listed. ${declutterErrorMessage(first.error)}"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 289,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 300,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "p"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 307,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "None of your moving-sale items are still up, so nothing changed."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 308,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "next === null ? \"Moving sale ended. Your items stay up as ordinary listings.\" : `Move-out date changed on ${n} ${n === 1 ? \"item\" : \"items\"}.`",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Moving sale ended. Your items stay up as ordinary listings."
-          },
-          {
-            "form": "template",
-            "text": "Move-out date changed on ${n} ${n === 1 ? \"item\" : \"items\"}."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 311,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

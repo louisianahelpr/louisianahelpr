@@ -13,6 +13,16 @@ separate builds; this one only links to them. Neither branch existed on origin
 when this was built (2026-10-16, `git ls-remote`), so the links go to posting an
 ordinary Helpr job until they land.
 
+## One flow (lead, 2026-10-30, owner's decision)
+
+"Moving out sale" opens Sell a bunch (`/declutter/sell?mode=moving`; `/declutter/move` redirects there) with an optional
+move-out date. With a date, each draft is made by `declutter_create_move_drafts` with one item; with none it is an ordinary
+listing. The room scan, the 5-step per-item form and `DeclutterMoveView` are retired, so M1, M3 and M4 below describe the old
+flow: photos go straight on each item, and prices are suggested as in Sell a bunch. The date, the banner, the sale name,
+"End the moving sale" and the moving-day links are unchanged and live in `DeclutterBunchMovingSale`. Nothing closes when the
+date passes (owner: reminders only). Still on the server, unused by the app: the photo tool's `room` mode and
+`declutter_assert_can_scan_room`.
+
 ## Built (lane declutter-moving-out, 2026-10-16)
 
 | Layer | What |

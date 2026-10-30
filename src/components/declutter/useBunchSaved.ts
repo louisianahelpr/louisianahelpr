@@ -14,6 +14,7 @@ export interface BunchSnapshot {
   areaLabel: string;
   pickupAddress: string;
   coords: { lat: number; lng: number; address: string } | null;
+  moveDate: string;
   photos: BunchPhoto[];
   items: BunchItem[];
   sorting: boolean;
@@ -85,6 +86,7 @@ export function useBunchSaved(
         areaLabel: s.areaLabel,
         pickupAddress: s.pickupAddress,
         coords: s.coords,
+        moveDate: s.moveDate,
         photos: keep.map((p) => ({ key: p.key, name: p.file.name, type: p.file.type })),
         items: s.items,
       });
@@ -105,7 +107,7 @@ export function useBunchSaved(
         // All of them: a photo left out is on disk, so the next save removes it.
         found.photos.forEach((p) => onDisk.current.add(p.key));
         setRestoredCount(items.length);
-        restore.current({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, photos, items, unusable });
+        restore.current({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, moveDate: found.saved.moveDate ?? "", photos, items, unusable });
       } catch (err) {
         // No storage (private mode, blocked site data): the page still works; the first save says so if it fails too.
         console.warn("[declutter] could not read a saved bunch", err);
@@ -119,12 +121,12 @@ export function useBunchSaved(
   }, [userId]);
 
   // The snapshot's own fields, never its identity: the view builds a new object each render.
-  const { areaLabel, pickupAddress, coords, photos, items, sorting, finished } = snapshot;
+  const { areaLabel, pickupAddress, coords, moveDate, photos, items, sorting, finished } = snapshot;
   useEffect(() => {
-    latest.current = { areaLabel, pickupAddress, coords, photos, items, sorting, finished };
+    latest.current = { areaLabel, pickupAddress, coords, moveDate, photos, items, sorting, finished };
     const t = setTimeout(flush, SAVE_DELAY_MS);
     return () => clearTimeout(t);
-  }, [areaLabel, pickupAddress, coords, photos, items, sorting, finished, flush]);
+  }, [areaLabel, pickupAddress, coords, moveDate, photos, items, sorting, finished, flush]);
   // Leaving the screen saves what the delay had not reached yet.
   useEffect(() => flush, [flush]);
 

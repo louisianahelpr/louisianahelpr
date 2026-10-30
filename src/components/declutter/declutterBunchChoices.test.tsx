@@ -8,9 +8,9 @@
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
- * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, choices.choices, | undefined, onStep,
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, { ...choices.choices, moveOutOn: moveDate \|\| null }, | undefined, onStep,
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |           {!item.free && (\n            <div> |           {(\n            <div>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -64,7 +64,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
   return {
     ...real,
     groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
-      const items = [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture" }];
+      const items = [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture", sizeUnknown: false }];
       onProgress(1, 1, items);
       return { items, failed: [], unusable: [] };
     },
@@ -93,6 +93,7 @@ async function open() {
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
   await screen.findByRole("heading", { name: /^\d\. List/ });
 }
+const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 const switchOf = (name: RegExp) => screen.getByRole("switch", { name });
 const isOn = (el: HTMLElement) => el.getAttribute("aria-checked") === "true";
 const DROPS = /Lower the price/;
@@ -115,7 +116,7 @@ describe("Sell a bunch: listing choices", () => {
     expect(isOn(switchOf(KEEP))).toBe(true);
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50 });
+    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, moveOutOn: null });
     await waitFor(() => expect(state.remembered).toHaveLength(1));
     expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: true, handovers: ["porch"] });
     expect(await screen.findByText(/didn't turn on for 1 item/)).toBeTruthy();
@@ -132,7 +133,7 @@ describe("Sell a bunch: listing choices", () => {
     expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70 });
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, moveOutOn: null });
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });
@@ -168,9 +169,10 @@ describe("Sell a bunch: listing choices", () => {
 
   it("the Free tick takes the price box and hint away, says the rule, and the item is ready", async () => {
     await open();
+    openRows();
     const card = document.querySelector("[data-bunch-item]") as HTMLElement;
     expect(within(card).getByText("fair price hint")).toBeTruthy();
-    fireEvent.click(within(card).getByRole("checkbox", { name: /Give it away free/ }));
+    fireEvent.click(within(card).getByRole("checkbox", { name: /away free/ }));
     expect(within(card).queryByLabelText("Price ($)")).toBeNull();
     expect(within(card).queryByText("fair price hint")).toBeNull();
     expect(screen.getByRole("heading", { name: "3. Check each item (1 of 1 ready)" })).toBeTruthy();
@@ -185,13 +187,14 @@ describe("Sell a bunch while the setup fee is due", () => {
   it("a free item lists together with no fee (the server asks none at price 0); a priced one waits and is named", async () => {
     state.feeDue = 200;
     await open();
+    openRows();
     const card = document.querySelector("[data-bunch-item]") as HTMLElement;
     fireEvent.change(within(card).getByLabelText("Price ($)"), { target: { value: "40" } });
     expect(screen.getByRole("heading", { name: "3. Check each item (1 of 1 ready)" })).toBeTruthy();
     expect(document.querySelector("[data-bunch-fee-held]")?.textContent).toContain("1 priced item waits for the setup fee above");
     expect((screen.getByRole("button", { name: "List 0 items" }) as HTMLButtonElement).disabled).toBe(true);
 
-    fireEvent.click(within(card).getByRole("checkbox", { name: /Give it away free/ }));
+    fireEvent.click(within(card).getByRole("checkbox", { name: /away free/ }));
     expect(document.querySelector("[data-bunch-fee-held]")).toBeNull();
     await listIt();
     expect(state.listed[0].items.map((i) => i.free)).toEqual([true]);

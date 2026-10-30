@@ -7,8 +7,8 @@
  *  - D4-13: Sell a bunch showed a grey "40" in an empty Price box (it read like a value) and cut the title.
  *  - D4-14: going offline mid-post said "Something went wrong. Please try again."
  *
- * @mutate src/components/declutter/DeclutterMoveView.tsx |             <Link to={movingDayPostJobPath(current)}>Hire a Helpr for moving day</Link> |             <Link to="/post-job">Hire a Helpr for moving day</Link>
- * @mutate src/components/declutter/DeclutterMoveView.tsx | <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current)}>Haul away what's left</Link> | <Link to="/post-job">Haul away what's left</Link>
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx |               <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link> |               <Link to="/post-job">Hire a Helpr for moving day</Link>
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link> | <Link to="/post-job">Haul away what's left</Link>
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, MOVING_DAY_PARAM] as const;
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, "haulAway"] as const;
  * @mutate src/pages/post-job/usePostJobForm.ts | searchParams.get(MATCHMAKER_PARAM) \|\| searchParams.get(MOVING_DAY_PARAM)); | searchParams.get(MATCHMAKER_PARAM));
@@ -45,8 +45,8 @@ describe("D4-6: every Declutter link to Post a job is pre-filled", () => {
   });
 
   it("the moving sale's two links: moving day carries the move-out date, haul-away the listed items", () => {
-    const src = code(`${dir}/DeclutterMoveView.tsx`);
-    expect(src).toContain("<Link to={movingDayPostJobPath(current)}>Hire a Helpr for moving day</Link>");
+    const src = code(`${dir}/DeclutterBunchMovingSale.tsx`);
+    expect(src).toContain("<Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link>");
     expect(src).toContain("haulAwayPostJobPath(haulIds)");
     expect(movingDayPostJobPath("2026-11-15")).toBe(`/post-job?${MOVING_DAY_PARAM}=2026-11-15`);
     expect(movingDayPostJobPath(null)).toBe(`/post-job?${MOVING_DAY_PARAM}=1`);

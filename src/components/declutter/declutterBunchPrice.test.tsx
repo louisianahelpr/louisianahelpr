@@ -62,7 +62,10 @@ async function pickPhoto() {
 const addPhoto = () => fireEvent.change(document.getElementById("bunch-files")!, { target: { files: [new File(["a"], "a.jpg", { type: "image/jpeg" })] } });
 const card = async () => {
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
-  return document.querySelector("[data-bunch-item]") as HTMLElement;
+  const row = document.querySelector("[data-bunch-item]") as HTMLElement;
+  const closed = row.querySelector('[data-bunch-expand][aria-expanded="false"]');
+  if (closed) fireEvent.click(closed);
+  return row;
 };
 const priceOf = (c: HTMLElement) => within(c).getByLabelText("Price ($)") as HTMLInputElement;
 
@@ -128,15 +131,15 @@ describe("the suggested price is used", () => {
     fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
     addPhoto();
     const c = await card();
-    fireEvent.click(within(c).getByRole("button", { name: "Write it again" }));
+    fireEvent.click(within(c).getByRole("button", { name: /^Write it again/ }));
     await waitFor(() => expect(priceOf(c).value).toBe("60"));
     expect(h.draft.mock.calls[0][1]).toEqual({ lat: 30.45, lng: -91.15 });
 
     fireEvent.change(priceOf(c), { target: { value: "25" } });
     h.draft.mockResolvedValue({ title: "Oak rocker", description: "", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false, priceDollars: 90 });
-    fireEvent.click(within(c).getByRole("button", { name: "Write it again" }));
+    fireEvent.click(within(c).getByRole("button", { name: /^Write it again/ }));
     await waitFor(() => expect(h.draft).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(within(c).getByRole("button", { name: "Write it again" }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() => expect(within(c).getByRole("button", { name: /^Write it again/ }).hasAttribute("disabled")).toBe(false));
     expect(priceOf(c).value).toBe("25");
   });
 

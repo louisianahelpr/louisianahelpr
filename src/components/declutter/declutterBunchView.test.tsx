@@ -16,12 +16,11 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => [...its, ...made]); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" "); |       const note = notSorted;
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | alt="" loading="lazy" decoding="async" | alt=""
+ * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" loading="lazy" decoding="async" className={thumbImg} data-bunch-thumb="" | alt="" className={thumbImg} data-bunch-thumb=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
- * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : params.get("mode") === "bunch" ? ( |       ) : false ? (
+ * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : wantsBunch(params) ? ( |       ) : false ? (
  * Tester 10-30: opening the category picker in half a row left an empty column under Price and pushed Condition down.
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2" data-bunch-category-row=""> | <div className="min-w-0" data-bunch-category-row="">
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}> | <div className="min-w-0">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -103,6 +102,7 @@ beforeAll(() => {
 afterEach(cleanup);
 
 // The page is a lazy chunk: under a loaded machine its first import took over the default second (measured 2026-10-30).
+const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 const pageHeading = () => screen.findByRole("heading", { level: 1, name: "Sell a bunch" }, { timeout: 15_000 });
 
 function renderPage() {
@@ -124,9 +124,13 @@ describe("Sell a bunch", () => {
     await screen.findByRole("heading", { name: /^3\. Check each item/ });
     const cards = document.querySelectorAll("[data-bunch-item]");
     expect(cards).toHaveLength(2);
-    // Category on its own row and Size filling the last one: no half-empty row at sm and up, open or closed.
+    // Rows start closed; a flagged one starts open, so its notice is read. Category has its own row: no half-empty row at sm and up.
+    expect(cards[1].querySelector("[data-bunch-card]")).toBeTruthy();
+    expect(cards[0].querySelector("[data-bunch-card]")).toBeNull();
+    openRows();
     expect(cards[0].querySelector("[data-bunch-category-row]")!.className).toContain("sm:col-span-2");
-    expect(within(cards[0] as HTMLElement).getByLabelText("Size").parentElement!.className).toContain("sm:col-span-2");
+    // The tool answered the size, so it isn't asked.
+    expect(within(cards[0] as HTMLElement).queryByLabelText("Size")).toBeNull();
     expect(cards[1].hasAttribute("data-flagged")).toBe(true);
     expect(within(cards[1] as HTMLElement).getByText(/You can still list it/)).toBeTruthy();
     // Nothing is ready until it has a price; a flag doesn't stop an item.
@@ -148,7 +152,7 @@ describe("Sell a bunch", () => {
     fireEvent.click(list);
     await waitFor(() => expect(calls.listed).toEqual([["i1", "i2"]]));
     const failed = await screen.findByText(/wasn't listed: Refused for a test reason\./);
-    expect(failed.textContent).toContain("still above, to fix and list again");
+    expect(failed.textContent).toContain("still on the list");
   });
 
   it("shows each batch's card while sorting runs; editing a flagged item's name clears the mark", async () => {
@@ -164,7 +168,7 @@ describe("Sell a bunch", () => {
     await waitFor(() => expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(2));
     sort.hold = null;
     const flagged = document.querySelector("[data-flagged]") as HTMLElement;
-    fireEvent.change(within(flagged).getByLabelText("Name"), { target: { value: "Butter knife" } });
+    fireEvent.change(within(flagged).getByLabelText("Title"), { target: { value: "Butter knife" } });
     // fireEvent flushes the state change: the mark was there just above, so this is not a first paint.
     expect(document.querySelector("[data-flagged]")).toBeNull();
   });
@@ -175,6 +179,8 @@ describe("Sell a bunch", () => {
     await pageHeading();
     const files = ["a", "b", "c"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
+    await waitFor(() => expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(2));
+    openRows();
     await waitFor(() => expect(document.querySelectorAll("[data-bunch-thumb]")).toHaveLength(3));
     expect(thumbCalls).toEqual(files);
     document.querySelectorAll("[data-bunch-thumb]").forEach((img) => expect(img.getAttribute("loading")).toBe("lazy"));
@@ -195,7 +201,7 @@ describe("Sell a bunch", () => {
 
   it("is a choice in What do you want to sell?", () => {
     render(<MemoryRouter><DeclutterSellChooser /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /A bunch of things/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
+    expect(screen.getByRole("link", { name: /Sell a bunch/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
   });
 });
 
@@ -207,14 +213,15 @@ describe("the page's name", () => {
   it("is not said again under AppPage's title", () => {
     const source = readFileSync(resolve(process.cwd(), "src/components/declutter/DeclutterBunchView.tsx"), "utf8");
     expect(blankComments(source).match(/>Sell a bunch</g)).toBeNull();
-    expect(blankComments(source)).toContain('<AppPage title="Sell a bunch"');
+    expect(blankComments(source)).toContain('const pageTitle = moving ? "Moving out sale" : "Sell a bunch";');
+    expect(blankComments(source)).toContain("<AppPage title={pageTitle}");
   });
 });
 
 describe("the merge picker's row", () => {
   it("has the card's whole width, with the buttons below it", () => {
     const item = { ...blankItem(["a"]), key: "one" };
-    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
+    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
     const row = document.querySelector("[data-bunch-merge-row]") as HTMLElement;
     expect(row.className.split(" ")).toContain("w-full");
     expect(row.className).not.toContain("flex-1");

@@ -19,6 +19,8 @@ export interface SavedBunch {
   areaLabel: string;
   pickupAddress: string;
   coords: { lat: number; lng: number; address: string } | null;
+  /** The moving sale's date, or blank (an older save has none). */
+  moveDate?: string;
   photos: { key: string; name: string; type: string }[];
   items: BunchItem[];
 }

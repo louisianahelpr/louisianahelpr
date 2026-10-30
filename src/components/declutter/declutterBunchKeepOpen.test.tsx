@@ -129,11 +129,12 @@ describe("a long run is honest and keeps going", () => {
     ];
     fireEvent.click(list);
     const failed = await screen.findByText(/Thing 0/, { selector: "[data-bunch-failed] span" });
-    expect(failed.closest("li")?.textContent).toContain("still above, to fix and list again");
+    expect(failed.closest("li")?.textContent).toContain("still on the list");
     expect(screen.getByText("Thing 1", { selector: "[data-bunch-failed] span" }).closest("li")?.textContent).toContain("saved as a draft under Selling");
     const cards = document.querySelectorAll("[data-bunch-item]");
     expect(cards).toHaveLength(1);
-    expect(within(cards[0] as HTMLElement).getAllByRole("button", { name: /, photo \d+$/ })).toHaveLength(1);
+    fireEvent.click(cards[0].querySelector("[data-bunch-expand]")!);
+    expect(within(cards[0] as HTMLElement).getAllByRole("button", { name: /^See .*, photo \d+$/ })).toHaveLength(1);
   });
 });
 
@@ -151,7 +152,7 @@ describe("going back during a run", () => {
     render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
     // Back on the screen: photos and items come in again, as the store would bring them.
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
-    const again = await screen.findByRole("button", { name: /^Listing… \(/ });
+    const again = await screen.findByRole("button", { name: /^Listing…$/ });
     expect((again as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(again);
     await new Promise((r) => setTimeout(r, 20));
@@ -159,7 +160,7 @@ describe("going back during a run", () => {
 
     await act(async () => { finish([{ key: "i0", title: "Thing 0", status: "live" }]); });
     expect(await screen.findByText(/1 for sale/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Listing… \(/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Listing…$/ })).toBeNull();
   });
 
   it("a second start is refused while one is going, and allowed once it ends", async () => {
@@ -186,6 +187,7 @@ describe("listBunch marks what stays", () => {
     const files = new Map(["a", "b"].map((k) => [k, new File([k], k)]));
     let n = 0;
     const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async () => `d${++n}`),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),

@@ -4,8 +4,8 @@
  * Post a job's first step: the same Bodoni question and helper, and the same big cards (the shared ChoiceCard), each
  * with an icon and one line. Each card goes straight on to the flow that already exists:
  *   1. One item: the one-screen Sell flow.
- *   2. A bunch of things: /declutter/sell?mode=bunch.
- *   3. Moving out sale: /declutter/move, only while 'declutter_moving_out' is on for the viewer.
+ *   2. Sell a bunch: /declutter/sell?mode=bunch.
+ *   3. Moving out sale: Sell a bunch with a move-out date, only while 'declutter_moving_out' is on for the viewer.
  *   4. Give it away free: the one-screen Sell flow with Free on (?free=1).
  *   5. Have a Helpr list it for me: Post a job, pre-filled (?sellForMe=1, src/lib/declutter/sellForMe.ts).
  *   6. Looking for something? Post a Wanted: the Wanted form, only while 'declutter_wanted' is on for the viewer.
@@ -39,9 +39,9 @@ export default function DeclutterSellChooser() {
           <section className="flex flex-col gap-3" aria-labelledby="sell-step">
             <StepHead title="What do you want to sell?" sub="Pick one. You can come back and choose another." />
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
-            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="A bunch of things" line="Add photos of everything and we write each listing for you to check." />
+            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything and we write each listing for you to check." />
             {movingOut && (
-              <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Photograph each room and list everything at once." />
+              <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Add photos of everything, and your move date groups them as one sale." />
             )}
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
             <ChoiceCard data-sell-choice="helpr" to={sellForMePostJobPath()} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A local Helpr takes the photos and writes the listings with you." />

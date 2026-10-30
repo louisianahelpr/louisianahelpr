@@ -76,6 +76,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 import BunchFlow from "./DeclutterBunchView";
 import { clearSavedBunch, loadSavedBunch } from "@/lib/declutter/bunchSaved";
 
+const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 function renderFlow() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
@@ -122,11 +123,12 @@ describe("Sell a bunch survives leaving", () => {
     expect((await screen.findByText(/We kept your work from last time: 2 items/)).textContent).toContain("with their photos and prices.");
     const back = document.querySelectorAll("[data-bunch-item]");
     expect(back).toHaveLength(2);
-    expect((within(back[0] as HTMLElement).getByLabelText("Name") as HTMLInputElement).value).toBe("Oak chair");
+    openRows();
+    expect((within(back[0] as HTMLElement).getByLabelText("Title") as HTMLInputElement).value).toBe("Oak chair");
     expect((within(back[0] as HTMLElement).getByLabelText("Price ($)") as HTMLInputElement).value).toBe("40");
     expect((screen.getByLabelText("Pickup address") as HTMLInputElement).value).toBe("1 Main St, Baton Rouge");
     expect((screen.getByLabelText("Area buyers see") as HTMLInputElement).value).toBe("Mid-City");
-    await waitFor(() => expect(back[0].querySelectorAll("img")).toHaveLength(1));
+    await waitFor(() => expect(back[0].querySelectorAll("[data-bunch-thumb]")).toHaveLength(1));
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {
@@ -155,7 +157,8 @@ describe("Sell a bunch survives leaving", () => {
     const first = renderFlow();
     await pickTwoPhotos();
     await waitFor(() => expect(photoEntries()).toHaveLength(2));
-    fireEvent.click(within(document.querySelectorAll("[data-bunch-item]")[1] as HTMLElement).getByRole("button", { name: "Don't sell this" }));
+    openRows();
+    fireEvent.click(within(document.querySelectorAll("[data-bunch-item]")[1] as HTMLElement).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(photoEntries()).toHaveLength(1));
     first.unmount();
     renderFlow();
@@ -184,10 +187,11 @@ describe("Sell a bunch survives leaving", () => {
     renderFlow();
     await screen.findByText(/We kept your work from last time: 2 items/);
     const cards = () => [...document.querySelectorAll("[data-bunch-item]")] as HTMLElement[];
-    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    openRows();
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(cards()).toHaveLength(1));
     expect(h.withdrawn).toEqual([]);
-    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(h.withdrawn).toEqual(["d1"]));
   });
 

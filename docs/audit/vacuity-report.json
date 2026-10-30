@@ -1,12 +1,13 @@
 {
-  "generated": "2026-10-30T01:50:07.583Z",
-  "guards": 2690,
-  "registered": 2689,
+  "generated": "2026-10-30T01:58:45.717Z",
+  "guards": 2694,
+  "registered": 2693,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",

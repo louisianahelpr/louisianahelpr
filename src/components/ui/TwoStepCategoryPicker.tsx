@@ -4,6 +4,10 @@
  * subcategories beneath it (any other collapses); choosing a sub sets the value
  * and closes. The trigger reads "Main › Sub". The value is the sub's own slug,
  * exactly what the old <select> stored.
+ *
+ * The panel sits in the page's flow, so it never scrolls by itself: the sheet or page around it is the one scroller
+ * (a 60vh cap here scrolled inside the Wanted sheet's own scroll, and ran 5px past the phone screen). Expanding a main
+ * brings that main and its subs into view instead.
  */
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
@@ -24,6 +28,8 @@ interface Props {
   groupIcon?: (groupSlug: string) => React.ReactNode;
 }
 
+const SCROLL_MARGINS = "scroll-mt-20 scroll-mb-[calc(var(--bottom-nav-h,0px)+0.75rem)]";
+
 function categoryTriggerText(groups: CategoryPickerGroup[], value: string): string | null {
   for (const g of groups) {
     const it = g.items.find((i) => i.slug === value);
@@ -37,6 +43,8 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
   const [expanded, setExpanded] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const expandedRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const chosen = categoryTriggerText(groups, value);
 
@@ -59,6 +67,13 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
     };
   }, [open]);
 
+  // The expanded main with all its subs, or the panel when none is expanded; the margins clear the app's top bar and
+  // the phone's bottom bar. `?.` on the call: not every test DOM has scrollIntoView.
+  useEffect(() => {
+    if (!open) return;
+    (expandedRef.current ?? panelRef.current)?.scrollIntoView?.({ block: "nearest" });
+  }, [open, expanded]);
+
   const toggle = () => {
     if (!open) setExpanded(groups.find((g) => g.items.some((i) => i.slug === value))?.slug ?? null);
     setOpen((o) => !o);
@@ -74,24 +89,24 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
         aria-expanded={open}
         aria-controls={panelId}
         onClick={toggle}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-base sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-base sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className={chosen ? "text-foreground" : "text-muted-foreground"}>{chosen ?? placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && (
-        <div id={panelId} className="mt-1 max-h-[60vh] overflow-y-auto rounded-md border border-input bg-background p-1 shadow-md">
+        <div ref={panelRef} id={panelId} className={`mt-1 rounded-md border border-input bg-background p-1 shadow-md ${SCROLL_MARGINS}`}>
           {groups.map((g) => {
             const isOpen = expanded === g.slug;
             const regionId = `${panelId}-${g.slug}`;
             return (
-              <div key={g.slug}>
+              <div key={g.slug} ref={isOpen ? expandedRef : undefined} className={SCROLL_MARGINS}>
                 <button
                   type="button"
                   aria-expanded={isOpen}
                   aria-controls={regionId}
                   onClick={() => setExpanded(isOpen ? null : g.slug)}
-                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base font-semibold sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-base font-semibold sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-center gap-2">
                     {groupIcon?.(g.slug)}
@@ -113,7 +128,7 @@ export function TwoStepCategoryPicker({ id, value, onChange, groups, placeholder
                               setOpen(false);
                               triggerRef.current?.focus();
                             }}
-                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 text-left text-base sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-base sm:text-sm ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {c.label}
                             {on && <Check className="h-4 w-4 shrink-0" aria-hidden />}

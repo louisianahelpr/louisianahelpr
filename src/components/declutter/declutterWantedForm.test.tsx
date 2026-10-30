@@ -27,6 +27,8 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (source === "device") return "Measured from where you are now (a rough area, never your address)."; |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       toast.success(openReplies > 0 | toast.success(false
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p> | <p data-wanted-near-empty="" />
+ * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | <div className="min-w-0 space-y-1" data-wanted-category-row=""> | <div className="grid grid-cols-2 gap-3" data-wanted-category-row="">
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -128,6 +130,20 @@ describe("the Wanted hub", () => {
     expect(sheet.querySelector("[data-wanted-dollar]")!.className).toContain("--burnt-sienna");
     expect(wantedWhereWords("device")).toBe("Measured from where you are now (a rough area, never your address).");
     expect(wantedWhereWords("parish")).toContain("your parish");
+  });
+
+  it("Category has its own full-width row, between what you want and Up to", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
+    const category = await screen.findByRole("button", { name: "Category" });
+    const form = category.closest("form")!;
+    // No column layout around any of the three, so nothing sits beside the picker when it opens.
+    for (const id of ["wanted-what", "wanted-category", "wanted-max"]) {
+      expect(form.querySelector(`#${id}`)!.closest(".grid")).toBeNull();
+    }
+    const order = [...form.querySelectorAll("#wanted-what, #wanted-category, #wanted-max")].map((el) => el.id);
+    expect(order).toEqual(["wanted-what", "wanted-category", "wanted-max"]);
+    expect(category.closest("[data-wanted-category-row]")!.parentElement).toBe(form);
   });
 
   it("a post with no replies says so", async () => {

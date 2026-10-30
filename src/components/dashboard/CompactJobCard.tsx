@@ -6,6 +6,7 @@ import { computeNet } from "@/components/dashboard/JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 interface CompactJobCardProps {
   job: EnrichedJob;
@@ -77,7 +78,7 @@ export function CompactJobCard({
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
-        aria-label={`${job.title}, ${isNet ? "you earn " : ""}$${priceText}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, ${isNet && !isGiveawayFixedPayJob(job) ? "you earn " : ""}$${priceText}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span

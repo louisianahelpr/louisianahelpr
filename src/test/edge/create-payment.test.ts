@@ -3994,6 +3994,98 @@ describe("create-payment edge function", () => {
         expect(payload?.metadata).toEqual(expect.objectContaining({ source: "admin_release_dispute", onboarding_fee_cents: 0, rounding_remainder_cents: 44 }));
       });
 
+      // Owner 2026-10-30: the giveaway job pays exactly $50 on Quick Release too, and
+      // a setup fee owed is covered from the $10 Louisiana Helpr keeps, the same way
+      // release-payout and process-scheduled-payouts do it: marked paid once, booked
+      // $8 commission + $2 setup fee, the transfer untouched.
+      describe("the $50 giveaway job on Quick Release", () => {
+        // The giveaway's own stamp, in escrow: 5% + $7.00 on $60.
+        function seedGiveaway(owesSetupFee: boolean) {
+          seedReleasable();
+          const job = (scenario.reads.jobs.rows ?? [])[0] as Record<string, unknown>;
+          Object.assign(job, { budget: 60, helper_fee_percent: 5, helper_fee_flat_cents: 700, platform_fee_amount: 10 });
+          scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+          scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper", onboarding_fee_paid: !owesSetupFee }] };
+          scenario.writeSelectRows.profiles = owesSetupFee ? [{ user_id: HELPER.id }] : [];
+        }
+        const release = async () => {
+          const fn = await load();
+          return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+        };
+        const ledger = () =>
+          scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert")?.payload as
+            | { amount_cents?: number; platform_fee_cents?: number; metadata?: Record<string, unknown> }
+            | undefined;
+        const profileWrites = () =>
+          scenario.writes.filter((w) => w.table === "profiles" && w.op === "update").map((w) => w.payload as Record<string, unknown>);
+
+        // @mutate supabase/functions/create-payment/index.ts |   const giveawaySetupFee = fixedPayGiveaway ? await claimGiveawaySetupFee(supabaseAdmin, helperId) : { cents: 0 }; |   const giveawaySetupFee = { cents: 0 };
+        // @mutate supabase/functions/create-payment/index.ts |         platform_fee_cents: Math.round(platformFeeAmount * 100) - giveawaySetupFeeCents, |         platform_fee_cents: Math.round(platformFeeAmount * 100),
+        // @mutate supabase/functions/create-payment/index.ts |          onboarding_fee_cents: giveawaySetupFeeCents, |          onboarding_fee_cents: 0,
+        // @mutate supabase/functions/create-payment/index.ts |            isGiveawayFixedPayJob(job), |            false,
+        it("a winner who owes the setup fee gets $50, is marked paid once, and the row books $8 + $2", async () => {
+          seedGiveaway(true);
+          const res = await release();
+          expect(res.status).toBe(200);
+          expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(5000);
+          expect(ledger()?.amount_cents).toBe(5000);
+          expect(ledger()?.platform_fee_cents).toBe(800);
+          expect(ledger()?.metadata).toEqual(expect.objectContaining({ onboarding_fee_cents: 200, rounding_remainder_cents: 0, helpr_fault_fee_cents: 0 }));
+          expect(profileWrites()).toHaveLength(1);
+          expect(profileWrites()[0].onboarding_fee_paid).toBe(true);
+          const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+          expect(flip.platform_fee_amount).toBe(10);
+        });
+
+        it("a winner who already paid it gets $50 and the row books the whole $10", async () => {
+          seedGiveaway(false);
+          const res = await release();
+          expect(res.status).toBe(200);
+          expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(5000);
+          expect(ledger()?.platform_fee_cents).toBe(1000);
+          expect(ledger()?.metadata).toEqual(expect.objectContaining({ onboarding_fee_cents: 0, rounding_remainder_cents: 0 }));
+        });
+
+        // @mutate supabase/functions/create-payment/index.ts |   const helprFaultTake = fixedPayGiveaway\n    ? { cents: 0, error: undefined } |   const helprFaultTake = false\n    ? { cents: 0, error: undefined }
+        it("a Helpr-fault debt waits for the next payout: still exactly $50", async () => {
+          seedGiveaway(false);
+          scenario.rpc.take_helpr_fault_fee = 1500;
+          const res = await release();
+          expect(res.status).toBe(200);
+          expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(5000);
+          expect((scenario.rpcCalls ?? []).some((c) => c.name === "take_helpr_fault_fee")).toBe(false);
+        });
+
+        // @mutate supabase/functions/create-payment/index.ts |     if (giveawaySetupFeeCents > 0) await unclaimGiveawaySetupFee(supabaseAdmin, helperId); |
+        it("Stripe refusing the transfer gives the setup fee claim back, so nothing is lost", async () => {
+          seedGiveaway(true);
+          stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("no"), { type: "StripeInvalidRequestError" }));
+          const res = await release();
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(profileWrites().map((p) => p.onboarding_fee_paid)).toEqual([true, false]);
+          expect(profileWrites()[1].onboarding_fee_charged_at).toBeNull();
+        });
+
+        // @mutate supabase/functions/create-payment/index.ts |  if (settingsErr \|\| settings?.onboarding_fee_cents == null) return { error: settingsErr?.message ?? "no onboarding_fee_cents" }; |  if (settingsErr \|\| settings?.onboarding_fee_cents == null) return { cents: 0 };
+        it("an unreadable setup-fee setting refuses before any money moves", async () => {
+          seedGiveaway(true);
+          scenario.reads.platform_settings = { error: { message: "settings boom" } };
+          const res = await release();
+          expect(res.status).toBeGreaterThanOrEqual(400);
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(profileWrites()).toHaveLength(0);
+        });
+
+        it("a normal job on Quick Release is untouched: no claim, the whole fee booked", async () => {
+          seedReleasable();
+          const res = await release();
+          expect(res.status).toBe(200);
+          expect(profileWrites()).toHaveLength(0);
+          // 12%: the fixture Helpr's tier fee on $100.
+          expect(ledger()?.platform_fee_cents).toBe(1200);
+        });
+      });
+
       // Q2082 (b), owner 2026-10-18 ("J4"): a card fee the Helpr owes from a
       // Helpr-at-fault refund comes out of a Quick Release too, under the same
       // per-job payout_ref as release-payout (_shared/helprFaultFee.ts).

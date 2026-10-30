@@ -10,7 +10,7 @@
  *
  * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |   v_link text := public.declutter_notice_link(p_link); |   v_link text := p_link;
  * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
- * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
+ * @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
  */
 import { describe, expect, it } from "vitest";
@@ -97,13 +97,15 @@ describe("Declutter notices link in one format (DC-17)", () => {
     expect(blankSqlComments(newestFunction("declutter_notify").body)).toContain("public.declutter_notify_strict(p_user, p_type, p_title, p_message, p_link, p_other)");
   });
 
-  it("the link helper rewrites exactly the five old seller/buyer addresses, keeping the rest of the link", () => {
+  it("the link helper rewrites exactly the six old seller/buyer addresses, keeping the rest of the link", () => {
     const body = blankSqlComments(newestFunction("declutter_notice_link").body);
     expect(body).toContain("'^/declutter\\?view=(sales|selling|mine)(&|#|$)'");
     expect(body).toContain("'/declutter?tab=selling'");
     expect(body).toContain("'^/declutter\\?view=(bought|buying)(&|#|$)'");
     expect(body).toContain("'/declutter?tab=buying'");
-    expect(body).not.toMatch(/view=\(?[a-z|]*\b(cart|offers|deliver|wanted)\b/);
+    // Q2489: ?view=cart also goes to Buying, because every sender's recipient is the buyer (declutterCartLinksGoToTheBuyer).
+    expect(body).toContain("'^/declutter\\?view=cart(&|#|$)'");
+    expect(body).not.toMatch(/view=\(?[a-z|]*\b(offers|deliver|wanted)\b/);
   });
 
   it("every sender of an old address reaches the writer (no notice inserted around it)", () => {

@@ -67,6 +67,7 @@ const EXEMPT: Record<string, string> = {
   declutter_delivery_raise_paid: "a buyer's raise is paid onto the open task; offers stay with the readers above",
   helpr_task_reopen: "puts a task back to open for the readers above; picks no Helpr",
   helpr_task_sweep: "the cron that closes unfilled tasks; picks no Helpr",
+  helpr_tasks_open_count: "counts open deliveries by pickup area for a Helpr with no car yet (audit 1c D3-6); lists, offers, suggests and hands no task",
 };
 
 describe("Declutter delivery: only a Helpr whose vehicle fits meets the delivery (Q2452)", () => {

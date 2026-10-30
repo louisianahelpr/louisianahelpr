@@ -29,6 +29,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => ({ stops: [], miles: 0, drive_minutes: 0, finish_at: null }),
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   fetchMyVehicle: async () => ({ has_car: true, has_truck: false, second_person: false, photo_path: null }),
+  fetchOpenCount: async () => null,
   taskPhotoUrl: async (p: string) => `https://signed.test/${p}`,
   acceptTask: async () => {},
   releaseTask: async () => ({ result: "released", strike: false }),

@@ -48,22 +48,23 @@ export function parishForAreaLabel(label: string | null | undefined): string | n
 
 export function busyAreas(
   jobs: ReadonlyArray<{ parish?: string | null }>,
-  deliveries: ReadonlyArray<{ pickup_area?: string | null }>,
+  deliveries: ReadonlyArray<{ pickup_area?: string | null; open_count?: number }>,
 ): BusyAreasSummary {
   const by = new Map<string, { jobs: number; deliveries: number }>();
   let elsewhere = 0;
-  const add = (parish: string | null, kind: "jobs" | "deliveries") => {
+  // `n`: a delivery row from helpr_tasks_open_count carries its area's count (audit 1c D3-6); a listed task is one.
+  const add = (parish: string | null, kind: "jobs" | "deliveries", n = 1) => {
     const center = parish ? getParishCentroid(parish) : null;
     if (!parish || !center) {
-      elsewhere++;
+      elsewhere += n;
       return;
     }
     const row = by.get(parish) ?? { jobs: 0, deliveries: 0 };
-    row[kind]++;
+    row[kind] += n;
     by.set(parish, row);
   };
   for (const j of jobs) add(cleanParish(j.parish), "jobs");
-  for (const d of deliveries) add(parishForAreaLabel(d.pickup_area), "deliveries");
+  for (const d of deliveries) add(parishForAreaLabel(d.pickup_area), "deliveries", Math.max(0, d.open_count ?? 1));
   const areas = [...by.entries()]
     .map(([parish, c]) => ({ parish, jobs: c.jobs, deliveries: c.deliveries, total: c.jobs + c.deliveries, center: getParishCentroid(parish)! }))
     .sort((a, b) => b.total - a.total || a.parish.localeCompare(b.parish));

@@ -10,6 +10,7 @@
  * B48 live check 2026-10-29: the sheet stayed shut for a buyer with two paid orders. The return names the order
  * (?order=<id>), and the sheet is about that order.
  * @mutate src/components/declutter/BoughtWhatNext.tsx | justPaidOrder(lines, params.get("order")) | justPaidOrder(lines)
+ * @mutate src/components/declutter/BoughtWhatNext.tsx | l.my_side === "buyer" && | true &&
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     return named.length ? named : null; |     return mine.length ? mine : null;
  * @mutate supabase/functions/declutter-checkout/index.ts | `/declutter?view=cart&paid=1&order=${order.order_id}` | "/declutter?view=cart&paid=1"
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
@@ -103,6 +104,8 @@ describe("board 82: after buying", () => {
     expect(justPaidOrder(cart as CartLine[], A)?.map((l) => l.item_title)).toEqual(["Box fan"]);
     expect(justPaidOrder(cart as CartLine[], "33333333-3333-4333-8333-333333333333")).toBeNull();
     expect(justPaidOrder(cart as CartLine[], "not-an-id")).toBeNull();
+    // ?order= names an order only among the viewer's OWN buyer lines: the seller of that order gets no "You bought".
+    expect(justPaidOrder([line({ order_id: A, my_side: "seller" })] as CartLine[], A)).toBeNull();
     const edge = readFileSync(resolve(__dirname, "../../supabase/functions/declutter-checkout/index.ts"), "utf8");
     expect(edge).toContain("success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),");
   });

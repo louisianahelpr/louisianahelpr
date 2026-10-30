@@ -126,9 +126,9 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
                 {i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">Cover</span>}
               </button>
               <button type="button" aria-pressed={on} aria-label={`Choose ${name}, photo ${i + 1}`} onClick={() => toggle(k)} data-bunch-tick={k}
-                className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <span className={`flex h-6 w-6 items-center justify-center rounded-full border border-border shadow ${on ? "btn-grad-primary" : "bg-background text-foreground"}`} aria-hidden>
-                  {on && <Check className="h-4 w-4" />}
+                className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full border border-border shadow ${on ? "btn-grad-primary" : "bg-background text-foreground"}`} aria-hidden>
+                  {on && <Check className="h-3.5 w-3.5" />}
                 </span>
               </button>
             </li>

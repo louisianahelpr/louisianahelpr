@@ -1,5 +1,5 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRun";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -24,6 +24,7 @@ import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
 import { needsIdentityCheck } from "@/lib/identityCheck";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
+const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -75,6 +76,8 @@ function HomeDashboardScreen() {
   // Plain state, never stored: a remount (load, coming back) starts collapsed.
   const [todoOpen, setTodoOpen] = useState(false);
   const toggleTodo = () => setTodoOpen((o) => !o);
+  // True until the first-run tour is settled (it reports pending): the texts ask waits behind it.
+  const [firstRunActive, setFirstRunActive] = useState(true);
   useOnTabReselect("/home", () => setTodoOpen(false));
   // Profile's "Your sections" row opens Home with ?customize=1.
   const [params, setParams] = useSearchParams();
@@ -353,7 +356,9 @@ function HomeDashboardScreen() {
       <CustomizeSheet open={customize} onOpenChange={setCustomize} />
       {/* Board 53 + the short coach-mark tour (owner 2026-10-20). It replaced the 7-step OnboardingTour,
           which only ever opened on /home from the Jobs feed and so never showed once Home moved here. */}
-      <FirstRun userId={user?.id} />
+      <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />
+      {/* SMS-OPTIN (owner 2026-10-29): members who gave a phone are asked once to turn texts on; never over the tour. */}
+      {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}
     </SectionScreen>
   );
 }

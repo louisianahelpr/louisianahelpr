@@ -14,7 +14,10 @@
  * @mutate vite.config.ts | includeDependenciesRecursively: false, | includeDependenciesRecursively: true,
  * @mutate scripts/perf/bootReach.mjs | const deep = new Set([...signedInOnly].filter((f) => !reach.has(f))); | const deep = new Set();
  * @mutate vite.config.ts | name: "signed-in-deep", | name: "signed-in-deep-off",
- * @mutate vite.config.ts | const { deep: signedInDeep } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>();
+ * @mutate vite.config.ts | const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>(); const declutterOnly = new Set<string>();
+ * @mutate vite.config.ts | name: "declutter-first-screen", | name: "signed-in-shared",
+ * @mutate scripts/perf/bootReach.mjs | const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f))); | const declutterOnly = new Set();
+ * @mutate src/pages/auth/Signup.tsx | void import("@/lib/cityZipMismatch").then( | void Promise.resolve(staticHint).then(
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,6 +79,24 @@ describe("signedInSplit: signed-in code no first screen reaches (signed-in-deep,
     expect(deep.size).toBeGreaterThan(40); // 73 on 2026-10-17
   });
 
+  it("code only Declutter's first screen reaches is split off, and nothing another first screen reads", () => {
+    const { declutterOnly } = signedInSplit(ROOT);
+    expect(declutterOnly.size).toBeGreaterThan(20); // about 60 on 2026-10-30
+    for (const rel of ["src/lib/declutter/sellerDelivery.ts", "src/lib/declutter/wanted.ts"]) {
+      expect(declutterOnly.has(abs(rel)), rel).toBe(true);
+    }
+    for (const f of declutterOnly) expect(firstScreen.has(f), f).toBe(true);
+    for (const rel of ["src/hooks/useActivityData.ts", "src/lib/lifecycleErrors.ts"]) {
+      expect(declutterOnly.has(abs(rel)), rel).toBe(false);
+    }
+  });
+
+  it("/signup's first download does not carry the parish tables", () => {
+    const reach = staticReach(ROOT, [abs("src/pages/auth/Signup.tsx")]);
+    expect(reach.size).toBeGreaterThan(20);
+    expect(reach.has(abs("src/lib/parishes.ts"))).toBe(false);
+  });
+
   it("first-screen code stays in signed-in-shared, lazy-only code goes deep", () => {
     for (const rel of ["src/hooks/useActivityData.ts", "src/lib/lifecycleErrors.ts", "src/lib/awardGate.ts"]) {
       expect(firstScreen.has(abs(rel)), rel).toBe(true);
@@ -102,7 +123,7 @@ describe("vite.config.ts wires the group", () => {
   it("has a signed-in-deep group fed by signedInSplit, above signed-in-shared's priority", () => {
     const deepGroup = cfg.match(/name:\s*"signed-in-deep"[\s\S]*?\n\s*\},/)?.[0] ?? "";
     expect(deepGroup).not.toBe("");
-    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
+    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep,\s*declutterOnly\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
     expect(deepGroup).toMatch(/signedInDeep\.has\(/);
     expect(deepGroup).toMatch(/includeDependenciesRecursively:\s*false/);
     expect(Number(deepGroup.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(group.match(/priority:\s*(\d+)/)?.[1]));

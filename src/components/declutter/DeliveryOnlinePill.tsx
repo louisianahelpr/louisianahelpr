@@ -9,15 +9,17 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { fetchOnlineStatus, isOnline } from "@/lib/helprTasks/online";
 
 function useOnlineNow(): boolean {
   const { user } = useCurrentUser();
+  const chromeReadsMayStart = useChromeReadsMayStart();
   const q = useQuery({
     queryKey: ["helpr-tasks", "online", user?.id ?? ""],
     queryFn: () => fetchOnlineStatus(user?.id ?? ""),
-    enabled: !!user?.id,
+    enabled: !!user?.id && chromeReadsMayStart,
     staleTime: 60_000,
     meta: { persist: false },
   });

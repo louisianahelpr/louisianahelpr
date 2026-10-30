@@ -1,6 +1,8 @@
 import { useEffect, type ReactNode } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
+import { startPageReadsWatch } from "@/hooks/usePageReadsSettled";
+import { queryClient } from "@/lib/queryClient";
 
 /**
  * The components App.tsx mounts beside every page but only ever draws for
@@ -35,6 +37,9 @@ export function SignedInOnly({ children }: { children: ReactNode }) {
  */
 export function SignedInChrome({ children }: { children: ReactNode }) {
   const show = useMaybeSignedIn();
+  // During render, so the watch is on before any chrome chunk below reads (their
+  // effects run first). It does nothing after the first call.
+  if (show) startPageReadsWatch(queryClient);
   useEffect(() => {
     if (show) return;
     document.documentElement.classList.add("no-bottom-nav");

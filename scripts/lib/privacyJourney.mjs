@@ -111,6 +111,8 @@ export const EXPORT_SECTIONS = [
   "declutter_items", "declutter_item_private", "declutter_item_photos", "declutter_pickup_windows",
   // Remembered listing choices (20261030144112; exported by 20261030153635).
   "declutter_seller_defaults",
+  // A half-finished job post kept on the account (20261030223154, OPS-3).
+  "job_post_drafts",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   "declutter_porch_places",

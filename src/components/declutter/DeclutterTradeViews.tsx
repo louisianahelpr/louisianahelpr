@@ -90,6 +90,14 @@ export function StrikeCount({ userId }: { userId: string }) {
 /** "3 hours left" -> "3 hours left.", "time is up" -> "Time is up.": a status line is a sentence. */
 const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
 
+/**
+ * The counter box's example (audit 1030 DC-12: it was a hard-coded "30" on every offer, whatever the numbers). The
+ * seller sees whole dollars halfway between the buyer's offer and the price now, the usual place to meet. The buyer
+ * answering a counter sees none: the row doesn't carry their earlier offer, so any number would be made up.
+ */
+const counterExample = (o: MyOffer) =>
+  o.my_side === "seller" ? String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200)) : undefined;
+
 const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
   open: "Waiting",
   accepted: "Accepted",
@@ -215,7 +223,7 @@ function OfferRow({ o }: { o: MyOffer }) {
                 className="w-full min-w-0 rounded-lg border border-input bg-background py-2 pl-6 pr-3 text-sm"
                 value={counter}
                 onChange={(e) => setCounter(e.target.value)}
-                placeholder="30"
+                placeholder={counterExample(o)}
               />
             </div>
             <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents}>

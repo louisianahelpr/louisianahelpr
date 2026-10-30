@@ -19,6 +19,8 @@ export interface FirstScreenAnswer {
   more: boolean;
   /** The position the items were sorted from; null = newest first. */
   near: { lat: number; lng: number } | null;
+  /** The profile's ZIP and get_parish_for_zip's answer; null when the member has a position, or no ZIP. */
+  zip_parish?: { zip: string; parish: string | null } | null;
   photos: { item_id: string }[];
   watching: string[];
   bundle_sellers: string[];
@@ -84,6 +86,12 @@ export async function takeFirstScreenBundleSellers(sellerIds: string[], now: num
 
 export async function takeFirstScreenWatching(userId: string, now: number = Date.now()): Promise<string[] | null> {
   return (await take("watching", now, userId))?.watching ?? null;
+}
+
+/** The parish of `zip`, once, if the answer asked the server about that same ZIP and it knew. */
+export async function takeFirstScreenZipParish(zip: string, now: number = Date.now()): Promise<string | null> {
+  const known = (await take("zip", now))?.zip_parish;
+  return known?.zip === zip && known.parish ? known.parish : null;
 }
 
 /**

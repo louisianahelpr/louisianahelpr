@@ -59,6 +59,8 @@ function VisitCard({ visit, userId }: { visit: RouteStop[]; userId: string }) {
       {visit.map((s, n) => (
         <div key={`${s.task_id}:${s.kind}`} className={n > 0 ? "space-y-3 border-t border-border pt-3" : "space-y-3"}>
           {visit.length > 1 && <p className="text-ds-15 font-semibold leading-snug line-clamp-2" title={s.title}>{s.title}</p>}
+          {/* A joined pickup can be typed differently (same seller, within 50 m): never hide where it is. */}
+          {n > 0 && s.address && s.address !== stop.address && <p className="text-ds-13 font-medium break-words">{s.address}</p>}
           <p className="text-ds-13">
             {pickup && s.slot_start && s.slot_end
               ? <>Pick up {day(s.slot_start)}, {clock(s.slot_start)} to {clock(s.slot_end)}</>

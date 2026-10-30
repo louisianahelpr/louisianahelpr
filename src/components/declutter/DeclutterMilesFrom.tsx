@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
 
 /** Where the miles on the cards are counted from, in a few words (or why there are none). */
-export function milesFromWords(ask: OriginAsk): string {
+function milesFromWords(ask: OriginAsk): string {
   const { origin } = ask;
   if (origin.status === "ready") {
     if (origin.source === "device") return "Miles from where you are";

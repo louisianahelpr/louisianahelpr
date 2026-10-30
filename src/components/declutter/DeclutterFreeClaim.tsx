@@ -242,7 +242,11 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onDone();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => {
+      toast.error(declutterErrorMessage(err));
+      // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
+      if (chosen === "porch") void porchPlaces.query.refetch();
+    },
   });
   return (
     <div className="space-y-3" data-free-checkout="">

@@ -5,7 +5,7 @@
  * the pickup times, so it applies to all their listings. The server keeps every rule (declutter_save_porch_place).
  * Hidden until the migration is on the server (PGRST202), and on a failed read (said, not silent).
  */
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -105,14 +105,39 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
   );
 }
 
-export function SellPorchPlaces() {
+/** Whether this seller has saved places: the sell form then says which address a buyer gets. False while it reads. */
+export function useHasPorchPlaces(): boolean {
+  const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
+  return Array.isArray(mine.data) && mine.data.length > 0;
+}
+
+/**
+ * The sell form's words once the seller has saved places, placed above the listing's own area and address. The server
+ * rule (declutter_start_checkout, declutter_checkout_free, declutter_item_address): porch pickup and Helpr delivery use
+ * the place the buyer picks; a listing's own address applies to any other way, or once no place is saved.
+ */
+export function SavedPlacesComeFirst({ free }: { free: boolean }) {
+  return (
+    <p className="rounded-[14px] border border-border bg-card px-3 py-2.5 text-ds-13 text-foreground" data-saved-places-first="">
+      {free
+        ? "You have saved pickup places, so the person who gets this picks one and gets that address, not the one below."
+        : "You have saved pickup places. A buyer choosing porch pickup or Helpr delivery picks one and gets that address, not the one below."}
+    </p>
+  );
+}
+
+/** `card`: in Declutter settings it sits among the setting cards, so it brings its own (and none while there is nothing to show). */
+export function SellPorchPlaces({ card = false }: { card?: boolean }) {
   const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
   // null: no form open; a draft: adding (id null) or editing that place.
   const [draft, setDraft] = useState<Draft | null>(null);
   if (mine.data === PORCH_PLACES_NOT_DEPLOYED || mine.isLoading) return null;
-  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your pickup places." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
+  const inCard = (body: ReactNode) => (card
+    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>
+    : body);
+  if (mine.isError) return inCard(<ErrorState variant="inline" title="We couldn't load your pickup places." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />);
   const places = mine.data ?? [];
-  return (
+  return inCard(
     <div className="space-y-2" data-porch-places="">
       <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
       <p className="text-ds-13 text-muted-foreground">
@@ -130,6 +155,6 @@ export function SellPorchPlaces() {
         : places.length < MAX_PORCH_PLACES && (
           <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft(EMPTY)}>Add a pickup place</Button>
         )}
-    </div>
+    </div>,
   );
 }

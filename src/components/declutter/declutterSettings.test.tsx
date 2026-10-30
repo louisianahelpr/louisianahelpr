@@ -6,6 +6,8 @@
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |
@@ -29,6 +31,7 @@ const state = {
   readError: false,
   saveResult: true,
   saves: [] as SellerDefaults[],
+  places: [] as unknown[] | "not_deployed",
   features: { declutter: true, declutter_seller_delivery: true } as Record<string, boolean>,
 };
 
@@ -53,6 +56,7 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   return { ...real, fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [], items_off: [], rules: real.SELLER_DELIVERY_RULES }) };
 });
 vi.mock("./DeclutterPickupTimes", () => ({ PickupTimesCard: () => <section aria-label="Pickup times" data-pickup-times-card="" />, PickupTimesEditor: () => null }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {
   return render(
@@ -71,6 +75,7 @@ beforeEach(() => {
   state.readError = false;
   state.saveResult = true;
   state.saves = [];
+  state.places = [];
   state.features = { declutter: true, declutter_seller_delivery: true };
   vi.mocked(toast.success).mockClear();
   vi.mocked(toast.error).mockClear();
@@ -147,6 +152,22 @@ describe("Declutter settings", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Porch pickup" }));
     expect(button).toBeDisabled();
     expect(screen.getByText("Tick at least one way buyers can get it.")).toBeInTheDocument();
+  });
+
+  it("pickup places have their own card, right after pickup times", async () => {
+    open();
+    const card = await screen.findByRole("region", { name: "Pickup places" });
+    expect(screen.getByRole("button", { name: "Add a pickup place" })).toBeInTheDocument();
+    expect(card.previousElementSibling).toBe(screen.getByRole("region", { name: "Pickup times" }));
+    expect(card.tagName).toBe("SECTION");
+  });
+
+  it("no card at all before the places are on the server", async () => {
+    state.places = "not_deployed";
+    open();
+    await save();
+    await screen.findByRole("region", { name: "Bundle discount" });
+    expect(screen.queryByRole("region", { name: "Pickup places" })).toBeNull();
   });
 
   it("a stored Helpr delivery tick is dropped, and I'll deliver is not offered while its switch is off", async () => {

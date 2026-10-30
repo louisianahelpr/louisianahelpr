@@ -11,8 +11,8 @@ import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
-// @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
-// @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
+// @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
+// @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |   v_from := CASE WHEN b.pickup_day IS NOT NULL THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day) |   v_from := CASE WHEN false THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day)
 // @mutate supabase/migrations/20261029161347_declutter_porch_weekdays.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC;

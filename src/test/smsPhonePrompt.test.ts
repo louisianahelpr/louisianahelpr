@@ -4,12 +4,18 @@
  * Shown at a member's FIRST job post and a Helpr's FIRST hire, with the existing text-alert opt-in (SmsAlertsCard:
  * the same consent sentence, version and double opt-in); dismissed on the ACCOUNT
  * (notification_preferences.sms_phone_prompt_dismissed_at, own row only); never once a phone is confirmed; never on
- * sign-up. Behaviour: src/test/pglite/smsPhonePrompt.pglite.mjs (15 PASS with 20261027183058 applied 3x; 14 FAIL
- * with it absent). This guard pins the newest definitions and the two places it is mounted.
+ * sign-up. SMS-OPTIN (owner 2026-10-29, 20261030132841): a third moment, 'has_phone', asks a member whose profile
+ * already has a phone, once, on Home, after the first-run tour. Behaviour: src/test/pglite/smsPhonePrompt.pglite.mjs
+ * (23 PASS with both migrations applied 3x; PHONE_MIGRATION=skip: the 7 has_phone checks FAIL). This guard pins the
+ * newest definitions and the three places it is mounted.
  *
- * @mutate supabase/migrations/20261027183058_sms_phone_prompt.sql |               WHERE np.user_id = v_uid AND np.sms_phone_prompt_dismissed_at IS NOT NULL) THEN |               WHERE np.user_id = v_uid) THEN
- * @mutate supabase/migrations/20261027183058_sms_phone_prompt.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
- * @mutate supabase/migrations/20261027183058_sms_phone_prompt.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
+ * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |               WHERE np.user_id = v_uid AND np.sms_phone_prompt_dismissed_at IS NOT NULL) THEN |               WHERE np.user_id = v_uid) THEN
+ * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
+ * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
+ * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql | WHERE p.id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.id = v_uid);
+ * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {<Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
+ * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
+ * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={SMS_PHONE_PROMPT_TITLE}
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |           <SmsAlertsCard /> |           <p>Text alerts</p>
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     void supabase.rpc("dismiss_sms_phone_prompt") |     void Promise.resolve({ data: 1, error: null })
  * @mutate src/pages/post-job/PaymentSuccess.tsx | <SmsPhonePrompt moment="first_job" /> | <span />
@@ -27,8 +33,12 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/
 
 describe("the one-time add-your-phone prompt", () => {
   it("reads the newest definitions (floor)", () => {
-    const names = ["sms_phone_prompt_due", "dismiss_sms_phone_prompt"];
-    for (const n of names) expect(newestFunction(n).file, n).toContain("20261027183058");
+    const newest: Record<string, string> = {
+      sms_phone_prompt_due: "20261030132841",
+      dismiss_sms_phone_prompt: "20261027183058",
+    };
+    const names = Object.keys(newest);
+    for (const n of names) expect(newestFunction(n).file, n).toContain(newest[n]);
     expect(names.length).toBeGreaterThan(1);
   });
 
@@ -39,6 +49,12 @@ describe("the one-time add-your-phone prompt", () => {
     expect(due).toContain("AND (c.sms_opt_in IS TRUE OR (c.pending_phone IS NOT NULL AND c.pending_since > now() - interval '24 hours'))) THEN RETURN false;");
     expect(due).toContain("SELECT count(*)::integer INTO v_n FROM public.jobs j WHERE j.customer_id = v_uid;");
     expect(due).toContain("RETURN v_n = 1;");
+    // SMS-OPTIN: 'has_phone' is the caller's own profile phone, blank or spaces counting as none.
+    expect(due).toContain("p_moment NOT IN ('first_job', 'first_hire', 'has_phone')");
+    expect(due).toContain("IF p_moment = 'has_phone' THEN RETURN EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); END IF;");
+    // The dismissal and texts-on checks come BEFORE the has_phone answer, so they hold for it too.
+    expect(due.indexOf("sms_phone_prompt_dismissed_at IS NOT NULL")).toBeLessThan(due.indexOf("IF p_moment = 'has_phone'"));
+    expect(due.indexOf("c.sms_opt_in IS TRUE")).toBeLessThan(due.indexOf("IF p_moment = 'has_phone'"));
     const dismiss = code("dismiss_sms_phone_prompt");
     expect(dismiss).toContain("VALUES (v_uid, now())");
     expect(dismiss).not.toMatch(/p_user|p_id/);
@@ -51,6 +67,16 @@ describe("the one-time add-your-phone prompt", () => {
     expect(prompt).toContain('void supabase.rpc("dismiss_sms_phone_prompt")');
     expect(prompt).toContain('<Dialog open onOpenChange={(o) => { if (!o) close(); }}>');
     expect(prompt).toContain('<DialogSecondaryAction onClick={close}>Not now</DialogSecondaryAction>');
+  });
+
+  it("on Home for members who already gave a phone: worded as turning texts on, never over the first-run tour", () => {
+    const home = read("src/pages/home/HomeDashboard.tsx");
+    expect(home).toContain('{!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
+    expect(home).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
+    expect(home).toContain("const [firstRunActive, setFirstRunActive] = useState(true);");
+    const prompt = read("src/components/notificationPreferences/SmsPhonePrompt.tsx");
+    expect(prompt).toContain('title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE}');
+    expect(prompt).toContain('export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don\'t miss updates";');
   });
 
   it("mounted at the first job post and the first hire, and never on sign-up", () => {

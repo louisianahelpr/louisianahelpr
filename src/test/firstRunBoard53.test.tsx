@@ -7,7 +7,7 @@
  *
  * @mutate src/components/firstRun/FirstRun.tsx |     : picks.includes("earn") ? "Find jobs near you" |     : picks.includes("earn") ? "Browse jobs near you"
  * @mutate src/components/firstRun/FirstRun.tsx |   const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" \|\| declutterOpen); |   const options = FIRST_RUN_OPTIONS;
- * @mutate src/pages/home/HomeDashboard.tsx |       <FirstRun userId={user?.id} /> |       {null}
+ * @mutate src/pages/home/HomeDashboard.tsx |       <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> |       {null}
  * @mutate src/components/firstRun/firstRunGate.ts | export const firstRunStorageKey = (userId: string) => `${LEGACY_KEY}_${userId}`; | export const firstRunStorageKey = (userId: string) => `helpr_first_run_${userId}`;
  * @mutate src/components/firstRun/FirstRun.tsx |   const cameToPost = picks.length === 0 \|\| picks.includes("hire") \|\| picks.includes("sell"); |   const cameToPost = true;
  */
@@ -68,7 +68,7 @@ describe("first run (board 53) and the short tour", () => {
   });
 
   it("is mounted on Home, replaces OnboardingTour, keeps the old seen-state, and replays from Help", () => {
-    expect(read("pages/home/HomeDashboard.tsx")).toContain("<FirstRun userId={user?.id} />");
+    expect(read("pages/home/HomeDashboard.tsx")).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
     expect(existsSync(resolve(__dirname, "../components/OnboardingTour.tsx"))).toBe(false);
     expect(read("pages/home/Dashboard.tsx")).not.toMatch(/OnboardingTour|FirstRun/);
     expect(firstRunStorageKey("u1")).toBe("helpr_onboarding_u1");

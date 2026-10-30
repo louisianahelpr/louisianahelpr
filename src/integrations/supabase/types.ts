@@ -2776,6 +2776,29 @@ export type Database = {
         Relationships: [
         ]
       }
+      declutter_price_nudges: {
+        Row: {
+          item_id: string
+          notified_at: string
+        }
+        Insert: {
+          item_id: string
+          notified_at?: string
+        }
+        Update: {
+          item_id?: string
+          notified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_price_nudges_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_problems: {
         Row: {
           other_side_at: string | null
@@ -14896,6 +14919,11 @@ export type Database = {
         Returns: Json
       }
       declutter_price_drop_sweep: { Args: never; Returns: number }
+      declutter_price_nudge_cents: {
+        Args: { p_current: number; p_floor: number }
+        Returns: number
+      }
+      declutter_price_nudge_sweep: { Args: never; Returns: Json }
       declutter_price_hint: {
         Args: {
           p_category: string

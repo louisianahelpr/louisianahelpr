@@ -96,6 +96,15 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
     if (i === 19) throw new Error(`no profile row for ${email} after signup`);
     await new Promise((r) => setTimeout(r, 500));
   }
+  // Q2398: the mint refuses a fixture inbox that is not yet a test account, so mark it first.
+  await ok(
+    await srFetch(key, "PATCH", `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=user_id`, {
+      extra: { Prefer: "return=representation" },
+      data: { is_seed: true },
+    }),
+    "mark the throwaway is_seed before the mint",
+  );
+  await ensureTestAccountsEnrolled({ supabaseUrl: SUPABASE_URL, serviceKey: key, userIds: [userId], note: `journey throwaway (${label})` });
   // Minted with the service role, never an anon password grant (Q1314: GoTrue
   // refuses those once CAPTCHA is on).
   const session = (await mintAdminSession({

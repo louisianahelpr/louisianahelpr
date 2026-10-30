@@ -49,8 +49,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |     v_cross := true;\n    v_reason := 'seed boundary check failed, dropped: ' \|\| SQLERRM;\n  END;\n\n  IF v_cross THEN\n    -- The | v_cross := false;\n    v_reason := 'x';\n  END;\n\n  IF v_cross THEN\n    -- The
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   BEFORE INSERT ON public.match_digest_queue | AFTER INSERT ON public.match_digest_queue
 // @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND (NOT nj.is_seed OR COALESCE(p.is_seed, false)) |         AND true
-// @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   v_job := COALESCE(p_job_id, public.notification_job_id_from_link(p_link)); |   v_job := p_job_id;
-// @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | '[?&](?:userId\|offerTo\|user)= | '[?&](?:userId\|user)=
+// @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   v_job := COALESCE(p_job_id, public.notification_job_id_from_link(p_link)); |   v_job := p_job_id;
+// @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | '[?&](?:userId\|offerTo\|user)= | '[?&](?:userId\|user)=
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated; | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC;
 // @mutate supabase/functions/send-notification-email/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === 'never') {
 // @mutate supabase/functions/send-notification-email/index.ts |     if (seedCheckError \|\| typeof crossesSeed !== 'boolean') { |     if (false) {

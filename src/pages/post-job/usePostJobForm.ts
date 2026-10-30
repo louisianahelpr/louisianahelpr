@@ -18,6 +18,7 @@ import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { prefillOpensDetails } from "./usePrefillOpensDetails";
+import { prefillOpensWhen } from "@/lib/bookAgain";
 import { DEFAULT_QUOTE_WINDOW, type QuoteWindowHours } from "@/lib/quotes/api";
 import type { PriceMode } from "@/components/quotes/PostJobQuoteChoice";
 
@@ -577,6 +578,8 @@ export function usePostJobForm() {
     setFormPage,
     // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).
     prefillOpensDetails: prefillOpensDetails(searchParams),
+    // Q2471 #3: "Book <Helpr> again" (rebook + offerTo + bookAgain) opens at When and where once its copy lands.
+    prefillOpensWhen: prefillOpensWhen(searchParams),
     entryPanel,
     setEntryPanel,
     categoryGroup,

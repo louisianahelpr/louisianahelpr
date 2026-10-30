@@ -12,6 +12,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { fetchPayoutStatus, payoutStatusQueryOptions } from "@/lib/payoutSetupQueries";
 import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
+import SaveHelperButton from "@/components/SaveHelperButton";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
@@ -186,6 +188,27 @@ export function JobDoneSummary({
           <div className="flex-1 min-w-[60%]">
             <p className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>Hire {firstName} again?</p>
           </div>
+          {/* Save this Helpr (Q2471 #3): the heart puts them on Your Helprs, which Post a job offers directly. */}
+          <SaveHelperButton helperId={job.helper_id} customerId={viewerId} />
+          {/* Book <Helpr> again (Q2471 #3, owner 2026-10-29): THIS job copied, never its date, as a direct
+              offer to the same Helpr; Post a job opens at When and where, so only the date is asked. */}
+          {/* The two ways to book this Helpr share one line under the name (it wraps at 375). */}
+          <div className="w-full pl-14 flex flex-wrap gap-2">
+          <Link
+            to={bookAgainLink(jobId, job.helper_id)}
+            data-testid="book-again"
+            aria-label={`${bookAgainLabel(otherName)} — the same job for ${otherName}, you pick the date`}
+            {...gatedProps("post")}
+            onClick={(e) => {
+              if (!underAge) return;
+              e.preventDefault();
+              explain("post");
+            }}
+            className="shrink-0 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
+            style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
+          >
+            {bookAgainLabel(otherName)}
+          </Link>
           <Link
             to={`/post-job?offerTo=${job.helper_id}`}
             {...gatedProps("post")}
@@ -195,11 +218,12 @@ export function JobDoneSummary({
               explain("post");
             }}
             // Secondary: "Send review" is this screen's one primary (spec §3).
-            className="shrink-0 ml-14 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
+            className="shrink-0 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
             style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
           >
             Hire again
           </Link>
+          </div>
         </div>
       )}
 

@@ -581,7 +581,7 @@ export function CartView() {
           // The Free section (20261027170717): an all-free group never reaches a payment page.
           const allFree = lines.every((l) => l.price_cents === 0);
           return (
-            <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
+            <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label={`Checkout ${i + 1}`} data-checkout-seller={sellerId}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
@@ -600,7 +600,7 @@ export function CartView() {
                   </li>
                 ))}
               </ul>
-              <CartHold sellerId={sellerId} checkoutBy={soonest} allFree={allFree} timeLeft={timeLeft(soonest)} />
+              <CartHold sellerId={sellerId} checkoutBy={soonest} allFree={allFree} lines={lines} timeLeft={timeLeft(soonest)} />
               {allFree ? (
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} ways={waysEveryLineAllows(lines)} onDone={() => void cart.refetch()} />
               ) : (

@@ -20,16 +20,15 @@
  *
  * BuyerTotal (lead-approved, 2026-10-29): ONE shared <BuyerTotal priceCents/>
  * (src/components/declutter/BuyerTotal.tsx) builds every buyer-total figure:
- * the Buy now label, "You pay if the seller says yes", "Total with pickup",
+ * the Buy now label, "You pay if the seller says yes", ("Total with pickup", until DB-5 removed its sheet),
  * "You pay with pickup" and the offer What next's "$X for pickup". The class:
  * no bare buyNowTotalCents( in src/components outside it, and every one of
- * those five screens renders it.
+ * those four screens renders it.
  *
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(priceCents + setupFeeCents)}{suffix}
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents))}{suffix}
  * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
  * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
- * @mutate src/components/declutter/DeclutterReserveSheet.tsx | <BuyerTotal priceCents={priceCents} /> | {formatPrice(buyNowTotalCents(priceCents))}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | <BuyerTotal priceCents={takeCents} /> | {takeCents}
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /> | {cents}
@@ -94,7 +93,7 @@ describe("D6: Buy now names what checkout will charge", () => {
     expect(src).toMatch(/SETUP_FEE_PENDING_WORDS = "\+ any one-time setup fee"/);
   });
 
-  it("BuyerTotal: no bare buyNowTotalCents( in src/components outside BuyerTotal.tsx, and the five buyer-total screens use it", () => {
+  it("BuyerTotal: no bare buyNowTotalCents( in src/components outside BuyerTotal.tsx, and the four buyer-total screens use it", () => {
     const files = walkSource([join(REPO, "src", "components")]).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f));
     expect(files.length).toBeGreaterThan(300);
     const bare: string[] = [];
@@ -109,7 +108,7 @@ describe("D6: Buy now names what checkout will charge", () => {
     const SITES: [string, string][] = [
       ["DeclutterOfferPanel.tsx", "Buy now</span>"],
       ["DeclutterOfferPanel.tsx", "You pay if the seller says yes"],
-      ["DeclutterReserveSheet.tsx", "Total with pickup"],
+      // "Total with pickup" left with the Buy now reserve sheet (DB-5, 2026-10-30: Buy now goes straight to checkout).
       ["DeclutterTradeViews.tsx", "You pay with pickup"],
       ["OfferSentWhatNext.tsx", "for pickup"],
     ];

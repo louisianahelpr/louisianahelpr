@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { respondOffer, type CartLine, type MyOffer } from "@/lib/declutter/api";
+import { checkoutLinkFor, holdHasNoStrike } from "@/lib/declutter/buyNowHold";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
@@ -49,11 +50,14 @@ export function ReservedForYou({ line, free }: { line: CartLine; free: boolean }
         <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft(line.checkout_by)}</span>
       </p>
       <p className="text-ds-13 text-muted-foreground">
-        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep). */}
-        {free ? `Choose it by ${by}. If you don't, it goes back up. No strike.` : `Check out by ${by}. If you don't, you get a strike and it goes back up for sale.`}
+        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep).
+            DB-5: so does a Buy now line (source "buy"); only an accepted offer still carries a strike. */}
+        {free ? `Choose it by ${by}. If you don't, it goes back up. No strike.`
+          : holdHasNoStrike([line]) ? `Pay by ${by}. If you don't, it goes back up for sale. No strike.`
+            : `Check out by ${by}. If you don't, you get a strike and it goes back up for sale.`}
       </p>
       <Button asChild size="wrap" className="w-full rounded-full">
-        <Link to={CHECKOUT_LINK}>{free ? "Choose a pickup" : "Go to checkout"}</Link>
+        <Link to={free ? CHECKOUT_LINK : checkoutLinkFor(line.seller_id)}>{free ? "Choose a pickup" : "Go to checkout"}</Link>
       </Button>
     </section>
   );

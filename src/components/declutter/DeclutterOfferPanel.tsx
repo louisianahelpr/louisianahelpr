@@ -23,7 +23,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
-import { ReserveSheet, type ReserveStep } from "./DeclutterReserveSheet";
+import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
 import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
 import { dollarsInputToCents, invalidateTrades } from "./DeclutterTradeViews";
 
@@ -182,24 +182,22 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  // Buy now asks in an in-app sheet, then says "Reserved for you, not paid yet" in the same sheet (DeclutterReserveSheet;
-  // lead 2026-10-28: never window.confirm). The buy itself is unchanged: the 48-hour hold (owner 2026-10-28).
-  const [reserve, setReserve] = useState<ReserveStep>(null);
+  // DB-5 (owner 2026-10-30): "Buy now goes straight to checkout, with no strike for backing out before paying." No
+  // reserve sheet: the tap holds the item (the server's 48-hour line, needed for checkout) and opens this seller's
+  // checkout in Buying, where Pay is its own press and nothing is charged before it. The button already shows the
+  // pickup total; a buyer who backs out gets no strike (declutter_deadline_sweep, 20261030064929) and can Remove it.
   const buy = useMutation({
     mutationFn: () => buyNow(item.id, item.current_price_cents),
     onSuccess: () => {
-      setReserve("reserved");
       invalidateTrades(qc);
+      navigate(checkoutLinkFor(item.seller_id));
     },
-    onError: (err) => {
-      setReserve(null);
-      toast.error(declutterErrorMessage(err));
-    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
-  // The single-item pickup total (lh-money-escrow review notes: Helpr delivery is added at checkout, and more from
-  // the same seller shares one checkout) is shown in the sheet.
-  const confirmBuy = () => setReserve("ask");
+  const confirmBuy = () => {
+    if (!buy.isPending) buy.mutate();
+  };
   const run = (action: AfterCardAction) => {
     if (action === "buy") confirmBuy();
     else setOpen(true);
@@ -405,17 +403,6 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           </div>,
           document.body,
         )}
-      <ReserveSheet
-        step={reserve}
-        title={item.title}
-        priceCents={item.current_price_cents}
-        sellerId={item.seller_id}
-        pending={buy.isPending}
-        onReserve={() => buy.mutate()}
-        onClose={() => setReserve(null)}
-        onCheckout={() => { setReserve(null); navigate("/declutter?tab=buying"); }}
-        way={way}
-      />
       <OfferSentWhatNext way={way} cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );

@@ -20,9 +20,11 @@
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
-import { addPhoto, createDraft, invokeAiBody, setHandovers, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhoto, createDraft, invokeAiBody, setDropPct, setHandovers, setKeepUp, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { floorFromPct } from "@/lib/declutter/sellerDefaults";
+import { priceChoiceToSave } from "@/components/declutter/sellForm";
 
 /** Photos per photo-tool call (the server's GROUP_MAX_PHOTOS). */
 export const GROUP_BATCH = 8;
@@ -51,6 +53,8 @@ export interface BunchItem {
   price: string;
   /** The photo tool's suggestion when it filled `price`: a later rewrite may replace that, never one the seller typed. */
   aiPrice?: string;
+  /** Given away: price and lowest price 0, porch pickup only (the single form's "Give it away free"). */
+  free?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
   /** Photo keys already on that draft. */
@@ -208,7 +212,7 @@ export function bunchItemProblem(it: BunchItem): string | null {
   if (it.flagged) return "This may be an item you can't sell on Declutter, so it can't be listed from here.";
   if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`;
   if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return `Use at most ${photosWord(DECLUTTER_MAX_PHOTOS)}: split this item or move some photos.`;
-  return moveRowProblem({ title: it.title, price: it.price, floor: "" })
+  return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })
     ?.replace("Give each item a name", "Give it a name")
     .replace("Give each item a price", "Give it a price") ?? null;
 }
@@ -223,7 +227,8 @@ export const BUNCH_SECONDS_EACH = 15;
 export const bunchListingMinutes = (items: number) => Math.ceil((items * BUNCH_SECONDS_EACH) / 60);
 
 export type BunchOutcome =
-  | { key: string; title: string; status: "live" | "pending_review" }
+  /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). */
+  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean }
   /**
    * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
    * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
@@ -235,10 +240,23 @@ export interface ListDeps {
   updateDraft: typeof updateDraft;
   addPhoto: typeof addPhoto;
   setHandovers: typeof setHandovers;
+  setDropPct: typeof setDropPct;
+  setKeepUp: typeof setKeepUp;
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, setHandovers, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+
+/** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
+export interface BunchChoices {
+  keepUp: boolean;
+  drops: boolean;
+  dropPct: number;
+  /** Each item's lowest price, as a percent of its price (rounded by floorFromPct, as the single form does). */
+  floorPct: number;
+}
+
+const NO_CHOICES: BunchChoices = { keepUp: false, drops: false, dropPct: 5, floorPct: 50 };
 
 /**
  * Make each item's draft (every listing rule, on the server), upload its
@@ -256,17 +274,21 @@ export async function listBunch(
   deps: ListDeps = realDeps,
   /** Each lasting step on one item, to save at once: its draft, each photo, and null once it has been listed or refused. */
   onStep: (key: string, patch: Partial<BunchItem> | null) => void = () => {},
+  choices: BunchChoices = NO_CHOICES,
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
   const out = new Map<string, BunchOutcome>();
-  const prepared: { key: string; title: string; id: string }[] = [];
+  const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
   for (const [i, it] of items.entries()) {
     let id: string | null = it.draftId ?? null;
     try {
       // The screen lists only ready items; this is the same rule again, so nothing unready is ever made.
       const problem = bunchItemProblem(it);
       if (problem) throw Object.assign(new Error("bunch_item_not_ready"), { userMessage: problem });
-      const price = Math.round(Number(it.price.replace(/[$,\s]/g, "")) * 100);
+      const dollars = it.price.replace(/[$,\s]/g, "");
+      const price = it.free ? 0 : Math.round(Number(dollars) * 100);
+      const choice = priceChoiceToSave({ free: !!it.free, price: dollars, floor: floorFromPct(dollars, choices.floorPct), drops: choices.drops, dropPct: choices.dropPct });
+      if (!choice) throw new Error("invalid_floor_price");
       const fields = {
         title: it.title.trim(),
         description: it.description.trim(),
@@ -274,7 +296,7 @@ export async function listBunch(
         conditionStars: it.conditionStars,
         deliverySize: it.deliverySize,
         priceCents: price,
-        floorPriceCents: price,
+        floorPriceCents: choice.floorCents,
         areaLabel: place.areaLabel,
         pickupAddress: place.pickupAddress,
         pickupLat: place.pickupLat,
@@ -296,8 +318,20 @@ export async function listBunch(
         uploaded.push(k);
         onStep(it.key, { uploaded: [...uploaded] });
       }
-      await deps.setHandovers(id, ways);
-      prepared.push({ key: it.key, title: it.title, id });
+      // A free item is picked up from the porch only (the free checkout's one way).
+      await deps.setHandovers(id, it.free ? ["porch"] : ways);
+      if (!it.free) await deps.setDropPct(id, choice.dropPct);
+      let keepUpFailed = false;
+      if (choices.keepUp) {
+        try {
+          await deps.setKeepUp(id, true);
+        } catch (err) {
+          // Not a blocker, as on the single form: the item still lists, and the screen says this one wasn't turned on.
+          console.warn("[declutter] could not turn on Keep it up", err);
+          keepUpFailed = true;
+        }
+      }
+      prepared.push({ key: it.key, title: it.title, id, keepUpFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
@@ -312,7 +346,7 @@ export async function listBunch(
     });
     results.forEach((r, i) => {
       const p = prepared[i];
-      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status });
+      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status, ...(p.keepUpFailed ? { keepUpFailed: true } : {}) });
     });
   }
   onProgress(total, total);

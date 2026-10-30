@@ -114,6 +114,8 @@ describe("listBunch", () => {
         return "ph";
       }),
       setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
       publishMany: vi.fn(async (ids: string[]) => ids.map((id: string) => (id === "id3" ? { id, error: new Error("setup_fee_required") } : { id, status: "live" as const }))),
     };
     const items = [
@@ -147,6 +149,8 @@ describe("listBunch", () => {
       updateDraft: vi.fn(async (id) => id),
       addPhoto: vi.fn(async () => "ph"),
       setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
       publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
     };
     const steps: [string, unknown][] = [];
@@ -167,6 +171,8 @@ describe("listBunch", () => {
       updateDraft: vi.fn(async (id) => id),
       addPhoto: vi.fn(async () => { throw new Error("photo_not_uploaded"); }),
       setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
       publishMany: vi.fn(async () => []),
     };
     const steps: [string, unknown][] = [];

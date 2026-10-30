@@ -46,6 +46,7 @@ import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
+import { BunchChoicesCard, samePickupWindows, useBunchChoices } from "./BunchChoices";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
@@ -106,6 +107,7 @@ export default function BunchFlow() {
   );
   const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);
 
+  const choices = useBunchChoices(user?.id, setWays);
   const savedWindows = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
   const windowsLoaded = useRef(false);
   useEffect(() => {
@@ -147,7 +149,7 @@ export default function BunchFlow() {
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
   const ready = items.filter((it) => !bunchItemProblem(it));
-  const savedWays = ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
+  const savedWays = ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   const busy = !!sorting || !!listing || listingDrafts;
   const blocked = busy || feeDue != null;
 
@@ -232,13 +234,15 @@ export default function BunchFlow() {
     try {
       const c = await locate();
       if (!c) throw new Error("invalid_location");
-      await setPickupWindows(windows);
+      // Only a change is saved: the times on screen may be older than the seller's saved ones (another tab, Settings).
+      if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows);
       const out = await listBunch(
         user!.id, ready, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, (done, total) => setListing({ done, total }), undefined, saved.applyStep,
+        savedWays, (done, total) => setListing({ done, total }), undefined, saved.applyStep, choices.choices,
       );
       setResults(out);
+      if (out.some((o) => "status" in o)) void choices.remember(savedWays);
       // Listed items and items refused at publish leave the list (that draft is finished under Selling);
       // an item that failed getting ready stays with its photos, to fix and try again.
       const gone = new Set(out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
@@ -268,6 +272,7 @@ export default function BunchFlow() {
   const others = (key: string) => items.map((it, i) => ({ key: it.key, name: bunchItemName(it, i) })).filter((o) => o.key !== key);
   const live = results?.filter((r) => "status" in r && r.status === "live").length ?? 0;
   const review = results?.filter((r) => "status" in r && r.status === "pending_review").length ?? 0;
+  const keepUpFailed = results?.filter((r) => "keepUpFailed" in r && r.keepUpFailed).length ?? 0;
   const failed = (results ?? []).filter((r): r is Extract<BunchOutcome, { error: unknown }> => "error" in r);
 
   return (
@@ -358,8 +363,10 @@ export default function BunchFlow() {
           ) : (
             <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
           )}
+          <BunchChoicesCard c={choices} anyPriced={items.some((it) => !it.free)} />
           <h3 className="pt-2 text-sm font-semibold">How buyers can get them</h3>
           <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
+          {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
           <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
           <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Each statement counts for every item you list now.</p>
           {TAX_STATEMENTS.map((s, i) => (
@@ -384,6 +391,11 @@ export default function BunchFlow() {
             <p className="text-sm" data-bunch-listed="">
               {[live > 0 ? `${live} for sale` : null, review > 0 ? `${review} waiting for a review` : null].filter(Boolean).join(", ")}.{" "}
               <Link className="underline" to="/declutter?view=selling">See your listings</Link>
+            </p>
+          )}
+          {keepUpFailed > 0 && (
+            <p className="text-sm" data-bunch-keepup-failed="">
+              "Keep it up" didn't turn on for {keepUpFailed} {keepUpFailed === 1 ? "item" : "items"}. You can turn it on from Manage listing.
             </p>
           )}
           {failed.length > 0 && (

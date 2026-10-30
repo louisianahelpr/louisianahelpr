@@ -147,7 +147,12 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
   );
 }
 
-export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () => void }) {
+/**
+ * `oneScreen` (audit DC-1): a NEW listing is one screen (SellOneScreen), so Claude's rows are below the panel, not
+ * on "the next steps"; a saved draft's step form keeps the step words.
+ */
+export const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
+export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: AiState; onRun: () => void; oneScreen?: boolean }) {
   if (state.status === "busy") {
     return (
       <div role="status" aria-live="polite" data-ai-draft="busy" className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4">
@@ -186,7 +191,7 @@ export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () =
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-ds-13 text-muted-foreground">Check it and change anything on the next steps.</p>
+          <p className="text-ds-13 text-muted-foreground" data-ai-change-hint="">{oneScreen ? AI_CHANGE_HINT.oneScreen : AI_CHANGE_HINT.steps}</p>
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>Write it again</Button>
         </div>
       </div>

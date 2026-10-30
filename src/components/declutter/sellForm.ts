@@ -9,6 +9,12 @@ import { dollarsToCents } from "@/lib/declutter/money";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 
+/**
+ * The ONE name of the price-drops switch, on the sell form and in Manage listing (audit DC-5: Manage said "Stop
+ * price drops" with on = stopped while the form said this with on = drops). On always means it drops.
+ */
+export const DROPS_SWITCH_LABEL = "Lower the price if it doesn't sell?";
+
 /** What the server stores for the form's price choice: off saves the lowest price as the price and step 0. */
 export function priceChoiceToSave(f: Pick<FormState, "free" | "price" | "floor" | "drops" | "dropPct">): { floorCents: number; dropPct: number } | null {
   if (f.free) return { floorCents: 0, dropPct: 0 };

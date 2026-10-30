@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 198 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1025 (across 277 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 33 |
-| Multi-step flows — probable | flow | 27 |
+| Toast messages | **call site** | 1027 (across 278 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 34 |
+| Multi-step flows — probable | flow | 28 |
 | Back/next navigation only | flow | 56 |
-| Forms (submittable) | form | 89 |
+| Forms (submittable) | form | 88 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 163 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 25 |
-| **Navigable surfaces** (places a person can stand) | mixed | **681** |
-| **Copy surfaces** (strings a person may read) | mixed | **1072** |
-| **Total auditable surface** | mixed | **1753** |
+| **Navigable surfaces** (places a person can stand) | mixed | **682** |
+| **Copy surfaces** (strings a person may read) | mixed | **1074** |
+| **Total auditable surface** | mixed | **1756** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,8 +71,8 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 198 | 130 | agree within method (script counts every menu instance) |
-| Forms | 89 | ~38 | agree |
-| Confirmed multi-step flows | 33 | 9 | agree; the agent excluded section routers this script still counts |
+| Forms | 88 | ~38 | agree |
+| Confirmed multi-step flows | 34 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -396,6 +396,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/AdminRoute.tsx` | compare |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
+| `src/components/declutter/DeclutterFreeView.tsx` | compare |
 | `src/components/declutter/DeclutterManageListing.tsx` | nav-handler, union-state |
 | `src/components/declutter/DeclutterReserveSheet.tsx` | compare |
 | `src/components/declutter/DeclutterSellView.tsx` | compare, nav-handler |
@@ -445,6 +446,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/declutter/SellerDeliverySettings.tsx` | union-state |
 | `src/components/DisputeTimelineDialog.tsx` | union-state |
 | `src/components/MobileNav.tsx` | union-state |
+| `src/components/notificationPreferences/JobRemindersGroup.tsx` | union-state |
 | `src/components/PaymentTab.tsx` | union-state |
 | `src/components/profile/DeleteAccountReauth.tsx` | union-state |
 | `src/components/rentals/RentPanel.tsx` | union-state |
@@ -546,7 +548,6 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/settings/DeclutterReviewCard.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
-- [ ] `src/components/declutter/AutoFreeRow.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterDeliveryViews.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterHandoverTalk.tsx` (form tag)

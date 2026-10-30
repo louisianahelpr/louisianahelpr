@@ -557,17 +557,20 @@ export async function setListingDrops(itemId: string, on: boolean): Promise<bool
 }
 
 /**
- * Q2430: "If it hasn't sold by day 12, make it free" (the seller's own listing). The evening sweep does it;
- * this reads and sets the switch. "not_deployed" before migration 20261027205327 reaches prod (PGRST202).
+ * "If it doesn't sell, make it free after __ days" (Q2430, made a day count by OWN-FREE): the seller's own
+ * listing; null = Never (the default). The evening sweep does it; these read and set the choice
+ * (migration 20261030030408). "not_deployed" before that migration reaches prod (PGRST202).
  */
-export async function fetchAutoFree(itemId: string): Promise<boolean | "not_deployed"> {
-  const r = await supabase.rpc("declutter_auto_free_state", { p_item_id: itemId });
-  if (isMissingRpcNamed(r.error, "declutter_auto_free_state")) return "not_deployed";
-  return rpcData(r, (e) => rpcErrorMessage("declutter_auto_free_state", e)) as boolean;
+export async function fetchAutoFreeDays(itemId: string): Promise<number | null | "not_deployed"> {
+  const r = await supabase.rpc("declutter_auto_free_days_state", { p_item_id: itemId });
+  if (isMissingRpcNamed(r.error, "declutter_auto_free_days_state")) return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_auto_free_days_state", e)) as number | null;
 }
 
-export async function setAutoFree(itemId: string, on: boolean): Promise<boolean> {
-  return rpcData(await supabase.rpc("declutter_set_auto_free", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_auto_free", e)) as boolean;
+export async function setAutoFreeDays(itemId: string, days: number | null): Promise<number | null> {
+  // The generated Args type has no null (Postgres arguments are all nullable); null is Never.
+  const r = await supabase.rpc("declutter_set_auto_free_days", { p_item_id: itemId, p_days: days as number });
+  return rpcData(r, (e) => rpcErrorMessage("declutter_set_auto_free_days", e)) as number | null;
 }
 
 /**

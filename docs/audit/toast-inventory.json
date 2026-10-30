@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1021,
-    "files": 273,
-    "rendering": 861,
+    "calls": 1023,
+    "files": 274,
+    "rendering": 863,
     "suppressedByPolicy": 160,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 717,
+      "toast.error": 719,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 458,
-      "template": 104,
-      "dynamic": 509,
+      "template": 105,
+      "dynamic": 510,
       "jsx": 0
     }
   },
@@ -4217,19 +4217,26 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 19,
+      "line": 36,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "on ? \"If it hasn't sold by day 12, it becomes free.\" : \"It won't become free on day 12.\"",
+        "text": "autoFreeSaved(days)",
+        "from": "src/lib/declutter/autoFree.ts",
         "branches": [
           {
-            "form": "literal",
-            "text": "If it hasn't sold by day 12, it becomes free."
-          },
-          {
-            "form": "literal",
-            "text": "It won't become free on day 12."
+            "form": "dynamic",
+            "text": "days === null ? \"It won't become free on its own.\" : `If it hasn't sold by day ${days}, it becomes free.`",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "It won't become free on its own."
+              },
+              {
+                "form": "template",
+                "text": "If it hasn't sold by day ${days}, it becomes free."
+              }
+            ]
           }
         ]
       },
@@ -4237,7 +4244,7 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 22,
+      "line": 39,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4520,6 +4527,16 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterFreeView.tsx",
+      "line": 43,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterHandoverTalk.tsx",
       "line": 51,
       "kind": "toast.error",
@@ -4761,7 +4778,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4781,7 +4798,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 229,
+      "line": 230,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4791,7 +4808,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4801,7 +4818,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 245,
+      "line": 246,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4811,7 +4828,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 248,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6124,7 +6141,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 169,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6134,7 +6151,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 174,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6144,7 +6161,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 205,
+      "line": 208,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6154,7 +6171,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 229,
+      "line": 232,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6164,7 +6181,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 232,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6174,7 +6191,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 248,
+      "line": 251,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6184,7 +6201,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 261,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6194,7 +6211,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 274,
+      "line": 277,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6204,7 +6221,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 280,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6214,7 +6231,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 293,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6224,7 +6241,17 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 309,
+      "line": 304,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

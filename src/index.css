@@ -4929,6 +4929,11 @@ html.page-scrolled .page-title-card:has(.explore-header),
   .section-tabs-dense .section-tab {
     font-size: clamp(12px, 3.6vw, 15px);
   }
+  /* Six or more (SectionTabs `denser`, OWN-FREE 2026-10-30: Declutter's Free tab): 11px at 320, 12.4px at 375,
+     never over 15px; 6px apart below 360px, 8px from 360px. Later in the sheet, so it wins over `dense`. */
+  .section-tabs-denser .section-tab {
+    font-size: clamp(11px, 3.3vw, 15px);
+  }
 }
 .section-tab-selected::after {
   content: "";

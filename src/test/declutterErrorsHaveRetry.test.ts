@@ -9,7 +9,7 @@
  *   2. Every `if (<query>.isError ...) return ...` early return is one of: <ErrorState ... onRetry=...>; its own
  *      "Try again" (a refetch() in the returned markup); the item page's designed DeclutterItemUnavailable; or null,
  *      where the section is an optional extra that simply does not show (a price hint, a bundle card).
- *   The sell-flow builder's AutoFreeRow (a manage-listing row) is listed, exactly, for them to fix.
+ *   AutoFreeRow (a manage-listing row) was listed here until OWN-FREE (2026-10-30) gave it ErrorState with onRetry.
  *
  * @mutate src/components/declutter/DeclutterMeetup.tsx |   if (meetup.isError) return <ErrorState variant="inline" title="We couldn't load the meeting spot." body={meetupErrorMessage(meetup.error)} onRetry={() => void meetup.refetch()} />; |   if (meetup.isError) return <p role="alert">The meeting spot couldn't load. Pull to refresh.</p>;
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | body={sellerDeliveryErrorMessage(times.error)} onRetry={() => void times.refetch()} /> | body={sellerDeliveryErrorMessage(times.error)} />
@@ -44,7 +44,6 @@ describe("a failed Declutter read offers a retry", () => {
       }
     }
     expect(seen).toBeGreaterThan(15);
-    // Not this builder's file (lead 2026-10-28: the Selling tab is the sell-flow builder's); listed, exact.
-    expect(bad.map((b) => b.split(":")[0])).toEqual(["src/components/declutter/AutoFreeRow.tsx"]);
+    expect(bad).toEqual([]);
   });
 });

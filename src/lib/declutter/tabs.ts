@@ -1,5 +1,5 @@
 /**
- * Declutter's tabs (owner, 2026-10-18): Browse · Buying · Selling · Wanted · Deliver.
+ * Declutter's tabs (owner, 2026-10-18): Browse · Buying · Selling · Deliver · Wanted · Free (Free: OWN-FREE, 2026-10-30).
  *   Buying  = your cart (one checkout per seller), the offers you sent, and your purchases.
  *   Selling = your listings, the offers on your items, sales waiting for the buyer to pay,
  *             and paid sales (pickup, handover, payout).
@@ -12,7 +12,7 @@
  */
 import type { CartLine, MyOffer } from "./api";
 
-export type DeclutterTab = "browse" | "buying" | "selling" | "deliver" | "wanted";
+export type DeclutterTab = "browse" | "buying" | "selling" | "deliver" | "wanted" | "free";
 
 /**
  * The tabs before 2026-10-18, still in links already sent; plus "sales" and

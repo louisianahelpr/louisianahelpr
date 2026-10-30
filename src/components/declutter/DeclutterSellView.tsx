@@ -29,6 +29,7 @@ import { photoPublicUrl, type DeliverySize } from "@/lib/declutter/api";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { ChipGroup, LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, ReviewRow, StepHead, dropRunTime } from "./DeclutterSellSteps";
 import { KeepUpSwitch } from "./KeepUpRow";
+import { AutoFreeRow } from "./AutoFreeRow";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { pickupWindowsProblem } from "./DeclutterPickupTimes";
@@ -199,6 +200,8 @@ function SellSteps({ itemId }: { itemId: string }) {
           </ul>
           {/* Owner 2026-10-29: "Keep it up until it sells" (saved on the draft at once; the row above follows it). */}
           <KeepUpSwitch keep={keepUp} as="div" rowClassName="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" />
+          {/* OWN-FREE: "make it free after __ days", saved on the draft at once (a free listing has nothing to choose). */}
+          {!form.free && <AutoFreeRow itemId={itemId} as="div" rowClassName="flex rounded-[20px] border border-border bg-card p-4" />}
           <SellTaxBox s={s} />
           {photoCount < DECLUTTER_MIN_PHOTOS && <p className="text-ds-14 text-muted-foreground">Add at least {photosWord(DECLUTTER_MIN_PHOTOS)} to list this item.</p>}
         </section>

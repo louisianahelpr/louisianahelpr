@@ -12,8 +12,9 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         if (!problem) save.mutate(undefined); |         save.mutate(undefined);
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       : priceCents > item.price_cents | : false
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText> |                   <RowText title="Pause listing">Hide it without losing it.</RowText>
- * Q2430 "Free on day 12" (AutoFreeRow; backend proof src/test/pglite/declutterAutoFree.pglite.mjs).
- * @mutate src/components/declutter/AutoFreeRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
+ * OWN-FREE "make it free after __ days" (AutoFreeRow, replacing Q2430's "Free on day 12"; backend proof
+ * src/test/pglite/declutterAutoFreeDays.pglite.mjs).
+ * @mutate src/components/declutter/AutoFreeRow.tsx | onChange={(d) => { if (!pick.isPending && d !== days) pick.mutate(d); }} | onChange={(d) => { if (!pick.isPending && d !== days) pick.mutate(days); }}
  * @mutate src/components/declutter/AutoFreeRow.tsx |   if (state.data === "not_deployed") return null; |   if (false) return null;
  * "Keep it up until it sells" (owner 2026-10-29; KeepUpRow; backend proof src/test/pglite/declutterKeepUp.pglite.mjs).
  * @mutate src/components/declutter/KeepUpRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
@@ -32,7 +33,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
-let autoFree: boolean | "not_deployed" = false;
+let autoFree: number | null | "not_deployed" = null;
 let keepUp: boolean | "not_deployed" = false;
 const offerRules = vi.hoisted(() => ({ auto: false }));
 const stateReads = vi.hoisted(() => ({ n: 0 }));
@@ -51,9 +52,9 @@ vi.mock("@/lib/declutter/api", () => ({
   markSoldElsewhere: async (...a: unknown[]) => { calls.push(["sold_elsewhere", ...a]); },
   // The auto-free read resolves AFTER the manage-state read, as it did on a loaded CI runner (main Vitest
   // run 40816183893, issue #3685): an absence asserted before it resolved saw the row's loading render.
-  fetchAutoFree: async () => { await new Promise((r) => setTimeout(r, 30)); const r = autoFree; autoFreeReads.n++; return r; },
+  fetchAutoFreeDays: async () => { await new Promise((r) => setTimeout(r, 30)); const r = autoFree; autoFreeReads.n++; return r; },
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: dropPct.value }),
-  setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
+  setAutoFreeDays: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
   fetchKeepUp: async () => keepUp,
   setKeepUp: async (...a: unknown[]) => { calls.push(["keep_up", ...a]); return a[1]; },
   fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "x", pickup_lat: 0, pickup_lng: 0, auto_offers: offerRules.auto }),
@@ -154,27 +155,37 @@ describe("Manage a listing (board 158)", () => {
     expect(screen.getByText("Delete listing")).toBeTruthy();
   });
 
-  // Audit 2 SE2-3 (A2-10): with day 12 on, the row says it wins over a stopped price; off, it says nothing of it.
-  // @mutate src/components/declutter/AutoFreeRow.tsx |         {on && <span | {false && <span
-  it("Free on day 12 on: says it wins over a stopped price", async () => {
-    autoFree = true;
+  // Audit 2 SE2-3 (A2-10): with a day count chosen, the row says it wins over a stopped price; Never says nothing of it.
+  // @mutate src/components/declutter/AutoFreeRow.tsx |       {days !== null && <p | {false && <p
+  it("make it free after 14 days: says it wins over a stopped price", async () => {
+    autoFree = 14;
     const first = sheet();
-    expect(await screen.findByText("This wins over a stopped price: on day 12 it's free.")).toBeInTheDocument();
+    expect(await screen.findByText("This wins over a stopped price: on day 14 it's free.")).toBeInTheDocument();
     first.unmount();
-    autoFree = false;
+    autoFree = null;
     sheet();
-    await screen.findByRole("switch", { name: "Free on day 12" });
+    await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
     expect(screen.queryByText(/wins over a stopped price/)).toBeNull();
   });
 
-  it("Free on day 12: the switch sends the seller's choice; hidden before the migration is on prod (Q2430)", async () => {
-    autoFree = false;
+  it("make it free after __ days: Never by default, each chip sends the seller's choice; hidden before the migration is on prod (OWN-FREE)", async () => {
+    autoFree = null;
     const a = sheet();
-    const sw = await screen.findByRole("switch", { name: "Free on day 12" });
-    await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(sw);
-    await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", true]));
+    const group = await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
+    const chips = Array.from(group.querySelectorAll('[role="radio"]')).map((c) => c.textContent);
+    expect(chips).toEqual(["Never", "7 days", "14 days", "21 days", "30 days"]);
+    expect(screen.getByRole("radio", { name: "Never" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByText("Free on day 12")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "21 days" }));
+    await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", 21]));
     a.unmount();
+    autoFree = 7;
+    calls.length = 0;
+    const b = sheet();
+    await waitFor(() => expect(screen.getByRole("radio", { name: "7 days" }).getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(screen.getByRole("radio", { name: "Never" }));
+    await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", null]));
+    b.unmount();
     autoFree = "not_deployed";
     const readsBefore = autoFreeReads.n;
     sheet();
@@ -182,8 +193,8 @@ describe("Manage a listing (board 158)", () => {
     // Wait for the auto-free DATA ("not_deployed" resolved and React settled), then assert the absence.
     await waitFor(() => expect(autoFreeReads.n).toBeGreaterThan(readsBefore));
     await act(async () => {});
-    expect(screen.queryByText("Free on day 12")).toBeNull();
-    autoFree = false;
+    expect(screen.queryByRole("radiogroup", { name: "If it doesn't sell, make it free after" })).toBeNull();
+    autoFree = null;
   });
 
   // Owner 2026-10-29: "Keep it up until it sells", with its one-line explainer, for a priced or a free listing.

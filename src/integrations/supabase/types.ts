@@ -1966,6 +1966,7 @@ export type Database = {
       declutter_item_private: {
         Row: {
           auto_free_day12: boolean
+          auto_free_days: number | null
           ai_checked_at: string | null
           ai_flag_reason: string | null
           auto_offers: boolean
@@ -1986,6 +1987,7 @@ export type Database = {
         }
         Insert: {
           auto_free_day12?: boolean
+          auto_free_days?: number | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -2006,6 +2008,7 @@ export type Database = {
         }
         Update: {
           auto_free_day12?: boolean
+          auto_free_days?: number | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -13864,6 +13867,10 @@ export type Database = {
       declutter_assert_can_scan_room: { Args: never; Returns: undefined }
       declutter_assert_member: { Args: { p_selling: boolean }; Returns: string }
       declutter_auto_free_due: { Args: never; Returns: number }
+      declutter_auto_free_days_state: {
+        Args: { p_item_id: string }
+        Returns: number
+      }
       declutter_auto_free_state: { Args: { p_item_id: string }; Returns: boolean }
       declutter_attach_checkout_session: {
         Args: { p_order_id: string; p_session_id: string }
@@ -14852,6 +14859,10 @@ export type Database = {
       declutter_remove_cart_item: { Args: { p_line_id: string }; Returns: string }
       declutter_reopen_listing: { Args: { p_item_id: string }; Returns: string }
       declutter_set_auto_free: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_auto_free_days: {
+        Args: { p_days: number; p_item_id: string }
+        Returns: number
+      }
       declutter_set_keep_up: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }

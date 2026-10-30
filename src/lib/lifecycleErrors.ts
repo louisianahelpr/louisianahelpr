@@ -1160,18 +1160,18 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
   },
-  declutter_set_auto_free: {
+  declutter_set_auto_free_days: {
     account_restricted: DC.account_restricted,
     already_free: "This item is already free.",
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
-    invalid_choice: "Something went wrong. Try again.",
+    invalid_choice: "Pick Never, 7, 14, 21 or 30 days.",
     item_not_editable: DC.item_not_editable,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
-  declutter_auto_free_state: {
+  declutter_auto_free_days_state: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,

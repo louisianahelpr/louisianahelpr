@@ -48,6 +48,11 @@ export function useSectionTab<T extends string>(valid: readonly T[]) {
  */
 /** From this many tabs (Browse included) a phone row sets its words by the screen's width (A3-6). */
 export const DENSE_TAB_COUNT = 5;
+/**
+ * From this many a phone row sets its words smaller still and closer (OWN-FREE, 2026-10-30): Declutter's sixth tab,
+ * Free, was 357px of row in a 335px track at 375 with the five-tab sizes, so Browse showed "Fre" at the edge.
+ */
+export const DENSER_TAB_COUNT = 6;
 
 export function SectionTabs<T extends string>({
   label,
@@ -69,6 +74,7 @@ export function SectionTabs<T extends string>({
   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
   options[0].quiet = browseCount;
   const dense = options.length >= DENSE_TAB_COUNT;
+  const denser = options.length >= DENSER_TAB_COUNT;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -93,7 +99,7 @@ export function SectionTabs<T extends string>({
           390, never over 15px) 12px apart, and fits (measured 0 overflow at 320/375/390, ~/.lh-shots/b3-1028/a3-6). A
           row that still overflows (two to-do counts at 320) keeps scrolling, as before. */}
       <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
-        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense")}>
+        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;
           return (

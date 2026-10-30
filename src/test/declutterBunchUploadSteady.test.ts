@@ -79,7 +79,7 @@ describe("one photo on a weak connection", () => {
 
 describe("a run on a weak connection", () => {
   const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30, pickupLng: -91 };
-  const named = (key: string, photoKeys: string[], extra: Partial<BunchItem> = {}): BunchItem => ({ ...blankItem(photoKeys), key, title: `Thing ${key}`, price: "20", ...extra });
+  const named = (key: string, photoKeys: string[], extra: Partial<BunchItem> = {}): BunchItem => ({ ...blankItem(photoKeys), key, title: `Thing ${key}`, price: "20", sizeUnknown: false, ...extra });
   const filesFor = (keys: string[]) => new Map(keys.map((k) => [k, new File([k], `${k}.jpg`, { type: "image/jpeg" })]));
   const deps = (addPhoto: ListDeps["addPhoto"]): ListDeps => ({
     createDraft: vi.fn(async (f: { title: string }) => `draft-${f.title}`) as unknown as ListDeps["createDraft"],

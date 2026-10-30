@@ -6,7 +6,7 @@
  * @mutate src/components/declutter/useExactAddressPoint.ts |       throw new Error("address_not_exact"); |       return { lat: found.lat, lng: found.lng, address };
  * @mutate src/components/declutter/useExactAddressPoint.ts |     throw new Error(found.status === "unavailable" ? "address_lookup_unavailable" : notFoundCode); |     throw new Error(notFoundCode);
  * @mutate src/components/declutter/useSellFlowState.ts |       const c = await place.locate(form.pickupAddress); |       const c = { lat: 0, lng: 0 };
- * @mutate src/components/declutter/DeclutterMoveView.tsx |       const g = await addressPoint.locate(pickupAddress); |       const g = { lat: 0, lng: 0 };
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       const c = await place.locate(pickupAddress);\n      // Only a change is saved |       const c = { lat: 0, lng: 0 };\n      // Only a change is saved
  * @mutate src/components/declutter/DeclutterRefundReturn.tsx |       const g = await place.locate(address, { allowApproximate: true }); |       const g = await place.locate(address);
  * @mutate src/components/declutter/useExactAddressPoint.ts |     if (found.status === "approximate" && opts?.allowApproximate) return { lat: found.lat, lng: found.lng, address, approximate: true }; |     if (found.status === "approximate") return { lat: found.lat, lng: found.lng, address, approximate: true };
  */
@@ -149,16 +149,17 @@ describe("the return address form", () => {
 });
 
 describe("the four callers share it", () => {
-  const CALLERS = ["useSellFlowState.ts", "DeclutterBunchView.tsx", "DeclutterMoveView.tsx", "DeclutterRefundReturn.tsx"];
+  const CALLERS = ["useSellFlowState.ts", "DeclutterBunchView.tsx", "SellerSetup.tsx", "DeclutterRefundReturn.tsx"];
   it.each(CALLERS)("%s uses the one lookup, and loads it only when used", (file) => {
     const src = readFileSync(`src/components/declutter/${file}`, "utf8");
     expect(src).toContain("useExactAddressPoint");
     expect(src).not.toMatch(/from "@\/lib\/(geocode|addressLookup)"/);
   });
   it("the moving sale's place comes from the shared lookup", () => {
-    const src = blankComments(readFileSync("src/components/declutter/DeclutterMoveView.tsx", "utf8"));
-    expect(src).toContain("const g = await addressPoint.locate(pickupAddress);");
-    expect(src).toContain("pickupLat: g.lat, pickupLng: g.lng");
+    // The moving sale is the bunch flow now.
+    const src = blankComments(readFileSync("src/components/declutter/DeclutterBunchView.tsx", "utf8"));
+    expect(src).toContain("const c = await place.locate(pickupAddress);");
+    expect(src).toContain("pickupLat: c.lat, pickupLng: c.lng");
   });
   it("the hook import()s the lookup rather than bundling it", () => {
     const src = readFileSync("src/components/declutter/useExactAddressPoint.ts", "utf8");

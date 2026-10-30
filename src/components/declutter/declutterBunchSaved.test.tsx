@@ -198,19 +198,19 @@ describe("Sell a bunch survives leaving", () => {
     for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
     renderFlow();
     fireEvent.click(await screen.findByRole("button", { name: "Sort again" }));
-    expect(await screen.findByDisplayValue("Oak chair")).toBeTruthy();
+    await screen.findByRole("button", { name: /Oak chair/ });
     expect(screen.queryByRole("heading", { name: /not sorted yet/ })).toBeNull();
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(2);
   });
 
-  // @mutate src/components/declutter/DeclutterBunchView.tsx | onOneItem={() => setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined }))} | onOneItem={() => {}}
+  // @mutate src/components/declutter/DeclutterBunchView.tsx | onOneItem={() => { setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined })); }} | onOneItem={() => {}}
   it("These are one item makes one item with no words yet, offering to write it", async () => {
     const names = ["a", "b"];
     h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });
     for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
     renderFlow();
     fireEvent.click(await screen.findByRole("button", { name: "These are one item" }));
-    expect(await screen.findByRole("button", { name: "Write it with AI" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Write it with AI/ })).toBeTruthy();
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
     expect(document.querySelector("[data-bunch-not-sorted]")).toBeNull();
   });

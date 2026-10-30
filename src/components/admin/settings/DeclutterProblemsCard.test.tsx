@@ -226,6 +226,30 @@ describe("DeclutterProblemsCard: the chat and the questions (AL-6)", () => {
     expect(chat.textContent).not.toMatch(/Hallie|Sam/);
   });
 
+  // D2-1 leftover (20261030042545): the chat the two sides had after paying, as its own list, sides only.
+  // @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |   const orderChat = talk.data.filter((r) => r.kind === "order_chat"); |   const orderChat = talk.data.filter((r) => r.kind === "chat");
+  // @mutate src/components/admin/settings/DeclutterProblemTalk.tsx |       {orderChat.length > 0 && ( |       {false && (
+  it("shows the chat after payment as its own list, Buyer and Seller", async () => {
+    state.talk = [
+      ...talkRows,
+      { kind: "order_chat", side: "buyer", body: "It arrived cracked.", said_at: "2026-10-17T09:00:00Z", answer: null, answered_at: null, removed: false },
+      { kind: "order_chat", side: "seller", body: "Sorry, I can refund.", said_at: "2026-10-17T10:00:00Z", answer: null, answered_at: null, removed: false },
+    ];
+    state.rows = [row("damaged", "buyer", [], detail())];
+    show();
+    const after = await screen.findByRole("list", { name: "Chat after payment" });
+    expect(after.textContent).toMatch(/^Buyer · .*It arrived cracked\.Seller · .*Sorry, I can refund\.$/);
+    expect(screen.getByRole("list", { name: "Handover chat" }).textContent).not.toContain("cracked");
+  });
+
+  it("only a chat after payment: no 'No chat' line", async () => {
+    state.talk = [{ kind: "order_chat", side: "buyer", body: "Hello?", said_at: "2026-10-17T09:00:00Z", answer: null, answered_at: null, removed: false }];
+    state.rows = [row("damaged", "buyer", [], detail())];
+    show();
+    await screen.findByRole("list", { name: "Chat after payment" });
+    expect(screen.queryByText("No chat and no questions on these items.")).toBeNull();
+  });
+
   it("says so when there is no chat and no question", async () => {
     state.rows = [row("not_received", "buyer", [], detail())];
     show();

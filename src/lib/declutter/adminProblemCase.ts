@@ -10,7 +10,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcData } from "@/lib/declutter/api";
 
 export interface ProblemTalkRow {
-  kind: "chat" | "question";
+  kind: "chat" | "question" | "order_chat";
   side: "buyer" | "seller" | "another_member";
   body: string;
   said_at: string;

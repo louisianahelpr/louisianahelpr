@@ -51,6 +51,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   photo_not_uploaded: "That photo didn't finish uploading. Try adding it again.",
   photo_not_found: "That photo was already removed.",
   too_many_photos: "A listing can have up to 12 photos.",
+  // DC-8 (20261030061927): a listing on sale keeps at least one photo.
+  too_few_photos: "A listing needs at least one photo. Add the new one before you remove the last.",
   own_item: "This is your own item.",
   question_rate_limited: "You've asked a lot of questions today. Try again tomorrow.",
   question_not_found: "That question isn't available anymore.",

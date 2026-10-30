@@ -129,7 +129,7 @@ describe("the Declutter group", () => {
         expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
       }
     }
-    expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_pickups", "declutter_price_drops"]);
+    expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_pickups", "declutter_price_drops", "declutter_wanted"]);
   });
 
   it("hides Wanted matches while Wanted is off for the member", async () => {

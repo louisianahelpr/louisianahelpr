@@ -1087,6 +1087,8 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     photo_not_found: DC.photo_not_found,
+    // DC-8 (20261030061927): the last photo of a listing on sale stays.
+    too_few_photos: DC.too_few_photos,
     under_18: DC.under_18,
   },
   declutter_respond_offer: {

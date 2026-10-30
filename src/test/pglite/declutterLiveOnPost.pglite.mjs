@@ -33,7 +33,7 @@ function fnFrom(file, name) {
   const end = sql.indexOf(tag, bodyAt) + tag.length;
   return sql.slice(start, end) + ";";
 }
-const BASELINE = [
+const PROD_BEFORE = [
   fnFrom("20261027163240_payout_setup_only_when_owed.sql", "declutter_publish_item"),
   fnFrom("20261014200728_declutter_slice2_followups.sql", "declutter_record_ai_check"),
   fnFrom("20261029205908_declutter_edit_listing.sql", "declutter_edit_listing"),
@@ -115,7 +115,7 @@ await db.exec(`
   INSERT INTO public.profiles (user_id, ban_status) VALUES ('${SELLER}', NULL), ('${BANNED}', NULL), ('${ADMIN}', NULL), ('${B1}', NULL), ('${B2}', NULL);
   INSERT INTO public.declutter_pickup_windows VALUES ('${SELLER}'), ('${BANNED}'), ('${ADMIN}');
 `);
-await db.exec(BASELINE);
+await db.exec(PROD_BEFORE);
 await db.exec(`
   REVOKE ALL ON FUNCTION public.declutter_publish_item(uuid) FROM PUBLIC, anon;
   GRANT EXECUTE ON FUNCTION public.declutter_publish_item(uuid) TO authenticated, service_role;

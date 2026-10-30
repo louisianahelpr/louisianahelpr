@@ -26,8 +26,9 @@ export function DeliverExplainer({ collapsed = false }: { collapsed?: boolean })
   return (
     <Collapsible open={open} onOpenChange={setOpened} asChild>
     <section className="space-y-2 rounded-2xl border border-border/60 bg-card p-4" aria-labelledby="deliver-explainer-title" data-deliver-explainer="">
-      <div className="flex items-start gap-2">
-        <Truck className="mt-1 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
+      {/* Folded, the title is a 44px button: centre the icon on it (B75 1440 shot: it sat above the title line). */}
+      <div className={`flex gap-2 ${collapsed ? "items-center" : "items-start"}`}>
+        <Truck className={`h-4 w-4 shrink-0 text-[hsl(var(--bark))] ${collapsed ? "" : "mt-1"}`} aria-hidden />
         <h2 id="deliver-explainer-title" className="text-base font-semibold min-w-0 flex-1">
           {collapsed ? (
             <CollapsibleTrigger className="flex min-h-11 w-full items-center justify-between gap-2 text-left" data-deliver-explainer-toggle="">

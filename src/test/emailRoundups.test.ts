@@ -7,15 +7,26 @@
  * this guard pins the two call sites that consult it.
  */
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 
 const read = (p: string) => readFileSync(p, "utf8");
-const MIG = "supabase/migrations/20261025182522_application_email_roundup.sql";
+const MIGRATIONS = "supabase/migrations";
+/** The newest migration that schedules `job` (cron.schedule by name replaces the job). */
+const newestSchedule = (job: string): string => {
+  const hits = migrationFiles(MIGRATIONS)
+    .map((f) => read(join(MIGRATIONS, f)))
+    .filter((sql) => sql.includes(`cron.schedule('${job}'`));
+  expect(hits.length, job).toBeGreaterThan(0);
+  return hits[hits.length - 1];
+};
 
 describe("email pacing", () => {
   it("notify_on_application emails only when the poster's applicant email should not wait", () => {
-    const sql = read(MIG);
-    // @mutate supabase/migrations/20261025182522_application_email_roundup.sql | IF COALESCE(v_email_enabled, true) AND NOT public.application_email_should_wait(v_user_id) THEN | IF COALESCE(v_email_enabled, true) THEN
+    // The NEWEST notify_on_application (restated by 20261030135219, UX-3), not the file that added the gate.
+    const sql = effectiveDefs(MIGRATIONS).get("notify_on_application")!.stmt;
+    // @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql | IF COALESCE(v_email_enabled, true) AND NOT public.application_email_should_wait(v_user_id) THEN | IF COALESCE(v_email_enabled, true) THEN
     expect(sql).toMatch(/IF COALESCE\(v_email_enabled, true\) AND NOT public\.application_email_should_wait\(v_user_id\) THEN/);
     // The in-app notice is still written for every applicant, before the email decision.
     const ins = sql.indexOf("INSERT INTO public.notifications (user_id, title, message, type, link)");
@@ -33,10 +44,9 @@ describe("email pacing", () => {
   });
 
   it("both roundups run on a schedule and the job-match roundup is flagged so it is not held back itself", () => {
-    const sql = read(MIG);
-    expect(sql).toMatch(/cron\.schedule\('application-roundups', '8,38 \* \* \* \*'/);
-    expect(sql).toMatch(/cron\.schedule\('job-match-roundups', '5 13 \* \* \*'/);
+    expect(newestSchedule("application-roundups")).toMatch(/cron\.schedule\('application-roundups', '8,38 \* \* \* \*'/);
+    expect(newestSchedule("job-match-roundups")).toMatch(/cron\.schedule\('job-match-roundups', '5 13 \* \* \*'/);
     // @mutate supabase/migrations/20261025182522_application_email_roundup.sql | 'roundup', true | 'roundup', false
-    expect(sql).toMatch(/'roundup', true/);
+    expect(effectiveDefs(MIGRATIONS).get("send_job_match_roundups")!.stmt).toMatch(/'roundup', true/);
   });
 });

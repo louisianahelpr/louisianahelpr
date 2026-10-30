@@ -25,6 +25,8 @@ import {
   passwordProblem,
 } from "./signupHelpers";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { useLanguage } from "@/lib/i18n/language";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export interface SignupStep1Props {
   /** First and last name, side by side, both required (owner 2026-10-26: names on screen 1). */
@@ -85,6 +87,7 @@ export function SignupStep1({
   // Tapping it while unchecked shakes + highlights the agreement box instead,
   // pointing them at the one thing they still have to do. `nudgeKey` re-mounts
   // the animation so repeated taps replay the shake.
+  const { lang, t } = useLanguage();
   const [nudgeKey, setNudgeKey] = useState(0);
   // Set once Continue is tapped — lets the email field surface a "required"
   // error even before the user has typed anything.
@@ -200,8 +203,8 @@ export function SignupStep1({
           {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
           <HelprMark to="/" size="lg" emblemOnly />
         </div>
-        <h1 className="text-page-title text-foreground">Create your account</h1>
-        <p className="text-ds-14 text-muted-foreground">{subtitle ?? "One account to hire help or find work."}</p>
+        <h1 className="text-page-title text-foreground">{t("signup.title")}</h1>
+        <p className="text-ds-14 text-muted-foreground">{subtitle ?? t("signup.subtitle")}</p>
       </div>
 
       <section className="space-y-3.5">
@@ -210,24 +213,24 @@ export function SignupStep1({
             box; screen 2 is optional). They moved here from step 2. */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2 min-w-0">
-            <Label htmlFor="firstName" className={labelCls}>First name</Label>
+            <Label htmlFor="firstName" className={labelCls}>{t("signup.firstName")}</Label>
             <Input ref={firstNameRef} id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} onKeyDown={onFirstNameKeyDown} required aria-required="true" autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={firstNameError} aria-describedby={firstNameError ? "signup-firstName-error" : undefined}
               className={`${inputCls} ${firstNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {firstNameError && (
               <p id="signup-firstName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-                Add your first name
+                {t("signup.firstNameMissing")}
               </p>
             )}
           </div>
           <div className="space-y-2 min-w-0">
-            <Label htmlFor="lastName" className={labelCls}>Last name</Label>
+            <Label htmlFor="lastName" className={labelCls}>{t("signup.lastName")}</Label>
             <Input ref={lastNameRef} id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} onKeyDown={onLastNameKeyDown} required aria-required="true" autoComplete="family-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={lastNameError} aria-describedby={lastNameError ? "signup-lastName-error" : undefined}
               className={`${inputCls} ${lastNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {lastNameError && (
               <p id="signup-lastName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-                Add your last name
+                {t("signup.lastNameMissing")}
               </p>
             )}
           </div>
@@ -237,7 +240,7 @@ export function SignupStep1({
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email</Label>
+          <Label htmlFor="email" className={labelCls}>{t("login.email")}</Label>
           <div className="relative">
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
               className={`${inputCls} ${emailValid ? "pr-10" : ""} ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
@@ -255,7 +258,7 @@ export function SignupStep1({
           {emailError && (
             <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-              {email.trim() ? "Enter a valid email address" : "Add your email address"}
+              {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
             </p>
           )}
           {emailSuggestion && (
@@ -266,28 +269,28 @@ export function SignupStep1({
               style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--ink-deep))" }}
             >
               <p>
-                Did you mean <span className="font-semibold break-all">{emailSuggestion}</span>?
+                {t("signup.didYouMean")} <span className="font-semibold break-all">{emailSuggestion}</span>{t("signup.didYouMeanEnd")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => setEmail(emailSuggestion)}>
-                  Use {suggestedDomain}
+                  {t("signup.useDomain", { domain: suggestedDomain })}
                 </Button>
                 <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setKeptEmail(email)}>
-                  Keep {typedDomain}
+                  {t("signup.keepDomain", { domain: typedDomain })}
                 </Button>
               </div>
             </div>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password</Label>
+          <Label htmlFor="password" className={labelCls}>{t("login.password")}</Label>
           <div className="relative">
             <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={PASSWORD_MIN_LENGTH} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
               className={`${inputCls} pr-10 ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
               className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -295,7 +298,7 @@ export function SignupStep1({
           </div>
           {capsLockOn && (
             <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert-ink))" }}>
-              <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
+              <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> {t("signup.capsLock")}
             </p>
           )}
           {/* The message must cover BOTH failure modes the red border covers.
@@ -307,7 +310,7 @@ export function SignupStep1({
           {passwordError && (
             <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
-              {password ? passwordProblem(password) : "Add a password"}
+              {password ? passwordProblem(password) : t("signup.passwordMissing")}
             </p>
           )}
           {/* The one shared strength meter (also on Reset password). */}
@@ -344,10 +347,12 @@ export function SignupStep1({
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span id="policies-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
-          I agree to the{" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Terms</a>,{" "}
-          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Rules</a> &amp;{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Privacy</a>.
+          {t("signup.agreeLead")}{" "}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.terms")}</a>,{" "}
+          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.rules")}</a> {t("signup.and")}{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.privacy")}</a>.
+          {/* Terms, Rules and Privacy are not translated: a Spanish reader is told they open in English. */}
+          {lang === "es" && <span className="block mt-0.5" data-testid="legal-in-english">{t("lang.legalInEnglish")}</span>}
         </span>
       </label>
 
@@ -365,7 +370,7 @@ export function SignupStep1({
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span id="marketing-consent-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
-          Email me Helpr news and offers.
+          {t("signup.marketing")}
         </span>
       </label>
 
@@ -373,7 +378,7 @@ export function SignupStep1({
           Keyed on nudgeKey so a repeat tap re-announces. */}
       <p key={`consent-alert-${nudgeKey}`} role="alert" className="sr-only">
         {nudgeKey > 0 && !(acceptedPolicies && ageConfirmed)
-          ? "To continue, confirm you are 18 or older and agree to the Terms, Rules and Privacy."
+          ? t("signup.consentNeeded")
           : ""}
       </p>
       </div>
@@ -387,13 +392,13 @@ export function SignupStep1({
         size="lg"
         onClick={handleContinue}
       >
-        Continue
+        {t("signup.continue")}
       </Button>
 
       {/* Continue saves the email for ONE reminder if sign-up is not finished
           (owner 2026-10-09; src/lib/signupLead.ts). Said before it happens. */}
       <p className="text-center text-ds-12 font-sans text-muted-foreground">
-        We may email once if you don't finish.
+        {t("signup.mayEmailOnce")}
       </p>
 
       {SOCIAL_SIGN_IN_ENABLED && (
@@ -404,11 +409,14 @@ export function SignupStep1({
       )}
 
       <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Already have an account?{" "}
+        {t("signup.haveAccount")}{" "}
         <Link to="/login" className="font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
-          Log in
+          {t("login.submit")}
         </Link>
       </p>
+      <div className="flex justify-center">
+        <LanguageToggle />
+      </div>
     </div>
   );
 }

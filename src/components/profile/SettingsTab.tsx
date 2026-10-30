@@ -21,6 +21,8 @@ import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identi
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -158,6 +160,7 @@ export function SettingsTab({
   const byKey = new Map<string, MenuItem>(menuGroups.flatMap((g) => g.items).map((i) => [i.key, i]));
   const open = (item: MenuItem) => (item.href ? navigate(item.href) : onSelectTab(item.key));
   const more = MORE_KEYS.map((k) => byKey.get(k)).filter((i): i is MenuItem => !!i);
+  const { t } = useLanguage();
 
   return (
     <ProfileTabBody>
@@ -173,6 +176,8 @@ export function SettingsTab({
             right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label="Bigger text and buttons" />}
           />
         )}
+        {/* Spanish language option (2026-10-29): the ONE shared switch, remembered on this device. Guard: src/test/settingsLanguageSwitch.test.tsx. */}
+        <Row testId="language" label={t("lang.label")} right={<LanguageToggle />} />
       </Group>
 
       <Group title="Your sections">

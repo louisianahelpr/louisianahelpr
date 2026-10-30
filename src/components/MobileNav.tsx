@@ -26,6 +26,7 @@ import {
   authPages,
   noNavPages,
   inTabStack,
+  guestTabPath,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
 import { CreateSheet } from "@/components/create/CreateSheet";
@@ -36,8 +37,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
-  // Spanish option (2026-10-29): the dock's words come from the dictionary.
-  const { t: tr } = useLanguage();
+  const { t: tr } = useLanguage(); // Spanish option (2026-10-29): the dock's words come from the dictionary.
   const location = useLocation();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
@@ -399,13 +399,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const shown = shownKey ? tr(shownKey) : label;
     const guestLocked = isGuest && !["/home", "/profile"].includes(path);
     const locked = guestLocked;
-    const effectivePath = isGuest
-      ? path === "/home"
-        ? "/browse"
-        : path === "/profile"
-          ? "/login"
-          : path
-      : path;
+    const effectivePath = isGuest ? guestTabPath(path) : path;
 
     // /browse is Home for everyone (signed-in users redirect to /home; guest-only lit it late: media 2→4).
     const active =

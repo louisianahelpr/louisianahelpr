@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * Renders a red inline error message below a form field.
@@ -128,6 +129,7 @@ export function SignupStep2(props: SignupStep2Props) {
   // Live field validity — drives the inline green check (mirrors Step 1's
   // email affordance) so a completed field reads as done, not just un-erroed.
   const locationValid = location.trim().length > 0;
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-6">
@@ -138,7 +140,7 @@ export function SignupStep2(props: SignupStep2Props) {
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
         <div className="space-y-2 text-center pb-3">
-          <Label className={labelCls}>Profile photo <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <Label className={labelCls}>{t("signup.photo")} <span className="font-normal text-muted-foreground">{t("signup.optional")}</span></Label>
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
@@ -152,7 +154,7 @@ export function SignupStep2(props: SignupStep2Props) {
               }}
             >
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
-                <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={avatarPreview} alt={t("signup.photoAlt")} className="w-full h-full object-cover" />
               ) : (
                 <UserRound className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
               )}
@@ -175,7 +177,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 tab order, which would put the photo out of a keyboard-only
                 user's reach entirely. sr-only keeps it focusable; the dashed
                 circle shows the ring via focus-within. */}
-            <span className="sr-only">Upload profile photo</span>
+            <span className="sr-only">{t("signup.photoUpload")}</span>
             <input
               id="avatar"
               type="file"
@@ -202,7 +204,7 @@ export function SignupStep2(props: SignupStep2Props) {
             and with the check's padding the value read "705", 2026-09-12). */}
         <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
           <div className="space-y-2">
-            <Label htmlFor="location" className={labelCls}>City <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
+            <Label htmlFor="location" className={labelCls}>{t("signup.city")} <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>{t("signup.optional")}</span></Label>
             <div className="relative">
               <CityAutocomplete
                 id="location"
@@ -218,7 +220,7 @@ export function SignupStep2(props: SignupStep2Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="zipCode" className={labelCls}>
-              ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
+              {t("signup.zip")} <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>{t("signup.optional")}</span>
             </Label>
             <div className="relative">
               <Input
@@ -264,10 +266,10 @@ export function SignupStep2(props: SignupStep2Props) {
           </p>
         )}
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
+          <Label htmlFor="bio" className={labelCls}>{t("signup.about")} <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>{t("signup.optional")}</span></Label>
           <Textarea
             id="bio"
-            placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"
+            placeholder={t("signup.aboutPlaceholder")}
             value={bio}
             onChange={(e) => { setBio(e.target.value); clearFieldError?.("bio"); }}
             autoCapitalize="sentences"
@@ -286,7 +288,7 @@ export function SignupStep2(props: SignupStep2Props) {
                     promise about the whole form — then hit "Add a profile
                     photo" on submit. It only ever meant the bio. Naming the
                     field removes the reading it cannot support. */}
-                The bio is optional — you can add it later from your profile.
+                {t("signup.aboutHelp")}
               </p>
           }
         </div>
@@ -323,7 +325,7 @@ export function SignupStep2(props: SignupStep2Props) {
           // itself instead of a wordless disabled button + red asterisks).
           disabled={loading}
         >
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? t("signup.creating") : t("signup.create")}
         </Button>
       </div>
       {/* Every field on this screen is optional (owner 2026-10-26): Skip
@@ -340,7 +342,7 @@ export function SignupStep2(props: SignupStep2Props) {
         onClick={onSkip}
         disabled={loading}
       >
-        Skip and create account
+        {t("signup.skip")}
       </button>
     </div>
   );
@@ -373,6 +375,7 @@ function ReferralCodeField({
   // Open from the start when a link already supplied a code — a pre-filled
   // field hidden behind a closed toggle is a value the user never consented to.
   const [open, setOpen] = useState(() => referralCode.trim().length > 0);
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-2">
@@ -386,16 +389,16 @@ function ReferralCodeField({
           aria-expanded={false}
           aria-controls="referralCode"
         >
-          Have a referral code?
+          {t("signup.referralAsk")}
           <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden />
         </button>
       )}
       {open && (
         <>
           <Label htmlFor="referralCode" className={labelCls}>
-            Referral code{" "}
+            {t("signup.referral")}{" "}
             <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              (optional)
+              {t("signup.optional")}
             </span>
           </Label>
           <Input
@@ -406,7 +409,7 @@ function ReferralCodeField({
             // resolves it to FUHNW3, so showing the canonical form back is
             // honest about what will be sent.
             onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
-            placeholder="e.g. FUHNW3"
+            placeholder={t("signup.referralExample")}
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
@@ -414,8 +417,7 @@ function ReferralCodeField({
             className={inputCls}
           />
           <p className="text-ds-11 text-muted-foreground">
-            Got a code from a friend? Enter it and you both get $5 once you
-            finish your first job.
+            {t("signup.referralHelp")}
           </p>
         </>
       )}

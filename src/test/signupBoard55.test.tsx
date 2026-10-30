@@ -7,11 +7,11 @@
  * attestation, the plain "or" rule (no rust), Continue with Apple / Google,
  * "Already have an account? Log in". Sentence case throughout.
  *
- * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">Create your account</h1> | <h1 className="text-page-title text-foreground">Create Account</h1>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">Create Account</h1>
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
- * @mutate src/pages/auth/signup/SignupStep1.tsx |           Log in\n        </Link> |           Log In\n        </Link>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
  * @mutate src/pages/auth/Signup.tsx |       title={step === 1 ? undefined : stepHeading.title} |       title={step === 1 ? "Create Account" : stepHeading.title}
  */
@@ -21,6 +21,7 @@ import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 vi.mock("@/components/auth/SocialAuthButtons", () => ({ SocialAuthButtons: () => <div data-testid="social" /> }));
 import { SignupStep1 } from "@/pages/auth/signup/SignupStep1";
@@ -47,10 +48,13 @@ describe("Create account matches board 55", () => {
     // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle.
     expect(step1).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
     expect(step1).not.toMatch(/apple-touch-icon/);
-    expect(step1).toContain(">Create your account</h1>");
+    // Spanish option (2026-10-29): the words live in the dictionary (en.ts), read through t().
+    expect(step1).toContain('>{t("signup.title")}</h1>');
+    expect(en["signup.title"]).toBe("Create your account");
     // A3-L6 (2026-10-29): buying and selling (Declutter, Shops) still say "Coming soon" to members,
     // so the subhead promises only what is open, in the landing hero's words.
-    expect(step1).toContain('"One account to hire help or find work."');
+    expect(step1).toContain('{subtitle ?? t("signup.subtitle")}');
+    expect(en["signup.subtitle"]).toBe("One account to hire help or find work.");
     expect(step1).not.toMatch(/buy and sell/);
     expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");
     expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);

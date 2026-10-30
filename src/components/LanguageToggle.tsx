@@ -17,7 +17,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
       <Languages className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
       {LANGS.map((l, i) => (
         <span key={l} className="inline-flex items-center">
-          {i > 0 && <span aria-hidden className="px-1" style={{ color: "hsl(var(--olivewood) / 0.5)" }}>·</span>}
+          {i > 0 && <span aria-hidden className="px-1">·</span>}
           <button
             type="button"
             lang={l}

@@ -13,7 +13,7 @@
  * The server enforces every rule (20261016053541, 20261021031757); this file only explains.
  */
 import { useId, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Camera, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ import { WantedNearSection } from "./DeclutterWantedReplies";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { photoPublicUrl } from "@/lib/declutter/api";
+import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
 import {
   WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
@@ -326,7 +327,10 @@ export function WantedView() {
   const { user } = useCurrentUser();
   const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
   const mine = useQuery({ queryKey: ["declutter", "wanted"], queryFn: fetchMyWanted });
-  const [posting, setPosting] = useState(false);
+  // The sell chooser's "Looking for something? Post a Wanted" (?post=1, owner 2026-10-30) opens the form at once
+  // (it shows once the area is known, as the button does).
+  const [params] = useSearchParams();
+  const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1");
   const at = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
 
   return (

@@ -45,6 +45,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -117,7 +118,7 @@ function NothingForSaleActions() {
   const wanted = useFeature("declutter_wanted");
   return (
     <div className="flex flex-col items-center gap-2" data-nothing-for-sale="">
-      <BarkPillButton asChild><Link to="/declutter/sell">Sell something</Link></BarkPillButton>
+      <BarkPillButton asChild><Link to={SELL_CHOOSER_PATH}>Sell something</Link></BarkPillButton>
       {wanted && (
         <Button asChild variant="outline" className="rounded-full">
           <Link to="/declutter?tab=wanted">Post what you're looking for</Link>

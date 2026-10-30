@@ -28,10 +28,11 @@ const SELL_FOR_ME_JOB_CATEGORY: JobCategory = "declutter_help";
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
 
 /**
- * The suggested title. public.jobs caps a title at 32 characters (Q782), so
+ * The suggested title, in the owner's words (2026-10-30, the sell chooser's "Have a Helpr list it for me").
+ * public.jobs caps a title at 32 characters (Q782), so
  * the longer "Photograph and list my items for sale" would not fit.
  */
-const SELL_FOR_ME_TITLE = "Photograph and list my items";
+const SELL_FOR_ME_TITLE = "Help me list my things to sell";
 
 /** The no-account-access promise, said in the job itself (owner 2026-10-19). */
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =

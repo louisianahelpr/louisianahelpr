@@ -30,6 +30,7 @@ import { REQUIRED_CHECKS, evaluate } from "../../scripts/release-gate.mjs";
  * true`) — which is what makes a green run with every real job SKIPPED count
  * as green, the exact e2e-real-backend push shape — turns this red.
  */
+// @mutate scripts/release-gate.mjs | "--limit", "1000", | "--limit", "100",
 // @mutate scripts/release-gate.mjs | const ran = auditJobs.some((j) => j.conclusion === "success"); | const ran = true;
 
 const REPO = resolve(__dirname, "../..");
@@ -146,5 +147,12 @@ describe("release gate verdicts", () => {
     ];
     const v = evaluate(SHA, runs, allGreenJobs) as { id: string; state: string }[];
     expect(v.find((x) => x.id === "test")?.state).toBe("green");
+  });
+});
+
+describe("release gate reads every run of the sha", () => {
+  it("does not cut the run list off at a page that per-push workflows can fill", () => {
+    const script = readFileSync(resolve(process.cwd(), "scripts/release-gate.mjs"), "utf8");
+    expect(script).toContain('"--commit", sha, "--limit", "1000",');
   });
 });

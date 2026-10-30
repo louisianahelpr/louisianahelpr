@@ -568,6 +568,11 @@ The photos below may show SEVERAL different items. They are numbered from 0 in t
   }
   const { items, leftover } = sanitizeGroups(answer.parsed, photos.length);
   // Everything sanitizeDraft returns except the flag's reason (never shown to the seller), so a field it
-  // gains later (builder 25's suggested price) reaches this mode too without a second list here.
-  return json({ items: items.map(({ flagReason: _reason, ...d }) => d), leftover });
+  // gains later (builder 25's suggested price) reaches this mode too without a second list here. Each suggested
+  // price is held to our own sold prices near body.at, as one item's draft is (no point: it stays as it is).
+  const grounded = await Promise.all(items.map(async ({ photos: held, ...draft }) => {
+    const { flagReason: _reason, ...d } = await groundWithOurSales(anon, draft, body);
+    return { ...d, photos: held };
+  }));
+  return json({ items: grounded, leftover });
 }

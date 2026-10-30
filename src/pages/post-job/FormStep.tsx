@@ -114,6 +114,15 @@ export function FormStep({ form }: FormStepProps) {
     blocked: atOpenJobLimit || underAge,
     goOn: () => setPage?.(2),
   });
+  // Q2471 #3: "Book <Helpr> again" copied the whole job (and never its date) and made it a direct offer, so it
+  // opens at When and where (6 of 7) and asks only for the date. Same once-only and the same gates as above.
+  usePrefillOpensDetails({
+    deepLink: !!form.prefillOpensWhen,
+    category: form.category,
+    onFirstPage: page === 1,
+    blocked: atOpenJobLimit || underAge,
+    goOn: () => setPage?.(4),
+  });
   const rootRef = useRef<HTMLDivElement>(null);
   // scrollToField (postJobFormHelpers) asks a hidden screen to open when the
   // submit pass refuses a field on it.

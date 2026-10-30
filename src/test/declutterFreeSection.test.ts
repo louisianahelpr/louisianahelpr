@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
- * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />) | <OfferPanel item={it} userId={user.id} />
+ * @mutate src/components/declutter/DeclutterItemView.tsx | {free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />} | <OfferPanel item={it} userId={user.id} />
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |               {allFree ? ( |               {false ? (
  * @mutate src/lib/declutter/distance.ts |   return cents === 0 ? "Free" : formatPrice(cents); |   return formatPrice(cents);
  * @mutate src/lib/declutter/browseFilters.ts |     if (f.freeOnly && item.current_price_cents !== 0) return false; |
@@ -97,7 +97,7 @@ describe("the Declutter Free section", () => {
     expect(itemPriceLabel(0)).toBe("Free");
     expect(itemPriceLabel(4050)).toBe("$40.50");
     const view = read("src/components/declutter/DeclutterItemView.tsx");
-    expect(view).toContain("(free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)");
+    expect(view).toContain("{free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />}");
     expect(view).toContain("{!free && <PriceHint");
     const cart = read("src/components/declutter/DeclutterTradeViews.tsx");
     expect(cart).toContain("const allFree = lines.every((l) => l.price_cents === 0);");

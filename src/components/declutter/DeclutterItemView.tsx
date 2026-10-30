@@ -7,13 +7,14 @@
  * DeclutterQuestions; messages open after checkout). Share and
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
@@ -40,22 +41,38 @@ import {
   STATUS_HELP,
   sellerStatusLabel,
 } from "./declutterUi";
-import { FreeClaimPanel, FreeRequestsForGiver, isFreeItem } from "./DeclutterFreeClaim";
-import { OfferPanel } from "./DeclutterOfferPanel";
+import { isFreeItem } from "@/lib/declutter/freeItem";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
-import { DeclutterQuestions } from "./DeclutterQuestions";
 import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { ItemPickupWays } from "./ItemPickupWays";
-import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
-import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
+
+// The photo is this page's first screen. These load on their own, beside it: statically they sat in front of the photo
+// on a slow phone. Numbers on the commit.
+const OfferPanel = lazy(() => import("./DeclutterOfferPanel").then((m) => ({ default: m.OfferPanel })));
+const FreeClaimPanel = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeClaimPanel })));
+const FreeRequestsForGiver = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeRequestsForGiver })));
+const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.SellerListingPanel })));
+const ReopenListingButton = lazy(() => import("./DeclutterTakenDown").then((m) => ({ default: m.ReopenListingButton })));
+const DeclutterQuestions = lazy(() => import("./DeclutterQuestions").then((m) => ({ default: m.DeclutterQuestions })));
+
+/** Holds the buy panel's place, its card and two buttons, while its code loads, so the page under it does not jump. */
+const PanelHolder = (
+  <div data-item-panel-holder="" className="rounded-2xl border border-border bg-card p-4 space-y-3">
+    <div className="grid gap-2 sm:grid-cols-2">
+      <Skeleton className="h-11 rounded-full" />
+      <Skeleton className="h-11 rounded-full" />
+    </div>
+    <Skeleton className="h-4 w-3/5" />
+  </div>
+);
 
 /** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
 function addressNote(free: boolean, isSeller: boolean): string {
@@ -209,14 +226,14 @@ export default function ItemView({ itemId }: { itemId: string }) {
           </section>
 
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}
-          {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
-          {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}
+          {isSeller && it.status === "live" && free && <Suspense fallback={null}><FreeRequestsForGiver item={it} /></Suspense>}
+          {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={PanelHolder}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
               {STATUS_HELP[it.status] ?? null}
               {(it.status === "rejected" || it.status === "removed") && review.data?.review_note ?<p className="mt-1">Reason: {review.data.review_note}</p> : null}
               {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}
-              {it.status === "withdrawn" && <div className="mt-3"><ReopenListingButton itemId={it.id} /></div>}
+              {it.status === "withdrawn" && <div className="mt-3"><Suspense fallback={null}><ReopenListingButton itemId={it.id} /></Suspense></div>}
             </DeclutterNotice>
           )}
 
@@ -235,7 +252,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
           {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-          {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+          {canAct && user && <Suspense fallback={PanelHolder}>{free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />}</Suspense>}
 
           {!free && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
 
@@ -262,7 +279,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
           </section>
 
-          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />
+          <Suspense fallback={null}><DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} /></Suspense>
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!isSeller && user && <DeclutterReportListing itemId={itemId} />}

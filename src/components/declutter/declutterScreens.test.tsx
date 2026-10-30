@@ -16,7 +16,7 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
- * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />)} | : null)}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />} | : null}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

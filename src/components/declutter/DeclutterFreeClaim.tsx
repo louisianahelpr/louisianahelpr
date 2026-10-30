@@ -24,11 +24,6 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 
-/** Is this listing free? (price and current price are both 0, a CHECK keeps them together). */
-export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): boolean {
-  return item.current_price_cents === 0;
-}
-
 /**
  * The ways a free item can be collected (porch pickup, or at the giver's home): porch only when porch is on, and of
  * those only what the giver ticked (null = an older item with no ticks: both, as before). One rule for the ask line

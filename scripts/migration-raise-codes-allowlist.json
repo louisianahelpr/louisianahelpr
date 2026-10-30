@@ -120,6 +120,48 @@
       "function": "public.declutter_wanted_reply",
       "code": "sale_mode_unavailable",
       "reason": "Dropped ON PURPOSE (Declutter audit W7, lead/owner 2026-10-30: any listing for sale now can answer a Wanted). The only other sale_mode, 'auction', has no logic and no rows on prod (measured 2026-10-30: array_agg(distinct sale_mode) from declutter_items = {offers}); the answer is the seller's own counter at most the listing's price, so no sale-mode rule is needed. The other reply guards (live listing, distance, amount, one open offer per listing, rate limits) are intact; src/test/declutterWantedReplyReach.test.ts and src/test/pglite/declutterWantedPhotosReplies.pglite.mjs (auctionListingAnswers) pin it."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "account_restricted",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'account_restricted' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "item_not_found",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'item_not_found' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "own_item",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'own_item' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "sale_mode_unavailable",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'sale_mode_unavailable' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "not_free",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'not_free' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "item_not_available",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'item_not_available' on the same condition."
+    },
+    {
+      "migration": "20261030064021_declutter_free_requests.sql",
+      "function": "public.declutter_claim_free",
+      "code": "free_claim_limit",
+      "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'free_claim_limit' on the same condition."
     }
   ]
 }

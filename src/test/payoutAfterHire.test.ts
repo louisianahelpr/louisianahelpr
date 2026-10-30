@@ -25,8 +25,8 @@
  *
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |            WHEN public.feature_enabled_for_user('payout_after_hire', p.user_id) THEN ARRAY[]::text[] |            WHEN false THEN ARRAY[]::text[]
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |      AND public.payout_waits_on_identity(NEW.helper_id) THEN |      AND false THEN
- * @mutate supabase/migrations/20261027154326_payout_hired_reminder_only_for_fresh_hires.sql |       AND public.feature_enabled_for_user('payout_setup', h.uid) |
- * @mutate supabase/migrations/20261027154326_payout_hired_reminder_only_for_fresh_hires.sql |                         WHERE r.helper_id = h.uid AND r.claimed_at > now() - interval '20 hours') |                         WHERE false)
+ * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |       AND public.feature_enabled_for_user('payout_setup', h.uid) |
+ * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |                         WHERE r.helper_id = h.uid AND r.claimed_at > now() - interval '20 hours') |                         WHERE false)
  * @mutate src/lib/awardGate.ts |   if (opts.payoutAfterHire === true) return []; |
  * @mutate src/hooks/useAwardBlockReason.ts |   const missing = acceptMissingFromProfile(profile, { payoutAfterHire }); |   const missing = acceptMissingFromProfile(profile);
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |   if (!(await deps.promptPayoutAfterHire?.(user.id))) {\n    setPaymentHeldWho | {\n    setPaymentHeldWho

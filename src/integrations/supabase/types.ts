@@ -5932,6 +5932,42 @@ export type Database = {
           },
         ]
       }
+      job_reminder_types: {
+        Row: {
+          always_on: boolean
+          description: string
+          kind: string
+          label: string
+          match_message_like: string | null
+          match_title: string
+          match_type: string
+          pref_column: string | null
+          sort_order: number
+        }
+        Insert: {
+          always_on: boolean
+          description: string
+          kind: string
+          label: string
+          match_message_like?: string | null
+          match_title: string
+          match_type: string
+          pref_column?: string | null
+          sort_order?: number
+        }
+        Update: {
+          always_on?: boolean
+          description?: string
+          kind?: string
+          label?: string
+          match_message_like?: string | null
+          match_title?: string
+          match_type?: string
+          pref_column?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       job_revisions: {
         Row: {
           created_at: string
@@ -7292,6 +7328,9 @@ export type Database = {
           push_enabled: boolean
           quiet_end: string | null
           quiet_start: string | null
+          remind_finish_job: boolean
+          remind_payout_followups: boolean
+          remind_starting_soon: boolean
           reviews: boolean
           saved_helper_availability: boolean
           saved_searches_paused: boolean
@@ -7345,6 +7384,9 @@ export type Database = {
           push_enabled?: boolean
           quiet_end?: string | null
           quiet_start?: string | null
+          remind_finish_job?: boolean
+          remind_payout_followups?: boolean
+          remind_starting_soon?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
@@ -7398,6 +7440,9 @@ export type Database = {
           push_enabled?: boolean
           quiet_end?: string | null
           quiet_start?: string | null
+          remind_finish_job?: boolean
+          remind_payout_followups?: boolean
+          remind_starting_soon?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
@@ -14944,6 +14989,23 @@ export type Database = {
         }[]
       }
       get_my_sms_consent: { Args: never; Returns: Json }
+      job_reminder_kind: {
+        Args: { p_message: string; p_title: string; p_type: string }
+        Returns: {
+          always_on: boolean
+          kind: string
+          pref_column: string
+        }[]
+      }
+      job_reminder_switched_off: {
+        Args: {
+          p_message: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       objectionable_reason: { Args: { p_text: string }; Returns: string }
       referral_member_has_completed_job: {
         Args: { p_user: string }

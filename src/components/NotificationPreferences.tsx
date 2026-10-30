@@ -18,9 +18,10 @@ import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
-import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
+import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, jobReminderColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
+import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
@@ -688,16 +689,14 @@ const NotificationPreferences = () => {
       </div>
 
       {rows.map(renderRow)}
+      {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={jobReminderColumnsPresent(columns)} onToggle={(key) => void toggle(key)} />}
 
       {/* The Declutter group (owner 2026-10-28, via the lead): only once its
           columns are deployed (a switch for a missing column could not save). */}
       {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}
 
-      {/* Saved-Helpr availability nudges — a STANDALONE opt-in (owner,
-          2026-09-15), OFF by default. Not one of the type-routed category
-          rows above (it isn't in `notification_type_pref_map`); the
-          saved-helper-availability-push cron reads this column directly.
-          Push-only, like quiet hours, so it keeps the two-column grid. */}
+      {/* Saved-Helpr availability nudges: a STANDALONE opt-in (owner 2026-09-15), OFF by default, not a
+          type-routed category row; the saved-helper-availability-push cron reads this column directly. Push-only. */}
       <div
         className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{

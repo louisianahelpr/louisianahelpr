@@ -33,6 +33,9 @@ export const defaultPrefs: Prefs = {
   // Saved-helper availability nudges are opt-in (owner, 2026-09-15) — off
   // until the user turns them on. Standalone toggle, not in `rows`.
   saved_helper_availability: false,
+  remind_starting_soon: true,
+  remind_finish_job: true,
+  remind_payout_followups: true,
   quiet_start: null,
   quiet_end: null,
 };

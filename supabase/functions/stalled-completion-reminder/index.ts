@@ -133,7 +133,13 @@ serve(async (req) => {
     if ((data?.length ?? 0) === 0) {
       // Dropped BY DESIGN by the seed boundary: not a defect, and no email.
       if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;
-      throw new Error(`notification insert matched 0 rows for ${userId}`);
+      // Dropped BY DESIGN by the member's Job reminders switch (20261030031059):
+      // not a defect, and no email.
+      const { data: switchedOff, error: switchErr } = await supabase.rpc("job_reminder_switched_off", {
+        p_user_id: userId, p_type: type, p_title: title, p_message: message,
+      });
+      if (!switchErr && switchedOff === true) return;
+      throw new Error(`notification insert matched 0 rows for ${userId}${switchErr ? ` (switch check: ${switchErr.message})` : ""}`);
     }
     try {
       const res = await fetchFunction(`${supabaseUrl}/functions/v1/send-notification-email`, {

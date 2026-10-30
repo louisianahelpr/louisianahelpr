@@ -6,7 +6,7 @@ import { formatName } from "@/lib/utils";
 import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
-import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
+import { CompareBar, CompareChip, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
@@ -545,7 +545,9 @@ export function ApplicantsPanel({
                           <div className={app.status === "pending"
                             ? "contents sm:flex sm:flex-col sm:items-end sm:gap-1 sm:shrink-0 sm:-mt-1 sm:-mr-1"
                             : "flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1"}>
-                          <div className={app.status === "pending" ? "flex gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
+                          <div className={app.status === "pending" ? "flex items-center gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
+                          {/* Compare sits up here, left of the note icon, not on a row of its own (owner 2026-10-29). */}
+                          {app.status === "pending" && applications.length > 1 && <CompareChip id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
                           <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
                             ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
                             onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
@@ -563,7 +565,6 @@ export function ApplicantsPanel({
                               onDecline={() => { setDeclineTarget(app); setDeclineNote(""); setDeclineReason(null); }}
                             />
                           )}
-                          {app.status === "pending" && applications.length > 1 && <CompareCheck id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
                           {/* A hired (accepted) applicant has no Hire row: Message stands on its own (owner, 2026-10-11). */}
                           {app.status !== "pending" && canMessageApplicant(app.status) && (
                             <MessageApplicantButton jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName} className="mr-1" />

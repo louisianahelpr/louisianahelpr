@@ -2,6 +2,7 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Check, Columns2 } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import type { EnrichedApplication } from "@/components/job-card/activityConstants";
 
@@ -24,7 +25,7 @@ export function useApplicantCompare() {
   return { ids, toggle, clear: () => setIds([]) };
 }
 
-/** The card's "Compare" tick. Disabled once 3 are picked, unless this one is. `labelHidden`: the desktop table's column header already says Compare (board 170). */
+/** The desktop table's "Compare" tick (the phone card uses CompareChip). Disabled once 3 are picked, unless this one is. `labelHidden`: the desktop table's column header already says Compare (board 170). */
 export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: string; name: string; ids: string[]; toggle: (id: string) => void; labelHidden?: boolean }) {
   const on = ids.includes(id);
   const full = !on && ids.length >= COMPARE_MAX;
@@ -41,6 +42,38 @@ export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: strin
       />
       <span className={labelHidden ? "sr-only" : undefined}>Compare</span>
     </label>
+  );
+}
+
+/**
+ * The phone/tablet card's Compare toggle, in the card's top-right icon row LEFT of the private-note icon (owner,
+ * 2026-10-29, iPhone Applicants screenshot: Compare had a row of its own under Hire, making every card taller).
+ * A pill chip with a selected state (aria-pressed; selected wears the shared btn-grad-primary, toggled in JS), its
+ * tap target the full 44px button around a 32px visual pill. Below 360px the word hides and the icon carries it
+ * (the name keeps its room); the accessible name is always "Compare <name>". Disabled once 3 are picked, unless
+ * this one is. Guard: src/test/applicantCardCompareUpTop.test.tsx.
+ */
+export function CompareChip({ id, name, ids, toggle }: { id: string; name: string; ids: string[]; toggle: (id: string) => void }) {
+  const on = ids.includes(id);
+  const full = !on && ids.length >= COMPARE_MAX;
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={`Compare ${name}`}
+      disabled={full}
+      onClick={() => toggle(id)}
+      className="group inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full -my-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background disabled:opacity-50"
+      data-compare-chip=""
+    >
+      <span
+        className={`inline-flex h-8 items-center gap-1 rounded-full px-2.5 font-sans text-ds-12 font-semibold ${on ? "btn-grad-primary" : "border border-border bg-card"}`}
+        style={on ? { color: "hsl(var(--parchment))" } : { color: "hsl(var(--foreground))" }}
+      >
+        {on ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Columns2 className="h-3.5 w-3.5" aria-hidden="true" />}
+        <span className="max-[359px]:sr-only">Compare</span>
+      </span>
+    </button>
   );
 }
 

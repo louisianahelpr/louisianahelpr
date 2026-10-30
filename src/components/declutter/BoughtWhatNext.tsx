@@ -28,7 +28,8 @@ export function justPaidOrder(lines: CartLine[], orderId: string | null = null):
 
 /**
  * The steps between paying and "You confirm you got it", for the order's handover. `booked`: the pickup day or time is
- * booked (declutter_bookings.slot_start). Seller delivery's time lives in its own booking, so it starts at the pick.
+ * booked (declutter_bookings.slot_start). Seller delivery's time lives in its own booking (declutter_seller_deliveries),
+ * picked AT checkout: audit 1030 DB-7, the sheet said "Pick a delivery time · Now" while the card said it was booked.
  */
 function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextStep[] {
   const book = (label: string, detail: string): WhatNextStep => ({ key: "book", label, detail, state: "now" });
@@ -37,7 +38,9 @@ function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextSt
     case "delivery":
       return [go("A local Helpr brings it", "You'll see when it's on the way", true)];
     case "seller_delivery":
-      return [book("Pick a delivery time", "In Buying, from the seller's times"), go("The seller brings it", "At the time you picked", false)];
+      return booked
+        ? [go("The seller brings it", "At the time you picked", true)]
+        : [book("Pick a new delivery time", "In Buying, from the seller's times"), go("The seller brings it", "At the time you picked", false)];
     case "porch":
       return booked
         ? [go("Pick it up from the porch", "On your pickup day, once the seller posts the porch photo", true)]
@@ -77,14 +80,23 @@ export function BoughtWhatNext() {
   const paidCents = useMyPaidCents(orderId ? [orderId] : [], !!orderId);
   // The same key as the Buying card's booking read, so the card behind the sheet reads nothing again.
   const booking = useQuery({ queryKey: ["declutter", "bookings", orderId ?? ""], queryFn: () => fetchMyBookings([orderId as string]), enabled: !!orderId });
+  // DB-7: a seller delivery's own booking, the key the Buying card's panel reads (its module loads only for one).
+  const sellerDelivery = order?.[0]?.handover === "seller_delivery";
+  const sdBooking = useQuery({
+    queryKey: ["declutter", "seller-delivery-booking", orderId ?? ""],
+    queryFn: async () => (await import("@/lib/declutter/sellerDelivery")).fetchSellerDeliveryBooking(orderId as string),
+    enabled: !!orderId && sellerDelivery,
+  });
   // Wait for the booking answer; a failed read counts as not booked (a just-paid order has no day or time yet).
-  if (!order || booking.isLoading) return null;
+  if (!order || booking.isLoading || (sellerDelivery && sdBooking.isLoading)) return null;
   const close = () => { params.delete("paid"); params.delete("order"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];
   const total = orderId ? paidCents?.get(orderId) ?? null : null;
   // Audit 1028 D1-3: the buyer's real next step comes first ("Pick a pickup day", "Book a time to meet"), never
   // "Pick it up · Now" before a day or time is booked.
-  const handoverSteps = buyerSteps(first.handover, !!booking.data?.some((b) => b.order_id === orderId && b.slot_start));
+  const handoverSteps = buyerSteps(first.handover, sellerDelivery
+    ? sdBooking.data?.status === "booked" && !!sdBooking.data.slot_start
+    : !!booking.data?.some((b) => b.order_id === orderId && b.slot_start));
   return (
     <WhatNextSheet
       open

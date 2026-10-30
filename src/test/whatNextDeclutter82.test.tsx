@@ -16,7 +16,10 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
  * Audit 1028 D1-3 (1a-b-pay-after-p1-375, 1a-b-meetpay-after-p1-1440): "Pick it up from the porch · Now" before any day
  * was booked, while the card behind said "Pick the day you'll come for it". The Now step is the buyer's real next move.
- * @mutate src/components/declutter/BoughtWhatNext.tsx |   const handoverSteps = buyerSteps(first.handover, !!booking.data?.some((b) => b.order_id === orderId && b.slot_start)); |   const handoverSteps = buyerSteps(first.handover, true);
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |     : !!booking.data?.some((b) => b.order_id === orderId && b.slot_start)); |     : true);
+ * DB-7 (audit 1030): a seller delivery booked at checkout says "The seller brings it · Now", not "Pick a delivery time".
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |     ? sdBooking.data?.status === "booked" && !!sdBooking.data.slot_start | ? false
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |       return booked\n        ? [go("The seller brings it", "At the time you picked", true)] |       return false\n        ? [go("The seller brings it", "At the time you picked", true)]
  * @mutate src/components/declutter/BoughtWhatNext.tsx | : [book("Book a time to meet", "In Buying, from the seller's times"), | : [book("Pick it up", "In Buying, from the seller's times"),
  */
 import { describe, expect, it, vi } from "vitest";
@@ -34,6 +37,9 @@ vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => cart }));
 let paid: Record<string, number> = {};
 let bookings: { order_id: string; slot_start: string | null }[] = [];
 vi.mock("@/lib/declutter/handover", () => ({ fetchMyBookings: async () => bookings }));
+// Audit 1030 DB-7: a seller delivery's own booking (declutter_seller_deliveries; its time is picked at checkout).
+let sdBooking: { status: string; slot_start: string | null } | null = null;
+vi.mock("@/lib/declutter/sellerDelivery", () => ({ fetchSellerDeliveryBooking: async () => sdBooking }));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in paid).map((id) => [id, paid[id]])),
 }));
@@ -76,7 +82,8 @@ describe("board 82: after buying", () => {
       ["porch", false, "Pick a pickup day"],
       ["meetup", false, "Book a time to meet"],
       ["pickup_home", false, "Book a pickup time"],
-      ["seller_delivery", false, "Pick a delivery time"],
+      ["seller_delivery", false, "Pick a new delivery time"],
+      ["seller_delivery", true, "The seller brings it"],
       ["delivery", false, "A local Helpr brings it"],
       ["porch", true, "Pick it up from the porch"],
       ["meetup", true, "Meet at the safe spot"],
@@ -84,7 +91,9 @@ describe("board 82: after buying", () => {
     for (const [handover, booked, want] of cases) {
       cart = [line({ handover })];
       paid = { o1: 2527 };
-      bookings = booked ? [{ order_id: "o1", slot_start: "2026-10-31T05:00:00Z" }] : [];
+      bookings = booked && handover !== "seller_delivery" ? [{ order_id: "o1", slot_start: "2026-10-31T05:00:00Z" }] : [];
+      // DB-7: a seller delivery reads only its own booking (declutter_bookings holds none for it).
+      sdBooking = handover === "seller_delivery" ? (booked ? { status: "booked", slot_start: "2026-10-31T17:00:00Z" } : { status: "needs_time", slot_start: null }) : null;
       const { unmount } = at("?paid=1&tab=buying");
       expect(await nowStep()).toBe(want);
       unmount();

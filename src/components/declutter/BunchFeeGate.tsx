@@ -5,10 +5,9 @@
  * it from what a member can read: profiles.onboarding_fee_paid and get_public_platform_settings. It mirrors the
  * trigger's exemptions too (declutter_setup_fee_before_list: admins and seeded test accounts).
  * The server stays the protection; while either read is unanswered nothing is blocked, and a refusal still explains itself.
+ * The trigger asks no fee at price 0, so free items carry on while it is due: only priced ones wait (bunchFreeOnly).
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -44,10 +43,10 @@ export function BunchFeeGate({ cents }: { cents: number }) {
     <div data-bunch-fee-gate="">
       <DeclutterNotice tone="warn" title={`Your first listing needs a one-time ${formatFeeLabel(cents)} setup fee`}>
         <p>
-          Pay it now, before you add photos, and nothing gets held up later. It's charged once per account, and never again if you already paid it for Jobs. After you pay, you'll land on your listings: come back here to Sell a bunch.
+          Pay it now and nothing gets held up later. It's charged once per account, and never again if you already paid it for Jobs. After you pay, you'll land on your listings: come back here to Sell a bunch.
         </p>
         <p className="mt-1">
-          Giving something away? Free items never need it: <Link className="underline" to={SELL_ONE_PATH}>list it on its own</Link>.
+          Giving things away? Free items never need it: tick "Give it away free" on each one, and they can list now.
         </p>
         <Button type="button" size="sm" className="mt-3 rounded-full" disabled={opening} onClick={() => void pay()}>
           {opening ? "Opening…" : `Pay ${formatFeeLabel(cents)}`}

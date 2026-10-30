@@ -4,7 +4,13 @@
  * step aside. The buyer picks a place before Pay opens, sees no address before paying, and a seller's paid order says
  * which place to put the item out at.
  *
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: !q.isLoading && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: true
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: true
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && ( | ready: !q.isLoading && (
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: !q.isLoading \|\| waitedOut
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (needsPlace) void porchPlaces.query.refetch();\n |
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       if (chosen === "porch") void porchPlaces.query.refetch();\n |
+ * @mutate src/components/declutter/SellFormParts.tsx |     {hasPlaces && <SavedPlacesComeFirst free={form.free} />}\n |
+ * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces\n          ? (form.free | {false\n          ? (form.free
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: g.latitude, lng: g.longitude | lat: 0, lng: 0
  * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
@@ -13,8 +19,8 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | disabled={confirm.isPending \|\| offered.length === 0 \|\| !placeReady} | disabled={confirm.isPending \|\| offered.length === 0}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}\n |
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,8 +36,10 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { SellPorchPlaces } from "./SellPorchPlaces";
+import { SellWaysFields } from "./SellFormParts";
+import type { SellFlow } from "./useSellFlowState";
 import { SellPorchDays } from "./SellPorchDays";
-import { OrderPorchPlace, PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
+import { OrderPorchPlace, PORCH_PLACES_WAIT_MS, PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { fetchMyPorchPlaces } from "@/lib/declutter/porchPlaces";
 
 const HOME = { id: "p1", position: 0, label: "Home", address: "12 Home Street, Lafayette", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6, 0] };
@@ -159,10 +167,82 @@ describe("the buyer's pick", () => {
     expect(container.querySelector("[data-porch-place-picker]")).toBeNull();
   });
 
+  describe("a slow read", () => {
+    beforeEach(() => { vi.useFakeTimers({ shouldAdvanceTime: true }); });
+    afterEach(() => { vi.useRealTimers(); });
+    /** Answers declutter_seller_porch_places only when `answer` is called; until then the read hangs, as a stalled connection does. */
+    function hanging() {
+      let answer: (rows: unknown[]) => void = () => undefined;
+      h.rpc.mockImplementation(() => new Promise((resolve) => { answer = (rows) => resolve({ data: rows, error: null }); }));
+      return (rows: unknown[]) => answer(rows);
+    }
+
+    it("holds Pay only for its short wait, however long the read hangs", async () => {
+      hanging();
+      wrap(<Checkout />);
+      const pay = screen.getByRole("button", { name: "Pay" });
+      expect(pay).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS - 100); });
+      expect(pay).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+      expect(pay).toBeEnabled();
+      expect(PORCH_PLACES_WAIT_MS).toBeLessThanOrEqual(5000);
+    });
+
+    it("if the late read brings places, Pay waits for the pick again", async () => {
+      const answer = hanging();
+      const { container } = wrap(<Checkout />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(PORCH_PLACES_WAIT_MS + 100); });
+      expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled();
+      await act(async () => { answer(OPTIONS); await vi.advanceTimersByTimeAsync(10); });
+      expect(container.querySelector("[data-porch-place-picker]")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
+    });
+  });
+
+  it("a refused checkout reads the places again, so the picker the refusal asks for can show", () => {
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/if \(needsPlace\) void porchPlaces\.query\.refetch\(\);/);
+    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/if \(chosen === "porch"\) void porchPlaces\.query\.refetch\(\);/);
+  });
+
   it("paid checkout and the free claim both wait on the pick", () => {
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady\}/);
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/address\.trim\(\)\.length < 5 \|\| !placeReady/);
     expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/offered\.length === 0 \|\| !placeReady\}/);
+  });
+});
+
+describe("the sell form says which address wins", () => {
+  const flow = (free: boolean) => ({
+    form: { free, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn(),
+  }) as unknown as SellFlow;
+  const note = (c: HTMLElement) => c.querySelector("[data-sell-address-note]")?.textContent?.trim();
+
+  it("with saved places, a buyer's pick beats the address below, and the address says when it is used", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(<SellWaysFields s={flow(false)} />);
+    const first = await waitFor(() => { const el = container.querySelector("[data-saved-places-first]"); expect(el).not.toBeNull(); return el!; });
+    expect(first.textContent).toBe("You have saved pickup places. A buyer choosing porch pickup or Helpr delivery picks one and gets that address, not the one below.");
+    expect(note(container)).toBe("Private. Only used when a buyer gets it another way, or if you remove your saved places.");
+    // It sits between the saved places and the two fields it is about.
+    expect(first.compareDocumentPosition(screen.getByLabelText("Area buyers see")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector("[data-porch-places]")!.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("a free item has no other way, so the address only matters without places", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(<SellWaysFields s={flow(true)} />);
+    await waitFor(() => expect(container.querySelector("[data-saved-places-first]")).not.toBeNull());
+    expect(container.querySelector("[data-saved-places-first]")!.textContent).toBe("You have saved pickup places, so the person who gets this picks one and gets that address, not the one below.");
+    expect(note(container)).toBe("Private. Only used if you remove your saved places.");
+  });
+
+  it("with none saved, the form reads as it always did", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [] });
+    const { container } = wrap(<SellWaysFields s={flow(false)} />);
+    await waitFor(() => expect(container.querySelector("[data-porch-places]")).not.toBeNull());
+    expect(container.querySelector("[data-saved-places-first]")).toBeNull();
+    expect(note(container)).toBe("Private. Only the buyer who pays sees it.");
   });
 });
 

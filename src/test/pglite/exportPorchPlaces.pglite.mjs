@@ -5,10 +5,10 @@
  * only; and nothing else about export_my_data changes.
  *
  *   node src/test/pglite/exportPorchPlaces.pglite.mjs                     # GREEN
- *   NEW_MIGRATION=skip node src/test/pglite/exportPorchPlaces.pglite.mjs  # RED: 20261030081455's body only
+ *   NEW_MIGRATION=skip node src/test/pglite/exportPorchPlaces.pglite.mjs  # RED: 20261030153635's body only
  *   MIGRATION_PATH=<planted copy> node ...                                    # RED on a planted defect
  *
- * World: the export_my_data statements (DROP / CREATE / REVOKE / GRANT) of 20261030081455 (the newest before this
+ * World: the export_my_data statements (DROP / CREATE / REVOKE / GRANT) of 20261030153635 (the newest before this
  * one), then this migration's 3x. Checks:
  *   1. The new body is the old body VERBATIM plus the three sections (nothing else moved).
  *   2. Still the one (uuid) overload, EXECUTE for service_role only.
@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const BASE = "20261030081455_export_my_data_quotes.sql";
+const BASE = "20261030153635_export_my_data_seller_defaults.sql";
 const NEW_FILE = "20261030165438_export_my_data_porch_places.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migration (expect FAILs)");
@@ -81,7 +81,7 @@ const START = "  -- D-NEW14 (20261030164712): the seller's own pickup places";
 const at = def.indexOf(START);
 const stop = at < 0 ? -1 : def.indexOf("  RETURN v_out;", at);
 ok(at > 0 && stop > at, "the new body has the porch places sections, right before RETURN");
-ok(at > 0 && def.slice(0, at) + def.slice(stop) === oldDef, "and is otherwise 20261030081455's body verbatim");
+ok(at > 0 && def.slice(0, at) + def.slice(stop) === oldDef, "and is otherwise 20261030153635's body verbatim");
 
 // 2. ACL.
 const acl = (await db.query(`SELECT

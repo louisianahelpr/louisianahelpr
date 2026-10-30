@@ -8,6 +8,7 @@ import { DeclutterSettingsSkeleton } from "@/components/declutter/DeclutterSkele
 import { SectionHeading } from "@/components/declutter/DeclutterTradeViews";
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { SellerDeliveryCard } from "@/components/declutter/SellerDeliverySettings";
+import { SellPorchPlaces } from "@/components/declutter/SellPorchPlaces";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -31,6 +32,7 @@ function DeclutterSettings() {
           {/* One card around the rows: a row drops its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
           <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
             <PickupTimesCard userId={user.id} />
+            <SellPorchPlaces card />
             <SellerDeliveryCard />
             <BundleDiscountCard />
           </div>

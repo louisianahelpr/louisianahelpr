@@ -252,7 +252,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
             </Suspense>
           )}
-          <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
+          <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} refundPanel={!!refundRequests && items > 0} />
         </>
       ) : order.handover === "seller_delivery" ? (
         <>

@@ -15,7 +15,7 @@
  * src/lib/starColor.ts on the shell branch.
  */
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
+import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
@@ -52,7 +53,26 @@ function rememberReviewed(orderId: string, side: "buyer" | "seller") {
   }
 }
 
-export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string; side: "buyer" | "seller"; userId: string }) {
+/**
+ * Audit 1028 part 2, D2-15: a solid "Leave a review" under an open refund request pulled the eye from the refund
+ * itself. While a request is still being worked out the button is the outline one. The refund panel's own read
+ * (same key, same fetch, so one request on the wire), only when the card shows the refund panel.
+ */
+const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered", "returning", "to_admin"]);
+export const refundStillOpen = (v: RefundRequestView | undefined) => !!v?.request && REFUND_STILL_OPEN.has(v.request.status);
+
+export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false }: {
+  orderId: string;
+  side: "buyer" | "seller";
+  userId: string;
+  /** The card shows the refund panel for this order (its switch is on and the order has items). */
+  refundPanel?: boolean;
+}) {
+  const refund = useQuery({
+    queryKey: ["declutter", "refund-request", orderId],
+    queryFn: () => fetchRefundRequestView(orderId),
+    enabled: refundPanel,
+  });
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [stars, setStars] = useState(0);
@@ -84,7 +104,7 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
   return (
     <>
       {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}
-      <Button type="button" className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+      <Button type="button" variant={refundStillOpen(refund.data) ? "outline" : "default"} className="w-full sm:w-auto" onClick={() => setOpen(true)}>
         Leave a review
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>

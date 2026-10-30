@@ -90,6 +90,10 @@ const SITES: Site[] = [
   // Declutter slice 5: Helpr task and vehicle photos, cleaned to JPEG first (the private helpr-tasks bucket).
   { file: "src/lib/helprTasks/api.ts", bucket: "helpr-tasks", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   { file: "src/lib/declutter/handover.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Declutter returns (Q2486, 20261030071818): the drop-off / got-it-back photo, cleaned to JPEG, into the handover bucket's return folder.
+  { file: "src/lib/declutter/refundReturns.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
+  // Wanted photos (B77, 20261030064727): cleaned to JPEG like listing photos, into job-photos (DECLUTTER_PHOTO_BUCKET in api.ts).
+  { file: "src/lib/declutter/wanted.ts", bucket: "job-photos", bucketSrc: "src/lib/declutter/api.ts", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Quote past-work photos: cleaned to JPEG the same way (src/lib/quotes/api.ts).
   { file: "src/lib/quotes/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
   // Shop logos, covers and photos: the same cleaning (src/lib/declutter/photos.ts).
@@ -133,6 +137,10 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterProblemPhotos.tsx": { bucket: "declutter-handover" },
   // Seller delivery (20261027153244): the drop-off photo goes up through uploadHandoverPhoto, the handover bucket.
   "src/components/declutter/SellerDeliveryOrder.tsx": { bucket: "declutter-handover" },
+  // Declutter returns (Q2486): the return photo goes up through uploadReturnPhoto, the handover bucket.
+  "src/components/declutter/DeclutterRefundReturn.tsx": { bucket: "declutter-handover" },
+  // Wanted photos (B77): the post's photos go up through addWantedPhoto, the listing-photo bucket.
+  "src/components/declutter/DeclutterWantedViews.tsx": { bucket: "job-photos" },
   "src/pages/quotes/SendQuotePage.tsx": { bucket: "job-photos" },
   // My route (Train D): a stop's "Picked up" / drop-off photo goes up through useTaskSteps -> uploadTaskPhoto, the helpr-tasks bucket.
   // #49 (2026-10-28): the shared camera button behind the Helpr's delivery photos (DeclutterDeliveryViews, StopActions).

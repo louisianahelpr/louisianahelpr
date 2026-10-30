@@ -86,6 +86,7 @@ const EXEMPT: Record<string, string> = {
   "contact-support": "an unconfirmed user must be able to ask for help",
   "delete-own-account": "an unconfirmed user may always leave",
   "export-my-data": "an unconfirmed user may always see what we hold (read-only)",
+  "apple-token-store": "stores only the caller's own Apple refresh token (from a code Apple issued, matched to the caller's Apple identity) so account deletion can revoke Sign in with Apple (Q1791); it serves leaving, which an unconfirmed user may always do, and runs right at sign-in",
   "verify-apple-iap": "Apple has already charged: never refuse a paid purchase (grant and flag); the gate belongs at purchase time (Q1200)",
   "admin-delete-user": "admin only: requires the admin role",
   "admin-resend-verification": "admin only: requires the admin role",

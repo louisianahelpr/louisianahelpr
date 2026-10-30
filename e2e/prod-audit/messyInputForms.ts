@@ -832,6 +832,10 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Live on post (20261030071816): the admin takes a live listing down from a report.
+  "src/components/admin/adminReports/DeclutterTakeDown.tsx": "admin-only (Admin -> Reports, on a Declutter listing report) and behind the declutter switch; a sweep account is not an admin. Its one text box is length-capped (maxLength 500) and trimmed before it is sent, and declutter_admin_take_down_item refuses an empty note (review_note_required) and one over 500 characters (review_note_too_long).",
+  // Porch days (owner 2026-10-29): the sell screen's porch-only tick.
+  "src/components/declutter/SellPorchDays.tsx": "no text input: one checkbox and fixed weekday chips, saved as booleans/weekday numbers through declutter_set_porch_days, which refuses anything else (invalid_porch_days); behind the declutter switch on the sell screen.",
   // jobs-search-inline (owner 2026-10-27): the Posted / Working search that opens in place.
   "src/components/sections/InlineListSearch.tsx": "writes nothing: its one text box filters the tab's own already-loaded list (useActivityFilters' searchQuery, mirrored to ?q= by URLSearchParams) and is never sent to the server; X and Escape clear it (src/test/jobsSearchOpensInPlace.test.tsx)",
   // Q2419 (the Free section, 20261027170717): the free cart's pickup choice.

@@ -173,6 +173,9 @@ vi.mock("@/lib/declutter/api", () => ({
   startCardSave: async () => "https://checkout.stripe.test/setup",
   startCheckoutPayment: async () => ({ url: "https://checkout.stripe.test/pay", paid: false }),
   fetchHasAgreedSales: async () => false,
+  // Q2487: Buying shows the free-ask pause line and your open free asks; none here.
+  fetchMyFreePause: async () => null,
+  fetchMyFreeRequests: async () => [],
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";

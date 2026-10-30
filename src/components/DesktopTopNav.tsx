@@ -7,6 +7,7 @@ import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
 import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
+import { HelpEntry } from "@/components/help/HelpEntry";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -72,6 +73,8 @@ const DesktopTopNav = () => {
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           {/* Q2440: shown only while the member is online for deliveries. */}
           <DeliveryOnlinePill placement="header" />
+          {/* UX-6: the one Help entry, left of the bell. */}
+          <HelpEntry />
           <NotificationPanel />
           {/* Board 11: bell, then the member's photo (opens You). */}
           <button

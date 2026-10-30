@@ -28,7 +28,7 @@ vi.mock("@/hooks/useOnboardingFee", async (orig) => ({ ...(await orig<object>())
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: h.geocode }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.geocode }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/photos", async (orig) => ({
   ...(await orig<object>()),
@@ -73,7 +73,7 @@ beforeEach(() => {
   h.invoke.mockReset();
   h.draft.mockReset();
   h.geocode.mockReset();
-  h.geocode.mockImplementation(async () => ({ latitude: 30.45, longitude: -91.15 }));
+  h.geocode.mockImplementation(async () => ({ status: "exact", lat: 30.45, lng: -91.15 }));
   h.invoke.mockImplementation(async () => ({ items: [drafted([0], 40)], leftover: [] }));
 });
 afterEach(cleanup);
@@ -113,7 +113,7 @@ describe("the suggested price is used", () => {
     cleanup();
 
     h.invoke.mockClear();
-    h.geocode.mockRejectedValue(new Error("no geocoder"));
+    h.geocode.mockResolvedValue({ status: "unavailable" });
     await pickPhoto();
     fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
     addPhoto();

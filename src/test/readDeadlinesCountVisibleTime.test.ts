@@ -38,6 +38,8 @@ const REPO = resolve(__dirname, "../..");
  */
 // @two-way src/test/readDeadlinesCountVisibleTime.test.ts:stale allowlist entry
 const ALLOWED: Record<string, string> = {
+  // The pause between OpenStreetMap searches: its usage policy allows one request a second. Ends no read.
+  "src/lib/addressLookup.ts": "a pause between two requests, not a deadline on a read",
   // Log in: the person just tapped the button and is looking at the spinner.
   "src/lib/loginTransport.ts": "foreground sign-in the person is watching",
   // Finish your profile / sign-up uploads: a tapped submit with a 60 s cap.

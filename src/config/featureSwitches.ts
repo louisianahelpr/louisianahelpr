@@ -153,6 +153,11 @@ export const FEATURE_SWITCH_KEYS = [
   // 20261027185147 (owner 2026-10-25: "they should be done always for
   // everyone"), after the edge functions' deploy was verified.
   "card_hold_at_post",
+  // Declutter shipping (owner 2026-10-20 and 2026-10-29, Q2259; lead 2026-10-30): live postage quotes
+  // (ship-rates), then "Ship it" at checkout, labels and tracking. Created 'testers' by 20261030012052; ship-rates
+  // calls requireFeature and the shipping_quotes trigger reads feature_enabled_for_user per buyer. No screen until
+  // the S3 checkout: SERVER_ONLY below, moved out of it with the first useFeature("declutter_shipping").
+  "declutter_shipping",
 ] as const;
 
 /**
@@ -165,7 +170,7 @@ export const FEATURE_SWITCH_KEYS = [
  * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
  * ...); every other key is read by useFeature.
  */
-export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"];
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links", "declutter_shipping"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

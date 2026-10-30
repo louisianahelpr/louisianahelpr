@@ -212,6 +212,18 @@ published position, and the only published guidance on this point.
   never fire. If a carrier strictly requires a phone, the field carries Helpr's support number, never a member's.
   A guard on the EasyPost request builder (s2-rates) fails if either address object carries `email`, or a `phone`
   other than the support number.
+- **S2 rates as built (B54, 2026-10-30, wip/b54-s2-rates).** `supabase/functions/_shared/easypostRates.ts` matches
+  carrier AND service: USPS `GroundAdvantage` / `GroundAdvantageCubic`, USPS `Priority` / `PriorityMailCubic`, UPS
+  `Ground`; any name matching air, express, overnight, next/2nd/3 day, saver or early is dropped even if mapped. The
+  buyer gets the cheapest rate of each service, cheapest first, at most 3, the first pre-selected. The UPS and cubic
+  strings are EasyPost-style names NOT yet seen in a live answer: a wrong one only drops that rate (never mis-priced);
+  the first test quote through ship-rates records the real ones here. Parcel presets (quoted at their max weight):
+  Envelope 8 oz 12x9x1, Small box 16 oz 9x6x3, Medium box 48 oz 12x9x6, Large box 160 oz 18x14x8; a bundle is one
+  parcel = summed preset weights + 8 oz of box, in the smallest box that holds it (else 20 lb 22x14x10; over 20 lb no
+  quote). The seller's origin is the last Louisiana ZIP in their one-line pickup address (only the ZIP and state go to
+  EasyPost from the seller side until S5 asks for a structured return address); the buyer's address must be a
+  Louisiana street address. Whether EasyPost rates a shipment whose from_address is ZIP + state only is NOT verified
+  (no call has been made); the first test quote settles it.
 - **USPS Connect Local: not available through EasyPost (as far as published).** USPS: "Use the Click-N-Ship
   application to easily print shipping labels"; drop off "at the Postal Service facility in the delivery ZIP Code
   area by critical entry time"; same-day "expected but not guaranteed and may not be available at all locations"

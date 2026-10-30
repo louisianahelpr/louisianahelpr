@@ -35,7 +35,7 @@ import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, rewrittenPrice, splitItem, unusablePhotosNote,
+  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, unusablePhotosNote,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -208,6 +208,26 @@ export default function BunchFlow() {
     }
   }
 
+  /** A change to the grouping. A draft it leaves with no item comes off the server, or it would stay under Selling. */
+  function regroup(change: (its: BunchItem[]) => BunchItem[]) {
+    const next = change(items);
+    setItems(next);
+    for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item);
+  }
+
+  async function takeDownDraft(id: string, item: BunchItem) {
+    const name = item.title.trim() || "that item";
+    try {
+      const done = await removeBunchDraft(id);
+      if (done === "already_listed") setSortNote(`"${name}" was already listed, so it's still up. You can take it down under Selling.`);
+    } catch (err) {
+      // Not silent: the draft is still under Selling, and the seller is told, with the reason, where to take it down.
+      setSortNote(`We couldn't remove the draft of "${name}": ${declutterErrorMessage(err)} You can take it down under Selling.`);
+    } finally {
+      void qc.invalidateQueries({ queryKey: ["declutter"] });
+    }
+  }
+
   async function onRewrite(key: string) {
     const it = items.find((x) => x.key === key);
     if (!it) return;
@@ -333,6 +353,8 @@ export default function BunchFlow() {
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
           </p>
+          {/* Nothing on a card can change while a run works on it: a draft dropped mid-run would be listed or lost. */}
+          <fieldset disabled={!!listing || listingDrafts} className="contents">
           <ul className="space-y-3">
             {items.map((it, i) => (
               <BunchCard
@@ -344,14 +366,15 @@ export default function BunchFlow() {
                 at={coords}
                 rewriting={rewriting === it.key}
                 onChange={(patch) => setItems((its) => editBunchItem(its, it.key, patch))}
-                onMove={(keys, to) => setItems((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its))}
+                onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its))}
                 onSplit={(keys) => setItems((its) => splitItem(its, it.key, keys))}
-                onMerge={(into) => setItems((its) => mergeItems(its, it.key, into))}
-                onDrop={() => setItems((its) => dropItem(its, it.key))}
+                onMerge={(into) => regroup((its) => mergeItems(its, it.key, into))}
+                onDrop={() => regroup((its) => dropItem(its, it.key))}
                 onRewrite={() => void onRewrite(it.key)}
               />
             ))}
           </ul>
+          </fieldset>
         </Section>
       )}
 

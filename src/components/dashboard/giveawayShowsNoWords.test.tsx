@@ -9,6 +9,7 @@
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)} |         <span className="sr-only">You take home </span>${formatPriceFloor(net)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (
  * @mutate src/components/messages/chatView/DealCard.tsx |       {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>} |       <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>
+ * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
  * @mutate src/components/profile/ScheduleTab.tsx |   const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined : |   const amountTitle = isPosted ? "Your budget for this job" :
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -69,10 +70,12 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
     });
   }
 
-  it("the chat's job card and the schedule's title drop their words on the giveaway (source: both need a full conversation or schedule to mount)", () => {
+  it("the chat's job card, the tip screen and the schedule's title drop their words on the giveaway (source: both need a full conversation or schedule to mount)", () => {
     const root = resolve(__dirname, "../../..");
     const deal = blankComments(readFileSync(resolve(root, "src/components/messages/chatView/DealCard.tsx"), "utf8"));
     expect(deal).toContain('{!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}');
+    const tip = blankComments(readFileSync(resolve(root, "src/pages/tips/TipMoment.tsx"), "utf8"));
+    expect(tip).toContain('isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home"');
     const schedule = blankComments(readFileSync(resolve(root, "src/components/profile/ScheduleTab.tsx"), "utf8"));
     expect(schedule).toContain('const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined :');
   });

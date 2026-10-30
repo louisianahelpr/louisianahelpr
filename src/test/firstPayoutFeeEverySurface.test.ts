@@ -100,7 +100,9 @@ describe("every payout surface takes the first-payout fee off (Q753)", () => {
   it("the forecast applies the fee once at render", () => {
     const src = blankNonCode(readFileSync(resolve(ROOT, "src/components/profile/EarningsForecastCard.tsx"), "utf8"));
     // Q1272 (6): once, at render, and only on the part still to be paid out.
-    expect(src).toMatch(/netAfterFirstPayoutFee\(projectedUnsettled,\s*projectedUnsettled > 0 \? firstPayoutFee : 0\)/);
+    // Owner 2026-10-30: never when all of it is the giveaway, whose payout does not lose it.
+    expect(src).toMatch(/const feeHere = data\.feeCanComeOff \? firstPayoutFee : 0;/);
+    expect(src).toMatch(/netAfterFirstPayoutFee\(projectedUnsettled,\s*projectedUnsettled > 0 \? feeHere : 0\)/);
   });
 
   it("the apply sheet and the shared sums use the one shared function", () => {

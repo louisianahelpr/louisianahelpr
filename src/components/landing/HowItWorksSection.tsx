@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
+import { GuaranteePromise } from "@/components/guarantee/GuaranteePromise";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -178,6 +179,9 @@ const HowItWorksSection = () => {
             </div>
           ))}
         </div>
+
+        {/* "First job, easy yes" (B59): the Helpr Guarantee for people hiring, from one shared constant. */}
+        {side === "hire" && <GuaranteePromise className="w-full max-w-xl self-center sm:self-start text-left" />}
 
         {side === "hire" && (
           <Link

@@ -14,6 +14,11 @@
  * @mutate api/share.ts |   if (route.kind === "book") { |   if (false) {
  * @mutate vercel.json |       "destination": "/api/share?_og=book&_id=:userId" |       "destination": "/api/share?_og=user&_id=:userId"
  * @mutate src/pages/post-job/useJobFormEffects.ts |     void recordBookingSourceFor(offerTo); |
+ * @mutate src/pages/post-job/CheckoutStepView.tsx |       <FirstPostGuarantee oneHelpr={!form.isGroupJob} /> |
+ * @mutate src/components/guarantee/FirstPostGuarantee.tsx |   if (!oneHelpr \|\| postedBefore !== false) return null; |   if (!oneHelpr) return null;
+ * @mutate src/components/landing/HowItWorksSection.tsx |         {side === "hire" && <GuaranteePromise className="w-full max-w-xl self-center sm:self-start text-left" />} |
+ * @mutate src/pages/user/UserProfile.tsx |               {userId && <BookMeShareButton userId={userId} displayName={displayName} />} |
+ * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |           ? [{ key: "book-me", |           ? [{ key: "referral",
  * @mutate src/lib/guarantee/promiseCopy.ts |   "If it still isn't right, Louisiana Helpr steps in."; |   "If it still isn't right, you get your money back.";
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,6 +57,23 @@ describe("the link and the way in", () => {
     const effects = blankComments(read("src/pages/post-job/useJobFormEffects.ts"));
     const at = effects.indexOf("void recordBookingSourceFor(offerTo);");
     expect(at).toBeGreaterThan(effects.indexOf('const offerTo = searchParams.get("offerTo");'));
+  });
+});
+
+describe("where the link and the guarantee show", () => {
+  it("own profile has the share button and the profile menu has a Book me row to your /book page", () => {
+    const profile = blankComments(read("src/pages/user/UserProfile.tsx"));
+    expect(profile).toContain("<BookMeShareButton userId={userId} displayName={displayName} />");
+    const menu = blankComments(read("src/components/profile/profileLanding/useProfileLandingDerived.tsx"));
+    expect(menu).toMatch(/key: "book-me", label: "Book me on Helpr"[^}]*href: `\/book\/\$\{profile\.user_id\}`/);
+  });
+
+  it("the guarantee shows at Review on a first one-Helpr post, on /book and on the landing's hire steps", () => {
+    expect(blankComments(read("src/pages/post-job/CheckoutStepView.tsx"))).toContain("<FirstPostGuarantee oneHelpr={!form.isGroupJob} />");
+    const first = blankComments(read("src/components/guarantee/FirstPostGuarantee.tsx"));
+    expect(first).toContain("if (!oneHelpr || postedBefore !== false) return null;");
+    expect(blankComments(read("src/pages/book/BookHelprPage.tsx"))).toContain("<GuaranteePromise />");
+    expect(blankComments(read("src/components/landing/HowItWorksSection.tsx"))).toContain('{side === "hire" && <GuaranteePromise');
   });
 });
 

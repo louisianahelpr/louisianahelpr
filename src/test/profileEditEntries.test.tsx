@@ -46,7 +46,8 @@ describe("Edit profile is one tap from your own profile surfaces (A3-C6, A3-C7)"
     const actions = src.slice(start, src.indexOf("<OwnProfileEditButton />", start) + "<OwnProfileEditButton />".length);
     expect(actions.length).toBeGreaterThan(200);
     // The own-profile branch renders the extracted Edit button (OwnProfileEditButton.tsx, batch 2 train e8920b8ca6).
-    expect(actions).toMatch(/\) : isOwnProfile \? \(\s*<OwnProfileEditButton \/>$/);
+    // B59 (2026-10-29): the Book me share button sits just before Edit, in one row.
+    expect(actions).toMatch(/\) : isOwnProfile \? \(\s*<div className="flex items-center gap-1">\s*\{userId && <BookMeShareButton userId=\{userId\} displayName=\{displayName\} \/>\}\s*<OwnProfileEditButton \/>$/);
     expect(src).toContain('const OWN_PROFILE_TITLE = "How others see you";');
     expect(src).toMatch(/const headerTitle = isOwnProfile \? OWN_PROFILE_TITLE : "Profile";/);
   });

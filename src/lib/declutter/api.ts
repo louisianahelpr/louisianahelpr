@@ -233,6 +233,12 @@ export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
   return (rows ?? []) as DeclutterItem[];
 }
 
+/** These items' statuses now (RLS: the seller's own). An id with no row is gone: taken down, or never there. */
+export async function fetchItemStatuses(itemIds: string[]): Promise<Map<string, string>> {
+  const rows = unwrap(await supabase.from("declutter_items").select("id, status").in("id", itemIds));
+  return new Map((rows ?? []).map((r) => [r.id, r.status]));
+}
+
 /** One of the seller's sales: what the item sold for and its order (deep audit #60 reads the order's payout). */
 export interface MySale {
   cents: number;

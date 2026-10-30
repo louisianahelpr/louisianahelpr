@@ -23,7 +23,7 @@
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { addPhoto, createDraft, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhoto, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -245,6 +245,26 @@ export function dropItem(items: BunchItem[], itemKey: string): BunchItem[] {
 }
 
 /**
+ * Drafts a change to the grouping left with no item: the seller dropped it ("Don't sell this"), merged it away, or moved
+ * its last photo off. Nothing on this list can finish them any more, so they must not stay under Selling.
+ */
+export function draftsLeftBehind(before: BunchItem[], after: BunchItem[]): { id: string; item: BunchItem }[] {
+  const kept = new Set(after.flatMap((it) => (it.draftId ? [it.draftId] : [])));
+  return before.flatMap((it) => (it.draftId && !kept.has(it.draftId) ? [{ id: it.draftId, item: it }] : []));
+}
+
+/**
+ * Take a left-behind draft off the server. Only a draft: an item a cut-off run already listed stays up, and the answer
+ * says so (taking it down is the seller's choice, under Selling, where its offers are shown).
+ */
+export async function removeBunchDraft(id: string, deps: Pick<ListDeps, "itemStatuses" | "withdrawItem"> = realDeps): Promise<"removed" | "already_listed"> {
+  const status = (await deps.itemStatuses([id])).get(id);
+  if (status && status !== "draft") return "already_listed";
+  if (status === "draft") await deps.withdrawItem(id);
+  return "removed";
+}
+
+/**
  * The seller's edit. Changing the name or details clears the flag, which was about the old words. Only the mark
  * goes: the photo check at listing still runs, and the server holds anything that check flags for an admin.
  */
@@ -304,13 +324,16 @@ export interface ListDeps {
   updateDraft: typeof updateDraft;
   addPhoto: typeof addPhoto;
   removePhoto: typeof removePhoto;
+  /** Each id's status now; an id with no row is gone. */
+  itemStatuses: typeof fetchItemStatuses;
+  withdrawItem: typeof withdrawItem;
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, removePhoto, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {

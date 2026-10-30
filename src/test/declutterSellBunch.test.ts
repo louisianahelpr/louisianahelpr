@@ -30,6 +30,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ListingPhotoError } from "@/lib/declutter/errors";
 import {
   bunchItemProblem, dropItem, editBunchItem, groupPhotos, itemsFromAnswer, listBunch, mergeItems, movePhoto, photosInItems, splitItem, unusablePhotosNote,
+  blankItem, draftsLeftBehind, removeBunchDraft,
   type BunchItem, type BunchPhoto, type GroupAnswer, type ListDeps,
 } from "@/lib/declutter/bunch";
 
@@ -198,6 +199,8 @@ describe("listBunch", () => {
       }),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async (_s, id) => {
         if (id === "id2") throw new Error("photo_not_uploaded");
         return "ph";
@@ -240,6 +243,8 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
@@ -267,8 +272,12 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       removePhoto,
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
@@ -303,6 +312,8 @@ describe("listBunch", () => {
       createDraft: vi.fn(async () => "d9"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => { throw new Error("photo_not_uploaded"); }),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
@@ -313,5 +324,37 @@ describe("listBunch", () => {
     await listBunch("seller", [item("x", ["a"])], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
     expect(steps).toEqual([["x", { draftId: "d9" }]]);
     expect(deps.updateDraft).not.toHaveBeenCalled();
+  });
+});
+
+// "Don't sell this" on an item with a draft (B19's gap, lead 10-30): the draft stayed under Selling.
+// @mutate src/lib/declutter/bunch.ts |   return before.flatMap((it) => (it.draftId && !kept.has(it.draftId) ? [{ id: it.draftId, item: it }] : [])); |   return [];
+// @mutate src/lib/declutter/bunch.ts |   if (status && status !== "draft") return "already_listed"; |   void status;
+// @mutate src/lib/declutter/bunch.ts |   if (status === "draft") await deps.withdrawItem(id); |   void deps;
+describe("a draft the grouping leaves behind", () => {
+  const it2 = (key: string, draftId?: string): BunchItem => ({ ...blankItem([`${key}-p`]), key, draftId });
+
+  it("names a dropped item's draft, a merged-away item's and one that lost its last photo; never one still held", () => {
+    const a = it2("a", "d-a");
+    const b = it2("b", "d-b");
+    const c = it2("c");
+    expect(draftsLeftBehind([a, b, c], dropItem([a, b, c], "a")).map((d) => d.id)).toEqual(["d-a"]);
+    expect(draftsLeftBehind([a, b, c], mergeItems([a, b, c], "b", "a")).map((d) => d.id)).toEqual(["d-b"]);
+    expect(draftsLeftBehind([a, b, c], movePhoto([a, b, c], "a-p", "c")).map((d) => d.id)).toEqual(["d-a"]);
+    expect(draftsLeftBehind([a, b, c], dropItem([a, b, c], "c"))).toEqual([]);
+    expect(draftsLeftBehind([a, b], movePhoto([{ ...a, photoKeys: ["a-p", "x"] }, b], "a-p", "b"))).toEqual([]);
+  });
+
+  it("withdraws a draft, leaves a listing that is already up, and asks nothing of one that is gone", async () => {
+    const deps = (status?: string) => ({ itemStatuses: vi.fn(async () => new Map(status ? [["d1", status]] : [])), withdrawItem: vi.fn(async () => {}) });
+    const draft = deps("draft");
+    expect(await removeBunchDraft("d1", draft)).toBe("removed");
+    expect(draft.withdrawItem).toHaveBeenCalledWith("d1");
+    const live = deps("live");
+    expect(await removeBunchDraft("d1", live)).toBe("already_listed");
+    expect(live.withdrawItem).not.toHaveBeenCalled();
+    const gone = deps();
+    expect(await removeBunchDraft("d1", gone)).toBe("removed");
+    expect(gone.withdrawItem).not.toHaveBeenCalled();
   });
 });

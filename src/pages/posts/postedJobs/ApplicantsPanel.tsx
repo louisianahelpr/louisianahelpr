@@ -6,7 +6,7 @@ import { formatName } from "@/lib/utils";
 import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
-import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
+import { CompareBar, CompareChip, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
@@ -383,11 +383,11 @@ export function ApplicantsPanel({
 
                         {/* Row 1, AT THE TOP (owner, 2026-10-08: "move picture and
                             name up into the top left"): avatar + name on the left,
-                            and on the right the Private note · Report · Block
-                            icons (Q366: on every card) over Hire / decline.
-                            Below `sm` a pending card wraps and its right column dissolves
-                            (`contents`), so the Hire row drops under the name: ApplicantHireRow. */}
-                        <div className={app.status === "pending" ? "flex flex-wrap sm:flex-nowrap items-start gap-3" : "flex items-start gap-3"}>
+                            and on the right the Compare · Private note · Report · Block icons (Q366: on every card) over Hire / decline.
+                            The row wraps: the details block (basis-full, order-1) takes the full width under the
+                            name row (owner 2026-10-29, option B). Below `sm` a pending card's right column also
+                            dissolves (`contents`), so the Hire row (order-2) drops under the details: ApplicantHireRow. */}
+                        <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
                           <ApplicantAvatarLink helperId={app.helper_id} avatarUrl={app.profiles?.avatar_url} helperName={helperName} initials={helperInitials} haloColor={haloColor} />
 
                           <div className="flex-1 min-w-0">
@@ -448,105 +448,14 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </div>
-                            {/* Trust signals row */}
-                            {visibleSignals.length > 0 && (
-                              <p
-                                className="font-sans mt-0.5 leading-snug text-ds-12"
-                                style={{ color: "hsl(var(--olivewood) / 0.80)" }}
-                              >
-                                {visibleSignals.map((s, i) => (
-                                  <Fragment key={i}>
-                                    {i > 0 && " · "}
-                                    {renderTrustSignal(s)}
-                                  </Fragment>
-                                ))}
-                              </p>
-                            )}
-                            <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
-                            {/* The bid pill and inline counter-offer form used
-                                to sit here, on accept_bids jobs only. Bidding
-                                was removed — zero production usage — so an
-                                applicant now carries no price of their own. */}
-                            {/* Neighborhood trust signal — shown standalone
-                                when > 0 neighbors hired this helper near
-                                the job address (from get_neighbor_hire_count RPC).
-                                Uses bark color so it reads as a warm local signal
-                                distinct from the neutral olivewood signals above. */}
-                            {/* Proximity, as the BAND the server chose — never
-                                a distance. Several exact distances trilaterate
-                                to a home address, and the poster owning the
-                                jobs is what makes that reachable, so the number
-                                never leaves the database (migration
-                                20260907051731). Absent when the applicant has
-                                no precise location on file, which means
-                                "unknown", NOT "far away" — so nothing is
-                                rendered rather than a misleading placeholder. */}
-                            {/* The verification chip (the payout fact and the Stripe
-                                ID; shown BEFORE Hire: a safety signal, and the
-                                Helpr's setup step) sits LEFT of the distance on
-                                one wrapping line (owner, 2026-10-08: "so the box
-                                isn't so big"); it had a row of its own. */}
-                            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                              {distanceBand && (
-                                <span
-                                  className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold"
-                                  style={{ color: "hsl(var(--olivewood))" }}
-                                >
-                                  <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
-                                  {distanceBand.label}
-                                </span>
-                              )}
-                            </span>
-                            {/* Owner 2026-10-27: no ID / payout badges and no proof line on applicant cards ("it doesn't make any sense"). */}
-                            {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
-                            <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
-                            {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}
-                            {neighborCount > 0 && (
-                              <span
-                                className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                style={{ color: "hsl(var(--bark))" }}
-                              >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{ background: "hsl(var(--bark))" }}
-                                  aria-hidden="true"
-                                />
-                                {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
-                              </span>
-                            )}
-                            <ApplicantAvailableNow until={app.profiles?.available_until} />
-                            {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").
-                                `flagged_hidden` is set server-side by
-                                applications_scan_contact_info when the note carries
-                                a phone number, email, off-platform payment service
-                                or an intent phrase. Setting the flag without
-                                honouring it here would leave the leak on screen and
-                                only LOOK fixed — the note reached this exact
-                                component verbatim in the 2026-09-06 review. */}
-                            {(app.message || app.flagged_hidden) && (
-                              app.flagged_hidden ? (
-                                <p
-                                  className="font-sans text-ds-13 leading-snug mt-1"
-                                  style={{ color: "hsl(var(--burnt-sienna))" }}
-                                >
-                                  This note was hidden — it looked like contact or payment details.
-                                  Keep the conversation on Helpr so your payment stays protected.
-                                </p>
-                              ) : (
-                                <p
-                                  className="font-sans text-ds-13 leading-snug line-clamp-2 mt-1"
-                                  style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
-                                >
-                                  "{app.message}"
-                                </p>
-                              )
-                            )}
                           </div>
 
                           <div className={app.status === "pending"
                             ? "contents sm:flex sm:flex-col sm:items-end sm:gap-1 sm:shrink-0 sm:-mt-1 sm:-mr-1"
                             : "flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1"}>
-                          <div className={app.status === "pending" ? "flex gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
+                          <div className={app.status === "pending" ? "flex items-center gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
+                          {/* Compare sits up here, left of the note icon, not on a row of its own (owner 2026-10-29). */}
+                          {app.status === "pending" && applications.length > 1 && <CompareChip id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
                           <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
                             ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
                             onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
@@ -564,12 +473,109 @@ export function ApplicantsPanel({
                               onDecline={() => { setDeclineTarget(app); setDeclineNote(""); setDeclineReason(null); }}
                             />
                           )}
-                          {app.status === "pending" && applications.length > 1 && <CompareCheck id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
                           {/* A hired (accepted) applicant has no Hire row: Message stands on its own (owner, 2026-10-11). */}
                           {app.status !== "pending" && canMessageApplicant(app.status) && (
                             <MessageApplicantButton jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName} className="mr-1" />
                           )}
                           <ApplicantStatusBadge app={app} />
+                          </div>
+                          {/* The details under the name row span the card's full width (owner, 2026-10-29, option B:
+                              they were squeezed into the column beside the icons). `order-1` puts them above a
+                              pending phone card's Hire row (`order-2`), which also sits in this wrapping row. */}
+                          <div className="basis-full min-w-0 order-1" data-applicant-details="">
+                              {/* Trust signals row */}
+                              {visibleSignals.length > 0 && (
+                                <p
+                                  className="font-sans mt-0.5 leading-snug text-ds-12"
+                                  style={{ color: "hsl(var(--olivewood) / 0.80)" }}
+                                >
+                                  {visibleSignals.map((s, i) => (
+                                    <Fragment key={i}>
+                                      {i > 0 && " · "}
+                                      {renderTrustSignal(s)}
+                                    </Fragment>
+                                  ))}
+                                </p>
+                              )}
+                              <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
+                              {/* The bid pill and inline counter-offer form used
+                                  to sit here, on accept_bids jobs only. Bidding
+                                  was removed — zero production usage — so an
+                                  applicant now carries no price of their own. */}
+                              {/* Neighborhood trust signal — shown standalone
+                                  when > 0 neighbors hired this helper near
+                                  the job address (from get_neighbor_hire_count RPC).
+                                  Uses bark color so it reads as a warm local signal
+                                  distinct from the neutral olivewood signals above. */}
+                              {/* Proximity, as the BAND the server chose — never
+                                  a distance. Several exact distances trilaterate
+                                  to a home address, and the poster owning the
+                                  jobs is what makes that reachable, so the number
+                                  never leaves the database (migration
+                                  20260907051731). Absent when the applicant has
+                                  no precise location on file, which means
+                                  "unknown", NOT "far away" — so nothing is
+                                  rendered rather than a misleading placeholder. */}
+                              {/* The verification chip (the payout fact and the Stripe
+                                  ID; shown BEFORE Hire: a safety signal, and the
+                                  Helpr's setup step) sits LEFT of the distance on
+                                  one wrapping line (owner, 2026-10-08: "so the box
+                                  isn't so big"); it had a row of its own. */}
+                              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                                {distanceBand && (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold"
+                                    style={{ color: "hsl(var(--olivewood))" }}
+                                  >
+                                    <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                    {distanceBand.label}
+                                  </span>
+                                )}
+                              </span>
+                              {/* Owner 2026-10-27: no ID / payout badges and no proof line on applicant cards ("it doesn't make any sense"). */}
+                              {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
+                              <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
+                              {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}
+                              {neighborCount > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
+                                  style={{ color: "hsl(var(--bark))" }}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ background: "hsl(var(--bark))" }}
+                                    aria-hidden="true"
+                                  />
+                                  {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
+                                </span>
+                              )}
+                              <ApplicantAvailableNow until={app.profiles?.available_until} />
+                              {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").
+                                  `flagged_hidden` is set server-side by
+                                  applications_scan_contact_info when the note carries
+                                  a phone number, email, off-platform payment service
+                                  or an intent phrase. Setting the flag without
+                                  honouring it here would leave the leak on screen and
+                                  only LOOK fixed — the note reached this exact
+                                  component verbatim in the 2026-09-06 review. */}
+                              {(app.message || app.flagged_hidden) && (
+                                app.flagged_hidden ? (
+                                  <p
+                                    className="font-sans text-ds-13 leading-snug mt-1"
+                                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                                  >
+                                    This note was hidden — it looked like contact or payment details.
+                                    Keep the conversation on Helpr so your payment stays protected.
+                                  </p>
+                                ) : (
+                                  <p
+                                    className="font-sans text-ds-13 leading-snug line-clamp-2 mt-1"
+                                    style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+                                  >
+                                    "{app.message}"
+                                  </p>
+                                )
+                              )}
                           </div>
                         </div>
 

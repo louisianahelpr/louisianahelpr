@@ -29,7 +29,7 @@ export function ApplicantHireRow({
   onDecline: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1">
+    <div className="flex items-center gap-1.5 shrink-0 basis-full sm:basis-auto sm:mr-1 order-2">
       {/* A pending applicant is always messageable (MESSAGEABLE_APPLICATION_STATUSES); poster-first, see MessageApplicantButton. */}
       <MessageApplicantButton jobId={jobId} helperId={helperId} helperName={helperName} className="flex-1 sm:flex-none" />
       <Button
@@ -47,21 +47,20 @@ export function ApplicantHireRow({
       >
         Hire
       </Button>
-      <button
+      {/* Round like every button (owner 2026-10-29: the grey square x next to Hire): the shared outline Button,
+          Hire's own height (sm, 44px), a circle because it is as wide as it is tall. */}
+      <Button
         type="button"
+        variant="outline" size="sm"
+        className="w-11 shrink-0 px-0"
         aria-label={`Decline ${helperName}`}
         onClick={() => {
           hapticLight();
           onDecline();
         }}
-        className="w-8 h-8 rounded-ds-sm flex items-center justify-center active:opacity-60 transition-opacity"
-        style={{
-          background: "hsl(var(--olivewood) / 0.08)",
-          border: "0.5px solid hsl(var(--olivewood) / 0.2)",
-        }}
       >
-        <X className="w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-      </button>
+        <X style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden="true" />
+      </Button>
     </div>
   );
 }

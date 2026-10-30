@@ -441,6 +441,7 @@
     "rentals_my_listing_photos(uuid)": "client",
     "rentals_listing_photo_access(text, text)": "policy",
     "rentals_listing_photo_deletable(text)": "policy",
+    "message_attachment_locked(text)": "reviewed 2026-10-30 (Q14): Messages audit M2 (b105); storage-policy helper for the message-attachments sender DELETE policy; EXECUTE for authenticated because storage policies run as the caller; answers only TRUE/FALSE: TRUE when a message naming this path is reported, its job's chat has closed, or its job has a dispute. Reads nothing back.",
     "shops_set_my_faqs(jsonb)": "client",
     "shops_shop_faqs(uuid)": "client",
     "shops_shop_policies(uuid)": "client",

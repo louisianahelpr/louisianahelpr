@@ -249,9 +249,8 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
    * (owner: "give them the option to get rid of the map"). Persisted, because a
    * pane that reappears on every route change is one the user has to dismiss
    * repeatedly. Default ON: the split view is the desktop layout, and a map
-   * nobody has been told exists is worse than one they can close. Its own key
-   * since 2026-10-30, so a device that hid it under the old one opens with it
-   * once, like Declutter (src/lib/jobsMapVisible.ts).
+   * nobody has been told exists is worse than one they can close. Own key since
+   * 2026-10-30 (src/lib/jobsMapVisible.ts): a device that hid it once sees it again.
    */
   const [mapVisible, setMapVisible] = useState<boolean>(readJobsMapVisible);
 

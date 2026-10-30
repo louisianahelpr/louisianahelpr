@@ -40,6 +40,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.booking_sources TO service_
 COMMENT ON TABLE public.booking_sources IS
   'Which Helpr''s "Book me" link brought each new poster (B59). Written only by record_booking_source (self, set once), read only by admin_booking_sources.';
 
+-- Q807: writes from an unconfirmed email are refused on every public table (the gate's own statement trigger): booking_sources above.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 CREATE OR REPLACE FUNCTION public.record_booking_source(p_helpr_id uuid)
 RETURNS text
 LANGUAGE plpgsql

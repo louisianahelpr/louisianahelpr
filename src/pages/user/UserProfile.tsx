@@ -33,8 +33,7 @@ import { SellingNowRow } from "@/components/declutter/SellingNowRow";
 import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfileSection";
 import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
-import { OwnProfileEditButton } from "./OwnProfileEditButton";
-import { BookMeShareButton } from "./BookMeShareButton";
+import { OwnProfileActions } from "./BookMeShareButton";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
@@ -483,10 +482,7 @@ const UserProfile = () => {
               </DropdownMenu>
             </>
           ) : isOwnProfile ? (
-            <div className="flex items-center gap-1">
-              {userId && <BookMeShareButton userId={userId} displayName={displayName} />}
-              <OwnProfileEditButton />
-            </div>
+            <OwnProfileActions userId={userId} displayName={displayName} />
           ) : null
         }
       />

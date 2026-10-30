@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminCard, AdminViewShell } from "@/components/admin/AdminViewShell";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { JOB_CATEGORIES, type JobCategory } from "@/lib/jobCategories";
 import { buildMatchmakerLink, matchmakerSummary } from "@/lib/matchmakerLink";
 import { copyToClipboard, shareNative } from "@/lib/nativeShare";
@@ -132,7 +133,12 @@ function BookingSources() {
           <Skeleton className="h-10 w-full" />
         </div>
       ) : q.isError ? (
-        <ErrorState variant="inline" title="We couldn't load this." onRetry={() => void q.refetch()} />
+        <ErrorState
+          variant="inline"
+          title="We couldn't load this."
+          body={rpcErrorMessage("admin_booking_sources", q.error) ?? "Tap Try again."}
+          onRetry={() => void q.refetch()}
+        />
       ) : !q.data?.length ? (
         <EmptyState icon={Users} title="No one yet" body="When a new poster comes through a Helpr’s Book me link, it shows here." />
       ) : (

@@ -514,6 +514,8 @@ export const FORMS: FormSpec[] = [
   },
   { name: "admin-subscriptions", url: "/admin?view=subscriptions", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSubscriptions.tsx"] },
   { name: "admin-notiflogs", url: "/admin?view=notiflogs", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminNotificationLogs.tsx"] },
+  // B59: the matchmaker link builder (town, note). It writes nothing; it builds a /post-job link.
+  { name: "admin-growth", url: "/admin?view=growth", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminGrowthLinks.tsx"] },
 
   // ── The 21 forms docs/OPEN.md (2026-09-22) flagged as never reached ──────
   // (20 here; the 21st, ReuploadIdDialog.tsx, was dead code and was deleted.)

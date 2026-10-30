@@ -12,7 +12,6 @@ import { Link, useParams } from "react-router-dom";
 import { BadgeCheck, MapPin, Share2, Star, UserX } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import UserAvatar from "@/components/UserAvatar";
@@ -145,10 +144,12 @@ export default function BookHelprPage() {
       {!isBookId(userId) ? (
         unavailable
       ) : card.isPending ? (
-        <div className="mx-auto w-full max-w-md space-y-4" role="status" aria-label="Loading">
-          <Skeleton className="h-72 w-full rounded-2xl" />
-          <Skeleton className="h-28 w-full rounded-2xl" />
-        </div>
+        // A status line, not card bones (loadingStateShape): the same link can land on the
+        // card or on "This Helpr isn't available", and bones shaped like one jump into the
+        // other. Measured anon: /book/<test Helpr> resolves to the unavailable state.
+        <p role="status" className="mx-auto w-full max-w-md text-center text-ds-14 text-muted-foreground" data-testid="book-loading">
+          Loading this Helpr…
+        </p>
       ) : card.isError ? (
         <ErrorState variant="inline" title="We couldn't load this Helpr." onRetry={() => void card.refetch()} />
       ) : !card.data ? (

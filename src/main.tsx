@@ -499,6 +499,24 @@ void hydrateStorage();
     window.addEventListener("load", scheduleFallback, { once: true });
   }
 
+  // Once THIS page has loaded, warm the pages a visitor most likely opens next
+  // (guest: browse / login / signup; signed in: the dock tabs + post-job), so
+  // the first tap to them is instant. Skipped on Save-Data / 2G inside
+  // prefetchRoutesWhenIdle. Here, not in entry.ts, to keep the entry small; the
+  // readyState check is because this module can run after `load` has fired.
+  const warmLikelyNextRoutes = () => {
+    void import("@/lib/routePrefetch")
+      .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(tokenProbeAtBoot(), window.location.pathname))
+      .catch(() => {
+        /* speculative: the real navigation loads its own chunk */
+      });
+  };
+  if (document.readyState === "complete") {
+    warmLikelyNextRoutes();
+  } else {
+    window.addEventListener("load", warmLikelyNextRoutes, { once: true });
+  }
+
   // Fire-and-forget native setup (status bar, platform attributes). Web =
   // no-op. The splash hide is NOT in here — it runs above, after first paint.
   initNative();

@@ -1,0 +1,196 @@
+/**
+ * Porch pickup places, the screens (D-NEW14; server proof: src/test/pglite/declutterPorchPlaces.pglite.mjs). The seller
+ * saves a place with its days, the geocoded point going to the server; once there is one, the single porch-day chips
+ * step aside. The buyer picks a place before Pay opens, sees no address before paying, and a seller's paid order says
+ * which place to put the item out at.
+ *
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: !q.isLoading && (places.length === 0 \|\| places.some((p) => p.chosen)) | ready: true
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: g.latitude, lng: g.longitude | lat: 0, lng: 0
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
+ * @mutate src/components/declutter/SellPorchDays.tsx |   if (Array.isArray(places.data) && places.data.length > 0) return null; |
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady} | (sellerDelivering && !sdReady) \|\| !meetupReady}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | disabled={confirm.isPending \|\| offered.length === 0 \|\| !placeReady} | disabled={confirm.isPending \|\| offered.length === 0}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}\n |
+ */
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
+
+const h = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  geocode: vi.fn(),
+}));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
+vi.mock("@/lib/geocode", () => ({ geocodeAddress: h.geocode }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+import { SellPorchPlaces } from "./SellPorchPlaces";
+import { SellPorchDays } from "./SellPorchDays";
+import { OrderPorchPlace, PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
+import { fetchMyPorchPlaces } from "@/lib/declutter/porchPlaces";
+
+const HOME = { id: "p1", position: 0, label: "Home", address: "12 Home Street, Lafayette", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6, 0] };
+const place = (n: number) => ({ ...HOME, id: `p${n}`, position: n, label: `Place ${n}` });
+const SRC = (f: string) => blankComments(readFileSync(join(process.cwd(), "src/components/declutter", f), "utf8"));
+
+function wrap(ui: React.ReactNode) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+}
+/** `answers`: the RPC name -> its rows. */
+function answers(map: Record<string, unknown>) {
+  h.rpc.mockImplementation(async (name: string) => (name in map ? { data: map[name], error: null } : { data: null, error: { message: `unexpected ${name}` } }));
+}
+
+function Checkout({ sellerId = "s1" }: { sellerId?: string }) {
+  const p = useSellerPorchPlaces(sellerId, 1000);
+  return (<>
+    <PorchPlacePicker sellerId={sellerId} cartKey={1000} places={p.places} loadError={p.query.error} onRetry={() => void p.query.refetch()} />
+    <button type="button" disabled={!p.ready}>Pay</button>
+  </>);
+}
+
+beforeEach(() => {
+  h.rpc.mockReset();
+  h.geocode.mockReset();
+});
+
+describe("the seller's pickup places", () => {
+  it("adds a place: the geocoded point and the days go to the server", async () => {
+    answers({ declutter_my_porch_places: [], declutter_save_porch_place: "new-id" });
+    h.geocode.mockResolvedValue({ latitude: 29.95, longitude: -90.07 });
+    wrap(<SellPorchPlaces />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
+    const save = screen.getByRole("button", { name: "Save place" });
+    expect(save).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: " Camp " } });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
+    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "New Orleans" } });
+    fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
+    fireEvent.click(save);
+    await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_save_porch_place", expect.objectContaining({
+      p_place_id: null, p_label: "Camp", p_address: "99 Camp Road, New Orleans", p_area: "New Orleans", p_lat: 29.95, p_lng: -90.07, p_weekdays: [6],
+    })));
+  });
+
+  it("an address the map can't find saves nothing", async () => {
+    answers({ declutter_my_porch_places: [] });
+    h.geocode.mockResolvedValue(null);
+    wrap(<SellPorchPlaces />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "nowhere at all" } });
+    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "New Orleans" } });
+    fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save place" }));
+    await waitFor(() => expect(h.geocode).toHaveBeenCalled());
+    expect(h.rpc).not.toHaveBeenCalledWith("declutter_save_porch_place", expect.anything());
+  });
+
+  it("five places: no more can be added", async () => {
+    answers({ declutter_my_porch_places: [0, 1, 2, 3, 4].map(place) });
+    wrap(<SellPorchPlaces />);
+    expect(await screen.findByText("Place 4")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add a pickup place" })).toBeNull();
+    expect(await fetchMyPorchPlaces()).toHaveLength(5); // inventory floor: the fixture really holds the cap
+  });
+
+  it("removing asks first, then deletes that place", async () => {
+    answers({ declutter_my_porch_places: [HOME], declutter_delete_porch_place: "p1" });
+    wrap(<SellPorchPlaces />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove Home" }));
+    expect(h.rpc).not.toHaveBeenCalledWith("declutter_delete_porch_place", expect.anything());
+    fireEvent.click(await screen.findByRole("button", { name: "Remove place" }));
+    await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_delete_porch_place", { p_place_id: "p1" }));
+  });
+
+  it("a failed read says so; a server without the feature shows nothing", async () => {
+    h.rpc.mockResolvedValue({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_my_porch_places" } });
+    const { container } = wrap(<SellPorchPlaces />);
+    await waitFor(() => expect(h.rpc).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector("[data-porch-places]")).toBeNull();
+  });
+
+  it("the single porch-day chips step aside once a place is saved", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container, unmount } = wrap(<SellPorchDays pickupDays={[2]} />);
+    await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_my_porch_places"));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(container.querySelector("[data-porch-days]")).toBeNull();
+    unmount();
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [] });
+    const second = wrap(<SellPorchDays pickupDays={[2]} />);
+    await waitFor(() => expect(second.container.querySelector("[data-porch-days]")).not.toBeNull());
+  });
+});
+
+describe("the buyer's pick", () => {
+  const OPTIONS = [
+    { id: "p1", label: "Home", area: "Lafayette", weekdays: [6], chosen: false },
+    { id: "p2", label: "Camp", area: "New Orleans", weekdays: [0], chosen: false },
+  ];
+
+  it("Pay waits for a pick; the pick goes to the server; no address before paying", async () => {
+    answers({ declutter_seller_porch_places: OPTIONS, declutter_set_porch_place: "p2" });
+    const { container } = wrap(<Checkout />);
+    fireEvent.click(await screen.findByRole("radio", { name: /Camp/ }));
+    expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
+    await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_set_porch_place", { p_seller_id: "s1", p_place_id: "p2" }));
+    expect(container.textContent).not.toMatch(/Street|Road/);
+    answers({ declutter_seller_porch_places: OPTIONS.map((o) => ({ ...o, chosen: o.id === "p2" })) });
+  });
+
+  it("a chosen place opens Pay", async () => {
+    answers({ declutter_seller_porch_places: OPTIONS.map((o) => ({ ...o, chosen: o.id === "p1" })) });
+    wrap(<Checkout />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled());
+  });
+
+  it("a seller with no places: no picker and Pay is open", async () => {
+    answers({ declutter_seller_porch_places: [] });
+    const { container } = wrap(<Checkout />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled());
+    expect(container.querySelector("[data-porch-place-picker]")).toBeNull();
+  });
+
+  it("paid checkout and the free claim both wait on the pick", () => {
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady\}/);
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/address\.trim\(\)\.length < 5 \|\| !placeReady/);
+    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/offered\.length === 0 \|\| !placeReady\}/);
+  });
+});
+
+describe("the paid order", () => {
+  const FROZEN = { label: "Camp", area: "New Orleans", address: "99 Camp Road, New Orleans", lat: 29.95, lng: -90.07, weekdays: [0] };
+
+  it("tells the seller where to put it out", async () => {
+    answers({ declutter_order_place: [FROZEN] });
+    wrap(<OrderPorchPlace orderId="o1" side="seller" />);
+    expect((await screen.findByText("Camp")).parentElement?.textContent).toContain("99 Camp Road");
+  });
+
+  it("names the place for the buyer, whose address line is PickupAddresses", async () => {
+    answers({ declutter_order_place: [FROZEN] });
+    const { container } = wrap(<OrderPorchPlace orderId="o1" side="buyer" />);
+    await screen.findByText("Camp");
+    expect(container.textContent).not.toContain("99 Camp Road");
+  });
+
+  it("an order with no place shows nothing", async () => {
+    answers({ declutter_order_place: [] });
+    const { container } = wrap(<OrderPorchPlace orderId="o1" side="seller" />);
+    await waitFor(() => expect(h.rpc).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector("[data-order-porch-place]")).toBeNull();
+  });
+
+  it("the order card mounts it for a porch pickup", () => {
+    expect(SRC("DeclutterHandoverViews.tsx")).toMatch(/order\.handover === "porch" && <OrderPorchPlace orderId=\{order\.orderId\} side=\{order\.side\} \/>/);
+  });
+});

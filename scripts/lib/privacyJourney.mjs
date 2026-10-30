@@ -113,6 +113,9 @@ export const EXPORT_SECTIONS = [
   "declutter_seller_defaults",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
+  "declutter_porch_places",
+  "declutter_porch_place_choices",
+  "declutter_order_porch_places",
   "declutter_questions", "declutter_watchlist", "declutter_tax_attestations", "declutter_strikes",
   "category_suggestions",
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",

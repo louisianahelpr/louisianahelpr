@@ -43,8 +43,8 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_take_item").file).toContain("20261030064929_declutter_buy_now_no_strike.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
-    // Then D-NEW14 porch places (20261029224749: porch_place_needed and the frozen place, insertion only).
-    expect(newestFunction("declutter_checkout_free").file).toContain("20261029224749_declutter_porch_places.sql");
+    // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261030164712_declutter_porch_places.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).

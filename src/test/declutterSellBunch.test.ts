@@ -197,6 +197,7 @@ describe("listBunch", () => {
         return `id${++n}`;
       }),
       updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
       addPhoto: vi.fn(async (_s, id) => {
         if (id === "id2") throw new Error("photo_not_uploaded");
         return "ph";
@@ -232,12 +233,13 @@ describe("listBunch", () => {
 
   // Audit finding 2: a run cut off part way (crash, reload) resumes; nothing is made or uploaded twice.
   // @mutate src/lib/declutter/bunch.ts |     let id: string \| null = it.draftId ?? null; |     let id: string \| null = null;
-  // @mutate src/lib/declutter/bunch.ts |         if (uploaded.includes(k)) continue; |         void uploaded;
+  // @mutate src/lib/declutter/bunch.ts |         if (k in uploaded) continue; |         void uploaded;
   // @mutate src/lib/declutter/bunch.ts |         onStep(it.key, { draftId: id }); |         void onStep;
   it("trying again finishes the same draft: its edits go on it, and only the photos still missing go up", async () => {
     const deps: ListDeps = {
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
@@ -245,7 +247,7 @@ describe("listBunch", () => {
       publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
     };
     const steps: [string, unknown][] = [];
-    const out = await listBunch("seller", [item("cut", ["a", "b"], { draftId: "d1", uploaded: ["a"] })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
+    const out = await listBunch("seller", [item("cut", ["a", "b"], { draftId: "d1", uploaded: { a: "pa" } })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
     expect(deps.createDraft).not.toHaveBeenCalled();
     expect(deps.updateDraft).toHaveBeenCalledWith("d1", expect.objectContaining({ title: "Oak chair", priceCents: 4000 }));
     expect(deps.addPhoto).toHaveBeenCalledTimes(1);
@@ -253,13 +255,54 @@ describe("listBunch", () => {
     expect(deps.publishMany).toHaveBeenCalledWith(["d1"], expect.any(Function));
     expect(out).toEqual([{ key: "cut", title: "Oak chair", status: "live" }]);
     // Saved after each lasting step, and it leaves the list once listed.
-    expect(steps).toEqual([["cut", { uploaded: ["a", "b"] }], ["cut", null]]);
+    expect(steps).toEqual([["cut", { uploaded: { a: "pa", b: "ph" } }], ["cut", null]]);
+  });
+
+  // A photo moved off an item that already has a draft (B19's gap, lead 10-30): it stayed on the draft on the server.
+  // @mutate src/lib/declutter/bunch.ts |         await removeDraftPhoto(deps, photoId); |         void photoId;
+  // @mutate src/lib/declutter/bunch.ts |         delete uploaded[k]; |         void k;
+  // @mutate src/lib/declutter/bunch.ts |     if (!String((err as Error)?.message ?? "").includes("photo_not_found")) throw err; |     throw err;
+  describe("a photo moved off an item with a draft", () => {
+    const makeDeps = (removePhoto: ListDeps["removePhoto"]): ListDeps => ({
+      createDraft: vi.fn(async () => "new"),
+      updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
+      addPhoto: vi.fn(async () => "ph"),
+      removePhoto,
+      setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+    });
+
+    it("leaves the draft before it lists, and what stays is not uploaded again", async () => {
+      const remove = vi.fn(async () => {});
+      const deps = makeDeps(remove);
+      const steps: [string, unknown][] = [];
+      await listBunch("seller", [item("cut", ["a"], { draftId: "d1", uploaded: { a: "pa", b: "pb" } })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(remove).toHaveBeenCalledWith("pb");
+      expect(deps.addPhoto).not.toHaveBeenCalled();
+      expect(steps[0]).toEqual(["cut", { uploaded: { a: "pa" } }]);
+      expect(remove.mock.invocationCallOrder[0]).toBeLessThan((deps.publishMany as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]);
+    });
+
+    it("already gone from the draft is fine; any other refusal keeps the item on the list, unlisted", async () => {
+      const gone = makeDeps(vi.fn(async () => { throw new Error("photo_not_found"); }));
+      const ok = await listBunch("seller", [item("cut", ["a"], { draftId: "d1", uploaded: { a: "pa", b: "pb" } })], files, place, ["porch"], () => {}, gone);
+      expect(ok).toEqual([{ key: "cut", title: "Oak chair", status: "live" }]);
+      const down = makeDeps(vi.fn(async () => { throw new Error("offline"); }));
+      const out = await listBunch("seller", [item("cut", ["a"], { draftId: "d1", uploaded: { a: "pa", b: "pb" } })], files, place, ["porch"], () => {}, down);
+      expect(out[0]).toMatchObject({ key: "cut", draftId: "d1", stays: true });
+      expect(down.publishMany).not.toHaveBeenCalled();
+    });
   });
 
   it("a new item reports its draft as soon as it exists, so a crash after it never makes a second", async () => {
     const deps: ListDeps = {
       createDraft: vi.fn(async () => "d9"),
       updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => { throw new Error("photo_not_uploaded"); }),
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),

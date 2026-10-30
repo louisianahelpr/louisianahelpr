@@ -23,7 +23,7 @@
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { addPhoto, createDraft, invokeAiBody, setDropPct, setHandovers, setKeepUp, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhoto, createDraft, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -60,8 +60,8 @@ export interface BunchItem {
   free?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
-  /** Photo keys already on that draft. */
-  uploaded?: string[];
+  /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
+  uploaded?: Record<string, string>;
 }
 
 /** What the server's 'group' mode answers for one batch (indexes into the photos sent). */
@@ -303,13 +303,14 @@ export interface ListDeps {
   createDraft: typeof createDraft;
   updateDraft: typeof updateDraft;
   addPhoto: typeof addPhoto;
+  removePhoto: typeof removePhoto;
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, removePhoto, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -318,6 +319,15 @@ export interface BunchChoices {
   dropPct: number;
   /** Each item's lowest price, as a percent of its price (rounded by floorFromPct, as the single form does). */
   floorPct: number;
+}
+
+/** Taking a photo off a draft. Already gone (a run cut off after this step, before it was saved) is what was asked for. */
+async function removeDraftPhoto(deps: ListDeps, photoId: string): Promise<void> {
+  try {
+    await deps.removePhoto(photoId);
+  } catch (err) {
+    if (!String((err as Error)?.message ?? "").includes("photo_not_found")) throw err;
+  }
 }
 
 const NO_CHOICES: BunchChoices = { keepUp: false, drops: false, dropPct: 5, floorPct: 50 };
@@ -373,14 +383,20 @@ export async function listBunch(
         id = await deps.createDraft(fields);
         onStep(it.key, { draftId: id });
       }
-      const uploaded = [...(it.uploaded ?? [])];
+      const uploaded = { ...it.uploaded };
+      // A photo moved off this item since its draft was made leaves the draft, or it would be listed with the wrong thing.
+      for (const [k, photoId] of Object.entries(uploaded)) {
+        if (it.photoKeys.includes(k)) continue;
+        await removeDraftPhoto(deps, photoId);
+        delete uploaded[k];
+        onStep(it.key, { uploaded: { ...uploaded } });
+      }
       for (const k of it.photoKeys) {
-        if (uploaded.includes(k)) continue;
+        if (k in uploaded) continue;
         const f = photos.get(k);
         if (!f) throw new Error("photo_not_uploaded");
-        await deps.addPhoto(sellerId, id, f);
-        uploaded.push(k);
-        onStep(it.key, { uploaded: [...uploaded] });
+        uploaded[k] = await deps.addPhoto(sellerId, id, f);
+        onStep(it.key, { uploaded: { ...uploaded } });
       }
       // A free item is picked up from the porch only (the free checkout's one way).
       await deps.setHandovers(id, it.free ? ["porch"] : ways);

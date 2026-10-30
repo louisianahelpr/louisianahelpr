@@ -72,6 +72,7 @@ const PROVEN: Record<string, string> = {
   sweep_saved_search_alert_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_signup_leads: "sweepClockBoundaries.pglite.mjs",
   sweep_silent_cron_failures: "sweepCronMonitorClock.pglite.mjs",
+  sweep_unanswered_applications: "applicantNudgesAndFilledNotice.pglite.mjs",
 };
 
 const clockSweeps = (): string[] => {

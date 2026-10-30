@@ -152,6 +152,24 @@ export type Database = {
         }
         Relationships: []
       }
+      application_nudge_sends: {
+        Row: {
+          job_id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          job_id: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          job_id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       application_rate_log: {
         Row: {
           applicant_id: string
@@ -18789,6 +18807,10 @@ export type Database = {
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_signup_leads: { Args: never; Returns: Json }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
+      sweep_unanswered_applications: {
+        Args: { p_now?: string }
+        Returns: number
+      }
       sweep_unfilled_series_visit_reminders: { Args: never; Returns: number }
       sync_jobs_select_grants: { Args: never; Returns: Json }
       sync_profiles_update_grants: { Args: never; Returns: Json }

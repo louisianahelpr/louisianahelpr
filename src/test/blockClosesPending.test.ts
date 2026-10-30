@@ -78,6 +78,6 @@ describe("Q345: block_user_and_settle closes pending applications and offers", (
 // The offer decline disabled.
 // @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
 // The notification skip removed.
-// @mutate supabase/migrations/20261025182522_application_email_roundup.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
+// @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
 // The constraint not widened.
-// @mutate supabase/migrations/20261004184021_expired_offer_says_it_expired.sql | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired')); | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'offer_expired'));
+// @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired', 'not_confirmed', 'no_show')); | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'offer_expired', 'not_confirmed', 'no_show'));

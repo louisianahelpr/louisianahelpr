@@ -1014,7 +1014,8 @@ serve(async (req) => {
   // Helpr was ruled at fault for comes out of this payout (what keeps it at
   // $1 or more; the rest waits for the next one). Taken once per job, shared
   // with process-scheduled-payouts (_shared/helprFaultFee.ts). Fails closed.
-  {
+  // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
+  if (!isGiveawayFixedPayJob(job)) {
     const take = await takeHelprFaultFee(
       supabaseAdmin, job.helper_id, job.id,
       helprFaultFeeCapCents(unroundedPayoutCents - onboardingFeeDeductedCents),

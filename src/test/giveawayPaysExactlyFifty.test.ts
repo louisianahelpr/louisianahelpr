@@ -132,6 +132,7 @@ describe("nothing else can write the giveaway stamp", () => {
     expect(sql).toContain("ADD CONSTRAINT jobs_giveaway_flat_stamp_is_one_job");
     expect(sql).toMatch(new RegExp(`CHECK \\(helper_fee_flat_cents IS DISTINCT FROM 700\\s+OR id = '${JOB_ID}'\\)`));
     expect(sql).toContain("j.helper_fee_flat_cents = 70");
+    expect(sql.indexOf("ADD CONSTRAINT jobs_giveaway_flat_stamp_is_one_job"), "the table lock comes before the row update").toBeLessThan(sql.indexOf("UPDATE public.jobs j"));
     expect(sql).toContain("NOT EXISTS (SELECT 1 FROM public.payout_transfers t WHERE t.job_id = j.id)");
     for (const c of ["F1 [fix]", "F2 [fix]", "F3 [fix]", "F4 [fix]", "F5 [fix]", "F6 [fix]", "K1 [keep]", "K2 [keep]", "K3 [keep]", "K4 [keep]", "K5 [keep]", "K6 [keep]", "K7 [keep]", "--before"]) {
       expect(read("src/test/pglite/giveawayWinnerTakesExactlyFifty.pglite.mjs"), c).toContain(c);

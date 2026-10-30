@@ -7,6 +7,8 @@
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       {!mine && !open && ( |       {!open && (
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |     mutationFn: (p: OrderProblem) => addProblemSide(p.id, note.trim()), |     mutationFn: (p: OrderProblem) => addProblemSide(p.id, note),
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       <ProblemPhotos paths={p.photo_paths ?? []} />\n | \n
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |   const words = p?.status === "decided" && p.decision ? DECIDED_WORDS[p.decision]?.[side] : undefined; |   const words = p?.decision ? DECIDED_WORDS[p.decision]?.buyer : undefined;
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |   pay_seller: { buyer: "The seller keeps the payment, and the sale is final.", seller: "You keep the payment." }, |   pay_seller: { buyer: "Handed over.", seller: "Handed over." },
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -22,7 +24,7 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
   handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
 }));
 
-import { DeclutterProblemSides } from "./DeclutterProblemSides";
+import { DeclutterProblemDecided, DeclutterProblemSides } from "./DeclutterProblemSides";
 
 const OPEN: OrderProblem = {
   id: "p1", reporter_side: "buyer", reason: "damaged", note: "The leg is cracked.", status: "open",
@@ -65,5 +67,36 @@ describe("DeclutterProblemSides", () => {
     const none = show("seller", null);
     await new Promise((r) => setTimeout(r, 50));
     expect(none.container.querySelector("[data-problem-sides]")).toBeNull();
+  });
+});
+
+// Audit 1030 DB-12: once Louisiana Helpr decides, the card says what it decided (the notices' words), per side.
+function decided(side: "buyer" | "seller", problem: OrderProblem | null) {
+  state.problem = problem;
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}><DeclutterProblemDecided orderId="o1" side={side} /></QueryClientProvider>);
+}
+const line = async () => (await screen.findByText("Louisiana Helpr decided:")).closest("p")?.textContent;
+
+describe("DeclutterProblemDecided (DB-12)", () => {
+  it.each([
+    ["pay_seller", "buyer", "Louisiana Helpr decided: The seller keeps the payment, and the sale is final."],
+    ["pay_seller", "seller", "Louisiana Helpr decided: You keep the payment."],
+    ["refund_buyer", "buyer", "Louisiana Helpr decided: We are refunding you. A separate notice says how much."],
+    ["refund_buyer", "seller", "Louisiana Helpr decided: We are refunding the buyer."],
+    ["refund_part", "seller", "Louisiana Helpr decided: We are refunding the buyer part of the payment."],
+    ["delivery_damage", "buyer", "Louisiana Helpr decided: It was damaged in delivery. A separate notice says what comes back to you."],
+  ] as const)("%s, as the %s", async (decision, side, words) => {
+    decided(side, { ...OPEN, status: "decided", decision, decided_at: "2026-10-30T04:26:46Z" });
+    expect(await line()).toBe(words);
+  });
+
+  it("says nothing while the problem is open, with no problem, or before the read returns a decision", async () => {
+    for (const p of [OPEN, null, { ...OPEN, status: "decided" as const }]) {
+      const { container, unmount } = decided("buyer", p);
+      await new Promise((r) => setTimeout(r, 50));
+      expect(container.querySelector("[data-problem-decided]")).toBeNull();
+      unmount();
+    }
   });
 });

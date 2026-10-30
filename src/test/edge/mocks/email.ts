@@ -108,3 +108,9 @@ export const ComeBackEmail = inert("ComeBackEmail");
 
 /** Every direct `sendWithResend(key, message)` call, in order (send-notification-email's fallback). */
 export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => ({ id: "resend-mock-id" }));
+
+/** The per-send ceiling process-email-queue sizes its visibility timeout from (real value in _shared/resend.ts). */
+export const SEND_TIMEOUT_MS = 10_000;
+
+/** process-email-queue derives a missing text part from the HTML; the double strips tags. */
+export const htmlToPlainText = (html: string): string => html.replace(/<[^>]+>/g, "").trim();

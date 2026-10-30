@@ -282,6 +282,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-result.ts";`,
   );
 
+  // One email, one send-log row: `_shared/emailSendLog.ts` has ZERO imports (the
+  // client is a parameter) and decides which email_send_log row a queued email's
+  // outcome lands on, so the REAL module serves process-email-queue's tests.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/emailSendLog\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/emailSendLog.ts";`,
+  );
+
   // Bounded cron reads (Q592): `_shared/boundedFetch.ts` has ZERO imports and
   // only wraps the fetch handed to createClient; the mock client never calls
   // it, so the REAL module is fine here.

@@ -18,6 +18,9 @@ const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
+// How long one run keeps reading new batches (both queues together). The cron's
+// net.http_post waits 90 s; a batch already started is finished even past this.
+const DRAIN_BUDGET_MS = 45_000
 
 function isRateLimited(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
@@ -102,6 +105,7 @@ serve(async (req) => {
   }
 
   let totalProcessed = 0
+  const runStartedAt = Date.now()
 
   // 2. Process auth_emails first, then transactional_emails — both via Resend
   for (const queue of ['auth_emails', 'transactional_emails']) {
@@ -133,266 +137,279 @@ serve(async (req) => {
     const vtSeconds = Math.ceil(
       (batchSize * (SEND_TIMEOUT_MS + sendDelayMs) * 2) / 1000,
     )
-    const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
-      queue_name: queue,
-      batch_size: batchSize,
-      vt: vtSeconds,
-    })
+    // ── Keep reading while the queue keeps handing over full batches ────────
+    //
+    // ONE batch per queue per tick capped the worker at batch_size emails every
+    // 5 minutes (120 an hour at the default 10). On 2026-10-27 the job-match
+    // fan-out enqueued 181 notification emails at 15:53Z; every tick from 15:58
+    // to 17:13 answered `processed: 10`, and the four admin support replies and
+    // 26 welcome-drip emails queued behind that backlog passed the 60-minute TTL
+    // before the worker reached them: all 30 dead-lettered unsent (email_send_log,
+    // cron_run_log, function logs; read-only). A short batch means the queue is
+    // empty; the budget keeps one run inside the cron's 90 s HTTP timeout.
+    while (Date.now() - runStartedAt < DRAIN_BUDGET_MS) {
+      const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
+        queue_name: queue,
+        batch_size: batchSize,
+        vt: vtSeconds,
+      })
 
-    if (readError) {
-      // A queue this run never even looked at is not a quiet queue, and
-      // `continue` alone made the two indistinguishable: the run went on to
-      // answer 200 `{ processed: 0 }`, which reads as "no mail to send". If
-      // `auth_emails` cannot be read, password resets and confirmations are
-      // sitting undelivered.
-      console.error('Failed to read email batch', { queue, error: readError })
-      defects.record(`read ${queue}: ${readError.message}`)
-      continue
-    }
-
-    if (!messages?.length) continue
-
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i]
-      const payload = msg.message
-
-      // A reserved-domain recipient (example.com, *.test, ...) can never be
-      // delivered and Resend rejects it with a permanent 422. Retrying it five
-      // times only files a DLQ alert for a test account (ledger 2b794ca3).
-      // Checked BEFORE the TTL and max-retry branches, so a stuck fixture
-      // message is logged suppressed, not dlq (review of Q840).
-      // Q840: every other test or seed recipient (fixture inbox, is_seed
-      // profile) is suppressed the same way, so it never spends Resend quota.
-      const reservedRecipient = isReservedRecipient(payload.to)
-      if (reservedRecipient || await isTestRecipient(supabase, payload.to)) {
-        // The pre-logged 'pending' row becomes 'suppressed' (LO2-2: inserting a second row left it pending forever).
-        const supLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed',
-          reservedRecipient ? 'reserved recipient domain (RFC 2606); never deliverable' : TEST_RECIPIENT_REASON)
-        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError}`)
-        const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
-        if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
-        continue
+      if (readError) {
+        // A queue this run never even looked at is not a quiet queue, and
+        // `continue` alone made the two indistinguishable: the run went on to
+        // answer 200 `{ processed: 0 }`, which reads as "no mail to send". If
+        // `auth_emails` cannot be read, password resets and confirmations are
+        // sitting undelivered.
+        console.error('Failed to read email batch', { queue, error: readError })
+        defects.record(`read ${queue}: ${readError.message}`)
+        break
       }
 
-      // Drop expired messages (TTL exceeded)
-      if (payload.queued_at) {
-        const ageMs = Date.now() - new Date(payload.queued_at).getTime()
-        const maxAgeMs = ttlMinutes[queue] * 60 * 1000
-        if (ageMs > maxAgeMs) {
-          console.warn('Email expired (TTL exceeded)', {
-            queue,
-            msg_id: msg.msg_id,
-            queued_at: payload.queued_at,
-            ttl_minutes: ttlMinutes[queue],
-          })
-          const ttlLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `TTL exceeded (${ttlMinutes[queue]} minutes)`)
-          if (ttlLogError) defects.record(`ttl dlq log ${msg.msg_id}: ${ttlLogError}`)
-          const { error: ttlDlqError } = await supabase.rpc('move_to_dlq', {
+      if (!messages?.length) break
+
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i]
+        const payload = msg.message
+
+        // A reserved-domain recipient (example.com, *.test, ...) can never be
+        // delivered and Resend rejects it with a permanent 422. Retrying it five
+        // times only files a DLQ alert for a test account (ledger 2b794ca3).
+        // Checked BEFORE the TTL and max-retry branches, so a stuck fixture
+        // message is logged suppressed, not dlq (review of Q840).
+        // Q840: every other test or seed recipient (fixture inbox, is_seed
+        // profile) is suppressed the same way, so it never spends Resend quota.
+        const reservedRecipient = isReservedRecipient(payload.to)
+        if (reservedRecipient || await isTestRecipient(supabase, payload.to)) {
+          // The pre-logged 'pending' row becomes 'suppressed' (LO2-2: inserting a second row left it pending forever).
+          const supLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed',
+            reservedRecipient ? 'reserved recipient domain (RFC 2606); never deliverable' : TEST_RECIPIENT_REASON)
+          if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError}`)
+          const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+          if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
+          continue
+        }
+
+        // Drop expired messages (TTL exceeded)
+        if (payload.queued_at) {
+          const ageMs = Date.now() - new Date(payload.queued_at).getTime()
+          const maxAgeMs = ttlMinutes[queue] * 60 * 1000
+          if (ageMs > maxAgeMs) {
+            console.warn('Email expired (TTL exceeded)', {
+              queue,
+              msg_id: msg.msg_id,
+              queued_at: payload.queued_at,
+              ttl_minutes: ttlMinutes[queue],
+            })
+            const ttlLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `TTL exceeded (${ttlMinutes[queue]} minutes)`)
+            if (ttlLogError) defects.record(`ttl dlq log ${msg.msg_id}: ${ttlLogError}`)
+            const { error: ttlDlqError } = await supabase.rpc('move_to_dlq', {
+              source_queue: queue,
+              dlq_name: dlq,
+              message_id: msg.msg_id,
+              payload,
+            })
+            if (ttlDlqError) {
+              // The message stays on the queue, expired, and every future tick
+              // re-reads it, re-logs a `dlq` row and re-fails the same move until
+              // read_ct exhausts it. Silent before; a defect now.
+              console.error('Failed to move expired message to DLQ', { queue, msg_id: msg.msg_id, error: ttlDlqError })
+              defects.record(`ttl move-to-dlq ${msg.msg_id}: ${ttlDlqError.message}`)
+            }
+            continue
+          }
+        }
+
+        // Move to DLQ if max retries exceeded
+        if (msg.read_ct > MAX_RETRIES) {
+          const retryLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `Max retries (${MAX_RETRIES}) exceeded`)
+          if (retryLogError) defects.record(`max-retry dlq log ${msg.msg_id}: ${retryLogError}`)
+          const { error: retryDlqError } = await supabase.rpc('move_to_dlq', {
             source_queue: queue,
             dlq_name: dlq,
             message_id: msg.msg_id,
             payload,
           })
-          if (ttlDlqError) {
-            // The message stays on the queue, expired, and every future tick
-            // re-reads it, re-logs a `dlq` row and re-fails the same move until
-            // read_ct exhausts it. Silent before; a defect now.
-            console.error('Failed to move expired message to DLQ', { queue, msg_id: msg.msg_id, error: ttlDlqError })
-            defects.record(`ttl move-to-dlq ${msg.msg_id}: ${ttlDlqError.message}`)
+          if (retryDlqError) {
+            console.error('Failed to move max-retry message to DLQ', { queue, msg_id: msg.msg_id, error: retryDlqError })
+            defects.record(`max-retry move-to-dlq ${msg.msg_id}: ${retryDlqError.message}`)
           }
           continue
         }
-      }
 
-      // Move to DLQ if max retries exceeded
-      if (msg.read_ct > MAX_RETRIES) {
-        const retryLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `Max retries (${MAX_RETRIES}) exceeded`)
-        if (retryLogError) defects.record(`max-retry dlq log ${msg.msg_id}: ${retryLogError}`)
-        const { error: retryDlqError } = await supabase.rpc('move_to_dlq', {
-          source_queue: queue,
-          dlq_name: dlq,
-          message_id: msg.msg_id,
-          payload,
-        })
-        if (retryDlqError) {
-          console.error('Failed to move max-retry message to DLQ', { queue, msg_id: msg.msg_id, error: retryDlqError })
-          defects.record(`max-retry move-to-dlq ${msg.msg_id}: ${retryDlqError.message}`)
+        // Guard: skip if another worker already sent this message
+        if (payload.message_id) {
+          // Fail closed: this is the ONLY thing preventing a duplicate send when
+          // two workers race the same message. Dropping the error made
+          // `alreadySent` null on a failed read — indistinguishable from
+          // "definitely not sent yet" — so the guard waved the message through
+          // and the recipient got it twice. Leave the message on the queue and
+          // let the next tick re-check.
+          const { data: alreadySent, error: alreadySentError } = await supabase
+            .from('email_send_log')
+            .select('id')
+            .eq('message_id', payload.message_id)
+            .eq('status', 'sent')
+            .maybeSingle()
+
+          if (alreadySentError) {
+            console.error('Duplicate-send check failed; leaving message queued', {
+              queue,
+              msg_id: msg.msg_id,
+              error: alreadySentError.message,
+            })
+            // The only thing standing between a racing worker and a double-send.
+            // If this read is broken, mail silently stops moving.
+            defects.record(`duplicate-send check ${msg.msg_id}: ${alreadySentError.message}`)
+            continue
+          }
+
+          if (alreadySent) {
+            console.warn('Skipping duplicate send (already sent)', {
+              queue,
+              msg_id: msg.msg_id,
+              message_id: payload.message_id,
+            })
+            const { error: dupDelError } = await supabase.rpc('delete_email', {
+              queue_name: queue,
+              message_id: msg.msg_id,
+            })
+            if (dupDelError) {
+              // Doubly bad: the message is a KNOWN duplicate of a completed send
+              // and it is still on the queue, so it comes back every tick until
+              // read_ct exhausts it into the DLQ.
+              console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, error: dupDelError })
+              defects.record(`dequeue duplicate ${msg.msg_id}: ${dupDelError.message}`)
+            }
+            continue
+          }
         }
-        continue
-      }
 
-      // Guard: skip if another worker already sent this message
-      if (payload.message_id) {
-        // Fail closed: this is the ONLY thing preventing a duplicate send when
-        // two workers race the same message. Dropping the error made
-        // `alreadySent` null on a failed read — indistinguishable from
-        // "definitely not sent yet" — so the guard waved the message through
-        // and the recipient got it twice. Leave the message on the queue and
-        // let the next tick re-check.
-        const { data: alreadySent, error: alreadySentError } = await supabase
-          .from('email_send_log')
-          .select('id')
-          .eq('message_id', payload.message_id)
-          .eq('status', 'sent')
-          .maybeSingle()
-
-        if (alreadySentError) {
-          console.error('Duplicate-send check failed; leaving message queued', {
-            queue,
-            msg_id: msg.msg_id,
-            error: alreadySentError.message,
+        try {
+          // Both auth_emails and transactional_emails route through Resend.
+          // The auth-email-hook function pre-renders templates to HTML/text
+          // before enqueuing, so payload already has subject/html/text.
+          //
+          // The shared sender (../_shared/resend.ts) REQUIRES a plaintext part.
+          // Anything already sitting on the queue from before that rule existed
+          // could lack one, and a message that can never succeed just burns its
+          // five retries and lands in the DLQ — so derive the text part from the
+          // HTML rather than failing a real, already-accepted message.
+          await sendWithResend(resendApiKey, {
+            to: payload.to,
+            from: payload.from ?? FROM_DEFAULT,
+            subject: payload.subject,
+            html: payload.html,
+            text: typeof payload.text === 'string' && payload.text.trim()
+              ? payload.text
+              : htmlToPlainText(payload.html ?? ''),
+            // Forwarded verbatim from the enqueuing function. Marketing/lifecycle
+            // sends set List-Unsubscribe so Gmail/Apple Mail render a native
+            // one-click unsubscribe control; transactional sends omit it. The
+            // worker had no way to pass these through before, so the header was
+            // unset on every queued email regardless of what the caller wanted.
+            headers: payload.headers,
+            replyTo: payload.reply_to,
           })
-          // The only thing standing between a racing worker and a double-send.
-          // If this read is broken, mail silently stops moving.
-          defects.record(`duplicate-send check ${msg.msg_id}: ${alreadySentError.message}`)
-          continue
-        }
 
-        if (alreadySent) {
-          console.warn('Skipping duplicate send (already sent)', {
-            queue,
-            msg_id: msg.msg_id,
-            message_id: payload.message_id,
-          })
-          const { error: dupDelError } = await supabase.rpc('delete_email', {
+          // Log success. auth-email-hook inserts a `pending` row at enqueue
+          // time with the same message_id, so prefer to UPDATE that row
+          // (single canonical entry per message). Fall through to INSERT only
+          // if no pending row exists (transactional_emails path that doesn't
+          // pre-log).
+          //
+          // BOTH WRITES BELOW USED TO DROP THEIR ERROR, AND THE 'sent' MARKER IS
+          // THE ONLY DUPLICATE-SEND GUARD THIS WORKER HAS. The UPDATE destructured
+          // `data` and not `error`, and the INSERT discarded its result entirely —
+          // so a rejected write left no 'sent' row, no log line and no defect, and
+          // the next redelivery of that message read `alreadySent = null` and sent
+          // the email again. A guard that fails silently is not a guard.
+          // The open row ('pending', or 'failed' from an earlier try) becomes 'sent'; a message with no pre-logged
+          // row (the NORMAL path for senders that do not use queueEmail) gets one, but only after the update itself
+          // succeeded: a failed update tells us nothing about whether a row exists (_shared/emailSendLog.ts).
+          const sentLogError = await finalizeSendLog(supabase, payload, queue, 'sent', null)
+          if (sentLogError) {
+            console.error('Failed to mark email sent', { queue, msg_id: msg.msg_id, error: sentLogError })
+            defects.record(`send-log ${msg.msg_id}: ${sentLogError}`)
+          }
+
+          // Delete from queue.
+          //
+          // A FAILED DELETE IS THE DOUBLE-SEND. The email has gone out; if the
+          // message stays on the queue it becomes visible again and is sent a
+          // second time. This was `console.error` only, so it never reached
+          // `cronResult` and a run that emailed someone twice still answered
+          // 200 `ok: true` — the exact "green while broken" shape
+          // 20260829020000 exists to catch. It is a defect: work the run
+          // intended to do that did not happen because something is broken.
+          const { error: delError } = await supabase.rpc('delete_email', {
             queue_name: queue,
             message_id: msg.msg_id,
           })
-          if (dupDelError) {
-            // Doubly bad: the message is a KNOWN duplicate of a completed send
-            // and it is still on the queue, so it comes back every tick until
-            // read_ct exhausts it into the DLQ.
-            console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, error: dupDelError })
-            defects.record(`dequeue duplicate ${msg.msg_id}: ${dupDelError.message}`)
+          if (delError) {
+            console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, error: delError })
+            defects.record(`dequeue after send ${msg.msg_id}: ${delError.message} — this message will be redelivered and re-sent`)
           }
-          continue
-        }
-      }
+          totalProcessed++
+        } catch (error) {
+          // Q840 last line fired (a fixture address sendWithResend refused).
+          // Permanent, so never retried into the DLQ: log it suppressed and drop it.
+          if (error instanceof Error && error.name === 'TestRecipientRefusedError') {
+            const refLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed', TEST_RECIPIENT_REASON)
+            if (refLogError) defects.record(`suppressed log ${msg.msg_id}: ${refLogError}`)
+            const { error: refDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+            if (refDelError) defects.record(`dequeue refused ${msg.msg_id}: ${refDelError.message}`)
+            continue
+          }
+          const errorMsg = error instanceof Error ? error.message : String(error)
+          console.error('Email send failed', {
+            queue,
+            msg_id: msg.msg_id,
+            read_ct: msg.read_ct,
+            error: errorMsg,
+          })
 
-      try {
-        // Both auth_emails and transactional_emails route through Resend.
-        // The auth-email-hook function pre-renders templates to HTML/text
-        // before enqueuing, so payload already has subject/html/text.
-        //
-        // The shared sender (../_shared/resend.ts) REQUIRES a plaintext part.
-        // Anything already sitting on the queue from before that rule existed
-        // could lack one, and a message that can never succeed just burns its
-        // five retries and lands in the DLQ — so derive the text part from the
-        // HTML rather than failing a real, already-accepted message.
-        await sendWithResend(resendApiKey, {
-          to: payload.to,
-          from: payload.from ?? FROM_DEFAULT,
-          subject: payload.subject,
-          html: payload.html,
-          text: typeof payload.text === 'string' && payload.text.trim()
-            ? payload.text
-            : htmlToPlainText(payload.html ?? ''),
-          // Forwarded verbatim from the enqueuing function. Marketing/lifecycle
-          // sends set List-Unsubscribe so Gmail/Apple Mail render a native
-          // one-click unsubscribe control; transactional sends omit it. The
-          // worker had no way to pass these through before, so the header was
-          // unset on every queued email regardless of what the caller wanted.
-          headers: payload.headers,
-          replyTo: payload.reply_to,
-        })
-
-        // Log success. auth-email-hook inserts a `pending` row at enqueue
-        // time with the same message_id, so prefer to UPDATE that row
-        // (single canonical entry per message). Fall through to INSERT only
-        // if no pending row exists (transactional_emails path that doesn't
-        // pre-log).
-        //
-        // BOTH WRITES BELOW USED TO DROP THEIR ERROR, AND THE 'sent' MARKER IS
-        // THE ONLY DUPLICATE-SEND GUARD THIS WORKER HAS. The UPDATE destructured
-        // `data` and not `error`, and the INSERT discarded its result entirely —
-        // so a rejected write left no 'sent' row, no log line and no defect, and
-        // the next redelivery of that message read `alreadySent = null` and sent
-        // the email again. A guard that fails silently is not a guard.
-        // The open row ('pending', or 'failed' from an earlier try) becomes 'sent'; a message with no pre-logged
-        // row (the NORMAL path for senders that do not use queueEmail) gets one, but only after the update itself
-        // succeeded: a failed update tells us nothing about whether a row exists (_shared/emailSendLog.ts).
-        const sentLogError = await finalizeSendLog(supabase, payload, queue, 'sent', null)
-        if (sentLogError) {
-          console.error('Failed to mark email sent', { queue, msg_id: msg.msg_id, error: sentLogError })
-          defects.record(`send-log ${msg.msg_id}: ${sentLogError}`)
-        }
-
-        // Delete from queue.
-        //
-        // A FAILED DELETE IS THE DOUBLE-SEND. The email has gone out; if the
-        // message stays on the queue it becomes visible again and is sent a
-        // second time. This was `console.error` only, so it never reached
-        // `cronResult` and a run that emailed someone twice still answered
-        // 200 `ok: true` — the exact "green while broken" shape
-        // 20260829020000 exists to catch. It is a defect: work the run
-        // intended to do that did not happen because something is broken.
-        const { error: delError } = await supabase.rpc('delete_email', {
-          queue_name: queue,
-          message_id: msg.msg_id,
-        })
-        if (delError) {
-          console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, error: delError })
-          defects.record(`dequeue after send ${msg.msg_id}: ${delError.message} — this message will be redelivered and re-sent`)
-        }
-        totalProcessed++
-      } catch (error) {
-        // Q840 last line fired (a fixture address sendWithResend refused).
-        // Permanent, so never retried into the DLQ: log it suppressed and drop it.
-        if (error instanceof Error && error.name === 'TestRecipientRefusedError') {
-          const refLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed', TEST_RECIPIENT_REASON)
-          if (refLogError) defects.record(`suppressed log ${msg.msg_id}: ${refLogError}`)
-          const { error: refDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
-          if (refDelError) defects.record(`dequeue refused ${msg.msg_id}: ${refDelError.message}`)
-          continue
-        }
-        const errorMsg = error instanceof Error ? error.message : String(error)
-        console.error('Email send failed', {
-          queue,
-          msg_id: msg.msg_id,
-          read_ct: msg.read_ct,
-          error: errorMsg,
-        })
-
-        // Same as every outcome: the open row becomes 'failed' instead of a second row (_shared/emailSendLog.ts).
-        const failedLogError = await finalizeSendLog(supabase, payload, queue, 'failed', errorMsg)
-        if (failedLogError) {
-          console.error('Failed to record send failure', { queue, msg_id: msg.msg_id, error: failedLogError })
-          defects.record(`failure-log ${msg.msg_id}: ${failedLogError}`)
-        }
-
-        if (isRateLimited(error)) {
-          const retryAfterSecs = getRetryAfterSeconds(error)
-          // The cooldown Resend just told us to observe. If this write is lost,
-          // the guard at the top of the next run reads no cooldown and the
-          // worker resumes hammering a provider that is actively rate-limiting
-          // us — the one moment when ignoring the backoff risks the sending
-          // domain. It dropped its error, so that was silent.
-          const { error: cooldownError } = await supabase
-            .from('email_send_state')
-            .update({
-              retry_after_until: new Date(
-                Date.now() + retryAfterSecs * 1000
-              ).toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', 1)
-          if (cooldownError) {
-            console.error('Failed to persist Resend cooldown', { error: cooldownError.message })
-            defects.record(`rate-limit cooldown write: ${cooldownError.message}`)
+          // Same as every outcome: the open row becomes 'failed' instead of a second row (_shared/emailSendLog.ts).
+          const failedLogError = await finalizeSendLog(supabase, payload, queue, 'failed', errorMsg)
+          if (failedLogError) {
+            console.error('Failed to record send failure', { queue, msg_id: msg.msg_id, error: failedLogError })
+            defects.record(`failure-log ${msg.msg_id}: ${failedLogError}`)
           }
 
-          return cronResult(
-            'process-email-queue',
-            { processed: totalProcessed, stopped: 'rate_limited' },
-            defects.defects,
-          )
+          if (isRateLimited(error)) {
+            const retryAfterSecs = getRetryAfterSeconds(error)
+            // The cooldown Resend just told us to observe. If this write is lost,
+            // the guard at the top of the next run reads no cooldown and the
+            // worker resumes hammering a provider that is actively rate-limiting
+            // us — the one moment when ignoring the backoff risks the sending
+            // domain. It dropped its error, so that was silent.
+            const { error: cooldownError } = await supabase
+              .from('email_send_state')
+              .update({
+                retry_after_until: new Date(
+                  Date.now() + retryAfterSecs * 1000
+                ).toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', 1)
+            if (cooldownError) {
+              console.error('Failed to persist Resend cooldown', { error: cooldownError.message })
+              defects.record(`rate-limit cooldown write: ${cooldownError.message}`)
+            }
+
+            return cronResult(
+              'process-email-queue',
+              { processed: totalProcessed, stopped: 'rate_limited' },
+              defects.defects,
+            )
+          }
+        }
+
+        // Small delay between sends
+        if (i < messages.length - 1) {
+          await new Promise((r) => setTimeout(r, sendDelayMs))
         }
       }
-
-      // Small delay between sends
-      if (i < messages.length - 1) {
-        await new Promise((r) => setTimeout(r, sendDelayMs))
-      }
+      if (messages.length < batchSize) break
     }
   }
 

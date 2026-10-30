@@ -183,8 +183,6 @@ describe("scanMessage", () => {
         "let's pay me direct",
         "we can do this off the app",
         "easier to handle outside the app",
-        "text me about this",
-        "call me later",
         "DM me on whatsapp",
         "reach me at the number above",
         "skip the fee that way",
@@ -468,7 +466,7 @@ describe("scan_message_content() word-boundary guard (server-side, structural)",
     "venmo", "cashapp", "cash app", "zelle", "paypal", "crypto", "bitcoin",
     "btc", "eth",
     "pay me direct", "off the app", "outside the app", "skip the fee",
-    "avoid the fee", "cash only", "in cash", "text me", "call me",
+    "avoid the fee", "cash only", "in cash",
     "whatsapp", "telegram", "dm me", "hit me up", "contact me at",
     "reach me at", "send money to", "pay outside",
   ];
@@ -500,3 +498,33 @@ describe("scan_message_content() word-boundary guard (server-side, structural)",
 // ...and the app's own location-share exemption, which is the only reason a
 // shared pin is not read as a phone number.
 // @mutate src/lib/messageScanner.ts | if (LOCATION_SHARE_REGEX.test(content)) return []; |
+
+// Messages audit M3 (2026-10-30): "call me" / "text me" / "llámame" warn only beside a contact detail, the
+// server stopped refusing them alone the same day (20261030150556), and Spanish spelled numbers are caught.
+// @mutate src/lib/messageScanner.ts | const callMe = hasContact ? content.match(CALL_ME_PHRASES) : null; | const callMe = content.match(CALL_ME_PHRASES);
+// @mutate src/lib/messageScanner.ts | \|cero\|uno\|dos\|tres\|cuatro\|cinco\|seis\|siete\|ocho\|nueve"; | ";
+describe("M3: call me only beside a contact detail; Spanish", () => {
+  const clean = ["Call me when you get here", "Text me when you're outside", "Llámame cuando llegues", "tengo dos perros y tres gatos"];
+  for (const msg of clean) {
+    it(`clean: "${msg}"`, () => {
+      expect(scanMessage(msg)).toHaveLength(0);
+    });
+  }
+  it("warns on call me next to a phone number, and names the phrase", () => {
+    const v = scanMessage("call me at 504-555-0100");
+    expect(v.some((x) => x.type === "phone_number")).toBe(true);
+    expect(v.some((x) => x.type === "direct_pay" && /call me/i.test(x.match))).toBe(true);
+  });
+  it("warns on llámame next to an email", () => {
+    const v = scanMessage("llámame o escribe a jane.doe@gmail.com");
+    expect(v.some((x) => x.type === "direct_pay" && /llámame/i.test(x.match))).toBe(true);
+  });
+  it("catches a phone number spelled in Spanish, or mixed with English", () => {
+    expect(scanMessage("cinco cero cuatro cinco cinco cinco cero uno cero cero").some((x) => x.type === "phone_number")).toBe(true);
+    expect(scanMessage("five oh four cinco cinco cinco cero one cero cero").some((x) => x.type === "phone_number")).toBe(true);
+  });
+  it("warns on mi número / mi correo like my number / my email", () => {
+    expect(scanMessage("te paso mi número").some((x) => x.type === "direct_pay")).toBe(true);
+    expect(scanMessage("este es mi correo").some((x) => x.type === "direct_pay")).toBe(true);
+  });
+});

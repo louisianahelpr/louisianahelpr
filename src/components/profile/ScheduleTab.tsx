@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { MapPin, Clock, Calendar, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";

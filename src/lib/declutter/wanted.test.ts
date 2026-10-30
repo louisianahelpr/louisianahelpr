@@ -5,7 +5,7 @@
  * Postgres in src/test/pglite/declutterWantedPriceHint.pglite.mjs.
  *
  * @mutate src/lib/declutter/priceHint.ts |   if (!h \|\| !Number.isInteger(h.sales) \|\| h.sales < 10 \|\| h.sales % 10 !== 0) return null; |   if (!h) return null;
- * @mutate src/lib/declutter/wanted.ts |   if (/[A-Za-z]\.[A-Za-z]/.test(what)) return "Leave out web addresses."; |   if (false) return "Leave out web addresses.";
+ * @mutate src/lib/declutter/wanted.ts |   if (WANTED_LINK.test(what)) return "Leave out web addresses, or put a space after the dot."; |
  * @mutate src/lib/declutter/priceHint.ts |   const where = place === "near_you" ? "near you" : "in this area"; |   const where = "near you";
  */
 import { describe, expect, it } from "vitest";
@@ -14,7 +14,7 @@ import { priceHintWords } from "./priceHint";
 import {
   dollarsToCents,
   parseMatches,
-  wantedFormProblem,
+  wantedFormProblems,
   type WantedForm,
 } from "./wanted";
 
@@ -28,6 +28,20 @@ describe("dollarsToCents", () => {
   });
   it("refuses anything else", () => {
     for (const bad of ["", "abc", "1.234", "-5", "10000", "1e3"]) expect(dollarsToCents(bad)).toBeNull();
+  });
+});
+
+const wantedFormProblem = (f: Parameters<typeof wantedFormProblems>[0]) => Object.values(wantedFormProblems(f))[0] ?? null;
+
+describe("ordinary words (posting audit 10-30 #11)", () => {
+  it.each(["Niño's bike", "Niño’s bike", 'TV stand for 55" TV', "Bike #2", "Crème brûlée dish", "Chair + ottoman"])("takes %s", (what) => {
+    expect(wantedFormProblems(form({ what }))).toEqual({});
+  });
+  it("names the character it refuses, and still refuses links and a look-alike alphabet", () => {
+    expect(wantedFormProblems(form({ what: "crib @ me" })).what).toContain('Take out the "@"');
+    expect(wantedFormProblems(form({ what: "Dr.Seuss books" })).what).toMatch(/web addresses/);
+    expect(wantedFormProblems(form({ what: "niñ.com crib" })).what).toMatch(/web addresses/);
+    expect(wantedFormProblems(form({ what: "Сrib" })).what).toContain("Take out");
   });
 });
 

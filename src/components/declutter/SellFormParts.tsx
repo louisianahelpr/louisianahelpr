@@ -4,6 +4,7 @@
  * Presentational only: the state and server calls are useSellFlowState's.
  */
 import type { ReactNode } from "react";
+import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import type { SellerHandover } from "@/lib/declutter/api";
@@ -112,7 +113,7 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
 
 /** How buyers get it: the ways, the area, the private pickup address and the seller's pickup times. */
 export function SellWaysFields({ s }: { s: SellFlow }) {
-  const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows } = s;
+  const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows, place } = s;
   return (<>
     <SellHandoverChoices ways={ways} setWays={(w: SellerHandover[]) => setWays(w)} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
     {/* Owner 2026-10-28: no "Area buyers see" field; buyers see the town the server works out from this
@@ -127,6 +128,7 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
       <input id="sell-address" className={SELL_INPUT} maxLength={300} value={form.pickupAddress} onChange={(e) => set("pickupAddress", e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
       {/* DA-5: nobody pays for a free item; the address shows to the person it goes to once their pickup is set. */}
       <p className="text-ds-13 text-muted-foreground">{form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it."}</p>
+      <AddressNeedsExactSpot typedAddress={form.pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
     </div>
     <div className="space-y-2" aria-labelledby="sell-pickup">
       <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">Your usual pickup times</h3>

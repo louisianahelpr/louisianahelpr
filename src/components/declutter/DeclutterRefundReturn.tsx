@@ -10,7 +10,8 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { geocodeAddress } from "@/lib/geocode";
+import { useExactAddressPoint } from "./useExactAddressPoint";
+import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { meetupMapUrl } from "@/lib/declutter/meetup";
 import { currentPosition } from "@/lib/declutter/position";
 import type { RefundRequestView } from "@/lib/declutter/refundRequests";
@@ -98,6 +99,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
   const { user } = useAuthReady();
   const refresh = useRefreshRefund(v.order_id);
   const [address, setAddress] = useState("");
+  const place = useExactAddressPoint("address_not_found");
   const drop = useMutation({
     mutationFn: async (file: File) => {
       if (!r || !user) throw new Error("not_authenticated");
@@ -111,9 +113,8 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
   const addr = useMutation({
     mutationFn: async () => {
       if (!r) throw new Error("refund_not_found");
-      const g = await geocodeAddress(address.trim());
-      if (!g) throw new Error("address_not_found");
-      return setReturnAddress(r.id, address.trim(), { lat: g.latitude, lng: g.longitude });
+      const g = await place.locate(address);
+      return setReturnAddress(r.id, address.trim(), { lat: g.lat, lng: g.lng });
     },
     onSuccess: () => { toast.success(`Saved. ${who} is told where to pick it up.`); setAddress(""); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -146,6 +147,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
         <>
           <label htmlFor={addrId} className="block text-xs font-medium">Where should they pick it up?</label>
           <input id={addrId} className={input} autoComplete="street-address" maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
+          <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
           <button type="button" className={primary} disabled={addr.isPending || address.trim().length < 5} onClick={() => addr.mutate()}>
             {addr.isPending ? "Saving…" : "Send the address"}
           </button>

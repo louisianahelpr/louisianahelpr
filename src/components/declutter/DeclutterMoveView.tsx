@@ -33,7 +33,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
-import { geocodeAddress } from "@/lib/geocode";
+import { useExactAddressPoint } from "./useExactAddressPoint";
+import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { fetchMyItemPrivate, fetchMyPickupWindows, fetchPhotos, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -95,6 +96,7 @@ export default function MoveFlow() {
   const [date, setDate] = useState("");
   const [areaLabel, setAreaLabel] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
+  const addressPoint = useExactAddressPoint();
   const [rows, setRows] = useState<MoveRow[]>([]);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -227,9 +229,8 @@ export default function MoveFlow() {
     setSaving(true);
     let saved = 0;
     try {
-      const g = await geocodeAddress(pickupAddress);
-      if (!g) throw new Error("invalid_location");
-      const place = { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: g.latitude, pickupLng: g.longitude };
+      const g = await addressPoint.locate(pickupAddress);
+      const place = { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: g.lat, pickupLng: g.lng };
       for (const batch of chunk(kept, MOVE_SAVE_BATCH)) {
         const ids = await createMoveDrafts(date, place, batch);
         if (ids.length !== batch.length) throw new Error("invalid_items");
@@ -328,6 +329,7 @@ export default function MoveFlow() {
         </div>
         <label className="block text-sm font-medium" htmlFor="move-address">Pickup address</label>
         <input id="move-address" className={input} maxLength={300} value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
+        <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={addressPoint.inexact} locating={addressPoint.locating} shareMyLocation={addressPoint.shareMyLocation} />
         <p className="text-xs text-muted-foreground">
           Buyers see your area and your move-out date. Only the buyer who pays sees the address.
         </p>

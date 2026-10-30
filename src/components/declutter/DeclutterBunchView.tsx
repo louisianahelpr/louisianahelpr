@@ -316,7 +316,6 @@ export default function BunchFlow() {
 
   return (
     <AppPage title="Sell a bunch" backTo="/declutter?view=selling">
-      <p className="font-moment text-ds-32 leading-tight">Sell a bunch</p>
       <p className="text-sm text-muted-foreground">
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>

@@ -29,6 +29,9 @@
  * @mutate src/lib/declutter/buyNowHold.ts |   return sellerId ? `/declutter?tab=buying&checkout=${encodeURIComponent(sellerId)}` : "/declutter?tab=buying"; |   return "/declutter?tab=buying";
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && ( | o.my_side === "buyer" && (
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? "their price" : "their counter") | : "their counter")
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
@@ -434,6 +437,25 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText(/Waiting for the seller/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
+  });
+
+  // Audit 1d D4-3 (2026-10-29, shot 1d-wmatch-1440-p2-1440.png): a seller's answer to the buyer's Wanted post read
+  // "$12 their counter · Your turn to answer" with "Take back my offer", for an offer the buyer never made.
+  it("a Wanted reply says so in Buying: no 'their counter', no 'Take back my offer'; an ordinary counter is unchanged", async () => {
+    const counter = { ...OFFER, offer_id: "o5", my_side: "buyer", awaiting: "buyer", counter_count: 1, floor_price_cents: null, item_title: "Lamp" };
+    state.offers = [{ ...counter, offer_id: "o4", item_title: "Blue enamel mug", amount_cents: 1200, from_wanted: true }, counter];
+    show(<OffersSection side="buyer" />);
+    const rows = await screen.findAllByRole("listitem");
+    const reply = rows.find((r) => r.textContent?.includes("Blue enamel mug"))!;
+    const plain = rows.find((r) => r.textContent?.includes("Lamp"))!;
+    expect(within(reply).getByText("Reply to your Wanted")).toBeInTheDocument();
+    expect(within(reply).getByText("their price")).toBeInTheDocument();
+    expect(within(reply).queryByText("their counter")).toBeNull();
+    expect(within(reply).queryByRole("button", { name: "Take back my offer" })).toBeNull();
+    expect(within(reply).getByRole("button", { name: "Say no" })).toBeInTheDocument();
+    expect(within(plain).queryByText("Reply to your Wanted")).toBeNull();
+    expect(within(plain).getByText("their counter")).toBeInTheDocument();
+    expect(within(plain).getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
   });
 
   // Audit 1d D4-9 (2026-10-29): "Say no" ended the offer at one tap with no "are you sure".

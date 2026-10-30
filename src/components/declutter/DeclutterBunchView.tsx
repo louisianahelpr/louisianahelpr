@@ -10,7 +10,8 @@
  *      nothing is saved until the seller lists.
  *   3. Check each item: every field editable; fix the grouping (move a photo,
  *      split, merge, drop: the owner's pop-up choice). A possibly banned item
- *      is marked and cannot be listed; an item short of photos says so.
+ *      is marked, and the photo check decides at listing; an item short of
+ *      photos says so.
  *   4. List them together: pickup times, the ways buyers can get them and the
  *      four confirmations once, then each item's draft, photos and publish
  *      (the photo check and review queue still apply). One item failing never
@@ -34,7 +35,7 @@ import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, rewrittenPrice, splitItem,
+  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, rewrittenPrice, splitItem, unusablePhotosNote,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -48,6 +49,7 @@ import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
 import { BunchChoicesCard, samePickupWindows, useBunchChoices } from "./BunchChoices";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { useBunchThumbs } from "./useBunchThumbs";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -86,9 +88,11 @@ export default function BunchFlow() {
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // One preview address per photo, made once and released when the page closes.
-  const urls = useRef(new Map<string, string>());
-  useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
+  const thumbs = useBunchThumbs(photos);
+  // Photos of listed and dropped items stop counting toward the cap. Not mid-sort: a batch's photos aren't in an item yet.
+  useEffect(() => {
+    if (!sorting) setPhotos((ps) => photosInItems(ps, items));
+  }, [items, sorting]);
   const files = useMemo(() => new Map(photos.map((p) => [p.key, p.file])), [photos]);
   const [askingStartOver, setAskingStartOver] = useState(false);
   useScreenAwake(!!sorting || !!listing || listingDrafts);
@@ -100,7 +104,6 @@ export default function BunchFlow() {
       setAreaLabel(back.areaLabel);
       setPickupAddress(back.pickupAddress);
       setCoords(back.coords);
-      for (const p of back.photos) urls.current.set(p.key, URL.createObjectURL(p.file));
       setPhotos(back.photos);
       setItems(back.items);
     },
@@ -185,18 +188,19 @@ export default function BunchFlow() {
       return;
     }
     const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
-    for (const p of added) urls.current.set(p.key, URL.createObjectURL(p.file));
     setPhotos((ps) => [...ps, ...added]);
     setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
     setSorting({ done: 0, total: Math.ceil(added.length / GROUP_BATCH) });
     try {
       const at = await hintPoint();
-      const res = await groupPhotos(added, (done, total) => setSorting({ done, total }), (batch) => askGroup(batch, at));
-      setItems((its) => [...its, ...res.items]);
-      if (res.failed.length > 0) {
-        const n = res.failed.reduce((s, f) => s + f.photos, 0);
-        setSortNote(`${n} ${n === 1 ? "photo wasn't" : "photos weren't"} sorted: ${declutterErrorMessage(res.failed[0].error)} They're below as items for you to name, or tap Write it again.`);
-      }
+      const res = await groupPhotos(added, (done, total, made) => {
+        setSorting({ done, total });
+        setItems((its) => [...its, ...made]);
+      }, (batch) => askGroup(batch, at));
+      const n = res.failed.reduce((s, f) => s + f.photos, 0);
+      const notSorted = n > 0 ? `${n} ${n === 1 ? "photo wasn't" : "photos weren't"} sorted: ${declutterErrorMessage(res.failed[0].error)} They're below as items for you to name, or tap Write it again.` : null;
+      const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" ");
+      if (note) setSortNote(note);
     } finally {
       setSorting(null);
     }
@@ -258,8 +262,6 @@ export default function BunchFlow() {
   }
 
   function startOver() {
-    urls.current.forEach((u) => URL.revokeObjectURL(u));
-    urls.current.clear();
     setPhotos([]);
     setItems([]);
     setResults(null);
@@ -337,10 +339,10 @@ export default function BunchFlow() {
                 item={it}
                 index={i}
                 others={others(it.key)}
-                urls={urls.current}
+                urls={thumbs}
                 at={coords}
                 rewriting={rewriting === it.key}
-                onChange={(patch) => setItems((its) => its.map((x) => (x.key === it.key ? { ...x, ...patch } : x)))}
+                onChange={(patch) => setItems((its) => editBunchItem(its, it.key, patch))}
                 onMove={(keys, to) => setItems((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its))}
                 onSplit={(keys) => setItems((its) => splitItem(its, it.key, keys))}
                 onMerge={(into) => setItems((its) => mergeItems(its, it.key, into))}

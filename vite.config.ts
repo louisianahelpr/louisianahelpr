@@ -164,7 +164,7 @@ function restartOnDependencyChange(): Plugin {
 }
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
-const { deep: signedInDeep } = signedInSplit(process.cwd());
+const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -803,7 +803,18 @@ export default defineConfig(({ mode }) => ({
             // as rentals: they ride with their importers only.
             {
               name: "parish-data",
-              test: /[\\/]src[\\/](lib[\\/](parishes|parishCentroids)|hooks[\\/](useDashboardFilters|useUserLocation))\.ts$/,
+              test: /[\\/]src[\\/](lib[\\/]parishCentroids|hooks[\\/](useDashboardFilters|useUserLocation))\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // The parish names table. No first screen imports it statically since
+            // /signup's ZIP hint loads it on demand, so it leaves parish-data, which
+            // Home and the job lists do fetch first (check-deferred-vendors). Its
+            // importers are lazy screens: same shape as rentals.
+            {
+              name: "parish-names",
+              test: /[\\/]src[\\/]lib[\\/]parishes\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
@@ -828,6 +839,17 @@ export default defineConfig(({ mode }) => ({
             // /posts, 2026-10-17. Above signed-in-shared's priority so it wins those
             // modules; scripts/check-deferred-vendors.mjs fails if a first-screen
             // closure carries a chunk holding one of them again.
+            // The signed-in code only Declutter's first screen reaches (bootReach.mjs
+            // signedInSplit). It would otherwise ride in signed-in-shared, which every
+            // signed-in first screen downloads (~16 KB gz, 2026-10-30).
+            {
+              name: "declutter-first-screen",
+              test: (id: string) => declutterOnly.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-deep",
               test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\/g, "/")),

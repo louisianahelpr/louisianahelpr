@@ -13,4 +13,5 @@ export function signedInSplit(root: string): {
   signedInOnly: Set<string>;
   firstScreen: Set<string>;
   deep: Set<string>;
+  declutterOnly: Set<string>;
 };

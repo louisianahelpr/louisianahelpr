@@ -14,7 +14,7 @@
  * two navs AND the panel and asserts ONE binding (no duplicate handler that
  * would double-count every arrival).
  *
- * @mutate src/components/mobileNav/useNavUnreadCount.ts | useNotificationFeed(user?.id); | // feed not bound
+ * @mutate src/components/mobileNav/useNavUnreadCount.ts | useNotificationFeed(chromeReadsMayStart ? user?.id : null); | // feed not bound
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, renderHook, waitFor, act, cleanup } from "@testing-library/react";
@@ -144,7 +144,7 @@ describe("the bell's feed is bound for every signed-in user, no bell required (Q
   it("the hook that binds it runs on every route: App mounts the navs outside the router outlet, before any early return", () => {
     const read = (p: string) => blankNonCode(readFileSync(join(process.cwd(), p), "utf8"));
     const hook = read("src/components/mobileNav/useNavUnreadCount.ts");
-    expect(hook).toContain("useNotificationFeed(user?.id)");
+    expect(hook).toContain("useNotificationFeed(chromeReadsMayStart ? user?.id : null)");
     const panel = read("src/components/NotificationPanel.tsx");
     expect(panel).not.toContain("subscribeUserRealtime(");
     const callers = ["src/components/MobileNav.tsx", "src/components/DesktopSidebarNav.tsx"].filter((p) => read(p).includes("useNavUnreadCount(user)"));

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// @mutate src/boot/routePreload.ts | signedIn: [() => import("@/pages/declutter/DeclutterPage"), protectedRoute], | signedIn: [protectedRoute],
+// @mutate src/boot/routePreload.ts | signedIn: [() => import("@/boot/declutterRoute"), protectedRoute], | signedIn: [protectedRoute],
+// @mutate src/boot/declutterRoute.ts | import("@/pages/declutter/DeclutterPage").catch(() => { | Promise.resolve().catch(() => {
 // @mutate src/boot/routePreload.ts | guest: [() => import("@/pages/auth/Login"), protectedRoute], | guest: [protectedRoute],
 
 const loaded: string[] = [];

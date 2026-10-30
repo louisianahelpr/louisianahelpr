@@ -94,9 +94,10 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     signedIn: [() => import("@/pages/profile/Profile"), protectedRoute],
   },
   // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
+  // declutterRoute keeps Declutter's long preload list out of the entry (see that file).
   "/declutter": {
     guest: [() => import("@/pages/auth/Login"), protectedRoute],
-    signedIn: [() => import("@/pages/declutter/DeclutterPage"), protectedRoute],
+    signedIn: [() => import("@/boot/declutterRoute"), protectedRoute],
   },
 };
 

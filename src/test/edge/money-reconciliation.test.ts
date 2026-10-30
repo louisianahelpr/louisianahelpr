@@ -462,6 +462,34 @@ describe("money-reconciliation edge function", () => {
     expect(b.clean).toBe(true);
   });
 
+  // Owner 2026-10-30: the giveaway's winner who owed the setup fee is booked $8 commission + $2 setup fee out of its $10.
+  // @mutate supabase/functions/money-reconciliation/index.ts |       const expectedCents = Math.round(money(job.platform_fee_amount) * 100) - leftoverSetupFeeCents; |       const expectedCents = Math.round(money(job.platform_fee_amount) * 100);
+  describe("the giveaway's ledger row", () => {
+    const giveaway = { budget: 60, urgent_fee: 0, helper_fee_percent: 5, helper_fee_flat_cents: 70, platform_fee_amount: 3.7 };
+    const run = async (job: Record<string, unknown>, transfer: Record<string, unknown>) => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.jobs = { rows: [{ ...(scenario.reads.jobs.rows ?? [])[0], ...giveaway, ...job }] };
+      scenario.reads.payout_transfers = { rows: [{ ...(scenario.reads.payout_transfers.rows ?? [])[0], ...transfer }] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      return (b.findings as Array<{ check: string }>).map((f) => f.check);
+    };
+    const stamp = { helper_fee_flat_cents: 700, platform_fee_amount: 10 };
+
+    it("is clean at $8 + $2 when the winner owed the fee, and at $10 when they did not", async () => {
+      expect(await run(stamp, { amount_cents: 5000, platform_fee_cents: 800, metadata: { onboarding_fee_cents: 200 } })).not.toContain("transfer_platform_fee_mismatch");
+      expect(await run(stamp, { amount_cents: 5000, platform_fee_cents: 1000, metadata: { onboarding_fee_cents: 0 } })).not.toContain("transfer_platform_fee_mismatch");
+    });
+
+    it("still flags a commission that does not add up to the $10", async () => {
+      expect(await run(stamp, { amount_cents: 5000, platform_fee_cents: 800, metadata: { onboarding_fee_cents: 0 } })).toContain("transfer_platform_fee_mismatch");
+    });
+
+    it("an ordinary job never gets this allowance, even with a setup fee on its row", async () => {
+      expect(await run({}, { amount_cents: 5400, platform_fee_cents: 170, metadata: { onboarding_fee_cents: 200 } })).toContain("transfer_platform_fee_mismatch");
+    });
+  });
+
   it("a truncated DISPUTE cross-check skips the check instead of inventing criticals", async () => {
     // `dispute_flag_without_row` is a CRITICAL, and a short read makes flagged
     // jobs look like they have no dispute row. So a shortfall here would not

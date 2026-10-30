@@ -949,6 +949,7 @@ serve(async (req) => {
       platform_fee_cents: number | null;
       status: string | null;
       stripe_transfer_id: string | null;
+      metadata?: { onboarding_fee_cents?: unknown } | null;
     };
     const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
       admin
@@ -1350,7 +1351,7 @@ serve(async (req) => {
       // Owner 2026-10-30: the giveaway's row says the $10 Louisiana Helpr keeps; a
       // winner's setup fee is booked out of it on the ledger row as its own line.
       const leftoverSetupFeeCents = isGiveawayFixedPayJob(job)
-        ? Math.max(0, Math.round(Number((t.metadata as { onboarding_fee_cents?: unknown } | null)?.onboarding_fee_cents ?? 0)))
+        ? Math.max(0, Math.round(Number(t.metadata?.onboarding_fee_cents ?? 0)))
         : 0;
       const expectedCents = Math.round(money(job.platform_fee_amount) * 100) - leftoverSetupFeeCents;
       const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));

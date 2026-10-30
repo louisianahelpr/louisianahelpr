@@ -9,7 +9,9 @@
 -- Now: the job's flat stamp is 700 (5% + $7.00 on $60 is a $10.00 fee) and
 -- platform_fee_amount is the matching 10.00, so every reader of the stamp (both
 -- payout paths, money-reconciliation, the export, every take-home screen) reads
--- $50 with no change of its own. helper_fee_percent stays 5. The budget stays 60,
+-- $50 with no change of its own. That is the whole $60 only: a part payment on this
+-- job (a late-cancel fee, a dispute split) also carries the $7.00 instead of 70c,
+-- accepted because Louisiana Helpr is the poster here. helper_fee_percent stays 5. The budget stays 60,
 -- so what the poster paid and any refund do not move. The stamp also tells the
 -- screens to take no setup fee off this job, and the payout paths to claim it the
 -- normal way but out of the $10 (isGiveawayFixedPayJob, _shared/helprFlatFee.ts):
@@ -30,6 +32,18 @@ BEGIN
     RETURN;
   END IF;
 
+  -- The table lock first, so this never waits for it while holding the job's row.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.jobs'::regclass
+       AND conname = 'jobs_giveaway_flat_stamp_is_one_job'
+  ) THEN
+    ALTER TABLE public.jobs
+      ADD CONSTRAINT jobs_giveaway_flat_stamp_is_one_job
+      CHECK (helper_fee_flat_cents IS DISTINCT FROM 700
+             OR id = '11f8b084-ccd1-47b6-92ab-26338f701468');
+  END IF;
+
   SET LOCAL app.paid_job_fee_rewrite = 'owner decision 2026-10-30: giveaway winner takes home exactly $50, leftover stays with Louisiana Helpr';
 
   UPDATE public.jobs j
@@ -45,16 +59,5 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM public.payout_transfers t WHERE t.job_id = j.id);
 
   SET LOCAL app.paid_job_fee_rewrite = '';
-
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-     WHERE conrelid = 'public.jobs'::regclass
-       AND conname = 'jobs_giveaway_flat_stamp_is_one_job'
-  ) THEN
-    ALTER TABLE public.jobs
-      ADD CONSTRAINT jobs_giveaway_flat_stamp_is_one_job
-      CHECK (helper_fee_flat_cents IS DISTINCT FROM 700
-             OR id = '11f8b084-ccd1-47b6-92ab-26338f701468');
-  END IF;
 END
 $$;

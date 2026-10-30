@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { SignedInOnly } from "@/components/SignedInChrome";
 
 // Sonner + TooltipProvider pull in @radix-ui/react-tooltip + @floating-ui (~14 KB
 // gzipped, unused on the landing page). Lazy-loading keeps them out of the
@@ -65,7 +66,11 @@ const DeferredToasters = () => {
           could render in either one depending on which import a file
           happened to pick. */}
       <Sonner />
-      <SuccessMomentHost />
+      {/* Only a signed-in flow fires the beat, and this chunk imports
+          signed-in-shared, so a guest fetches none of it. */}
+      <SignedInOnly>
+        <SuccessMomentHost />
+      </SignedInOnly>
     </Suspense>
   );
 };

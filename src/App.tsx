@@ -38,6 +38,7 @@ import MarketingRedirect from "@/components/MarketingRedirect";
 import { AppLockGate } from "@/components/AppLockGate";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { SessionManager } from "@/components/SessionManager";
+import { SignedInChrome, SignedInOnly } from "@/components/SignedInChrome";
 
 // PageTransition (the iPhone edge swipe-back) and ScrollToTop no longer use
 // framer-motion (Q1356; check-deferred-vendors.mjs holds them to it). Q178: a
@@ -549,9 +550,11 @@ const App = () => (
           <RouteMemory />
           <StaleClientWatch />
           <OfflineBanner />
-          <Suspense fallback={null}>
-            <StrikeBanner />
-          </Suspense>
+          <SignedInOnly>
+            <Suspense fallback={null}>
+              <StrikeBanner />
+            </Suspense>
+          </SignedInOnly>
           <SidePanelProvider>
           <main
             id="main-content"
@@ -559,15 +562,22 @@ const App = () => (
           >
             <RoutedBoundary />
           </main>
+          {/* A lazy chunk is fetched as soon as it renders, so these wait for a
+              maybe-signed-in visitor: a guest draws none of them. The rationale
+              dialog stays out: anyone can be asked for a device permission. */}
+          <SignedInChrome>
+            <Suspense fallback={null}>
+              <NeedsYouMount />
+              <MobileNav />
+              <DesktopSidebarNav />
+              <DesktopTopNav />
+              <DeliveryOnlinePill />
+              <TermsReconsentDialog />
+              <IdentityCheckHost />
+            </Suspense>
+          </SignedInChrome>
           <Suspense fallback={null}>
-            <NeedsYouMount />
-            <MobileNav />
-            <DesktopSidebarNav />
-            <DesktopTopNav />
-            <DeliveryOnlinePill />
             <PermissionRationaleDialog />
-            <TermsReconsentDialog />
-            <IdentityCheckHost />
           </Suspense>
           </SidePanelProvider>
           <SpeedInsightsRouted />

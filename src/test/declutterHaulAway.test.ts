@@ -26,7 +26,7 @@
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts | const declutter = () => import("@/lib/declutter/haulAway"); | const declutter = () => Promise.all([import("@/lib/declutter/api"), import("@/lib/declutter/haulAway")]).then(([a, h]) => ({ ...a, ...h }));
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam"; | import { oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";\nvoid oneTripGroup;
  * @mutate src/lib/declutter/errors.ts |   // Haul-away (20261017070827): its words |   haul_away_too_many: "One haul-away can take up to 10 items.",\n  // Haul-away (20261017070827): its words
- * @mutate docs/OPEN.md |  CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod |
+ * @mutate docs/archive/OPEN-done-2026-10.md |  CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod |
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |       IF COALESCE(v_item.live_at, v_item.submitted_at, v_item.created_at) + interval '14 days' > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | VALUES ('declutter_haul_away', 'testers', | VALUES ('declutter_haul_away', 'everyone',

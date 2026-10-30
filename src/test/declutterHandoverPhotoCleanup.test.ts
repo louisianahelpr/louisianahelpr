@@ -35,6 +35,10 @@ function savedColumns(): Set<string> {
   for (const [, d] of DEFS) {
     const body = flat(d.stmt);
     if (!body.includes("'declutter-handover'")) continue;
+    // Returns (20261030071818): a return photo is checked by declutter_return_photo_ok, which pins it to the
+    // <uid>/declutter/return/<order>/ folder; the delete policy below covers only the handover folder, so a return
+    // photo can never be deleted through it and needs no row in the not-referenced check (pinned in its own test).
+    if (body.includes("public.declutter_return_photo_ok(")) continue;
     for (const m of body.matchAll(/\b([a-z_]+_photo_path) = p_photo_path\b/g)) cols.add(m[1]);
   }
   return cols;
@@ -62,6 +66,12 @@ describe("audit 1a #10: a refused handover photo can be removed, an attached one
   it("every column a handover photo is saved in is in the not-referenced check", () => {
     const missing = [...cols].filter((c) => !new RegExp(`\\bh\\.${c} = p_name\\b`).test(helper));
     expect(missing).toEqual([]);
+  });
+
+  it("a return photo (skipped above) is pinned to the return folder, outside what the delete policy covers", () => {
+    const ok = flat(DEFS.get("declutter_return_photo_ok")?.stmt ?? "");
+    expect(ok).toContain("AND split_part(p_path, '/', 3) = 'return'");
+    expect(ok).toContain("so.bucket_id = 'declutter-handover'");
   });
 
   it("the helper answers only for the caller's own handover folder, and is SECURITY DEFINER", () => {

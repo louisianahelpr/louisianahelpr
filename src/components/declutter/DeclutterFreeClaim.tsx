@@ -163,7 +163,7 @@ export function MyFreeAsks() {
         {rows.map((r) => (
           <li key={r.id}>
             <Link to={`/declutter/item/${r.item_id}`} className="block px-4 py-3 min-h-11">
-              <span className="block truncate text-ds-15 font-semibold">You asked for {r.declutter_items?.title ?? "a free item"}</span>
+              <span className="block truncate text-ds-15 font-semibold" title={`You asked for ${r.declutter_items?.title ?? "a free item"}`}>You asked for {r.declutter_items?.title ?? "a free item"}</span>
               <span className="block text-ds-13 text-muted-foreground">The giver picks who gets it. We'll tell you either way.</span>
             </Link>
           </li>

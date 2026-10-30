@@ -80,7 +80,7 @@ export function DeclutterReturnWayPicker({ id, who, value, onChange }: {
       ) : (
         <div>
           <label htmlFor={`${id}-at`} className="block text-xs font-medium">When will you come? (within 7 days)</label>
-          <input id={`${id}-at`} type="datetime-local" className={input} value={value.local} onChange={(e) => onChange({ ...value, local: e.target.value })} />
+          <input id={`${id}-at`} type="datetime-local" className={`${input} min-w-0`} value={value.local} onChange={(e) => onChange({ ...value, local: e.target.value })} />
         </div>
       )}
     </fieldset>

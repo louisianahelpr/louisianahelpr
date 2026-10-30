@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         try { await addWantedPhoto(userId, id, f); } |         try { void f; }
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |             photos={<ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} /> |             photos={null} />
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |             photos={<ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={where} /> |             photos={null} where={where} />
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.photo_path && ( |             {false && (
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"} | text-[hsl(var(--burnt-sienna))]
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p> |

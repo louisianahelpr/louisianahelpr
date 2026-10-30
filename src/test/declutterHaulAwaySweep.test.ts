@@ -32,7 +32,7 @@
  * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |     EXCEPTION WHEN lock_not_available THEN\n      v_locked := v_locked + 1;\n    WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text, |     EXCEPTION WHEN OTHERS THEN\n      v_errors := v_errors + 1;\n      PERFORM public.log_cron_defect('declutter_haul_away_sweep', r.item_id::text,
  * @mutate supabase/migrations/20261027165903_declutter_haul_away_sweep.sql |       v_hold := public.declutter_haul_job_hold(v_link.job_id); |       v_hold := 'none';
  * @mutate src/test/pglite/declutterHaulAwaySweep.pglite.mjs | if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIG); | if (!skip) await db.exec(MIG);
- * @mutate docs/OPEN.md | done-when: test src/test/declutterHaulAwaySweep.test.ts. | done-when: later.
+ * @mutate docs/archive/OPEN-done-2026-10.md | done-when: test src/test/declutterHaulAwaySweep.test.ts. | done-when: later.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

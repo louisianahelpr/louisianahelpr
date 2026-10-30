@@ -109,8 +109,9 @@ describe("D6: Buy now names what checkout will charge", () => {
       ["DeclutterOfferPanel.tsx", "Buy now</span>"],
       ["DeclutterOfferPanel.tsx", "You pay if the seller says yes"],
       // "Total with pickup" left with the Buy now reserve sheet (DB-5, 2026-10-30: Buy now goes straight to checkout).
-      ["DeclutterTradeViews.tsx", "You pay with pickup"],
-      ["OfferSentWhatNext.tsx", "for pickup"],
+      // DB-4 (2026-10-30): the way words follow the seller's ticks (pickupWords.ts), so the label is built, not literal.
+      ["DeclutterTradeViews.tsx", "You pay {totalPhrase("],
+      ["OfferSentWhatNext.tsx", "{forPhrase(way)}"],
     ];
     for (const [file, label] of SITES) {
       const src = blankComments(readSource(join(REPO, "src", "components", "declutter", file)) ?? "");

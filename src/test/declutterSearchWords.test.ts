@@ -89,7 +89,7 @@ describe("Declutter search words (DA-1)", () => {
     expect(body).toContain("length(p_word) > 4 AND p_word ~ '(s|x|z|ch|sh)es$' THEN left(p_word, -2)");
     expect(body).toContain("length(p_word) > 3 AND right(p_word, 1) = 's' AND right(p_word, 2) <> 'ss' THEN left(p_word, -1)");
     const match = blankSqlComments(newestFunction("declutter_search_matches").body);
-    expect(match).toContain("replace(COALESCE(p_category, ''), '_', ' ')");
+    expect(match).toContain("replace(COALESCE(p_category::text, ''), '_', ' ')");
     expect((match.match(/'\[\^a-z0-9\]\+'/g) ?? []).length).toBe(2);
   });
 });

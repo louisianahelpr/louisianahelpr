@@ -5,7 +5,7 @@
  * F-PRIV-01). It still never touches push_tokens on the web (those are the
  * member's phones).
  *
- * @mutate src/lib/nativePush.ts |     if (!isNativePlatform) await removeWebPushSubscription(); |
+ * @mutate src/lib/nativePush.ts |     if (!isNativePlatform) await removeWebPushSubscriptionOnUse(); |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

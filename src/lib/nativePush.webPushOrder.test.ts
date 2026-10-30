@@ -8,8 +8,8 @@
  * gesture, and it never subscribed the browser at all, so no website member
  * could be sent a push.
  *
- * @mutate src/lib/nativePush.ts |         if (granted) await subscribeWebPush(); |
- * @mutate src/lib/nativePush.ts |         granted = await requestWebPushPermission();\n        if (granted) await subscribeWebPush(); |         await subscribeWebPush();\n        granted = await requestWebPushPermission();
+ * @mutate src/lib/nativePush.ts |         if (granted) await subscribeWebPushOnUse(); |
+ * @mutate src/lib/nativePush.ts |         granted = await requestWebPushPermission();\n        if (granted) await subscribeWebPushOnUse(); |         await subscribeWebPushOnUse();\n        granted = await requestWebPushPermission();
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";

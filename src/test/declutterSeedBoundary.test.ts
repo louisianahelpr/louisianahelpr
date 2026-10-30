@@ -114,7 +114,7 @@ describe("D1: marketplace listing reads hide test sellers' rows by the launch sw
       .map(([n]) => n);
     expect(buyerSide.length).toBeGreaterThan(2);
     expect(buyerSide).toEqual(expect.arrayContaining(["declutter_lock_buyable_item", "declutter_ask_question", "declutter_set_watch"]));
-    const who: Record<string, string> = { declutter_lock_buyable_item: "p_buyer", declutter_take_item: "p_buyer", declutter_ask_question: "v_uid", declutter_set_watch: "v_uid", declutter_claim_free: "v_uid" };
+    const who: Record<string, string> = { declutter_lock_buyable_item: "p_buyer", declutter_take_item: "p_buyer", declutter_ask_question: "v_uid", declutter_set_watch: "v_uid", declutter_claim_free: "v_uid", declutter_request_free: "v_uid" };
     for (const n of [...buyerSide, "declutter_take_item"]) {
       const body = blankSqlComments(DEFS.get(n)?.stmt ?? "");
       expect(who[n], `${n} acts on someone else's item: list whom it acts for here`).toBeDefined();

@@ -41,7 +41,7 @@ AS $function$
   WITH item AS (
     SELECT COALESCE(string_agg(public.declutter_search_stem(w), ' '), '') AS words
       FROM regexp_split_to_table(
-             lower(COALESCE(p_title, '') || ' ' || COALESCE(p_description, '') || ' ' || replace(COALESCE(p_category, ''), '_', ' ')),
+             lower(COALESCE(p_title, '') || ' ' || COALESCE(p_description, '') || ' ' || replace(COALESCE(p_category::text, ''), '_', ' ')),
              '[^a-z0-9]+') AS w
      WHERE w <> ''
   )

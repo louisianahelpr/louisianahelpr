@@ -35,8 +35,9 @@ describe("Q2427 bundle discounts: the server", () => {
     const names = ["declutter_bundle_targets", "declutter_set_bundle_discount", "declutter_bundle_rule", "declutter_bundle_preview",
       "declutter_start_checkout", "declutter_my_cart", "declutter_seller_delivery_check"];
     // declutter_start_checkout and declutter_my_cart: restated by 20261028235247 (the ways the seller ticked), the bundle rule kept;
-    // declutter_my_cart again by DB-5 (20261030064929, each line's source), the bundle rule kept (asserted below).
-    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261028235247", declutter_my_cart: "20261030064929" };
+    // declutter_my_cart again by DB-5 (20261030064929, each line's source) and DC-18 (20261030131715, the kept title and
+    // closed_at), the bundle rule kept (asserted below).
+    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261028235247", declutter_my_cart: "20261030131715" };
     for (const n of names) expect(newestFunction(n).file, n).toContain(RESTATED[n] ?? FILE);
     expect(names.length).toBeGreaterThan(5);
   });

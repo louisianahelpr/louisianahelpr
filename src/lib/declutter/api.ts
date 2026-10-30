@@ -893,6 +893,8 @@ export interface CartLine {
    * out), "offer" = an accepted offer (a strike). Absent before that deploy: read as "may carry a strike".
    */
   source?: "buy" | "offer" | null;
+  /** DC-18 (20261030131715): when an ended line ended (null while in the cart). Absent before that deploy. */
+  closed_at?: string | null;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

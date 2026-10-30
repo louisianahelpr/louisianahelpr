@@ -17,7 +17,8 @@ import { fetchMyBookings, fetchMyHandover, type MyHandover } from "@/lib/declutt
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { useOpenProblems } from "./useOpenProblems";
@@ -287,8 +288,12 @@ function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" 
 export function EndedLine({ line }: { line: CartLine }) {
   return (
     <li className="rounded-[20px] border border-border bg-card p-4" data-ended-line="">
-      <p className="truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
-      <p className="text-ds-13 text-muted-foreground">{endedWords(line)}</p>
+      {/* DB-19: the price and the day it ended, as on the seller's ended rows. */}
+      <div className="flex items-baseline gap-3">
+        <p className="min-w-0 flex-1 truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
+        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(line.price_cents)}</span>
+      </div>
+      <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(line.closed_at)}{endedWords(line)}</p>
     </li>
   );
 }

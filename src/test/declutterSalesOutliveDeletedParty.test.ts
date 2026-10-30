@@ -12,7 +12,7 @@
 // @mutate supabase/migrations/20261021204947_declutter_sales_outlive_a_deleted_party.sql | REVOKE ALL ON FUNCTION public.declutter_scrub_member(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_scrub_member(uuid) FROM PUBLIC, anon;
 // @mutate supabase/functions/_shared/accountPurge.ts | !banRetained \|\| !declutterScrubbed) { | !banRetained) {
 // @mutate supabase/functions/_shared/accountPurge.ts |   const declutterScrubbed = await scrubDeclutterSales(admin, userId, steps); |   const declutterScrubbed = true;
-// @mutate supabase/migrations/20261030064929_declutter_buy_now_no_strike.sql |     LEFT JOIN public.declutter_items i ON i.id = c.item_id |     JOIN public.declutter_items i ON i.id = c.item_id
+// @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql |     LEFT JOIN public.declutter_items i ON i.id = c.item_id |     JOIN public.declutter_items i ON i.id = c.item_id
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -58,7 +58,8 @@ describe("a finished Declutter sale outlives a deleted account (Q2307)", () => {
   it("the member's own list keeps a sale whose listing went with its seller (LEFT JOIN on the item)", () => {
     const body = blankSqlComments(effectiveDefs(MIG_DIR).get("declutter_my_cart")?.stmt ?? "").replace(/\s+/g, " ");
     expect(body).toContain("LEFT JOIN public.declutter_items i ON i.id = c.item_id");
-    expect(body).toContain("COALESCE(i.title, 'An item from a former member')");
+    // DC-18 (20261030131715): the title kept on the line comes first; the former-member words only when the seller is gone.
+    expect(body).toContain("COALESCE(i.title, c.item_title, CASE WHEN c.seller_id IS NULL THEN 'An item from a former member'");
   });
 
   it("the scrub is service-only and the purge runs it and stops on its failure", () => {

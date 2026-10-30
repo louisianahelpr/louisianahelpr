@@ -179,7 +179,7 @@ export function salesTaxCents(
 }
 
 /** The urgent bonus floor create-payment charges ($5, URGENT_FEE_FLOOR_CENTS there). */
-export const URGENT_BONUS_FLOOR_CENTS = 500;
+const URGENT_BONUS_FLOOR_CENTS = 500;
 
 /**
  * The urgent bonus a job's checkout charges, in cents: create-payment's

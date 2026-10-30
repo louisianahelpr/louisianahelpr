@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1021,
+    "calls": 1025,
     "files": 273,
-    "rendering": 861,
+    "rendering": 865,
     "suppressedByPolicy": 160,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 72,
-      "toast.error": 717,
+      "toast": 73,
+      "toast.error": 720,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 458,
-      "template": 104,
-      "dynamic": 509,
+      "template": 107,
+      "dynamic": 510,
       "jsx": 0
     }
   },
@@ -5664,7 +5664,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
-      "line": 38,
+      "line": 45,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5674,57 +5674,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
-      "line": 42,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 49,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "r.repliesOn ? \"Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price.\" : \"Posted. If your New offers alerts are on, we'll tell you when a match is listed at or under your price.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price."
-          },
-          {
-            "form": "literal",
-            "text": "Posted. If your New offers alerts are on, we'll tell you when a match is listed at or under your price."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 56,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 143,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Closed. No more alerts for this one."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5735,18 +5685,68 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 152,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Posted, but ${failed === 1 ? \"a photo\" : `${failed} photos`} didn't upload. Add ${failed === 1 ? \"it\" : \"them\"} again from your post."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 153,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 157,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 215,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 216,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 270,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "on ? \"Sellers near you can answer this post.\" : \"Only you see this post now.\"",
+        "text": "openReplies > 0 ? `Closed. No more alerts or answers. ${openReplies === 1 ? \"The answer you already have stays\" : `The ${openReplies} answers you already have stay`} in Buying until you accept or decline.` : \"Closed. No more alerts or answers for this one.\"",
         "branches": [
           {
-            "form": "literal",
-            "text": "Sellers near you can answer this post."
+            "form": "template",
+            "text": "Closed. No more alerts or answers. ${openReplies === 1 ? \"The answer you already have stays\" : `The ${openReplies} answers you already have stay`} in Buying until you accept or decline."
           },
           {
             "form": "literal",
-            "text": "Only you see this post now."
+            "text": "Closed. No more alerts or answers for this one."
           }
         ]
       },
@@ -5754,7 +5754,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 155,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6124,7 +6124,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 169,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6134,7 +6134,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 174,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6144,7 +6144,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 205,
+      "line": 210,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6154,7 +6154,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 229,
+      "line": 234,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6164,7 +6164,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 232,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6174,7 +6174,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 248,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6184,7 +6184,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 261,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6194,7 +6194,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 274,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6204,7 +6204,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 280,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6214,7 +6214,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 293,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6224,7 +6224,47 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 309,
+      "line": 315,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 319,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "out.kind === \"checking\" ? \"Listed. We're checking it first; answer their Wanted from Wanted near you once it's live.\" : \"Listed for free. A free listing can't answer a Wanted; they can find it in Browse.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live."
+          },
+          {
+            "form": "literal",
+            "text": "Listed for free. A free listing can't answer a Wanted; they can find it in Browse."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 324,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Listed, but the answer wasn't sent: ${declutterErrorMessage(err)}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 330,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -345,7 +345,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
     const link = within(screen.getByTestId("browse-end-card")).getByTestId("declutter-wanted-link");
     fireEvent.click(link);
-    expect(await screen.findByRole("heading", { name: "Your wanted posts" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Your Wanted posts" })).toBeInTheDocument();
     expect(tab(/^Wanted/)).toHaveAttribute("aria-selected", "true");
     expect(where).toBe("/declutter?tab=wanted");
     // The way back: the Browse tab, right there in the same row.

@@ -931,6 +931,23 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     wanted_not_found: DC.wanted_not_found,
   },
+  // Wanted photos (20261030041359, owner 2026-10-30).
+  declutter_add_wanted_photo: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    under_18: DC.under_18,
+    wanted_not_found: DC.wanted_not_found,
+    wanted_not_open: DC.wanted_not_open,
+    wanted_too_many_photos: DC.wanted_too_many_photos,
+  },
+  declutter_remove_wanted_photo: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    wanted_not_found: DC.wanted_not_found,
+  },
   declutter_create_wanted: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
@@ -944,12 +961,6 @@ export const RPC_ERROR_COPY = {
     wanted_area_unknown: DC.wanted_area_unknown,
     wanted_open_limit: DC.wanted_open_limit,
     wanted_rate_limited: DC.wanted_rate_limited,
-  },
-  declutter_set_wanted_public: {
-    account_restricted: DC.account_restricted,
-    feature_disabled: DC.feature_disabled,
-    not_authenticated: DC.not_authenticated,
-    wanted_not_found: DC.wanted_not_found,
   },
   declutter_wanted_browse: {
     account_restricted: DC.account_restricted,
@@ -968,9 +979,9 @@ export const RPC_ERROR_COPY = {
     item_not_available: DC.item_not_available,
     item_not_found: DC.item_not_found,
     listing_has_open_offer: DC.listing_has_open_offer,
+    listing_too_far: DC.listing_too_far,
     not_authenticated: DC.not_authenticated,
     reply_rate_limited: DC.reply_rate_limited,
-    sale_mode_unavailable: DC.sale_mode_unavailable,
     under_18: DC.under_18,
     wanted_busy: DC.wanted_busy,
     wanted_not_found: DC.wanted_not_found,

@@ -197,6 +197,11 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   wanted_rate_limited: "You can post up to 5 wanted items a day. Try again tomorrow.",
   wanted_open_limit: "You have 10 wanted posts open. Close one to post another.",
   wanted_not_found: "That wanted post isn't available.",
+  // Wanted photos (20261030041359).
+  wanted_not_open: "That wanted post is closed. Post a new one to add photos.",
+  wanted_too_many_photos: "A wanted post can have up to 3 photos.",
+  // "I have this" (audit W6, 20261030041359): the listing itself must be inside the post's distance.
+  listing_too_far: "That listing is farther away than this buyer will travel. Answer with a listing closer to them.",
   wanted_area_unknown: "We couldn't work out your area. Use your location, or add your ZIP code in your profile.",
   // Moving-out mode (20261016053625).
   invalid_move_out_date: "Pick a move-out date from today to 6 months from now.",

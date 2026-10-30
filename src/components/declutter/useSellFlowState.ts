@@ -10,7 +10,7 @@
  * requestAiCheck (fail-safe) -> publishItem. The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -43,6 +43,8 @@ import {
 } from "@/lib/declutter/api";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { answerAfterListing, readWantedAnswer } from "@/lib/declutter/wanted";
+import { formatPrice } from "@/lib/declutter/distance";
 import { useKeepUp } from "./KeepUpRow";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
@@ -55,6 +57,9 @@ export function useSellFlowState(urlItemId: string | null) {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // Quick-list from "I have this" (owner 2026-10-30): a NEW listing made from a Wanted post answers it once live.
+  const [params] = useSearchParams();
+  const answer = urlItemId ? null : readWantedAnswer(params);
   // A new listing's draft once Post created it (the one screen stays on screen; a retry updates this draft).
   const [createdId, setCreatedId] = useState<string | null>(null);
   const itemId = urlItemId ?? createdId;
@@ -303,6 +308,22 @@ export function useSellFlowState(urlItemId: string | null) {
       }
       const status = await publishItem(id);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
+      if (answer) {
+        try {
+          const out = await answerAfterListing(answer, id, status, form.free ? null : dollarsToCents(form.price));
+          if (out.kind === "sent") {
+            toast.success(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
+            navigate("/declutter?view=wanted");
+            return;
+          }
+          toast(out.kind === "checking"
+            ? "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live."
+            : "Listed for free. A free listing can't answer a Wanted; they can find it in Browse.");
+        } catch (err) {
+          // The listing is live; only the answer failed. Said, and the seller can answer from Wanted near you.
+          toast.error(`Listed, but the answer wasn't sent: ${declutterErrorMessage(err)}`);
+        }
+      }
       // Board 80: the Selling tab opens the "What next" sheet (ListedWhatNext) instead of a toast.
       navigate("/declutter?view=selling", { state: { justListed: { itemId: id, status } } });
     } catch (err) {

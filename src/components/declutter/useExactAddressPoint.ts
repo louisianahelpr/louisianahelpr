@@ -11,7 +11,7 @@ import { track } from "@/lib/analytics";
 export interface AddressPoint { lat: number; lng: number; address: string }
 
 /** How far a shared location may be from the town or street we did find: a big rural parish, not a neighboring one. */
-export const SHARED_LOCATION_MAX_METRES = 40_000;
+const SHARED_LOCATION_MAX_METRES = 40_000;
 
 /** The form asks for the address's area point only while it is showing this note. */
 export interface InexactAddress { address: string; near: { lat: number; lng: number } }

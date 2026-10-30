@@ -87,7 +87,7 @@ function streetsAgree(typed: string, found: string): boolean {
 }
 
 /** The answer is somewhere else: another state, or neither the typed town nor the typed ZIP. Never a match. */
-export function isSomewhereElse(typed: AddressParts, found: FoundPlace): boolean {
+function isSomewhereElse(typed: AddressParts, found: FoundPlace): boolean {
   const foundState = stateCode(found.state);
   if (typed.state && foundState && typed.state !== foundState) return true;
   const foundCity = (found.city ?? "").trim().toLowerCase();

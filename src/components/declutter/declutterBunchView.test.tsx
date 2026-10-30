@@ -1,5 +1,5 @@
 /**
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       const c = await place.locate(pickupAddress); |       const c = { lat: 0, lng: 0 };
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       const c = await place.locate(pickupAddress);\n      // Only a change is saved | const c = { lat: 0, lng: 0 };\n      // Only a change is saved
  * "Sell a bunch" screen (owner 2026-10-29: "upload all pictures for everything
  * they want to sell, ai does the forms and they review all at once before
  * submission"). /declutter/sell?mode=bunch:

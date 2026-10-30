@@ -22,7 +22,7 @@ describe("unhired applicants are not told a job was cancelled (owner 2026-10-21)
     // ...and before the cancellation notice is written.
     expect(skip).toBeLessThan(body.indexOf("was cancelled, so your application is closed"));
     // job_helper is the job's offered/hired Helpr, read beside the title.
-    expect(body).toMatch(/SELECT title, customer_id, helper_id, offered_to_helper_id, direct_offer_status INTO job_title, job_owner, job_helper, job_offered, job_offer_status FROM public\.jobs/);
+    expect(body).toMatch(/SELECT title, customer_id, helper_id, offered_to_helper_id, direct_offer_status\b[^;]*INTO job_title, job_owner, job_helper, job_offered, job_offer_status\b[^;]*FROM public\.jobs/);
   });
 
   it("their card says the job is no longer available", () => {

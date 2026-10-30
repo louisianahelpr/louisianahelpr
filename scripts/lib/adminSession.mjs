@@ -88,6 +88,15 @@ export function resolveServiceKey({ env = process.env, cwd = process.cwd() } = {
  * is_seed themselves; until 20261025161836 a trigger also did, for any
  * sign-up). Measured before enforcing (2026-10-12, prod
  * auth.sessions over 5 days): every automated session was on one of these.
+ *
+ * A MAILINATOR ADDRESS IS NOT ENOUGH (Q2398, finding lh-authz-rls@2f4bc154e0#3).
+ * Since 20261025161836 dropped the trigger that marked every mailinator
+ * sign-up is_seed, a real stranger can sign up with a Mailinator inbox. So a
+ * mailinator address that is not one of the shared accounts is minted only when
+ * its profile is is_seed or it has a public.test_accounts row (mintEligibility,
+ * read with the service role BEFORE generate_link), and the minted session
+ * must be for that same user. Measured 2026-10-30 (prod, read-only): 63
+ * mailinator auth users, every one with a profile whose email matches.
  */
 export const SHARED_TEST_EMAILS = Object.freeze([
   "helpr-audit-web-0824@mailinator.com",
@@ -107,6 +116,42 @@ export function mintRefusal(email) {
     `mintAdminSession: refusing to mint a session for "${email}": only the shared test accounts ` +
     `(scripts/test-signin-link.mjs ACCOUNTS) and @mailinator.com fixture inboxes may be signed in this way (Q1422).`
   );
+}
+
+/**
+ * Throws unless `email` names a test account (Q2398). The shared accounts are
+ * fixed; any other (mailinator) address must have exactly one profile with that
+ * email that is is_seed or enrolled in public.test_accounts. Fails closed on
+ * any lookup error. Returns the user id the minted session must belong to
+ * (null for a shared account, whose address alone is the allow-list).
+ */
+export async function mintEligibility({ email, serviceKey, base, timeoutMs = 45_000 }) {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (SHARED_TEST_EMAILS.includes(e)) return null;
+  const refuse = (why) =>
+    new Error(
+      `mintAdminSession: refusing to mint a session for "${email}": ${why}; a fixture inbox must be is_seed or in public.test_accounts (Q2398).`,
+    );
+  const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  const get = async (path) => {
+    let r;
+    try {
+      r = await fetchTransport(`${base}${path}`, { method: "GET", headers, timeoutMs });
+    } catch (err) {
+      throw refuse(`the test-account lookup failed (${err instanceof Error ? err.message : String(err)})`);
+    }
+    if (r.status < 200 || r.status >= 300) throw refuse(`the test-account lookup answered HTTP ${r.status}`);
+    const rows = parse(r.text, "test-account lookup");
+    if (!Array.isArray(rows)) throw refuse("the test-account lookup did not answer a list");
+    return rows;
+  };
+  const profiles = await get(`/rest/v1/profiles?email=eq.${encodeURIComponent(e)}&select=user_id,is_seed`);
+  if (profiles.length !== 1 || !profiles[0]?.user_id) throw refuse(`${profiles.length} profiles have this address`);
+  const userId = String(profiles[0].user_id);
+  if (profiles[0].is_seed === true) return userId;
+  const enrolled = await get(`/rest/v1/test_accounts?user_id=eq.${encodeURIComponent(userId)}&select=user_id`);
+  if (enrolled.length === 1) return userId;
+  throw refuse("it is neither is_seed nor in public.test_accounts");
 }
 
 /** Node's fetch as a transport: `(url, {method, headers, body, timeoutMs}) -> {status, text}`. */
@@ -229,6 +274,7 @@ export async function mintAdminSession({
   if (refused) throw new Error(refused);
   if (!serviceKey) throw new Error(`mintAdminSession: no service-role key to mint ${email}'s session with (SUPABASE_SERVICE_ROLE_KEY)`);
   const base = supabaseBase(String(supabaseUrl).replace(/\/+$/, ""));
+  const mustBeUserId = await mintEligibility({ email, serviceKey, base, timeoutMs });
 
   const once = async () => {
     const send = async (path, headers, body, via = transport) => {
@@ -258,6 +304,9 @@ export async function mintAdminSession({
     }
     if (String(session.user.email ?? "").toLowerCase() !== String(email).trim().toLowerCase()) {
       throw new Error(`minted a session for ${session.user.email}, not ${email}`);
+    }
+    if (mustBeUserId !== null && String(session.user.id) !== mustBeUserId) {
+      throw new Error(`minted a session for user ${session.user.id}, not the checked test account ${mustBeUserId} (Q2398)`);
     }
     return { session };
   };

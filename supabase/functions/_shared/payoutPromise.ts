@@ -83,12 +83,14 @@ export async function readPromisedPayout(
  * The end of an approval notice: "$87 will be sent to your account Tue, Nov 3,
  * after the one-time $2 account setup fee."
  */
-export function payoutPromiseSentence(promised: PromisedPayout | null, payDay: string): string {
-  if (!promised) return `Your pay will be sent to your account ${payDay}.`;
+export function payoutPromiseSentence(promised: PromisedPayout | null, payDayLabel: string | null): string {
+  // payoutDayLabel gives null for a missing or unreadable time: name no day rather than print "null".
+  const payDay = payDayLabel ? ` ${payDayLabel}` : "";
+  if (!promised) return `Your pay will be sent to your account${payDay}.`;
   const dollars = promised.debtCents > 0 ? formatExactDollars(promised.cents / 100) : formatPayoutDollars(promised.cents / 100);
   const taken = [
     promised.setupFeeCents > 0 ? `the one-time $${formatExactDollars(promised.setupFeeCents / 100)} account setup fee` : "",
     promised.debtCents > 0 ? `$${formatExactDollars(promised.debtCents / 100)} owed from a job you were ruled at fault on` : "",
   ].filter(Boolean);
-  return `$${dollars} will be sent to your account ${payDay}${taken.length > 0 ? `, after ${taken.join(" and ")}` : ""}.`;
+  return `$${dollars} will be sent to your account${payDay}${taken.length > 0 ? `, after ${taken.join(" and ")}` : ""}.`;
 }

@@ -20,7 +20,7 @@
  * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 2;
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isPoster ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
- * @mutate supabase/functions/_shared/payoutPromise.ts |   return `$${dollars} will be sent to your account ${payDay}${ |   return `$${dollars} will be transferred to your account in 24 hours${
+ * @mutate supabase/functions/_shared/payoutPromise.ts |   return `$${dollars} will be sent to your account${payDay}${ |   return `$${dollars} will be transferred to your account in 24 hours${
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Sent 24 hours after approval`;
  */
 import { describe, it, expect, beforeEach } from "vitest";

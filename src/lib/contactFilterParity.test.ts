@@ -359,4 +359,4 @@ describe("phone matcher: client and server agree on every shared fixture", () =>
 // Take the email branch out of the SHIPPED SQL. Before the branches were read
 // from the migration (2026-09-21) this survived: the retyped replica kept
 // answering "email" while the live gate let jane@gmail.com through.
-// @mutate supabase/migrations/20260915030812_contact_leak_reason_exempts_location_shares.sql | ELSIF p_text ~* '[a-z0-9._]+@ | ELSIF p_text ~* 'zzz-removed@
+// @mutate supabase/migrations/20261030080734_contact_leak_nfkc.sql | ELSIF v_norm ~* '[a-z0-9._]+@ | ELSIF v_norm ~* 'zzz-removed@

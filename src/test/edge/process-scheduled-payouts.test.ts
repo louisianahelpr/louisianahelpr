@@ -274,6 +274,55 @@ describe("process-scheduled-payouts edge function", () => {
       expect((settle?.payload as { metadata?: unknown } | undefined)?.metadata).toEqual(expect.objectContaining(withheld));
     });
 
+    // Owner 2026-10-30: the giveaway pays exactly $50, setup fee owed or not; an owed fee is covered from the leftover.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |             unroundedPayoutCents += onboardingFeeCents; |
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |             ledgerCommissionCents -= onboardingFeeCents; |
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |           owesOnboardingFee && !isGiveawayFixedPayJob(job) ? `one-time | owesOnboardingFee ? `one-time
+    for (const feePaid of [false, true]) {
+      it(`pays the giveaway exactly $50 and books it (onboarding_fee_paid ${feePaid})`, async () => {
+        seedPayableJob(scenario, {
+          job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },
+          profile: { onboarding_fee_paid: feePaid },
+        });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+        const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
+        expect(transferArg.amount).toBe(5000);
+        expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe(feePaid ? "false" : "true");
+        // Marked paid exactly once, by the normal claim; never touched when already paid.
+        const updates = profileUpdates();
+        expect(updates).toHaveLength(feePaid ? 0 : 1);
+        if (!feePaid) expect((updates[0].payload as Record<string, unknown>).onboarding_fee_paid).toBe(true);
+        const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+        expect(settle?.payload).toEqual(expect.objectContaining({
+          amount_cents: 5000,
+          platform_fee_cents: feePaid ? 1000 : 800,
+          metadata: expect.objectContaining({ onboarding_fee_cents: feePaid ? 0 : 200, rounding_remainder_cents: 0 }),
+        }));
+        // The winner is told $50, and no fee was taken from it.
+        const notice = scenario.writes.find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("Payout sent"));
+        expect(JSON.stringify(notice?.payload)).toContain("$50 for");
+        expect(JSON.stringify(notice?.payload)).not.toMatch(/setup fee/);
+      });
+    }
+
+    it("the giveaway: a failed transfer un-claims the fee, so the retry claims it once and still sends $50", async () => {
+      seedPayableJob(scenario, {
+        job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },
+      });
+      stripeMock.transfers.create.mockRejectedValueOnce(new Error("stripe down"));
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      const updates = profileUpdates();
+      expect((updates[0].payload as Record<string, unknown>).onboarding_fee_paid).toBe(true);
+      expect((updates[updates.length - 1].payload as Record<string, unknown>).onboarding_fee_paid).toBe(false);
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      const amounts = stripeMock.transfers.create.mock.calls.map((c) => (c[0] as { amount: number }).amount);
+      expect(amounts).toEqual([5000, 5000]);
+    });
+
     it("does not claim or deduct when the helper already paid the fee", async () => {
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       const fn = await load();

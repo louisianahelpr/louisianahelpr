@@ -118,3 +118,22 @@ export function flatFeePercentOf(job: FeeModelStamp | null | undefined): number 
   if (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) return HELPR_FLAT_FEE_PERCENT;
   return Number(v);
 }
+
+/**
+ * OWNER DECISION, 2026-10-30: the "GIVE AWAY!!" launch job (11f8b084) pays its
+ * winner EXACTLY $50, and the rest stays with Louisiana Helpr. This stamp says
+ * so: 5% + $7.00 on its $60 is a $10 fee, so every reader of the stamp gets $50.
+ * A winner who still owes the one-time setup fee has it covered from that $10
+ * (owner 2026-10-30): the payout paths claim it the normal way, so it is marked
+ * paid once and never taken again, the transfer stays $50, and the ledger books
+ * $8 commission + $2 setup fee instead of $10 commission. The words "You take
+ * home" and the setup-fee line do not show on it. ONE job: the database CHECK
+ * jobs_giveaway_flat_stamp_is_one_job refuses this value on any other row, and
+ * src/test/giveawayPaysExactlyFifty.test.ts fails on any other writer.
+ */
+const GIVEAWAY_FIXED_PAY_FLAT_CENTS = 700;
+
+/** Is this the job that pays an exact amount? See GIVEAWAY_FIXED_PAY_FLAT_CENTS. */
+export function isGiveawayFixedPayJob(job: FlatFeeStamp | null | undefined): boolean {
+  return isFlatFeeJob(job) && Number(job!.helper_fee_flat_cents) === GIVEAWAY_FIXED_PAY_FLAT_CENTS;
+}

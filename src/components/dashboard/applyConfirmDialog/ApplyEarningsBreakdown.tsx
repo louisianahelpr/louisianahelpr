@@ -6,6 +6,7 @@ import { useApplyTakeHome } from "./applyTakeHome";
 // wrong for the lines that justify it, where the column has to add up.
 import { formatPriceFloor } from "@/lib/format";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -43,9 +44,12 @@ export function ApplyEarningsBreakdown({
       {/* HEADLINE — floors, matching JobPrice and every other headline
           take-home in the app. The itemised rows below keep exact cents
           because they have to add up. */}
-      <p className="font-sans font-semibold text-ds-13 mb-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-        You take home
-      </p>
+      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. */}
+      {!isGiveawayFixedPayJob(confirmApplyJob) && (
+        <p className="font-sans font-semibold text-ds-13 mb-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
+          You take home
+        </p>
+      )}
       <p
         className="font-sans font-bold tabular-nums leading-none text-ds-32"
         style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "-0.02em" }}

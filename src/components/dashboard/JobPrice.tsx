@@ -1,7 +1,7 @@
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { MoneyAmount, MONEY_CHIP_SURFACE, MONEY_CHIP_SURFACE_LG } from "@/components/job/MoneyChip";
 
@@ -95,7 +95,8 @@ export function computeNet(
   const netUrgent = netUrgentFeeDollars(urgentFee) / helpers;
   const netEarnings = netAfterFirstPayoutFee(
     perHelperBudget - commission + netUrgent,
-    firstPayoutFeeDollars,
+    // Owner 2026-10-30: the giveaway pays exactly its amount, no setup fee.
+    isGiveawayFixedPayJob(feeStamp) ? 0 : firstPayoutFeeDollars,
   );
   return { helpers, perHelperBudget, commission, netEarnings, netUrgent };
 }
@@ -115,7 +116,7 @@ export function JobPrice({
   // Q753: a viewer who has not paid the one-time setup fee loses it from their
   // first payout, so the chip and the detail pill must not read higher.
   const owedFee = useFirstPayoutFeeDollars();
-  const firstPayoutFee = jobStatus === "disputed" ? 0 : owedFee;
+  const firstPayoutFee = jobStatus === "disputed" || isGiveawayFixedPayJob(feeStamp) ? 0 : owedFee;
   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee, feeStamp);
 
   // Bidding was removed (zero production usage), so a job's price is always the

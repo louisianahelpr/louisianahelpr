@@ -51,7 +51,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee, type CrewFeeShareRow } from "../_shared/crewShares.ts";
 import { helperCommissionDollars, feePercentForTier, jobHelprCommissionDollars } from "../_shared/helperFees.ts";
-import { isFlatFeeJob } from "../_shared/helprFlatFee.ts";
+import { isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { APPROVAL_WINDOW_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
@@ -953,7 +953,7 @@ serve(async (req) => {
     const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
       admin
         .from("payout_transfers")
-        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
+        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id, metadata", countOpt)
         .order("id", { ascending: true }),
     );
     if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
@@ -1347,7 +1347,12 @@ serve(async (req) => {
       // against jobs.platform_fee_amount would manufacture a critical finding
       // out of a row that never moved money.
       if (!isSettledTransfer(t)) continue;
-      const expectedCents = Math.round(money(job.platform_fee_amount) * 100);
+      // Owner 2026-10-30: the giveaway's row says the $10 Louisiana Helpr keeps; a
+      // winner's setup fee is booked out of it on the ledger row as its own line.
+      const leftoverSetupFeeCents = isGiveawayFixedPayJob(job)
+        ? Math.max(0, Math.round(Number((t.metadata as { onboarding_fee_cents?: unknown } | null)?.onboarding_fee_cents ?? 0)))
+        : 0;
+      const expectedCents = Math.round(money(job.platform_fee_amount) * 100) - leftoverSetupFeeCents;
       const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));
       if (expectedCents !== storedCents) {
         checks.transferFeeMismatch.add({

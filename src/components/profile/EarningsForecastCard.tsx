@@ -15,6 +15,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceFloor } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -80,6 +81,7 @@ interface ForecastData {
   /** Q1272 (6): the parts of each total already paid out (released): the setup fee never comes off them. */
   projectedSettled: number;
   earnedSettled: number;
+  feeCanComeOff: boolean;
   inProgressCount: number;
   weekEnd: Date;
 }
@@ -129,6 +131,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       let earnedSoFar = 0;
       let projectedSettled = 0;
       let earnedSettled = 0;
+      let feeCanComeOff = false;
       let inProgressCount = 0;
 
       for (const row of safeRows) {
@@ -138,6 +141,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         // agrees with every other earnings surface.
         const net = helperTakeHomeDollars(row, feeFallbackPercent);
         const settled = isSettledForDisplay(row);
+        if (!settled && !isGiveawayFixedPayJob(row)) feeCanComeOff = true;
         if (settled) projectedSettled += net;
         if (row.status === COMPLETED_STATUS) {
           if (settled) earnedSettled += net;
@@ -152,7 +156,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         }
       }
 
-      return { projectedTotal, earnedSoFar, projectedSettled, earnedSettled, inProgressCount, weekEnd: end };
+      return { projectedTotal, earnedSoFar, projectedSettled, earnedSettled, feeCanComeOff, inProgressCount, weekEnd: end };
     },
     enabled: enabled && !!helperId,
     staleTime: 60_000,
@@ -191,8 +195,10 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   // all settled no longer reads $2 low.
   const projectedUnsettled = data.projectedTotal - data.projectedSettled;
   const earnedUnsettled = data.earnedSoFar - data.earnedSettled;
-  const projectedTotal = data.projectedSettled + netAfterFirstPayoutFee(projectedUnsettled, projectedUnsettled > 0 ? firstPayoutFee : 0);
-  const earnedSoFar = data.earnedSettled + netAfterFirstPayoutFee(earnedUnsettled, earnedUnsettled > 0 ? firstPayoutFee : 0);
+  // Owner 2026-10-30: nor does the giveaway's payout carry it.
+  const feeHere = data.feeCanComeOff ? firstPayoutFee : 0;
+  const projectedTotal = data.projectedSettled + netAfterFirstPayoutFee(projectedUnsettled, projectedUnsettled > 0 ? feeHere : 0);
+  const earnedSoFar = data.earnedSettled + netAfterFirstPayoutFee(earnedUnsettled, earnedUnsettled > 0 ? feeHere : 0);
 
   // Nothing lined up and nothing earned this week: no card at all (Q1177). It
   // used to render a "No jobs lined up yet" card with its own Browse Jobs

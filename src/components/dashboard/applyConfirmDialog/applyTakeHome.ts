@@ -3,7 +3,7 @@ import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 /**
  * The Helpr's take-home on a job they apply to: the ONE copy of the maths, read by the apply
@@ -32,7 +32,9 @@ export function useApplyTakeHome(confirmApplyJob: EnrichedJob, platformFee: numb
   // one-time setup fee from its FIRST payout (release-payout /
   // process-scheduled-payouts). The take-home shown here must not read higher
   // than what lands, so it comes off the total and gets its own line.
-  const firstPayoutFee = useFirstPayoutFeeCents() / 100;
+  // Owner 2026-10-30: the giveaway pays exactly its amount, no setup fee.
+  const owedFirstPayoutFee = useFirstPayoutFeeCents() / 100;
+  const firstPayoutFee = isGiveawayFixedPayJob(confirmApplyJob) ? 0 : owedFirstPayoutFee;
   const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee);
   // Q236: the transfer pays WHOLE dollars, rounded DOWN (the platform keeps
   // the cents). The receipt shows the dropped cents as their own line so the

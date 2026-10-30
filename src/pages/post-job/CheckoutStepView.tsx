@@ -92,7 +92,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           component and its usePostingQuality hook had no other callers, so both
           were deleted with it. */}
       {/* First post (B59): the Helpr Guarantee, said plainly, from one shared constant. */}
-      <FirstPostGuarantee oneHelpr={!form.isGroupJob} />
+      <FirstPostGuarantee oneHelpr={!form.isGroupJob} firstPost={form.isFirstPost === true} />
       {form.quoteReview ? <WithQuoteAsk form={form}>{(ask) => checkout(ask)}</WithQuoteAsk> : checkout()}
       </div>
       <aside className="hidden xl:block sticky top-6">

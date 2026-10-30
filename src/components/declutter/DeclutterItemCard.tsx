@@ -40,7 +40,11 @@ export interface CardSave {
  */
 export type CardTag = "drop" | "delivery";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean }) {
+/** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
+const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
+const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
+
+export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle, firstRow }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean }) {
   const away = milesLabel(miles, approximate);
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile).
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -57,7 +61,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             fixture photos are 1x1 transparent PNGs) shows the icon, never a blank box. */}
         <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
         {photoPath && !photoFailed && (
-          <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" onError={() => setPhotoFailed(true)} className="relative h-full w-full object-cover" />
+          <img src={photoPublicUrl(photoPath)} alt="" {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)} onError={() => setPhotoFailed(true)} className="relative h-full w-full object-cover" />
         )}
         {tag && (
           // Opaque card under the tint, so the tag reads the same on any photo.

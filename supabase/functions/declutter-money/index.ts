@@ -237,7 +237,7 @@ async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: numbe
     const { data: profile, error } = await admin.from("profiles").select("email").eq("user_id", buyerId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     if (error || !to) return;
-    const link = `${getAppUrl()}/declutter?view=cart`;
+    const link = `${getAppUrl()}/declutter?tab=buying`;
     const body = `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.`;
     await queueEmail(admin, {
       to,

@@ -91,6 +91,9 @@ const MESSAGE_MAX = 5000
 // adjudicate RFC 5322. Real deliverability is Resend's problem.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
+// reports.reported_id is NOT NULL with no foreign key; a guest's ticket is about nobody.
+const GUEST_REPORTED_ID = '00000000-0000-0000-0000-000000000000'
+
 /**
  * Trim, strip control characters, and cap length.
  *
@@ -343,18 +346,33 @@ serve(async (req) => {
     // The email above is the delivery guarantee; neither of these may fail
     // the request, but both log loudly rather than swallowing.
 
-    // Signed-in senders also get a row in the admin `reports` queue so
-    // /support and the in-app Profile support tab land in the SAME place.
-    // Guests cannot: the INSERT policy needs auth.uid() = reporter_id.
+    // Every sender gets a row in the admin `reports` queue so /support and the
+    // in-app Profile support tab land in the SAME place (the Support inbox).
+    //
+    // A GUEST's row has no reporter, so who to answer rides in the description's
+    // last line (src/lib/supportGuest.ts reads it). This endpoint is
+    // unauthenticated and trg_reports_zz_ledger turns `reason` into a ledger
+    // title, so a guest's reason is fixed text: a typed subject there would let
+    // anyone mint unbounded items (authz review of Q64, M2). The subject goes in
+    // the description. A guest who typed a fixture address files no row (Q840):
+    // test data never reaches the inbox; the ledger item below is its trail.
     let reportLogged = false
-    if (userId) {
-      const { error: reportErr } = await admin.from('reports').insert({
-        reporter_id: userId,
-        reported_type: 'support',
-        reported_id: userId,
-        reason: `[${topicLabel}] ${subject || 'No subject'}`,
-        description: `${message}\n\n(Submitted from /support)`,
-      })
+    if (userId || !testSubmitter) {
+      const { error: reportErr } = await admin.from('reports').insert(userId
+        ? {
+            reporter_id: userId,
+            reported_type: 'support',
+            reported_id: userId,
+            reason: `[${topicLabel}] ${subject || 'No subject'}`,
+            description: `${message}\n\n(Submitted from /support)`,
+          }
+        : {
+            reporter_id: null,
+            reported_type: 'support',
+            reported_id: GUEST_REPORTED_ID,
+            reason: `[${topicLabel}] Guest message`,
+            description: `${subject ? `Subject: ${subject}\n\n` : ''}${message}\n\n(Submitted from /support)\n\nGuest: ${name} <${email}>`,
+          })
       if (reportErr) {
         console.error('[contact-support] reports insert failed:', reportErr.message)
       } else {
@@ -362,10 +380,10 @@ serve(async (req) => {
       }
     }
 
-    // A GUEST has no reports row, so nothing else would make this a tracked
-    // item (docs/OPEN.md Q64: nothing a user reports can sit unseen). A
-    // signed-in sender's row reaches the ledger through trg_reports_zz_ledger;
-    // if that insert failed above, record it here too rather than lose it.
+    // A reports row reaches the ledger through trg_reports_zz_ledger. With no
+    // row (a fixture-address guest, or the insert failed above) nothing else
+    // would make this a tracked item (docs/OPEN.md Q64: nothing a user reports
+    // can sit unseen), so record it here rather than lose it.
     // Same title shape and severity as public.user_report_title /
     // user_report_severity. Link back = the support-inbox subject line.
     // verify 'manual': the only evidence it was handled is the reply email.
@@ -413,7 +431,7 @@ serve(async (req) => {
         From: name,
         Email: email,
         Account: accountLine,
-        'Admin queue': userId ? (reportLogged ? 'logged' : 'INSERT FAILED — email only') : 'guest (email only)',
+        'Admin queue': reportLogged ? 'logged' : userId ? 'INSERT FAILED — email only' : 'guest (email only)',
       },
     })
 

@@ -15,7 +15,7 @@ export function SellBunchEntry() {
       <Images className="h-5 w-5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">Sell a bunch</span>
-        <span className="block text-xs text-muted-foreground">Add photos of everything; Claude writes each listing for you to check</span>
+        <span className="block text-xs text-muted-foreground">Add photos of everything; we'll write each listing for you to check</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>

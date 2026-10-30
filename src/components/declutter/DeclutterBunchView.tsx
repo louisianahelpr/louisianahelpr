@@ -157,7 +157,7 @@ export default function BunchFlow() {
         : x)));
     } catch (err) {
       // Not silent: the reason is shown above the list; the seller can fill the item in themselves.
-      setSortNote(`Claude couldn't write "${bunchItemName(it, items.indexOf(it))}" again: ${declutterErrorMessage(err)}`);
+      setSortNote(`We couldn't write "${bunchItemName(it, items.indexOf(it))}" again: ${declutterErrorMessage(err)}`);
     } finally {
       setRewriting(null);
     }
@@ -207,7 +207,7 @@ export default function BunchFlow() {
     <AppPage title="Sell a bunch" backTo="/declutter?view=selling">
       <p className="font-moment text-ds-32 leading-tight">Sell a bunch</p>
       <p className="text-sm text-muted-foreground">
-        Add photos of everything you want to sell. Claude sorts them into items and writes each listing. You check them all, then list them together.
+        Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
       <SellerPayoutPrompt />
 
@@ -234,7 +234,7 @@ export default function BunchFlow() {
         )}
         {sorting && (
           <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-            Claude is sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done)…
+            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done)…
           </p>
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
@@ -243,7 +243,7 @@ export default function BunchFlow() {
       {items.length > 0 && (
         <Section id="bunch-check" title={`3. Check each item (${ready.length} of ${items.length} ready)`}>
           <p className="text-xs text-muted-foreground">
-            Fix anything Claude got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
+            Fix anything we got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
           </p>
           <ul className="space-y-3">
             {items.map((it, i) => (

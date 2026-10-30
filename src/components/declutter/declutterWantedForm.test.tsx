@@ -199,8 +199,11 @@ describe("the Wanted hub", () => {
     expect(within(sheet).getByRole("button", { name: "25 mi" })).toHaveAttribute("aria-pressed", "true");
     for (const c of chips) expect(c.className).toMatch(/\btext-ds-13\b/);
     fireEvent.click(within(sheet).getByRole("button", { name: "Post wanted" }));
-    await waitFor(() => expect(posted).toHaveLength(1));
+    // The post went out AND the sheet closed (one wait: the absence is checked only once the post is seen).
+    await waitFor(() => {
+      expect(posted).toHaveLength(1);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
     expect(posted[0]).toEqual([{ what: "Kids bike, 16 inch", maxPrice: "30", category: "baby_kids", radius: 25 }, { lat: 30, lng: -92 }]);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

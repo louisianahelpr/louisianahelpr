@@ -3,7 +3,7 @@
   "_threshold": 600,
   "files": {
     "src/components/admin/AdminDisputes.tsx": 729,
-    "src/components/admin/AdminReports.tsx": 720,
+    "src/components/admin/AdminReports.tsx": 714,
     "src/components/BrowseMap.tsx": 1174,
     "src/components/dashboard/JobCard.tsx": 795,
     "src/components/dashboard/JobDetailDialog.tsx": 945,

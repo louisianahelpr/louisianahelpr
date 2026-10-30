@@ -74,6 +74,8 @@ const ALLOWED: Record<string, string> = {
   declutter_consume_fee_debt: MONEY,
   declutter_create_move_drafts: LIMIT,
   declutter_create_wanted: LIMIT,
+  // DC-8 (20261030061927): the last photo of a listing on sale stays (counts the item's own photos).
+  declutter_remove_item_photo: VALID,
   declutter_delivery_slot_used: LIMIT,
   declutter_donation_own_items: VALID,
   declutter_donation_partner_miles: VALID,
@@ -109,6 +111,9 @@ const ALLOWED: Record<string, string> = {
   helpr_route_suggestions: LIMIT,
   helpr_task_accept: LIMIT,
   helpr_task_give_job_strike: LADDER,
+  // B-delivery (20261030044539): open-task counts by area for a Helpr; helpr_task_same_stripe_mode keeps a seeded test
+  // account's tasks and a real member's apart, so a real Helpr never counts test data.
+  helpr_tasks_open_count: "excludes test data: helpr_task_same_stripe_mode (seeded test accounts and real members never see one another's tasks)",
   job_photos_shareable: VALID,
   log_cron_defect: OPS,
   marketing_published_today: REVIEW,

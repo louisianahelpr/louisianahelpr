@@ -451,6 +451,10 @@ const DYNAMIC_REMOVERS: Record<string, { why: string; check?: (src: Source) => s
   "supabase/functions/listing-photo-purge/index.ts": {
     why: "Homes listing photos only: its buckets come from rental_photo_purge_queue, whose CHECK admits only listing-photos and job-photos (20261019071203); never the avatars bucket",
   },
+  "src/lib/declutter/wanted.ts": {
+    why: "B77 Wanted photos: removes only the object it just uploaded when declutter_add_wanted_photo refuses it, from DECLUTTER_PHOTO_BUCKET (job-photos); never the avatars bucket",
+    check: (src) => (/["']avatars["']/.test(src.text) ? "wanted.ts now names the avatars bucket" : null),
+  },
   "src/lib/shops/storageCleanup.ts": {
     why: "Shops shop and item photos only: its callers (src/lib/shops/api.ts, items.ts) pass job-photos; never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "shops storageCleanup now names the avatars bucket" : null),

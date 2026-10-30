@@ -119,7 +119,24 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(await screen.findByText("Reserved for you, not paid yet.")).toBeInTheDocument();
     expect(screen.getByText("29 hours left")).toBeInTheDocument();
     expect(screen.queryByText("Someone is buying this item.")).toBeNull();
-    expect(screen.getByRole("link", { name: "Go to checkout" })).toHaveAttribute("href", "/declutter?tab=buying");
+    // DB-5: straight to this seller's checkout. LINE has no source (before the 20261030064929 deploy): the strike
+    // words stay, because the server still gave one then.
+    expect(screen.getByRole("link", { name: "Go to checkout" })).toHaveAttribute("href", "/declutter?tab=buying&checkout=s1");
+    expect(screen.getByText(/If you don't, you get a strike and it goes back up for sale\./)).toBeInTheDocument();
+  });
+
+  // DB-5 (owner 2026-10-30): a Buy now hold is no strike; an accepted offer's hold still is.
+  // @mutate src/components/declutter/DeclutterYourOffer.tsx |           : holdHasNoStrike([line]) ? `Pay by ${by}. |           : false ? `Pay by ${by}.
+  // @mutate src/components/declutter/DeclutterYourOffer.tsx | <Link to={free ? CHECKOUT_LINK : checkoutLinkFor(line.seller_id)}> | <Link to={CHECKOUT_LINK}>
+  it("DB-5: a Buy now hold says No strike; an accepted offer's still warns", async () => {
+    state.cart = [{ ...LINE, source: "buy" }];
+    const first = show(<OfferPanel item={{ ...ITEM, status: "reserved" }} userId="u1" />);
+    expect(await screen.findByText(/^Pay by .+\. If you don't, it goes back up for sale\. No strike\.$/)).toBeInTheDocument();
+    expect(screen.queryByText(/you get a strike/)).toBeNull();
+    first.unmount();
+    state.cart = [{ ...LINE, source: "offer" }];
+    show(<OfferPanel item={{ ...ITEM, status: "reserved" }} userId="u1" />);
+    expect(await screen.findByText(/If you don't, you get a strike and it goes back up for sale\./)).toBeInTheDocument();
   });
 
   it("reserved to someone else (or this buyer's line already paid): someone is buying it", async () => {

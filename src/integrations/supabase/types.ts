@@ -14484,6 +14484,7 @@ export type Database = {
           premium_cents: number | null
           price_cents: number
           seller_id: string
+          source: string
           status: string
           total_cents: number | null
         }[]

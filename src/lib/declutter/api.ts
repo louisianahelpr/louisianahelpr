@@ -829,6 +829,11 @@ export interface CartLine {
   delivery_cents?: number | null;
   /** Slice 5: the order's Helpr task (read with helpr_task_view), null for a pickup. */
   delivery_task_id?: string | null;
+  /**
+   * DB-5 (20261030064929): how the line got here. "buy" = Buy now or a free claim (no strike when its 48 hours run
+   * out), "offer" = an accepted offer (a strike). Absent before that deploy: read as "may carry a strike".
+   */
+  source?: "buy" | "offer" | null;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

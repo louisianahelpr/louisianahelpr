@@ -15,10 +15,10 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
- * Buy now asks in an in-app sheet, never window.confirm (lead 2026-10-28), and says "Reserved for you, not paid yet".
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setReserve("reserved"); |       setReserve(null);
- * @mutate src/components/declutter/DeclutterReserveSheet.tsx |               <SheetPrimaryAction onClick={onReserve} disabled={pending}>Reserve it</SheetPrimaryAction> |               <SheetPrimaryAction onClick={onClose} disabled={pending}>Reserve it</SheetPrimaryAction>
+ * DB-5 (owner 2026-10-30): Buy now goes straight to that seller's checkout: no reserve sheet, never window.confirm.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (!buy.isPending) buy.mutate(); |     if (window.confirm("Buy?")) buy.mutate();
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate(checkoutLinkFor(item.seller_id)); |       void checkoutLinkFor;
+ * @mutate src/lib/declutter/buyNowHold.ts |   return sellerId ? `/declutter?tab=buying&checkout=${encodeURIComponent(sellerId)}` : "/declutter?tab=buying"; |   return "/declutter?tab=buying";
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
@@ -141,7 +141,12 @@ import { OfferPanel } from "./DeclutterOfferPanel";
 /** The router's history state, shown so a test can see OfferPanel clear it. */
 function RouterState() {
   const loc = useLocation();
-  return <output data-testid="router-state">{JSON.stringify(loc.state ?? null)}</output>;
+  return (
+    <>
+      <output data-testid="router-state">{JSON.stringify(loc.state ?? null)}</output>
+      <output data-testid="router-path">{loc.pathname + loc.search}</output>
+    </>
+  );
 }
 
 function show(el: React.ReactNode, entry: string | { pathname: string; state: unknown } = "/declutter/item/i1") {
@@ -228,31 +233,33 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
   });
 
-  it("back from saving a card in the app (the sheet closes): Buy goes straight to its confirm", async () => {
+  it("back from saving a card in the app (the sheet closes): Buy goes straight to that seller's checkout (DB-5)", async () => {
     state.returnWithCard = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
-    // The in-app sheet, never a browser confirm (lead 2026-10-28): the hold, the pickup total, "Not paid yet".
-    const ask = await screen.findByRole("dialog");
-    expect(ask).toHaveTextContent("Reserve it for 48 hours");
-    // A1-C1: the strike is said up front, before "Reserve it" (not only on the "Reserved for you" step).
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | data-reserve-strike="">Check out within 48 hours, or you get a strike and it goes back up for sale.</p> | data-reserve-strike="">Check out within 48 hours.</p>
-    expect(ask.querySelector("[data-reserve-strike]")).toHaveTextContent("Check out within 48 hours, or you get a strike and it goes back up for sale.");
-    expect(ask).toHaveTextContent("Oak rocking chair");
-    expect(ask.querySelector("[data-reserve-bill]")?.textContent).toMatch(/Total with pickup\$42\.70/);
-    expect(ask).toHaveTextContent("You pay at checkout. Not paid yet.");
-    expect(ask.textContent).not.toMatch(/fee|%|¢/i);
-    expect(state.bought).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "Reserve it" }));
     await waitFor(() => expect(state.bought).toBe(1));
-    expect(await screen.findByText("Reserved for you")).toBeInTheDocument();
-    expect(screen.getByRole("dialog")).toHaveTextContent(/Not paid yet\..*Check out within 48 hours/);
-    expect(screen.getByRole("button", { name: "Go to checkout" })).toBeInTheDocument();
+    // No reserve sheet and no strike warning in between (owner 2026-10-30): the next screen is the checkout.
+    await waitFor(() => expect(screen.getByTestId("router-path")).toHaveTextContent("/declutter?tab=buying&checkout=s1"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText(/Reserve it/)).toBeNull();
+    expect(screen.queryByText(/strike/i)).toBeNull();
     expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
+  });
+
+  it("DB-5: with a saved card, one tap on Buy now holds the item and opens that seller's checkout", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
+    await waitFor(() => expect(buy).toBeEnabled());
+    fireEvent.click(buy);
+    await waitFor(() => expect(screen.getByTestId("router-path")).toHaveTextContent("/declutter?tab=buying&checkout=s1"));
+    expect(state.bought).toBe(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("back from Stripe's page on the web (router state, set by /declutter?card=saved): the offer box opens and the state is cleared", async () => {
@@ -288,20 +295,16 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByLabelText("Your offer")).toBeNull();
   });
 
-  it("back before Stripe's webhook filed the card: it keeps looking, then Buy goes to its confirm", async () => {
+  it("back before Stripe's webhook filed the card: it keeps looking, then Buy goes on to that seller's checkout (DB-5)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
     expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
-    state.card = { brand: "visa", last4: "4242" };
-    expect(await screen.findByText("Reserve it for 48 hours", {}, { timeout: 4_000 })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
-    // The sheet that WAS open goes, and the Buy now it covered is usable again (a positive check in the same wait,
-    // so it is never satisfied by a first paint: waitForEmptyIsVacuous).
-    await waitFor(() => {
-      expect(screen.queryByText("Reserve it for 48 hours")).toBeNull();
-      expect(screen.getAllByRole("button", { name: /^Buy now/ })[0]).toBeEnabled();
-    });
     expect(state.bought).toBe(0);
+    state.card = { brand: "visa", last4: "4242" };
+    // The Buy now the member started carries on: the hold, then the checkout (Pay is still its own press there).
+    await waitFor(() => expect(state.bought).toBe(1), { timeout: 4_000 });
+    await waitFor(() => expect(screen.getByTestId("router-path")).toHaveTextContent("/declutter?tab=buying&checkout=s1"));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByText("Checking for your card…")).toBeNull();
   });
@@ -542,6 +545,46 @@ describe("Declutter slice 3 screens", () => {
     state.bundleRule = 10;
     show(<CartView />);
     await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\.$/));
+  });
+
+  // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Pay by ${by}. |           : false ? `Pay by ${by}.
+  // @mutate src/lib/declutter/buyNowHold.ts |   return lines.length > 0 && lines.every((l) => l.price_cents === 0 \|\| l.source === "buy"); |   return lines.length > 0;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | allFree={allFree} lines={lines} timeLeft= | allFree={allFree} lines={[]} timeLeft=
+  it("DB-5: a Buy now checkout says No strike; one with an accepted offer still warns of the strike", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20.5 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null,
+      total_cents: null, source: "buy" };
+    state.cart = [line];
+    const first = show(<CartView />);
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")).not.toBeNull());
+    const hold = document.querySelector("[data-cart-hold]") as HTMLElement;
+    expect(hold.textContent).toMatch(/Pay by .+\. If you don't, it goes back up for sale\. No strike\.$/);
+    expect(hold.textContent).not.toMatch(/you get a strike/);
+    first.unmount();
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", source: "offer" }];
+    show(<CartView />);
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/If you don't, you get a strike and the item goes back up for sale\.$/));
+  });
+
+  // DB-5: Buy now lands on /declutter?tab=buying&checkout=<seller>; that seller's checkout is scrolled into view.
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |   const focused = params.get("checkout") === sellerId; |   const focused = params.get("checkout") !== null;
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |     if (focused) ref.current |     if (false) ref.current
+  it("DB-5: ?checkout=<seller> scrolls to that seller's checkout, not another's", async () => {
+    const seen: string[] = [];
+    const had = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: HTMLElement) { seen.push(this.dataset.checkoutSeller ?? ""); };
+    try {
+      const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+        checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null,
+        total_cents: null, source: "buy" };
+      state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", seller_id: "s3" }];
+      show(<CartView />, "/declutter?tab=buying&checkout=s3");
+      await waitFor(() => expect(seen).toEqual(["s3"]));
+      expect(document.querySelectorAll("[data-checkout-seller]")).toHaveLength(2);
+    } finally {
+      Element.prototype.scrollIntoView = had;
+    }
   });
 
   it("cart: one checkout per seller, the items and what you pay with no fee line (F1 total, issue #3672), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {

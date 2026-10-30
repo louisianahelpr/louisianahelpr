@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1040,
+    "calls": 1042,
     "files": 282,
-    "rendering": 875,
-    "suppressedByPolicy": 165,
+    "rendering": 876,
+    "suppressedByPolicy": 166,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 729,
+      "toast.error": 730,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 169,
+      "toast.success": 170,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 452,
-      "template": 102,
-      "dynamic": 536,
+      "literal": 453,
+      "template": 101,
+      "dynamic": 538,
       "jsx": 0
     }
   },
@@ -4339,7 +4339,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 174,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4568,7 +4568,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeView.tsx",
-      "line": 43,
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5375,7 +5375,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
-      "line": 73,
+      "line": 78,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5385,7 +5385,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
-      "line": 77,
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterProblemSides.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Report taken back. Nothing is held for it now."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterProblemSides.tsx",
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5641,17 +5661,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 64,
+      "line": 66,
       "kind": "toast.success",
       "title": {
-        "form": "template",
-        "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
+        "form": "dynamic",
+        "text": "kind === \"free\" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "WORDS.free.done"
+          },
+          {
+            "form": "template",
+            "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
+          }
+        ]
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 68,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

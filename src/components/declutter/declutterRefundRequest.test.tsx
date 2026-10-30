@@ -16,6 +16,13 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.status === "declined" && r.admin_decided) return | if (false) return
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       {r.admin_decided && "Louisiana Helpr decided to refund the buyer. "} |
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "part" && offerCents === null)} onClick={() => send.mutate()}> |       <button type="button" className={primary} disabled={send.isPending} onClick={() => send.mutate()}>
+ *
+ * Audit 1028 part 2, D2-15: both pick-one lists are the app's RadioCardList (no browser radios), and the amount box
+ * is capped to a money field's width.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | const amountInput = `${input} max-w-[12rem]`; | const amountInput = input;
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           label="What's wrong?" |           label="Reason"
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |         label="Your answer" |         label="Answer"
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           onChange={(k, via) => { if (via === "click") hapticLight(); setReason(k as RefundReason); }} |           onChange={() => undefined}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -91,7 +98,7 @@ beforeEach(() => {
 // Audit 1028 part 2, D2-11: "Never got it" was offered after the buyer tapped "I got it".
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const buyerHasIt = handover.data?.confirmed_by === "buyer" \|\| !!handover.data?.picked_up_at; |   const buyerHasIt = false;
 describe("DeclutterRefundPanel: the reasons fit the handover (D2-11)", () => {
-  const reasonLabels = () => screen.getAllByRole("radio").map((r) => r.closest("label")?.textContent);
+  const reasonLabels = () => screen.getAllByRole("radio").map((r) => r.textContent);
   it("after the buyer's I got it or pickup photo: no Never got it", async () => {
     for (const row of [{ confirmed_by: "buyer", picked_up_at: null }, { confirmed_by: "auto", picked_up_at: "2026-10-23T18:00:00Z" }]) {
       handover.row = row;
@@ -110,6 +117,31 @@ describe("DeclutterRefundPanel: the reasons fit the handover (D2-11)", () => {
   });
 });
 
+describe("DeclutterRefundPanel: the app's radio style and a money-sized amount box (D2-15)", () => {
+  it("buyer: the reasons are one RadioCardList, no browser radios", async () => {
+    show(BASE);
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    const group = screen.getByRole("radiogroup", { name: "What's wrong?" });
+    expect(group.querySelectorAll("button[role=radio]").length).toBe(3);
+    expect(document.querySelectorAll("input[type=radio]").length).toBe(0);
+    const damaged = screen.getByRole("radio", { name: "Damaged" });
+    fireEvent.click(damaged);
+    expect(damaged.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("seller: full, part and no are one RadioCardList with their sub lines; the amount box is capped", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    const group = await screen.findByRole("radiogroup", { name: "Your answer" });
+    expect([...group.querySelectorAll("button[role=radio]")].map((b) => b.querySelector("span.font-semibold")?.textContent)).toEqual([
+      "Refund in full", "Offer part of it", "I don't agree",
+    ]);
+    expect(document.querySelectorAll("input[type=radio]").length).toBe(0);
+    fireEvent.click(screen.getByRole("radio", { name: /Offer part of it/ }));
+    const box = screen.getByLabelText(/How much back\?/);
+    expect(box.className.split(/\s+/)).toContain("max-w-[12rem]");
+  });
+});
+
 describe("DeclutterRefundPanel", () => {
   it("buyer: asks with the reason and words chosen, and sees the server's full-refund amount", async () => {
     show(BASE);
@@ -119,7 +151,7 @@ describe("DeclutterRefundPanel", () => {
     const why = document.querySelector("[data-full-refund-why]")!;
     expect(why.textContent).toBe("That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.");
     expect(why.textContent).not.toMatch(/\$|\d|fee/i);
-    fireEvent.click(screen.getByLabelText("Damaged"));
+    fireEvent.click(screen.getByRole("radio", { name: "Damaged" }));
     fireEvent.change(screen.getByLabelText("Tell them more"), { target: { value: "  The leg is cracked.  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send to the seller" }));
     await waitFor(() => expect(state.asked).toEqual([["o1", "damaged", "The leg is cracked.", []]]));

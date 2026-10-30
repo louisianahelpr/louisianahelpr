@@ -23,7 +23,7 @@
  * @mutate src/components/declutter/useDeclutterOrigin.ts |         if (alive) setKnown(fb ? { status: "ready", ...fb } : { status: "none", zipOnFile }); |         if (alive) setKnown(fb ? { status: "ready", ...fb } : { status: "none", zipOnFile: false });
  * @mutate src/hooks/useUserLocation.ts |   }, [enabled, request, rationale, attempt]); |   }, [enabled, request, rationale, attempt, profile]);
  * @mutate src/hooks/useUserLocation.ts |   return { lat: cached.lat, lng: cached.lng, approximate: cached.approximate }; |   return { lat: cached.lat, lng: cached.lng, approximate: false };
- * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
+ * @mutate src/components/declutter/DeclutterItemView.tsx | milesLabel(miles, geo.status === "ready" && geo.approximate); | milesLabel(miles);
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}

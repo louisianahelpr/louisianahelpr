@@ -56,6 +56,12 @@ import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
 
+/** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
+export function addressNote(free: boolean, isSeller: boolean): string {
+  if (isSeller) return free ? "Buyers see your exact address only once they choose a pickup." : "Buyers see your exact address only after they pay.";
+  return free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay.";
+}
+
 /** One label / value row of the details list. */
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -117,7 +123,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const it = item.data;
   const miles =
     geo.status === "ready" ? milesBetween({ lat: geo.lat, lng: geo.lng }, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null;
-  const away = milesLabel(miles, geo.status === "ready" && geo.approximate);
+  // Audit DC-7: the seller's own listing is not "About 52 mi away" from them; no distance on their own page.
+  const away = isSeller ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const canAct = !isSeller && (it.status === "live" || it.status === "reserved");
 
   const free = isFreeItem(it);
@@ -231,7 +238,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {way !== "none" && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
-            <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>
+            {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". */}
+            <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>
           </section>
 
           <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />

@@ -69,6 +69,16 @@
       "destination": "/api/share?_og=signup"
     },
     {
+      "source": "/post-job",
+      "has": [
+        {
+          "type": "query",
+          "key": "mm"
+        }
+      ],
+      "destination": "/api/share?_og=matchmaker"
+    },
+    {
       "source": "/user/:userId",
       "destination": "/api/share?_og=user&_id=:userId"
     },

@@ -28,3 +28,8 @@ export function splitSupportGuest(
   if (!m) return { body: description, guest: null }
   return { body: description.slice(0, m.index), guest: { name: m[1], email: m[2] } }
 }
+
+/** The short ticket number a guest's follow-up quotes, and the inbox shows beside the ticket. */
+export function supportTicketRef(reportId: string): string {
+  return reportId.slice(0, 8)
+}

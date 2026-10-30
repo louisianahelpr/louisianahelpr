@@ -18,7 +18,7 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { splitSupportScreenshot } from "@/lib/supportScreenshot";
-import { splitSupportGuest } from "../../../supabase/functions/_shared/supportGuest";
+import { splitSupportGuest, supportTicketRef } from "../../../supabase/functions/_shared/supportGuest";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
@@ -476,6 +476,7 @@ const AdminSupport = () => {
                         {senderName}
                         
                         {senderEmail && <span className="text-muted-foreground"> · {senderEmail}</span>}
+                        {guest && <span className="text-muted-foreground"> · Ticket {supportTicketRef(ticket.id)}</span>}
                         {" · "}
                         {formatShortDate(ticket.created_at)}
                         {waiting && <span className="text-muted-foreground"> · {waiting}</span>}

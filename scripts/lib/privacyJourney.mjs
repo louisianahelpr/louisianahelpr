@@ -109,6 +109,8 @@ export const EXPORT_SECTIONS = [
   "crew_dispute_member_outcomes", "job_schedule_change_requests", "job_detail_change_requests", "job_detail_change_answers",
   "series_date_offers", "series_visit_holds",
   "declutter_items", "declutter_item_private", "declutter_item_photos", "declutter_pickup_windows",
+  // Remembered listing choices (20261030144112; exported by 20261030153635).
+  "declutter_seller_defaults",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   "declutter_questions", "declutter_watchlist", "declutter_tax_attestations", "declutter_strikes",

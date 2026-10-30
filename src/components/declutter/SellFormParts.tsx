@@ -13,7 +13,7 @@ import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./Declutter
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
-import { DROPS_SWITCH_LABEL } from "./sellForm";
+import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
 
 export const SELL_INPUT =
@@ -78,18 +78,20 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
  */
 export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: ReactNode }) {
   const { form, setForm, set, priceCents, floorCents } = s;
+  const tooLow = priceTooLowForDrops(form.price);
+  const on = form.drops && !tooLow;
   return (
-    <div className="space-y-4 rounded-[20px] border border-border bg-card p-4" data-sell-drops={form.drops ? "on" : "off"}>
+    <div className="space-y-4 rounded-[20px] border border-border bg-card p-4" data-sell-drops={on ? "on" : "off"}>
       <div className="flex items-start gap-3">
         <label htmlFor="sell-drops" className="min-w-0 flex-1">
           <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
           <span className="block text-ds-13 text-muted-foreground">
-            {form.drops ? `It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
+            {tooLow ? "At this price there's nothing lower to drop to, so it stays at your price." : on ? `It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
           </span>
         </label>
-        <Switch id="sell-drops" checked={form.drops} onCheckedChange={(v) => setForm((f) => ({ ...f, drops: v === true }))} />
+        <Switch id="sell-drops" checked={on} disabled={tooLow} onCheckedChange={(v) => setForm((f) => ({ ...f, drops: v === true }))} />
       </div>
-      {form.drops && (<>
+      {on && (<>
         <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(form.dropPct)} onChange={(v) => set("dropPct", Number(v))} />
         {offerRules ?? (
           <div className="space-y-2">

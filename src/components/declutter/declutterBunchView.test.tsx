@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" "); |       const note = notSorted;
- * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" loading="lazy" decoding="async" className={thumbImg} data-bunch-thumb="" | alt="" className={thumbImg} data-bunch-thumb=""
+ * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" | alt="" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : wantsBunch(params) ? ( |       ) : false ? (
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" /> | groups={CATEGORY_PICKER_GROUPS} />

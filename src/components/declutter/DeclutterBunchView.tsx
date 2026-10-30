@@ -20,30 +20,26 @@
  * the Move page are retired): with a date, the drafts join the seller's moving sale.
  * Behind the 'declutter' switch (DeclutterGate on the page). Every write is an ordinary declutter_* call that refuses without it.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { useScreenAwake } from "@/hooks/useScreenAwake";
-import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchListingMinutes, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, listingProgressLine, makeCover, mergeItems, mergePriceClash, movePhoto, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, sortProgressLine, splitItem, startBunchRun, takePhotoOff, unusablePhotosNote, watchBunchRun,
+  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
 import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
-import { DeclutterNotice, TaxStatementsCheck } from "./declutterUi";
+import { DeclutterNotice } from "./declutterUi";
 import { AREA_ADDRESS_RE } from "./sellForm";
-import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
-import { handoverSummary, SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchPileCard } from "./DeclutterBunchPile";
@@ -54,33 +50,17 @@ import { BunchRow } from "./DeclutterBunchRow";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
-import { BunchChoicesCard, bunchDropsLine, samePickupWindows, useBunchChoices } from "./BunchChoices";
-import { UsesSettingsNote } from "./SellLastSetup";
-import { useSavedPickup } from "./useSavedPickup";
+import { samePickupWindows, useBunchChoices } from "./BunchChoices";
+import { useBunchStartingPlace } from "./useBunchStartingPlace";
+import { BunchBar, type BunchUndo } from "./DeclutterBunchBar";
+import { BunchListStep } from "./DeclutterBunchListStep";
+import { BunchSection } from "./DeclutterBunchSection";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useBunchThumbs } from "./useBunchThumbs";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby={id}>
-      <h2 id={id} className="text-base font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 let photoSeq = 0;
-
-/** The last change that can be taken back: what the list and photos were, and what to say about it. */
-interface BunchUndo {
-  said: string;
-  before: BunchItem[];
-  photos: BunchPhoto[];
-  /** A merge set aside a price the seller typed: offered here, as a choice. */
-  otherPrice?: { intoKey: string; price: string };
-}
 
 export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const { user } = useCurrentUser();
@@ -169,28 +149,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     if (saved.length > 0) setWindows(saved.map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) })));
   }, [savedWindows.data, savedWindows.isSuccess]);
 
-  // The area and pickup address start from the seller's last listing (the single form's "Remember my setup": the
-  // same read and cache entry). Applied once, only to a box still blank. A failed read is extra help lost, not a
-  // blocker: the boxes start blank, and the app's QueryCache reports the error.
-  const lastSetup = useQuery({ queryKey: ["declutter", "last-setup", user?.id], queryFn: () => fetchLastSetup(user!.id), enabled: !!user, staleTime: 60_000 });
-  // Saved settings are the source once they exist (owner 2026-10-30, "I don't need to keep adding it every time"):
-  // they replace what the last listing filled in, never what the seller typed or a bunch that came back.
-  const savedSetup = useSavedPickup(user?.id, (p, lastAddress) => {
-    const mine = (address: string) => !address.trim() || address === lastAddress;
-    setPickupAddress((a) => (mine(a) ? p.address : a));
-    setAreaLabel((a) => (!a.trim() || a === lastSetup.data?.areaLabel ? p.areaLabel : a));
-    place.setPoint((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
-  });
-  const placeLoaded = useRef(false);
-  useEffect(() => {
-    const s = lastSetup.data;
-    if (!s || placeLoaded.current) return;
-    placeLoaded.current = true;
-    setAreaLabel((a) => (a.trim() ? a : s.areaLabel));
-    if (!s.pickup) return;
-    setPickupAddress((a) => (a.trim() ? a : s.pickup!.address));
-    place.setPoint((c) => c ?? { ...s.pickup! });
-  }, [lastSetup.data]);
+  const savedSetup = useBunchStartingPlace(user?.id, setAreaLabel, setPickupAddress, place.setPoint);
 
   if (!user) return null;
   if (underAge) {
@@ -516,7 +475,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {showMove && <BunchMovingSale userId={user.id} date={moveDate} setDate={setMoveDate} today={today} />}
 
       {whereFolded ? null : (
-      <Section id="bunch-where" title="1. Where buyers pick up">
+      <BunchSection id="bunch-where" title="1. Where buyers pick up">
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
         <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
@@ -528,10 +487,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
           }} />
         <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
         <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
-      </Section>
+      </BunchSection>
       )}
 
-      <Section id="bunch-photos" title={`${firstStep}. Add photos`}>
+      <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
         </p>
@@ -544,10 +503,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
           </Button>
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
-      </Section>
+      </BunchSection>
 
       {items.length > 0 && (
-        <Section id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
+        <BunchSection id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. Tap an item to open it. If two items are the same thing, merge them; if one holds two things, split it.
           </p>
@@ -612,90 +571,18 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
             ))}
           </ul>
           </fieldset>
-        </Section>
+        </BunchSection>
       )}
 
       {items.length > 0 && (
-        <>
-        <span id="bunch-list-step" tabIndex={-1} className="block focus:outline-none" />
-        <Section id="bunch-list" title={`${firstStep + 2}. List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}>
-          {savedSetup.hasSettings && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
-            <div className="space-y-1" data-bunch-list-saved="">
-              <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[handoverSummary(savedWays), windowsSummary(windows)].filter(Boolean).join(" · ")}</p>
-              {items.some((it) => !it.free) && <p className="text-ds-14 text-foreground" data-bunch-outcome="">{bunchDropsLine(choices.choices)}</p>}
-              {savedSetup.pickup && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{savedSetup.pickup.line}</p>}
-              <UsesSettingsNote />
-            </div>
-          ) : (<>
-          <h3 className="text-sm font-semibold">Your usual pickup times</h3>
-          <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
-          {savedWindows.isError ? (
-            <ErrorState variant="inline" title="We couldn't load your pickup times." body={declutterErrorMessage(savedWindows.error)} onRetry={() => void savedWindows.refetch()} />
-          ) : savedWindows.isSuccess ? (
-            <PickupTimesEditor windows={windows} setWindows={setWindows} />
-          ) : (
-            <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
-          )}
-          <BunchChoicesCard c={choices} anyPriced={items.some((it) => !it.free)} />
-          <h3 className="pt-2 text-sm font-semibold">How buyers can get them</h3>
-          <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
-          </>)}
-          {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
-          <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
-          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item you list now.</p>
-          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free)} />
-          {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
-          {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
-          <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
-            {listing ? "Listing…" : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
-          </Button>
-          {listing && photoProgress && (
-            <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-photo-progress="">
-              Sending photo {photoProgress.photo} of {photoProgress.of}{photoProgress.itemName ? ` (${photoProgress.itemName})` : ""}.{photoProgress.retrying ? " The connection dropped, so we're trying again." : ""}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing takes about {BUNCH_SECONDS_EACH} seconds each{ready.length > 1 ? `, so about ${bunchListingMinutes(ready.length)} ${bunchListingMinutes(ready.length) === 1 ? "minute" : "minutes"} for these` : ""}. Keep this page open and your phone unlocked until it's done.
-          </p>
-        </Section>
-        </>
+        <BunchListStep
+          step={firstStep + 2} items={items} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
+          choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} onList={() => void onListAll()}
+        />
       )}
 
-      {(sorting || listing || undo || items.length > 0) && (
-        <div className="sticky bottom-3 z-20 space-y-2 rounded-2xl border border-border bg-card p-3 shadow-md" data-bunch-bar="">
-          {sorting && (
-            <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-              {sortProgressLine(sorting.done, sorting.total, found)} {sorting.retrying ? "The connection dropped, so we're trying again. " : ""}Keep this page open.
-            </p>
-          )}
-          {listing && (
-            <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-progress="">
-              {listingProgressLine(listing.done, listing.total, runNames.current)} Keep this page open.
-            </p>
-          )}
-          {undo && !listing && (
-            <div className="flex flex-wrap items-center gap-2" role="status" data-bunch-undo="">
-              <p className="min-w-0 flex-1 text-sm">{undo.said}{undo.otherPrice ? " We kept its price." : ""}</p>
-              {undo.otherPrice && (
-                <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => { const { intoKey, price } = undo.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo, otherPrice: undefined }); }}>
-                  Use ${undo.otherPrice.price} instead
-                </Button>
-              )}
-              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUndo}>Undo</Button>
-            </div>
-          )}
-          {!listing && !sorting && items.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              {needs && firstUnready ? (
-                <Button type="button" variant="link" size="sm" className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left underline" data-bunch-needs="" onClick={() => jumpTo(firstUnready.key)}>{needs}</Button>
-              ) : (
-                <span className="min-w-0 flex-1 text-sm text-muted-foreground">All {items.length === 1 ? "set" : `${items.length} set`}.</span>
-              )}
-              <Button type="button" size="sm" className="rounded-full" disabled={ready.length === 0} data-bunch-next="" onClick={toListing}>Next: list {ready.length} {ready.length === 1 ? "item" : "items"}</Button>
-            </div>
-          )}
-        </div>
-      )}
+      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => jumpTo(firstUnready.key) : null} onNext={toListing} onUndo={onUndo}
+        onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>
   );
 }

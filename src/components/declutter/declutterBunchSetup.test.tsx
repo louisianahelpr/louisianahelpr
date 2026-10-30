@@ -4,10 +4,10 @@
  *     nothing is looked up again; what the seller already typed stays theirs;
  *   - the photo step says plainly that smaller copies are sent to sort them, instead of "nothing goes up".
  *
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setAreaLabel((a) => (a.trim() ? a : s.areaLabel)); |     void s.areaLabel;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     void s.pickup.address;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     place.setPoint((c) => c ?? { ...s.pickup! }); |     void place;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setAreaLabel((a) => (a.trim() ? a : s.areaLabel)); |     void s.areaLabel;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     void s.pickup.address;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPoint((c) => c ?? { ...s.pickup! }); |     void place;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | Smaller copies, with location data removed, are sent to sort them and write your listings. | Location data is removed before anything is sent, and nothing goes up until you list.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

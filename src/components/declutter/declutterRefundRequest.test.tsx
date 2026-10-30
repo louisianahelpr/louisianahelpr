@@ -25,7 +25,7 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           onChange={(k, via) => { if (via === "click") hapticLight(); setReason(k as RefundReason); }} |           onChange={() => undefined}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { RefundRequestView } from "@/lib/declutter/refundRequests";
 
@@ -35,6 +35,7 @@ const state = vi.hoisted(() => ({
   answered: [] as unknown[][],
   offers: [] as unknown[][],
   returned: [] as unknown[][],
+  withdrawn: [] as unknown[][],
   /** D2-7: whether declutter_ask_refund takes photos (problemPhotos.ts; off until it does), and what was uploaded. */
   refundPhotos: false,
   uploaded: [] as unknown[][],
@@ -64,7 +65,7 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => {
     askRefund: async (...a: unknown[]) => { state.asked.push(a); return { result: "asked" }; },
     answerRefund: async (...a: unknown[]) => { state.answered.push(a); return { result: "offered" }; },
     answerRefundOffer: async (...a: unknown[]) => { state.offers.push(a); return { result: "refunded" }; },
-    withdrawRefund: async () => ({ result: "withdrawn" }),
+    withdrawRefund: async (...a: unknown[]) => { state.withdrawn.push(a); return { result: "withdrawn" }; },
     confirmItemReturned: async (...a: unknown[]) => { state.returned.push(a); return { result: "refunded" }; },
   };
 });
@@ -97,8 +98,29 @@ beforeEach(() => {
   state.answered = [];
   state.offers = [];
   state.returned = [];
+  state.withdrawn = [];
   state.uploaded = [];
   state.accepted = [];
+});
+
+// Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</button>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
+describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
+  it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
+    show({ ...BASE, can_ask: false, request: REQ });
+    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take back your refund request?");
+    expect(sheet).toHaveTextContent("Nikki is told, and is paid once the sale is final. You can't ask for a refund on this sale again.");
+    expect(state.withdrawn).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Keep my request" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.withdrawn).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));
+    await waitFor(() => expect(state.withdrawn).toEqual([["r1"]]));
+  });
 });
 
 // Audit 1028 part 2, D2-11: "Never got it" was offered after the buyer tapped "I got it".

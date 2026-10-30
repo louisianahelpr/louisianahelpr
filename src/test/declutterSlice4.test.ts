@@ -35,7 +35,7 @@
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts; |    WHERE id = p_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts;
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END; |   RETURN 'reopened';
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id AND payment_livemode IS NULL; |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id;
- * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -200,7 +200,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
   it("review notes 2026-10-15: CSPRNG code, nearest item's pickup point, refund mode set once, only the recorded refund reopens", () => {
     expect(flat(body("declutter_new_handover_code"))).toContain("gen_random_uuid()");
     expect(body("declutter_new_handover_code")).not.toMatch(/(^|[^_])random\(\)/);
-    // The nearest of the ORDER's pickup points (D-NEW14, 20261029224749): the frozen porch place, else every item's point.
+    // The nearest of the ORDER's pickup points (D-NEW14, 20261030164712): the frozen porch place, else every item's point.
     expect(flat(body("declutter_porch_photo"))).toContain("FROM public.declutter_order_pickup_points(o.id) pt;");
     expect(flat(body("declutter_order_pickup_points"))).toContain("WHERE c.order_id = p_order_id AND p.pickup_lat IS NOT NULL AND p.pickup_lng IS NOT NULL");
     expect(flat(body("declutter_porch_photo"))).toMatch(/SELECT min\(round\(2 \* 6371000/);

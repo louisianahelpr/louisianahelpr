@@ -64,6 +64,7 @@ import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
+import { OrderPorchPlace } from "./DeclutterPorchPlaces";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
 import { BuyerOrderHead, byBucket, type BuyerOrderView } from "./BuyingOrders";
@@ -225,7 +226,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         </>
       ) : order.handover === "delivery" ? (
         <>
-          {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. */}
+          {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. D-NEW14: where, for the seller. */}
+          {order.side === "seller" && <OrderPorchPlace orderId={order.orderId} side="seller" />}
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
@@ -235,6 +237,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         <>
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
+          {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
           {problem ? null : order.handover === "porch"

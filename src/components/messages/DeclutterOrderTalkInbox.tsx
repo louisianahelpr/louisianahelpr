@@ -66,7 +66,7 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
                   <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
                 </span>
                 <span className="block text-ds-12 text-muted-foreground truncate"
-                  title={`${row.side === "buyer" ? "You bought this" : "You sold this"} · ${orderTalkRowLine(row)}`}>
+                  title={`${row.side !== "buyer" ? "You sold this" : "You bought this"} · ${orderTalkRowLine(row)}`}>
                   {row.side === "buyer" ? "You bought this" : "You sold this"} · {orderTalkRowLine(row)}
                 </span>
               </span>

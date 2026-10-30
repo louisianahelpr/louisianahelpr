@@ -9,8 +9,8 @@
  *
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       qc.removeQueries({ queryKey: ["helpr-tasks", "task-pickup-windows", t.task_id] }); |
  * @mutate src/components/declutter/DeclutterPickupWindows.tsx | queryFn: () => fetchTaskPickupWindows(taskId), enabled } | queryFn: () => fetchTaskPickupWindows(taskId) }
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>} |
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | onCheckedChange={(v) => { save.reset(); setCar(v === true); }} /> | onCheckedChange={(v) => { setCar(v === true); }} />
+ * @mutate src/components/declutter/DeliverVehicleForm.tsx |       {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>} |
+ * @mutate src/components/declutter/DeliverVehicleForm.tsx | onCheckedChange={(v) => { save.reset(); setCar(v === true); }} /> | onCheckedChange={(v) => { setCar(v === true); }} />
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

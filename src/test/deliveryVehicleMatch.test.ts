@@ -26,7 +26,7 @@
  * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
  * @mutate supabase/migrations/20261027203030_helpr_go_online_for_deliveries.sql |        AND public.helpr_task_vehicle_fits(h.user_id, NEW.size)\n |        AND true\n
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const noCar = vehicle.isSuccess && !vehicle.data?.has_car; |   const noCar = false;
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} | <input type="checkbox" id={`helpr-truck-${userId}`} checked={hasTruck}
+ * @mutate src/components/declutter/DeliverVehicleForm.tsx | <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} | <input type="checkbox" id={`helpr-truck-${userId}`} checked={hasTruck}
  * @mutate src/lib/helprTasks/api.ts | { p_has_car: hasCar, p_has_truck: hasTruck, | { p_has_truck: hasTruck,
  */
 import { describe, expect, it } from "vitest";
@@ -130,11 +130,14 @@ describe("Declutter delivery: only a Helpr whose vehicle fits meets the delivery
     const view = blankComments(readFileSync(join(REPO, "src/components/declutter/DeclutterDeliveryViews.tsx"), "utf8"));
     expect(view).toContain("const noCar = vehicle.isSuccess && !vehicle.data?.has_car;");
     expect(view).toMatch(/\{noCar \? \(\s*<p[^>]*>Add your car under Your vehicle to take deliveries\.<\/p>/);
-    expect(view).toContain("I have a car");
+    // "Your vehicle" lives in its own file since audit DD D1 (DeliverVehicleForm.tsx), rendered by the view.
+    expect(view).toContain('import { VehicleForm } from "./DeliverVehicleForm";');
+    const form = blankComments(readFileSync(join(REPO, "src/components/declutter/DeliverVehicleForm.tsx"), "utf8"));
+    expect(form).toContain("I have a car");
     // The shared Checkbox for every box on the card (lead 2026-10-28: a raw box rendered as an empty square at 375).
-    expect(view).toMatch(/import \{ Checkbox \} from "@\/components\/ui\/checkbox";/);
-    expect(view).not.toMatch(/<input type="checkbox"/);
-    for (const box of ["car", "truck", "second"]) expect(view).toContain(`<Checkbox id={\`helpr-${box}-\${userId}\`}`);
+    expect(form).toMatch(/import \{ Checkbox \} from "@\/components\/ui\/checkbox";/);
+    expect(form).not.toMatch(/<input type="checkbox"/);
+    for (const box of ["car", "truck", "second"]) expect(form).toContain(`<Checkbox id={\`helpr-${box}-\${userId}\`}`);
   });
 
   it("the client saves the car answer through the four-argument save", () => {

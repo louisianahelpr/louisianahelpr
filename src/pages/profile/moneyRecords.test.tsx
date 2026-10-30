@@ -14,7 +14,7 @@
  * @mutate src/pages/profile/PayoutHistory.tsx | {data.bank_last4 ? `To bank ending ${data.bank_last4}` : "To your bank"} | {"To your bank"}
  * @mutate src/pages/profile/Receipts.tsx |     .filter((o) => o.paid_at && (o.status === "paid" \|\| o.status === "handed_over" \|\| o.status === "refunded")) |     .filter((o) => !!o.paid_at)
  * @mutate src/pages/profile/Receipts.tsx |           .eq("buyer_id", uid!) |           .eq("seller_id", uid!)
- * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []))); |
+ * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null)); |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -46,7 +46,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (t: string) => builder(t),
     // DB-13: declutter_my_cart gives a receipt its item names (the order card's read).
-    rpc: (fn: string) => Promise.resolve({ data: fn === "declutter_my_cart" ? (tables.my_cart ?? []) : [], error: null }),
+    // B96: declutter_my_paid_cents gives a receipt the card charge (the sale plus a first purchase's setup fee).
+    rpc: (fn: string) => Promise.resolve({ data: fn === "declutter_my_cart" ? (tables.my_cart ?? []) : fn === "declutter_my_paid_cents" ? (tables.my_paid ?? []) : [], error: null }),
     functions: {
       invoke: (_fn: string, opts: { body: Record<string, unknown> }) => {
         invokes.push(opts.body);
@@ -159,7 +160,7 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
   // Audit 2026-10-30 DB-13: the receipt was bare ("Declutter purchase" and a total) and did nothing when tapped.
   // @mutate src/pages/profile/Receipts.tsx |         title: itemsTitle(titles.get(o.id)), |         title: "Declutter purchase",
   // @mutate src/pages/profile/Receipts.tsx |               if (!r.lines) return | if (true) return
-  // @mutate src/pages/profile/Receipts.tsx |         feeWords: o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0), |         feeWords: false,
+  // @mutate src/pages/profile/Receipts.tsx |       const feeWords = o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0); |       const feeWords = false;
   it("DB-13: a Declutter receipt names its items and opens to its lines, the total, the fee in words and the order", async () => {
     tables.declutter_orders = [{ id: "o1", status: "handed_over", total_cents: 3540, paid_at: "2026-10-05T12:00:00Z",
       items_cents: 2200, delivery_cents: 800, shipping_cents: 0, tax_cents: 0 }];
@@ -178,6 +179,33 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(detail.textContent).toBe("Items$22.00Delivery$8.00Total$35.40Includes a small Louisiana Helpr service fee.See the order");
     expect(screen.getByRole("link", { name: "See the order" })).toHaveAttribute("href", "/declutter?view=buying");
     expect(text()).not.toContain("Someone else's sale");
+  });
+
+  // B96 (B93's DB-13 note): a first purchase's one-time account setup fee is charged outside total_cents, so the receipt
+  // read ~$2 under what Stripe charged. It now shows the card charge (declutter_my_paid_cents) with the setup fee as
+  // the cart's own words under the total (board 161: never a fee line).
+  // @mutate src/pages/profile/Receipts.tsx |         cents: o.status === "refunded" ? null : charged, |         cents: o.status === "refunded" ? null : o.total_cents,
+  // @mutate src/pages/profile/Receipts.tsx |                       {!!r.setupCents && <p | {false && <p
+  it("a first purchase's receipt shows what the card was charged, and says the setup fee in words under the total", async () => {
+    tables.declutter_orders = [{ id: "o1", status: "paid", total_cents: 3220, paid_at: "2026-10-05T12:00:00Z",
+      items_cents: 3000, delivery_cents: 0, shipping_cents: 0, tax_cents: 0 }];
+    tables.my_cart = [{ line_id: "l1", order_id: "o1", item_title: "Blue mug", my_side: "buyer" }];
+    tables.my_paid = [{ order_id: "o1", paid_cents: 3420 }];
+    renderAt(<Receipts />, "?tab=receipts");
+    const toggle = await screen.findByRole("button", { name: /Blue mug/ });
+    expect(toggle.textContent).toContain("$34.20");
+    expect(toggle.textContent).not.toContain("$32.20");
+    fireEvent.click(toggle);
+    expect(document.querySelector("[data-receipt-detail]")!.textContent)
+      .toBe("Items$30.00Total$34.20Includes a small Louisiana Helpr service fee.Includes the one-time $2.00 account setup fee.See the order");
+    tables.my_paid = [];
+  });
+
+  it("without a setup fee (or before the card-charge read answers an order) the receipt is the order's total", () => {
+    const o = { id: "a", status: "paid", total_cents: 3220, paid_at: "2026-10-01T00:00:00Z", items_cents: 3000 };
+    expect(orderReceipts([o], new Map(), new Map([["a", 3220]]))[0]).toMatchObject({ cents: 3220, lines: [{ label: "Items", cents: 3000 }] });
+    expect(orderReceipts([o], new Map(), null)[0].cents).toBe(3220);
+    expect(orderReceipts([{ ...o, status: "refunded" }], new Map(), new Map([["a", 3420]]))[0].cents).toBeNull();
   });
 
   it("an order counts only once it was paid (paid, handed over, or refunded and said so)", () => {

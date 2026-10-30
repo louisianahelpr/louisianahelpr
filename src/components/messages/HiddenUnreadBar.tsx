@@ -8,6 +8,8 @@
  * height above the skeleton. A device's very first visit has nothing cached
  * and can still shift once (page-settle KNOWN).
  */
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 
@@ -58,7 +60,7 @@ export function HiddenUnreadBar({
         type="button"
         onClick={onDismiss}
         tabIndex={held ? -1 : undefined}
-        aria-label="Dismiss"
+        aria-label={t("chat.dismiss")}
         className="shrink-0 self-center h-11 w-11 mr-0.5 flex items-center justify-center btn-press ctl-exit ctl-tint"
         style={{ color: "hsl(var(--olivewood) / 0.9)" }}
       >

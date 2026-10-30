@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -138,7 +140,7 @@ export function ChatTimeline({
           failure never masquerades as an empty conversation. */}
       {!chatLoading && chatLoadError && (
         <div className="flex flex-col items-center text-center py-14 gap-3">
-          <ReportErrorScreen source="ChatTimeline" title="Couldn't load this conversation." />
+          <ReportErrorScreen source="ChatTimeline" title={t("chat.conversationFailed")} />
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
             style={{

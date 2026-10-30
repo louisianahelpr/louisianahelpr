@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
@@ -222,7 +224,7 @@ export function ChatView({
       setEditSecondsLeft(Math.max(remaining, 0));
       if (remaining <= 0) {
         setEditingMessage(null);
-        toast.error("The 15-minute edit window closed — that change wasn't saved.");
+        toast.error(t("chat.editClosed"));
       }
     };
     tick();
@@ -232,7 +234,7 @@ export function ChatView({
   const saveEdit = async () => {
     if (!editingMessage) return;
     if (editDraft.length > MESSAGE_MAX_LENGTH) {
-      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      toast.error(t("chat.limit", { count: MESSAGE_MAX_LENGTH.toLocaleString() }));
       return;
     }
     setSavingEdit(true);

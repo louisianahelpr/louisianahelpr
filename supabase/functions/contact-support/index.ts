@@ -94,6 +94,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 // reports.reported_id is NOT NULL with no foreign key; a guest's ticket is about nobody.
 const GUEST_REPORTED_ID = '00000000-0000-0000-0000-000000000000'
 
+const GUEST_WINDOW_MS = 60 * 60_000
+const GUEST_MAX_PER_EMAIL = 5
+const GUEST_MAX_PER_IP = 10
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * Trim, strip control characters, and cap length.
  *
@@ -267,6 +276,24 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // A guest's message writes a row to the admin inbox with no sign-in, so it
+    // has its own limit past the per-request one above: that one is keyed on the
+    // token's `sub`, which a caller here can forge (verify_jwt = false) to reach
+    // its 60-per-address ceiling. `userId` is only set by a verified getUser, so
+    // a forged token lands in this branch. One bucket, two windows: per typed
+    // email address (hashed: the log is not a list of addresses) wherever it is
+    // sent from, and per IP however many email addresses it types.
+    if (!userId) {
+      const guestLimit = await checkRateLimit(req, {
+        windowMs: GUEST_WINDOW_MS,
+        maxRequests: GUEST_MAX_PER_EMAIL,
+        ipMaxRequests: GUEST_MAX_PER_IP,
+        keyPrefix: 'contact-support-guest',
+        subject: `email:${await sha256Hex(email)}`,
+      })
+      if (!guestLimit.allowed) return rateLimitResponse(guestLimit.retryAfter ?? 300, corsHeaders)
     }
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY')

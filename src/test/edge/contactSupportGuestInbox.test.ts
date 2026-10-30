@@ -7,13 +7,18 @@
  * @mutate supabase/functions/contact-support/index.ts |     if (userId \|\| !testSubmitter) { |     if (true) {
  * @mutate supabase/functions/contact-support/index.ts |             reason: `[${topicLabel}] Guest message`, |             reason: `[${topicLabel}] ${subject}`,
  * @mutate supabase/functions/contact-support/index.ts |     if (!reportLogged) {\n      const emailSubject |     if (!userId) {\n      const emailSubject
+ * @mutate supabase/functions/contact-support/index.ts |     if (!userId) {\n      const guestLimit |     if (false) {\n      const guestLimit
+ * @mutate supabase/functions/contact-support/index.ts |       if (!guestLimit.allowed) return | if (false) return
+ * @mutate supabase/functions/contact-support/index.ts |         subject: `email:${await sha256Hex(email)}`, |
+ * @mutate supabase/functions/contact-support/index.ts |         ipMaxRequests: GUEST_MAX_PER_IP, |
+ * @mutate supabase/functions/_shared/rate-limit.ts |   const subject = options.subject ?? jwtSubject(req); |   const subject = jwtSubject(req);
  * @mutate src/lib/supportGuest.ts |   if (reporterId) return { body: description, guest: null }; |
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { resetEnv, setEnv } from "./mocks/deno-runtime";
 import { resetSupabaseMock, scenario } from "./mocks/supabase";
-import { postSlackOpsAlert, recordOpsAlertLedger, resetSharedMocks } from "./mocks/shared";
+import { postSlackOpsAlert, rateLimitCalls, rateLimitRefusedBuckets, recordOpsAlertLedger, resetSharedMocks } from "./mocks/shared";
 import { resetEmailMocks, sendWithResend } from "./mocks/email";
 import { guestReplyHref, splitSupportGuest } from "@/lib/supportGuest";
 
@@ -102,6 +107,68 @@ describe("contact-support: a guest's message reaches the Support inbox", () => {
     await send(GUEST);
     expect(recordOpsAlertLedger).toHaveBeenCalledTimes(1);
     expect(postSlackOpsAlert.mock.calls[0][0]).toMatchObject({ ledger: false });
+  });
+});
+
+describe("contact-support: a guest's message has its own limit, per email address and per IP", () => {
+  const post = async (body: Record<string, unknown>, bearer = "Bearer anon") => {
+    const fn = await loadEdgeFunction("contact-support");
+    return fn.fetch(fn.request({ method: "POST", headers: { "Content-Type": "application/json", Authorization: bearer }, body }));
+  };
+  const guestCalls = () => rateLimitCalls.filter((c) => c.keyPrefix === "contact-support-guest");
+
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEmailMocks();
+    sendWithResend.mockClear();
+    resetEnv();
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service",
+      SUPABASE_ANON_KEY: "anon",
+      PUBLISHABLE_KEY: "anon",
+      RESEND_API_KEY: "re_test",
+    });
+    scenario.authUser = null;
+  });
+
+  it("over the limit: 429, and no row, no email, no ledger item, no Slack", async () => {
+    rateLimitRefusedBuckets.add("contact-support-guest");
+    const res = await post(GUEST);
+    expect(res.status).toBe(429);
+    expect(reportWrites()).toEqual([]);
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(recordOpsAlertLedger).not.toHaveBeenCalled();
+    expect(postSlackOpsAlert).not.toHaveBeenCalled();
+  });
+
+  it("the bucket is keyed on the typed address, hashed, and capped per IP", async () => {
+    await post(GUEST);
+    expect(guestCalls()).toHaveLength(1);
+    const call = guestCalls()[0];
+    expect(call.subject).toMatch(/^email:[0-9a-f]{64}$/);
+    expect(call.subject).not.toContain("dana");
+    expect(call).toMatchObject({ windowMs: 3_600_000, maxRequests: 5, ipMaxRequests: 10 });
+  });
+
+  it("the same address in another case is the same bucket", async () => {
+    await post(GUEST);
+    await post({ ...GUEST, email: "DANA@BayouMail.net" });
+    expect(guestCalls()[1].subject).toBe(guestCalls()[0].subject);
+  });
+
+  it("a forged token is still a guest: it hits this limit", async () => {
+    await post(GUEST, "Bearer forged.unsigned.token");
+    expect(guestCalls()).toHaveLength(1);
+  });
+
+  it("a signed-in member is not on the guest limit", async () => {
+    scenario.authUser = { id: "u-1", email: "member@bayoumail.net" };
+    scenario.reads.profiles = { rows: [{ full_name: "Dana Member", email: "member@bayoumail.net" }] };
+    scenario.rpc.is_test_subject = false;
+    await post({ topic: "report", subject: "Hi", message: "My password reset never arrives." }, "Bearer user-jwt");
+    expect(guestCalls()).toEqual([]);
   });
 });
 

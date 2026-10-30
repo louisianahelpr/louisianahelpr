@@ -56,7 +56,7 @@ const sheetVariants = cva(
   // exception, painting an opaque `bg-background` with `p-6` and their own
   // `rounded-2xl`. Same padding ramp as DialogContent
   // (p-4 sm:p-5) so a sheet and a dialog are indistinguishable as surfaces.
-  "glass-modal fixed z-50 gap-4 p-4 sm:p-5 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  "glass-modal fixed z-50 gap-4 p-4 sm:p-5 focus:outline-none transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
     variants: {
       side: {
@@ -105,8 +105,12 @@ interface SheetContentProps
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", floor = false, className, children, ...props }, ref) => {
+  ({ side = "right", floor = false, className, children, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
     const isFloor = floor && side === "bottom";
+    // D4-5 (gap sweep 2026-10-29): Radix returns focus only to a Dialog.Trigger, and our sheets are opened from their
+    // own state with no Trigger, so Esc left focus on the page body. The button that had focus when the sheet opened
+    // gets it back, if it is still on the page. A caller's own handler still decides first.
+    const opener = React.useRef<HTMLElement | null>(null);
     // THE ONE DISMISSAL RULE (popupDismiss.tsx): a sheet whose footer offers a
     // labelled dismiss does not also draw the corner ×. Dialogs have enforced
     // this since 2026-08-31; sheets rendered the × unconditionally, so the
@@ -144,6 +148,16 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           className={cn(sheetVariants({ side }), className, isFloor && "sheet-floor")}
           aria-describedby={undefined}
           {...props}
+          onOpenAutoFocus={(e) => {
+            opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            onOpenAutoFocus?.(e);
+          }}
+          onCloseAutoFocus={(e) => {
+            onCloseAutoFocus?.(e);
+            if (e.defaultPrevented || !opener.current?.isConnected) return;
+            e.preventDefault();
+            opener.current.focus();
+          }}
         >
           {isFloor && <div aria-hidden className="sheet-grab-handle" />}
           <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>

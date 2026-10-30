@@ -27,6 +27,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
+import { focusSheetItself } from "./focusSheetItself";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
@@ -114,7 +115,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
         Leave a review
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-review-sheet="">
+        <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-review-sheet="">
           <SheetHero title="Leave a review" />
           <div className="flex flex-col items-center gap-3 pt-1 text-center">
             {otherId && <UserAvatar userId={otherId} src={avatarUrl} name={name ?? who} className="h-14 w-14" />}

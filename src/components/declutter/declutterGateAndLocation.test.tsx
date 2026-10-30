@@ -353,7 +353,7 @@ describe("Declutter location ask", () => {
   it("categories live ONLY in the filter sheet (owner 2026-10-21: no chip row under Search items); in the sheet a tap shows only that category and marks it, a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
     // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className="min-w-0 space-y-4"> | <div className="min-w-0 space-y-4"><div data-chip-row=""><button type="button">Kitchen</button></div>
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}> | <div className="min-w-0 space-y-4"><div data-chip-row=""><button type="button">Kitchen</button></div>
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,

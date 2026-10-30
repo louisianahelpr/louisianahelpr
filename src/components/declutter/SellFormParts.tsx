@@ -13,6 +13,7 @@ import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./Declutter
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { DROPS_SWITCH_LABEL } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
 
 export const SELL_INPUT =
@@ -81,7 +82,7 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
     <div className="space-y-4 rounded-[20px] border border-border bg-card p-4" data-sell-drops={form.drops ? "on" : "off"}>
       <div className="flex items-start gap-3">
         <label htmlFor="sell-drops" className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">Lower the price if it doesn't sell?</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
           <span className="block text-ds-13 text-muted-foreground">
             {form.drops ? `It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
           </span>

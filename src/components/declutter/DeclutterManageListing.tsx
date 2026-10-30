@@ -4,7 +4,7 @@
  * The rows are only what the server really does (migration
  * 20261020064354_declutter_manage_listing.sql):
  *   Change price or lowest price -> declutter_set_listing_price
- *   Stop price drops             -> declutter_set_listing_drops
+ *   Lower the price if it doesn't sell? (on = drops) -> declutter_set_listing_drops
  *   Pause listing / Relist       -> declutter_pause_listing / declutter_relist_listing
  *   Mark sold elsewhere / Delete -> declutter_withdraw_item (takes it down, no fees)
  * Left off the board's sheet until the server supports them: "Edit listing"
@@ -50,6 +50,7 @@ import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
 import { FallbackImg } from "./FallbackImg";
 import { DeclutterEditListing } from "./DeclutterEditListing";
+import { DROPS_SWITCH_LABEL } from "./sellForm";
 
 type View = "menu" | "price" | "sold" | "delete" | "edit";
 
@@ -102,7 +103,7 @@ export function ManageListingSheet({
   const dropState = useQuery({ queryKey: ["declutter", "drop-state", item.id], queryFn: () => fetchItemDropState(item.id), enabled: open });
   const listedOff = dropState.data ? dropPctOf(dropState.data) === 0 : false;
   const stopped = (manage?.drops_stopped ?? false) || listedOff;
-  const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops stopped at ${formatPrice(item.current_price_cents)}.`);
+  const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops are off. It stays at ${formatPrice(item.current_price_cents)}.`);
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
   // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
@@ -147,15 +148,16 @@ export function ManageListingSheet({
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </button>
               </li>
+              {/* Audit DC-5: the sell form's own words and direction, on = it drops (it said "Stop price drops", on = stopped). */}
               <li className={ROW}>
-                <RowText title="Stop price drops" id="manage-stop-drops">
-                  {listedOff ? "Off: you listed it without price drops" : stopped ? `Stopped at ${itemPriceLabel(item.current_price_cents)}` : `Keep it at ${itemPriceLabel(item.current_price_cents)}`}
+                <RowText title={DROPS_SWITCH_LABEL} id="manage-drops">
+                  {listedOff ? "Off: you listed it without price drops" : stopped ? `Off. It stays at ${itemPriceLabel(item.current_price_cents)}.` : "On. It drops each evening, never below your lowest price."}
                 </RowText>
                 <Switch
-                  aria-labelledby="manage-stop-drops"
-                  checked={stopped}
+                  aria-labelledby="manage-drops"
+                  checked={!stopped}
                   disabled={!manage || busy || listedOff}
-                  onCheckedChange={(on) => drops.mutate(!on)}
+                  onCheckedChange={(on) => drops.mutate(on)}
                 />
               </li>
               {/* Smart offers (owner 2026-10-29): Accept offers, Lowest you'll take (with Claude's suggestion), auto answers. */}

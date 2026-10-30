@@ -14,8 +14,8 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
  * @mutate src/pages/auth/Login.tsx |               <HelprMark to="/" size="lg" emblemOnly /> |               <HelprMark to="/home" size="lg" emblemOnly />
  * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
- * @mutate src/pages/auth/Login.tsx | <h1 className="text-page-title text-foreground">Log in</h1> | <h1 className="text-page-title text-foreground">Log In</h1>
- * @mutate src/pages/auth/Login.tsx |                 Forgot password?\n |                 Forgot Password?\n
+ * @mutate src/lib/i18n/en.ts | "login.title": "Log in", | "login.title": "Log In",
+ * @mutate src/lib/i18n/en.ts |   "login.forgot": "Forgot password?", |   "login.forgot": "Forgot Password?",
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = `Continue with ${providerName}`; |   const label = providerName;
  * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"
  * @mutate src/pages/auth/Login.tsx | <div className="grid gap-6 w-full [&>*]:min-w-0"> | <div className="grid gap-6 w-full">
@@ -25,6 +25,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 const src = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Login.tsx"), "utf8"));
 const at = (needle: string) => {
@@ -43,8 +44,11 @@ describe("Log in matches board 37", () => {
     // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle.
     expect(src).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
     expect(src).not.toMatch(/apple-touch-icon/);
-    expect(src).toContain(">Log in</h1>");
-    expect(src).toContain("Welcome back, neighbor.");
+    // The words come from the dictionary (Spanish option, 2026-10-29); English is en.ts.
+    expect(src).toContain('>{t("login.title")}</h1>');
+    expect(en["login.title"]).toBe("Log in");
+    expect(src).toContain('{t("login.welcome")}');
+    expect(en["login.welcome"]).toBe("Welcome back, neighbor.");
     expect(src).not.toMatch(/<HelprMark(?![^>]*emblemOnly)/);
   });
 
@@ -52,12 +56,12 @@ describe("Log in matches board 37", () => {
     const order = [
       at('id="email"'),
       at('htmlFor="password"'),
-      at("Forgot password?"),
+      at('t("login.forgot")'),
       at('id="password"'),
-      at('"Log in"'),
+      at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),
-      at("Create an account"),
+      at('t("login.createAccount")'),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
@@ -77,6 +81,7 @@ describe("Log in matches board 37", () => {
     const rule = blankComments(readFileSync(resolve(__dirname, "../components/auth/OrRule.tsx"), "utf8"));
     expect(rule).not.toMatch(/lg:hidden|accent-ink|burnt-sienna/);
     expect(src).not.toMatch(/"Log In"|Forgot Password\?|Create an Account/);
+    expect([en["login.title"], en["login.submit"], en["login.forgot"], en["login.createAccount"]]).toEqual(["Log in", "Log in", "Forgot password?", "Create an account"]);
   });
 
   it("board 37/55 leftovers: no back arrow, no field icons, the H links home, Apple is the solid button", () => {

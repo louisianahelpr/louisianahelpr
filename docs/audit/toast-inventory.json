@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 447,
-      "template": 98,
-      "dynamic": 525,
+      "template": 96,
+      "dynamic": 527,
       "jsx": 0
     }
   },
@@ -10506,21 +10506,55 @@
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 33,
+      "line": 35,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "${label}: that file type isn't supported — try JPG, PNG, or WEBP."
+        "form": "dynamic",
+        "text": "t(\"upload.fileType\", { label })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? en[key], vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 37,
+      "line": 39,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "${label}: that file is over 5 MB — try a smaller one."
+        "form": "dynamic",
+        "text": "t(\"upload.fileSize\", { label })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? en[key], vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

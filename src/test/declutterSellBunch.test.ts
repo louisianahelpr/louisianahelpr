@@ -271,9 +271,6 @@ describe("listBunch", () => {
     const makeDeps = (removePhoto: ListDeps["removePhoto"]): ListDeps => ({
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
-      removePhoto: vi.fn(async () => {}),
-      itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),
-      withdrawItem: vi.fn(async () => {}),
       addPhoto: vi.fn(async () => "ph"),
       removePhoto,
       itemStatuses: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, "draft"]))),

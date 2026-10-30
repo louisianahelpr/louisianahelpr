@@ -206,6 +206,16 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(await screen.findByRole("button", { name: "Search all sections" })).toBeInTheDocument();
   });
 
+  // B48 live check 2026-10-29: a porch + meetup listing read only "For sale · Porch pickup".
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (item.status === "live" && ways.length) return | if (false) return
+  it("a live listing's line names every way the seller ticked, in checkout's order", async () => {
+    state.mine = [{ ...ITEM, handovers: ["meetup", "porch"] }, { ...ITEM, id: "i9", title: "Old radio", handovers: null }];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Old radio");
+    const lines = Array.from(container.querySelectorAll("[data-listing-status]")).map((e) => e.textContent);
+    expect(lines).toEqual(["For sale · Porch pickup · Meet at a safe spot", "For sale · Porch pickup"]);
+  });
+
   it("every listing row: a thumbnail, ONE status line, the actions in one group", async () => {
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Oak rocking chair");

@@ -313,7 +313,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   const booked = booking?.slot_start;
   const movedAlready = !!booked && ((order.side === "buyer" ? booking?.buyer_reschedules : booking?.seller_reschedules) ?? 0) >= 1;
   if (!booked && order.side === "seller") {
-    return <p className="text-sm text-muted-foreground">Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
+    return <p className="text-sm text-muted-foreground">Waiting for the buyer to book {order.handover === "meetup" ? "a time to meet" : "a pickup time"} (within 7 days of paying).</p>;
   }
   const id = `dcl-slot-${order.orderId}`;
   return (

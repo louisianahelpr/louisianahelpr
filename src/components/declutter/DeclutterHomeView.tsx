@@ -48,6 +48,7 @@ import { OrdersUpdating } from "./OrdersUpdating";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
+import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellBunchEntry } from "./DeclutterBunchEntry";
@@ -117,7 +118,12 @@ const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   rejected: "Not approved. Open it to see why.",
 };
 
+const WAY_ORDER = ["porch", "meetup", "seller_delivery", "delivery"] as const;
+
 function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null): string {
+  // B48 live check 2026-10-29: porch + meetup read only "Porch pickup". Every ticked way, in checkout's order and words.
+  const ways = WAY_ORDER.filter((w) => item.handovers?.includes(w));
+  if (item.status === "live" && ways.length) return ["For sale", ...ways.map((w) => HANDOVER_TITLE[w])].join(" · ");
   if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
   const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
   // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts).

@@ -193,7 +193,7 @@ export function DeclutterQuestions({
       )}
       {canAsk && (
         <form
-          className="space-y-2"
+          className="space-y-2 pb-[var(--bottom-nav-h,0px)] [&_*]:scroll-mb-[calc(var(--bottom-nav-h,0px)+1rem)]"
           onSubmit={(e) => {
             e.preventDefault();
             if (text.length >= 2) ask.mutate(text);

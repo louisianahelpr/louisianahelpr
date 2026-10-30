@@ -1299,6 +1299,7 @@ export type Database = {
           id: string
           is_seed: boolean
           item_id: string | null
+          item_title: string | null
           offer_id: string | null
           order_id: string | null
           price_cents: number
@@ -1317,6 +1318,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           item_id?: string | null
+          item_title?: string | null
           offer_id?: string | null
           order_id?: string | null
           price_cents: number
@@ -1335,6 +1337,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           item_id?: string | null
+          item_title?: string | null
           offer_id?: string | null
           order_id?: string | null
           price_cents?: number
@@ -14470,6 +14473,7 @@ export type Database = {
         Args: never
         Returns: {
           checkout_by: string
+          closed_at: string | null
           delivery_cents: number | null
           delivery_task_id: string | null
           handover: string | null

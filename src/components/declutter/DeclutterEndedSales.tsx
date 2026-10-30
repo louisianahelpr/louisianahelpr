@@ -17,6 +17,17 @@ export function useEndedSales(): CartLine[] {
   return (cart.data ?? []).filter((l) => l.my_side === "seller" && (l.status === "missed" || l.status === "cancelled_by_seller"));
 }
 
+/**
+ * DC-18 + DB-19: the day an ended sale ended, put before its words ("Oct 29 · ..."), or nothing before the
+ * closed_at column is deployed. Shared by the seller's rows here and the buyer's EndedLine (BuyingOrders).
+ */
+export function endedOnPrefix(closedAt: string | null | undefined): string {
+  if (!closedAt) return "";
+  const day = new Date(closedAt);
+  if (Number.isNaN(day.getTime())) return "";
+  return `${day.toLocaleDateString([], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0")} · `;
+}
+
 /** What happened to an ended sale, from the seller's side. No amounts (the notices carry them); no fee words. */
 function endedSaleWords(l: Pick<CartLine, "status" | "order_status" | "price_cents">): string {
   const free = l.price_cents === 0;
@@ -39,7 +50,7 @@ export function EndedSaleRows({ lines }: { lines: CartLine[] }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>{l.item_title}</p>
-            <p className="text-ds-13 text-muted-foreground">{endedSaleWords(l)}</p>
+            <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(l.closed_at)}{endedSaleWords(l)}</p>
           </div>
           <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(l.price_cents)}</span>
         </li>

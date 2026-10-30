@@ -8,7 +8,7 @@ import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { JOB_ROW_LABEL_CLASS } from "@/components/job-card/JobActionRow";
-import { helprFlatFeeCents, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { helprFlatTakeHomeCents, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -191,7 +191,7 @@ export function ShareJobButton({
     // Every job now has a set budget — bidding (and its "Open to bids" share
     // wording) was removed after zero production usage.
     const price = job.budget != null && isGiveawayFixedPayJob(job)
-      ? Math.floor(job.budget - helprFlatFeeCents(Math.round(job.budget * 100), job) / 100)
+      ? Math.floor(helprFlatTakeHomeCents(Math.round(job.budget * 100), job) / 100)
       : job.budget;
     const priceLabel = `$${price != null ? price : "?"}`;
     const text = `${job.title} · ${priceLabel} · ${location}\n\nApply on Helpr:`;

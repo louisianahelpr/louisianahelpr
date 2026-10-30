@@ -95,6 +95,31 @@ describe("Admin Support: reply to a member", () => {
     toasts.success.mockReset(); toasts.warning.mockReset(); toasts.error.mockReset();
   });
 
+  it("a guest's ticket names the guest, reads as Guest and is answered by email, not with the deleted-member line", async () => {
+    db.rpc.admin_support_queue = [ticket({
+      reporter_id: null, reporter_name: null, reporter_email: null,
+      reason: "[Issue Report] Guest message",
+      description: "Subject: Cannot log in\n\nNo reset email\n\n(Submitted from /support)\n\nGuest: Dana Guest <dana@example.com>",
+    })];
+    mount();
+    expect(await screen.findByText(/Dana Guest/)).toHaveTextContent("dana@example.com");
+    expect(screen.getByText("Guest")).toBeInTheDocument();
+    expect(screen.getByText(/No reset email/)).not.toHaveTextContent("Guest:");
+    expect(screen.getByRole("link", { name: "Reply by email" })).toHaveAttribute(
+      "href",
+      "mailto:dana@example.com?subject=Louisiana%20Helpr%3A%20Guest%20message",
+    );
+    expect(screen.queryByText(/deleted their account/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+  });
+
+  it("a deleted member's ticket still says there is no one to reply to", async () => {
+    db.rpc.admin_support_queue = [ticket({ reporter_id: null, reporter_name: null, reporter_email: null })];
+    mount();
+    expect(await screen.findByText(/deleted their account/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Reply by email" })).not.toBeInTheDocument();
+  });
+
   it("shows the replies already sent: who, the text, and what reached the member", async () => {
     db.rpc.admin_support_replies = [{
       id: "rep-1", report_id: "r-1", body: "Thanks Lucy.\nFixed now.", created_at: "2026-10-21T10:00:00Z",

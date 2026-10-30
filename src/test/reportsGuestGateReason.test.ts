@@ -3,9 +3,10 @@
  * reports.reporter_id is NOT NULL. It has been nullable since 20260902051631
  * (deletion anonymises it); the INSERT policy's auth.uid() = reporter_id check
  * is what refuses a guest. A comment that cites a withdrawn schema guarantee
- * misleads the next reader, so none may make that claim again.
+ * misleads the next reader, so none may make that claim again. contact-support
+ * files a guest's row with the service role (audit E4 M4, 10-30), past that policy.
  *
- * @mutate supabase/functions/contact-support/index.ts | // Guests cannot: the INSERT policy needs auth.uid() = reporter_id. | // Guests cannot: reports.reporter_id is a NOT NULL user uuid.
+ * @mutate supabase/functions/contact-support/index.ts | // A GUEST's row has no reporter, so who to answer | // Guests cannot: reports.reporter_id is a NOT NULL user uuid, so who to answer
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

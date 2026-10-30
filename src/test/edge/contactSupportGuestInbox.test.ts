@@ -12,6 +12,9 @@
  * @mutate supabase/functions/contact-support/index.ts |         subject: `email:${await sha256Hex(email)}`, |
  * @mutate supabase/functions/contact-support/index.ts |         ipMaxRequests: GUEST_MAX_PER_IP, |
  * @mutate supabase/functions/_shared/rate-limit.ts |   const subject = options.subject ?? jwtSubject(req); |   const subject = jwtSubject(req);
+ * @mutate supabase/functions/contact-support/index.ts |     if (!testSubmitter && (!userId \|\| !reportLogged)) { |     if (!testSubmitter) {
+ * @mutate supabase/functions/contact-support/index.ts |     if (!testSubmitter && (!userId \|\| !reportLogged)) { |     if (!testSubmitter && !userId) {
+ * @mutate supabase/functions/contact-support/index.ts |           if (!reportLogged) {\n            return new Response(\n              JSON | if (false) {\n            return new Response(\n              JSON
  * @mutate supabase/functions/_shared/supportGuest.ts |   if (reporterId) return { body: description, guest: null } |
  */
 import { beforeEach, describe, expect, it } from "vitest";
@@ -169,6 +172,86 @@ describe("contact-support: a guest's message has its own limit, per email addres
     scenario.rpc.is_test_subject = false;
     await post({ topic: "report", subject: "Hi", message: "My password reset never arrives." }, "Bearer user-jwt");
     expect(guestCalls()).toEqual([]);
+  });
+});
+
+describe("contact-support: who the admin@ email goes to (owner 10-30: members are answered in the app)", () => {
+  const MEMBER_FORM = { topic: "report", subject: "Hi", message: "My password reset never arrives." };
+  const post = async (body: Record<string, unknown>, bearer: string) => {
+    const fn = await loadEdgeFunction("contact-support");
+    return fn.fetch(fn.request({ method: "POST", headers: { "Content-Type": "application/json", Authorization: bearer }, body }));
+  };
+  const asMember = () => {
+    scenario.authUser = { id: "u-1", email: "member@bayoumail.net" };
+    scenario.reads.profiles = { rows: [{ full_name: "Dana Member", email: "member@bayoumail.net" }] };
+    scenario.rpc.is_test_subject = false;
+  };
+
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEmailMocks();
+    sendWithResend.mockReset();
+    resetEnv();
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service", SUPABASE_ANON_KEY: "anon", PUBLISHABLE_KEY: "anon", RESEND_API_KEY: "re_test" });
+    scenario.authUser = null;
+  });
+
+  it("a signed-in member: no admin@ email; the ticket is filed and the admin alert fires", async () => {
+    asMember();
+    const res = await post(MEMBER_FORM, "Bearer user-jwt");
+    expect(res.status).toBe(200);
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(onlyRow().reporter_id).toBe("u-1");
+    expect(postSlackOpsAlert).toHaveBeenCalledTimes(1);
+    expect(postSlackOpsAlert.mock.calls[0][0]).toMatchObject({ kind: "support_request", fields: expect.objectContaining({ "Admin queue": "logged" }) });
+  });
+
+  it("a signed-in member needs no email service: a missing key is not an error", async () => {
+    asMember();
+    setEnv({ RESEND_API_KEY: "" });
+    const res = await post(MEMBER_FORM, "Bearer user-jwt");
+    expect(res.status).toBe(200);
+    expect(onlyRow().reporter_id).toBe("u-1");
+  });
+
+  it("a signed-in member whose ticket failed: the email is the record, with a tracked item", async () => {
+    asMember();
+    scenario.writeErrors = { reports: { message: "boom" } };
+    const res = await post(MEMBER_FORM, "Bearer user-jwt");
+    expect(res.status).toBe(200);
+    expect(sendWithResend).toHaveBeenCalledTimes(1);
+    expect(recordOpsAlertLedger).toHaveBeenCalledTimes(1);
+  });
+
+  it("both failed: the member is told, so nothing vanishes", async () => {
+    asMember();
+    scenario.writeErrors = { reports: { message: "boom" } };
+    sendWithResend.mockRejectedValueOnce(new Error("resend down"));
+    const res = await post(MEMBER_FORM, "Bearer user-jwt");
+    expect(res.status).toBe(500);
+  });
+
+  it("a guest: the admin@ email still goes", async () => {
+    const res = await post(GUEST, "Bearer anon");
+    expect(res.status).toBe(200);
+    expect(sendWithResend).toHaveBeenCalledTimes(1);
+  });
+
+  it("a guest whose email fails but whose ticket landed is not told to retry: it would file twice", async () => {
+    sendWithResend.mockRejectedValueOnce(new Error("resend down"));
+    const res = await post(GUEST, "Bearer anon");
+    expect(res.status).toBe(200);
+    expect(reportWrites()).toHaveLength(1);
+  });
+
+  it("a signed-in test account still reaches no admin surface", async () => {
+    asMember();
+    scenario.rpc.is_test_subject = true;
+    await post(MEMBER_FORM, "Bearer user-jwt");
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(reportWrites()).toEqual([]);
+    expect(postSlackOpsAlert).not.toHaveBeenCalled();
   });
 });
 

@@ -180,7 +180,7 @@ describe("group jobs — the budget is split across the roster", () => {
 
 // Q1272 (3): the dispute split and Quick Release never take the one-time setup
 // fee, so a disputed job's preview keeps it; any other unpaid job loses it.
-// @mutate src/lib/helperEarnings.ts |   const feeHere = job.status === "disputed" ? 0 : firstPayoutFeeDollars; |   const feeHere = firstPayoutFeeDollars;
+// @mutate src/lib/helperEarnings.ts |   const feeHere = job.status === "disputed" \|\| isGiveawayFixedPayJob(job) ? 0 : firstPayoutFeeDollars; |  const feeHere = isGiveawayFixedPayJob(job) ? 0 : firstPayoutFeeDollars;
 describe("Q1272 (3): a disputed job never previews the setup fee", () => {
   const job = { budget: 100, helper_fee_percent: 10, payment_status: "escrow" };
   it("takes the fee off an ordinary unpaid job", () => {

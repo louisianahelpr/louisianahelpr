@@ -11,7 +11,7 @@ import { CompactJobCard } from "./CompactJobCard";
  * setting), so the real "is a fee due" predicate runs.
  */
 // @mutate src/components/dashboard/JobPrice.tsx | const owedFee = useFirstPayoutFeeDollars(); | const owedFee = 0;
-// @mutate src/components/dashboard/JobPrice.tsx | const firstPayoutFee = jobStatus === "disputed" ? 0 : owedFee; | const firstPayoutFee = owedFee;
+// @mutate src/components/dashboard/JobPrice.tsx | const firstPayoutFee = jobStatus === "disputed" \|\| isGiveawayFixedPayJob(feeStamp) ? 0 : owedFee; | const firstPayoutFee = isGiveawayFixedPayJob(feeStamp) ? 0 : owedFee;
 // @mutate src/components/dashboard/JobPrice.tsx | {!showBudget && firstPayoutFee > 0 && ( | {false && (
 // @mutate src/components/dashboard/CompactJobCard.tsx | const firstPayoutFee = useFirstPayoutFeeDollars(); | const firstPayoutFee = 0;
 

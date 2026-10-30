@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 453,
+      "literal": 452,
       "template": 101,
-      "dynamic": 538,
+      "dynamic": 539,
       "jsx": 0
     }
   },
@@ -948,7 +948,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 237,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -958,7 +958,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 260,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -968,7 +968,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 355,
+      "line": 356,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -978,7 +978,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 391,
+      "line": 392,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -988,7 +988,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 393,
+      "line": 394,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -998,7 +998,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 395,
+      "line": 396,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1008,7 +1008,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 402,
+      "line": 403,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2431,7 +2431,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 291,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2441,7 +2441,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 294,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2451,7 +2451,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 309,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2461,7 +2461,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 332,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2471,7 +2471,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 335,
+      "line": 310,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2481,7 +2481,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 356,
+      "line": 331,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2491,7 +2491,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 396,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11352,17 +11352,27 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 344,
+      "line": 345,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't delete that one — give it another try?"
+        "form": "dynamic",
+        "text": "error && /message_locked/.test(error.message) ? \"This message can't be deleted now. The conversation has ended or is being reviewed.\" : \"Couldn't delete that one — give it another try?\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "This message can't be deleted now. The conversation has ended or is being reviewed."
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't delete that one — give it another try?"
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 384,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11372,7 +11382,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 394,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",

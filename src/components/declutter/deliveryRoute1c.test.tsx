@@ -94,7 +94,7 @@ describe("My route (audit 1c D3-2, D3-9)", () => {
   it("D3-2: pickups the server joined (one seq) are one visit: one card, one pin, counted once, each with its own photo step", async () => {
     state.route = { miles: 3.3, drive_minutes: 20, finish_at: null, stops: [
       stop({ seq: 1, task_id: "t1", leg_miles: 3.3 }),
-      stop({ seq: 1, task_id: "t2", title: "Brass lamp", leg_miles: 0 }),
+      stop({ seq: 1, task_id: "t2", title: "Brass lamp", leg_miles: 0, address: "902 North 3rd Street" }),
       stop({ seq: 2, task_id: "t1", kind: "dropoff", address: "22 Buyer Ln", lat: 30.5, lng: -91.1, place: "door" }),
       stop({ seq: 3, task_id: "t2", kind: "dropoff", title: "Brass lamp", address: "33 Buyer Ln", lat: 30.6, lng: -91.1, place: "door" }),
     ] };
@@ -106,6 +106,8 @@ describe("My route (audit 1c D3-2, D3-9)", () => {
     expect(cards[0]).toHaveTextContent("Pick up 2 deliveries here");
     expect(cards[0]).toHaveTextContent("Blue mug");
     expect(cards[0]).toHaveTextContent("Brass lamp");
+    // @mutate src/components/declutter/DeliveryRoute.tsx |           {n > 0 && s.address && s.address !== stop.address && | {false &&
+    expect(cards[0]).toHaveTextContent("902 North 3rd Street");
     // D3-9: the same whole-mile rounding as the delivery's own quote: 3.3 reads 4, and a joined pickup has no leg.
     expect(cards[0]).toHaveTextContent("about 4 mi from you");
     expect(within(cards[0]).getByLabelText("Picked up: a photo of the item, taken here (Blue mug, stop 1)")).toBeInTheDocument();

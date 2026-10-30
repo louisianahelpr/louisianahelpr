@@ -82,12 +82,14 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
   const { pickedUp, delivered, done } = useTaskSteps(stop.task_id, userId, () => setDropPhoto(null));
   const id = useId();
   if (stop.kind === "pickup") {
-    const opensAt = pickupOpensAt(stop.slot_start);
+    // Audit 1c #1: Picked up opens 30 minutes before the pickup, or at once after the seller's "Handed over". Only a server
+    // that says "not handed over" (null) can close the button; before that migration the server's own refusal answers.
+    const opensAt = stop.handed_over_at ? null : pickupOpensAt(stop.slot_start);
     return (
       <div className="space-y-1">
         <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
         {opensAt && <PickupWindowNote opensAt={opensAt} />}
-        <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending} onPick={(f) => pickedUp.mutate(f)} />
+        <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending || (opensAt !== null && stop.handed_over_at === null)} onPick={(f) => pickedUp.mutate(f)} />
         <SellerAwayStep taskId={stop.task_id} userId={userId} slotStart={stop.slot_start} label={`${stop.title}, stop ${stop.seq}`} onReported={done} />
       </div>
     );

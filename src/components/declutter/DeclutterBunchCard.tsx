@@ -114,6 +114,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>Price ($)</label>
           <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" />
+          {item.aiPrice && item.price === item.aiPrice && <p className="mt-1 text-ds-13 text-muted-foreground" data-bunch-price-suggested="">Our suggestion. Change it if you like.</p>}
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>

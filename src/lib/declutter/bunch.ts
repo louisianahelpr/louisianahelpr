@@ -20,7 +20,7 @@
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
-import { addPhoto, createDraft, invokeAiBody, setHandovers, updateDraft, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhoto, createDraft, invokeAiBody, setHandovers, updateDraft, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 
@@ -49,6 +49,8 @@ export interface BunchItem {
   flagged: boolean;
   /** Dollars as typed. */
   price: string;
+  /** The photo tool's suggestion when it filled `price`: a later rewrite may replace that, never one the seller typed. */
+  aiPrice?: string;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
   /** Photo keys already on that draft. */
@@ -57,7 +59,7 @@ export interface BunchItem {
 
 /** What the server's 'group' mode answers for one batch (indexes into the photos sent). */
 export interface GroupAnswer {
-  items: { photos: number[]; title: string; description: string; category: string; deliverySize: DeliverySize; conditionStars: number; flagged: boolean }[];
+  items: { photos: number[]; title: string; description: string; category: string; deliverySize: DeliverySize; conditionStars: number; flagged: boolean; priceDollars?: number | null }[];
   leftover: number[];
 }
 
@@ -68,6 +70,19 @@ const nextKey = (p: string) => `${p}${Date.now().toString(36)}_${++seq}`;
 /** An item with only photos: the tool did not place them, or its call failed. The seller names it. */
 export function blankItem(photoKeys: string[]): BunchItem {
   return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" };
+}
+
+/** The photo tool's suggested price as the field shows it, or "" when it gave none we could use. */
+function suggestedPrice(dollars: number | null | undefined): string {
+  return typeof dollars === "number" && Number.isFinite(dollars) && dollars >= 1 && dollars <= 1000 ? String(Math.round(dollars)) : "";
+}
+
+/** The price after "Write it again": a new suggestion replaces the last one or a blank, never what the seller typed. */
+export function rewrittenPrice(it: Pick<BunchItem, "price" | "aiPrice">, dollars: number | null | undefined): Pick<BunchItem, "price" | "aiPrice"> {
+  const next = suggestedPrice(dollars);
+  const theirs = it.price.trim() !== "" && it.price !== it.aiPrice;
+  if (theirs || !next) return { price: it.price, aiPrice: it.aiPrice };
+  return { price: next, aiPrice: next };
 }
 
 /** One batch's answer as items (each unplaced photo becomes its own item, so none is lost). */
@@ -84,7 +99,8 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
       photoKeys.push(k);
     }
     if (photoKeys.length === 0) continue;
-    out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false });
+    const price = suggestedPrice(it.priceDollars);
+    out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false, price, aiPrice: price || undefined });
   }
   batch.forEach((p, i) => {
     if (!placed.has(i)) out.push(blankItem([p.key]));
@@ -92,11 +108,14 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
   return out;
 }
 
-/** Ask the photo tool to sort one batch. Smaller copies, cleaned (no location data), sent once and never kept. */
-async function askGroup(files: File[]): Promise<GroupAnswer> {
+/**
+ * Ask the photo tool to sort one batch. Smaller copies, cleaned (no location data), sent once and never kept.
+ * `at` (the located pickup address) lets the server hold each suggested price to our own sold prices nearby.
+ */
+export async function askGroup(files: File[], at: AiHintPoint = null): Promise<GroupAnswer> {
   const photos: string[] = [];
   for (const f of files) photos.push(await blobToBase64(await cleanListingPhoto(f, 1024, 0.7)));
-  const data = (await invokeAiBody({ mode: "group", photos }, GROUP_TIMEOUT_MS)) as GroupAnswer | null;
+  const data = (await invokeAiBody(at ? { mode: "group", photos, at } : { mode: "group", photos }, GROUP_TIMEOUT_MS)) as GroupAnswer | null;
   // An answer without a list is a fault, never "nothing here".
   if (!data || !Array.isArray(data.items)) throw new Error("ai_unavailable");
   return data;

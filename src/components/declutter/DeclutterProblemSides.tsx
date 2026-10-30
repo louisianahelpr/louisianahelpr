@@ -35,7 +35,7 @@ function ProblemPhotos({ paths }: { paths: string[] }) {
   return (
     <div className="flex flex-wrap gap-2" data-problem-photos="">
       {(urls.data ?? []).map((u, i) => u
-        ? <a key={paths[i]} href={u} target="_blank" rel="noreferrer"><img src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover" /></a>
+        ? <a key={paths[i]} href={u} target="_blank" rel="noreferrer"><img src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></a>
         : null)}
     </div>
   );

@@ -10,7 +10,6 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
@@ -134,10 +133,8 @@ export function declutterFilterSections({
       key: "handover",
       title: "How you get it",
       content: (
-        <label className="flex min-h-11 items-center gap-3 text-ds-15 text-foreground">
-          <Checkbox checked={filters.porchOnly} onCheckedChange={(v) => onChange({ ...filters, porchOnly: v === true })} />
-          Porch pickup only
-        </label>
+        // DA-19 (audit 2026-10-30): the one square checkbox among the pills; now the same Chip as every filter.
+        <Row><Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>Porch pickup only</Chip></Row>
       ),
     },
     {
@@ -193,10 +190,7 @@ export function declutterFilterSections({
       key: "show",
       title: "Show",
       content: (
-        <label className="flex min-h-11 items-center gap-3 text-ds-15 text-foreground">
-          <Checkbox checked={filters.dropsOnly} onCheckedChange={(v) => onChange({ ...filters, dropsOnly: v === true })} />
-          Only items with nightly price drops
-        </label>
+        <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>Only items with nightly price drops</Chip></Row>
       ),
     });
   }

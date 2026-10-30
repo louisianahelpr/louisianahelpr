@@ -126,7 +126,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterEditListing.tsx` | input×1, textarea×1, select×3, checkbox/switch/radio×1 | text | 80, 2000 | edit-title · edit-description · edit-category · edit-condition · edit-size · edit-tax |
-| `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
+| `src/components/declutter/DeclutterFilterPanel.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterFreeClaim.tsx` | input×1 | radio |  | Get this item free |
 | `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-stop-drops · manage-price · manage-floor · Your listing |
 | `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |

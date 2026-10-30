@@ -349,7 +349,7 @@ export function SavedSearches({
             variant="ghost"
             size="icon"
             aria-label="Saved searches"
-            className="h-10 w-10 rounded-ds-md btn-press text-muted-foreground hover:text-foreground"
+            className="h-10 w-10 btn-press text-muted-foreground hover:text-foreground"
           >
             <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
           </Button>
@@ -386,7 +386,7 @@ export function SavedSearches({
               variant="primary"
               onClick={handleSave}
               disabled={saving}
-              className="h-11 w-11 p-0 rounded-ds-md shrink-0"
+              className="h-11 w-11 p-0 shrink-0"
               aria-label="Save filter set"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}

@@ -314,7 +314,7 @@ export function SignupStep2(props: SignupStep2Props) {
       <div className="flex gap-3">
         <Button
           variant="primary"
-          className="flex-1 rounded-ds-md"
+          className="flex-1"
           size="lg"
           onClick={onContinue}
           // Stays tappable while fields are missing — tapping runs

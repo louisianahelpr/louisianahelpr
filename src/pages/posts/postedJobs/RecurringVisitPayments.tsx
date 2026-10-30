@@ -125,7 +125,7 @@ export function RecurringVisitPayments({ userId, className }: { userId: string; 
             </div>
             <Button
               type="button"
-              className="btn-grad-primary rounded-ds-md btn-press self-start"
+              className="btn-grad-primary btn-press self-start"
               disabled={payingId !== null}
               onClick={() => void pay(row)}
             >

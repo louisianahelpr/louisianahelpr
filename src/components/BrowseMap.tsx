@@ -933,7 +933,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               </p>
             </div>
             {filtersActive && onClearFilters && (
-              <Button variant="outline" onClick={onClearFilters} className="rounded-ds-md mt-1">
+              <Button variant="outline" onClick={onClearFilters} className="mt-1">
                 Clear filters
               </Button>
             )}
@@ -944,7 +944,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               <Button
                 variant="primary"
                 onClick={emptyStateCta.onClick}
-                className="rounded-ds-md mt-1"
+                className="mt-1"
               >
                 <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
               </Button>

@@ -159,7 +159,7 @@ class SectionErrorBoundary extends React.Component<
                     ? () => void hardReloadBypassCache()
                     : this.handleReset
                 }
-                className="rounded-ds-md h-8 text-ds-13"
+                className="h-8 text-ds-13"
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                 Try again

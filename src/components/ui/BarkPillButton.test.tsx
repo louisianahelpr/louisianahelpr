@@ -18,7 +18,7 @@ describe("BarkPillButton", () => {
   it("keeps the pill base class and merges a caller-supplied className", () => {
     render(<BarkPillButton className="mt-4">Go</BarkPillButton>);
     const btn = screen.getByRole("button", { name: "Go" });
-    expect(btn).toHaveClass("rounded-ds-md", "mt-4");
+    expect(btn).toHaveClass("rounded-full", "mt-4");
   });
 
   /*

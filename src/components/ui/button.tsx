@@ -73,7 +73,15 @@ const buttonVariants = cva(
   // `.ctl-tint` in src/index.css. duration-150 on the press (fast, snappy)
   // and the spring easing bounces back on release without needing two
   // separate durations — `ease-ds-spring` (--ease-spring) is our brand spring.
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  //
+  // PILL SHAPE (owner, 2026-10-29: "should all be pill shaped", sent with the
+  // Home empty feed's rounded-rectangle "Post a job"). Every button is
+  // `rounded-full`; a call site never restates or overrides the radius.
+  // `squircle` left this base at the same time: it is a no-op marker (see the
+  // note at `.squircle` in src/index.css) and the CSS rule still survives the
+  // purge through its other call sites. Guarded by
+  // src/test/buttonsArePills.test.ts.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {

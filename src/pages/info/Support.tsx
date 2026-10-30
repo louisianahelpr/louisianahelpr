@@ -508,7 +508,7 @@ const Support = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="w-full h-12 rounded-2xl"
+                  className="w-full h-12"
                   // Not gated on !isValid: a tap while fields are missing runs
                   // handleSubmit's reveal-all branch (setTouched), which names
                   // every outstanding field — the step-1-signup pattern. A

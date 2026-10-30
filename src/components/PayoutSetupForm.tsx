@@ -334,7 +334,7 @@ export function PayoutSetupForm({ onSettled }: {
           <Button
             variant="outline"
             size="sm"
-            className="mt-3 rounded-ds-md"
+            className="mt-3"
             onClick={() => { void statusQuery.refetch(); }}
             disabled={statusQuery.isFetching}
           >
@@ -468,7 +468,7 @@ export function PayoutSetupForm({ onSettled }: {
             size="wrap"
             onClick={handleOnboard}
             disabled={onboarding}
-            className="w-full rounded-ds-md"
+            className="w-full"
           >
             {onboarding ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
@@ -546,7 +546,7 @@ export function PayoutSetupForm({ onSettled }: {
 
       {isFullyOnboarded && (
         <>
-          <Button variant="outline" onClick={handleManageDashboard} className="w-full rounded-ds-md">
+          <Button variant="outline" onClick={handleManageDashboard} className="w-full">
             <ExternalLink className="w-4 h-4 mr-2" /> Manage payouts on Stripe
           </Button>
           <div

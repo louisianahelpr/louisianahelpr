@@ -476,7 +476,7 @@ function PostedJobCardInner({
                   <Button
                     size="sm"
                     variant="primary"
-                    className="w-full rounded-ds-md mt-2"
+                    className="w-full mt-2"
                     onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />

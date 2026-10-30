@@ -25,14 +25,14 @@ export function EmptyFeedActions({ onNotify }: { onNotify: () => void }) {
   const { gate, gatedProps } = useAgeGate();
   return (
     <div className="flex flex-col items-center gap-3">
-      <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")} className="rounded-ds-md">
+      <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")}>
         <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
         Post a job
       </Button>
       <Button
         variant="ghost" size="wrap"
         onClick={onNotify}
-        className="rounded-ds-md font-sans font-medium max-w-full"
+        className="font-sans font-medium max-w-full"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />

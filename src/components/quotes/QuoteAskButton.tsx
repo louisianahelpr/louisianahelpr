@@ -9,7 +9,7 @@ import { AgeGateNote } from "@/components/AgeGateNote";
 export function QuoteAskButton({ sending, onAsk, underAge }: { sending: boolean; onAsk: () => void; underAge: boolean }) {
   return (
     <div className="space-y-3">
-      <Button variant="primary" className="w-full rounded-ds-md" size="lg" onClick={onAsk} disabled={sending || underAge}>
+      <Button variant="primary" className="w-full" size="lg" onClick={onAsk} disabled={sending || underAge}>
         {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden /> : <Send className="w-4 h-4 mr-2" aria-hidden />}
         {sending ? "Sending…" : "Ask for quotes"}
       </Button>

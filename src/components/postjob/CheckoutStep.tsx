@@ -704,7 +704,7 @@ export function CheckoutStep({
       <div className="space-y-3">
         <Button
           variant="primary"
-          className="w-full rounded-ds-md"
+          className="w-full"
           size="lg"
           onClick={onSubmit}
           disabled={saving || uploading || !confirmed || giftLoading || underAge}

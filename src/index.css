@@ -2167,8 +2167,10 @@ body[data-scroll-locked] .offline-banner {
 }
 
 /* ── .squircle — intentionally a NO-OP marker class ────────────────────────
-   `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
-   every Button in the app. It has never had a visual effect, and shouldn't.
+   `.squircle` rides on a handful of components. It rode on every Button via
+   `buttonVariants` until 2026-10-29, when the Button base became `rounded-full`
+   (owner: "should all be pill shaped") and dropped it. It has never had a
+   visual effect, and shouldn't.
 
    Commit 0523faca gave it a real implementation via `corner-shape:
    superellipse(4)` and that was a mistake — nobody asked for it, and it
@@ -2197,7 +2199,7 @@ body[data-scroll-locked] .offline-banner {
    Kept in `@layer components` so it lands before Tailwind's utilities. Tailwind
    v3 content-purges custom `@layer components` CSS, so this rule survives only
    because the literal string `squircle` appears in the scanned source
-   (including the `buttonVariants` base string) — renaming the class without
+   (its remaining call sites) — renaming the class without
    updating call sites would silently drop it rather than error. */
 @layer components {
   /* `round` — i.e. `.squircle` is a NO-OP marker class, and stays one. Chosen
@@ -2639,8 +2641,8 @@ button,
    hover, some circle on hover and some move on hover, this needs to be
    consistent. fix it or i wont say it again."
 
-   All three were real. `<Button variant="ghost">` inherits `rounded-ds-md`
-   from `buttonVariants` and `ghost` IS `.ctl-tint`, so ChatHeader's back
+   All three were real. `<Button variant="ghost">` inherited `rounded-ds-md`
+   from `buttonVariants` (the base is `rounded-full` since 2026-10-29) and `ghost` IS `.ctl-tint`, so ChatHeader's back
    chevron, DialogContent's x, SheetContent's x and five more painted the wash
    as a rounded SQUARE; `BackButton` and fourteen others painted the identical
    wash as a DISC; DialogContent's x additionally lifted its glyph 2px
@@ -2657,8 +2659,9 @@ button,
    reference it. Changing the app's exit shape is now one edit here.
 
    WHY IT IS UNLAYERED AND SITS HERE, after `@tailwind utilities`: it has to
-   WIN over `buttonVariants`' own `rounded-ds-md`, which a ghost `<Button>`
-   used as a close control cannot drop. Same mechanism, same position in the
+   WIN over `buttonVariants`' own radius (`rounded-ds-md` then, `rounded-full`
+   since 2026-10-29), which a ghost `<Button>` used as a close control cannot
+   drop. Same mechanism, same position in the
    file, and for the same reason as `.ctl-tint:hover` above — see the cascade-
    order note in "THE ONE INTERACTION TREATMENT". Verified against
    dist/assets/*.css after `npm run build`, never the dev server.

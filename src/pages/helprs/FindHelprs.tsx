@@ -184,14 +184,14 @@ export default function FindHelprs() {
                     <Button
                       variant="primary"
                       size="sm"
-                      className="flex-1 rounded-ds-md"
+                      className="flex-1"
                       onClick={ageGate("post", () => navigate(`/post-job?offerTo=${h.user_id}`))}
                       {...ageGatedProps("post")}
                     >
                       <Send className="h-3.5 w-3.5" aria-hidden />
                       Offer a job
                     </Button>
-                    <Button asChild variant="outline" size="sm" className="flex-1 rounded-ds-md">
+                    <Button asChild variant="outline" size="sm" className="flex-1">
                       <Link to={`/user/${h.user_id}`}>View profile</Link>
                     </Button>
                   </div>

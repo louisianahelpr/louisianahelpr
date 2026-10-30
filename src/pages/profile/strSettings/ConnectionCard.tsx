@@ -142,7 +142,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 rounded-ds-md text-ds-13"
+          className="flex-1 text-ds-13"
           disabled={syncing}
           onClick={() => onSync(conn.id)}
           style={{ height: 36 }}

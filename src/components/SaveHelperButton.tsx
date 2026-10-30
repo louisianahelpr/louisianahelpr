@@ -132,7 +132,7 @@ const SaveHelperButton = ({
         // loading button took the Button default size, so the profile header
         // grew 8px while the saved status loaded and shrank back when it
         // landed (CLS 0.039 on /user/:id at 375).
-        className={`rounded-ds-md ${variant === "icon" ? "h-10 w-10 shrink-0 " : ""}${className}`}
+        className={`${variant === "icon" ? "h-10 w-10 shrink-0 " : ""}${className}`}
         aria-label="Loading saved status"
       >
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -148,7 +148,7 @@ const SaveHelperButton = ({
         size="sm"
         onClick={toggle}
         disabled={working}
-        className={`rounded-ds-md ${className}`}
+        className={className}
       >
         {working ? (
           <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
@@ -169,7 +169,7 @@ const SaveHelperButton = ({
       size="icon"
       onClick={toggle}
       disabled={working}
-      className={`rounded-ds-md h-10 w-10 shrink-0 ${className}`}
+      className={`h-10 w-10 shrink-0 ${className}`}
       aria-label={saved ? "Unsave Helpr" : "Save Helpr"}
       title={saved ? "Saved — tap to remove" : "Save this Helpr"}
     >

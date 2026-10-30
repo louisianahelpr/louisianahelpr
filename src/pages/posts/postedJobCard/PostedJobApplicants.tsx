@@ -42,7 +42,7 @@ export function PostedJobApplicants({
   if (!takesApplicants(job, crewRoster, undefined, closedSpots)) return null;
   return (
     <div className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-      <Button size="sm" className="w-full rounded-ds-md glass-press" onClick={() => onLoadApplications(job)}>
+      <Button size="sm" className="w-full glass-press" onClick={() => onLoadApplications(job)}>
         <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
       </Button>
     </div>

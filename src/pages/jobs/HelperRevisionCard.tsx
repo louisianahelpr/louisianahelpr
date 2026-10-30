@@ -317,7 +317,7 @@ export function HelperRevisionCard({
       <div className="pt-0.5">
         <Button
           size="sm"
-          className="w-full rounded-ds-md"
+          className="w-full"
           onClick={handleAccept}
           disabled={accepting || acknowledged}
           aria-disabled={acknowledged || undefined}

@@ -145,7 +145,6 @@ class ErrorBoundary extends React.Component<Props, State> {
           <Button
             variant="primary"
             onClick={this.handleReset}
-            className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Try again

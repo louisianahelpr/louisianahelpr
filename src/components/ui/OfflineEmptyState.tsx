@@ -28,7 +28,7 @@ export function OfflineEmptyState({
       title="You're offline."
       body={body}
       action={
-        <Button variant="outline" size="sm" onClick={onRetry} className="rounded-ds-md">
+        <Button variant="outline" size="sm" onClick={onRetry}>
           Try again
         </Button>
       }

@@ -275,7 +275,7 @@ export function AddCalendarForm({
       <Button
         onClick={() => onAdd(form)}
         disabled={loading || !form.ical_url.trim() || !!icalUrlError || !!budgetError}
-        className="w-full rounded-ds-md"
+        className="w-full"
       >
         {/* The `style={{ background: "hsl(var(--bark))" }}` that used to sit
             here was silent gloss-killer #2 from CLAUDE.md, verbatim: an inline

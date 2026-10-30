@@ -813,7 +813,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-ds-md"
                       onClick={() => navigate("/home")}
                     >
                       <Search className="w-3.5 h-3.5 mr-1.5" /> Browse open Jobs
@@ -821,7 +820,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     <Button
                       variant="primary"
                       size="sm"
-                      className="rounded-ds-md"
                       onClick={() => navigate("/post-job")}
                     >
                       <Plus className="w-3.5 h-3.5 mr-1.5" /> Post a job

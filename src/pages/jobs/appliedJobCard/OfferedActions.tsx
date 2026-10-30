@@ -254,7 +254,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 rounded-ds-md"
+          className="flex-1"
           disabled={busy}
           aria-busy={busy}
           onClick={() => {
@@ -272,7 +272,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         <Button
           variant="primary"
           size="sm"
-          className="flex-1 rounded-ds-md"
+          className="flex-1"
           disabled={busy}
           aria-busy={busy}
           data-offer-primary="accept"

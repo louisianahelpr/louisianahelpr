@@ -470,7 +470,7 @@ const CompleteProfile = () => {
             size="lg"
             onClick={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
             disabled={signingOut}
-            className="mt-5 w-full rounded-ds-md"
+            className="mt-5 w-full"
           >
             <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
           </Button>
@@ -824,7 +824,7 @@ const CompleteProfile = () => {
               type="submit"
               size="lg"
               className={cn(
-                "w-full rounded-ds-md",
+                "w-full",
                 // The label is clipped at 320px without this. `size="lg"` is
                 // `h-[60px] px-8` and `Button`'s base class is
                 // `whitespace-nowrap`, so at a 320px viewport the button box is
@@ -855,7 +855,7 @@ const CompleteProfile = () => {
               size="lg"
               onClick={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
               disabled={signingOut}
-              className="w-full rounded-ds-md"
+              className="w-full"
             >
               <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
             </Button>

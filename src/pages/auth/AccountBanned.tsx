@@ -263,13 +263,13 @@ const AccountBanned = () => {
           {/* `Button asChild` wrapping the Link — the canonical pattern. The
               inverse (<Link><Button>) renders a <button> INSIDE an <a>: invalid
               HTML, and a double tab stop on every one of these CTAs. */}
-          <Button asChild variant="primary" className="w-full rounded-ds-md" size="lg">
+          <Button asChild variant="primary" className="w-full" size="lg">
             <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
               <Mail className="w-4 h-4 mr-2" />
               Contact support
             </Link>
           </Button>
-          <Button asChild variant="ghost" className="w-full rounded-ds-md" size="sm">
+          <Button asChild variant="ghost" className="w-full" size="sm">
             <Link to="/rules">Review platform Rules</Link>
           </Button>
         </div>

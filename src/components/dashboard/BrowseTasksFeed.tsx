@@ -470,14 +470,14 @@ export function BrowseTasksFeed({
                   <Button
                     variant="ghost"
                     onClick={() => filters.setLocationFilter("")}
-                    className="rounded-ds-md font-sans font-medium"
+                    className="font-sans font-medium"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Show all locations
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
+                <Button variant="outline" onClick={filters.clearFilters}>
                   {filtered.clearLabel}
                 </Button>
               )
@@ -583,7 +583,7 @@ export function BrowseTasksFeed({
                     variant="ghost"
                     size="sm"
                     onClick={() => fetchNextPage()}
-                    className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
+                    className="text-ds-11 text-muted-foreground hover:text-foreground btn-press"
                   >
                     Load more
                   </Button>

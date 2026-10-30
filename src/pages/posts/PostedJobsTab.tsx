@@ -231,7 +231,7 @@ export const PostedJobsTab = ({
         title="No posts yet in this view"
         body="Post your first job and we'll match you with Louisiana Helprs nearby."
         action={
-          <Button onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")} className="rounded-ds-md btn-press">
+          <Button onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")} className="btn-press">
             <Wrench className="w-4 h-4 mr-1.5" /> Post a job
           </Button>
         }

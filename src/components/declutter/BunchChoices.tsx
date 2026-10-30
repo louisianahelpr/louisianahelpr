@@ -60,6 +60,11 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   return { choices, set, remember };
 }
 
+/** The run's price choice in the words the single form uses before Post. */
+export function bunchDropsLine(c: Pick<BunchChoices, "drops" | "dropPct" | "floorPct">): string {
+  return c.drops ? `Price drops: on, ${c.dropPct}% each evening, never below ${c.floorPct}% of each price.` : "Price drops: off. Each priced item stays at its price.";
+}
+
 export function BunchChoicesCard({ c, anyPriced }: { c: ReturnType<typeof useBunchChoices>; anyPriced: boolean }) {
   const { keepUp, drops, dropPct, floorPct } = c.choices;
   return (

@@ -4,6 +4,7 @@
  * apart from DeclutterSellView (the flow's screens, state and server calls) so that file stays
  * under the god-component line threshold (src/test/componentSizeRatchet.test.ts).
  */
+import { formatPrice } from "@/lib/declutter/distance";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -13,7 +14,7 @@ import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
  * The ONE name of the price-drops switch, on the sell form and in Manage listing (audit DC-5: Manage said "Stop
  * price drops" with on = stopped while the form said this with on = drops). On always means it drops.
  */
-export const DROPS_SWITCH_LABEL = "Lower the price if it doesn't sell?";
+export const DROPS_SWITCH_LABEL = "Lower the price over time";
 
 /**
  * A $1 price has nothing lower to drop to (the lowest price is at least $1 and below the price), so drops don't apply
@@ -32,7 +33,24 @@ export function priceChoiceToSave(f: Pick<FormState, "free" | "price" | "floor" 
   if (price === null) return null;
   if (!f.drops || priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 };
   const floor = dollarsToCents(f.floor);
-  return floor === null ? null : { floorCents: floor, dropPct: f.dropPct };
+  if (floor === null) return null;
+  // A lowest price at the price can never drop, so it is saved as off: buyers then see nothing about drops (they read
+  // drop_pct, never the private lowest price). Above the price stays as typed, for the server's refusal to name it.
+  return { floorCents: floor, dropPct: floor === price ? 0 : f.dropPct };
+}
+
+/**
+ * What will happen to the price, said before Post (owner 2026-10-30: the form let them think they had set "never").
+ * Null for a free item, or before there is a price to speak of. From priceChoiceToSave, so it says what gets saved.
+ */
+export function dropsOutcomeLine(f: Pick<FormState, "free" | "price" | "floor" | "drops" | "dropPct">): string | null {
+  if (f.free) return null;
+  const choice = priceChoiceToSave(f);
+  const price = dollarsToCents(f.price);
+  if (price === null) return null;
+  if (choice && choice.dropPct === 0) return `Price drops: off. It stays at ${formatPrice(price)} until you change it.`;
+  if (!choice) return `Price drops: on, ${f.dropPct}% each evening. Set the lowest you'll take.`;
+  return `Price drops: on, ${choice.dropPct}% each evening, never below ${formatPrice(choice.floorCents)}.`;
 }
 
 export interface FormState {

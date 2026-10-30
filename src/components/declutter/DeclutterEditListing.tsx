@@ -15,7 +15,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -24,7 +23,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
 import { ChipGroup } from "./DeclutterSellSteps";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
@@ -125,10 +124,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       <p className="text-ds-13 text-muted-foreground" data-edit-review={big ? "yes" : "no"} aria-live="polite">
         {big ? EDIT_RULE.checked : EDIT_RULE.instant}
       </p>
-      <div className="flex items-start gap-3 text-ds-14">
-        <Checkbox id="edit-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} />
-        <label htmlFor="edit-tax">{TAX_ATTESTATION_SENTENCE}</label>
-      </div>
+      <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} />
       <button type="submit" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 w-full rounded-full px-5 text-ds-15 font-semibold" disabled={!ready}>
         {save.isPending ? "Saving…" : "Save changes"}
       </button>

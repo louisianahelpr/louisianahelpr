@@ -55,14 +55,16 @@ import {
   toMoveRows,
   type MoveRow,
 } from "@/lib/declutter/moves";
-import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, sellerStatusLabel, TAX_STATEMENTS } from "./declutterUi";
+import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, sellerStatusLabel, TaxStatementsCheck } from "./declutterUi";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { readMoveDraft, writeMoveDraft } from "@/lib/declutter/moveDraft";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import { movingDayPostJobPath } from "@/lib/declutter/movingDayJob";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { AREA_ADDRESS_RE } from "./sellForm";
-import { PickupTimesEditor } from "./DeclutterPickupTimes";
+import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
+import { LastSetupNote } from "./SellLastSetup";
+import { useSavedPickup } from "./useSavedPickup";
 
 // The shared field look (DatePickerField / Input): one height and radius on this page (board 164).
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
@@ -98,10 +100,19 @@ export default function MoveFlow() {
   const [pickupAddress, setPickupAddress] = useState("");
   const addressPoint = useExactAddressPoint();
   const [rows, setRows] = useState<MoveRow[]>([]);
+  // Saved settings are the source once they exist (owner 2026-10-30): the address, area and exact point, asked once,
+  // only for a box still blank (a move already under way keeps its own).
+  const savedSetup = useSavedPickup(user?.id, (p) => {
+    setAreaLabel((a) => a || p.areaLabel);
+    setPickupAddress((a) => a || p.address);
+  });
+  const [whereOpen, setWhereOpen] = useState(false);
+  const [listOptionsOpen, setListOptionsOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
-  const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
+  // One tick for the four statements covers the whole run (owner 2026-10-30); attestItem still records all four per item.
+  const [attested, setAttested] = useState(false);
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [changingDate, setChangingDate] = useState(false);
@@ -190,6 +201,8 @@ export default function MoveFlow() {
       : AREA_ADDRESS_RE.test(areaLabel) ? "Use your neighborhood or town for the area, not a street address."
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
+  // Saved settings fold to one line; Change opens them, and a move already under way shows its own address.
+  const whereFolded = !!savedSetup.pickup && !whereOpen && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const moveDetailsProblem = dateProblem ?? placeProblem;
   const kept = rows.filter((r) => r.keep);
   const rowProblem = kept.map(moveRowProblem).find((p) => p) ?? null;
@@ -229,7 +242,9 @@ export default function MoveFlow() {
     setSaving(true);
     let saved = 0;
     try {
-      const g = await addressPoint.locate(pickupAddress);
+      // The saved address keeps its saved point, exactly; anything typed is looked up.
+      const known = savedSetup.pickup && savedSetup.pickup.address === pickupAddress.trim() ? { lat: savedSetup.pickup.lat, lng: savedSetup.pickup.lng } : null;
+      const g = known ?? await addressPoint.locate(pickupAddress);
       const place = { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: g.lat, pickupLng: g.lng };
       for (const batch of chunk(kept, MOVE_SAVE_BATCH)) {
         const ids = await createMoveDrafts(date, place, batch);
@@ -251,8 +266,8 @@ export default function MoveFlow() {
   }
 
   async function onListAll() {
-    if (checks.some((c) => !c)) {
-      toast.error("All four statements need a check before you can list these items.");
+    if (!attested) {
+      toast.error("Tick the box under the four statements before you list these items.");
       return;
     }
     if (chosen.length === 0) return;
@@ -322,14 +337,23 @@ export default function MoveFlow() {
             <label className="block text-sm font-medium" htmlFor="move-date">Move-out date</label>
             <DatePickerField id="move-date" value={date} min={today} onChange={setDate} placeholder="Pick a date" />
           </div>
+          {!whereFolded && (
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-area">Area buyers see</label>
             <input id="move-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
           </div>
+          )}
         </div>
+        {whereFolded ? (
+          <div className="space-y-1" data-move-where-saved="">
+            <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[savedSetup.pickup?.line, areaLabel.trim()].join(" · ")}</p>
+            <LastSetupNote saved onChange={() => setWhereOpen(true)} />
+          </div>
+        ) : (<>
         <label className="block text-sm font-medium" htmlFor="move-address">Pickup address</label>
         <input id="move-address" className={input} maxLength={300} value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
         <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={addressPoint.inexact} locating={addressPoint.locating} shareMyLocation={addressPoint.shareMyLocation} />
+        </>)}
         <p className="text-xs text-muted-foreground">
           Buyers see your area and your move-out date. Only the buyer who pays sees the address.
         </p>
@@ -473,6 +497,12 @@ export default function MoveFlow() {
 
       {ready.length > 0 && !photos.isError && (
         <Section id="move-list" title={`${stepNo("list")}. List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}>
+          {savedSetup.hasSettings && !listOptionsOpen && savedWindows.isSuccess && !pickupWindowsProblem(windows) ? (
+            <div className="space-y-1" data-move-list-saved="">
+              <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{windowsSummary(windows)}</p>
+              <LastSetupNote saved onChange={() => setListOptionsOpen(true)} />
+            </div>
+          ) : (<>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>
           <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
           {savedWindows.isError ? (
@@ -482,15 +512,10 @@ export default function MoveFlow() {
           ) : (
             <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
           )}
+          </>)}
           <h3 className="text-sm font-semibold pt-2">Confirm about these items</h3>
-          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Each statement counts for every item you list now.</p>
-          {TAX_STATEMENTS.map((s, i) => (
-            <div key={s} className="flex items-start gap-3 text-sm">
-              <Checkbox id={`move-tax-${i}`} className="mt-0.5" checked={checks[i]}
-                onCheckedChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v === true : x)))} />
-              <label htmlFor={`move-tax-${i}`}>{s}</label>
-            </div>
-          ))}
+          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item you list now.</p>
+          <TaxStatementsCheck id="move-tax" checked={attested} onChange={setAttested} />
           <Button type="button" disabled={!!progress || chosen.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
             {progress ? `Listing ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…` : `List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}
           </Button>

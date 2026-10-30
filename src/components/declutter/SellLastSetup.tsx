@@ -55,10 +55,10 @@ export function useLastListingSetup(
  * A new listing's "How buyers get it" line (SellOneScreen): the setup came from the last listing; Change opens
  * the choices, the area, the pickup address and the pickup times.
  */
-export function LastSetupNote({ onChange }: { onChange: () => void }) {
+export function LastSetupNote({ onChange, saved = false }: { onChange: () => void; saved?: boolean }) {
   return (
     <p className="flex flex-wrap items-center gap-x-2 text-ds-13 text-muted-foreground" data-last-setup="">
-      <span>Using your last listing's setup</span>
+      <span>{saved ? "Using your saved settings" : "Using your last listing's setup"}</span>
       <span aria-hidden>·</span>
       <button type="button" className="min-h-11 font-semibold text-foreground underline underline-offset-2" onClick={onChange}>
         Change

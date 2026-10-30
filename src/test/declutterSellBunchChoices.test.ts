@@ -26,6 +26,7 @@ function deps(over: Partial<ListDeps> = {}): ListDeps {
   return {
     createDraft: vi.fn(async () => `id${++n}`),
     updateDraft: vi.fn(async (id: string) => id),
+    removePhoto: vi.fn(async () => {}),
     addPhoto: vi.fn(async () => ({}) as never),
     setHandovers: vi.fn(async (_id, w) => w),
     setDropPct: vi.fn(async (_id, p) => p),

@@ -144,6 +144,7 @@ describe("listBunch marks what stays", () => {
     const deps: ListDeps = {
       createDraft: vi.fn(async () => `d${++n}`),
       updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
       addPhoto: vi.fn(async (_s, id) => {
         if (id === "d1") throw new Error("photo_not_uploaded");
         return "ph";

@@ -48,10 +48,13 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_complete_handover").file).toContain("20261028232338_declutter_damage_no_enjoy_notice.sql");
     const names = ["declutter_claim_free", "declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
-      "declutter_create_item", "declutter_update_draft", "declutter_orders_fee_rule_f1", "payout_setup_hire_allowed",
+      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(8);
+    expect(names.length).toBeGreaterThan(7);
+    // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
+    expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
+    expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");
   });
 
   it("listing a free item never charges the one-time setup fee; a paid listing still does (owner 2026-10-27)", () => {

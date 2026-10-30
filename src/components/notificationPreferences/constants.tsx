@@ -112,8 +112,8 @@ export const rows: Row[] = [
 // One row per declutter_* notification type (20261028162048). Shown only while
 // Declutter is on for the member; Wanted matches only while Wanted is.
 // Labels are one or two short words, inside the 375px budget described above.
-// Pickups and price drops are the only kinds that send a notice email, so the
-// other rows show a dash in the Email column rather than a switch that does
+// Pickups, price drops and Wanted matches are the only kinds that send a notice
+// email, so the other rows show a dash in the Email column rather than a switch that does
 // nothing. (A Declutter refund's receipt email, declutter-money's
 // tellBuyerRefunded, is a receipt and always goes; the Refunds dash says so.)
 const NO_EMAIL = "In the app only, no email for this";
@@ -124,5 +124,5 @@ export const declutterRows: Row[] = [
   { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", icon: <CalendarClock className="w-3.5 h-3.5" /> },
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
   { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", icon: <TrendingDown className="w-3.5 h-3.5" /> },
-  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", icon: <Search className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", icon: <Search className="w-3.5 h-3.5" /> },
 ];

@@ -104,6 +104,12 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   },
 ] as const;
 
+/**
+ * How fast Louisiana Helpr answers (owner decided 2026-10-29, Q2478 part 3): the one promise Get help now and
+ * both support "Message sent" states make. Was "usually within one business day" (/support) and "soon" (Profile).
+ */
+export const SUPPORT_REPLY_PROMISE = "We usually answer within a few hours.";
+
 export const findSupportTopic = (
   key: string | null | undefined,
 ): SupportTopic | null =>

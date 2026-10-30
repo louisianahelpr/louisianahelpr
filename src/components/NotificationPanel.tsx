@@ -869,7 +869,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                                         setOpen(false);
                                         navigate(a.href);
                                       }}
-                                      className="h-9 px-3 text-ds-11 font-sans font-semibold rounded-ds-md border transition-all active:scale-[0.94]"
+                                      className="h-9 px-3 text-ds-11 font-sans font-semibold rounded-full border transition-all active:scale-[0.94]"
                                       style={{
                                         borderColor: "hsl(var(--bark) / 0.35)",
                                         color: "hsl(var(--bark))",

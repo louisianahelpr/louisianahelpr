@@ -18,12 +18,22 @@
  *   3. Every string literal in src/ that wears `btn-grad-primary` (the glossy
  *      primary surface, raw `<button>`s and their sliding selected pills
  *      included) carries no non-pill radius.
+ *   4. The hand-built raw `<button>`s that are styled as buttons and were
+ *      named on 2026-10-30 (SeriesDatesPanel "Offer dates", ConversationList
+ *      "Show all" and the bulk "Hide" bar, the NPS score buttons, the
+ *      notification row actions) are pills: each is found by an anchor in its
+ *      opening tag, carries rounded-full and no other radius.
  * Cards, inputs, sheets, chips and avatars are not buttons and are not read.
  *
  * @mutate src/components/ui/button.tsx | whitespace-nowrap rounded-full text-ds-15 | whitespace-nowrap rounded-ds-md text-ds-15
  * @mutate src/components/dashboard/EmptyFeedActions.tsx | <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")}> | <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")} className="rounded-ds-md">
  * @mutate src/components/sections/AppTopBar.tsx | "h-10 w-10 shrink-0 self-center btn-press | "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press
  * @mutate src/components/series/SeriesDatesPanel.tsx | btn-grad-primary min-h-[44px] px-4 rounded-full text-ds-12 | btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12
+ * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
+ * @mutate src/components/messages/ConversationList.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
+ * @mutate src/components/messages/ConversationList.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
+ * @mutate src/components/feedback/NpsPrompt.tsx | "flex-1 min-w-0 h-11 rounded-full border | "flex-1 min-w-0 h-11 rounded-ds-md border
+ * @mutate src/components/NotificationPanel.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -121,6 +131,31 @@ export function primaryRadiusHits(file: string, src: string): { primaries: numbe
   return { primaries, hits };
 }
 
+/** Raw `<button>`s styled as buttons (owner, 2026-10-29 "should all be pill shaped"; named by the lead 2026-10-30). */
+export const RAW_PILL_SITES: { file: string; anchor: string }[] = [
+  { file: "src/components/series/SeriesDatesPanel.tsx", anchor: "offerSeriesDates(jobId, a.id)" },
+  { file: "src/components/messages/ConversationList.tsx", anchor: "setShowAllConvos(true)" },
+  { file: "src/components/messages/ConversationList.tsx", anchor: "selected conversation" },
+  { file: "src/components/feedback/NpsPrompt.tsx", anchor: "Score ${n}" },
+  { file: "src/components/NotificationPanel.tsx", anchor: "key={a.label}" },
+];
+
+/** The fourth check, for one file: the raw `<button>`s whose opening tag contains `anchor`, with their className radius tokens. */
+export function rawButtonsAt(file: string, src: string, anchor: string): { radii: string[]; pill: boolean }[] {
+  const sf = parse(file, src);
+  const out: { radii: string[]; pill: boolean }[] = [];
+  const visit = (n: ts.Node) => {
+    if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && n.tagName.getText(sf) === "button" && n.getText(sf).includes(anchor)) {
+      const cls = n.attributes.properties.find((a) => ts.isJsxAttribute(a) && a.name.getText(sf) === "className");
+      const texts = cls && ts.isJsxAttribute(cls) && cls.initializer ? stringsUnder(cls.initializer) : [];
+      out.push({ radii: texts.flatMap(nonPillRadii), pill: texts.some((t) => t.split(/\s+/).includes("rounded-full")) });
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 const SOURCES = trackedFiles("src").filter(
   (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("src/test/") && !f.endsWith(".d.ts"),
 );
@@ -177,6 +212,17 @@ describe("every button is a pill (owner, 2026-10-29)", () => {
     expect(hits.map((h) => `${h.where}  ${h.tokens.join(" ")}`), "these primary CTAs are not pills — use rounded-full").toEqual([]);
   });
 
+  it("the hand-built raw <button>s styled as buttons are pills", () => {
+    expect(RAW_PILL_SITES.length).toBeGreaterThan(4);
+    const bad: string[] = [];
+    for (const { file, anchor } of RAW_PILL_SITES) {
+      const found = rawButtonsAt(file, read(file), anchor);
+      expect(found.length, `${file}: exactly one raw <button> carries "${anchor}"`).toBe(1);
+      if (!found[0].pill || found[0].radii.length) bad.push(`${file} (${anchor}): ${found[0].pill ? "" : "no rounded-full "}${found[0].radii.join(" ")}`);
+    }
+    expect(bad, "these hand-built buttons are not pills — use rounded-full").toEqual([]);
+  });
+
   it("the scanners catch what they claim to (fixtures)", () => {
     expect(nonPillRadii("w-full rounded-ds-md sm:rounded-2xl rounded rounded-full md:rounded-full")).toEqual(["rounded-ds-md", "sm:rounded-2xl", "rounded"]);
     const src = `
@@ -193,5 +239,8 @@ describe("every button is a pill (owner, 2026-10-29)", () => {
     expect(b.buttons).toBe(3);
     expect(b.hits.map((h) => h.tokens)).toEqual([["rounded-ds-md"], ["rounded-ds-sm"]]);
     expect(primaryRadiusHits("f.tsx", src).hits.map((h) => h.tokens)).toEqual([["rounded-ds-md"]]);
+    expect(rawButtonsAt("f.tsx", src, ">raw<")).toEqual([]);
+    expect(rawButtonsAt("f.tsx", `<button aria-label="x" className={cn("h-9 rounded-ds-md", y)} />`, `aria-label="x"`)).toEqual([{ radii: ["rounded-ds-md"], pill: false }]);
+    expect(rawButtonsAt("f.tsx", `<button aria-label="x" className="h-9 rounded-full" />`, `aria-label="x"`)).toEqual([{ radii: [], pill: true }]);
   });
 });

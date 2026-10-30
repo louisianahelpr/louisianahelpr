@@ -1592,7 +1592,7 @@ export function ConversationList({
                 <div className="flex justify-center py-3">
                   <button
                     onClick={() => setShowAllConvos(true)}
-                    className="btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5 text-ds-13 font-medium transition-colors"
+                    className="btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 text-ds-13 font-medium transition-colors"
                     style={{
                       background: "hsl(var(--parchment) / 0.8)",
                       color: "hsl(var(--bark))",
@@ -1679,7 +1679,7 @@ export function ConversationList({
                     // local archive every other surface calls hiding ("no
                     // messages are deleted"); the bar must not promise more.
                     aria-label={`Hide ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
-                    className="h-9 px-3 rounded-ds-md inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
+                    className="h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
                     style={{
                       background: "hsl(var(--bark))",
                       color: "hsl(var(--parchment))",

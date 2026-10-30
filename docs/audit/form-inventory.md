@@ -117,7 +117,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Stars · Quick tags · Shown on their profile |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×2 | radio, text | 300 |  |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | wanted-reply-pick · wanted-reply-price · wanted-near-title |
-| `src/components/declutter/DeclutterWantedViews.tsx` | input×3 | text, file | 60 | What are you looking for? · wanted-what · Kids bike, 16 inch · wanted-max · 30 · wanted-category · Pick one · wanted-within |
+| `src/components/declutter/DeclutterWantedViews.tsx` | input×3 | text, file | 60 | What are you looking for? · wanted-what · Kids bike, 16 inch · wanted-category · Pick one · wanted-max · 30 · wanted-within |
 | `src/components/declutter/DeliverVehicleForm.tsx` | checkbox/switch/radio×3 |  |  | Your vehicle |
 | `src/components/declutter/DeliveryRaisePanel.tsx` | input×1 | text |  | Raise the pay |
 | `src/components/declutter/paidOrders.ts` | input×1, date/calendar×1 | datetime-local |  |  |

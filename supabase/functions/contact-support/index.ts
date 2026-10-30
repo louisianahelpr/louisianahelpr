@@ -295,6 +295,28 @@ serve(async (req) => {
     // either, and the ops-ledger 'contact-support-guest' item is the trail.
     const testSubmitter = await isTestRecipient(admin, email)
     if (testSubmitter) console.log('[contact-support] test/seed submitter; support email not sent (Q840)')
+
+    // A signed-in TEST ACCOUNT never reaches admin at all (owner 2026-10-30,
+    // Get help now): no email, no admin-queue row, no ledger item, no Slack.
+    // is_test_subject also knows test_accounts and fixture logins that
+    // isTestRecipient cannot see. If that read fails the sender counts as real:
+    // losing a real person's request is worse than one test ping. A guest stays
+    // on the rule above: anyone can type an address, so the trail below stays.
+    if (userId) {
+      let testAccount = testSubmitter
+      if (!testAccount) {
+        const { data, error: testErr } = await admin.rpc('is_test_subject', { p_user_id: userId })
+        if (testErr) console.error('[contact-support] is_test_subject failed; treated as real:', testErr.message)
+        testAccount = data === true
+      }
+      if (testAccount) {
+        console.log('[contact-support] test account; nothing sent to admin')
+        return new Response(JSON.stringify({ sent: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
     try {
       if (!testSubmitter) await sendWithResend(resendApiKey, {
         to: SUPPORT_EMAIL,

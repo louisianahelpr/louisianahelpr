@@ -54,6 +54,7 @@ import {
   type ProblemReason,
 } from "@/lib/declutter/handover";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
+import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine } from "./declutterPayoutWords";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
@@ -253,6 +254,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
       </div>}
+      {/* CMP-3: outside Details, so it is one tap from the card. */}
+      <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} />
     </article>
   );
 }

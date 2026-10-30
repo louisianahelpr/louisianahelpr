@@ -46,7 +46,8 @@ describe("board 117: Wanted near you and I have this", () => {
   it("lists posts with First L., money-ink 'Up to' and miles; an answered one says so", async () => {
     renderIt();
     expect(await screen.findByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
-    const rows = screen.getAllByRole("listitem");
+    // The heading stands from the start now (the hub, owner 2026-10-30); the rows arrive with the answer.
+    const rows = await screen.findAllByRole("listitem");
     expect(rows[0].textContent).toContain("Up to $30 · Lexi L. · 4 mi");
     expect(within(rows[0]).getByText("$30").className).toContain("--burnt-sienna");
     expect(within(rows[1]).getByText("Answered")).toBeInTheDocument();
@@ -78,10 +79,12 @@ describe("board 117: Wanted near you and I have this", () => {
     expect(await screen.findByRole("link", { name: "List the item first" })).toHaveAttribute("href", "/declutter/sell");
   });
 
-  it("nothing near you: the section stays out of the way", async () => {
+  // Owner 2026-10-30: the Wanted tab is a hub, so "Wanted near you" always stands and says when it has nothing.
+  it("nothing near you: the section says so, with no I have this", async () => {
     state.near = [];
-    const { container } = renderIt();
-    await new Promise((r) => setTimeout(r, 20));
-    expect(container.textContent).toBe("");
+    renderIt();
+    expect(await screen.findByText(/No one near you has posted a Wanted yet/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I have this" })).toBeNull();
   });
 });

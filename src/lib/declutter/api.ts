@@ -22,7 +22,7 @@ import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles"
 // Q2425 (20261027204500): "meetup" is a safe public spot an admin curated; the seller's address is never shared.
 export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery" | "meetup";
 
-const DECLUTTER_PHOTO_BUCKET = "job-photos";
+export const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
 /** A Declutter refusal that is the ID check (identity_required_to_buy / _to_list) opens the one ID sheet. */
 function openIdentitySheetFor(err: unknown): void {

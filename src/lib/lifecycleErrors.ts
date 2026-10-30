@@ -931,6 +931,23 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     wanted_not_found: DC.wanted_not_found,
   },
+  // Wanted photos (20261030041359, owner 2026-10-30).
+  declutter_add_wanted_photo: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    under_18: DC.under_18,
+    wanted_not_found: DC.wanted_not_found,
+    wanted_not_open: DC.wanted_not_open,
+    wanted_too_many_photos: DC.wanted_too_many_photos,
+  },
+  declutter_remove_wanted_photo: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    wanted_not_found: DC.wanted_not_found,
+  },
   declutter_create_wanted: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

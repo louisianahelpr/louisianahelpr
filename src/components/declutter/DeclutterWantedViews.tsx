@@ -2,82 +2,81 @@
  * Declutter wanted posts (docs/specs/declutter-wanted-price-hint.md, W1-W17).
  * Plain words only. (The fair-price hint is DeclutterPriceHint.tsx.)
  *
- *   WantedView     the "Wanted" view inside /declutter (W14): post what you
- *                  want (words, category, highest price, how far), see the
- *                  live listings that match now, close a post. Shown only
- *                  while 'declutter_wanted' is on for the member.
+ *   WantedView     the "Wanted" tab inside /declutter: its OWN hub (owner 2026-10-30, via the lead), not a form:
+ *                  a "Post what you're looking for" pill that opens the form in the shared sheet, "Your Wanted
+ *                  posts" (each with what is for sale now at or under its price, and Close), and "Wanted near you"
+ *                  (other members' open posts nearby; "I have this" answers one with one of your listings,
+ *                  DeclutterWantedReplies). Shown only while 'declutter_wanted' is on for the member.
  *
- * The server enforces every rule (20261016053541); this file only explains.
+ * A Wanted is ALWAYS visible to sellers near the poster (owner 2026-10-30: "Wanted exists so sellers reply"): the
+ * "Let sellers near me reply" switch is gone, and what they see is said as plain text under the form.
+ * The server enforces every rule (20261016053541, 20261021031757); this file only explains.
  */
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { Camera, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { WantedNearSection } from "./DeclutterWantedReplies";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
+import { photoPublicUrl } from "@/lib/declutter/api";
 import {
+  WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
+  addWantedPhoto,
   closeWanted,
   createWanted,
   fetchMyWanted,
-  setWantedPublic,
+  removeWantedPhoto,
   wantedFormProblem,
   type WantedForm,
   type WantedPost,
+  type WantedReply,
 } from "@/lib/declutter/wanted";
+import { FallbackImg } from "./FallbackImg";
+import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
 import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 
-// Q2267: "Let sellers near me reply" starts ON in the form (owner 2026-10-21); the server default stays off.
-const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10, public: true };
+const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
+const FORM_ID = "wanted-form";
 
-function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPosted: () => void }) {
-  const [form, setForm] = useState<WantedForm>(EMPTY);
-  const [problem, setProblem] = useState<string | null>(null);
-  const post = useMutation({
-    mutationFn: () => createWanted(form, at),
-    onSuccess: (r) => {
-      setForm(EMPTY);
-      setProblem(null);
-      toast.success(
-        r.repliesOn
-          ? "Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price."
-          : "Posted. If your New offers alerts are on, we'll tell you when a match is listed at or under your price.",
-      );
-      onPosted();
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+/** What sellers near the poster see (shown under the form, in place of the old switch). */
+export const WANTED_SELLERS_SEE = "Sellers near you see your first name, what you want and your max price, never your address.";
+
+type FieldsProps = {
+  form: WantedForm;
+  setForm: (next: (f: WantedForm) => WantedForm) => void;
+  problem: string | null;
+  onSubmit: () => void;
+  /** The photo picker (optional, up to 3: the problem form's shared ProblemPhotoPicker). */
+  photos: ReactNode;
+};
+
+/** The form's fields; the sheet's footer holds Cancel and "Post wanted" (it submits this form). */
+function WantedFormFields({ form, setForm, problem, onSubmit, photos }: FieldsProps) {
   const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
   return (
     // Board 116 "Post a Wanted", kept to what the server stores (declutter_create_wanted: words, category, highest price,
-    // distance). Not built: how you'd get it, details, a reference photo (no fields), and neighbors replying (a Wanted is
-    // private by design, W-spec: sellers get a heads-up with your price, never your name or words; board 117 is parked).
+    // distance). Not built: how you'd get it and details (no fields).
     <form
-      className="rounded-2xl border border-border bg-card p-4 space-y-4"
-      aria-labelledby="wanted-form-title"
+      id={FORM_ID}
+      className="space-y-4"
+      aria-label="What are you looking for?"
       onSubmit={(e) => {
         e.preventDefault();
-        const p = wantedFormProblem(form);
-        setProblem(p);
-        if (!p) post.mutate();
+        onSubmit();
       }}
     >
-      <div className="space-y-1">
-        <h2 id="wanted-form-title" className="font-moment text-ds-28 leading-tight">What are you looking for?</h2>
-        <p className="text-ds-13 text-muted-foreground">
-          {form.public
-            ? "Sellers near you can see it and answer with one of their listings. You get a heads-up when a match is listed at or under your price."
-            : "Sellers near you with a matching listing get a heads-up with your highest price, never your name or your words. You get one when a match is listed at or under your price. Only you see your post."}
-        </p>
-      </div>
       <div className="space-y-1">
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
         <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike, 16 inch"
@@ -112,20 +111,135 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
           ))}
         </div>
       </div>
-      {/* Q2267 (owner 2026-10-21): on by default, in plain view, with what sellers see. */}
-      <div className="flex items-start justify-between gap-3 rounded-2xl border border-border px-4 py-3">
-        <div className="min-w-0">
-          <label htmlFor="wanted-public" className="block text-ds-15 font-semibold">Let sellers near me reply</label>
-          <p className="text-ds-13 text-muted-foreground">Sellers near you see your first name, what you want and your max price, never your address.</p>
-        </div>
-        <Switch id="wanted-public" checked={form.public} onCheckedChange={(v) => setForm((f) => ({ ...f, public: v }))} />
-      </div>
+      {/* Owner 2026-10-30: a photo of what you're looking for, like a quick listing (shown on your post and on
+          "Wanted near you" cards). */}
+      {photos}
       {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
-      <div className="space-y-2">
-        <p className="text-ds-13 text-muted-foreground">Your Wanted stays up 30 days. You can close it anytime.</p>
-        <Button type="submit" className="w-full sm:w-auto" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post wanted"}</Button>
+      <div className="space-y-1 text-ds-13 text-muted-foreground" data-wanted-privacy="">
+        <p>{WANTED_SELLERS_SEE}</p>
+        <p>Your Wanted stays up 30 days. You can close it anytime.</p>
       </div>
     </form>
+  );
+}
+
+/** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
+function WantedFormSheet({ open, at, userId, onClose }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void }) {
+  const webDesktop = useIsWebDesktop();
+  const qc = useQueryClient();
+  const [form, setForm] = useState<WantedForm>(EMPTY);
+  const [files, setFiles] = useState<File[]>([]);
+  const [problem, setProblem] = useState<string | null>(null);
+  const post = useMutation({
+    // The post first, then its photos (each attaches to the new post's own folder). A photo that fails never takes
+    // the post down with it: the post stays up, and the poster is told to add that photo again from the post.
+    mutationFn: async () => {
+      const id = await createWanted(form, at);
+      let failed = 0;
+      for (const f of files.slice(0, WANTED_PHOTO_MAX)) {
+        try { await addWantedPhoto(userId, id, f); } catch (err) { failed += 1; console.warn("[declutter] Wanted photo not added", err); }
+      }
+      return failed;
+    },
+    onSuccess: (failed) => {
+      setForm(EMPTY);
+      setFiles([]);
+      setProblem(null);
+      if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
+      else toast.success("Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price.");
+      void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
+      onClose();
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const submit = () => {
+    if (post.isPending) return;
+    const p = wantedFormProblem(form);
+    setProblem(p);
+    if (!p) post.mutate();
+  };
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={(e) => e.preventDefault()}
+        className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
+        <SheetHero title="What are you looking for?" />
+        <div className="mt-2">
+          <WantedFormFields form={form} setForm={setForm} problem={problem} onSubmit={submit}
+            photos={<ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} />
+        </div>
+        <SheetFooter className="mt-4">
+          <SheetSecondaryAction onClick={onClose}>Cancel</SheetSecondaryAction>
+          <SheetPrimaryAction type="submit" form={FORM_ID} disabled={post.isPending}>{post.isPending ? "Posting…" : "Post wanted"}</SheetPrimaryAction>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** Where one reply stands, from the poster's side (the offer card in Buying is where it is answered). */
+function replyStatus(r: WantedReply): string {
+  if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller";
+  return { accepted: "Accepted", declined: "Declined", expired: "Expired", withdrawn: "Withdrawn", voided: "Ended" }[r.status];
+}
+
+/** The sellers' replies to one of your posts: which listing, which seller (First L.), what price, where it stands. */
+function WantedReplies({ replies }: { replies: WantedReply[] }) {
+  if (replies.length === 0) return <p className="text-xs text-muted-foreground" data-wanted-replies="none">No replies from sellers yet.</p>;
+  const yourTurn = replies.some((r) => r.status === "open" && r.awaiting === "buyer");
+  return (
+    <div className="space-y-1" data-wanted-replies="">
+      <p className="text-xs font-medium">{replies.length === 1 ? "1 reply from a seller:" : `${replies.length} replies from sellers:`}</p>
+      <ul className="space-y-1">
+        {replies.map((r) => (
+          <li key={r.offer_id} className="min-w-0 text-sm" data-wanted-reply={r.offer_id}>
+            <Link to={`/declutter/item/${r.item_id}`} className="link-standard">{r.item_title}</Link>
+            {" · "}{r.seller_name}{" · "}{formatPrice(r.amount_cents)}{" · "}
+            <span className="text-muted-foreground">{replyStatus(r)}</span>
+          </li>
+        ))}
+      </ul>
+      {yourTurn && <Link to="/declutter?tab=buying" className="link-standard text-sm font-semibold">Answer in Buying</Link>}
+    </div>
+  );
+}
+
+/** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
+function WantedPostPhotos({ post, userId }: { post: WantedPost; userId: string }) {
+  const qc = useQueryClient();
+  const inputId = useId();
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
+  const add = useMutation({ mutationFn: (f: File) => addWantedPhoto(userId, post.id, f), onSuccess: refresh, onError: (err) => toast.error(declutterErrorMessage(err)) });
+  const remove = useMutation({ mutationFn: (p: string) => removeWantedPhoto(post.id, p), onSuccess: refresh, onError: (err) => toast.error(declutterErrorMessage(err)) });
+  const open = post.status === "open";
+  if (post.photo_paths.length === 0 && !open) return null;
+  const busy = add.isPending || remove.isPending;
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label="Photos" data-wanted-photos="">
+      {post.photo_paths.map((p, i) => (
+        <li key={p} className="relative h-20 w-20">
+          <FallbackImg src={photoPublicUrl(p)} alt={`Photo ${i + 1} of ${post.what}`} className="h-full w-full rounded-xl bg-photo-empty object-cover" />
+          {open && (
+            <button type="button" aria-label={`Remove photo ${i + 1}`} disabled={busy}
+              className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center" onClick={() => remove.mutate(p)}>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
+                <X className="h-4 w-4" />
+              </span>
+            </button>
+          )}
+        </li>
+      ))}
+      {open && post.photo_paths.length < WANTED_PHOTO_MAX && (
+        <li>
+          <input id={inputId} type="file" accept="image/*" className="sr-only" tabIndex={-1} disabled={busy}
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && f.type.startsWith("image/")) add.mutate(f); }} />
+          <button type="button" disabled={busy} onClick={() => document.getElementById(inputId)?.click()}
+            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--bark)/0.45)] text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">
+            <Camera className="h-5 w-5" aria-hidden />
+            {add.isPending ? "Adding…" : "Add a photo"}
+          </button>
+        </li>
+      )}
+    </ul>
   );
 }
 
@@ -135,7 +249,7 @@ const STATUS_WORDS: Record<WantedPost["status"], string> = {
   expired: "Expired",
 };
 
-function WantedRow({ post }: { post: WantedPost }) {
+function WantedRow({ post, userId }: { post: WantedPost; userId: string | null }) {
   const qc = useQueryClient();
   const close = useMutation({
     mutationFn: () => closeWanted(post.id),
@@ -145,18 +259,9 @@ function WantedRow({ post }: { post: WantedPost }) {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  // Q2267: turn replies on or off later (only once the server reports the setting).
-  const replies = useMutation({
-    mutationFn: (on: boolean) => setWantedPublic(post.id, on),
-    onSuccess: (on) => {
-      toast.success(on ? "Sellers near you can answer this post." : "Only you see this post now.");
-      void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
   const matches = post.matches;
   return (
-    <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
+    <li className="rounded-2xl border border-border bg-card p-4 space-y-2" data-wanted-post={post.id}>
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           <p className="font-semibold truncate" title={post.what}>{post.what}</p>
@@ -168,6 +273,8 @@ function WantedRow({ post }: { post: WantedPost }) {
           {STATUS_WORDS[post.status]}
         </span>
       </div>
+      {userId && <WantedPostPhotos post={post} userId={userId} />}
+      <WantedReplies replies={post.replies} />
       {post.status === "open" && (
         matches.length === 0 ? (
           <p className="text-xs text-muted-foreground">Nothing for sale matches at or under your price right now.</p>
@@ -186,14 +293,8 @@ function WantedRow({ post }: { post: WantedPost }) {
           </div>
         )
       )}
-      {post.status === "open" && post.public !== undefined && (
-        <div className="flex items-center justify-between gap-3">
-          <label htmlFor={`wanted-public-${post.id}`} className="text-ds-13">Sellers near me can reply</label>
-          <Switch id={`wanted-public-${post.id}`} checked={post.public} disabled={replies.isPending} onCheckedChange={(v) => replies.mutate(v)} />
-        </div>
-      )}
       {post.status === "open" && (
-        <Button type="button" variant="outline" size="sm" disabled={close.isPending} onClick={() => close.mutate()}>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={close.isPending} onClick={() => close.mutate()}>
           Close
         </Button>
       )}
@@ -202,49 +303,52 @@ function WantedRow({ post }: { post: WantedPost }) {
 }
 
 export function WantedView() {
-  const qc = useQueryClient();
   const { underAge } = useAgeGate();
   const { user } = useCurrentUser();
   const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
   const mine = useQuery({ queryKey: ["declutter", "wanted"], queryFn: fetchMyWanted });
+  const [posting, setPosting] = useState(false);
+  const at = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
 
-  if (mine.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your wanted posts." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
-  }
   return (
-    <div className="space-y-4">
+    <div className="space-y-6" data-wanted-hub="">
       {underAge ? (
         <DeclutterNotice title="You must be 18 or older to buy on Declutter." />
       ) : origin.status === "pending" ? (
         <p className="text-sm text-muted-foreground" role="status">Finding your area…</p>
-      ) : origin.status === "ready" ? (
-        <WantedForm at={{ lat: origin.lat, lng: origin.lng }} onPosted={() => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] })} />
+      ) : at ? (
+        <div className="flex justify-center sm:justify-start">
+          <BarkPillButton type="button" onClick={() => setPosting(true)}>Post what you're looking for</BarkPillButton>
+        </div>
       ) : (
         <DeclutterNotice title="We need your area to find matches near you.">
           <p>{asked ? "Add your ZIP code in your profile, then come back." : "Use your location, or add your ZIP code in your profile."}</p>
           {deviceNote && <p className="mt-1" role="status">{deviceNote}</p>}
           {asking && <p className="mt-1" role="status">Finding you…</p>}
           {!asked && (
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={askDevice}>
+            <Button type="button" variant="outline" size="sm" className="mt-2 rounded-full" onClick={askDevice}>
               Use my location
             </Button>
           )}
         </DeclutterNotice>
       )}
-      {/* Q2267: public posts near you that you can answer with one of your listings. */}
-      {!underAge && user && origin.status === "ready" && <WantedNearSection at={{ lat: origin.lat, lng: origin.lng }} userId={user.id} />}
       <section className="space-y-2" aria-labelledby="wanted-mine-title">
-        <h2 id="wanted-mine-title" className="text-base font-semibold">Your wanted posts</h2>
-        {mine.isLoading ? (
+        <h2 id="wanted-mine-title" className="text-base font-semibold">Your Wanted posts</h2>
+        {mine.isError ? (
+          <ErrorState variant="inline" title="We couldn't load your wanted posts." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />
+        ) : mine.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your wanted posts…</p>
         ) : (mine.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days.</p>
+          <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p>
         ) : (
           <ul className="space-y-3">
-            {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} />)}
+            {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} userId={user?.id ?? null} />)}
           </ul>
         )}
       </section>
+      {/* Q2267: other members' open posts near you that you can answer with one of your listings. */}
+      {!underAge && user && at && <WantedNearSection at={at} userId={user.id} />}
+      {at && user && <WantedFormSheet open={posting} at={at} userId={user.id} onClose={() => setPosting(false)} />}
     </div>
   );
 }

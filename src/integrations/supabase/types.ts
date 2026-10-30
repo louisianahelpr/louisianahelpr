@@ -3332,6 +3332,7 @@ export type Database = {
           id: string
           is_seed: boolean
           max_price_cents: number
+          photo_paths: string[]
           public: boolean
           radius_miles: number
           status: string
@@ -3348,6 +3349,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents: number
+          photo_paths?: string[]
           public?: boolean
           radius_miles: number
           status?: string
@@ -3364,6 +3366,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents?: number
+          photo_paths?: string[]
           public?: boolean
           radius_miles?: number
           status?: string
@@ -13714,6 +13717,10 @@ export type Database = {
         Args: { p_item_id: string; p_storage_path: string }
         Returns: string
       }
+      declutter_add_wanted_photo: {
+        Args: { p_storage_path: string; p_wanted_id: string }
+        Returns: number
+      }
       declutter_address_access: {
         Args: { p_item_id: string; p_user_id: string }
         Returns: string
@@ -14351,8 +14358,10 @@ export type Database = {
           id: string
           matches: Json
           max_price_cents: number
+          photo_paths: string[]
           public: boolean
           radius_miles: number
+          replies: Json
           status: string
           what: string
         }[]
@@ -14374,6 +14383,10 @@ export type Database = {
       declutter_pickup_anchor: {
         Args: { p_pickup_day: string; p_slot_start: string }
         Returns: string
+      }
+      declutter_remove_wanted_photo: {
+        Args: { p_storage_path: string; p_wanted_id: string }
+        Returns: number
       }
       declutter_seller_sold_count: { Args: { p_seller_id: string }; Returns: number }
       declutter_notice_type: {
@@ -14797,6 +14810,7 @@ export type Database = {
           id: string
           max_price_cents: number
           miles: number
+          photo_path: string
           poster_name: string
           replied: boolean
           what: string

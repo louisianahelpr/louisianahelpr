@@ -11,6 +11,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { photoPublicUrl } from "@/lib/declutter/api";
+import { FallbackImg } from "./FallbackImg";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
@@ -110,14 +113,24 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
 export function WantedNearSection({ at, userId }: { at: { lat: number; lng: number }; userId: string }) {
   const near = useQuery({ queryKey: ["declutter", "wanted-near", at.lat, at.lng], queryFn: () => fetchWantedNear(at) });
   const [replying, setReplying] = useState<WantedNear | null>(null);
-  // Nothing to show is the empty state: the section stays out of the way (and before the migration, [] hides it).
-  if (near.isError || !near.data || near.data.length === 0) return null;
+  // The Wanted tab is a hub (owner 2026-10-30): this section always stands, with its own empty state and error.
   return (
     <section className="space-y-2" aria-labelledby="wanted-near-title" data-wanted-near="">
       <h2 id="wanted-near-title" className="text-base font-semibold">Wanted near you</h2>
+      {near.isError ? (
+        <ErrorState variant="inline" title="We couldn't load posts near you." body={declutterErrorMessage(near.error)} onRetry={() => void near.refetch()} />
+      ) : near.isLoading ? (
+        <p className="text-sm text-muted-foreground" role="status">Looking near you…</p>
+      ) : (near.data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p>
+      ) : (
       <ul className="space-y-2">
-        {near.data.map((w) => (
+        {(near.data ?? []).map((w) => (
           <li key={w.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+            {/* Owner 2026-10-30: the post's first photo of what they're looking for (20261030041359). */}
+            {w.photo_path && (
+              <FallbackImg src={photoPublicUrl(w.photo_path)} alt={w.what} className="h-14 w-14 shrink-0 rounded-xl bg-photo-empty object-cover" data-wanted-near-photo="" />
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-ds-15 font-semibold" title={w.what}>{w.what}</p>
               <p className="text-ds-13 text-muted-foreground">
@@ -132,6 +145,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
           </li>
         ))}
       </ul>
+      )}
       <IHaveThisSheet post={replying} userId={userId} onClose={() => setReplying(null)} />
     </section>
   );

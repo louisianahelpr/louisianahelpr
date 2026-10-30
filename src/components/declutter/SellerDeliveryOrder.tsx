@@ -5,11 +5,14 @@
  *
  * What each side sees and can do, all decided on the server:
  *   both    the booked time, the buyer's door choice, a new time (ask from the
- *           seller's open times; the other side accepts), Report a problem
+ *           seller's open times, once per side; the other side accepts),
+ *           Report a problem
  *   seller  the buyer's address (after payment only), "Delivered" (a photo
- *           when left at the door) / "Handed over", cancel (seller fault)
+ *           when left at the door) / "Handed over"
  *   buyer   change the door choice, "I got it", "It wasn't delivered" (from
- *           15 minutes after the hour ends), cancel until 24 hours before
+ *           15 minutes after the hour ends)
+ * Neither side can cancel a paid order (owner 2026-10-29, Q2477: "once they pay it can only be
+ * rescheduled once. never cancelled."; migration 20261030002630 makes both cancel RPCs refuse).
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,9 +20,7 @@ import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { confirmHandover, uploadHandoverPhoto } from "@/lib/declutter/handover";
 import {
-  SELLER_DELIVERY_RULES,
   answerDeliveryTime,
-  buyerCancelDelivery,
   deliveryPhotoPosition,
   fetchDeliveryOpenTimes,
   fetchSellerDeliveryBooking,
@@ -28,7 +29,6 @@ import {
   proposeDeliveryTime,
   reportNotDelivered,
   sameSlot,
-  sellerCancelDelivery,
   setDeliveryHandoff,
   slotLabel,
   slotTimeLabel,
@@ -53,7 +53,6 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
   const booked = b.status === "booked" && !!b.slot_start;
   const marked = !!b.delivered_at;
   const started = booked && now >= Date.parse(b.slot_start!);
-  const cancelBy = b.slot_start ? Date.parse(b.slot_start) - SELLER_DELIVERY_RULES.buyer_cancel_hours * 3_600_000 : null;
   const open = b.order_status === "paid";
   return {
     markDelivered: open && b.side === "seller" && started && !marked,
@@ -61,8 +60,6 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
     // It now shows once the seller marked it delivered, or from the delivery day (Louisiana time); it still asks first.
     gotIt: open && b.side === "buyer" && (marked || (booked && laDay(now) >= laDay(Date.parse(b.slot_start!)))),
     notDelivered: open && b.side === "buyer" && booked && !marked && !!b.not_delivered_from && now >= Date.parse(b.not_delivered_from),
-    buyerCancel: open && b.side === "buyer" && !marked && (cancelBy === null || now <= cancelBy),
-    sellerCancel: open && b.side === "seller" && !marked && b.status !== "needs_time",
     changeHandoff: open && b.side === "buyer" && !marked && (b.status === "booked" || b.status === "needs_time"),
     askNewTime: open && !marked && (b.status === "booked" || b.status === "needs_time") && b.proposals_left > 0 && !(b.proposed_by === b.side),
     answerProposal: open && !!b.proposed_start && b.proposed_by !== b.side,
@@ -74,8 +71,6 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
 const ASK = {
   gotIt: { title: "Do you have it?", confirm: "I got it", cancel: "Not now", words: "Tapping I got it finishes the sale and the seller is paid. You can still ask for a refund within 24 hours if something is wrong." },
   notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "You get everything back, delivery included." },
-  buyerCancel: { title: "Cancel this order?", confirm: "Cancel order", cancel: "Keep the order", words: "Most of what you paid comes back. You can cancel until 24 hours before the delivery." },
-  sellerCancel: { title: "Cancel this delivery?", confirm: "Cancel delivery", cancel: "Keep the delivery", words: "The buyer gets everything back, you get a Declutter strike, and the cost of the refund comes out of your next payout." },
 } as const;
 
 export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { orderId: string; userId: string; onProblem: () => void }) {
@@ -85,7 +80,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
   const [moving, setMoving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   // The money moments ask in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
-  const [ask, setAsk] = useState<"gotIt" | "notDelivered" | "buyerCancel" | "sellerCancel" | null>(null);
+  const [ask, setAsk] = useState<"gotIt" | "notDelivered" | null>(null);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: key });
     void qc.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
@@ -104,8 +99,6 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
     b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in 24 hours." : "Marked delivered. You're paid when the buyer confirms, or in 24 hours."));
   const gotIt = useMutation(act(() => confirmHandover(orderId), "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(() => reportNotDelivered(orderId), "Sorry it didn't come. Everything you paid is coming back to your card."));
-  const buyerCancel = useMutation(act(() => buyerCancelDelivery(orderId), "Cancelled. Your refund is on its way."));
-  const sellerCancel = useMutation(act(() => sellerCancelDelivery(orderId), "Delivery cancelled. The buyer gets everything back."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));
   const answer = useMutation(act((accept: boolean) => answerDeliveryTime(orderId, accept),
     (r) => (r === "moved" ? "Delivery time changed." : r === "slot_taken" ? "That time was just taken, so the delivery keeps its time." : "The delivery keeps its time.")));
@@ -115,7 +108,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
     return <ErrorState variant="inline" title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} />;
   }
   const can = sellerDeliveryActions(b);
-  const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || buyerCancel.isPending || sellerCancel.isPending || handoff.isPending || answer.isPending;
+  const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || handoff.isPending || answer.isPending;
   const fileId = `sd-photo-${orderId}`;
   return (
     <div className="space-y-3" data-seller-delivery-order="">
@@ -167,24 +160,12 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
             It wasn't delivered
           </button>
         )}
-        {can.buyerCancel && (
-          <button type="button" className={btn} disabled={busy}
-            onClick={() => setAsk("buyerCancel")}>
-            Cancel order
-          </button>
-        )}
-        {can.sellerCancel && (
-          <button type="button" className={btn} disabled={busy}
-            onClick={() => setAsk("sellerCancel")}>
-            Cancel delivery
-          </button>
-        )}
         <button type="button" className={btn} onClick={onProblem}>Report a problem</button>
       </div>
       {ask && (
         <ConfirmSheet open title={ASK[ask].title} confirmLabel={ASK[ask].confirm} cancelLabel={ASK[ask].cancel} pending={busy} testId={`seller-delivery-${ask}`}
           onClose={() => setAsk(null)}
-          onConfirm={() => ({ gotIt, notDelivered, buyerCancel, sellerCancel })[ask].mutate(undefined, { onSettled: () => setAsk(null) })}>
+          onConfirm={() => ({ gotIt, notDelivered })[ask].mutate(undefined, { onSettled: () => setAsk(null) })}>
           {ASK[ask].words}
         </ConfirmSheet>
       )}

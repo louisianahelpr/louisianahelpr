@@ -1,11 +1,12 @@
 /**
  * A seller-delivery order's money moments ask in the app, never window.confirm (lead 2026-10-28,
- * DeclutterConfirmSheet): the buyer's "I got it", "It wasn't delivered" and "Cancel order", the seller's
- * "Cancel delivery". Each opens a sheet with what happens; nothing is called until the sheet's own button, and
- * "Keep ..." / "Not now" calls nothing. A failed read is an error with a retry, not a grey line.
+ * DeclutterConfirmSheet): the buyer's "I got it" and "It wasn't delivered". Each opens a sheet with what
+ * happens; nothing is called until the sheet's own button, and "Not now" calls nothing. A failed read is an
+ * error with a retry, not a grey line.
+ * Owner 2026-10-29 (Q2477, "once they pay it can only be rescheduled once. never cancelled."): neither side
+ * has a cancel button on a paid delivery (migration 20261030002630 makes both cancel RPCs refuse).
  *
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("buyerCancel")}> |             onClick={() => buyerCancel.mutate(undefined)}>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("sellerCancel")}> |             onClick={() => sellerCancel.mutate(undefined)}>
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <button type="button" className={btn} onClick={onProblem}>Report a problem</button> |         <button type="button" className={btn}>Cancel order</button><button type="button" className={btn}>Cancel delivery</button><button type="button" className={btn} onClick={onProblem}>Report a problem</button>
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("notDelivered")}> |             onClick={() => notDelivered.mutate(undefined)}>
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("gotIt")}>I got it</button>} | onClick={() => gotIt.mutate(undefined)}>I got it</button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
@@ -31,8 +32,6 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
     return state.booking;
   },
   reportNotDelivered: async () => { state.calls.push("not_delivered"); },
-  buyerCancelDelivery: async () => { state.calls.push("buyer_cancel"); },
-  sellerCancelDelivery: async () => { state.calls.push("seller_cancel"); },
   fetchDeliveryOpenTimes: async () => [],
   // Anti-lying #1 (20261028235709): the "left at your door" photo carries where it was taken.
   deliveryPhotoPosition: async () => ({ lat: 30.5, lng: -91.15 }),
@@ -46,7 +45,7 @@ const iso = (ms: number) => new Date(Date.now() + ms).toISOString();
 const BASE: SellerDeliveryBooking = {
   order_id: "o", side: "buyer", order_status: "paid", status: "booked", slot_start: iso(72 * HOUR), slot_end: iso(73 * HOUR),
   delivery_cents: 2000, dropoff_area: "Mid-City", handoff: "leave", dropoff_address: null, proposed_start: null, proposed_by: null,
-  proposals_left: 3, delivered_at: null, delivered_photo_path: null, confirmed_at: null, not_delivered_from: iso(73.25 * HOUR),
+  proposals_left: 1, delivered_at: null, delivered_photo_path: null, confirmed_at: null, not_delivered_from: iso(73.25 * HOUR),
 };
 
 function show() {
@@ -71,17 +70,15 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
-  it("buyer: Cancel order asks first; Keep the order calls nothing", async () => {
-    show();
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
-    const sheet = await screen.findByRole("dialog");
-    expect(sheet).toHaveTextContent("Cancel this order?");
-    expect(sheet).toHaveTextContent("Most of what you paid comes back.");
-    fireEvent.click(within(sheet).getByRole("button", { name: "Keep the order" }));
-    await waitFor(() => { expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByRole("button", { name: "Cancel order" })).toBeEnabled(); });
-    expect(state.calls).toEqual([]);
-    await askAndConfirm("Cancel order", /Cancel this order\?/, "Cancel order", "buyer_cancel");
-    expect(window.confirm).not.toHaveBeenCalled();
+  it("owner 2026-10-29: a paid delivery has no cancel for either side, only a new time and Report a problem", async () => {
+    for (const side of ["buyer", "seller"] as const) {
+      state.booking = { ...BASE, side };
+      const { unmount } = show();
+      expect(await screen.findByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Ask for a new time" })).toBeInTheDocument();
+      expect(screen.queryAllByRole("button").map((b) => b.textContent ?? "").filter((t) => /cancel/i.test(t))).toEqual([]);
+      unmount();
+    }
   });
 
   // Anti-lying #1 (20261028235709): the seller's "left at your door" photo is sent with the device's position, which
@@ -113,13 +110,6 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     state.booking = { ...BASE, slot_start: iso(-2 * HOUR), slot_end: iso(-1 * HOUR), not_delivered_from: iso(-0.75 * HOUR) };
     show();
     await askAndConfirm("It wasn't delivered", /It wasn't delivered\?.*everything back/, "It wasn't delivered", "not_delivered");
-    expect(window.confirm).not.toHaveBeenCalled();
-  });
-
-  it("seller: Cancel delivery names the strike and the payout, and asks first", async () => {
-    state.booking = { ...BASE, side: "seller" };
-    show();
-    await askAndConfirm("Cancel delivery", /Cancel this delivery\?.*Declutter strike.*next payout/, "Cancel delivery", "seller_cancel");
     expect(window.confirm).not.toHaveBeenCalled();
   });
 

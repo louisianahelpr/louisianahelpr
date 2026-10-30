@@ -187,7 +187,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-29: 25.) 20261029224147 (D2-5, the admin's decision closes the refund request) re-created
     // declutter_refund_after_handover, which an earlier migration had rewritten in place, as a plain CREATE.
     // (2026-10-28: 26.) 20261028225038 (the porch DAY) re-created declutter_report_no_show the same way.
-    expect(rewritten.length).toBe(25);
+    // (2026-10-30: 24.) 20261030002630 (Q2477, a paid order is never cancelled) re-created
+    // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
+    expect(rewritten.length).toBe(24);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

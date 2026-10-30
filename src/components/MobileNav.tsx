@@ -20,7 +20,7 @@ import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentC
 import { useWarmPostedJobs } from "@/components/mobileNav/useWarmPostedJobs";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { buildImageUrl } from "@/lib/imageUrl";
 import {
   authPages,
   noNavPages,
@@ -143,7 +143,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     if (!avatarUrl || typeof Image === "undefined") return;
     const img = new Image();
     img.decoding = "async";
-    img.src = transformedImageUrl(avatarUrl, { width: 72, height: 72 });
+    img.src = buildImageUrl(avatarUrl, { width: 72 });
   }, [avatarUrl]);
 
   const [gateOpen, setGateOpen] = useState(false);

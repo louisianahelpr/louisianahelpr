@@ -57,7 +57,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: s
         </>
       ) : (
         <>
-          <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} className="h-12 w-12 shrink-0" />
+          <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} pixelSize={48} className="h-12 w-12 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold" title={name}>{name}</span>
             {/* Two short lines, never one that wraps a stray "·" at 320. */}

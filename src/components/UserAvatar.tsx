@@ -8,7 +8,7 @@ import {
   isPlaceholderAvatarUrl,
   type AvatarPhotoRejection,
 } from "@/lib/avatarImage";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { buildImageUrl } from "@/lib/imageUrl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -29,8 +29,9 @@ import { cn } from "@/lib/utils";
  *   internal `Avatar` defaults to `h-10 w-10` — pass `className` to
  *   override sizing or radius (e.g. `rounded-ds-avatar squircle`).
  * - When the underlying photo URL is a Supabase public-storage URL,
- *   we route it through `transformedImageUrl` at the requested pixel
- *   size to avoid loading multi-MB originals into a 44px circle.
+ *   we route it through the image edge (`buildImageUrl`) at the requested
+ *   pixel size to avoid loading multi-MB originals into a 44px circle, and
+ *   fall back to the original if the edge fails.
  *
  * ── WHY THIS RENDERS ITS OWN `<img>` INSTEAD OF `AvatarImage` ──────────────
  *
@@ -177,9 +178,11 @@ const UserAvatar = React.forwardRef<
   // over the derived value, or the monogram is a coloured circle with nothing
   // in it — the very defect this component is being fixed for.
   const text = initials?.trim() || avatarInitials(name);
+  // The small copy failed for this photo: the original is tried before the monogram.
+  const [edgeFailedFor, setEdgeFailedFor] = React.useState<string | null>(null);
   const imageSrc =
-    src && pixelSize
-      ? transformedImageUrl(src, { width: pixelSize, height: pixelSize })
+    src && pixelSize && edgeFailedFor !== src
+      ? buildImageUrl(src, { width: pixelSize })
       : src ?? undefined;
 
   // Row recycling: a conversation list re-renders the same <UserAvatar> with a
@@ -231,8 +234,12 @@ const UserAvatar = React.forwardRef<
       setCorsMode("plain");
       return;
     }
+    if (src && imageSrc !== src) {
+      setEdgeFailedFor(src);
+      return;
+    }
     setFailure("load-error");
-  }, [corsMode]);
+  }, [corsMode, imageSrc, src]);
 
   // Sampling runs from BOTH the ref callback and `onLoad`. The ref fires first
   // for an image already in the memory cache (`complete` is true the moment

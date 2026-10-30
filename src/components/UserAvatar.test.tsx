@@ -53,6 +53,29 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("the small copy (a seller's avatar was 71,026 bytes raw, 1,238 at w=128 through the image edge, prod 2026-10-30)", () => {
+  // @mutate src/components/UserAvatar.tsx |       ? buildImageUrl(src, { width: pixelSize }) |       ? src
+  // @mutate src/components/UserAvatar.tsx |       setEdgeFailedFor(src);\n      return; |       void setEdgeFailedFor;
+  it("asks the edge for a sized copy on the web, and tries the original before the monogram", () => {
+    vi.stubGlobal("location", { hostname: "www.louisianahelpr.com" });
+    try {
+      const { container } = render(<UserAvatar userId="u-1" src={PHOTO} name="Lexi Lombas" pixelSize={48} />);
+      const img = () => container.querySelector("img");
+      expect(img()?.getAttribute("src")).toMatch(/^\/_vercel\/image\?url=.*&w=\d+/);
+      fireEvent.error(img()!); // the CORS retry, same URL
+      expect(img()?.getAttribute("src")).toMatch(/^\/_vercel\/image/);
+      fireEvent.error(img()!);
+      expect(img()?.getAttribute("src")).toBe(PHOTO);
+      fireEvent.error(img()!); // the CORS retry of the original
+      expect(img()?.getAttribute("src")).toBe(PHOTO);
+      fireEvent.error(img()!);
+      expect(img()).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 function setup(src: string | null) {
   const seen: Rejection[] = [];
   const view = render(

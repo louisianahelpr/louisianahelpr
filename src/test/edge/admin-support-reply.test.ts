@@ -16,6 +16,10 @@
  * @mutate supabase/functions/admin-support-reply/index.ts | outcome_recorded: !failedPartWay && outcomeOk } | outcome_recorded: !failedPartWay }
  * @mutate supabase/functions/admin-support-reply/index.ts |           ...(emailResult.ok ? {} : { email_skip_reason: 'not_queued' }), |
  * @mutate supabase/functions/admin-support-reply/index.ts |       if (notificationId) await recordOutcome({ notification_id: notificationId }, 'notice') |
+ * @mutate supabase/functions/admin-support-reply/index.ts |       threadMessageId = (threadRow as { id?: string } \| null)?.id ?? null |       threadMessageId = null
+ * @mutate supabase/functions/admin-support-reply/index.ts |         global: { headers: { Authorization: authHeader } }, |         global: { headers: {} },
+ * @mutate supabase/functions/admin-support-reply/index.ts |       if (!threadMessageId) { |       if (true) {
+ * @mutate supabase/functions/admin-support-reply/index.ts |         p_client_id: replyId, |         p_client_id: null,
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -252,6 +256,60 @@ describe("admin-support-reply", () => {
     const { res } = await call({ reportId: TICKET, message: "Hi" });
     expect(res.status).toBe(404);
     expect(scenario.writes).toEqual([]);
+  });
+
+  // Owner 2026-10-29 (B61): five support replies queued 2026-10-27 reached no
+  // one's inbox (dead-lettered) and nothing of them was in the members'
+  // Messages: support_replies + a bell notice to /support was the whole in-app
+  // half. A reply is now written into the member's "Louisiana Helpr Team"
+  // thread FIRST, as the admin who wrote it, and the email follows.
+  describe("the reply lands in the member's support thread before the email", () => {
+    const THREAD_LINK = `/messages?teamThread=${MEMBER}&userId=admin-1`;
+    beforeEach(() => {
+      scenario.rpc.admin_send_team_message = { id: "msg-1", created_at: "2026-10-29T12:00:00Z" };
+      scenario.reads.notifications = { rows: [{ id: "thread-notice-1", user_id: MEMBER, link: THREAD_LINK }] };
+    });
+
+    it("writes the thread message as the admin (their own JWT), then queues the email", async () => {
+      let rpcCallsWhenEmailQueued = -1;
+      queueEmail.mockImplementationOnce((async () => {
+        rpcCallsWhenEmailQueued = (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_send_team_message").length;
+        return { ok: true, messageId: "queued-mock-id" };
+      }) as never);
+      const { body } = await call({ reportId: TICKET, message: "  Thanks Lucy.\nWe fixed it.  " });
+      const sends = (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_send_team_message");
+      expect(sends).toHaveLength(1);
+      expect(sends[0].args).toEqual({ p_user_id: MEMBER, p_content: 'About "App freezes":\n\nThanks Lucy.\nWe fixed it.', p_client_id: "reply-1" });
+      // On a client carrying the ADMIN's token, so the message's sender is that admin.
+      const client = scenario.clients?.[sends[0].client ?? -1];
+      expect(JSON.stringify(client?.options ?? {})).toContain("Bearer admin-jwt");
+      expect(rpcCallsWhenEmailQueued).toBe(1);
+      expect(body).toMatchObject({ success: true, in_thread: true, notified: true, email_queued: true });
+    });
+
+    it("the thread message's own notice is the in-app notice: no second /support notice", async () => {
+      const { body } = await call({ reportId: TICKET, message: "Hi" });
+      expect(writesTo("notifications", "insert")).toEqual([]);
+      expect(outcomeWrites()[0]).toEqual({ notification_id: "thread-notice-1" });
+      expect(body).toMatchObject({ notified: true, in_thread: true });
+    });
+
+    it("a thread message that fails falls back to the /support notice, and the email still goes", async () => {
+      scenario.rpcErrors = { admin_send_team_message: { message: "rate_limited" } };
+      const { body } = await call({ reportId: TICKET, message: "Hi" });
+      expect(writesTo("notifications", "insert")).toHaveLength(1);
+      expect(body).toMatchObject({ success: true, in_thread: false, notified: true, email_queued: true });
+      expect(writesTo("admin_audit_log", "insert")[0].payload).toMatchObject({
+        details: expect.objectContaining({ in_thread: false, thread_message_id: null }),
+      });
+    });
+
+    it("a reply too long to carry the subject line goes into the thread as written", async () => {
+      const long = "x".repeat(3990);
+      await call({ reportId: TICKET, message: long });
+      const sends = (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_send_team_message");
+      expect((sends[0].args as { p_content: string }).p_content).toBe(long);
+    });
   });
 
   it("an empty, over-long or ticketless request is refused before anything is read or written", async () => {

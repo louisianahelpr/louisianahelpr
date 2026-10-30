@@ -17,8 +17,11 @@ import { caughtMessage } from '../_shared/caughtMessage.ts'
  *
  *   1. records it in `support_replies` (the ticket's thread; if this write fails
  *      NOTHING is sent, so a member can never get a reply the admin cannot see);
- *   2. tells the member in the app: a `notifications` row for the ticket's
- *      REPORTER, read from the row here and never taken from the request;
+ *   2. tells the member in the app, FIRST: a message in their "Louisiana Helpr
+ *      Team" thread from the admin (admin_send_team_message as that admin; its
+ *      trigger writes the bell notice), or, only if that fails, a `notifications`
+ *      row linking to /support. Always the ticket's REPORTER, read from the row
+ *      here and never taken from the request;
  *   3. emails the reporter's account address through queueEmail (the one email
  *      path: a pending email_send_log row, then the queue worker sends it, or logs
  *      it suppressed for a test/seed recipient);
@@ -179,23 +182,65 @@ serve(async (req) => {
       resolve ? 'not_attempted' : 'not_requested'
     let failedPartWay = false
 
+    let threadMessageId: string | null = null
+
     try {
-      // 2. In the app. Zero rows is a real outcome: a BEFORE INSERT trigger drops
-      //    the row (an identical notice in the last 10 minutes, or the seed
-      //    boundary), so it is reported as not delivered, never assumed.
-      const { data: noticeRows, error: noticeError } = await admin
-        .from('notifications')
-        .insert({
-          user_id: memberId,
-          title: 'Helpr support replied',
-          message: subject ? `About "${subject}": ${message}` : message,
-          type: 'info',
-          link: '/support',
-        })
-        .select('id')
-      notificationId = noticeRows?.[0]?.id ?? null
-      if (noticeError) console.error('[admin-support-reply] notification insert failed:', noticeError.message)
-      else if (!notificationId) console.error('[admin-support-reply] notification insert matched 0 rows (deduplicated or seed boundary)')
+      // 2a. In the member's "Louisiana Helpr Team" thread, FIRST (owner
+      //     2026-10-29, B61). Five replies queued 2026-10-27 dead-lettered with
+      //     nothing of them in the members' Messages: the in-app half had been a
+      //     bell notice to /support only. Sent through admin_send_team_message
+      //     on a client carrying the ADMIN's own token, so the message's sender
+      //     is the admin who wrote the reply (the RPC re-checks the admin role)
+      //     and every messages trigger runs, including the notice to the member.
+      //     p_client_id is the reply's id, tying the message to this reply.
+      const threadText = subject && `About "${subject}":\n\n${message}`.length <= MAX_REPLY_CHARS
+        ? `About "${subject}":\n\n${message}`
+        : message
+      const asAdmin = createClient(supabaseUrl, (Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+      const { data: threadRow, error: threadError } = await asAdmin.rpc('admin_send_team_message', {
+        p_user_id: memberId,
+        p_content: threadText,
+        p_client_id: replyId,
+      })
+      threadMessageId = (threadRow as { id?: string } | null)?.id ?? null
+      if (threadError || !threadMessageId) {
+        console.error('[admin-support-reply] support-thread message not written:', threadError?.message ?? 'no row')
+      } else {
+        // The notice the message trigger (notify_message_recipient) wrote for it.
+        const { data: threadNotice, error: threadNoticeError } = await admin
+          .from('notifications')
+          .select('id')
+          .eq('user_id', memberId)
+          .eq('link', `/messages?teamThread=${memberId}&userId=${adminId}`)
+          .gte('created_at', (threadRow as { created_at?: string }).created_at ?? new Date(0).toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+        if (threadNoticeError) console.error('[admin-support-reply] thread notice read failed:', threadNoticeError.message)
+        notificationId = threadNotice?.[0]?.id ?? null
+      }
+
+      // 2b. The bell notice to /support, only when the thread message did not
+      //     land (one notice either way). Zero rows is a real outcome: a BEFORE
+      //     INSERT trigger drops the row (an identical notice in the last 10
+      //     minutes, or the seed boundary), so it is reported as not delivered.
+      if (!threadMessageId) {
+        const { data: noticeRows, error: noticeError } = await admin
+          .from('notifications')
+          .insert({
+            user_id: memberId,
+            title: 'Helpr support replied',
+            message: subject ? `About "${subject}": ${message}` : message,
+            type: 'info',
+            link: '/support',
+          })
+          .select('id')
+        notificationId = noticeRows?.[0]?.id ?? null
+        if (noticeError) console.error('[admin-support-reply] notification insert failed:', noticeError.message)
+        else if (!notificationId) console.error('[admin-support-reply] notification insert matched 0 rows (deduplicated or seed boundary)')
+      }
       if (notificationId) await recordOutcome({ notification_id: notificationId }, 'notice')
 
       // 3. By email, to the CONFIRMED address on the member's account (never one
@@ -244,7 +289,7 @@ serve(async (req) => {
       //    reached the member somehow (lh-silent-failure r1 #4): a reply that
       //    reached no one must not take the member out of the Pending queue.
       if (resolve) {
-        if (!notificationId && !emailQueued) {
+        if (!threadMessageId && !notificationId && !emailQueued) {
           resolveOutcome = 'skipped_undelivered'
         } else {
           const { data: resolvedRows, error: resolveError } = await admin
@@ -273,7 +318,8 @@ serve(async (req) => {
         target_id: reportId,
         target_type: 'report',
         details: {
-          reply_id: replyId, member_id: memberId, notified: !!notificationId, email_queued: emailQueued,
+          reply_id: replyId, member_id: memberId, in_thread: !!threadMessageId, thread_message_id: threadMessageId,
+          notified: !!notificationId, email_queued: emailQueued,
           email_skip_reason: emailSkipReason, resolve: resolveOutcome, failed_part_way: failedPartWay,
         },
       }).select('id')
@@ -304,6 +350,7 @@ serve(async (req) => {
     return json({
       success: true,
       reply_id: replyId,
+      in_thread: !!threadMessageId,
       notified: !!notificationId,
       email_queued: emailQueued,
       has_email: !!member.email,

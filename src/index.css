@@ -4767,6 +4767,13 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
   opacity: 0; pointer-events: none;
 }
 .compact-title-bar.on { opacity: 1; }
+/* DC-10 (Declutter selling audit 2026-10-30, ~/.lh-shots/declutter-audit-1030/selling/dc-mg-sheet-1-375wk.png): the bar
+   is z-index 60 so it pins over the page, which also put it over every sheet and dialog scrim (z-50): scroll an item
+   page, press Manage listing, and the item's title stayed bright across the top above the dimmed page. Same rule as
+   the strike and offline banners (Q303/Q313): while a Radix modal holds the scroll lock, drop it under the scrim. */
+body[data-scroll-locked] .compact-title-bar {
+  z-index: 49;
+}
 @media (prefers-reduced-motion: no-preference) {
   .compact-title-bar { transition: opacity 0.18s ease; }
 }

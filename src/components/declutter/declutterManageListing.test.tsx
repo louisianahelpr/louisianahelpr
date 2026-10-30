@@ -28,6 +28,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls: unknown[][] = [];
@@ -80,7 +81,7 @@ const item = (over: Record<string, unknown> = {}) => ({
 });
 function wrap(node: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={qc}>{node}</QueryClientProvider></MemoryRouter>);
 }
 const sheet = (over: Record<string, unknown> = {}) =>
   wrap(<ManageListingSheet item={item(over) as never} coverUrl={null} open onOpenChange={() => {}} />);

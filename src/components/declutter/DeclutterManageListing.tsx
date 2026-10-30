@@ -12,6 +12,7 @@
  * confirmations, B19) and relisting a SOLD item as a copy. The paused card
  * shows no "N people saved it": no read gives the seller that count.
  */
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
@@ -137,6 +138,14 @@ export function ManageListingSheet({
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+              {item.status === "live" ? (
+              <li>
+                <Link to={`/declutter/item/${item.id}?preview=buyer`} className={ROW} data-manage-preview="" onClick={close}>
+                  <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+              ) : null}
               {/* Audit 1028 D1-1: a live listing can be edited (declutter_edit_listing; the owner's review rule). */}
               {item.status === "live" && (
               <li>

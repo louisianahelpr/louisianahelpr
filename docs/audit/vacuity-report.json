@@ -1,16 +1,18 @@
 {
-  "generated": "2026-10-30T15:03:07.164Z",
-  "guards": 2773,
-  "registered": 2771,
+  "generated": "2026-10-30T19:33:21.283Z",
+  "guards": 2802,
+  "registered": 2800,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/dashboard/giveawayShowsNoWords.test.tsx",
     "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/pages/jobs/jobPage/viewerState.test.ts",
+    "src/test/browseEmptySameSpot.test.tsx",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
@@ -137,7 +139,8 @@
     {
       "module": "src/components/declutter/DeclutterItemCard.tsx",
       "tests": [
-        "src/test/declutterBundleChip.test.tsx"
+        "src/test/declutterBundleChip.test.tsx",
+        "src/components/declutter/DeclutterItemCard.firstRow.test.tsx"
       ],
       "parents": [
         "src/components/declutter/DeclutterBrowseView.tsx",
@@ -153,6 +156,24 @@
       "parents": [
         "src/components/declutter/DeclutterBrowseView.tsx",
         "src/components/declutter/DeclutterFreeView.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/DeclutterPickupDayCard.tsx",
+      "tests": [
+        "src/components/declutter/declutterPickupDayCard.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterMineViews.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/SellItForMe.tsx",
+      "tests": [
+        "src/components/declutter/sellItForMe.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/SellOneScreen.tsx"
       ]
     },
     {
@@ -241,6 +262,16 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/SignedInChrome.tsx",
+      "tests": [
+        "src/test/guestLoadsNoSignedInChrome.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx",
+        "src/components/DeferredToasters.tsx"
       ]
     },
     {

@@ -61,6 +61,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_applicant_category_counts: "hides", // b62 (20261030015205): test data never counts in this total
   shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
+  admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
   admin_section_funnel: "hides",

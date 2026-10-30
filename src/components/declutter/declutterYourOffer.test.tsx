@@ -21,6 +21,10 @@
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (myAsk) { |   if (false) {
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : "Confirm and pick a time" | "Confirming…" : "Ask for it"
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {freeAskLine(offered)} | {freeAskLine(["porch", "pickup_home"])}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | .filter((h) => wayAllowed(ways, h)); | ;
+ *   DA-5 (Declutter audit 2026-10-30): the free ask line names only the ways the giver ticked, by the same rule
+ *   (freeWaysOffered) as the free checkout.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -35,6 +39,8 @@ const state = {
   /** The member's own open asks for free items (the Free change, Q2487). */
   asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
   withdrawn: [] as string[],
+  /** fetchItemHandovers: the ways the giver ticked (null = an older item with none recorded). DA-5. */
+  ticks: null as string[] | null,
   /** useFirstPayoutFeeCents: the one-time setup fee still owed on this account (0 once paid). */
   setupFeeCents: 0,
   /** useFirstPayoutFeeKnown: false while that answer is not in. */
@@ -70,6 +76,7 @@ vi.mock("@/lib/declutter/api", () => ({
     state.withdrawn.push(id);
   },
   checkoutFree: async () => "ord1",
+  fetchItemHandovers: async () => state.ticks,
 }));
 
 import { OfferPanel } from "./DeclutterOfferPanel";
@@ -111,6 +118,7 @@ function show(ui: React.ReactNode) {
 }
 
 beforeEach(() => {
+  state.ticks = null;
   state.cart = [];
   state.offers = [];
   state.responded = [];
@@ -159,6 +167,23 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
     expect(screen.getByRole("button", { name: "Confirm and pick a time" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
+  });
+
+  // DA-5 (Declutter audit 2026-10-30): the ask line said "at their home or from their porch" whatever the giver ticked.
+  it("the ask line names only the ways this free item offers (DA-5)", async () => {
+    const FREE = { ...ITEM, current_price_cents: 0, price_cents: 0 };
+    state.ticks = ["porch"];
+    const one = show(<FreeClaimPanel item={FREE} />);
+    expect(await screen.findByText(/48 hours to choose a time to collect it from their porch\./)).toBeInTheDocument();
+    expect(screen.queryByText(/their home/)).toBeNull();
+    one.unmount();
+    state.ticks = null;
+    const two = show(<FreeClaimPanel item={{ ...FREE, porch_ok: false }} />);
+    expect(await screen.findByText(/48 hours to choose a time to pick it up at their home\./)).toBeInTheDocument();
+    expect(screen.queryByText(/porch/)).toBeNull();
+    two.unmount();
+    show(<FreeClaimPanel item={FREE} />);
+    expect(await screen.findByText(/48 hours to choose a pickup at their home or from their porch\./)).toBeInTheDocument();
   });
 
   it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {

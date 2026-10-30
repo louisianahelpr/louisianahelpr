@@ -15336,6 +15336,15 @@ export type Database = {
           tags: string[]
         }[]
       }
+      declutter_wanted_email: {
+        Args: {
+          p_link: string
+          p_message: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       declutter_wanted_browse: {
         Args: { p_lat: number; p_lng: number }
         Returns: {

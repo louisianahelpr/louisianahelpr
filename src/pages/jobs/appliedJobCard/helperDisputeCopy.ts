@@ -105,10 +105,10 @@ export function helperDisputeCopy(
         // through, or ask an admin to decide") was written when withdrawing
         // was not reachable from this card, and sent a helper whose issue was
         // already settled to an admin for no reason.
-        `Waiting it out isn't a win — if nobody resolves this and the person who posted this job doesn't escalate, the hold just lapses and the payment releases on its normal schedule. Talk it through, ${
+        `Waiting it out isn't a win — if nobody settles this by the deadline, Helpr support decides it and the payment stays on hold until then. Talk it through, ${
           disputeLive ? "withdraw it if it's sorted, " : ""
         }or ask an admin to decide.`
-      : "If the person who posted this job doesn't resolve or escalate, payment auto-releases to you after the deadline.",
+      : "If nobody settles this by the deadline, Helpr support decides it. The payment stays on hold until then.",
     canRespond: respondableStatus && !iOpenedIt,
     canWithdraw: iOpenedIt && disputeLive,
   };

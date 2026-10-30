@@ -1,7 +1,5 @@
-import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
@@ -10,7 +8,6 @@ import { CONNECT_HOLD_SPLIT_ERROR } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../_shared/refundRequestHold.ts";
 import { serve } from "../_shared/buildStamp.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,15 +109,8 @@ serve(async (req) => {
       { global: { fetch: boundedFetch() } },
     );
 
-    // Fail loud on a missing key rather than passing "" to the SDK, which the
-    // constructor accepts and only throws on later — an undiagnosable generic
-    // error. Matches auto-release-payment's upfront config check.
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) throw new Error("Missing required env var: STRIPE_SECRET_KEY");
-    // Stripe mode (owner 2026-10-12): each dispute settles in its job's own mode
-    // (test accounts on the test key); a job mixing test and real accounts is
-    // skipped and counted as a defect.
-    const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
+    // No Stripe client: since Q2362 this sweep never settles a dispute (it
+    // escalates the expired ones to Helpr support), so it makes no Stripe call.
 
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
@@ -132,7 +122,8 @@ serve(async (req) => {
 
     if (fetchErr) throw fetchErr;
 
-    const resolved: string[] = [];
+    // Every expired, unescalated escrow dispute this run handed to support (Q2362).
+    const escalatedAtDeadline: string[] = [];
     // Jobs this run left alone because another settlement holds (or shares)
     // the claim. Reported, not a defect: an admin or a split moving the escrow
     // is the designed outcome, and the next tick re-reads the job.
@@ -232,70 +223,6 @@ serve(async (req) => {
       return inserted.length;
     }
 
-    /**
-     * Close the `public.disputes` record for a job whose escrow has just been
-     * settled. This function used to write `jobs` and NOTHING else, so every
-     * auto-resolved dispute left its record `status='open'` forever — and
-     * `disputes_one_open_per_job_idx` then made that stale row the only dispute
-     * the job could ever have, with `rpc_open_dispute`'s existing-dispute branch
-     * re-freezing a settled job off the back of it.
-     *
-     * A NULL return is legitimate (a dispute filed before `public.disputes`
-     * existed has no record to close); an ERROR is not, and is never dropped.
-     */
-    async function closeDisputeRecord(jobId: string, decisionText: string): Promise<void> {
-      const { data: disputeId, error: settleErr } = await supabase.rpc("settle_dispute_record", {
-        _job_id: jobId,
-        _outcome: "helper",
-        _decided_by: null,
-        _decision_text: decisionText,
-        // The transfer happens later, in release-payout / process-scheduled-payouts.
-        // This cron has no transfer id or settled amount to record, and a
-        // fabricated $0 would be a claim about money that is simply false.
-        _helper_cents: null,
-        _refund_cents: null,
-        _transfer_id: null,
-        _refund_id: null,
-      });
-      if (settleErr) {
-        // PGRST202 = the RPC isn't deployed yet (migration lag window). The job
-        // is already settled and correct; the orphan sweep below closes the
-        // record on the next tick once the function lands.
-        const code = (settleErr as { code?: string }).code;
-        console.error(`[auto-resolve-disputes] settle_dispute_record failed for job ${jobId}:`, settleErr);
-        defects.record(`settle dispute record ${jobId}: ${settleErr.message}${code ? ` (${code})` : ""}`);
-        return;
-      }
-      console.log(
-        disputeId
-          ? `[auto-resolve-disputes] closed dispute record ${disputeId} for job ${jobId}`
-          : `[auto-resolve-disputes] job ${jobId} had no disputes row to close (pre-table dispute)`,
-      );
-    }
-
-    /**
-     * A past-deadline dispute the sweep cannot settle and that waiting will
-     * never fix: tell the admins (deduped daily per job by remindAdmins) and
-     * report it in `claim_skipped`. Shared by every branch that leaves escrow
-     * held for a person, so none of them can go silent again (AM-001).
-     */
-    async function remindUnsettleable(
-      job: { id: string; title: string | null },
-      verdict: string,
-      why: string,
-    ): Promise<void> {
-      claimSkipped.push({ job_id: job.id, verdict });
-      const { ok: adminsOk, ids: adminIds } = await loadAdminIds(supabase, `auto-resolve-disputes.${verdict}`);
-      if (!adminsOk) defects.record(`admin lookup failed for unsettleable dispute job ${job.id} (${verdict})`);
-      await remindAdmins(
-        adminIds,
-        UNSETTLEABLE_TITLE,
-        `"${job.title}" is past its 72h dispute deadline but can't be auto-settled: ${why}. The escrow is still held — it needs an admin decision.`,
-        `/admin?view=disputes&job=${job.id}`,
-        `unsettleable dispute reminder job ${job.id} (${verdict})`,
-      );
-    }
-
     // Q1324: a dispute on a job whose poster or Helpr is under an OPEN ban
     // settlement review is not auto-resolved (no refund, no payout) until an
     // admin confirms or lifts the ban; the confirm escalates it. One read; if
@@ -362,426 +289,87 @@ serve(async (req) => {
         continue;
       }
 
-      // ── The filer cannot win by silence ─────────────────────────────────
+      // ── Nobody wins by silence: the money stays held for Helpr support ──
       //
-      // Everything below this point settles the dispute with `_outcome:
-      // "helper"` and flips the job to `payout_pending`. That is the right
-      // default for a POSTER-filed dispute nobody answered: the poster raised
-      // the complaint, went quiet for 72 hours, and the work is presumed done.
-      // The counterparty's silence is what loses them the dispute.
+      // OWNER RULE (2026-10-23 "never auto-release without the poster's
+      // approval"; #3565 answered 2026-10-25, option 1; docs/OPEN.md Q2362):
+      // a dispute that nobody settles or escalates within its 72 hours stays
+      // HELD until Helpr support decides. It no longer pays the Helpr.
       //
-      // It is the WRONG default when the HELPER filed. `rpc_open_dispute`
-      // authorises either party (`IF _uid <> _customer AND _uid <> _helper
-      // THEN RAISE`), and filing freezes the job — so a helper could open a
-      // dispute on an `in_progress` job, say nothing for 72 hours, and have
-      // this sweep write `status: "completed"` and hand them the full escrow.
-      // The poster never approved the work and never released anything; the
-      // timeout did it for them. Their only defence was to escalate.
+      // Until Q2362 this sweep settled a POSTER-filed dispute for the Helpr
+      // (status completed, payout_pending, dispute_status auto_resolved) and
+      // escalated only a Helpr-filed one, so a timeout could still move the
+      // escrow without the poster's approval. Now every filer takes the path
+      // the Helpr-filed dispute already took (helper_abort_job's ESCALATED
+      // disputes, 20260825190000): dispute_status 'escalated', which this cron
+      // already skips and nags admins about daily (ESCALATED_TITLE above), and
+      // which the admin queue still lists (AdminDisputes filters
+      // jobs.status = 'disputed', which escalation keeps). Nothing here takes
+      // the settlement claim, calls Stripe, flips payment_status or closes the
+      // dispute record: escalating moves no money.
       //
-      // Nothing auto-refunds the poster here either — that is the same
-      // unevidenced money movement pointed the other way, and it would let a
-      // poster win by staying silent after the helper filed. An unattended
-      // dispute that the FILER never substantiated has no honest automatic
-      // winner, so the money stays in escrow and a human decides.
+      // A CREW has no helper_id (Q407): a dispute filed by anyone but the
+      // poster is the Helpr side's filing (Q728); the admin message says which
+      // side filed so support knows who went quiet.
       //
-      // `escalated` is the existing device for exactly this, not a new state:
-      // this cron already skips escalated disputes and nags admins daily, the
-      // admin queue still lists the job (AdminDisputes filters `jobs.status =
-      // 'disputed'`, which escalation preserves), and `helper_abort_job`
-      // (20260825190000) already opens ESCALATED disputes on purpose so a
-      // helper who walked off a started job cannot be paid in full by a
-      // timeout. This closes the gap that migration left open for the ordinary
-      // filing path.
-      //
-      // Written on `jobs.dispute_status`, never `disputes.status` — the
-      // latter's CHECK admits only open/decided/withdrawn/superseded, so mirroring it
-      // there would throw and abort the sweep.
-      // A CREW has no helper_id (Q407): its Helpr side is every hired member,
-      // and a member can file (open_dispute_as, 20260927012240). A crew
-      // dispute filed by anyone but the poster is the Helpr side's filing, and
-      // must escalate exactly like a single Helpr's (docs/OPEN.md Q728):
-      // otherwise one member's silence would auto-release the whole crew's pay.
+      // Guarded on payment_status = 'escrow' (a chargeback that landed since the
+      // read must not be overwritten) and on the dispute state this run read,
+      // with `.select("id")`: a null error on a zero-row update is not an
+      // escalation, and a job a party withdrew or escalated meanwhile is left
+      // to that move.
       const helprSideFiled = !!job.disputed_by && (
         (!!job.helper_id && job.disputed_by === job.helper_id) ||
         (job.is_group_job === true && job.disputed_by !== job.customer_id)
       );
-      if (helprSideFiled) {
-        // Guarded on payment_status="escrow" for the same chargeback race the
-        // release path below guards, and `.select("id")` because a null error
-        // on a zero-row update would read as "escalated" while the deadline
-        // stayed live and the next tick paid the helper anyway.
-        const { data: escalatedRows, error: escalateErr } = await supabase
-          .from("jobs")
-          .update({ dispute_status: "escalated" })
-          .eq("id", job.id)
-          .eq("payment_status", "escrow")
-          .select("id");
-        if (escalateErr) {
-          console.error(`[auto-resolve-disputes] failed to escalate helper-filed dispute on job ${job.id}:`, escalateErr);
-          defects.record(`escalate helper-filed ${job.id}: ${escalateErr.message}`);
-          continue;
-        }
-        if (!escalatedRows || escalatedRows.length === 0) {
-          console.log(`[auto-resolve-disputes] job ${job.id} payment_status changed since read; not escalating.`);
-          continue;
-        }
-        const { ok: helperFiledAdminsOk, ids: helperFiledAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.helperFiled");
-        if (!helperFiledAdminsOk) defects.record(`admin lookup failed for helper-filed escalation job ${job.id}`);
-        await remindAdmins(
-          helperFiledAdminIds,
-          ESCALATED_TITLE,
-          `"${job.title}" was disputed by the Helpr, who did not substantiate it within 72 hours. ` +
-            `The escrow was NOT auto-released — it needs an admin decision.`,
-          `/admin?view=disputes&job=${job.id}`,
-          `helper-filed escalation job ${job.id}`,
+      let escalateQuery = supabase
+        .from("jobs")
+        .update({ dispute_status: "escalated" })
+        .eq("id", job.id)
+        .eq("status", "disputed")
+        .eq("payment_status", "escrow")
+        .lte("dispute_deadline", new Date().toISOString());
+      escalateQuery = job.dispute_status == null
+        ? escalateQuery.is("dispute_status", null)
+        : escalateQuery.eq("dispute_status", job.dispute_status);
+      const { data: escalatedRows, error: escalateErr } = await escalateQuery.select("id");
+      if (escalateErr) {
+        console.error(`[auto-resolve-disputes] failed to escalate the expired dispute on job ${job.id}:`, escalateErr);
+        defects.record(`escalate expired dispute ${job.id}: ${escalateErr.message}`);
+        continue;
+      }
+      if (!escalatedRows || escalatedRows.length === 0) {
+        console.log(`[auto-resolve-disputes] job ${job.id} dispute or payment state changed since read; not escalating.`);
+        continue;
+      }
+      const { ok: expiredAdminsOk, ids: expiredAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.expired");
+      if (!expiredAdminsOk) defects.record(`admin lookup failed for expired-dispute escalation job ${job.id}`);
+      await remindAdmins(
+        expiredAdminIds,
+        ESCALATED_TITLE,
+        `"${job.title}" was disputed by ${helprSideFiled ? "the Helpr" : "the person who posted it"} and nobody settled it within 72 hours. ` +
+          `The escrow was NOT released; it is held until an admin decides.`,
+        `/admin?view=disputes&job=${job.id}`,
+        `expired-dispute escalation job ${job.id}`,
+      );
+      // Both sides were told the 72-hour clock decides; tell them it did not.
+      const partyIds = [job.customer_id, job.helper_id].filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (partyIds.length > 0) {
+        const { error: partyErr } = await supabase.from("notifications").insert(
+          partyIds.map((userId) => ({
+            user_id: userId,
+            title: "Dispute sent to Helpr support",
+            message: `The dispute on "${job.title}" was not settled within 72 hours, so Helpr support will decide it. The payment stays on hold until then.`,
+            type: "payment",
+            link: userId === job.customer_id ? `/posts?job=${job.id}` : `/jobs?job=${job.id}`,
+          })),
         );
-        escalatedHelperFiled.push(job.id);
-        continue;
-      }
-
-      let stripe: Stripe;
-      try {
-        ({ stripe } = await stripes.clientForJob(job.id, "read"));
-      } catch (e) {
-        if (!(e instanceof StripeModeRefused)) throw e;
-        claimSkipped.push({ job_id: job.id, verdict: "stripe_mode_refused" });
-        defects.record(`stripe mode ${job.id}: ${e.reason}: ${e.message}`);
-        continue;
-      }
-      // ── Fail closed: verify the escrow charge actually succeeded before
-      // promising the helper a payout. Auto-resolving a dispute flips the job
-      // to payout_pending, which process-scheduled-payouts / auto-release-payment
-      // Phase 2 then pays out for real. Without this check a dispute on a job
-      // whose PI never captured (or was charged back) would auto-release real
-      // money against unfunded escrow. Mirrors auto-release-payment's Step 2. ──
-      let paymentIntentId = job.stripe_payment_intent_id as string | null;
-      if (!paymentIntentId && job.stripe_session_id) {
-        try {
-          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-          paymentIntentId = typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id ?? null;
-        } catch (e) {
-          if (isTestObjectUnderLiveKey(e)) {
-            logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
-            continue;
-          }
-          console.error(`[auto-resolve-disputes] failed to retrieve session for job ${job.id}:`, e);
-          defects.record(`session retrieve ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
+        if (partyErr) {
+          console.error(`[auto-resolve-disputes] party notice insert failed for job ${job.id}:`, partyErr);
+          defects.record(`expired-dispute party notice ${job.id}: ${partyErr.message}`);
         }
       }
-      // AM-001: "leaving for admin" used to be a console.error and a
-      // `continue` — no admin was ever told, so an escrow with no verifiable
-      // charge sat frozen past its deadline with both parties staring at a
-      // "disputed" job. These two cases can never clear by waiting, so they
-      // take the SAME path as the payout-hold and unsettleable-claim branches:
-      // a deduped daily UNSETTLEABLE_TITLE reminder to every admin, plus a row
-      // in the run's `claim_skipped` report.
-      if (!paymentIntentId) {
-        console.error(`[auto-resolve-disputes] no payment intent for job ${job.id} — cannot auto-release, leaving for admin`);
-        await remindUnsettleable(job, "no_payment_intent", "it has no Stripe payment on record");
-        continue;
-      }
-      try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-        if (pi.status !== "succeeded") {
-          console.error(`[auto-resolve-disputes] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — not auto-releasing`);
-          await remindUnsettleable(job, `pi_${pi.status}`, `its Stripe payment is "${pi.status}", not succeeded`);
-          continue;
-        }
-      } catch (e) {
-        if (isTestObjectUnderLiveKey(e)) {
-          logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
-          continue;
-        }
-        console.error(`[auto-resolve-disputes] failed to verify PI for job ${job.id}:`, e);
-        defects.record(`PI verify ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
-        continue;
-      }
-
-      // ── Take the settlement claim before the flip ───────────────────────
-      //
-      // The flip below is this sweep's money step: `payout_pending` is what
-      // release-payout / process-scheduled-payouts pay out for real. Its
-      // `payment_status = 'escrow'` guard sees a chargeback that already
-      // committed, but NOT an admin Quick Refund in flight — create-payment runs
-      // `stripe.refunds.create` BEFORE its own guarded flip, and for that whole
-      // window the job still reads disputed/escrow. The sweep won the flip, the
-      // admin's flip matched zero rows, and the Helpr was paid 24h later on top
-      // of the refund.
-      //
-      // `claim_dispute_settlement` is the one lock create-payment's Quick
-      // Release/Refund and execute-dispute-split already share (20260915034822).
-      // Taken HERE — after every check above that can skip without moving
-      // anything, immediately before the flip — as action 'sweep', which is
-      // none of the others, so all four are mutually exclusive.
-      //
-      // Anything but a fresh `claimed` skips the job:
-      //   held_by_*    another settlement is moving this escrow right now.
-      //   joined       another sweep run holds it (overlapping ticks); that run
-      //                settles it, and a tokenless joiner must not.
-      //   not_disputed the job settled since the read above.
-      // An RPC ERROR fails CLOSED and is a defect: PGRST202 means the migration
-      // has not deployed, and running unguarded is exactly the race. No payout
-      // is lost by skipping — the job stays disputed and the next tick retries.
-      const { data: claimRow, error: claimErr } = await supabase.rpc("claim_dispute_settlement", {
-        _job_id: job.id,
-        _action: "sweep",
-        _admin_id: null,
-      });
-      if (claimErr) {
-        const code = (claimErr as { code?: string }).code;
-        console.error(`[auto-resolve-disputes] settlement claim failed for job ${job.id}; not auto-resolving:`, claimErr);
-        defects.record(`settlement claim ${job.id}: ${claimErr.message}${code ? ` (${code})` : ""} — not auto-resolved`);
-        continue;
-      }
-      const claimVerdict = String((claimRow as { verdict?: string } | null)?.verdict ?? "missing");
-      const claimToken = (claimRow as { token?: string } | null)?.token ?? null;
-      const overExpired = (claimRow as { over_expired?: boolean } | null)?.over_expired === true;
-      if (claimVerdict !== "claimed" || !claimToken) {
-        console.log(`[auto-resolve-disputes] job ${job.id} settlement claim answered ${claimVerdict}; not auto-resolving.`);
-        claimSkipped.push({ job_id: job.id, verdict: claimVerdict });
-        // held_by_* / joined / not_disputed: another settlement is moving it,
-        // or already did — the designed outcome, silent. The rest can never
-        // clear by waiting, so a person is told (deduped daily), or the sweep
-        // would skip them every tick forever with nobody the wiser:
-        //   not_settleable  disputed, but the escrow is not held.
-        //   split_pending   a decided split has not executed.
-        //   stuck_*         a dead holder may have moved money (the claim
-        //                   function has already paged ops with the fix).
-        if (claimVerdict === "not_settleable" || claimVerdict === "split_pending" || claimVerdict.startsWith("stuck_")) {
-          const { ok: stuckAdminsOk, ids: stuckAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.unsettleable");
-          if (!stuckAdminsOk) defects.record(`admin lookup failed for unsettleable dispute job ${job.id}`);
-          await remindAdmins(
-            stuckAdminIds,
-            UNSETTLEABLE_TITLE,
-            `"${job.title}" is past its 72h dispute deadline but can't be auto-settled (${claimVerdict}). It needs an admin decision.`,
-            `/admin?view=disputes&job=${job.id}`,
-            `unsettleable dispute reminder job ${job.id}`,
-          );
-          if (claimVerdict.startsWith("stuck_")) {
-            defects.record(`dispute job ${job.id}: settlement lock held by a dead ${claimVerdict.slice(6)} — money may be half-moved; reconcile and clear the claim`);
-          }
-        }
-        continue;
-      }
-
-      // From here on this run OWNS the claim, and every exit hands it back by
-      // token — `finally`, so a `continue` or a throw cannot strand it.
-      let flipped = false;
-      try {
-        // Won by expiring a DEAD holder's claim. That holder may have moved
-        // money and died before writing its ledger row or flipping the job —
-        // the ledger check below cannot see a write that never happened, and
-        // the sweep would then pay the Helpr on top of it (lh-money-escrow
-        // review, HIGH-2). A person decides that job; the stale-claim page has
-        // already gone out. Released, not held: holding it would only block
-        // the admin who comes to fix it.
-        if (overExpired) {
-          console.error(`[auto-resolve-disputes] job ${job.id}: settlement claim was taken over an expired holder — not auto-resolving over a dead settlement.`);
-          defects.record(`settlement claim on ${job.id} was won over an expired holder — not auto-resolved; reconcile against Stripe first`);
-          continue;
-        }
-        // ── The ledger cross-check, same as create-payment's release path ──
-        // The claim is a mutex, not a settlement record: it says
-        // nothing about a refund that FINISHED but whose flip failed (create-
-        // payment leaves that job disputed and pages for manual reconciliation)
-        // or whose holder died after Stripe answered. A `payment_refunds` row
-        // is written only after Stripe returned the refund, so its existence
-        // means the poster already has the money; paying the Helpr as well is
-        // the double spend. Fails CLOSED on a read error — indistinguishable
-        // from "nothing moved", the one guess that pays twice.
-        const { data: refundRows, error: refundLedgerErr } = await supabase
-          .from("payment_refunds")
-          .select("id")
-          .eq("job_id", job.id)
-          .limit(1);
-        if (refundLedgerErr) {
-          console.error(`[auto-resolve-disputes] refund ledger read failed for job ${job.id}; not auto-resolving:`, refundLedgerErr);
-          defects.record(`refund ledger read ${job.id}: ${refundLedgerErr.message} — not auto-resolved`);
-          continue;
-        }
-        if ((refundRows ?? []).length > 0) {
-          console.error(`[auto-resolve-disputes] job ${job.id} is disputed/escrow but already has a refund ledger row — refusing to schedule a payout on top of it.`);
-          defects.record(`refund ledger row exists on disputed job ${job.id} — escrow already refunded, payout NOT scheduled; needs manual reconciliation`);
-          continue;
-        }
-
-        // ── And Stripe itself, which is not best-effort ───────────────────
-        // `recordRefund` swallows its own write failure, so an empty ledger is
-        // not proof no refund left. The charge's `amount_refunded` is. Read
-        // INSIDE the claim: the PI check above ran before it and cannot see a
-        // refund issued since. Fails closed.
-        try {
-          const chargePi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
-          const charge = (chargePi as { latest_charge?: unknown }).latest_charge;
-          const refundedCents = charge && typeof charge === "object"
-            ? Number((charge as { amount_refunded?: number }).amount_refunded ?? 0)
-            : 0;
-          // Refunds only. `charge.disputed` stays true after a chargeback is WON,
-          // so gating on it deferred that job forever with a defect every run
-          // (lh-money-escrow round 2); a live chargeback already reads
-          // payment_status 'chargeback' and fails the flip's escrow pin.
-          if (refundedCents > 0) {
-            console.error(`[auto-resolve-disputes] job ${job.id}: Stripe shows the charge refunded ${refundedCents}¢ — not scheduling a payout.`);
-            defects.record(`Stripe charge on disputed job ${job.id} is refunded (${refundedCents}¢) with no matching ledger/flip — payout NOT scheduled; needs manual reconciliation`);
-            continue;
-          }
-        } catch (e) {
-          if (isTestObjectUnderLiveKey(e)) {
-            logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
-            continue;
-          }
-          console.error(`[auto-resolve-disputes] Stripe refund check failed for job ${job.id}; not auto-resolving:`, e);
-          defects.record(`Stripe refund check ${job.id}: ${e instanceof Error ? e.message : String(e)} — not auto-resolved`);
-          continue;
-        }
-
-        // Non-escalated: auto-release payment to helper.
-        // Also flip payment_status to 'payout_pending' so the auto-release-payment
-        // cron's Phase 2 (release-payout invocation, gated on RELEASE_PAYOUT_AUTO=1)
-        // actually moves the money. Without this, the job sat in escrow forever
-        // and the helper got a "payment released" notification that wasn't true.
-        //
-        // Optimistic concurrency: guard on payment_status="escrow" so a chargeback
-        // webhook that fires between our read and this write (flipping the job to
-        // "chargeback"/"refunded") isn't blindly overwritten with "payout_pending".
-        //
-        // AND on the dispute state this run read (race-class audit 2026-09-14).
-        // Two party moves keep payment_status 'escrow' and were overwritten:
-        //   rpc_withdraw_dispute  restores status (in_progress/…) — the flip then
-        //                         wrote completed + payout_pending on a job the
-        //                         parties had just taken back out of dispute.
-        //   rpc_escalate_dispute  sets dispute_status 'escalated' with status
-        //                         still disputed — the flip then paid the Helpr
-        //                         out of a dispute the poster had just handed to
-        //                         an admin, the one outcome escalation exists to stop.
-        // The Stripe round-trips above hold this row unlocked, so the window is real.
-        // (The settlement claim above covers the admin/split money paths; these
-        // predicates cover the PARTY moves, which take no claim.)
-        let claimQuery = supabase
-          .from("jobs")
-          .update({
-            status: "completed",
-            payment_status: "payout_pending",
-            // +24h hold before the payout actually fires — a chargeback buffer,
-            // matching auto-release-payment. now() would make the job eligible on
-            // the very next payout cron tick with no safety window.
-            payout_scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            dispute_status: "auto_resolved",
-            dispute_resolved_at: new Date().toISOString(),
-            dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to Helpr.`,
-          })
-          .eq("id", job.id)
-          .eq("status", "disputed")
-          .eq("payment_status", "escrow")
-          // A withdraw + re-file inside the window returns disputed/open again
-          // (ABA): the deadline and filer pin it to the dispute this run judged —
-          // a re-filed dispute has a fresh 72h clock, and a Helpr-filed one must
-          // escalate (above), never pay.
-          .lte("dispute_deadline", new Date().toISOString());
-        claimQuery = job.dispute_status == null
-          ? claimQuery.is("dispute_status", null)
-          : claimQuery.eq("dispute_status", job.dispute_status);
-        claimQuery = job.disputed_by == null
-          ? claimQuery.is("disputed_by", null)
-          : claimQuery.eq("disputed_by", job.disputed_by);
-        const { data: claimed, error: updateErr } = await claimQuery.select("id");
-
-        if (updateErr) {
-          console.error(`Failed to resolve dispute for job ${job.id}:`, updateErr);
-          // A defect, not a log line: the claim and every check passed, so a
-          // failed write here is the one thing standing between an expired
-          // dispute and its payout, and a 2xx run would hide it.
-          defects.record(`resolve flip ${job.id}: ${updateErr.message}`);
-          continue;
-        }
-        if (!claimed || claimed.length === 0) {
-          console.log(`[auto-resolve-disputes] job ${job.id} status, dispute_status or payment_status changed since read (withdraw / escalate / chargeback race); skipping.`);
-          continue;
-        }
-
-        // The job is settled — now close the RECORD, in the same tick, so the two
-        // sources of truth agree. Runs only after the claim succeeded, so a job
-        // this run did not actually resolve never has its dispute closed.
-        await closeDisputeRecord(
-          job.id,
-          "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the person who posted this job resolving or escalating it, so the escrow was released to the helpr.",
-        );
-        flipped = true;
-      } finally {
-        // Retried once (round 3, M2): a claim left behind by one failed RPC
-        // blocks the admin buttons until it expires. A sweep claim is never
-        // stamped, so even a leftover only ever expires or is cleared by the
-        // monitor as a warning — never a stuck_* or a page.
-        let { error: releaseErr } = await supabase.rpc("release_dispute_settlement_claim", {
-          _job_id: job.id,
-          _token: claimToken,
-        });
-        if (releaseErr) {
-          ({ error: releaseErr } = await supabase.rpc("release_dispute_settlement_claim", {
-            _job_id: job.id,
-            _token: claimToken,
-          }));
-        }
-        if (releaseErr) {
-          // Not a defect: the claim expires on its own, and a leftover on a
-          // settled job is reported (not paged) by check_stale_dispute_settlement_claims.
-          console.error(`[auto-resolve-disputes] could not release the settlement claim on job ${job.id}:`, releaseErr);
-        }
-      }
-      if (!flipped) continue;
-
-      // Notify both parties
-      const notifications = [];
-
-      if (job.helper_id) {
-        notifications.push({
-          user_id: job.helper_id,
-          title: "Dispute auto-resolved",
-          message: `The dispute on "${job.title}" expired after 72 hours without the person who posted it resolving or escalating. Payment will be released to you.`,
-          type: "payment",
-          // `?job=`, not `?filter=completed` — `completed` is a legacy key with
-          // no chip (the bucket is `done`), and the job may still be settling.
-          link: `/jobs?job=${job.id}`,
-        });
-      }
-
-      notifications.push({
-        user_id: job.customer_id,
-        title: "Dispute auto-resolved",
-        message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helpr.`,
-        // The helpr's half of this same event is already `payment` (above); the
-        // poster's half said `warning`, so ONE event landed in two different
-        // preference categories depending on which side of it you were on.
-        type: "payment",
-        link: `/posts?job=${job.id}`,
-      });
-
-      // Notify admins
-      const { ok: autoResolvedAdminsOk, ids: autoResolvedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.autoResolved");
-      if (!autoResolvedAdminsOk) defects.record(`admin lookup failed for auto-resolution notice job ${job.id}`);
-
-      {
-        for (const adminId of autoResolvedAdminIds) {
-          notifications.push({
-            user_id: adminId,
-            title: "Dispute auto-resolved",
-            message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
-            type: "admin_alert",
-            link: `/admin?view=jobs&job=${job.id}`,
-          });
-        }
-      }
-
-      if (notifications.length > 0) {
-        const { error: notifErr } = await supabase.from("notifications").insert(notifications);
-        if (notifErr) {
-          console.error(`[auto-resolve-disputes] resolution notifications insert failed for job ${job.id}:`, notifErr);
-          defects.record(`resolution notifications ${job.id}: ${notifErr.message}`);
-        }
-      }
-      resolved.push(job.id);
+      escalatedAtDeadline.push(job.id);
+      if (helprSideFiled) escalatedHelperFiled.push(job.id);
     }
 
     // ── Sweep 1: dispute RECORDS orphaned open on a settled job ─────────────
@@ -1080,15 +668,13 @@ serve(async (req) => {
       }
     }
 
-    // "No payment intent" and "PI not succeeded" are deliberately NOT defects —
-    // both leave the dispute for an admin, which is the designed behaviour, and
-    // both TELL the admins via remindUnsettleable (AM-001) and appear in
-    // `claim_skipped`, so "left for an admin" is true rather than a log line.
     return cronResult(
       "auto-resolve-disputes",
       {
-        resolved: resolved.length,
-        ids: resolved,
+        // Always 0 since Q2362: an expired dispute is escalated, never settled.
+        resolved: 0,
+        escalated_at_deadline: escalatedAtDeadline.length,
+        escalated_at_deadline_ids: escalatedAtDeadline,
         claim_skipped: claimSkipped,
         escalated_helper_filed: escalatedHelperFiled.length,
         escalated_helper_filed_ids: escalatedHelperFiled,

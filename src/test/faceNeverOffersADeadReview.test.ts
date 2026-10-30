@@ -10,13 +10,18 @@
  * helperFaceAction offers its review only with the poster's id, and hands that id to the handler.
  * Every completion combination x counterpart present/absent x solo/crew is walked, both ways.
  *
- * @mutate src/components/job-card/jobStatusLine.ts | if (completion && hasCounterpart(job, completion) && !(completion.tipped && completion.reviewed)) { | if (completion && !(completion.tipped && completion.reviewed)) {
+ * THE SAME CLASS, IN TIME (lead, 2026-10-29): past the 30-day review window (DH-003, the reviews INSERT policy) the
+ * face never offers "Leave a review". A tip still open: "Tip still open" with the Tip button. Nothing left: done.
+ *
+ * @mutate src/components/job-card/jobStatusLine.ts | if (completion && hasCounterpart(job, completion)) { | if (completion) {
+ * @mutate src/components/job-card/jobStatusLine.ts |   return (job.payment_status === "released" \|\| job.payment_status === "payout_pending") && reviewWindowOpen(job); |   return job.payment_status === "released" \|\| job.payment_status === "payout_pending";
+ * @mutate src/components/job-card/jobStatusLine.ts | return completion.reviewed ? "done_tip_open" : "done_tip_open_review_closed"; | return "done_tip_open";
  * @mutate src/components/job-card/jobStatusLine.ts |   if (job.is_group_job) return (completion.crewToReview?.length ?? 0) > 0 \|\| completion.reviewed; |   if (job.is_group_job) return true;
  * @mutate src/components/job-card/jobStatusLine.ts |   return !!job.helper_id; |   return true;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (s.owesReview && posterId) | if (s.owesReview)
  */
 import { describe, expect, it, vi } from "vitest";
-import { derivePosterWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { derivePosterWait, posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceAction } from "@/pages/jobs/appliedJobCard/helperFaceAction";
@@ -63,6 +68,33 @@ for (const c of combos) {
 }
 // A crew reviewed in full (crewToReview [] but reviewed true: there were members) still owes its tip.
 CASES.push({ name: "crew, every member reviewed, tip open", job: doneJob({ is_group_job: true, helper_id: null }), completion: { tipped: false, reviewed: true, crewToReview: [] }, counterpart: true });
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const finishedDaysAgo = (d: number) => new Date(Date.now() - d * DAY_MS).toISOString();
+
+describe("past the 30-day review window the face never offers a review", () => {
+  const old = (over: Record<string, unknown> = {}) => doneJob({ poster_completed_at: finishedDaysAgo(31), ...over });
+  const WINDOW_CASES: Array<{ name: string; job: Job; completion: { tipped: boolean; reviewed: boolean }; wait: PosterWait; face: RegExp }> = [
+    { name: "31 days, neither left: the tip is still open", job: old(), completion: { tipped: false, reviewed: false }, wait: "done_tip_open_review_closed", face: /^Tip Former$/ },
+    { name: "31 days, tipped, not reviewed: done", job: old(), completion: { tipped: true, reviewed: false }, wait: "done_paid", face: /^(?!Leave a review$)/ },
+    { name: "31 days, payout pending, tipped: done, payout pending", job: old({ payment_status: "payout_pending" }), completion: { tipped: true, reviewed: false }, wait: "done_payout_pending", face: /^(?!Leave a review$)/ },
+    { name: "31 days, reviewed, tip open: unchanged", job: old(), completion: { tipped: false, reviewed: true }, wait: "done_tip_open", face: /^Tip Former$/ },
+    // Two-way: inside the window the review is still offered.
+    { name: "29 days, neither left: both open", job: doneJob({ poster_completed_at: finishedDaysAgo(29) }), completion: { tipped: false, reviewed: false }, wait: "done_both_open", face: /^Leave a review$/ },
+    { name: "29 days, tipped: review open", job: doneJob({ poster_completed_at: finishedDaysAgo(29) }), completion: { tipped: true, reviewed: false }, wait: "done_review_open", face: /^Leave a review$/ },
+    // Before the payout is approved the reviews policy refuses too (CompletedStep's canReview).
+    { name: "payment still in escrow, tipped: no review yet", job: doneJob({ payment_status: "escrow" }), completion: { tipped: true, reviewed: false }, wait: "done_payout_pending", face: /^(?!Leave a review$)/ },
+  ];
+  it("the inventory is real", () => expect(WINDOW_CASES.length).toBeGreaterThan(5));
+  it.each(WINDOW_CASES)("$name", ({ job, completion, wait, face }) => {
+    const got = derivePosterWait(job, 0, new Date(), completion);
+    expect(got).toBe(wait);
+    expect(posterFaceAction(got, job, handlers()).label).toMatch(face);
+  });
+  it("the line says so in plain words", () => {
+    expect(posterStatusLine(old(), 0, new Date(), { tipped: false, reviewed: false }).detail).toBe("Tip still open");
+  });
+});
 
 describe("the face never offers a Review or a Tip with nobody to receive it", () => {
   it("the inventory is real", () => {

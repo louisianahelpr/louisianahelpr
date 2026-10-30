@@ -79,6 +79,7 @@ export function posterFaceAction(
     case "done_both_open":
       return { label: "Leave a review", onClick: h.review, tone: "primary" };
     case "done_tip_open":
+    case "done_tip_open_review_closed":
       // A crew is tipped member by member, in the card.
       return job.is_group_job || h.tipsReady === false
         ? { label: "Manage job", onClick: h.manage, tone: "secondary" }
@@ -136,7 +137,7 @@ export function usePosterFaceAction(a: {
   onViewDispute: (job: Job) => void;
 }): { faceAction: MineFaceAction; completionRequest: number } {
   const { job, toggle } = a;
-  const tipsReady = useHelprTakesTips(job.helper_id, a.wait === "done_tip_open" && !job.is_group_job);
+  const tipsReady = useHelprTakesTips(job.helper_id, (a.wait === "done_tip_open" || a.wait === "done_tip_open_review_closed") && !job.is_group_job);
   // Bumped by "Approve and release": PostedJobActions opens its completion sheet.
   const [completionRequest, setCompletionRequest] = useState(0);
   const faceAction = posterFaceAction(a.wait, job, {

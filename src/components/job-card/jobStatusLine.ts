@@ -11,6 +11,7 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
+import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
 import { arrivalEstablished } from "@/lib/arrivalGate";
 import type { AppliedApp, Job } from "./activityConstants";
@@ -289,6 +290,7 @@ export type PosterWait =
   | "done_refunded"
   | "done_paid"
   | "done_tip_open"
+  | "done_tip_open_review_closed"
   | "done_review_open"
   | "done_both_open"
   | "done_marked"
@@ -408,6 +410,8 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   done_refunded: { detail: "Done · payment refunded" },
   done_paid: { detail: "Done · paid and closed" },
   done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
+  /* Not reviewed, but the review window has closed (30 days, DH-003): only the tip is left to offer. */
+  done_tip_open_review_closed: { detail: "Tip still open", tone: "them" },
   done_review_open: { detail: "Tip left — review still open", tone: "them" },
   done_both_open: { detail: "Review and tip still open", tone: "them" },
   /* A cancelled job filed under Done (owner 2026-10-25, jobs.poster_marked_done_at):
@@ -479,6 +483,15 @@ type PosterCompletion = { tipped: boolean; reviewed: boolean; crewToReview?: Rea
  * on both and the Tip has no payee, so a loose end there would be a button that does nothing. CompletedStep's
  * canReview refuses the same cases. Guard: src/test/faceNeverOffersADeadReview.test.ts.
  */
+/**
+ * Can the poster still leave a review? CompletedStep's canReview, minus the counterpart (hasCounterpart): the
+ * reviews INSERT policy takes one only once the payout is approved (payout_pending or released) and only inside
+ * the 30-day window (DH-003, reviewWindowOpen). Past either, a "Leave a review" button would be refused.
+ */
+function reviewCanBeLeft(job: Job): boolean {
+  return (job.payment_status === "released" || job.payment_status === "payout_pending") && reviewWindowOpen(job);
+}
+
 function hasCounterpart(job: Pick<Job, "is_group_job" | "helper_id">, completion: PosterCompletion): boolean {
   if (job.is_group_job) return (completion.crewToReview?.length ?? 0) > 0 || completion.reviewed;
   return !!job.helper_id;
@@ -525,10 +538,12 @@ export function derivePosterWait(
       if (disputeSettling(job)) return "dispute_settling";
       /* Which finish it is depends on the loose ends, not on the row. A loose end needs someone to close it
          with (hasCounterpart): with nobody, the job is simply finished. */
-      if (completion && hasCounterpart(job, completion) && !(completion.tipped && completion.reviewed)) {
-        if (completion.reviewed) return "done_tip_open";
-        if (completion.tipped) return "done_review_open";
-        return "done_both_open";
+      if (completion && hasCounterpart(job, completion)) {
+        // Past the review window (or before the payout is approved) no review is offered: the server would refuse it.
+        const reviewOpen = !completion.reviewed && reviewCanBeLeft(job);
+        if (!completion.tipped && !reviewOpen) return completion.reviewed ? "done_tip_open" : "done_tip_open_review_closed";
+        if (completion.tipped && reviewOpen) return "done_review_open";
+        if (reviewOpen) return "done_both_open";
       }
       return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
     case "disputed":

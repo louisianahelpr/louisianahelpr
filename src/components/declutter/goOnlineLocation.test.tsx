@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
   calls: [] as unknown[][],
   asked: 0,
   refuse: false,
+  origin: { status: "none", zipOnFile: false } as Record<string, unknown>,
   toasts: { success: [] as string[], error: [] as string[] },
 }));
 
@@ -22,6 +23,8 @@ vi.mock("sonner", () => ({
   toast: { success: (m: string) => state.toasts.success.push(m), error: (m: string) => state.toasts.error.push(m) },
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
+// The profile -> area chain the rest of Declutter uses (deriveFallbackLocation); audit DD D3 makes Go online read it.
+vi.mock("./useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: state.origin }) }));
 vi.mock("@/lib/declutter/position", () => ({
   currentPosition: async () => {
     state.asked++;
@@ -63,11 +66,12 @@ beforeEach(() => {
   state.calls = [];
   state.asked = 0;
   state.refuse = false;
+  state.origin = { status: "none", zipOnFile: false };
   state.toasts = { success: [], error: [] };
 });
 
 describe("Go online: the location it needs is said first and asked for on the press (deep audit #39)", () => {
-  // @mutate src/components/declutter/GoOnlineCard.tsx |       const point = where ?? (hasArea ? null : await currentPosition()); |       const point = where;
+  // @mutate src/components/declutter/GoOnlineCard.tsx |       const point = where ?? (hasArea ? null : derived ?? await currentPosition()); |       const point = where;
   it("no area and nothing shared: the card says so, and the press sends the device's position", async () => {
     show();
     expect(await screen.findByText(/No area in your profile yet, so going online asks for your location once\./)).toBeInTheDocument();
@@ -87,6 +91,22 @@ describe("Go online: the location it needs is said first and asked for on the pr
     await waitFor(() => expect(state.calls).toHaveLength(1));
     expect(state.asked).toBe(0);
     expect(state.calls[0]).toEqual(["helpr_go_online", { p_on: true, p_hours: 4, p_lat: null, p_lng: null, p_radius_miles: 15 }]);
+  });
+
+  // Audit DD D3 (shot dd-d1-deliver-tab-p2-375wk): a ZIP on the profile but no saved point said "No area in your
+  // profile yet" while the rest of Declutter placed the member by that ZIP. Now the card names the ZIP's area and the
+  // press sends that point, asking the device nothing.
+  // @mutate src/components/declutter/GoOnlineCard.tsx |   const derived = !hasArea && origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null; |   const derived = hasArea ? { lat: 0, lng: 0 } : null;
+  it("a ZIP on the profile but no saved point: the ZIP's area, never 'No area', and no device prompt", async () => {
+    state.profile = { latitude: null, longitude: null };
+    state.origin = { status: "ready", lat: 30.4415, lng: -91.1301, source: "zip", approximate: true };
+    show();
+    expect(await screen.findByText(/Near your ZIP code's area\./)).toBeInTheDocument();
+    expect(screen.queryByText(/No area in your profile/)).toBeNull();
+    await press();
+    await waitFor(() => expect(state.calls).toHaveLength(1));
+    expect(state.asked).toBe(0);
+    expect(state.calls[0]).toEqual(["helpr_go_online", { p_on: true, p_hours: 4, p_lat: 30.4415, p_lng: -91.1301, p_radius_miles: 15 }]);
   });
 
   // @mutate src/components/declutter/GoOnlineCard.tsx |         ? "Turn on location, or add your area in your profile, to go online." |         ? "Turn on location so we can confirm you're at the pickup address."

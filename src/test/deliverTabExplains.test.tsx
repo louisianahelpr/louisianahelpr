@@ -8,8 +8,9 @@
  * @mutate src/components/declutter/DeclutterDeliverExplainer.tsx |   const large = helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["large"])); |   const large = deliveryPriceCents(EXAMPLE_MILES, ["large"]);
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const intro = <DeliverExplainer />; |   const intro = <p>Deliver Declutter items near you.</p>;
  * @mutate src/components/busyAreas/BusyAreasCard.tsx |   [29.0, -94.05], // SW: Sabine Pass |   [28.5, -94.6], // SW: Sabine Pass
- * @mutate src/components/busyAreas/BusyAreasCard.tsx |       {top.length > 0 && ( |       {false && (
- * The counts keep Q2435's jobs + deliveries mix (lead 2026-10-28, option c) and one line says where each is.
+ * @mutate src/components/busyAreas/BusyAreasCard.tsx |   const summary = useMemo(() => busyAreas([], deliveries), [deliveries]); |   const summary = useMemo(() => busyAreas([{ parish: "Vermilion" }], deliveries), [deliveries]);
+ * @mutate src/components/busyAreas/BusyAreasCard.tsx |             <li key={a.parish} className="text-sm text-foreground">{busyAreaLabel(a)}</li> |             <li key={a.parish} className="text-sm text-foreground">{busyAreaLabel(a)}<span>{a.total}</span></li>
+ * Audit DD D2 (lead 2026-10-30): on Deliver the card counts open DELIVERIES only, and prints each count once.
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -21,7 +22,8 @@ import { BusyAreasCard, LOUISIANA_LAND } from "@/components/busyAreas/BusyAreasC
 import { deliveryPriceCents, helprTakeHomeCents } from "@/lib/declutter/delivery";
 import { formatPrice } from "@/lib/declutter/distance";
 
-// The card's reads: one open job in Vermilion (the Browse map's rows), and no MapKit (the list is the reading).
+// One open job in Vermilion on the Browse map's read, which the Deliver card must NOT count; no MapKit (the list is
+// the reading).
 vi.mock("@/components/browseMap/useMapJobs", () => ({ useMapJobs: () => ({ jobs: [{ parish: "Vermilion" }], loadError: null }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 
@@ -47,16 +49,16 @@ describe("the Deliver tab explains itself", () => {
     expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toMatch(/const intro = <DeliverExplainer \/>;/);
   });
 
-  it("Busy right now keeps its jobs + deliveries counts and says where each is, deliveries counted on their own", () => {
-    const deliveries = [{ pickup_area: "Broussard, LA" }, { pickup_area: "Downtown, Baton Rouge" }];
-    const { unmount } = render(<BusyAreasCard userId="u1" deliveries={deliveries} />);
-    expect(screen.getByText("Vermilion Parish: 1 job")).toBeInTheDocument();
-    expect(document.querySelector("[data-busy-where]")?.textContent).toBe(
-      "2 deliveries are waiting. Open jobs are on the Jobs tab; deliveries you can take are below.",
-    );
-    unmount();
-    render(<BusyAreasCard userId="u1" deliveries={[{ pickup_area: "Broussard, LA" }]} />);
-    expect(document.querySelector("[data-busy-where]")?.textContent).toMatch(/^1 delivery is waiting\. Open jobs/);
+  it("Busy right now counts open deliveries only, each count printed once (audit DD D2)", () => {
+    const deliveries = [{ pickup_area: "Broussard, LA" }, { pickup_area: "Youngsville, LA" }, { pickup_area: "Downtown, Baton Rouge" }];
+    const { container } = render(<BusyAreasCard deliveries={deliveries} />);
+    const rows = [...container.querySelectorAll('[aria-label="Where work is waiting"] li')].map((li) => li.textContent);
+    expect(rows).toEqual(["Lafayette Parish: 2 deliveries", "East Baton Rouge Parish: 1 delivery"]);
+    // No job is counted on Deliver (the open job in Vermilion stays on the Jobs map).
+    expect(container.textContent).not.toMatch(/Vermilion|\bjobs?\b/);
+    // Each count once: no second bare number beside the row, no total line repeating the sum.
+    for (const n of ["1", "2", "3"]) expect(screen.queryByText(n)).toBeNull();
+    expect(container.textContent).not.toMatch(/deliveries are waiting|delivery is waiting/);
   });
 
   it("the busy map frames Louisiana's land and never re-zooms to the busy parishes", () => {

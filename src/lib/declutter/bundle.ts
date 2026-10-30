@@ -43,6 +43,16 @@ export async function fetchBundleApplies(itemIds: string[]): Promise<Set<string>
   return new Set(ids ?? []);
 }
 
+/** D-NEW12: which of these sellers have a bundle discount on (the Browse card's "Bundle deal" chip). An empty set
+ *  before the read is deployed, so no chip shows until it is. */
+export async function fetchBundleSellers(sellerIds: string[]): Promise<Set<string>> {
+  if (sellerIds.length === 0) return new Set();
+  const res = await supabase.rpc("declutter_bundle_sellers", { p_seller_ids: sellerIds.slice(0, 200) });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_bundle_sellers")) return new Set();
+  const ids = rpcData(res, (e) => rpcErrorMessage("declutter_bundle_sellers", e)) as unknown as string[] | null;
+  return new Set(ids ?? []);
+}
+
 /** The seller sets their percent (5-50) or removes it (null). */
 export async function setBundleDiscount(percent: number | null): Promise<number | null> {
   return rpcData(

@@ -3,6 +3,7 @@
  * seller" / "Similar items" rows): one card for every list of items.
  */
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
@@ -39,7 +40,7 @@ export interface CardSave {
  */
 export type CardTag = "drop" | "delivery";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null }) {
+export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean }) {
   const away = milesLabel(miles, approximate);
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile).
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -94,6 +95,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
           )}
         </span>
       </span>
+      {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag. */}
+      {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">Bundle deal</Badge>}
     </Link>
   );
   if (!save) return card;

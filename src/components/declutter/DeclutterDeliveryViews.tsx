@@ -48,6 +48,7 @@ import {
   confirmReceived,
   fetchMyTasks,
   fetchMyVehicle,
+  fetchOpenCount,
   fetchOpenTasks,
   fetchTaskView,
   releaseTask,
@@ -461,6 +462,8 @@ export function DeliverView() {
   // Q2453: tips on the Helpr's deliveries (a failed read only hides the tip line).
   const tips = useQuery({ queryKey: ["helpr-tasks", "tips", userId], queryFn: () => fetchTipsOnMyDeliveries(userId), enabled: !!userId });
   const open = useQuery({ queryKey: ["helpr-tasks", "open", where?.lat ?? null, where?.lng ?? null], queryFn: () => fetchOpenTasks(where), enabled: !!userId });
+  // Audit 1c D3-6: every open delivery, whatever the vehicle, by area (a failed read only hides the count and the map).
+  const counts = useQuery({ queryKey: ["helpr-tasks", "open-count"], queryFn: fetchOpenCount, enabled: !!userId });
   const locate = useMutation({
     mutationFn: currentPosition,
     onSuccess: (p) => setWhere(p),
@@ -486,6 +489,8 @@ export function DeliverView() {
   // car is saved, the deliveries to take come first, Go online appears, and the explainer folds to its title.
   const setUp = vehicle.isSuccess && !!vehicle.data?.has_car;
   const openList = open.data ?? [];
+  const busyRows = counts.data ?? openList;
+  const waiting = (counts.data ?? []).reduce((n, r) => n + r.open_count, 0);
   return (
     <div className="space-y-6">
       {setUp ? <DeliverExplainer collapsed /> : intro}
@@ -500,6 +505,9 @@ export function DeliverView() {
             </button>
           )}
         </div>
+        {noCar && waiting > 0 && (
+          <p className="text-sm font-semibold" data-open-count="">{waiting === 1 ? "1 delivery is waiting." : `${waiting} deliveries are waiting.`}</p>
+        )}
         {noCar ? (
           <p className="text-sm text-muted-foreground" role="status">Add your car under Your vehicle to take deliveries.</p>
         ) : open.isError ? (
@@ -529,7 +537,7 @@ export function DeliverView() {
       </section>
       {setUp && <GoOnlineCard userId={userId} where={where} />}
       {/* Q2435, narrowed by audit DD D2: where open deliveries wait, by parish (counts only); shown only when one does. */}
-      {openList.length > 0 && <BusyAreasCard deliveries={openList} />}
+      {busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />}
       {vehicleFirst === false && <VehicleForm userId={userId} />}
     </div>
   );

@@ -16071,6 +16071,13 @@ export type Database = {
       }
       helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
       helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_tasks_open_count: {
+        Args: never
+        Returns: {
+          open_count: number
+          pickup_area: string
+        }[]
+      }
       helpr_tasks_open_near: {
         Args: { p_lat: number; p_limit: number; p_lng: number }
         Returns: {

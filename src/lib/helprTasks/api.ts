@@ -124,6 +124,19 @@ export async function fetchOpenTasks(where: { lat: number; lng: number } | null)
   }), (e) => rpcErrorMessage("helpr_tasks_open_near", e)) ?? [];
 }
 
+/** Open deliveries by pickup area, whatever the caller's vehicle (helpr_tasks_open_count, audit 1c D3-6). */
+export interface OpenCountRow {
+  pickup_area: string;
+  open_count: number;
+}
+
+/** Null before the read is deployed (Deliver then counts only the deliveries it lists). */
+export async function fetchOpenCount(): Promise<OpenCountRow[] | null> {
+  const res = await supabase.rpc("helpr_tasks_open_count");
+  if (res.error && isMissingRpcNamed(res.error, "helpr_tasks_open_count")) return null;
+  return data<OpenCountRow[] | null>(res, (e) => rpcErrorMessage("helpr_tasks_open_count", e)) ?? [];
+}
+
 export async function fetchMyTasks(): Promise<MyTask[]> {
   return data<MyTask[] | null>(await supabase.rpc("helpr_my_tasks"), (e) => rpcErrorMessage("helpr_my_tasks", e)) ?? [];
 }

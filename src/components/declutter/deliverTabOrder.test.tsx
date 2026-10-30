@@ -9,6 +9,10 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {setUp && <GoOnlineCard userId={userId} where={where} />} |       <GoOnlineCard userId={userId} where={where} />
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {setUp ? <DeliverExplainer collapsed /> : intro} |       {intro}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {vehicleFirst === true && <VehicleForm userId={userId} />} |
+ * Audit 1c D3-6: a Helpr with no car is told how many deliveries are open (helpr_tasks_open_count, every vehicle),
+ * and the busy card counts every open delivery, not only those the Helpr's vehicle fits.
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const waiting = (counts.data ?? []).reduce((n, r) => n + r.open_count, 0); |   const waiting = 0;
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const busyRows = counts.data ?? openList; |   const busyRows = openList;
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   if (vehicleFirst === null && vehicle.isSuccess) setVehicleFirst(!vehicle.data?.has_car); |   if (vehicle.isSuccess && vehicleFirst !== !vehicle.data?.has_car) setVehicleFirst(!vehicle.data?.has_car);
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,12 +22,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = vi.hoisted(() => ({
   vehicle: null as null | { has_car: boolean; has_truck: boolean; second_person: boolean; photo_path: string | null },
   open: [] as unknown[],
+  counts: null as null | { pickup_area: string; open_count: number }[],
+  busy: [] as unknown[],
 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({ useHiredPayoutPrompt: () => ({ open: false, offer: async () => true, close: () => {} }) }));
-vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => <section aria-label="Busy right now" /> }));
+vi.mock("@/components/busyAreas/BusyAreasCard", () => ({
+  BusyAreasCard: ({ deliveries }: { deliveries: unknown[] }) => {
+    state.busy = deliveries;
+    return <section aria-label="Busy right now" />;
+  },
+}));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false, usePayoutSetupBlock: () => null }));
 vi.mock("@/lib/helprTasks/api", () => ({
@@ -33,6 +44,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => ({ stops: [], miles: 0, drive_minutes: 0, finish_at: null }),
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   fetchMyVehicle: async () => state.vehicle,
+  fetchOpenCount: async () => state.counts,
   fetchTaskPickupWindows: async () => ({ windows: [], latestPickupAt: null }),
   taskPhotoUrl: async (p: string) => `https://signed.test/${p}`,
   acceptTask: vi.fn(), releaseTask: vi.fn(), markPickedUp: vi.fn(), markDelivered: vi.fn(), reportPickupNoShow: vi.fn(), confirmReceived: vi.fn(),
@@ -71,6 +83,8 @@ const PAY = /A 5-mile trip pays you/;
 beforeEach(() => {
   state.vehicle = null;
   state.open = [];
+  state.counts = null;
+  state.busy = [];
 });
 
 describe("Deliver puts the next step first (audit DD D1)", () => {
@@ -105,5 +119,22 @@ describe("Deliver puts the next step first (audit DD D1)", () => {
     await screen.findByRole("switch", { name: "Online for deliveries" });
     await waitFor(() => expect(order(container).slice(0, 2)).toEqual(["Deliver Declutter items and get paid", "Your vehicle"]));
     expect(screen.getByText("Vehicle saved.")).toBeInTheDocument();
+  });
+
+  it("no car: how many deliveries are open, by every vehicle, and the busy card counts them (audit 1c D3-6)", async () => {
+    state.counts = [{ pickup_area: "Downtown, Baton Rouge", open_count: 2 }, { pickup_area: "Broussard, LA", open_count: 1 }];
+    show();
+    expect(await screen.findByText("3 deliveries are waiting.")).toBeInTheDocument();
+    expect(screen.getByText("Add your car under Your vehicle to take deliveries.")).toBeInTheDocument();
+    await waitFor(() => expect(state.busy).toEqual(state.counts));
+  });
+
+  it("before the count read is deployed: no count line, and the busy card counts the listed deliveries", async () => {
+    state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
+    state.open = [OPEN];
+    show();
+    await screen.findByText("Blue mug");
+    expect(screen.queryByText(/deliver(y is|ies are) waiting/)).toBeNull();
+    await waitFor(() => expect(state.busy).toEqual([OPEN]));
   });
 });

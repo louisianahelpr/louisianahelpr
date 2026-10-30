@@ -206,6 +206,15 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // Audit 1c D3-6: how many deliveries are open, for a Helpr with no car yet (20261030044539).
+  helpr_tasks_open_count: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    under_18: DC.under_18,
+  },
   helpr_tasks_open_near: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

@@ -22,6 +22,11 @@ export interface PickupToday<O extends PickupOrderLike = PickupOrderLike> {
 const PICKUP_KINDS = new Set(["pickup_home", "porch", "meetup"]);
 const ymd = (t: Date) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
 
+/** The seller's side of "I'm on my way": the buyer said it today (it means nothing tomorrow). */
+export function buyerOnWayToday(booking: Pick<MyBooking, "buyer_on_way_at"> | null | undefined, now = new Date()): boolean {
+  return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now);
+}
+
 export function pickupsToday<O extends PickupOrderLike>(orders: O[], bookings: MyBooking[], now = new Date()): PickupToday<O>[] {
   const today = ymd(now);
   const byOrder = new Map(bookings.map((b) => [b.order_id, b]));

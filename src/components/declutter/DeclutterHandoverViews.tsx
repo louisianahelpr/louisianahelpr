@@ -53,6 +53,7 @@ import {
   type OpenProblem,
   type ProblemReason,
 } from "@/lib/declutter/handover";
+import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine } from "./declutterPayoutWords";
@@ -233,6 +234,10 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         </>
       ) : (
         <>
+          {/* D-NEW11: the seller's side of "I'm on my way". The notice can be missed; the card says it too. */}
+          {order.side === "seller" && !problem && buyerOnWayToday(booking) && (
+            <p className="text-sm font-semibold text-[hsl(var(--sage-ink))]" role="status" data-buyer-on-way="">Your buyer is on the way.</p>
+          )}
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}

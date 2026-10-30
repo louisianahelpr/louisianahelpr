@@ -15,7 +15,7 @@
  * @mutate src/components/tracker/jobStepFromWait.ts |   started_no_checkin: NO_SHOW, |   started_no_checkin: at(6),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |     case "started_no_checkin":\n      // started_no_checkin: |       // started_no_checkin:
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { posterStatusLine, POSTER_WAIT } from "@/components/job-card/jobStatusLine";
 import { POSTER_STEP } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
@@ -32,6 +32,11 @@ const base = {
 } as unknown as Job;
 
 describe("a job the clock started never says the Helpr is there (A2-B12)", () => {
+  // jobIsOverdue (activityFilters.ts) reads the real clock, not the `now` passed to posterStatusLine. Pin the
+  // clock to NOW so the 2026-10-29 fixture is "today" on any run date (it went red as overdue_no_show on 10-30).
+  beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
+  afterEach(() => { vi.useRealTimers(); });
+
   it("in progress with no check-in: the start passed, the Helpr hasn't checked in, and it is the poster's move", () => {
     const line = posterStatusLine(base, 0, NOW);
     expect(line.id).toBe("started_no_checkin");

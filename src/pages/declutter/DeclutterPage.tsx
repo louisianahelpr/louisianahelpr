@@ -1,13 +1,15 @@
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterHomeSkeleton } from "@/components/declutter/DeclutterSkeletons";
 import DeclutterHome from "@/components/declutter/DeclutterHomeView";
-import { FinishSalesView } from "@/components/declutter/DeclutterTradeViews";
-import { HandoverTalkFromLink } from "@/components/declutter/DeclutterHandoverTalk";
-import { OrderTalkFromLink } from "@/components/declutter/DeclutterOrderTalk";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { afterCardPath, takeAfterCard, type AfterCardState } from "@/lib/declutter/afterCard";
+
+// None of these is on the page's first screen: each loads only when its link or state asks for it.
+const FinishSalesView = lazy(() => import("@/components/declutter/DeclutterTradeViews").then((m) => ({ default: m.FinishSalesView })));
+const HandoverTalkFromLink = lazy(() => import("@/components/declutter/DeclutterHandoverTalk").then((m) => ({ default: m.HandoverTalkFromLink })));
+const OrderTalkFromLink = lazy(() => import("@/components/declutter/DeclutterOrderTalk").then((m) => ({ default: m.OrderTalkFromLink })));
 
 /**
  * /declutter: the 404 unless the hidden 'declutter' switch is on (DeclutterGate),
@@ -35,16 +37,16 @@ export default function DeclutterPage() {
   }, [cardReturn, navigate]);
   return (
     <>
-      <DeclutterGate skeleton={<DeclutterHomeSkeleton />} agreedSales={<FinishSalesView />}>
+      <DeclutterGate skeleton={<DeclutterHomeSkeleton />} agreedSales={<Suspense fallback={<DeclutterHomeSkeleton />}><FinishSalesView /></Suspense>}>
         <DeclutterHome />
         {/* Q2462: the handover chat opens over the page from ?talk=<id> (its notices and the checkout link there). */}
-        <HandoverTalkFromLink />
+        {params.has("talk") && <Suspense fallback={null}><HandoverTalkFromLink /></Suspense>}
       </DeclutterGate>
       {/* D2-1: the paid-order chat opens over the page from ?order_talk=<order id> (the button on each paid order, its
           notices). OUTSIDE the gate: a paid sale carries on with Declutter switched off (row 62), and the gate drew
           its children only while the switch was on, so a notice's link opened nothing. The server decides who may
           read it (the order's buyer or seller only). */}
-      <OrderTalkFromLink />
+      {params.has("order_talk") && <Suspense fallback={null}><OrderTalkFromLink /></Suspense>}
     </>
   );
 }

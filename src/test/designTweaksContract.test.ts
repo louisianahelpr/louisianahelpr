@@ -13,12 +13,12 @@
  * @mutate src/main.tsx | installLargeTitles();\n |
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>} |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}<CategoryChipRow selectedCategory={null} setSelectedCategory={() => {}} />
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
  * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |               {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised |               <button aria-label="Post a new job"><Plus /></button>\n              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3" onClick={() => navigate("/declutter")}>
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3" onClick={() => navigate("/declutter")}>
  * @mutate src/components/DesktopSidebarNav.tsx |           data-testid="sidebar-create" |           data-testid="sidebar-made"
  */
 import { readFileSync } from "node:fs";
@@ -74,7 +74,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
 
   it("T5: skeleton bones are a clear grey, and My Listings loads as a skeleton", () => {
     expect(rule("[data-skeleton]")).toMatch(/background-color:\s*hsl\(220 12% 91%\)/);
-    expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/if \(mine\.isLoading\) return <ListingsSkeleton \/>;/);
+    expect(code("src/components/declutter/DeclutterSellingTab.tsx")).toMatch(/if \(mine\.isLoading\) return <ListingsSkeleton \/>;/);
   });
 
   it("T6: Filters opens as a slide-up sheet with a grab handle below desktop web", () => {
@@ -122,7 +122,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(nav).not.toMatch(/Post a new job/);
     const pills: Array<[string, RegExp]> = [
       // Declutter's add action is its own pill (no section "+" in the header since owner 2026-10-28).
-      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill className="mt-3" onClick=\{\(\) => navigate\(sectionByKey\("declutter"\)\.add\.path\)\}>/],
+      ["src/components/declutter/DeclutterSellingTab.tsx", /<SectionActionPill className="mt-3" onClick=\{\(\) => navigate\(sectionByKey\("declutter"\)\.add\.path\)\}>/],
       ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       // Jobs' add action is the desktop rail's "+ Create" (owner 2026-10-28: "do we need the post a job since the

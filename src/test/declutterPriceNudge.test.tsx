@@ -10,8 +10,8 @@
  * @mutate src/lib/declutter/priceNudge.ts |   return Number.isFinite(live) && now - live >= PRICE_NUDGE_DAYS * 86_400_000; |   return Number.isFinite(live);
  * @mutate src/components/declutter/DeclutterPriceNudge.tsx |   if (!priceNudgeDue(item, dropOutlook(item, dropState).planned)) return null; |   if (!priceNudgeDue(item, false)) return null;
  * @mutate src/components/declutter/DeclutterManageListing.tsx |   const [price, setPrice] = useState(centsToDollars(initialCents ?? item.current_price_cents)); |   const [price, setPrice] = useState(centsToDollars(item.current_price_cents));
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />\n |
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   usePriceNudgeLink(mine.data, openNudge);\n |
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />\n |
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |   usePriceNudgeLink(mine.data, openNudge);\n |
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
@@ -93,7 +93,7 @@ describe("CMP-5: Selling's row and the link", () => {
     const sheet = code("src/components/declutter/DeclutterManageListing.tsx");
     expect(sheet).toContain("initialCents={suggestDrop ? suggestedDropCents(item.current_price_cents, manage.floor_price_cents) : null}");
     expect(sheet).toContain("const [price, setPrice] = useState(centsToDollars(initialCents ?? item.current_price_cents));");
-    const home = code("src/components/declutter/DeclutterHomeView.tsx");
+    const home = code("src/components/declutter/DeclutterSellingTab.tsx");
     expect(home).toContain('startOn={suggestDrop ? "price" : "menu"}');
     expect(home).toContain("usePriceNudgeLink(mine.data, openNudge);");
     expect(home).toContain("<PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />");

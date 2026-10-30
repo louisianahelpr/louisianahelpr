@@ -24,7 +24,7 @@
  * @mutate scripts/ci/definer-exec-allowlist.json | when every one is already linked to p_job_id and that job is the caller's | when the items are the caller's
  * @mutate src/pages/post-job/useJobSubmit.ts | import { linkTurnoverJob } from "./turnoverPrefill"; | import { linkTurnoverJob } from "./turnoverPrefill";\nimport { linkSetupJob } from "@/lib/declutter/setupHelpr";
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts | const declutter = () => import("@/lib/declutter/haulAway"); | const declutter = () => Promise.all([import("@/lib/declutter/api"), import("@/lib/declutter/haulAway")]).then(([a, h]) => ({ ...a, ...h }));
- * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam"; | import { oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";\nvoid oneTripGroup;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx | import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam"; | import { oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";\nvoid oneTripGroup;
  * @mutate src/lib/declutter/errors.ts |   // Haul-away (20261017070827): its words |   haul_away_too_many: "One haul-away can take up to 10 items.",\n  // Haul-away (20261017070827): its words
  * @mutate docs/archive/OPEN-done-2026-10.md |  CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod |
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC;
@@ -211,7 +211,7 @@ describe("Declutter haul-away (20261017070827)", () => {
     const src = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
     const importsOf = (p: string) => [...src(p).matchAll(/(?:^|\n)\s*import\s+(type\s+)?[^;]*?from\s+"([^"]+)"|import\(\s*"([^"]+)"\s*\)/g)]
       .map((m) => ({ type: !!m[1], from: m[2] ?? m[3], dynamic: !!m[3] }));
-    const screens = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/DeclutterHaulAway.tsx"];
+    const screens = ["src/components/declutter/DeclutterSellingTab.tsx", "src/components/declutter/DeclutterHaulAway.tsx"];
     const postJob = ["src/pages/post-job/useHaulAwayPrefill.ts", "src/pages/post-job/useJobSubmit.ts"];
     let seen = 0;
     // 1. The screens take only TYPES from ./haulAwayParam (the predicates come with the lazy ./haulAway).

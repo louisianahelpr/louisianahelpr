@@ -7,7 +7,7 @@
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   SELECT (SELECT count(*) FROM public.declutter_free_requests r WHERE r.requester_id = v_uid AND r.status = 'open')\n       + (SELECT | SELECT (SELECT 0)\n       + (SELECT
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |  WHERE p.user_id = v_uid AND p.free_blocked_until > now(); |  WHERE false;
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF NEW.status <> 'live' OR NEW.current_price_cents <> 0 THEN |   IF NEW.status <> 'live' THEN
- * @mutate src/components/declutter/DeclutterHomeView.tsx | data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0}) | data-free-request-count="">View
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx | data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0}) | data-free-request-count="">View
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <MyFreeAsks />\n | \n
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <FreePauseLine />\n | \n
  * @mutate src/pages/info/legal/TermsSection.tsx | if you don&apos;t choose in time, the item goes back up and you get no strike. | the usual strike rules apply if you don&apos;t confirm.
@@ -51,7 +51,7 @@ describe("free items are asked for, not grabbed", () => {
 
   it("the screens: Requests (n) on a free Selling row, the member's asks and pause in Buying, and the Terms say how it works", () => {
     const src = (f: string) => blankComments(readFileSync(f, "utf8"));
-    const selling = src("src/components/declutter/DeclutterHomeView.tsx");
+    const selling = src("src/components/declutter/DeclutterSellingTab.tsx");
     expect(selling).toContain('item.status === "live" && item.current_price_cents === 0 && freeAsks.data ?');
     expect(selling).toContain("Requests ({freeAsks.data.get(item.id) ?? 0})");
     const buying = src("src/components/declutter/DeclutterMineViews.tsx");

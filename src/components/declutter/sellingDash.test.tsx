@@ -14,27 +14,27 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
  * @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} | globalSearch={view !== "buying"}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
  * @mutate src/components/declutter/SellItForMe.tsx |     ? "flex min-h-14 w-full items-center | ? "rounded-full flex min-h-14 w-full items-center
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
- * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |           <PickupTimesCard userId={userId} />\n |
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   return paid ? `${base} · ${paid}` : base; |   return base;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |   return paid ? `${base} · ${paid}` : base; |   return base;
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
  * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;
  * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "@/test/helpers/trackedFiles";
@@ -175,6 +175,9 @@ const EVERY_STATUS = [
   { ...ITEM, id: "i5", status: "rejected", title: "Mirror" },
 ];
 
+// The tabs load on their own (DeclutterHomeView.tsx): loaded once here so a first findBy does not race the import.
+beforeAll(() => Promise.all([import("./DeclutterSellingTab"), import("./DeclutterBuyingTab"), import("./DeclutterWantedViews"), import("./DeclutterFreeView"), import("./OrdersUpdating")]), 30_000);
+
 describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   beforeEach(() => {
     state.mine = EVERY_STATUS;
@@ -210,7 +213,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   });
 
   // B48 live check 2026-10-29: a porch + meetup listing read only "For sale · Porch pickup".
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (item.status === "live" && ways.length) return | if (false) return
+  // @mutate src/components/declutter/DeclutterSellingTab.tsx |   if (item.status === "live" && ways.length) return | if (false) return
   it("a live listing's line names every way the seller ticked, in checkout's order", async () => {
     state.mine = [{ ...ITEM, handovers: ["meetup", "porch"] }, { ...ITEM, id: "i9", title: "Old radio", handovers: null }];
     const { container } = at("/declutter?tab=selling");
@@ -325,7 +328,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // history, reads "Sold elsewhere.", has no Relist (it was sold), and is off the live listings.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | i.status === "withdrawn")
   // @mutate src/components/declutter/DeclutterTakenDown.tsx |             {item.status === "withdrawn" && ( |             {true && (
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
+  // @mutate src/components/declutter/DeclutterSellingTab.tsx | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
   it("a listing sold elsewhere is in Selling history, reads Sold elsewhere, has no Relist, and is off Your listings (A2-5)", async () => {
     const SOLD = { ...ITEM, id: "i8", status: "sold_elsewhere", title: "Brass lamp", current_price_cents: 2000 };
     state.mine = [ITEM, SOLD];
@@ -409,7 +412,7 @@ describe("Selling history: sales that ended without a handover (A2-20)", () => {
 
 // #18 (lead 2026-10-28): "Take this item off sale?" was the browser's window.confirm (a grey system box). It is the
 // shared in-app ConfirmSheet now; src/test/declutterNoBrowserConfirm.test.ts keeps it at zero for this file.
-// @mutate src/components/declutter/DeclutterHomeView.tsx |                     onClick={() => setAsking(item)} |                     onClick={() => { if (window.confirm("Take this item off sale?")) takeDown.mutate(item.id); }}
+// @mutate src/components/declutter/DeclutterSellingTab.tsx |                     onClick={() => setAsking(item)} |                     onClick={() => { if (window.confirm("Take this item off sale?")) takeDown.mutate(item.id); }}
 describe("#18: taking a listing down asks in the app", () => {
   it("Take down opens the sheet; Not now changes nothing; Take down takes it down", async () => {
     withdrawSpy.mockClear();
@@ -562,7 +565,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   // Audit 1b D2-2 (1b-s-order-afterprob-p1-1440): the row said "Sold · Paid 24 hours after the handover" while a
   // problem held the money. The row reads the order's open problem by the sale's order id.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
+  // @mutate src/components/declutter/DeclutterSellingTab.tsx | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
   it("an open problem: the sold row says the money is held; another sale's row is unchanged (D2-2)", async () => {
     state.mine = [{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }];
     state.sales = new Map([["a3", { cents: 2000, orderId: "o3" }], ["a6", { cents: 2500, orderId: "o6" }]]);

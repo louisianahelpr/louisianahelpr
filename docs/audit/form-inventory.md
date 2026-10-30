@@ -123,29 +123,23 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/paidOrders.ts` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/SellerDeliveryChoice.tsx` | input×1 | text | 300 | Delivery day · Delivery time · When the seller arrives |
 | `src/components/declutter/SellerDeliveryOrder.tsx` | input×1 | file |  | When the seller arrives · New delivery day · New delivery time |
-| `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on · sd-free-over |
 
 ## /declutter, /declutter/item/:id
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterEditListing.tsx` | input×1, textarea×1, checkbox/switch/radio×1 | text | 80, 2000 | edit-title · edit-description · edit-tax |
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterFreeClaim.tsx` | input×1 | radio |  | You asked for this item · Ask for this item · Who asked for this item · Free items you asked for |
-| `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor · Your listing |
-| `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |
-
-## /declutter, /declutter/sell, /declutter/move
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/declutter/DeclutterPickupTimes.tsx` | select×1 |  |  | Pickup times |
+| `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on · sd-free-over |
 
 ## /declutter/item/:id
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/declutter/DeclutterEditListing.tsx` | input×1, textarea×1, checkbox/switch/radio×1 | text | 80, 2000 | edit-title · edit-description · edit-tax |
+| `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor · Your listing |
 | `src/components/declutter/DeclutterOfferPanel.tsx` | input×1 | text |  | Add a card · Buy or make an offer · declutter-offer · declutter-offer-help |
+| `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |
 | `src/components/declutter/DeclutterPickupWindows.tsx` | input×1, date/calendar×1 | datetime-local |  | declutter-pickup-times · declutter-no-pickup-slots · declutter-slot-picker · Pickup day |
 | `src/components/declutter/DeclutterQuestions.tsx` | input×1, textarea×1 | text | 1000, 500 | declutter-answer · declutter-questions · declutter-question · Ask about size, condition… · declutter-question-error |
 
@@ -172,6 +166,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/SellOneScreen.tsx` | checkbox/switch/radio×1 |  |  | sell-form-problem · sell-keep-up · sell-ways-head · sell-form-pointer |
 | `src/components/declutter/SellPorchDays.tsx` | checkbox/switch/radio×1 |  |  | sell-porch-only · Porch days |
 | `src/components/declutter/SellSummaryCard.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-summary-head · sell-title · e.g. Oak rocking chair · sell-desc |
+
+## /declutter/sell, /declutter/move
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/declutter/DeclutterPickupTimes.tsx` | select×1 |  |  | Pickup times |
 
 ## /forgot-password
 

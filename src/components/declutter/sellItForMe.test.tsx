@@ -22,7 +22,7 @@
  * @mutate src/components/declutter/SellItForMe.tsx |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>\n |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p><button type="button">Hire a Helpr instead</button>\n
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellItForMeEntry grouped />\n | \n
+ * @mutate src/components/declutter/DeclutterSellingTab.tsx |                 <SellItForMeEntry grouped />\n | \n
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
@@ -119,7 +119,7 @@ describe("Sell it for me: the entry", () => {
   });
 
   it("sits on the Selling tab (with the listings, so the empty state shows it) and on Sell an item for a new listing", () => {
-    const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
+    const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellingTab.tsx"), "utf8"));
     // Owner 2026-10-28: under the listings, a row in "More ways to sell" beside Moving out sale (so the empty state shows it too).
     // Owner 2026-10-29: "Sell a bunch" (DeclutterBunchEntry) is the first row of that card, so the run is named in full.
     expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellBunchEntry \/>\s*<SellItForMeEntry grouped \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);

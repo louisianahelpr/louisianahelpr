@@ -43,7 +43,7 @@ import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterBrowseBar, DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
-import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones } from "./DeclutterSkeletons";
+import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
@@ -307,9 +307,10 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           />
         ) : (
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
-            {rows.map(({ item, miles }) => (
+            {rows.map(({ item, miles }, index) => (
               <li key={item.id} className="min-w-0">
                 <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
+                  firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
                   tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={bundles.data?.has(item.seller_id) ?? false}
                   save={{

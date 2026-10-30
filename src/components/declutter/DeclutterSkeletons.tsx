@@ -48,6 +48,14 @@ export function DeclutterHomeSkeleton() {
 export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 2xl:grid-cols-4";
 /** The same grid across the whole panel (desktop, map hidden): 4 across, 5 on wide screens, so a card stays card-sized. */
 export const DECLUTTER_GRID_FULL = `${DECLUTTER_GRID} lg:grid-cols-4 xl:grid-cols-5`;
+/** How many cards the grids above put in their first row at this width (sm 640, lg 900, xl 1280, 2xl 1536). */
+export function declutterFirstRowCount(full: boolean, width: number): number {
+  if (width < 640) return 2;
+  if (!full) return width < 1536 ? 3 : 4;
+  if (width < 900) return 3;
+  if (width < 1280) return 4;
+  return width < 1536 ? 5 : 4;
+}
 
 /**
  * The Browse view's body while it loads: the first cards, and on desktop with the map shown the map column beside

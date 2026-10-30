@@ -246,7 +246,17 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
     // ONE PAINT: the origin line and the cards arrive together (Q?declutter-settle: CLS 0.0322 at 375 on prod).
     body = <DeclutterBrowseBones map={desktop && mapVisible} full={desktop && !mapVisible} />;
   } else if (!desktop && phoneView === "map") {
-    body = <div className="h-[calc(100dvh-16rem)] min-h-[320px]">{map(false)}</div>;
+    // DA-13: the map's way back is on the map, not only inside Filters > View (where the map itself stays, owner 2026-10-20).
+    body = (
+      <div className="space-y-2">
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" className="rounded-full" data-map-back="" onClick={() => setPhoneView("list")}>
+            Show list
+          </Button>
+        </div>
+        <div className="h-[calc(100dvh-19rem)] min-h-[320px]">{map(false)}</div>
+      </div>
+    );
   } else {
     const list = (
       <div className="min-w-0 space-y-4">

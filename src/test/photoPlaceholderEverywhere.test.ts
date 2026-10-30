@@ -10,6 +10,9 @@
  * a shop can have gets its own icon (no silent fallback for a known key).
  *
  * @mutate src/components/declutter/MovingSaleBanner.tsx | ) : (\n                  <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" /> | ) : (\n                  null
+ * DA-15: a photo shown only when there is one, in a tile with no placeholder under it, is the same blank box.
+ * @mutate src/components/declutter/DeclutterMap.tsx |                 <PhotoPlaceholder icon={categoryIcon(selected.item.category)} seed={selected.item.category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" /> | <span />
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |         <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" /> | <span />
  * @mutate src/components/shops/ShopBrowseCard.tsx | <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" /> | <span />
  * @mutate src/components/rentals/listings/RentBrowse.tsx | <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" /> | <Home className="h-8 w-8" />
  * @mutate src/lib/declutter/categoryIcons.ts |   books_media: BookOpen, |   books_mediaz: BookOpen,
@@ -64,6 +67,26 @@ describe("a photo-less card shows its category on a tint, never a blank box", ()
     expect(blank.filter((b) => !isExempt(b)), "a card shows an empty box where its photo would be; use PhotoPlaceholder").toEqual([]);
     // Two-way: every exemption still names a real null-fallback photo.
     expect(Object.keys(EXEMPT).filter((f) => !blank.some((b) => b.startsWith(`${f}:`)))).toEqual([]);
+  });
+
+  it("DA-15: `photo && <FallbackImg/>` always has the placeholder under it", () => {
+    let seen = 0;
+    const blank: string[] = [];
+    for (const f of FILES) {
+      const src = blankComments(readFileSync(f, "utf8"));
+      for (const m of src.matchAll(/&&\s*\(?\s*<FallbackImg\b/g)) {
+        seen++;
+        if (!/<PhotoPlaceholder\b/.test(src.slice(Math.max(0, m.index - 300), m.index))) blank.push(`${relative(ROOT, f)}:${src.slice(0, m.index).split("\n").length}`);
+      }
+    }
+    // Not an item's tile (each names why); two-way.
+    const notATile: Record<string, string> = {
+      "src/components/declutter/DeclutterWantedReplies.tsx": "a Wanted post's own photo: with none, no tile is drawn at all",
+      "src/components/declutter/SellerDeliveryOrder.tsx": "the delivery proof photo while its link loads; a failed read says so in words",
+    };
+    expect(seen).toBeGreaterThan(2);
+    expect(blank.filter((b) => !(b.split(":")[0] in notATile)), "this tile is blank when there is no photo; put PhotoPlaceholder under it").toEqual([]);
+    expect(Object.keys(notATile).filter((f) => !blank.some((b) => b.startsWith(`${f}:`)))).toEqual([]);
   });
 
   it("every Browse card renders the shared PhotoPlaceholder", () => {

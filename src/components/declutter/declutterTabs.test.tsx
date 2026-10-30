@@ -248,11 +248,13 @@ function everything() {
  */
 const BEFORE_ACTIONS = {
   selling: [
-    { role: "link", name: "View" },
-    { role: "button", name: "Finish listing" },
-    { role: "button", name: "Delete" },
+    { role: "link", name: /^View\b/ },
+    { role: "button", name: /^Finish listing\b/ },
+    { role: "button", name: /^Delete\b/ },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
-    { role: "button", name: "Manage" },
+    // D4-12: the row's button names its item.
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Manage ${item.title}`} | aria-label="Manage"
+    { role: "button", name: /^Manage .+/ },
     { role: "link", name: /Moving out sale/ },
     { role: "button", name: "Cancel sale" },
   ],

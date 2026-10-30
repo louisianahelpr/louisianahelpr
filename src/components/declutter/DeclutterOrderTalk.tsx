@@ -19,6 +19,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { focusSheetItself } from "./focusSheetItself";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -76,7 +77,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const formId = `order-talk-form-${orderId}`;
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={(e) => e.preventDefault()}
+      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
         <SheetHero title={t ? `Message the ${other}` : "Order chat"} />
         {talk.isError ? (

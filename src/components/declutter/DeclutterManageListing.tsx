@@ -49,8 +49,11 @@ import { AutoFreeRow } from "./AutoFreeRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
 import { FallbackImg } from "./FallbackImg";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { DeclutterEditListing } from "./DeclutterEditListing";
 import { DROPS_SWITCH_LABEL } from "./sellForm";
+import { focusSheetItself } from "./focusSheetItself";
 
 type View = "menu" | "price" | "sold" | "delete" | "edit";
 
@@ -122,7 +125,7 @@ export function ManageListingSheet({
         if (!o) setView(startOn);
       }}
     >
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-manage-listing="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-manage-listing="">
         <SheetHero title={view === "edit" ? "Edit listing" : view === "price" ? "Change price" : view === "sold" ? "Sold somewhere else?" : view === "delete" ? "Delete this listing?" : "Manage listing"} />
         {view === "menu" && (
           <div className="space-y-3">
@@ -246,8 +249,10 @@ export function ManageListingSheet({
 function ListingSummary({ item, coverUrl }: { item: DeclutterItem; coverUrl: string | null }) {
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-3">
-      <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-        {coverUrl && <FallbackImg src={coverUrl} alt="" className="h-full w-full object-cover" />}
+      <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
+        {/* DA-15: the one missing-photo look, the category icon, under the photo as on every card. */}
+        <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" />
+        {coverUrl && <FallbackImg src={coverUrl} alt="" className="relative h-full w-full object-cover" />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-ds-15 font-semibold">{item.title}</span>

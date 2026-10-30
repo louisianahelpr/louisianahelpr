@@ -29,6 +29,7 @@ import {
   openHandoverTalk,
   sendHandoverMessage,
 } from "@/lib/declutter/handoverTalk";
+import { focusSheetItself } from "./focusSheetItself";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -127,7 +128,7 @@ function HandoverTalkSheet({ talkId, onClose }: { talkId: string; onClose: () =>
   const ended = !!t && (t.closed_at !== null || new Date(t.expires_at).getTime() <= Date.now());
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={(e) => e.preventDefault()}
+      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-handover-talk="">
         <SheetHero title="Agree the handover" />
         {talk.isError ? (

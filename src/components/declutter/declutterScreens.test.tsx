@@ -257,7 +257,11 @@ describe("Declutter screens", () => {
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
     expect(await screen.findByText(/^Waiting for a review\./)).toBeInTheDocument();
     expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Finish listing" })).toBeInTheDocument();
+    // D4-12: every Selling row's actions name their item, so a list of rows is not "View, Manage, View, Manage".
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`View ${item.title}`} | aria-label="View"
+    expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `View ${ITEM.title}` })).toBeInTheDocument();
     expect(screen.queryByText("pending_review")).toBeNull();
   });
 
@@ -325,6 +329,9 @@ describe("Declutter screens", () => {
     // The seller card (owner 2026-10-19): name, stars only with reviews, joined date.
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toMatch(/4\.8 stars from .*12 reviews/);
+    // DA-18: the link's name is all a screen reader hears of the card, so the rating is said there, as a sentence.
+    // @mutate src/components/declutter/DeclutterSellerCard.tsx | `See the ${noun}, ${name}${ratingWords}` | `See the ${noun}, ${name}`
+    expect(document.querySelector("[data-seller-card]")?.getAttribute("aria-label")).toMatch(/, 4\.8 stars from 12 reviews$/);
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
@@ -469,7 +476,7 @@ describe("Declutter controls are the shared ones", () => {
     // Home (Sell an item) and My listings (Finish listing).
     state.mine = [{ ...ITEM, status: "draft" }];
     const home = at("/declutter?view=mine", <DeclutterPage />);
-    await screen.findByRole("button", { name: "Finish listing" });
+    await screen.findByRole("button", { name: /^Finish listing/ });
     check();
     home.unmount();
     // Sell: walk the 5 steps, and List it once there is a photo.

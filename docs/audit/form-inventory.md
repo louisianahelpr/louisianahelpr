@@ -163,7 +163,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, select×5 | text | 80, 2000 | Oak rocking chair · 40 |
-| `src/components/declutter/DeclutterBunchView.tsx` | input×3, checkbox/switch/radio×1 | text, file | 80, 300 | bunch-where · bunch-area · Mid-City, Baton Rouge · bunch-address · Street, city, ZIP · bunch-photos · bunch-files · bunch-check |
+| `src/components/declutter/DeclutterBunchView.tsx` | input×3, checkbox/switch/radio×1 | text, file | 80, 300 | bunch-where · bunch-area · Mid-City, Baton Rouge · bunch-address · Street, city, ZIP · bunch-photos · bunch-files · Add photos |
 | `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | Photos · sell-files |
 | `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · e.g. Oak rocking chair · sell-desc · How buyers get it · sell-form-problem |
 | `src/components/declutter/KeepUpRow.tsx` | checkbox/switch/radio×1 |  |  |  |

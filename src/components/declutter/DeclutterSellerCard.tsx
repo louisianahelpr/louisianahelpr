@@ -38,11 +38,13 @@ export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: s
   const reviews = stats.data?.count ?? 0;
   const name = formatName(card.data?.name, "A neighbor");
   const joined = joinedLabel(card.data?.joinedAt);
+  // DA-18: the link's name is all a screen reader says of the card, so the rating is in it (a sentence, not "4.0 · 1 review").
+  const ratingWords = reviews > 0 ? `, ${(stats.data?.avg ?? 0).toFixed(1)} stars from ${reviews} review${reviews === 1 ? "" : "s"}` : "";
   return (
     <Link
       to={`/user/${sellerId}`}
       data-seller-card=""
-      aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}`}
+      aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}${ratingWords}`}
       className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {loading ? (

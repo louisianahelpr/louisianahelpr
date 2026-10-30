@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sheet";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { safeBlobUrl } from "@/lib/safeBlobUrl";
+import { focusSheetItself } from "./focusSheetItself";
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -63,7 +64,7 @@ export function PutItOutSheet({
   const preview = safeBlobUrl(url);
   return (
     <Sheet open={!!file} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-put-it-out="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-put-it-out="">
         <SheetHero title="Put it out" />
         <p className="text-ds-14">Take one photo of it where {who} will find it. That photo is the handover.</p>
         {/* Only a local blob: preview is drawn. safeBlobUrl holds the reasoning; the inline startsWith stays on the
@@ -144,7 +145,7 @@ export function GotItSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-got-it-sheet="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-got-it-sheet="">
         <SheetHero title="Do you have it?" />
         {porch && <PorchPhotoThumb orderId={orderId} />}
         <div className="mt-3">
@@ -180,7 +181,7 @@ export function PickedUpSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} data-picked-up-sheet="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
         <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that."}</Note>
         <SheetFooter>
@@ -213,7 +214,7 @@ export function NoShowSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-no-show-sheet="">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-no-show-sheet="">
         <SheetHero title={side === "seller" ? `${who === "the buyer" ? "The buyer" : who} didn't pick up?` : `${who === "the seller" ? "The seller" : who} didn't show?`} />
         {side === "seller" ? (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="seller">

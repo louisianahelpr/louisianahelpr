@@ -86,10 +86,11 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
         <span data-card-place className="block min-w-0 text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
           <span data-card-area className="block truncate" title={item.area_label}>{item.area_label}</span>
           {(away || item.porch_ok) && (
-            <span className={`min-w-0 ${away ? "flex" : "hidden lg:flex"}`}>
+            // DA-16: the same line at every width, one line tall. "Porch pickup" wraps out of sight when it can't fit whole
+            // (it gives way first, board 39), so a narrow card never shows half of it and the distance always shows.
+            <span data-card-how="" className="flex h-[1lh] min-w-0 flex-wrap overflow-hidden">
               {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
-              {/* Board 39: desktop cards also say how you get it (this part gives way first). */}
-              {item.porch_ok && <span className="hidden min-w-0 truncate whitespace-pre lg:inline" title="Porch pickup">{away ? " · " : ""}Porch pickup</span>}
+              {item.porch_ok && <span data-card-porch="" className="min-w-0 whitespace-pre" title="Porch pickup">{away ? " · " : ""}Porch pickup</span>}
             </span>
           )}
         </span>

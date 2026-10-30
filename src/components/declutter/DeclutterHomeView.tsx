@@ -316,7 +316,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
               </div>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
-                  <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
+                  <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                     Finish listing
                   </Button>
                 ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data ? (
@@ -325,11 +325,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   </Button>
                 ) : (
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/declutter/item/${item.id}`}>View</Link>
+                    <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => setManagingId(item.id)}>
+                  <Button type="button" variant="outline" size="sm" aria-label={`Manage ${item.title}`} onClick={() => setManagingId(item.id)}>
                     Manage
                   </Button>
                 )}
@@ -339,6 +339,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     variant="outline"
                     size="sm"
                     disabled={takeDown.isPending}
+                    aria-label={`${item.status === "draft" ? "Delete" : "Take down"} ${item.title}`}
                     onClick={() => setAsking(item)}
                   >
                     {item.status === "draft" ? "Delete" : "Take down"}

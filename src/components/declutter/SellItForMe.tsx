@@ -27,6 +27,7 @@ import { sellForMePostJobPath, SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter
 import { ShopBrowseCard } from "@/components/shops/ShopBrowseCard";
 import { categoryLabel, useShopCategories } from "@/components/shops/shopsUi";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { focusSheetItself } from "./focusSheetItself";
 
 /** At most this many businesses in the sheet, nearest first. */
 const MAX_SHOPS = 6;
@@ -79,7 +80,7 @@ function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
   };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto">
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto">
         <SheetHero title="Sell it for me" />
         <div className="space-y-5" data-testid="sell-it-for-me-sheet">
           <p className="text-sm text-muted-foreground">

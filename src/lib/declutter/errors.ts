@@ -44,7 +44,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   payout_setup_incomplete: "Set up your payouts first, so we can pay you when your item sells.",
   photos_required: "Add at least 1 photo of the item (up to 12).",
   attestation_required: "Tick the box under the four statements before you list this item.",
-  attestation_incomplete: "Tick the box under the four statements before you list this item.",
+  attestation_incomplete: "The box under the four statements isn't ticked yet. Tick it to list this item.",
   pickup_windows_required: "Add at least one pickup time so buyers know when they can come.",
   invalid_pickup_windows: "Each pickup time needs a day, and a start time before its end time.",
   invalid_input: "Something in that request wasn't right. Try again.",

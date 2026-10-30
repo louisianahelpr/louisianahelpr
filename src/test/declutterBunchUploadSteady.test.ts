@@ -83,6 +83,7 @@ describe("a run on a weak connection", () => {
   const filesFor = (keys: string[]) => new Map(keys.map((k) => [k, new File([k], `${k}.jpg`, { type: "image/jpeg" })]));
   const deps = (addPhoto: ListDeps["addPhoto"]): ListDeps => ({
     createDraft: vi.fn(async (f: { title: string }) => `draft-${f.title}`) as unknown as ListDeps["createDraft"],
+    createMoveDraft: vi.fn(async () => "draft-move") as unknown as ListDeps["createMoveDraft"],
     updateDraft: vi.fn(async () => {}) as unknown as ListDeps["updateDraft"],
     addPhoto,
     removePhoto: vi.fn(async () => {}),

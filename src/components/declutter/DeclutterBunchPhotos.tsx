@@ -18,8 +18,6 @@ export interface BunchOther {
   photoKey?: string;
 }
 
-const thumbImg = "aspect-square w-full bg-photo-empty object-cover";
-
 function ItemPicker({ others, urls, onPick, label }: { others: BunchOther[]; urls: Map<string, string>; onPick: (key: string) => void; label: (name: string) => string }) {
   return (
     <ul className="space-y-1.5" data-bunch-picker="">
@@ -30,7 +28,7 @@ function ItemPicker({ others, urls, onPick, label }: { others: BunchOther[]; url
             <button type="button" aria-label={label(o.name)} onClick={() => onPick(o.key)} data-bunch-pick={o.key}
               className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-card p-1.5 text-left text-ds-14 font-medium hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-photo-empty">
-                {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className={thumbImg} />}
+                {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" />}
               </span>
               <span className="min-w-0 break-words">{o.name}</span>
             </button>
@@ -122,7 +120,7 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
             <li key={k} className="relative" data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined}>
               <button type="button" aria-label={`See ${name}, photo ${i + 1}`} onClick={() => setBig(k)} data-bunch-photo={k}
                 className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
-                {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className={thumbImg} data-bunch-thumb="" />}
+                {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
                 {item.failedPhoto === k
                   ? <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>
                   : i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">Cover</span>}

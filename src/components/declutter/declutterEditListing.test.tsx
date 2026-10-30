@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterEditListing.tsx |   const ready = attested && | const ready =
  * @mutate src/components/declutter/DeclutterEditListing.tsx |   const big = title.trim() !== item.title \|\| description.trim() !== item.description \|\| category !== item.category \|\| photosChanged; |   const big = false;
  * @mutate src/components/declutter/DeclutterEditListing.tsx |  category !== item.category \|\| photosChanged; |  category !== item.category;
- * @mutate src/components/declutter/DeclutterEditListing.tsx |       for (const f of held) await addPhoto(user!.id, item.id, f);\n      for (const id of removed) await removePhoto(id); |       for (const id of removed) await removePhoto(id);\n      for (const f of held) await addPhoto(user!.id, item.id, f);
+ * @mutate src/components/declutter/DeclutterEditListing.tsx |       for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);\n      for (const id of removed) await removePhoto(id); |       for (const id of removed) await removePhoto(id);\n      for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       if (status === "live" && !photosChanged) return "saved"; |       if (status === "live") return "saved";
  * @mutate src/components/declutter/DeclutterEditListing.tsx |  && photoTotal >= DECLUTTER_MIN_PHOTOS && | &&
  * @mutate src/components/declutter/DeclutterEditListing.tsx |           onRemoveUploaded={(id) => setRemoved((r) => [...r, id])} |           onRemoveUploaded={() => {}}
@@ -30,7 +30,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   editListing: (...a: unknown[]) => editListing(...a),
   fetchItemHandovers: async () => ["porch"],
   fetchPhotos: async () => photoRows.value,
-  addPhoto: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
+  addPhotoSteadily: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
   removePhoto: async (id: string) => { calls.push(`remove:${id}`); },
   requestAiCheckWithRetry: async (id: string) => { calls.push(`check:${id}`); return { checked: true, flagged: false }; },
   fetchItem: async () => ({ status: "live" }),

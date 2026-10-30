@@ -107,7 +107,7 @@ vi.mock("@/lib/declutter/api", () => ({
   setKeepUp: async () => true,
   setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
   fetchItemHandovers: async () => null,
-  addPhoto: async (_u: string, id: string, f: File) => {
+  addPhotoSteadily: async (_u: string, id: string, f: File) => {
     await upload.gate;
     if (upload.failing.has(f.name)) throw new Error("photo_not_uploaded");
     calls.push(`addPhoto:${id}:${f.name}`);

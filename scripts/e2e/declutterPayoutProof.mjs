@@ -416,8 +416,9 @@ export async function payCheckout(browser, url, label) {
     };
     await poll("Stripe's payment form", drawn, { every: 500, timeoutMs: 60_000 });
     if (!(await card.isVisible().catch(() => false))) {
-      if (await cardButton.count()) await cardButton.first().click({ force: true });
-      else if (await cardItem.count()) await cardItem.first().click({ force: true });
+      // Item first: the button is a zero-size overlay a forced click can call "outside of the viewport".
+      if (await cardItem.count()) await cardItem.first().click({ force: true });
+      else if (await cardButton.count()) await cardButton.first().dispatchEvent("click");
       else if (await radio.count()) await radio.click({ force: true });
     }
     // A buyer with a saved test card may be shown that card and no card fields:
@@ -436,14 +437,19 @@ export async function payCheckout(browser, url, label) {
         await page.keyboard.press("Escape").catch(() => {});
       }
     }
+    // Stripe draws the ticked Link box (with a required phone) AFTER the address, so it is
+    // unticked right before EVERY press: left ticked, Pay does nothing and says nothing.
     const link = page.locator("#enableStripePass");
-    if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true }).catch(() => {});
-    await page.getByRole("heading", { name: /^Pay |^Set up|^Save/ }).first().click().catch(() => undefined);
-    await submit.click();
-    await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 120_000 });
-  } catch (e) {
-    // The webhook, not the redirect, is the authority: the caller polls the database.
-    log(`${label}: checkout wait: ${String(e?.message ?? e).split("\n")[0]}`);
+    let left = false;
+    for (let press = 1; press <= 3 && !left; press++) {
+      await page.waitForTimeout(2_000);
+      if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true });
+      await page.getByRole("heading", { name: /^Pay |^Set up|^Save/ }).first().click().catch(() => undefined);
+      await submit.click();
+      left = await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 }).then(() => true, () => false);
+      if (!left) log(`${label}: press ${press} did not leave Stripe's page`);
+    }
+    if (!left) throw new Error(`${label}: Stripe's page never submitted after 3 presses`);
   } finally {
     await page.close().catch(() => {});
   }

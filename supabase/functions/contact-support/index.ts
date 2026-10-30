@@ -43,6 +43,7 @@ import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
+import { SUPPORT_GUEST_REPORTED_ID, supportGuestLine } from '../_shared/supportGuest.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
 import { supportRequestKey } from '../_shared/alertPolicy.ts'
@@ -90,9 +91,6 @@ const MESSAGE_MAX = 5000
 // anything carrying whitespace/newlines (header-injection shapes), not to
 // adjudicate RFC 5322. Real deliverability is Resend's problem.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-
-// reports.reported_id is NOT NULL with no foreign key; a guest's ticket is about nobody.
-const GUEST_REPORTED_ID = '00000000-0000-0000-0000-000000000000'
 
 const GUEST_WINDOW_MS = 60 * 60_000
 const GUEST_MAX_PER_EMAIL = 5
@@ -377,7 +375,7 @@ serve(async (req) => {
     // in-app Profile support tab land in the SAME place (the Support inbox).
     //
     // A GUEST's row has no reporter, so who to answer rides in the description's
-    // last line (src/lib/supportGuest.ts reads it). This endpoint is
+    // last line (_shared/supportGuest.ts). This endpoint is
     // unauthenticated and trg_reports_zz_ledger turns `reason` into a ledger
     // title, so a guest's reason is fixed text: a typed subject there would let
     // anyone mint unbounded items (authz review of Q64, M2). The subject goes in
@@ -396,9 +394,9 @@ serve(async (req) => {
         : {
             reporter_id: null,
             reported_type: 'support',
-            reported_id: GUEST_REPORTED_ID,
+            reported_id: SUPPORT_GUEST_REPORTED_ID,
             reason: `[${topicLabel}] Guest message`,
-            description: `${subject ? `Subject: ${subject}\n\n` : ''}${message}\n\n(Submitted from /support)\n\nGuest: ${name} <${email}>`,
+            description: `${subject ? `Subject: ${subject}\n\n` : ''}${message}\n\n(Submitted from /support)${supportGuestLine(name, email)}`,
           })
       if (reportErr) {
         console.error('[contact-support] reports insert failed:', reportErr.message)

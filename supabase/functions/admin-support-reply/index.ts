@@ -8,6 +8,7 @@ import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from '../_shared/caughtMessage.ts'
+import { splitSupportGuest, SUPPORT_GUEST_REPORTED_ID } from '../_shared/supportGuest.ts'
 
 /**
  * An admin's reply to a support ticket (owner 2026-10-23, via the lead).
@@ -31,6 +32,13 @@ import { caughtMessage } from '../_shared/caughtMessage.ts'
  * Steps 2-5 run after the reply is recorded and each reports its own outcome in
  * the response (notified / email_queued / resolved), so the admin sees exactly
  * what reached the member instead of a blanket success.
+ *
+ * A GUEST's ticket (owner 2026-10-30: support is answered in the app) has no
+ * account to tell, so step 2 is skipped and step 3 mails the address they typed
+ * on /support, read from the ticket. Nobody confirmed that address, so a stranger
+ * can type someone else's: the mail carries the admin's words and nothing the
+ * guest typed (no subject, and a name only if it is a plain first name). A test
+ * or fixture address never gets a ticket, and the queue worker suppresses one.
  */
 
 const corsHeaders = {
@@ -60,6 +68,12 @@ const subjectOf = (reason: string | null | undefined) =>
 const greetingOf = (fullName: string | null | undefined) => {
   const first = (fullName ?? '').trim().split(/\s+/)[0] ?? ''
   return first.length >= 2 ? first : 'there'
+}
+
+/** A guest's name is typed by a stranger, and this mail can reach someone else: plain first names only. */
+const guestGreeting = (name: string) => {
+  const first = name.trim().split(/\s+/)[0] ?? ''
+  return /^\p{L}[\p{L}'-]{1,29}$/u.test(first) ? first : 'there'
 }
 
 serve(async (req) => {
@@ -105,7 +119,7 @@ serve(async (req) => {
     // The ticket, and from it the ONE member this reply may reach.
     const { data: ticket, error: ticketError } = await admin
       .from('reports')
-      .select('id, reporter_id, reported_type, reason, status')
+      .select('id, reporter_id, reported_type, reported_id, reason, description, status')
       .eq('id', reportId)
       .maybeSingle()
     if (ticketError) {
@@ -116,35 +130,44 @@ serve(async (req) => {
       return json({ error: 'That support ticket no longer exists. Nothing was sent.' }, 404)
     }
     const memberId: string | null = ticket.reporter_id
-    if (!memberId) {
+    const guest = !memberId && ticket.reported_id === SUPPORT_GUEST_REPORTED_ID
+      ? splitSupportGuest(ticket.description ?? '', null).guest
+      : null
+    if (!memberId && !guest) {
       // purge_user_data() nulls reporter_id when the member deletes their account.
       return json({ error: 'This member deleted their account, so there is no one to reply to. Nothing was sent.' }, 409)
     }
 
-    const { data: member, error: memberError } = await admin
-      .from('profiles')
-      .select('full_name, email')
-      .eq('user_id', memberId)
-      .maybeSingle()
-    if (memberError) {
-      console.error('[admin-support-reply] member read failed:', memberError.message)
-      return json({ error: "Couldn't load the member's account. Nothing was sent." }, 503)
-    }
-    if (!member) {
-      return json({ error: "This member's account is gone, so there is no one to reply to. Nothing was sent." }, 409)
-    }
+    let member: { full_name: string | null; email: string | null } | null = null
+    let emailConfirmed = false
+    let mailTo: string | null = guest?.email ?? null
+    if (memberId) {
+      const { data: memberRow, error: memberError } = await admin
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', memberId)
+        .maybeSingle()
+      if (memberError) {
+        console.error('[admin-support-reply] member read failed:', memberError.message)
+        return json({ error: "Couldn't load the member's account. Nothing was sent." }, 503)
+      }
+      if (!memberRow) {
+        return json({ error: "This member's account is gone, so there is no one to reply to. Nothing was sent." }, 409)
+      }
 
-    // Only a CONFIRMED address is mailed (lh-authz-rls review r1 #1): an
-    // unconfirmed account can open a ticket (contact-support is exempt from the
-    // Q807 gate so a stuck member can ask for help), and its address may belong
-    // to someone else. Such a member is told in the app only.
-    const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(memberId)
-    if (authUserError) {
-      console.error('[admin-support-reply] member auth read failed:', authUserError.message)
-      return json({ error: "Couldn't check the member's email address. Nothing was sent." }, 503)
+      // Only a CONFIRMED address is mailed (lh-authz-rls review r1 #1): an
+      // unconfirmed account can open a ticket (contact-support is exempt from the
+      // Q807 gate so a stuck member can ask for help), and its address may belong
+      // to someone else. Such a member is told in the app only.
+      const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(memberId)
+      if (authUserError) {
+        console.error('[admin-support-reply] member auth read failed:', authUserError.message)
+        return json({ error: "Couldn't check the member's email address. Nothing was sent." }, 503)
+      }
+      member = memberRow
+      emailConfirmed = !!authUser?.user?.email_confirmed_at
+      mailTo = member.email && emailConfirmed ? member.email : null
     }
-    const emailConfirmed = !!authUser?.user?.email_confirmed_at
-    const mailTo: string | null = member.email && emailConfirmed ? member.email : null
 
     // 1. The record. Nothing goes to the member unless this lands.
     const { data: replyRows, error: replyError } = await admin
@@ -158,7 +181,8 @@ serve(async (req) => {
     }
     const replyId: string = insertedId
 
-    const subject = subjectOf(ticket.reason)
+    // A guest's reason is fixed text, and what they typed never goes in this mail.
+    const subject = guest ? '' : subjectOf(ticket.reason)
 
     // Every outcome is written onto the reply AS SOON AS it is known, and the
     // reply is marked outcome_recorded only at the end (lh-silent-failure review
@@ -176,7 +200,7 @@ serve(async (req) => {
 
     let notificationId: string | null = null
     let emailQueued = false
-    const emailSkip: 'no_address' | 'unconfirmed' | null = !member.email ? 'no_address' : !emailConfirmed ? 'unconfirmed' : null
+    const emailSkip: 'no_address' | 'unconfirmed' | null = guest ? null : !member?.email ? 'no_address' : !emailConfirmed ? 'unconfirmed' : null
     let emailSkipReason: 'no_address' | 'unconfirmed' | 'not_queued' | null = emailSkip
     let resolveOutcome: 'not_requested' | 'not_attempted' | 'resolved' | 'already_closed' | 'error' | 'skipped_undelivered' =
       resolve ? 'not_attempted' : 'not_requested'
@@ -185,73 +209,76 @@ serve(async (req) => {
     let threadMessageId: string | null = null
 
     try {
-      // 2a. In the member's "Louisiana Helpr Team" thread, FIRST (owner
-      //     2026-10-29, B61). Five replies queued 2026-10-27 dead-lettered with
-      //     nothing of them in the members' Messages: the in-app half had been a
-      //     bell notice to /support only. Sent through admin_send_team_message
-      //     on a client carrying the ADMIN's own token, so the message's sender
-      //     is the admin who wrote the reply (the RPC re-checks the admin role)
-      //     and every messages trigger runs, including the notice to the member.
-      //     p_client_id is the reply's id, tying the message to this reply.
-      const threadText = subject && `About "${subject}":\n\n${message}`.length <= MAX_REPLY_CHARS
-        ? `About "${subject}":\n\n${message}`
-        : message
-      const asAdmin = createClient(supabaseUrl, (Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-      const { data: threadRow, error: threadError } = await asAdmin.rpc('admin_send_team_message', {
-        p_user_id: memberId,
-        p_content: threadText,
-        p_client_id: replyId,
-      })
-      threadMessageId = (threadRow as { id?: string } | null)?.id ?? null
-      if (threadError || !threadMessageId) {
-        console.error('[admin-support-reply] support-thread message not written:', threadError?.message ?? 'no row')
-      } else {
-        // The notice the message trigger (notify_message_recipient) wrote for it.
-        const { data: threadNotice, error: threadNoticeError } = await admin
-          .from('notifications')
-          .select('id')
-          .eq('user_id', memberId)
-          .eq('link', `/messages?teamThread=${memberId}&userId=${adminId}`)
-          .gte('created_at', (threadRow as { created_at?: string }).created_at ?? new Date(0).toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
-        if (threadNoticeError) console.error('[admin-support-reply] thread notice read failed:', threadNoticeError.message)
-        notificationId = threadNotice?.[0]?.id ?? null
+      // A guest has no account to tell: the email below is the reply.
+      if (memberId) {
+        // 2a. In the member's "Louisiana Helpr Team" thread, FIRST (owner
+        //     2026-10-29, B61). Five replies queued 2026-10-27 dead-lettered with
+        //     nothing of them in the members' Messages: the in-app half had been a
+        //     bell notice to /support only. Sent through admin_send_team_message
+        //     on a client carrying the ADMIN's own token, so the message's sender
+        //     is the admin who wrote the reply (the RPC re-checks the admin role)
+        //     and every messages trigger runs, including the notice to the member.
+        //     p_client_id is the reply's id, tying the message to this reply.
+        const threadText = subject && `About "${subject}":\n\n${message}`.length <= MAX_REPLY_CHARS
+          ? `About "${subject}":\n\n${message}`
+          : message
+        const asAdmin = createClient(supabaseUrl, (Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, {
+          global: { headers: { Authorization: authHeader } },
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+        const { data: threadRow, error: threadError } = await asAdmin.rpc('admin_send_team_message', {
+          p_user_id: memberId,
+          p_content: threadText,
+          p_client_id: replyId,
+        })
+        threadMessageId = (threadRow as { id?: string } | null)?.id ?? null
+        if (threadError || !threadMessageId) {
+          console.error('[admin-support-reply] support-thread message not written:', threadError?.message ?? 'no row')
+        } else {
+          // The notice the message trigger (notify_message_recipient) wrote for it.
+          const { data: threadNotice, error: threadNoticeError } = await admin
+            .from('notifications')
+            .select('id')
+            .eq('user_id', memberId)
+            .eq('link', `/messages?teamThread=${memberId}&userId=${adminId}`)
+            .gte('created_at', (threadRow as { created_at?: string }).created_at ?? new Date(0).toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (threadNoticeError) console.error('[admin-support-reply] thread notice read failed:', threadNoticeError.message)
+          notificationId = threadNotice?.[0]?.id ?? null
+        }
+
+        // 2b. The bell notice to /support, only when the thread message did not
+        //     land (one notice either way). Zero rows is a real outcome: a BEFORE
+        //     INSERT trigger drops the row (an identical notice in the last 10
+        //     minutes, or the seed boundary), so it is reported as not delivered.
+        if (!threadMessageId) {
+          const { data: noticeRows, error: noticeError } = await admin
+            .from('notifications')
+            .insert({
+              user_id: memberId, // the ticket's reporter, never an id from the request
+              title: 'Louisiana Helpr Team replied',
+              message: subject ? `About "${subject}": ${message}` : message,
+              type: 'info',
+              link: '/support',
+            })
+            .select('id')
+          notificationId = noticeRows?.[0]?.id ?? null
+          if (noticeError) console.error('[admin-support-reply] notification insert failed:', noticeError.message)
+          else if (!notificationId) console.error('[admin-support-reply] notification insert matched 0 rows (deduplicated or seed boundary)')
+        }
+        if (notificationId) await recordOutcome({ notification_id: notificationId }, 'notice')
       }
 
-      // 2b. The bell notice to /support, only when the thread message did not
-      //     land (one notice either way). Zero rows is a real outcome: a BEFORE
-      //     INSERT trigger drops the row (an identical notice in the last 10
-      //     minutes, or the seed boundary), so it is reported as not delivered.
-      if (!threadMessageId) {
-        const { data: noticeRows, error: noticeError } = await admin
-          .from('notifications')
-          .insert({
-            user_id: memberId, // the ticket's reporter, never an id from the request
-            title: 'Louisiana Helpr Team replied',
-            message: subject ? `About "${subject}": ${message}` : message,
-            type: 'info',
-            link: '/support',
-          })
-          .select('id')
-        notificationId = noticeRows?.[0]?.id ?? null
-        if (noticeError) console.error('[admin-support-reply] notification insert failed:', noticeError.message)
-        else if (!notificationId) console.error('[admin-support-reply] notification insert matched 0 rows (deduplicated or seed boundary)')
-      }
-      if (notificationId) await recordOutcome({ notification_id: notificationId }, 'notice')
-
-      // 3. By email, to the CONFIRMED address on the member's account (never one
-      //    from the request).
+      // 3. By email, to the CONFIRMED address on the member's account or the
+      //    address on the guest's ticket (never one from the request).
       if (mailTo) {
         const appUrl = getAppUrl()
         const { html, text } = await renderEmail(
           React.createElement(AdminActionEmail, {
             preheader: subject ? `A reply about "${subject}"` : 'A reply from Helpr support',
             title: 'Louisiana Helpr Team replied',
-            greetingName: greetingOf(member.full_name),
+            greetingName: guest ? guestGreeting(guest.name) : greetingOf(member?.full_name),
             paragraphs: [
               ...(subject ? [[`About your message "`, { b: subject }, `":`]] : ['About your message to Helpr support:']),
               // One paragraph per line the admin wrote, so their line breaks survive.
@@ -321,7 +348,7 @@ serve(async (req) => {
         target_id: reportId,
         target_type: 'report',
         details: {
-          reply_id: replyId, member_id: memberId, in_thread: !!threadMessageId, thread_message_id: threadMessageId,
+          reply_id: replyId, member_id: memberId, guest: !!guest, in_thread: !!threadMessageId, thread_message_id: threadMessageId,
           notified: !!notificationId, email_queued: emailQueued,
           email_skip_reason: emailSkipReason, resolve: resolveOutcome, failed_part_way: failedPartWay,
         },
@@ -356,7 +383,8 @@ serve(async (req) => {
       in_thread: !!threadMessageId,
       notified: !!notificationId,
       email_queued: emailQueued,
-      has_email: !!member.email,
+      guest: !!guest,
+      has_email: guest ? true : !!member?.email,
       email_unconfirmed: emailSkip === 'unconfirmed',
       resolve: resolveOutcome,
       resolved: resolveOutcome === 'resolved',

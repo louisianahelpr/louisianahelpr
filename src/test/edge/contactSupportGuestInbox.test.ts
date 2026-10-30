@@ -12,7 +12,7 @@
  * @mutate supabase/functions/contact-support/index.ts |         subject: `email:${await sha256Hex(email)}`, |
  * @mutate supabase/functions/contact-support/index.ts |         ipMaxRequests: GUEST_MAX_PER_IP, |
  * @mutate supabase/functions/_shared/rate-limit.ts |   const subject = options.subject ?? jwtSubject(req); |   const subject = jwtSubject(req);
- * @mutate src/lib/supportGuest.ts |   if (reporterId) return { body: description, guest: null }; |
+ * @mutate supabase/functions/_shared/supportGuest.ts |   if (reporterId) return { body: description, guest: null } |
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -20,7 +20,7 @@ import { resetEnv, setEnv } from "./mocks/deno-runtime";
 import { resetSupabaseMock, scenario } from "./mocks/supabase";
 import { postSlackOpsAlert, rateLimitCalls, rateLimitRefusedBuckets, recordOpsAlertLedger, resetSharedMocks } from "./mocks/shared";
 import { resetEmailMocks, sendWithResend } from "./mocks/email";
-import { guestReplyHref, splitSupportGuest } from "@/lib/supportGuest";
+import { splitSupportGuest } from "../../../supabase/functions/_shared/supportGuest";
 
 const GUEST = {
   topic: "report",
@@ -182,8 +182,4 @@ describe("the guest line reader", () => {
     expect(splitSupportGuest("Old ticket", null)).toEqual({ body: "Old ticket", guest: null });
   });
 
-  it("a reply link cannot carry extra headers from a typed address", () => {
-    const href = guestReplyHref({ name: "A", email: "a?bcc=x@example.com" }, "Hi & bye");
-    expect(href).toBe("mailto:a%3Fbcc%3Dx@example.com?subject=Louisiana%20Helpr%3A%20Hi%20%26%20bye");
-  });
 });

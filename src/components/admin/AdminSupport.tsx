@@ -18,7 +18,7 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { splitSupportScreenshot } from "@/lib/supportScreenshot";
-import { guestReplyHref, splitSupportGuest } from "@/lib/supportGuest";
+import { splitSupportGuest } from "../../../supabase/functions/_shared/supportGuest";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
@@ -424,7 +424,7 @@ const AdminSupport = () => {
             const subject = subjectFromReason(ticket.reason);
             const priority = hasPrioritySupport(ticket.support_tier);
             const waiting = ticket.status === "pending" ? waitingLabel(ticket.created_at) : "";
-            // A guest has no account: name, address and reply route come from the ticket's own guest line.
+            // A guest has no account: name and address come from the ticket's own guest line.
             const { body: description, guest } = splitSupportGuest(ticket.description ?? "", ticket.reporter_id);
             const senderName = guest?.name ?? ticket.reporter_name;
             const senderEmail = guest?.email ?? ticket.reporter_email;
@@ -515,25 +515,18 @@ const AdminSupport = () => {
                     {replies.isRefetching && !replies.isPlaceholderData && (
                       <p className="text-ds-11 text-muted-foreground" role="status">Refreshing replies…</p>
                     )}
-                    <SupportThread replies={repliesFor(ticket.id)} />
+                    <SupportThread replies={repliesFor(ticket.id)} byEmailOnly={!!guest} />
                   </>
                 )}
 
-                {guest ? (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={guestReplyHref(guest, subject)}>
-                      <Mail className="w-3.5 h-3.5 mr-1" aria-hidden="true" /> Reply by email
-                    </a>
-                  </Button>
-                ) : (
-                  <SupportReplyComposer
-                    ticketId={ticket.id}
-                    memberName={ticket.reporter_name || "this member"}
-                    canResolve={ticket.status === "pending"}
-                    disabledReason={ticket.reporter_id ? undefined : "This member deleted their account, so there is no one to reply to."}
-                    onSent={afterReply}
-                  />
-                )}
+                <SupportReplyComposer
+                  ticketId={ticket.id}
+                  memberName={guest?.name ?? (ticket.reporter_name || "this member")}
+                  canResolve={ticket.status === "pending"}
+                  byEmailOnly={!!guest}
+                  disabledReason={ticket.reporter_id || guest ? undefined : "This member deleted their account, so there is no one to reply to."}
+                  onSent={afterReply}
+                />
 
                 {ticket.status === "pending" && (
                   <div className="flex gap-2 pt-1">

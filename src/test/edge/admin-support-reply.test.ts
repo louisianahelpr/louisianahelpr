@@ -8,9 +8,13 @@
  * @mutate supabase/functions/admin-support-reply/index.ts | user_id: memberId, // the ticket's reporter | user_id: body?.userId ?? memberId, // the ticket's reporter
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (replyError \|\| !insertedId) { |     if (replyError) {
  * @mutate supabase/functions/admin-support-reply/index.ts |         .eq('status', 'pending') |
- * @mutate supabase/functions/admin-support-reply/index.ts |     if (!memberId) { |     if (false) {
+ * @mutate supabase/functions/admin-support-reply/index.ts |     if (!memberId && !guest) { |     if (false) {
+ * @mutate supabase/functions/admin-support-reply/index.ts |     const guest = !memberId && ticket.reported_id === SUPPORT_GUEST_REPORTED_ID |     const guest = !memberId
+ * @mutate supabase/functions/admin-support-reply/index.ts |     let mailTo: string \| null = guest?.email ?? null |     let mailTo: string \| null = null
+ * @mutate supabase/functions/admin-support-reply/index.ts |     const subject = guest ? '' : subjectOf(ticket.reason) |     const subject = subjectOf(ticket.reason)
+ * @mutate supabase/functions/admin-support-reply/index.ts |       // A guest has no account to tell: the email below is the reply.\n      if (memberId) { |       // A guest has no account to tell: the email below is the reply.\n      if (true) {
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (!ticket \|\| ticket.reported_type !== 'support') { |     if (!ticket) {
- * @mutate supabase/functions/admin-support-reply/index.ts |     const mailTo: string \| null = member.email && emailConfirmed ? member.email : null |     const mailTo: string \| null = member.email ?? null
+ * @mutate supabase/functions/admin-support-reply/index.ts |       mailTo = member.email && emailConfirmed ? member.email : null |       mailTo = member.email ?? null
  * @mutate supabase/functions/admin-support-reply/index.ts | .replace(/\s+/g, ' ').trim().slice(0, 120).trim() | .trim()
  * @mutate supabase/functions/admin-support-reply/index.ts |         if (!threadMessageId && !notificationId && !emailQueued) { |         if (false) {
  * @mutate supabase/functions/admin-support-reply/index.ts | outcome_recorded: !failedPartWay && outcomeOk } | outcome_recorded: !failedPartWay }
@@ -44,6 +48,17 @@ const writesTo = (table: string, op?: string) =>
   scenario.writes.filter((w) => w.table === table && (!op || w.op === op));
 const outcomeWrites = () => writesTo("support_replies", "update").map((w) => w.payload);
 
+const GUEST_RESET = () => {
+  scenario.reads.reports = {
+    rows: [{
+      id: TICKET, reporter_id: null, reported_type: "support", reported_id: "00000000-0000-0000-0000-000000000000",
+      reason: "[Issue Report] Guest message", status: "pending",
+      description: "Subject: BUY NOW cheap.example\n\nHelp\n\n(Submitted from /support)\n\nGuest: Dana Guest <dana@bayoumail.net>",
+    }],
+  };
+  scenario.reads.profiles = { rows: [] };
+};
+
 describe("admin-support-reply", () => {
   beforeEach(() => {
     resetEnv();
@@ -59,6 +74,65 @@ describe("admin-support-reply", () => {
     scenario.reads.profiles = { rows: [{ user_id: MEMBER, full_name: "Lucy Malveaux", email: "lucy@example.com" }] };
     scenario.writeSelectRows["support_replies:insert"] = [{ id: "reply-1" }];
     scenario.writeSelectRows["notifications:insert"] = [{ id: "notice-1" }];
+  });
+
+  describe("a guest's ticket (owner 2026-10-30: answered in the app, not by hand)", () => {
+    beforeEach(GUEST_RESET);
+
+    it("records the reply in the ticket's thread and queues it to the address on the ticket, from the team", async () => {
+      const { res, body } = await call({ reportId: TICKET, message: "We reset it." });
+      expect(res.status).toBe(200);
+      expect(body).toMatchObject({ success: true, guest: true, email_queued: true, has_email: true, notified: false, outcome_recorded: true });
+      expect(writesTo("support_replies", "insert")[0].payload).toMatchObject({ report_id: TICKET, admin_id: ADMIN.id, body: "We reset it." });
+      expect(queuedEmails).toHaveLength(1);
+      expect(queuedEmails[0]).toMatchObject({ to: "dana@bayoumail.net", from: FROM_SUPPORT, templateName: "admin_support_reply" });
+    });
+
+    it("the address comes from the ticket, never the request", async () => {
+      await call({ reportId: TICKET, message: "Hi", email: "other@bayoumail.net", to: "other@bayoumail.net" });
+      expect(queuedEmails[0].to).toBe("dana@bayoumail.net");
+    });
+
+    it("no in-app step: no account is written to or looked up", async () => {
+      await call({ reportId: TICKET, message: "Hi" });
+      expect(writesTo("notifications")).toEqual([]);
+      expect(scenario.rpcCalls?.some((c) => c.name === "admin_send_team_message")).toBe(false);
+    });
+
+    it("the mail carries the admin's words and a link back, and nothing the guest typed", async () => {
+      await call({ reportId: TICKET, message: "We reset it." });
+      expect(queuedEmails[0].subject).toBe("A reply from Helpr support");
+      const props = (emailRenders[0] as { props: { paragraphs: unknown[]; ctaUrl: string; greetingName: string } }).props;
+      expect(JSON.stringify(props.paragraphs)).toContain("We reset it.");
+      expect(JSON.stringify(props)).not.toContain("BUY NOW");
+      expect(props.ctaUrl).toMatch(/\/support$/);
+      expect(props.greetingName).toBe("Dana");
+    });
+
+    it("a typed name that is not a plain first name is not repeated in the mail", async () => {
+      scenario.reads.reports.rows![0].description = "Help\n\nGuest: cheap.example/win Now <dana@bayoumail.net>";
+      await call({ reportId: TICKET, message: "Hi" });
+      expect((emailRenders[0] as { props: { greetingName: string } }).props.greetingName).toBe("there");
+    });
+
+    it("resolve on send works once the email is queued", async () => {
+      scenario.writeSelectRows["reports:update"] = [{ id: TICKET }];
+      const { body } = await call({ reportId: TICKET, message: "Done", resolve: true });
+      expect(body).toMatchObject({ resolve: "resolved", resolved: true });
+    });
+
+    it("the audit row says it went to a guest", async () => {
+      await call({ reportId: TICKET, message: "Hi" });
+      expect((writesTo("admin_audit_log")[0].payload as { details: Record<string, unknown> }).details).toMatchObject({ guest: true, member_id: null, email_queued: true });
+    });
+
+    it("a deleted member who once typed a guest line is not a guest: reported_id is not the guest id, so nothing is sent", async () => {
+      scenario.reads.reports.rows![0].reported_id = "22222222-3333-4444-8555-666666666666";
+      const { res } = await call({ reportId: TICKET, message: "Hi" });
+      expect(res.status).toBe(409);
+      expect(queuedEmails).toEqual([]);
+      expect(writesTo("support_replies")).toEqual([]);
+    });
   });
 
   it("records the reply, tells the REPORTER in the app and by email, and audits it", async () => {

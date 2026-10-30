@@ -409,7 +409,7 @@ describe("the photo-first Declutter item page", () => {
       await screen.findAllByRole("button", { name: "Buy now · $42.70 total" });
       await waitFor(() => expect(document.body.querySelector("[data-declutter-buybar]")).not.toBeNull());
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-      expect(seen.at(-1)?.rootMargin).toBe("0px 0px -64px 0px");
+      expect(seen[seen.length - 1]?.rootMargin).toBe("0px 0px -64px 0px");
     } finally {
       dock.remove();
     }

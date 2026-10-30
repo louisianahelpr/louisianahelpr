@@ -258,7 +258,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   const [pick, setPick] = useState(emptyReturnPick);
   const pickArgs = returnPickArgs(pick);
   const send = useMutation({
-    mutationFn: () => {
+    mutationFn: (): Promise<{ result: string }> => {
       const r = v.request;
       if (r && choice === "full" && pickArgs) return acceptRefundWithReturn(r.id, pick.way, pickArgs.day, pickArgs.atIso);
       return answerRefund(r?.id ?? "", choice, choice === "part" ? offerCents : null);

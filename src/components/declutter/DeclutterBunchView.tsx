@@ -36,8 +36,8 @@ import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
-  type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher,
+  addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
+  type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
 import { AREA_ADDRESS_RE } from "./sellForm";
@@ -87,6 +87,7 @@ export default function BunchFlow() {
   const [ways, setWays] = useState<SellerHandover[]>(["porch"]);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [listing, setListing] = useState<{ done: number; total: number } | null>(null);
+  const [photoProgress, setPhotoProgress] = useState<PhotoProgress | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -122,6 +123,7 @@ export default function BunchFlow() {
     onProgress: (done, total) => setListing({ done, total }),
     onStep: (key, patch) => runStep.current(key, patch),
     onDone: (result) => runDone.current(result),
+    onPhoto: setPhotoProgress,
   }), []);
   useEffect(() => {
     if (!user?.id) return;
@@ -287,27 +289,30 @@ export default function BunchFlow() {
     }
   }
 
-  async function onListAll() {
+  /** Lists every ready item, or just `only`: the one whose photo is being tried again. */
+  async function onListAll(only?: BunchItem) {
     setProblem(null);
+    const toList = only ? [only] : ready;
     const p = placeProblem
       ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null)
-      ?? (ready.length === 0 ? "No item is ready to list yet." : null);
+      ?? (only ? bunchItemProblem(only) : null)
+      ?? (toList.length === 0 ? "No item is ready to list yet." : null);
     if (p) {
       setProblem(p);
       return;
     }
-    const total = ready.length * 2;
+    const total = toList.length * 2;
     setListing({ done: 0, total });
-    const started = startBunchRun(user!.id, watcher, total, async (onProgress, onStep) => {
+    const started = startBunchRun(user!.id, watcher, total, async (onProgress, onStep, onPhoto) => {
       const c = await locate();
       if (!c) throw new Error("invalid_location");
       // Only a change is saved: the times on screen may be older than the seller's saved ones (another tab, Settings).
       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows);
       return listBunch(
-        user!.id, ready, files,
+        user!.id, toList, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, onProgress, undefined, onStep, choices.choices,
+        savedWays, onProgress, undefined, onStep, choices.choices, onPhoto,
       );
     });
     if (!started) {
@@ -330,6 +335,7 @@ export default function BunchFlow() {
       setProblem(declutterErrorMessage(result.error));
     }
     setListing(null);
+    setPhotoProgress(null);
     void qc.invalidateQueries({ queryKey: ["declutter"] });
   };
 
@@ -432,6 +438,7 @@ export default function BunchFlow() {
                 onMerge={(into) => regroup((its) => mergeItems(its, it.key, into))}
                 onDrop={() => regroup((its) => dropItem(its, it.key))}
                 onRewrite={() => void onRewrite(it.key)}
+                onRetryUpload={() => void onListAll(it)}
               />
             ))}
           </ul>
@@ -467,6 +474,11 @@ export default function BunchFlow() {
           <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
             {listing ? `Listing… (${Math.min(listing.done, listing.total)} of ${listing.total} steps)` : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
           </Button>
+          {listing && photoProgress && (
+            <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-photo-progress="">
+              Sending photo {photoProgress.photo} of {photoProgress.of}{photoProgress.itemName ? ` (${photoProgress.itemName})` : ""}.{photoProgress.retrying ? " The connection dropped, so we're trying again." : ""}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing takes about {BUNCH_SECONDS_EACH} seconds each{ready.length > 1 ? `, so about ${bunchListingMinutes(ready.length)} ${bunchListingMinutes(ready.length) === 1 ? "minute" : "minutes"} for these` : ""}. Keep this page open and your phone unlocked until it's done.
           </p>

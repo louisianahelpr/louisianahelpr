@@ -78,6 +78,25 @@ describe("an item with no words", () => {
   });
 });
 
+// @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && ( |       {false && (
+// @mutate src/components/declutter/DeclutterBunchCard.tsx | data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined} | data-bunch-photo-failed={undefined}
+describe("a photo that didn't finish sending", () => {
+  it("stays on the item, marked, says which, and offers Try again", () => {
+    const onRetryUpload = vi.fn();
+    card({ item: { ...blankItem(["a", "b"]), title: "Floor lamp", failedPhoto: "b" }, onRetryUpload });
+    expect(document.querySelectorAll("[data-bunch-photo-failed]")).toHaveLength(1);
+    expect(screen.getByLabelText("Floor lamp, photo 2").closest("li")?.hasAttribute("data-bunch-photo-failed")).toBe(true);
+    expect(document.querySelector("[data-bunch-upload-failed]")?.textContent).toContain("Photo 2");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetryUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing once that photo has moved off the item", () => {
+    card({ item: { ...blankItem(["a"]), title: "Floor lamp", failedPhoto: "b" } });
+    expect(document.querySelector("[data-bunch-upload-failed]")).toBeNull();
+  });
+});
+
 describe("the merge suggestion", () => {
   it("names the other item and merges into it", () => {
     const onMerge = vi.fn();

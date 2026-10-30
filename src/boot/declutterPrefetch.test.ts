@@ -12,7 +12,7 @@ import { takeDeclutterItemsPrefetch, takeDeclutterPhotosPrefetch } from "@/lib/d
 // @mutate src/lib/declutter/api.ts | const prefetched = await takeDeclutterItemsPrefetch(); | const prefetched = null;
 // @mutate src/lib/declutter/bootPrefetch.ts |   p.items = undefined; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!itemIds.every((id) => covered.has(id))) return null; |
-// @mutate src/entry.ts | startDeclutterPrefetch(window.location.pathname); | void 0;
+// @mutate src/entry.ts | .then((m) => m.startDeclutterPrefetch(window.location.pathname)) | .then(() => undefined)
 
 const BASE = "https://x.supabase.co";
 const client = () => {
@@ -103,7 +103,7 @@ describe("the entry's /declutter prefetch", () => {
 
   it("the entry starts it and the page's two reads take it", () => {
     const code = (p: string) => blankComments(readFileSync(p, "utf8"));
-    expect(code("src/entry.ts")).toContain("startDeclutterPrefetch(window.location.pathname);");
+    expect(code("src/entry.ts")).toContain(".then((m) => m.startDeclutterPrefetch(window.location.pathname))");
     const api = code("src/lib/declutter/api.ts");
     expect(api).toContain("const prefetched = await takeDeclutterItemsPrefetch();");
     expect(api).toContain("const prefetched = await takeDeclutterPhotosPrefetch(itemIds);");

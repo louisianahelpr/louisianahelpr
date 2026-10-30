@@ -5268,7 +5268,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 108,
+      "line": 112,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5278,7 +5278,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 109,
+      "line": 113,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5288,7 +5288,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 113,
+      "line": 117,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5308,7 +5308,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 114,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5318,7 +5318,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 118,
+      "line": 122,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5328,7 +5328,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 119,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5338,7 +5338,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 216,
+      "line": 222,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5368,26 +5368,6 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 219,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 224,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Refund sent. The buyer is told."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
       "line": 225,
       "kind": "toast.error",
       "title": {
@@ -5397,8 +5377,28 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 230,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Refund sent. The buyer is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 231,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterReviewForm.tsx",
-      "line": 69,
+      "line": 89,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5434,7 +5434,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterReviewForm.tsx",
-      "line": 79,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

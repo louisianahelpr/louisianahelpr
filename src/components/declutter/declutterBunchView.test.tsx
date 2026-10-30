@@ -20,6 +20,9 @@
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : params.get("mode") === "bunch" ? ( |       ) : false ? (
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -188,6 +191,16 @@ describe("Sell a bunch", () => {
 
 // T2 and T3 at 375 (10-30): the merge label wrapped one word per line and its picker showed only "P", squeezed by the buttons.
 // @mutate src/components/declutter/DeclutterBunchCard.tsx |             <div className="w-full" data-bunch-merge-row=""> |             <div className="min-w-0 flex-1" data-bunch-merge-row="">
+// T3 at 375 (10-30): "Sell a bunch" twice, in the bar and as a heading under it. AppPage's title is the one.
+// @mutate src/components/declutter/DeclutterBunchView.tsx |       <SellerPayoutPrompt /> |       <p>Sell a bunch</p><SellerPayoutPrompt />
+describe("the page's name", () => {
+  it("is not said again under AppPage's title", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/components/declutter/DeclutterBunchView.tsx"), "utf8");
+    expect(blankComments(source).match(/>Sell a bunch</g)).toBeNull();
+    expect(blankComments(source)).toContain('<AppPage title="Sell a bunch"');
+  });
+});
+
 describe("the merge picker's row", () => {
   it("has the card's whole width, with the buttons below it", () => {
     const item = { ...blankItem(["a"]), key: "one" };

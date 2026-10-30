@@ -171,10 +171,10 @@ function main() {
   const declared = new Set(
     deriveRouteSet({ seedJobId: "x", helperId: "x", customerId: "x", adminViews: [] })
       .filter((r) => !r.redirect && !r.personas.every((p) => p === "admin"))
-      .map((r) => r.url.replace(/\/jobs\/[^/?]+/, "/jobs/:id").replace(/\/user\/[^/?]+/, "/user/:id")),
+      .map((r) => r.url.replace(/\/jobs\/[^/?]+/, "/jobs/:id").replace(/\/user\/[^/?]+/, "/user/:id").replace(/\/book\/[^/?]+/, "/book/:id")),
   );
   const measured = new Set(
-    results.map((r) => r.url.replace(/\/jobs\/[^/?]+/, "/jobs/:id").replace(/\/user\/[^/?]+/, "/user/:id")),
+    results.map((r) => r.url.replace(/\/jobs\/[^/?]+/, "/jobs/:id").replace(/\/user\/[^/?]+/, "/user/:id").replace(/\/book\/[^/?]+/, "/book/:id")),
   );
   const uncovered = [...declared].filter((u) => !measured.has(u));
   if (uncovered.length) {

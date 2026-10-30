@@ -785,7 +785,9 @@ async function main() {
     }
     const routeSet = deriveRouteSet({
       seedJobId,
-      helperId: helper?.userId ?? "test",
+      // HELPER_ID: an anon-only run (PERSONAS=anon, no session minted, nothing written)
+      // can still measure /book/<id> and /user/<id> for a real Helpr.
+      helperId: helper?.userId ?? process.env.HELPER_ID ?? "test",
       customerId: poster?.userId ?? "test",
       adminViews: [],
     }).filter((r) => !r.redirect);

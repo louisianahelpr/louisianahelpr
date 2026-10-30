@@ -17,7 +17,7 @@
  * @mutate src/pages/post-job/CheckoutStepView.tsx |       <FirstPostGuarantee oneHelpr={!form.isGroupJob} firstPost={form.isFirstPost === true} /> |
  * @mutate src/components/guarantee/FirstPostGuarantee.tsx |   if (!oneHelpr \|\| !firstPost) return null; |   if (!oneHelpr) return null;
  * @mutate src/components/landing/HowItWorksSection.tsx |         {side === "hire" && <GuaranteePromise className="w-full max-w-xl self-center sm:self-start text-left" />} |
- * @mutate src/pages/user/UserProfile.tsx |               {userId && <BookMeShareButton userId={userId} displayName={displayName} />} |
+ * @mutate src/pages/user/BookMeShareButton.tsx |       {userId && <BookMeShareButton userId={userId} displayName={displayName} />} |
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |           ? [{ key: "book-me", |           ? [{ key: "referral",
  * @mutate src/lib/guarantee/promiseCopy.ts |   "If it still isn't right, Louisiana Helpr steps in."; |   "If it still isn't right, you get your money back.";
  */
@@ -62,8 +62,11 @@ describe("the link and the way in", () => {
 
 describe("where the link and the guarantee show", () => {
   it("own profile has the share button and the profile menu has a Book me row to your /book page", () => {
+    // B66: the pair lives in OwnProfileActions (BookMeShareButton.tsx) so UserProfile.tsx keeps its size baseline.
     const profile = blankComments(read("src/pages/user/UserProfile.tsx"));
-    expect(profile).toContain("<BookMeShareButton userId={userId} displayName={displayName} />");
+    expect(profile).toContain("<OwnProfileActions userId={userId} displayName={displayName} />");
+    const actions = blankComments(read("src/pages/user/BookMeShareButton.tsx"));
+    expect(actions).toContain("{userId && <BookMeShareButton userId={userId} displayName={displayName} />}");
     const menu = blankComments(read("src/components/profile/profileLanding/useProfileLandingDerived.tsx"));
     expect(menu).toMatch(/key: "book-me", label: "Book me on Helpr"[^}]*href: `\/book\/\$\{profile\.user_id\}`/);
   });

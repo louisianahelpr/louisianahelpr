@@ -389,6 +389,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
     expect(emailers).toEqual([
       "declutter_pickup_remind",
       "declutter_price_drop_alert",
+      "declutter_wanted_email",
       "deliver_job_match",
       "deliver_parish_match_alert",
       "deliver_saved_search_alert",
@@ -400,6 +401,9 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "send_backout_email",
       "send_job_match_roundups",
     ]);
+    // D4-11 (2026-10-30): declutter_wanted_email only posts; its two callers write the row first and apply the boundary.
+    expect(liveDef("declutter_wanted_notify")!.body).toMatch(/IF v_id IS NOT NULL THEN\s+PERFORM public\.declutter_wanted_email/);
+    expect(liveDef("declutter_wanted_reply")!.body).toMatch(/public\.declutter_notify\(w\.user_id[\s\S]*?IF NOT \(COALESCE\(\(SELECT o\.is_seed[\s\S]*?public\.declutter_wanted_email\(w\.user_id/);
     // Q1575: the back-out email rides beside the RPCs' own notifications row,
     // so it applies the row's seed boundary itself instead of writing a second row.
     // Q2275: the Declutter saved-search sender writes its row through declutter_notify (the seller as the seed actor).
@@ -408,7 +412,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
     // wrote its own notifications row through its seed boundary; the roundup adds no new subject.
     const ROUNDUPS = ["send_application_roundups", "send_job_match_roundups"];
     for (const fn of ROUNDUPS) expect(liveDef(fn)!.body, fn).toMatch(/FROM public\.(application|job_match)_email_state s/);
-    for (const fn of emailers.filter((f) => f !== "send_backout_email" && !ROUNDUPS.includes(f))) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify(?:_strict)?\(/i.test(liveDef(fn)!.body), fn).toBe(true);
+    for (const fn of emailers.filter((f) => f !== "send_backout_email" && f !== "declutter_wanted_email" && !ROUNDUPS.includes(f))) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify(?:_strict)?\(/i.test(liveDef(fn)!.body), fn).toBe(true);
     expect(liveDef("send_backout_email")!.body).toMatch(/IF public\.notification_crosses_seed_boundary\(p_user, p_job, p_link\) THEN\s+RETURN;/);
   });
 

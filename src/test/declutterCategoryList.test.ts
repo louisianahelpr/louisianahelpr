@@ -34,7 +34,8 @@ describe("Declutter's one category list", () => {
     for (const k of ORIGINAL_13) expect(CATEGORY_LABEL[k], k).toBeTruthy();
     const labels = Object.values(CATEGORY_LABEL);
     for (const l of OWNER_ADDED) expect(labels, l).toContain(l);
-    expect(Object.keys(CATEGORY_LABEL).at(-1)).toBe("other");
+    const keys = Object.keys(CATEGORY_LABEL);
+    expect(keys[keys.length - 1]).toBe("other");
     for (const c of CATEGORIES) expect(c.key).toMatch(/^[a-z][a-z0-9_]{1,39}$/); // declutter_items_category_check
   });
 

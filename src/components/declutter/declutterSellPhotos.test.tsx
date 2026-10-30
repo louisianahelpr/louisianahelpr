@@ -219,7 +219,7 @@ describe("photo-first selling, one screen", () => {
     expect(screen.getByText("Off. It stays at your price until you change it.")).toBeInTheDocument();
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    // @mutate src/components/declutter/sellForm.ts |   if (!f.drops) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 5 };
+    // @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 5 };
     await waitFor(() => expect(drops).toEqual([[NEW_ID, 0]]));
     expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 })]);
   });

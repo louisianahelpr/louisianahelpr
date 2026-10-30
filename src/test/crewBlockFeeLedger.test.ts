@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                               - (SELECT count(*)::int FROM public.crew_block_fees b WHERE b.job_id = j.id)) |                               )
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
- * @mutate supabase/migrations/20261030081455_export_my_data_quotes.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
+ * @mutate supabase/migrations/20261030153635_export_my_data_seller_defaults.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261029194021_browse_carries_scope_video.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: 0,
  */

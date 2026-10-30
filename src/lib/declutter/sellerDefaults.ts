@@ -40,9 +40,7 @@ interface Row {
 const COLUMNS = "keep_up, drops, drop_pct, floor_pct, free_after_days, handovers";
 const WAYS: readonly SellerHandover[] = ["porch", "seller_delivery", "meetup", "delivery"];
 
-/** The table is not in the generated types until it is on prod (check-types-fresh compares against the live schema). */
- 
-const table = () => (supabase as any).from("declutter_seller_defaults");
+const table = () => supabase.from("declutter_seller_defaults");
 
 /** Table not on this database yet (PostgREST's "not in the schema cache" or Postgres' undefined table). */
 const notDeployed = (code: string | undefined) => code === "PGRST205" || code === "42P01";
@@ -94,8 +92,9 @@ export async function saveSellerDefaults(userId: string, d: SellerDefaults): Pro
 /** The lowest price a percent gives for an asking price, in whole dollars ("" when there is no usable price). */
 export function floorFromPct(priceDollars: string, floorPct: number): string {
   const p = Number(priceDollars);
-  if (!Number.isFinite(p) || p < 2) return "";
-  return String(Math.min(Math.floor(p) - 1, Math.max(1, Math.round((p * floorPct) / 100))));
+  if (!Number.isFinite(p) || p <= 1) return "";
+  // Always at least $1 and below the price: $1.50 gives $1, $2 gives $1, $3 at 95% gives $2.
+  return String(Math.min(Math.ceil(p) - 1, Math.max(1, Math.round((p * floorPct) / 100))));
 }
 
 /** The percent a typed lowest price is of the asking price, for saving; null when either is not usable. */

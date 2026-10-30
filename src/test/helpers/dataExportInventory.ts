@@ -127,6 +127,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_item_private: { by: ["seller_id"] },
   declutter_item_photos: { by: ["seller_id"] },
   declutter_pickup_windows: { by: ["seller_id"] },
+  // Remembered listing choices (20261030144112; exported by 20261030153635): one row per seller.
+  declutter_seller_defaults: { by: ["member_id"] },
   // Porch days (20261029161347; exported by 20261029223949): the seller's own picked porch weekdays.
   declutter_seller_porch_days: { by: ["seller_id"] },
   declutter_questions: { by: ["asker_id"] },

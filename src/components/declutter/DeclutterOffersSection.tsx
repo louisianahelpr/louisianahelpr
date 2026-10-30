@@ -180,7 +180,7 @@ function OfferRow({ o }: { o: MyOffer }) {
         confirmLabel="Accept" testId="accept-offer">
         {o.my_side === "seller"
           ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
-          : `"${o.item_title}": you'll have 48 hours to check out and pay. Nothing is charged until you do.`}
+          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay; nothing is charged until you do.`}</>}
       </ConfirmSheet>
     </li>
   );

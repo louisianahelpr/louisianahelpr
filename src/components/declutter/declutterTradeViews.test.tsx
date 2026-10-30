@@ -475,6 +475,17 @@ describe("Declutter slice 3 screens", () => {
     state.handovers = null;
   });
 
+  // Audit 1030 DB-15: accepting a counter asked "Buy it for $28?" with no total; the sheet now says what the buyer pays
+  // with pickup, the bill's own figure (BuyerTotal on least(offer, price now)).
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase | you pay at most `}{` ${totalPhrase
+  it("DB-15: the buyer's accept sheet says the total with pickup", async () => {
+    state.offers = [{ ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp", counter_count: 1 }];
+    show(<OffersSection side="buyer" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    const sheet = await screen.findByText(/you pay at most/);
+    expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay; nothing is charged until you do.');
+  });
+
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
   // "You pay", exactly as declutter-checkout charges it; an account that paid it sees neither.
   // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Board 161: the bill is the items

@@ -189,7 +189,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-28: 26.) 20261028225038 (the porch DAY) re-created declutter_report_no_show the same way.
     // (2026-10-30: 24.) 20261030002630 (Q2477, a paid order is never cancelled) re-created
     // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
-    expect(rewritten.length).toBe(24);
+    // (2026-10-30: 26.) 20261030220537 (notices say no escrow) rewrites five functions in place; the count rose by two.
+    expect(rewritten.length).toBe(26);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",
@@ -215,7 +216,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   it("helper_abort_job is expected to carry 20260925143327's copy, not the text its newest CREATE wrote", () => {
     const e = expected.get("helper_abort_job(uuid,text)")!;
     expect(e.state).toBe("defined");
-    expect(e.version).toBe("20260925143327");
+    // 20261030220537 rewrites it again (no "escrow"), keeping 20260925143327's copy.
+    expect(e.version).toBe("20261030220537");
     expect(e.body).toContain("Tell the person who posted it why you can''t finish.");
     expect(e.body).not.toContain("Tell the poster why you can''t finish.");
   });
@@ -224,7 +226,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     const e = expected.get("helper_cancel_booking(uuid)")!;
     expect(e.state).toBe("defined");
     // Q1378 restated it at 20261006015121; the fee-free copy rewrites it in place.
-    expect(e.version).toBe("20261025203540");
+    // 20261030220537 then rewrites it again (no "escrow"), keeping the fee-free copy.
+    expect(e.version).toBe("20261030220537");
     expect(e.body).toContain("If nobody takes it, most of what you paid comes back to your card.");
     expect(e.body).not.toContain("refunded less the card processing fee");
     expect(e.body).toContain("Message the person who posted it or open a dispute.");

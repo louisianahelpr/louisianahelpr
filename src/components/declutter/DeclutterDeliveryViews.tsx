@@ -223,7 +223,6 @@ function VehicleForm({ userId }: { userId: string }) {
       await saveVehicle(hasCar, hasTruck, twoPeople, path);
     },
     onSuccess: () => {
-      toast.success("Saved.");
       setPhoto(null);
       void qc.invalidateQueries({ queryKey: ["helpr-tasks"] });
     },
@@ -246,17 +245,17 @@ function VehicleForm({ userId }: { userId: string }) {
       </p>
       {/* The shared Checkbox (lead 2026-10-28: the raw box rendered as an empty square); the label is the 44px tap target. */}
       <div className="flex items-center gap-3 min-h-11">
-        <Checkbox id={`helpr-car-${userId}`} checked={hasCar} disabled={hasTruck} onCheckedChange={(v) => setCar(v === true)} />
+        <Checkbox id={`helpr-car-${userId}`} checked={hasCar} disabled={hasTruck} onCheckedChange={(v) => { save.reset(); setCar(v === true); }} />
         <label htmlFor={`helpr-car-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a car</label>
       </div>
       <div className="flex items-center gap-3 min-h-11">
-        <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} onCheckedChange={(v) => setTruck(v === true)} />
+        <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} onCheckedChange={(v) => { save.reset(); setTruck(v === true); }} />
         <label htmlFor={`helpr-truck-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a truck</label>
       </div>
       {hasTruck && (
         <>
           <div className="flex items-center gap-3 min-h-11">
-            <Checkbox id={`helpr-second-${userId}`} checked={twoPeople} onCheckedChange={(v) => setSecond(v === true)} />
+            <Checkbox id={`helpr-second-${userId}`} checked={twoPeople} onCheckedChange={(v) => { save.reset(); setSecond(v === true); }} />
             <label htmlFor={`helpr-second-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I can bring a second person (for extra large items)</label>
           </div>
           <label htmlFor={photoId} className="block text-xs font-medium">
@@ -269,6 +268,8 @@ function VehicleForm({ userId }: { userId: string }) {
         disabled={save.isPending || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
         {save.isPending ? "Saving…" : "Save"}
       </button>
+      {/* Audit 1c D3-8: a plain success toast renders nothing (toastPolicy), so "Saved." never showed. */}
+      {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>}
     </section>
   );
 }
@@ -288,10 +289,16 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
   // The seller's pickup times as day + time chips (TaskPickupTime, 20261028232930).
   const [chosen, setChosen] = useState<string | null>(null);
   const [showWay, setShowWay] = useState(false);
+  const [taken, setTaken] = useState(false);
   const take = useMutation({
     mutationFn: (iso: string) => acceptTask(t.task_id, iso),
     onSuccess: () => {
-      toast.success("It's yours. The seller and the buyer are told your pickup time.");
+      // Audit 1c D3-8: the task is no longer open, so its pickup-times read would answer task_not_found (a 500).
+      setTaken(true);
+      qc.removeQueries({ queryKey: ["helpr-tasks", "task-pickup-windows", t.task_id] });
+      toast.success("Delivery accepted. The seller and the buyer are told your pickup time.", {
+        action: { label: "See it", onClick: () => document.querySelector('[aria-label="Your deliveries"]')?.scrollIntoView({ block: "start" }) },
+      });
       setChosen(null);
       invalidateTasks(qc);
       if (user?.id) void hiredPayout.offer(user.id);
@@ -341,7 +348,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
       <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
       <div className="space-y-2">
         <p className="block text-ds-13 font-semibold">Pickup time</p>
-        <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} />
+        <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} enabled={!taken} />
         <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !chosen}
           onClick={() => { if (chosen) take.mutate(chosen); }}>
           Accept delivery

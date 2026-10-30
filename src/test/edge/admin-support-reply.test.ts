@@ -5,14 +5,14 @@
  * on the ticket, and nothing reaches anyone else.
  *
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (!isAdmin) return json({ error: 'Forbidden' }, 403) |
- * @mutate supabase/functions/admin-support-reply/index.ts |         user_id: memberId, |         user_id: body?.userId ?? memberId,
+ * @mutate supabase/functions/admin-support-reply/index.ts | user_id: memberId, // the ticket's reporter | user_id: body?.userId ?? memberId, // the ticket's reporter
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (replyError \|\| !insertedId) { |     if (replyError) {
  * @mutate supabase/functions/admin-support-reply/index.ts |         .eq('status', 'pending') |
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (!memberId) { |     if (false) {
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (!ticket \|\| ticket.reported_type !== 'support') { |     if (!ticket) {
  * @mutate supabase/functions/admin-support-reply/index.ts |     const mailTo: string \| null = member.email && emailConfirmed ? member.email : null |     const mailTo: string \| null = member.email ?? null
  * @mutate supabase/functions/admin-support-reply/index.ts | .replace(/\s+/g, ' ').trim().slice(0, 120).trim() | .trim()
- * @mutate supabase/functions/admin-support-reply/index.ts |         if (!notificationId && !emailQueued) { |         if (false) {
+ * @mutate supabase/functions/admin-support-reply/index.ts |         if (!threadMessageId && !notificationId && !emailQueued) { |         if (false) {
  * @mutate supabase/functions/admin-support-reply/index.ts | outcome_recorded: !failedPartWay && outcomeOk } | outcome_recorded: !failedPartWay }
  * @mutate supabase/functions/admin-support-reply/index.ts |           ...(emailResult.ok ? {} : { email_skip_reason: 'not_queued' }), |
  * @mutate supabase/functions/admin-support-reply/index.ts |       if (notificationId) await recordOutcome({ notification_id: notificationId }, 'notice') |

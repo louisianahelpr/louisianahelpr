@@ -16,6 +16,13 @@
  * `?gift=success`, `?pro=success`…) describe the signed-in account's own
  * purchase and are not in the class.
  *
+ * A declutter order is not a job: `/declutter?view=cart&paid=1&order=${id}`
+ * (declutter-checkout, 2026-10-30) names an order, and its page picks that
+ * order only from the signed-in viewer's OWN buyer lines (justPaidOrder's
+ * `my_side === "buyer"` filter over fetchMyCart), so another account finds
+ * nothing to claim. OWNER_CHECK names that check per param; every other param
+ * still needs isJobPoster(). Behaviour: src/test/whatNextDeclutter82.test.tsx.
+ *
  * Behaviour (another account sees no claim, the poster still does) is pinned
  * in src/pages/post-job/PaymentSuccess.test.tsx and
  * src/pages/home/useBoostReturn.test.tsx.
@@ -54,6 +61,13 @@ for (const f of edgeFiles) {
   }
 }
 
+/** The ownership check a page must make in code before it claims a payment for the id in this param. */
+const OWNER_CHECK: Record<string, RegExp> = {
+  // A declutter order: resolved only among the viewer's own buyer lines (justPaidOrder).
+  order: /my_side === "buyer"/,
+};
+const ownerCheck = (param: string) => OWNER_CHECK[param] ?? /\bisJobPoster\(/;
+
 const srcFiles = trackedFiles("src").filter((f) => /\.tsx?$/.test(f) && !/\.(test|spec)\.tsx?$/.test(f));
 const consumers = (param: string) =>
   srcFiles.filter((f) => blankComments(read(f)).includes(`.get("${param}")`));
@@ -78,9 +92,13 @@ describe("checkout returns that name a job claim the payment only to its poster"
   it("every page that reads one checks the viewer is the job's poster", () => {
     const unchecked = [...params.keys()].flatMap((p) =>
       consumers(p)
-        .filter((f) => !/\bisJobPoster\(/.test(blankComments(read(f))))
-        .map((f) => `${f} reads ?${p}= (sent by ${params.get(p)!.join(", ")}) without isJobPoster()`),
+        .filter((f) => !ownerCheck(p).test(blankComments(read(f))))
+        .map((f) => `${f} reads ?${p}= (sent by ${params.get(p)!.join(", ")}) without ${ownerCheck(p)}`),
     );
     expect(unchecked).toEqual([]);
+  });
+
+  it("every OWNER_CHECK exception names a param a success_url really sends (no stale entry)", () => {
+    expect(Object.keys(OWNER_CHECK).filter((p) => !params.has(p))).toEqual([]);
   });
 });

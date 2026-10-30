@@ -999,6 +999,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeMode.ts";`,
   );
 
+  // Shipping rates (S2, ship-rates): `_shared/easypostRates.ts` has ZERO imports
+  // and no Deno APIs (pure request/response shaping), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/easypostRates\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/easypostRates.ts";`,
+  );
+
   // Hidden feature switch (Declutter, slice 3b): `_shared/featureSwitch.ts`
   // imports only caughtMessage, so the REAL fail-closed gate serves; the
   // decision itself is the `feature_enabled_for_user` rpc the scenario answers.

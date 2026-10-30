@@ -230,7 +230,7 @@ serve(async (req) => {
         const { data: noticeRows, error: noticeError } = await admin
           .from('notifications')
           .insert({
-            user_id: memberId,
+            user_id: memberId, // the ticket's reporter, never an id from the request
             title: 'Louisiana Helpr Team replied',
             message: subject ? `About "${subject}": ${message}` : message,
             type: 'info',

@@ -122,6 +122,27 @@ function setNavigator(overrides: Partial<Navigator>) {
 }
 
 describe("ShareJobButton", () => {
+  // @mutate src/components/jobs/ShareJobButton.tsx | job.budget != null && isGiveawayFixedPayJob(job) | false
+  it("shares the giveaway at the $50 its page shows, and any other job at its budget", async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "share", { value: shareMock, configurable: true, writable: true });
+    try {
+      const giveaway = { ...job, budget: 60, helper_fee_flat_cents: 700, helper_fee_percent: 5 };
+      const { unmount } = render(<ShareJobButton job={giveaway} />);
+      fireEvent.click(screen.getByRole("button"));
+      await waitFor(() => expect(shareMock).toHaveBeenCalledTimes(1));
+      expect(shareMock.mock.calls[0][0].text).toContain("· $50 ·");
+      expect(shareMock.mock.calls[0][0].text).not.toContain("$60");
+      unmount();
+      render(<ShareJobButton job={{ ...giveaway, helper_fee_flat_cents: 70 }} />);
+      fireEvent.click(screen.getByRole("button"));
+      await waitFor(() => expect(shareMock).toHaveBeenCalledTimes(2));
+      expect(shareMock.mock.calls[1][0].text).toContain("· $60 ·");
+    } finally {
+      delete (navigator as unknown as { share?: unknown }).share;
+    }
+  });
+
   it("renders a Share button labelled for accessibility", () => {
     render(<ShareJobButton job={job} />);
     // jsdom has no navigator.share: the button reads "Copy link".

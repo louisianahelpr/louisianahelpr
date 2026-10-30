@@ -48,6 +48,7 @@ import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 // Board 188's category counts are a react-query read behind a hidden switch; off here, as for most members.
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/pages/posts/postedJobs/useApplicantCategoryCounts", () => ({ useApplicantCategoryCounts: () => null }));
 // The paid-tier badge reads the memberships switch (usePaidTierBadge); not what this test is about.
 vi.mock("@/hooks/usePaidTierBadge", () => ({ usePaidTierBadge: () => () => null }));

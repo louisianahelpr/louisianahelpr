@@ -13,6 +13,7 @@ import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) } },

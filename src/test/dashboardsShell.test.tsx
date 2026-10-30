@@ -48,6 +48,7 @@ const noTodos = vi.hoisted(() => ({ on: false }));
 // Boards 83/165: what Home's posted jobs are instead of the two to-dos.
 const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));
 // Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
 // Board 189's first-job Home has its own reads (applications); this file is about the shell.
 vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));

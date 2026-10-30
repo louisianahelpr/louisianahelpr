@@ -26,6 +26,7 @@ import { MemoryRouter } from "react-router-dom";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES, skillChipLabel, type JobCategory } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, SKILL_GROUPS, groupTileLabel } from "@/lib/jobCategoryGroups";
 
+vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/hooks/useParishForZip", () => ({ useParishForZip: () => ({ parish: null, unknownZip: false }), UNKNOWN_ZIP_MESSAGE: "x" }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));

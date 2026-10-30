@@ -130,6 +130,9 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     onSuccess: () => { toast.success("Refund request taken back."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  // Audit 2026-10-30 DB-11: "Take it back" ended the request in one tap. It asks first, in Declutter's one confirm
+  // style, and says what follows: declutter_ask_refund refuses a second request on the same sale (measured live).
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const r = v.request;
   if (!r) {
     if (!v.can_ask) return null;
@@ -173,7 +176,19 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2">
           <p className="text-sm">You asked for a refund. {cap(who)} answers by {at(r.answer_by)}, or Louisiana Helpr decides.</p>
-          <button type="button" className={btn} disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</button>
+          <button type="button" className={btn} disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button>
+          <ConfirmSheet
+            open={confirmWithdraw}
+            pending={withdraw.isPending}
+            title="Take back your refund request?"
+            confirmLabel={withdraw.isPending ? "Taking it back…" : "Take it back"}
+            cancelLabel="Keep my request"
+            onConfirm={() => withdraw.mutate(undefined, { onSettled: () => setConfirmWithdraw(false) })}
+            onClose={() => setConfirmWithdraw(false)}
+            testId="refund-withdraw"
+          >
+            {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`}
+          </ConfirmSheet>
         </div>
       );
     case "offered":

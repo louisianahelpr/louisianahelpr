@@ -742,7 +742,7 @@ async function fetchBookCard(id: string): Promise<BookLookup> {
   }
 }
 
-export const BOOK_ROBOTS = "noindex, follow";
+const BOOK_ROBOTS = "noindex, follow";
 const BOOK_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
 
 function bookTrust(stats: BookStats | null): string {
@@ -767,7 +767,7 @@ function unavailableBookMeta(url: string): Meta {
   };
 }
 
-export async function metaForBook(id: string, url: string): Promise<Meta | null> {
+async function metaForBook(id: string, url: string): Promise<Meta | null> {
   if (!UUID_RE.test(id)) return unavailableBookMeta(url);
   const lookup = await fetchBookCard(id);
   if (lookup.state === "unknown") return null;
@@ -801,7 +801,7 @@ export async function metaForBook(id: string, url: string): Promise<Meta | null>
  * humanised, the price only as whole dollars in range. Mirrors
  * src/lib/matchmakerLink.ts (which this server file cannot import).
  */
-export function metaForMatchmaker(params: URLSearchParams): Meta {
+function metaForMatchmaker(params: URLSearchParams): Meta {
   const what = clean(params.get("t"), 80) || humaniseCategory(params.get("cat"));
   const town = clean(params.get("town"), 60);
   const priceRaw = params.get("price") ?? "";

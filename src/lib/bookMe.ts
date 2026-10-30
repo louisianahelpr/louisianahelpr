@@ -14,7 +14,7 @@
  * nothing; it is not the referral program.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { copyToClipboard, shareNative, type ShareOutcome } from "@/lib/nativeShare";
+import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
@@ -34,7 +34,7 @@ export function bookMeLink(userId: string): string {
 }
 
 /** Post a job with a direct offer to this Helpr already set. */
-export function bookOfferPath(userId: string): string {
+function bookOfferPath(userId: string): string {
   return `/post-job?offerTo=${encodeURIComponent(userId)}`;
 }
 
@@ -64,11 +64,6 @@ export function shareBookMe(userId: string, firstName: string): Promise<ShareOut
     url: bookMeLink(userId),
     dialogTitle: "Share your booking link",
   });
-}
-
-/** Copy just the link. */
-export function copyBookMeLink(userId: string): Promise<boolean> {
-  return copyToClipboard(bookMeLink(userId));
 }
 
 /* ---------------- the public card ---------------- */
@@ -127,7 +122,7 @@ export function rememberBookingSource(helprId: string): void {
 }
 
 /** Read and clear. Destructive on purpose: one landing records at most once. */
-export function takeBookingSource(): string | null {
+function takeBookingSource(): string | null {
   const raw = safeStorage.getItem(SOURCE_KEY);
   if (raw !== null) safeStorage.removeItem(SOURCE_KEY);
   return isBookId(raw) ? raw : null;

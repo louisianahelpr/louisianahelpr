@@ -117,7 +117,7 @@ BEGIN
   END IF;
   v_order := split_part(p_name, '/', 4)::uuid;
   IF p_write THEN
-    -- A return photo (20261030043920): into your own folder, only while the order's refund request is returning.
+    -- A return photo (20261030071818): into your own folder, only while the order's refund request is returning.
     IF split_part(p_name, '/', 3) = 'return' THEN
       RETURN split_part(p_name, '/', 1) = v_uid::text
          AND EXISTS (SELECT 1 FROM public.declutter_orders o

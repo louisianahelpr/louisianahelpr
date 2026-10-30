@@ -568,14 +568,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
       // D2-5 (20261029224147): + admin_decided (the request ended with an admin decision); still reads the settled refund row's amount and status only.
       // D2-3 (20261029225634): + the request's photo_paths; still reads the settled refund row's amount and status only.
-      // Returns (20261030043920) add the return fields (way, day, time, collect address, drop-off time); still no write.
-      declutter_refund_request_view: "20261030043920_declutter_returns.sql 45d58a5152dd88ba",
+      // Returns (20261030071818) add the return fields (way, day, time, collect address, drop-off time); still no write.
+      declutter_refund_request_view: "20261030071818_declutter_returns.sql 45d58a5152dd88ba",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
       declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
-      // Returns (20261030043920, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
-      declutter_return_dropped_off: "20261030043920_declutter_returns.sql 9c5c6f84b76cb85b",
-      // Returns (20261030043920, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the collect address only).
-      declutter_set_return_address: "20261030043920_declutter_returns.sql 43bb0b4a006506dd",
+      // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
+      declutter_return_dropped_off: "20261030071818_declutter_returns.sql 9c5c6f84b76cb85b",
+      // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the collect address only).
+      declutter_set_return_address: "20261030071818_declutter_returns.sql 43bb0b4a006506dd",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee

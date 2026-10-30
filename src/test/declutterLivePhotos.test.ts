@@ -1,6 +1,6 @@
 /**
  * Audit DC-8 / Q2476: a live Declutter listing's photos can be changed, and a change follows the big-edit rule
- * (20261030043553): hidden for the automatic re-check, open offers stay open and their buyers are told; a flagged
+ * (20261030071816): hidden for the automatic re-check, open offers stay open and their buyers are told; a flagged
  * listing, a paused or sold one and the last photo are refused. Read from the NEWEST definitions, so a later
  * restatement that goes back to drafts only, skips the re-check, lets a flag be washed off by a photo swap, or lets
  * the last photo go fails here.

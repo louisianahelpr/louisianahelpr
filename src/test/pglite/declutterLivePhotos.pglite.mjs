@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261030061927_declutter_live_listing_photos (audit DC-8 / Q2476): a live listing's photos can be
- * added and removed; a change sends it to the automatic re-check the way a big edit does (20261030043553), its open
+ * added and removed; a change sends it to the automatic re-check the way a big edit does (20261030071816), its open
  * offers stay open and their buyers are told; a flagged listing, another seller's listing and the last photo are
  * refused.
  *
@@ -10,7 +10,7 @@
  *
  * The baseline is the EFFECTIVE prod state (pg_get_functiondef, 2026-10-30): the photo functions verbatim from their
  * newest repo file (20261014193955, identical to prod), the photo trigger from 20261014200728, and the functions
- * 20261030043553 restates (loaded from their pre-20261030043553 files, then 20261030043553 itself), so the re-check
+ * 20261030071816 restates (loaded from their pre-20261030071816 files, then 20261030071816 itself), so the re-check
  * that puts a clean listing back live is the real one. Stubs as in declutterLiveOnPost.pglite.mjs.
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  */
@@ -44,7 +44,7 @@ const PROD_BEFORE = [
   `CREATE TRIGGER trg_declutter_photos_void_ai_check AFTER INSERT OR DELETE ON public.declutter_item_photos
      FOR EACH ROW EXECUTE FUNCTION public.declutter_photos_void_ai_check();`,
 ].join("\n");
-const LIVE_ON_POST = readFileSync(MIG + "20261030043553_declutter_live_on_post.sql", "utf8");
+const LIVE_ON_POST = readFileSync(MIG + "20261030071816_declutter_live_on_post.sql", "utf8");
 
 let failures = 0;
 const check = (name, ok, detail = "") => {

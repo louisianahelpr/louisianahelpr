@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030043920_declutter_returns.sql (Declutter returns: how a full-refund item gets back to the seller; builder 37's
+ * PGlite proof for 20261030071818_declutter_returns.sql (Declutter returns: how a full-refund item gets back to the seller; builder 37's
  * design, approved by the lead 2026-10-29; owner: refunds for problems only, and only the two free ways back).
  * On the refund-request chain (20261026155251 + 20261027171453); the new migration is applied 3 times.
  *
@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const REFUND_FILE = "20261026155251_declutter_refund_requests.sql";
-const NEW_FILE = "20261030043920_declutter_returns.sql";
+const NEW_FILE = "20261030071818_declutter_returns.sql";
 const LIVE_FILE = "20261029002010_declutter_handover_photos_live_only.sql";
 const SETUP_FEE_FILE = "20261026154738_declutter_setup_fee_once.sql";
 const DECIDE_BASE = "20261029000048_declutter_false_report_strike.sql";

@@ -34,8 +34,8 @@ describe("payout setup only when money is owed", () => {
     for (const n of ["declutter_relist_listing", "shops_assert_owner_eligible", "shop_owner_sell_block_reason"]) {
       expect(newestFunction(n).file, n).toContain("20261027163240");
     }
-    // Restated by item B (live on post, 20261030043553), which keeps this file's no-payout-gate body.
-    expect(newestFunction("declutter_publish_item").file).toContain("20261030043553");
+    // Restated by item B (live on post, 20261030071816), which keeps this file's no-payout-gate body.
+    expect(newestFunction("declutter_publish_item").file).toContain("20261030071816");
     // Restated by the review notice (Q2414), which keeps this file's no-payout-gate body.
     // Restated again by the audit-3 notices (20261028200440: "live" now links ?tab=selling), the same no-payout-gate body.
     expect(newestFunction("declutter_admin_review_item").file).toContain("20261028200440");

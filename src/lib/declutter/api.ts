@@ -822,7 +822,7 @@ export async function reviewListing(itemId: string, approve: boolean, note: stri
 }
 
 /**
- * Item B (owner 2026-10-29, 20261030043553): an admin takes a reported listing down. The server closes its open
+ * Item B (owner 2026-10-29, 20261030071816): an admin takes a reported listing down. The server closes its open
  * offers (buyers told), tells the seller the reason, resolves the report and logs the report id.
  */
 export async function takeDownListing(itemId: string, note: string, reportId: string | null): Promise<string> {
@@ -833,7 +833,7 @@ export async function takeDownListing(itemId: string, note: string, reportId: st
 
 export type ReportedListing = { item_id: string; title: string; seller_id: string; status: DeclutterStatus; is_seed: boolean };
 
-/** The reports queue's names for reported listings, whatever their status (admin only, 20261030043553). */
+/** The reports queue's names for reported listings, whatever their status (admin only, 20261030071816). */
 export async function fetchReportedListings(itemIds: string[]): Promise<ReportedListing[]> {
   if (!itemIds.length) return [];
   const res = await supabase.rpc("declutter_admin_reported_items", { p_item_ids: itemIds });

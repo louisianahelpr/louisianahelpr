@@ -3,7 +3,7 @@
  * Audit DA-1 (2026-10-30): Declutter search matches every WORD, in the title, description or category, with simple
  * plurals folded, in Browse AND in the saved-search alerts and "N new" counts.
  *
- * Runs 20261030043900_declutter_search_words.sql VERBATIM (3x) on a prod-shaped fixture, then:
+ * Runs 20261030071817_declutter_search_words.sql VERBATIM (3x) on a prod-shaped fixture, then:
  *   1. public.declutter_search_matches agrees with Browse's TypeScript rule (src/lib/declutter/searchMatch.ts,
  *      imported here) on every case in CASES, including the audit's three misses ("mug blue", "mugs", "kitchen");
  *   2. a saved Declutter search "mug blue" counts the "Blue coffee mug" listing as 1 new, and "mugs" alerts its
@@ -22,7 +22,7 @@ import { matchesSearch } from "../../lib/declutter/searchMatch.ts";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const NEW_FILE = "20261030043900_declutter_search_words.sql";
+const NEW_FILE = "20261030071817_declutter_search_words.sql";
 const RED = process.env.NEW_MIGRATION === "skip";
 if (RED) console.log("NEW_MIGRATION=skip: running the PREVIOUS definitions (expect FAILs)");
 

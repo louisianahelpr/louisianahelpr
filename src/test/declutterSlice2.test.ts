@@ -8,7 +8,7 @@
  * (66 PASS; NEW_MIGRATION=skip 52 FAIL; 19 planted defects each caught,
  * measured 2026-10-14).
  *
- * @mutate supabase/migrations/20261030043553_declutter_live_on_post.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
+ * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos p WHERE p.storage_path = objects.name)\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND (storage.foldername(name))[2] = 'declutter'\n | \n
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF v_seller = v_uid THEN | IF false THEN
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
- * @mutate supabase/migrations/20261030043553_declutter_live_on_post.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
+ * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     NEW.is_seed := true;\n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller | \n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller
  */
 import { describe, expect, it } from "vitest";
@@ -67,7 +67,7 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
   });
 
   it("publish keeps an unchecked or AI-flagged listing for an admin (row 34, B19)", () => {
-    // Item B (owner 2026-10-29, 20261030043553): the "first 3 listings" rule (row 33) is gone; only the check holds.
+    // Item B (owner 2026-10-29, 20261030071816): the "first 3 listings" rule (row 33) is gone; only the check holds.
     expect(flat(body("declutter_publish_item"))).toContain(
       "v_status := CASE WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;",
     );

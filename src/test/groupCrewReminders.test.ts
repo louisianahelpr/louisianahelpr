@@ -27,13 +27,13 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |       AND j.is_group_job IS TRUE\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS | AND false\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |          OR (j.is_group_job IS TRUE\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS |          OR (false\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
-// @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
-// @mutate supabase/migrations/20261021074131_id_badge_reads_stripe_identity_only.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
-// @mutate supabase/migrations/20261021074131_id_badge_reads_stripe_identity_only.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
 // @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
-// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
-// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
 // @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
@@ -98,11 +98,15 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261015051301 (Declutter row 45) adds Declutter reviews to visible_reviews only.
       // 20261021074131 (ID badge = Stripe Identity only) changes the identity verdict only.
       // 20261029173937 (A2-C40) restates sweep_no_show_alerts with its copy only (the start time, "Helpr").
+      // 20261030015205 (b62) restates get_public_profile_stats and get_helper_completed_counts with the
+      // test-data exclusion only (test data never counts in any number).
       const want = fn === "get_public_profile_stats"
-        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql"]
+        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql"]
         : fn === "sweep_no_show_alerts"
           ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql"]
-          : [THIS];
+          : fn === "get_helper_completed_counts"
+            ? [THIS, "20261030015205_test_data_never_counts.sql"]
+            : [THIS];
       expect(want, `${fn} is not the Q728 (or Q731/Q552) definition`).toContain(EFFECTIVE.get(fn)?.file);
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
@@ -116,6 +120,8 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(
         fn === "settle_one_off_jobs_for_banned_account" ? Q2093
           : fn === "get_helper_earnings_export" ? Q2082B
+          // b62 (20261030015205) restates tiers and neighbours with the test-data exclusion only.
+          : fn === "get_helper_tiers" || fn === "get_neighbor_hire_count" ? "20261030015205_test_data_never_counts.sql"
           : CREW_COUNTS,
       );
     }
@@ -125,7 +131,7 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     const stats = body("get_public_profile_stats");
     // One `worked` set, single jobs UNION the member's crew jobs with their own
     // roster arrival; timing and repeat-client both read only it.
-    expect(stats).toMatch(/worked AS \([\s\S]*JOIN public\.jobs j ON j\.helper_id = t\.user_id AND j\.status = 'completed'\s+UNION ALL[\s\S]*g\.helper_arrived_at[\s\S]*JOIN public\.group_job_helpers g ON g\.helper_id = t\.user_id\s+JOIN public\.jobs j ON j\.id = g\.job_id AND j\.is_group_job IS TRUE AND j\.status = 'completed'/);
+    expect(stats).toMatch(/worked AS \([\s\S]*JOIN public\.jobs j ON j\.helper_id = t\.user_id AND j\.status = 'completed'[^;]*?UNION ALL[\s\S]*g\.helper_arrived_at[\s\S]*JOIN public\.group_job_helpers g ON g\.helper_id = t\.user_id\s+JOIN public\.jobs j ON j\.id = g\.job_id AND j\.is_group_job IS TRUE AND j\.status = 'completed'/);
     const timing = stats.slice(stats.indexOf("timing AS ("), stats.indexOf("timing_agg AS ("));
     const repeat = stats.slice(stats.indexOf("repeat_clients AS ("), stats.indexOf("repeat_agg AS ("));
     for (const [name, cte] of [["timing", timing], ["repeat_clients", repeat]] as const) {

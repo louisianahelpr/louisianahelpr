@@ -12,7 +12,7 @@
  * bodies md5-checked, 3x replay, RED before it and on 6 planted defects; the tip line shown exactly when
  * helpr_task_tip_start takes a tip).
  */
-// @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr left your item at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
+// @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr left your item at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
 // @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql | THEN ' You can add a tip for your Helpr in Buying.' ELSE '' END | THEN '' ELSE '' END
 // @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |        AND NOT public.are_users_blocked(o.buyer_id, t.helpr_id)\n |
 // @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |     format('The handover of %s is done. ', public.declutter_order_items_named(o.id)) \|\|\n |

@@ -287,6 +287,9 @@ ROUTE_ROOTS.push({ label: "components/feedback/SuccessMomentHost", name: "Succes
 // guest landing's footer links, so guest `/` fetched this page's closure once
 // it settled. Its sliding tab pill and panel fade carried framer-motion.
 ROUTE_ROOTS.push({ label: "pages/info/Legal", name: "Legal" });
+// Mounted beside every signed-in page (App.tsx): each once carried all of signed-in-deep onto every first screen.
+ROUTE_ROOTS.push({ label: "components/TermsReconsentDialog", name: "TermsReconsentDialog" });
+ROUTE_ROOTS.push({ label: "components/declutter/DeliveryOnlinePill", name: "DeliveryOnlinePill" });
 if (ROUTE_ROOTS.length < 8) {
   fail(`read only ${ROUTE_ROOTS.length} first-screen roots from routePreload.ts (expected 8+). The scan is blind; fix it.`);
 }

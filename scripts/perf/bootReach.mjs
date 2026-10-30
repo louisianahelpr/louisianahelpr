@@ -115,6 +115,10 @@ export const EVERY_PAGE_ROOTS = [
   "src/components/ScrollToTop.tsx",
   "src/components/feedback/SuccessMomentHost.tsx",
   "src/pages/info/Legal.tsx",
+  // Both mount beside every signed-in page. Left out, each pulled all of signed-in-deep (33 KB gz) onto every signed-in
+  // first screen: measured on /declutter, 2026-10-30.
+  "src/components/TermsReconsentDialog.tsx",
+  "src/components/declutter/DeliveryOnlinePill.tsx",
 ];
 
 /** Every first screen: each page in ENTRY_ROUTE_CHUNKS (guest and signed in), protectedRoute, EVERY_PAGE_ROOTS. */

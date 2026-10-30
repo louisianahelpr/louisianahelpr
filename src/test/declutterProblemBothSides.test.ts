@@ -15,7 +15,7 @@
  *
  * @mutate supabase/migrations/20261030134109_declutter_take_back_problem_report.sql |     RAISE EXCEPTION 'problem_already_open' USING ERRCODE = '55000',\n      HINT = 'A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.';\n | RETURN v_id;\n
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |   IF p.reporter_id IS NOT DISTINCT FROM v_uid OR p.reporter_side = v_side THEN | IF false THEN
- * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |  COALESCE(r.photo_paths, '{}'))\n    RETURNING id INTO v_problem; |  '{}')\n    RETURNING id INTO v_problem;
+ * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |  COALESCE(r.photo_paths, '{}'))\n    RETURNING id INTO v_problem; |  '{}')\n    RETURNING id INTO v_problem;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |                            OR (split_part(p_name, '/', 3) = 'problem' AND o.status = 'handed_over' |                            OR (o.status = 'handed_over'
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', COALESCE(p_photo_paths, '{}')) |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', '{}')
  */

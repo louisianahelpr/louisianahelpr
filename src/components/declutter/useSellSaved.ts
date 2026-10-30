@@ -10,6 +10,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { fetchItem, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import type { BunchPhoto } from "@/lib/declutter/bunch";
 import { SELL_ONE_KEY, deviceStore, type SavedPhotos } from "@/lib/declutter/bunchSaved";
+import type { AiMemory } from "./SellAiDraft";
 import type { FormState } from "./sellForm";
 import { useDeviceSaved } from "./useDeviceSaved";
 
@@ -21,6 +22,10 @@ export interface SellOneWork {
   keepUpWanted: boolean;
   autoFreeWanted: number | null;
   createdId: string | null;
+  /** What the AI wrote and what the seller changed, so Write it again still keeps their edits after a reload. */
+  aiMemory: AiMemory | null;
+  /** The size came from the AI or the seller, so it isn't asked for again. */
+  sizeKnown: boolean;
 }
 type SavedSellOne = SavedPhotos & SellOneWork;
 
@@ -53,7 +58,7 @@ export function useSellSaved(
     store,
     userId,
     snapshot: { ...work, photos },
-    watch: [form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, photos],
+    watch: [form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, work.sizeKnown, photos],
     plan: ({ photos: keep, ...rest }) => {
       const empty = keep.length === 0 && !rest.createdId && !rest.form.title.trim() && !rest.form.description.trim() && !rest.form.price.trim();
       return finished.current || empty ? null : { photos: keep, meta: rest };
@@ -85,6 +90,8 @@ export function useSellSaved(
         keepUpWanted: saved.keepUpWanted,
         autoFreeWanted: saved.autoFreeWanted,
         createdId: draftId,
+        aiMemory: saved.aiMemory,
+        sizeKnown: saved.sizeKnown,
         held: back.map((p) => p.file),
       });
     },

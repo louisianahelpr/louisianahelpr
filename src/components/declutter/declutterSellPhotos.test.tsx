@@ -45,7 +45,7 @@ const aiAnswer = {
   hold: false,
   release: null as null | (() => void),
   // Photo coach (owner 2026-10-29): a test may add a cover pick and a photo tip.
-  extra: {} as { coverPhoto?: number; photoTip?: string },
+  extra: {} as { coverPhoto?: number; photoTip?: string; description?: string },
   next(): Promise<typeof DRAFT> {
     const d = { ...DRAFT, ...this.extra };
     if (!this.hold) return Promise.resolve(d);
@@ -321,6 +321,62 @@ describe("photo-first selling, one screen", () => {
     });
   });
 
+  // Audit posting 1030 #6: Write it again wiped what the seller had corrected.
+  // @mutate src/components/declutter/SellAiDraft.tsx |   const theirs = AI_KEYS.filter((k) => before.theirs.includes(k) \|\| current[k] !== before.base[k]); |   const theirs = AI_KEYS.filter((k) => before.theirs.includes(k) && current[k] !== before.base[k]);
+  it("Write it again keeps what the seller changed and fills the rest", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "My grandmother's dresser" } });
+    fireEvent.click(screen.getByRole("button", { name: "Done title" }));
+    aiAnswer.extra = { description: "Rewritten words." };
+    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+    await waitFor(() => expect(rowValue("description")).toBe("Rewritten words."));
+    expect(rowValue("title")).toBe("My grandmother's dresser");
+    // And again: still theirs.
+    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+    await waitFor(() => expect(aiCalls).toHaveLength(3));
+    await screen.findByRole("button", { name: "Write it again" });
+    expect(rowValue("title")).toBe("My grandmother's dresser");
+  });
+
+  // Audit posting 1030 #7: tapping Post while the AI wrote said "Give the item a name".
+  // @mutate src/components/declutter/SellOneScreen.tsx |     if (writing) {\n      setTried(false); |     if (false) {\n      setTried(false);
+  // @mutate src/components/declutter/SellOneScreen.tsx |   const writing = s.ai.state.status === "busy"; |   const writing = false;
+  it("Post while the AI is writing says so, and posts by itself when it finishes", async () => {
+    aiAnswer.hold = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We're writing your listing…");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(await screen.findByText("Still writing your listing. It posts when that's done.")).toBeInTheDocument();
+    expect(screen.queryByTestId("sell-form-problem")).toBeNull();
+    expect(calls).toEqual([]);
+    aiAnswer.release!();
+    await screen.findByTestId("landed");
+    expect(calls).toContain("publish");
+  });
+
+  it("Post while the AI is writing still says what is really missing, and Don't post yet stops it", async () => {
+    aiAnswer.hold = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We're writing your listing…");
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect((await screen.findByTestId("sell-form-problem")).textContent).not.toMatch(/name of at least/);
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Don't post yet" }));
+    aiAnswer.release!();
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(calls).not.toContain("publish");
+  });
+
   // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.
   // @mutate src/components/declutter/useSellFlowState.ts |           await cleanListingPhoto(f);\n |           void cleanListingPhoto;\n
   it("a photo this device can't prepare is said when it is added, by name, and isn't counted", async () => {
@@ -485,14 +541,20 @@ describe("photo-first selling, one screen", () => {
     expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
     expect(document.querySelector("[data-ai-title]")).toHaveTextContent(DRAFT.title);
     expect(document.querySelector("[data-ai-price]")).toHaveTextContent(`Suggested price: $45 · ${DRAFT.priceReason}`);
-    // Adding more photos does not run it again by itself...
+    // Audit posting 1030 #10: a photo added afterwards is read too, by itself, from every photo now held.
+    // @mutate src/components/declutter/SellAiDraft.tsx |     if (photosAdded > readPhotos.current && readPhotos.current < AI_DRAFT_PHOTOS) void run(false); |     void readPhotos;
+    aiAnswer.hold = false;
     addPhotos("c.jpg");
     await screen.findByText(/^3 of 12/);
-    expect(aiCalls).toHaveLength(1);
-    // ...but "Write it again" does, from every photo now held.
-    aiAnswer.hold = false;
-    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
     await waitFor(() => expect(aiCalls).toEqual([["a.jpg", "b.jpg"], ["a.jpg", "b.jpg", "c.jpg"]]));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    // Past what the AI reads (4 photos), it isn't asked again.
+    addPhotos("d.jpg");
+    await waitFor(() => expect(aiCalls).toHaveLength(3));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    addPhotos("e.jpg");
+    await screen.findByText(/^5 of 12/);
+    expect(aiCalls).toHaveLength(3);
     // What Claude wrote shows as the summary rows, each the seller's to edit in place.
     expect(rowValue("title")).toBe(DRAFT.title);
     expect(rowValue("description")).toBe(DRAFT.description);

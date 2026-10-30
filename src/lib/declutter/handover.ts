@@ -71,7 +71,7 @@ export async function fetchMyBookings(orderIds: string[]): Promise<MyBooking[]> 
 
 /** D-NEW11: the buyer tells the seller they're coming, on the pickup day. It only sends a notice. */
 export async function onMyWay(orderId: string): Promise<"on_way" | "already"> {
-  return data<"on_way" | "already">(await supabase.rpc("declutter_on_my_way", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_on_my_way", e));
+  return rpcData(await supabase.rpc("declutter_on_my_way", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_on_my_way", e)) as "on_way" | "already";
 }
 
 /** The seller's payout rows (row 93): what was paid, minus any card-fee debt. */

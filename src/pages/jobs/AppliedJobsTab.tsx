@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Application, type AppliedApp, type Job } from "../../components/job-card/activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
+import { EmptyJobsWaysOut } from "./EmptyJobsWaysOut";
 import { ActivityBucketGroups, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { PagedActivityList } from "@/components/job-card/PagedActivityList";
 import { appliedActivityBucket } from "@/components/job-card/activityFilters";
@@ -308,6 +309,8 @@ export const AppliedJobsTab = ({
               >
                 Browse open jobs near you and apply — they&apos;ll collect here as you go.
               </p>
+              {/* UX-4 (owner 2026-10-29): your Book me link and job alerts, beside Browse. */}
+              <EmptyJobsWaysOut userId={userId} />
             </>
           }
         />

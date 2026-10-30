@@ -18,7 +18,7 @@
  * @mutate src/lib/declutter/bunch.ts |   if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED)); |   void unplaced;
  * @mutate src/lib/declutter/bunch.ts |           made = giveUp(good, cleaned, error); |           void good;
  * @mutate src/lib/declutter/bunch.ts |     onProgress(i + 1, batches.length, made); |     onProgress(i + 1, batches.length, []);
- * @mutate src/lib/declutter/bunch.ts |         made = itemsFromAnswer(await ask(cleaned), good); |         made = itemsFromAnswer(await ask(batch.map((p) => p.file)), batch);
+ * @mutate src/lib/declutter/bunch.ts | withRetries(() => spacedAsk(cleaned), { delays, | withRetries(() => spacedAsk(part.map((p) => p.file)), { delays,
  * @mutate src/lib/declutter/bunch.ts |         unusable.push({ key: p.key, name: p.file.name, error });\n      }\n    }\n    let made |         throw error;\n      }\n    }\n    let made
  * @mutate src/lib/declutter/bunch.ts |   const reworded = "title" in patch \|\| "description" in patch; |   const reworded = false;
  * @mutate src/lib/declutter/bunch.ts |   const kept = photos.filter((p) => held.has(p.key)); |   const kept = photos;

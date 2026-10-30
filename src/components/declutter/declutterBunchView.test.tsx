@@ -14,7 +14,7 @@
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null) |       ?? null
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.flagged && ( |       {false && (
- * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => [...its, ...made]); |         void made;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" "); |       const note = notSorted;
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | alt="" loading="lazy" decoding="async" | alt=""

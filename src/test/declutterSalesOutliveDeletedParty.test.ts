@@ -12,7 +12,7 @@
 // @mutate supabase/migrations/20261021204947_declutter_sales_outlive_a_deleted_party.sql | REVOKE ALL ON FUNCTION public.declutter_scrub_member(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_scrub_member(uuid) FROM PUBLIC, anon;
 // @mutate supabase/functions/_shared/accountPurge.ts | !banRetained \|\| !declutterScrubbed) { | !banRetained) {
 // @mutate supabase/functions/_shared/accountPurge.ts |   const declutterScrubbed = await scrubDeclutterSales(admin, userId, steps); |   const declutterScrubbed = true;
-// @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |     LEFT JOIN public.declutter_items i ON i.id = c.item_id |     JOIN public.declutter_items i ON i.id = c.item_id
+// @mutate supabase/migrations/20261030064929_declutter_buy_now_no_strike.sql |     LEFT JOIN public.declutter_items i ON i.id = c.item_id |     JOIN public.declutter_items i ON i.id = c.item_id
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

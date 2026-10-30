@@ -1,118 +1,48 @@
 /**
- * "Buy now" as an in-app sheet, never a browser confirm() (lead walkthrough 2026-10-28; boards 159/160 did the same
- * for the handover moments). WHAT buying does is unchanged (owner 2026-10-28: keep the 48-hour hold, so a buyer can
- * add more from the same seller and pay once; not paying in 48 hours is a strike and the item goes back up, the
- * server rule of 20261014210518). The sheet says that plainly, before and after:
- *   1. ask:      "Reserve it for 48 hours", the pickup total, "Not paid yet"; Reserve it / Not now.
- *   2. reserved: "Reserved for you", "Not paid yet", check out within 48 hours; Go to checkout / Keep browsing.
- * Members see no fee numbers (only the total), as everywhere in Declutter.
+ * The cart's hold line. Buy now used to ask in a "Reserve it for 48 hours" sheet here (with a strike warning) and then
+ * a "Reserved for you" step; audit DB-5 (owner 2026-10-30: "Buy now goes straight to checkout, with no strike for
+ * backing out before paying") removed both: Buy now now opens that seller's checkout in Buying (DeclutterOfferPanel),
+ * and a Buy now line that is never paid just goes back up (declutter_deadline_sweep, 20261030064929).
  */
-import { totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
-import { BuyerTotal } from "./BuyerTotal";
-
-export type ReserveStep = "ask" | "reserved" | null;
-
-export function ReserveSheet({
-  step,
-  title,
-  priceCents,
-  sellerId,
-  pending,
-  onReserve,
-  onClose,
-  onCheckout,
-  way = "pickup",
-}: {
-  step: ReserveStep;
-  title: string;
-  priceCents: number;
-  sellerId: string;
-  pending: boolean;
-  onReserve: () => void;
-  onClose: () => void;
-  onCheckout: () => void;
-  /** Audit 1030 DB-4: which no-delivery way the total is for (pickupWords.ts); "pickup" for an older item. */
-  way?: NoDeliveryWay;
-}) {
-  const webDesktop = useIsWebDesktop();
-  // The same read as the item page's bundle row (DeclutterBundleRow), so it is usually already in.
-  const rule = useQuery({ queryKey: ["declutter", "bundle-rule", sellerId], queryFn: () => fetchBundleRule(sellerId), enabled: step !== null });
-  const more = rule.data
-    ? "Add more from this seller first to pay once and save with their bundle discount."
-    : "Add more from this seller first to pay for them together.";
-  return (
-    <Sheet open={step !== null} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
-      <SheetContent
-        side="bottom"
-        floor={!webDesktop}
-        // An opaque surface like WhatNextSheet's: the item page must not show through the money words.
-        className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[440px]" : ""}`}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        data-reserve-sheet={step ?? ""}
-      >
-        {step === "reserved" ? (
-          <>
-            <SheetHero title="Reserved for you" />
-            <p className="text-ds-15 font-semibold text-foreground">Not paid yet.</p>
-            <p className="mt-1 text-ds-14 text-muted-foreground">
-              Check out within 48 hours. {more} If you don't check out in time, you get a strike and it goes back up for sale.
-            </p>
-            <SheetFooter className="mt-4">
-              <SheetSecondaryAction onClick={onClose}>Keep browsing</SheetSecondaryAction>
-              <SheetPrimaryAction onClick={onCheckout}>Go to checkout</SheetPrimaryAction>
-            </SheetFooter>
-          </>
-        ) : (
-          <>
-            <SheetHero title="Reserve it for 48 hours" />
-            {/* A1-C1: the strike is said before "Reserve it", not only after it. */}
-            <p className="mb-2 text-ds-14 font-semibold text-foreground" data-reserve-strike="">Check out within 48 hours, or you get a strike and it goes back up for sale.</p>
-            <dl className="mt-1 space-y-1 rounded-[20px] border border-border bg-background p-3 text-ds-14" data-reserve-bill="">
-              <div className="min-w-0">
-                <dt className="sr-only">Item</dt>
-                <dd className="truncate" title={title}>{title}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
-                <dt className="font-bold text-foreground">Total {totalPhrase(way)}</dt>
-                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={priceCents} /></dd>
-              </div>
-            </dl>
-            <p className="mt-3 text-ds-15 font-semibold text-foreground">You pay at checkout. Not paid yet.</p>
-            <p className="mt-1 text-ds-14 text-muted-foreground">
-              Your card isn't charged now. Delivery, if you choose it, is added at checkout. {more}
-            </p>
-            <SheetFooter className="mt-4">
-              <SheetSecondaryAction onClick={onClose} disabled={pending}>Not now</SheetSecondaryAction>
-              <SheetPrimaryAction onClick={onReserve} disabled={pending}>Reserve it</SheetPrimaryAction>
-            </SheetFooter>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
-}
+import { holdHasNoStrike } from "@/lib/declutter/buyNowHold";
+import type { CartLine } from "@/lib/declutter/api";
 
 /**
  * The cart's hold line for one seller's checkout (lead 2026-10-28): "Reserved for you, not paid yet" and the time
  * left, then when it must be paid by and what happens if not (the server's 48-hour rule, 20261014210518). The
  * bundle hint shows only when this seller has a bundle discount (the same read as the item page's bundle row).
+ * DB-5: when every line is Buy now or free (holdHasNoStrike), running out is no strike; a checkout holding an
+ * accepted offer keeps the strike words, because that line still carries one. And Buy now lands on
+ * ?checkout=<seller>: this seller's checkout (the section around the hold line) scrolls into view once it is shown.
  */
-export function CartHold({ sellerId, checkoutBy, allFree, timeLeft }: { sellerId: string; checkoutBy: string; allFree: boolean; timeLeft: string }) {
+export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
+  sellerId: string; checkoutBy: string; allFree: boolean; lines: readonly CartLine[]; timeLeft: string;
+}) {
   const rule = useQuery({ queryKey: ["declutter", "bundle-rule", sellerId], queryFn: () => fetchBundleRule(sellerId) });
   const by = new Date(checkoutBy).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const noStrike = holdHasNoStrike(lines);
+  const ref = useRef<HTMLDivElement>(null);
+  const [params] = useSearchParams();
+  const focused = params.get("checkout") === sellerId;
+  useEffect(() => {
+    if (focused) ref.current?.closest<HTMLElement>("[data-checkout-seller]")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [focused]);
   return (
-    <div className="space-y-0.5" data-cart-hold="">
+    <div ref={ref} className="space-y-0.5" data-cart-hold="">
       <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-15 font-semibold text-foreground">
         <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span>
         <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft}</span>
       </p>
       <p className="text-ds-13 text-muted-foreground">
-        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep). */}
-        {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.` : `Check out by ${by}. If you don't, you get a strike and the item goes back up for sale.`}
+        {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep).
+            DB-5: so does a Buy now line; only an accepted offer still carries a strike. */}
+        {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.`
+          : noStrike ? `Pay by ${by}. If you don't, it goes back up for sale. No strike.`
+            : `Check out by ${by}. If you don't, you get a strike and the item goes back up for sale.`}
         {!allFree && rule.data ? " Add more from this seller first to save with their bundle discount." : ""}
       </p>
     </div>

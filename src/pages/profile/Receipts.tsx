@@ -16,6 +16,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
 import { useFeesOwed } from "@/components/money/payoutProblems";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { fetchMyCart } from "@/lib/declutter/api";
+import { fetchMyPaidCents } from "@/lib/declutter/paidCents";
 
 /**
  * Board 177, RECEIPTS, FEES OWED, TAX FORMS (You → Money → Receipts).
@@ -31,6 +32,12 @@ import { fetchMyCart } from "@/lib/declutter/api";
  * tapped. It now names the items (from declutter_my_cart, the order card's own read, which keeps 30 days; an older
  * order keeps the plain title) and opens to its lines: items, delivery, tax, the total, and the service fee in
  * words only (owner 2026-10-25: members never see a fee name or number), with a way to the order.
+ *
+ * B96 (from B93's DB-13 note): a first purchase's one-time account setup fee is charged OUTSIDE total_cents
+ * (declutter-checkout adds it as its own Stripe line, "One-time account setup fee"), and its columns are not granted
+ * to members, so the receipt said ~$2 less than the card was charged. The figure is now the card charge from
+ * declutter_my_paid_cents (20261029161237, the read every "You paid" line uses), and the setup fee is said under the
+ * total in the cart's own words ("Includes the one-time $2 account setup fee.", board 161: never a fee line).
  */
 
 interface Receipt {
@@ -44,6 +51,8 @@ interface Receipt {
   lines?: { label: string; cents: number }[];
   /** The total holds more than the lines (the buyer's service fee), said in words only. */
   feeWords?: boolean;
+  /** The one-time account setup fee the card paid on top of the order (a first purchase), said in words under the total. */
+  setupCents?: number;
 }
 
 /** A Declutter order this member paid for (RLS: the two sides read). */
@@ -65,7 +74,12 @@ function itemsTitle(titles: readonly string[] | undefined): string {
   return titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
 }
 
-export function orderReceipts(orders: readonly PaidOrderRow[], titles: ReadonlyMap<string, string[]> = new Map()): Receipt[] {
+export function orderReceipts(
+  orders: readonly PaidOrderRow[],
+  titles: ReadonlyMap<string, string[]> = new Map(),
+  /** What the card was charged per order (declutter_my_paid_cents); null before that read is deployed. */
+  paid: ReadonlyMap<string, number> | null = null,
+): Receipt[] {
   return orders
     .filter((o) => o.paid_at && (o.status === "paid" || o.status === "handed_over" || o.status === "refunded"))
     .map((o) => {
@@ -75,16 +89,21 @@ export function orderReceipts(orders: readonly PaidOrderRow[], titles: ReadonlyM
         { label: "Shipping", cents: o.shipping_cents ?? 0 },
         { label: "Tax", cents: o.tax_cents ?? 0 },
       ].filter((l) => l.cents > 0);
+      // The service fee is what total_cents holds beyond its lines; the setup fee is what the card paid beyond total_cents.
+      const feeWords = o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0);
+      const charged = paid?.get(o.id) ?? o.total_cents;
+      const setup = Math.max(0, charged - o.total_cents);
       return {
         key: `order-${o.id}`,
         title: itemsTitle(titles.get(o.id)),
         ms: Date.parse(o.paid_at!),
         // A refund returns the order less the card fee Stripe keeps, so a refunded
         // order shows "Refunded", not a total that no longer left the card.
-        cents: o.status === "refunded" ? null : o.total_cents,
+        cents: o.status === "refunded" ? null : charged,
         note: o.status === "refunded" ? " · Refunded" : "",
         lines,
-        feeWords: o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0),
+        feeWords,
+        setupCents: setup,
       };
     });
 }
@@ -126,9 +145,17 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
   // The names only: a failed read keeps the plain title, it never hides a receipt.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!uid, staleTime: 60_000 });
   const [open, setOpen] = useState<string | null>(null);
+  // The card charge per paid order (the "You paid" lines' read and cache key). A failed read is a failed load: never a
+  // receipt $2 under what Stripe charged. Null (not deployed) falls back to total_cents.
+  const paidIds = [...new Set((orders.data ?? []).filter((o) => o.paid_at).map((o) => o.id))].sort();
+  const paid = useQuery({
+    queryKey: ["declutter", "my-paid-cents", paidIds.join(",")],
+    queryFn: () => fetchMyPaidCents(paidIds),
+    enabled: paidIds.length > 0,
+  });
 
-  const loading = spend.isLoading || orders.isLoading;
-  const failed = spend.isError || orders.isError;
+  const loading = spend.isLoading || orders.isLoading || (paidIds.length > 0 && paid.isLoading);
+  const failed = spend.isError || orders.isError || paid.isError;
 
   const receipts: Receipt[] = [];
   if (spend.data) {
@@ -144,7 +171,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       });
     }
   }
-  receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? [])));
+  receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null));
   receipts.sort((a, b) => b.ms - a.ms);
 
   const year = new Date().getFullYear();
@@ -160,7 +187,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
             variant="inline"
             title="We couldn't load your receipts."
             body="Your money is fine; the page just couldn't reach it. Tap Try again."
-            onRetry={() => { void spend.refetch(); void orders.refetch(); }}
+            onRetry={() => { void spend.refetch(); void orders.refetch(); void paid.refetch(); }}
           />
         ) : receipts.length === 0 ? (
           <p className="text-ds-13 px-1" style={quiet}>Nothing paid by card yet. Jobs and Declutter buys you pay for show here.</p>
@@ -195,6 +222,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                         )}
                       </dl>
                       {r.feeWords && <p className="text-ds-12" style={quiet}>Includes a small Louisiana Helpr service fee.</p>}
+                      {!!r.setupCents && <p className="text-ds-12" style={quiet} data-receipt-setup-fee="">Includes the one-time {formatCents(r.setupCents)} account setup fee.</p>}
                       <Link to="/declutter?view=buying" className="link-standard text-ds-13 font-medium">See the order</Link>
                     </div>
                   )}

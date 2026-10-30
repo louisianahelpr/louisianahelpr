@@ -174,6 +174,43 @@ describe("Sell a bunch survives leaving", () => {
     await waitFor(() => expect(photoEntries()).toEqual(["lh-bunch-v1-photo:ok"]));
   });
 
+  // The owner's bug, the way a page iOS closed mid-sort reached it: one wordless item per photo, and no word about why.
+  // @mutate src/components/declutter/useBunchSaved.ts |   return orphans.length > 0 ? addSorted(kept, [notSortedPile(orphans, PILE_PAGE_CLOSED)]) : kept; |   return [...kept, ...orphans.map((k) => ({ ...notSortedPile([k], ""), notSorted: false }))];
+  it("photos mid-sort when the page closed come back together with why, not as an item each", async () => {
+    const names = ["a", "b", "c"];
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });
+    for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "3 photos not sorted yet" })).toBeTruthy();
+    expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
+    expect(document.querySelector("[data-bunch-not-sorted-reason]")?.textContent).toContain("page closed");
+    expect(screen.getByRole("button", { name: "Sort again" })).toBeTruthy();
+  });
+
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |     setItems((its) => its.filter((it) => it.key !== key));\n    await sortPhotos(batch); |     await sortPhotos(batch);
+  it("Sort again replaces the pile with the sorted items", async () => {
+    const names = ["a", "b"];
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });
+    for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
+    renderFlow();
+    fireEvent.click(await screen.findByRole("button", { name: "Sort again" }));
+    expect(await screen.findByDisplayValue("Oak chair")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: /not sorted yet/ })).toBeNull();
+    expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(2);
+  });
+
+  // @mutate src/components/declutter/DeclutterBunchView.tsx | onOneItem={() => setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined }))} | onOneItem={() => {}}
+  it("These are one item makes one item with no words yet, offering to write it", async () => {
+    const names = ["a", "b"];
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });
+    for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
+    renderFlow();
+    fireEvent.click(await screen.findByRole("button", { name: "These are one item" }));
+    expect(await screen.findByRole("button", { name: "Write it with AI" })).toBeTruthy();
+    expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
+    expect(document.querySelector("[data-bunch-not-sorted]")).toBeNull();
+  });
+
   it("Don't sell this on an item with a draft takes the draft off the server; an item without one asks nothing", async () => {
     h.statuses = new Map([["d1", "draft"]]);
     const base = { description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "40" };

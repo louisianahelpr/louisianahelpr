@@ -4,7 +4,7 @@
  * submission"; pop-up: the photo tool groups, the seller fixes the grouping).
  * src/lib/declutter/bunch.ts:
  *   - no photo is ever lost: unplaced photos and a failed batch's photos stay
- *     as items to name; fixing the grouping only moves photos between items;
+ *     together as not sorted; fixing the grouping only moves photos between items;
  *   - a split never clears a possible banned item, and a flagged item can still
  *     be listed (the photo check at listing decides); editing its words clears
  *     the mark; an unready item is never made (bunchItemProblem, checked again
@@ -15,8 +15,8 @@
  *   - listBunch: one item failing never stops the rest, and each failure keeps
  *     its own reason and whether its draft exists.
  *
- * @mutate src/lib/declutter/bunch.ts |     if (!placed.has(i)) out.push(blankItem([p.key])); |     if (false) out.push(blankItem([p.key]));
- * @mutate src/lib/declutter/bunch.ts |         made = good.map((p) => blankItem([p.key])); |         void good;
+ * @mutate src/lib/declutter/bunch.ts |   if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED)); |   void unplaced;
+ * @mutate src/lib/declutter/bunch.ts |           made = giveUp(good, cleaned, error); |           void good;
  * @mutate src/lib/declutter/bunch.ts |     onProgress(i + 1, batches.length, made); |     onProgress(i + 1, batches.length, []);
  * @mutate src/lib/declutter/bunch.ts |         made = itemsFromAnswer(await ask(cleaned), good); |         made = itemsFromAnswer(await ask(batch.map((p) => p.file)), batch);
  * @mutate src/lib/declutter/bunch.ts |         unusable.push({ key: p.key, name: p.file.name, error });\n      }\n    }\n    let made |         throw error;\n      }\n    }\n    let made
@@ -44,11 +44,11 @@ const item = (key: string, photoKeys: string[], extra: Partial<BunchItem> = {}):
 const allPhotos = (items: BunchItem[]) => items.flatMap((i) => i.photoKeys).sort();
 
 describe("grouping keeps every photo", () => {
-  it("unplaced photos become their own items; a photo is placed once", () => {
+  it("unplaced photos stay together as not sorted, never one item each; a photo is placed once", () => {
     const batch = ["a", "b", "c"].map(photo);
     const items = itemsFromAnswer({ items: [drafted([0, 0, 2]), drafted([2, 9])], leftover: [1] }, batch);
     expect(items.map((i) => i.photoKeys)).toEqual([["a", "c"], ["b"]]);
-    expect(items[1].title).toBe("");
+    expect(items[1]).toMatchObject({ title: "", notSorted: true });
   });
 
   it("a flag the tool left out counts as flagged", () => {
@@ -59,14 +59,15 @@ describe("grouping keeps every photo", () => {
   it("batches of 8, spaced, and a failed batch keeps its photos and says why", async () => {
     const photos = Array.from({ length: 17 }, (_, i) => photo(`p${i}`));
     const ask = vi.fn(async (files: File[]): Promise<GroupAnswer> => {
-      if (ask.mock.calls.length === 2) throw new Error("ai_rate_limited");
-      return { items: [drafted(files.map((_, i) => i))], leftover: [] };
+      // The second batch fails on all three of its tries; a limit isn't helped by sending fewer.
+      if ([2, 3, 4].includes(ask.mock.calls.length)) throw new Error("ai_rate_limited");
+      return { items: [drafted(files.map((_, i) => i), { title: `Thing${"abcdefgh"[ask.mock.calls.length]}` })], leftover: [] };
     });
     let now = 0;
     const waits: number[] = [];
     const res = await groupPhotos(photos, () => {}, ask, async (ms) => { waits.push(ms); now += ms; }, () => now, async (f) => f);
-    expect(ask.mock.calls.map((c) => c[0].length)).toEqual([8, 8, 1]);
-    expect(waits).toEqual([10_500, 10_500]);
+    expect(ask.mock.calls.map((c) => c[0].length)).toEqual([8, 8, 8, 8, 1]);
+    expect(waits).toEqual([10_500, 5_000, 5_500, 20_000, 10_500]);
     expect(res.failed).toEqual([{ photos: 8, error: new Error("ai_rate_limited") }]);
     expect(allPhotos(res.items)).toEqual(photos.map((p) => p.key).sort());
   });
@@ -74,7 +75,8 @@ describe("grouping keeps every photo", () => {
 
 describe("sorting shows as it goes, and one bad photo costs only itself", () => {
   const noWait = async () => {};
-  const askAll = async (files: File[]): Promise<GroupAnswer> => ({ items: [drafted(files.map((_, i) => i))], leftover: [] });
+  let calls = 0;
+  const askAll = async (files: File[]): Promise<GroupAnswer> => ({ items: [drafted(files.map((_, i) => i), { title: `Thingnumber${++calls}` })], leftover: [] });
 
   it("each batch's items reach the screen when that batch finishes, not at the end", async () => {
     const photos = Array.from({ length: 9 }, (_, i) => photo(`p${i}`));

@@ -71,7 +71,10 @@ describe("DeclutterProblemSides", () => {
     expect(sheet).toHaveTextContent("You can't report this sale again after taking it back.");
     expect(state.withdrawn).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Keep my report" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Take back my report" })).toBeTruthy();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
     expect(state.withdrawn).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Take back my report" }));
     fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));

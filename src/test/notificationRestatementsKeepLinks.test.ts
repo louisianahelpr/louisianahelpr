@@ -154,7 +154,7 @@ const INTENDED_LINK_CHANGES = new Set([
   // Messages audit H1 (owner 2026-10-30): the bell's two '/messages?…' links are
   // unchanged (nothing gone; held in v_link so the email links the same place);
   // the only addition is the send-notification-email URL the new email posts to.
-  "20261030141139_message_email_throttle_mute.sql::notify_message_recipient",
+  "20261030150631_message_email_throttle_mute.sql::notify_message_recipient",
 ]);
 
 /**

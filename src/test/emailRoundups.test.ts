@@ -24,9 +24,9 @@ const newestSchedule = (job: string): string => {
 
 describe("email pacing", () => {
   it("notify_on_application emails only when the poster's applicant email should not wait", () => {
-    // The NEWEST notify_on_application (restated by 20261030135219, UX-3), not the file that added the gate.
+    // The NEWEST notify_on_application (restated by 20261030150630, UX-3), not the file that added the gate.
     const sql = effectiveDefs(MIGRATIONS).get("notify_on_application")!.stmt;
-    // @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql | IF COALESCE(v_email_enabled, true) AND NOT public.application_email_should_wait(v_user_id) THEN | IF COALESCE(v_email_enabled, true) THEN
+    // @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql | IF COALESCE(v_email_enabled, true) AND NOT public.application_email_should_wait(v_user_id) THEN | IF COALESCE(v_email_enabled, true) THEN
     expect(sql).toMatch(/IF COALESCE\(v_email_enabled, true\) AND NOT public\.application_email_should_wait\(v_user_id\) THEN/);
     // The in-app notice is still written for every applicant, before the email decision.
     const ins = sql.indexOf("INSERT INTO public.notifications (user_id, title, message, type, link)");

@@ -15,16 +15,16 @@
  * Behaviour, every edge on a fixed clock, red with LH_PROOF_REVERT=1 (9 FAILED):
  *   node src/test/pglite/applicantNudgesAndFilledNotice.pglite.mjs   (26 PASS)
  *
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |     ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper |     ELSIF false AND NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |       v_link := '/jobs?tab=browse' \|\| CASE |       v_link := '/jobs?job=' \|\| NEW.job_id::text \|\| CASE
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |       HAVING min(a.created_at) <= v_now - interval '24 hours' |       HAVING min(a.created_at) <= v_now - interval '1 hours'
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |          AND min(a.created_at) > v_now - interval '72 hours' |          AND true
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |   IF v_hour < 8 OR v_hour >= 20 THEN |   IF false THEN
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |       ON CONFLICT (job_id) DO NOTHING\n      RETURNING job_id | \n      RETURNING job_id
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |          AND NOT public.is_test_member(j.customer_id) |          AND true
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |          AND NOT COALESCE(j.is_seed, false) |          AND true
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql |          AND NOT (j.offered_to_helper_id IS NOT NULL AND j.direct_offer_status = 'pending') |          AND true
- * @mutate supabase/migrations/20261030135219_applicant_nudges_and_filled_notice.sql | REVOKE ALL ON FUNCTION public.sweep_unanswered_applications(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_unanswered_applications(timestamptz) FROM PUBLIC;
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |     ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper |     ELSIF false AND NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |       v_link := '/jobs?tab=browse' \|\| CASE |       v_link := '/jobs?job=' \|\| NEW.job_id::text \|\| CASE
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |       HAVING min(a.created_at) <= v_now - interval '24 hours' |       HAVING min(a.created_at) <= v_now - interval '1 hours'
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |          AND min(a.created_at) > v_now - interval '72 hours' |          AND true
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |   IF v_hour < 8 OR v_hour >= 20 THEN |   IF false THEN
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |       ON CONFLICT (job_id) DO NOTHING\n      RETURNING job_id | \n      RETURNING job_id
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |          AND NOT public.is_test_member(j.customer_id) |          AND true
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |          AND NOT COALESCE(j.is_seed, false) |          AND true
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |          AND NOT (j.offered_to_helper_id IS NOT NULL AND j.direct_offer_status = 'pending') |          AND true
+ * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql | REVOKE ALL ON FUNCTION public.sweep_unanswered_applications(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_unanswered_applications(timestamptz) FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

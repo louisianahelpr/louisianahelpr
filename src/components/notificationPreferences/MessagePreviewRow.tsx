@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { SwitchSlot } from "./SwitchSlot";
 
 /**
- * "Show message words" (Messages audit M6, 20261030141139): whether a
+ * "Show message words" (Messages audit M6, 20261030150631): whether a
  * new-message alert in the bell and on the lock screen shows the first words of
  * the message, or only "Sent you a message.". Default on. Emails never carry the
  * words, so the Email column shows a dash. Sits right under the Messages row and

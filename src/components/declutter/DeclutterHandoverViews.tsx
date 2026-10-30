@@ -64,7 +64,7 @@ import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
-import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
+import { BuyerOrderHead, byBucket, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -159,7 +159,9 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   });
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
   const problems = useOpenProblems(ids);
-  const shown = show ? orders.filter((o) => show(o.orderId)) : orders;
+  const chosen = show ? orders.filter((o) => show(o.orderId)) : orders;
+  // DB-6: on Buying, what needs the buyer comes first and history (Done, Cancelled) last.
+  const shown = views ? byBucket(chosen, views) : chosen;
   if (shown.length === 0 || !userId) return null;
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;

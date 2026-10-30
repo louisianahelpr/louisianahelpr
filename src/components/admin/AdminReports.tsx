@@ -22,7 +22,7 @@ import {
   DialogSecondaryAction,
 } from "@/components/ui/dialog";
 import { formatShortDate } from "@/lib/format";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, User, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
@@ -38,6 +38,7 @@ import { reportsQueueKey, type ReportQueueFilter } from "@/components/admin/admi
 import { REPORT_FILTERS } from "@/components/admin/adminReports/reportFilters";
 import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_REPORT } from "@/components/admin/adminReports/reportedListings";
 import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
+import { SLA_BREACH_HOURS, slaInfo, typeIcon } from "@/components/admin/adminReports/reportRowBits";
 
 type Report = {
   id: string;
@@ -71,7 +72,6 @@ type Report = {
 // pending/reviewed values. We surface 'new' as the default replacement
 // for 'pending' but tolerate both so the queue keeps working between
 // merge and the manual `supabase db push`.
-const SLA_BREACH_HOURS = 24;
 
 type ReportFilter = ReportQueueFilter;
 const REPORT_FILTER_VALUES = REPORT_FILTERS.map((f) => f.value);
@@ -379,22 +379,6 @@ const AdminReports = () => {
     setUpdating(null);
   };
 
-  // SLA: trust & safety reports must be triaged within 24h. Visual
-  // indicator at >24h (yellow) and >48h (red) so the queue self-prioritizes.
-  const slaInfo = (createdAt: string) => {
-    const ageMs = Date.now() - new Date(createdAt).getTime();
-    const hours = ageMs / 3600_000;
-    // Past a couple of days, hours stop being a quantity anyone can read:
-    // the queue was rendering "1431h overdue", which is ~60 days. Hours stay
-    // for the range where they are still actionable.
-    const overdue = (h: number) =>
-      h >= 48 ? `${Math.floor(h / 24)}d overdue` : `${Math.floor(h)}h overdue`;
-    if (hours > SLA_BREACH_HOURS * 2) return { label: overdue(hours), tone: "red" as const };
-    if (hours > SLA_BREACH_HOURS) return { label: overdue(hours), tone: "yellow" as const };
-    const hoursLeft = Math.max(0, SLA_BREACH_HOURS - hours);
-    return { label: `${Math.ceil(hoursLeft)}h to SLA`, tone: "green" as const };
-  };
-
   const handleSendMessage = async () => {
     if (!messageTarget || !messageText.trim()) return;
     setSendingMessage(true);
@@ -416,13 +400,6 @@ const AdminReports = () => {
 
   // "New" is the label for the `pending` status because that is what the
   // report badge says; keeping the two in one table stops them drifting.
-
-  const typeIcon = (type: string) => {
-    if (type === "user") return <User className="w-4 h-4" />;
-    if (type === "job" || type === "application" || type === LISTING_REPORT) return <Briefcase className="w-4 h-4" />;
-    if (type === "review") return <Clock className="w-4 h-4" />;
-    return <MessageSquare className="w-4 h-4" />;
-  };
 
   return (
     <AdminViewShell>

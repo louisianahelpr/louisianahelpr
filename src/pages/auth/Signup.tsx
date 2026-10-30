@@ -40,7 +40,6 @@ import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISH
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { cityZipMismatchHint } from "@/lib/cityZipMismatch";
 import { useLanguage } from "@/lib/i18n/language";
-import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 const Signup = () => {
   const { t } = useLanguage();

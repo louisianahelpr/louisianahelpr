@@ -18,12 +18,13 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 
-const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[] };
+const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://signed.test/s1/declutter/handover/o/door.jpg" as string | null };
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/declutter/handover", () => ({
   confirmHandover: async () => { state.calls.push("got_it"); },
   uploadHandoverPhoto: async () => "p.jpg",
+  handoverPhotoUrl: async () => state.photoUrl,
 }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
@@ -67,6 +68,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     state.booking = { ...BASE };
     state.fail = false;
     state.calls = [];
+    state.photoUrl = "https://signed.test/s1/declutter/handover/o/door.jpg";
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
@@ -111,6 +113,33 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     show();
     await askAndConfirm("It wasn't delivered", /It wasn't delivered\?.*everything back/, "It wasn't delivered", "not_delivered");
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  // Audit 2026-10-30 DB-8: the notice said the seller took a photo; neither side's card showed it.
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto | {false && b.delivered_photo_path && <DeliveredPhoto
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {url.isSuccess && !url.data && <p className="text-xs" role="alert"> |       {false && <p className="text-xs" role="alert">
+  it("DB-8: once delivered, both sides see the seller's photo from the buyer's door, and a link that fails says so", async () => {
+    for (const side of ["buyer", "seller"] as const) {
+      state.booking = { ...BASE, side, delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
+      const { unmount } = show();
+      const img = await screen.findByAltText("The seller's photo of where it was left");
+      expect(img).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o/door.jpg");
+      expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(/^The seller's photo of where it was left, taken \w{3}, \w{3} \d+, \d+:\d{2} (AM|PM)$/);
+      unmount();
+    }
+    state.booking = { ...BASE, handoff: "hand", delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
+    state.photoUrl = null;
+    show();
+    expect(await screen.findByRole("alert")).toHaveTextContent("The photo couldn't load.");
+    expect(document.querySelector("[data-delivered-photo] figcaption")).toHaveTextContent(/^The seller's photo of the handover, taken /);
+    expect(document.querySelector("[data-delivered-photo] img")).toBeNull();
+  });
+
+  it("DB-8: no photo before it is delivered, nor when the seller handed it over without one", async () => {
+    state.booking = { ...BASE, delivered_photo_path: null, delivered_at: iso(-HOUR), handoff: "hand" };
+    show();
+    await screen.findByText(/Handed over\./);
+    expect(document.querySelector("[data-delivered-photo]")).toBeNull();
   });
 
   it("a failed read is an error with a retry", async () => {

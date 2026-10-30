@@ -18,7 +18,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
-import { confirmHandover, uploadHandoverPhoto } from "@/lib/declutter/handover";
+import { confirmHandover, handoverPhotoUrl, uploadHandoverPhoto } from "@/lib/declutter/handover";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import {
   answerDeliveryTime,
@@ -48,6 +48,8 @@ const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded
 /** The Louisiana calendar day of an instant, "2026-11-01" (sorts as text). */
 const LA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" });
 const laDay = (ms: number) => LA_DAY.format(new Date(ms));
+/** "Sat, Oct 25, 2:05 PM" in Louisiana time (when the delivery photo was taken). */
+const LA_WHEN = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** Which buttons a side gets right now (pure, so the rules are tested apart from the screen). */
 export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Date.now()) {
@@ -130,6 +132,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         )}
         {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
       </div>
+      {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} />}
       {can.changeHandoff && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
           {(["leave", "hand"] as const).map((h) => (
@@ -177,6 +180,25 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
       )}
       {moving && can.askNewTime && <NewTimePicker orderId={orderId} current={b} onDone={() => { setMoving(false); refresh(); }} />}
     </div>
+  );
+}
+
+/**
+ * Audit 2026-10-30 DB-8: the notice told the buyer the seller took a photo, and no screen showed it. The photo the
+ * seller took at the buyer's address (declutter_seller_delivery_booking's delivered_photo_path, the order's handover
+ * photo), for both sides; the private bucket lets the two sides of the order read it (declutter_handover_photo_access).
+ */
+function DeliveredPhoto({ path, hand, at }: { path: string; hand: boolean; at: string }) {
+  const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
+  const label = hand ? "The seller's photo of the handover" : "The seller's photo of where it was left";
+  return (
+    <figure className="space-y-1.5" data-delivered-photo="">
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
+        {url.data && <img src={url.data} alt={label} className="h-full w-full object-cover" />}
+      </div>
+      {url.isSuccess && !url.data && <p className="text-xs" role="alert">The photo couldn't load. Try again in a minute.</p>}
+      <figcaption className="text-ds-13 text-muted-foreground">{label}, taken {LA_WHEN.format(new Date(at))}</figcaption>
+    </figure>
   );
 }
 

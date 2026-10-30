@@ -18,6 +18,7 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { splitSupportScreenshot } from "@/lib/supportScreenshot";
+import { guestReplyHref, splitSupportGuest } from "@/lib/supportGuest";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
@@ -423,6 +424,10 @@ const AdminSupport = () => {
             const subject = subjectFromReason(ticket.reason);
             const priority = hasPrioritySupport(ticket.support_tier);
             const waiting = ticket.status === "pending" ? waitingLabel(ticket.created_at) : "";
+            // A guest has no account: name, address and reply route come from the ticket's own guest line.
+            const { body: description, guest } = splitSupportGuest(ticket.description ?? "", ticket.reporter_id);
+            const senderName = guest?.name ?? ticket.reporter_name;
+            const senderEmail = guest?.email ?? ticket.reporter_email;
             return (
               <div key={ticket.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -434,6 +439,7 @@ const AdminSupport = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-ds-13 font-semibold text-foreground">{subject || "No subject"}</p>
                         <Badge variant="outline" className="text-ds-10 px-1.5 py-0">{cat.label}</Badge>
+                        {guest && <Badge variant="outline" className="text-ds-10 px-1.5 py-0 shrink-0">Guest</Badge>}
                         {/* WHY THIS ROW IS WHERE IT IS. The gold crown is the
                             same visual language the Elite `featuredBadge`
                             already uses elsewhere (JobPosterCard, the applicant chips),
@@ -467,9 +473,9 @@ const AdminSupport = () => {
                         )}
                       </div>
                       <p className="text-ds-11 text-muted-foreground break-words">
-                        {ticket.reporter_name}
+                        {senderName}
                         
-                        {ticket.reporter_email && <span className="text-muted-foreground"> · {ticket.reporter_email}</span>}
+                        {senderEmail && <span className="text-muted-foreground"> · {senderEmail}</span>}
                         {" · "}
                         {formatShortDate(ticket.created_at)}
                         {waiting && <span className="text-muted-foreground"> · {waiting}</span>}
@@ -485,8 +491,8 @@ const AdminSupport = () => {
                   </Badge>
                 </div>
 
-                {ticket.description && (() => {
-                  const { body, path } = splitSupportScreenshot(ticket.description, ticket.reporter_id);
+                {description && (() => {
+                  const { body, path } = splitSupportScreenshot(description, ticket.reporter_id);
                   return (
                     <>
                       {body && (
@@ -513,13 +519,21 @@ const AdminSupport = () => {
                   </>
                 )}
 
-                <SupportReplyComposer
-                  ticketId={ticket.id}
-                  memberName={ticket.reporter_name || "this member"}
-                  canResolve={ticket.status === "pending"}
-                  disabledReason={ticket.reporter_id ? undefined : "This member deleted their account, so there is no one to reply to."}
-                  onSent={afterReply}
-                />
+                {guest ? (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={guestReplyHref(guest, subject)}>
+                      <Mail className="w-3.5 h-3.5 mr-1" aria-hidden="true" /> Reply by email
+                    </a>
+                  </Button>
+                ) : (
+                  <SupportReplyComposer
+                    ticketId={ticket.id}
+                    memberName={ticket.reporter_name || "this member"}
+                    canResolve={ticket.status === "pending"}
+                    disabledReason={ticket.reporter_id ? undefined : "This member deleted their account, so there is no one to reply to."}
+                    onSent={afterReply}
+                  />
+                )}
 
                 {ticket.status === "pending" && (
                   <div className="flex gap-2 pt-1">

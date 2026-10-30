@@ -14,12 +14,12 @@
  * @mutate src/components/declutter/useSellFlowState.ts |     if (!attested) { |     if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
- * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;
- * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state }); |     void state;
+ * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
+ * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
  * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -421,6 +421,21 @@ describe("Declutter screens", () => {
       returnTo("/declutter?card=cancelled");
       expect(await screen.findByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
       expect(screen.queryByLabelText("Your offer")).toBeNull();
+      expect(screen.queryByText("Checking for your card…")).toBeNull();
+    });
+
+    it("DA-11: the amount typed before Stripe's page is back in the box, saved or cancelled", async () => {
+      state.item = { ...ITEM, id: ID, seller_id: "u2", status: "live" };
+      state.card = { brand: "visa", last4: "4242" };
+      rememberAfterCard(ID, "offer", undefined, "30");
+      returnTo("/declutter?card=saved");
+      expect(await screen.findByLabelText("Your offer")).toHaveValue("30");
+      cleanup();
+      state.card = null;
+      rememberAfterCard(ID, "offer", undefined, "30");
+      returnTo("/declutter?card=cancelled");
+      expect(await screen.findByLabelText("Your offer")).toHaveValue("30");
+      // Cancelled carries on with nothing: the amount waits for the member's own Send.
       expect(screen.queryByText("Checking for your card…")).toBeNull();
     });
 

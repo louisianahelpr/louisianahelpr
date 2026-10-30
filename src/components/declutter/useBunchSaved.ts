@@ -16,6 +16,7 @@ export interface BunchSnapshot {
   areaLabel: string;
   pickupAddress: string;
   coords: { lat: number; lng: number; address: string } | null;
+  moveDate: string;
   photos: BunchPhoto[];
   items: BunchItem[];
   sorting: boolean;
@@ -53,14 +54,14 @@ export function useBunchSaved(
       if (s.finished || (s.items.length === 0 && !s.sorting && !s.areaLabel.trim() && !s.pickupAddress.trim())) return null;
       const held = new Set(s.items.flatMap((it) => it.photoKeys));
       const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key));
-      return { photos: keep, meta: { areaLabel: s.areaLabel, pickupAddress: s.pickupAddress, coords: s.coords, items: s.items } };
+      return { photos: keep, meta: { areaLabel: s.areaLabel, pickupAddress: s.pickupAddress, coords: s.coords, moveDate: s.moveDate, items: s.items } };
     },
     restore: async (found, stale) => {
       const { photos: usable, unusable } = await keepCleanablePhotos(found.photos, found.saved.items);
       if (stale()) return;
       const back = restoredItems(found.saved.items, usable);
       setRestoredCount(back.length);
-      onRestore({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, photos: usable, items: back, unusable });
+      onRestore({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, moveDate: found.saved.moveDate ?? "", photos: usable, items: back, unusable });
     },
     warn: (items.length > 0 || photos.length > 0) && !finished,
     notSaved: BUNCH_NOT_SAVED,

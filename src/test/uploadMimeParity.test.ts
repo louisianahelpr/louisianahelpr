@@ -128,9 +128,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).
   "src/components/declutter/DeclutterSellPhotos.tsx": { bucket: "job-photos" },
-  // Room photos (moving-out mode) are never stored: cleaned to JPEG and sent to the photo tool only; held to the listing photos' bucket so it offers nothing a listing photo could not be.
-  "src/components/declutter/DeclutterMoveView.tsx": { bucket: "job-photos" },
   // Sell a bunch (owner 2026-10-29): the photos go up as listing photos through addPhoto (src/lib/declutter/bunch.ts listBunch).
+  "src/components/declutter/DeclutterBunchPhotos.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterBunchView.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   // Audit 1b D2-7: problem and refund photos go up through uploadProblemPhoto (cleaned to JPEG), the handover bucket's problem folder.

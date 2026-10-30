@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/SellerSetup.tsx |         if (!found) throw new Error("setup_not_found"); |
  * @mutate src/components/declutter/SellerSetup.tsx |     pickup: !s.hasPickup, |     pickup: false,
  * @mutate src/components/declutter/SellerSetup.tsx |     ways: !s.free && !s.hasWays, |     ways: !s.hasWays,
- * @mutate src/pages/declutter/DeclutterMovePage.tsx |         <SellerSetupGate>\n          <MoveFlow />\n        </SellerSetupGate> |         <MoveFlow />
+ * @mutate src/pages/declutter/DeclutterSellPage.tsx |         <SellerSetupGate>\n          <Suspense fallback={<DeclutterSellSkeleton />}>\n            <BunchFlow moving={params.get("mode") === "moving"} />\n          </Suspense>\n        </SellerSetupGate> |         <BunchFlow moving={params.get("mode") === "moving"} />
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -135,9 +135,9 @@ describe("one-time setup before posting", () => {
 
   it("every posting flow is behind the gate; a saved draft is not", () => {
     const sell = readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterSellPage.tsx"), "utf8");
-    const move = readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterMovePage.tsx"), "utf8");
     expect((sell.match(/<SellerSetupGate/g) ?? []).length).toBe(2);
     expect(sell).toMatch(/params\.get\("item"\) \? \(\s*<SellFlow \/>/);
-    expect(move).toMatch(/<SellerSetupGate>\s*<MoveFlow \/>/);
+    // The moving sale is the bunch flow, behind the same gate; /declutter/move only redirects to it.
+    expect(sell).toMatch(/<SellerSetupGate>\s*<Suspense[\s\S]{0,60}?<BunchFlow moving=/);
   });
 });

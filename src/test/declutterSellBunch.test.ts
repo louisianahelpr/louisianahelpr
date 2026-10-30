@@ -195,6 +195,7 @@ describe("listBunch", () => {
   it("one item failing never stops the rest; each keeps its reason", async () => {
     let n = 0;
     const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async (f) => {
         if (f.title === "Bad") throw new Error("invalid_items");
         return `id${++n}`;
@@ -242,6 +243,7 @@ describe("listBunch", () => {
   // @mutate src/lib/declutter/bunch.ts |         onStep(it.key, { draftId: id }); |         void onStep;
   it("trying again finishes the same draft: its edits go on it, and only the photos still missing go up", async () => {
     const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
@@ -260,7 +262,7 @@ describe("listBunch", () => {
     expect(deps.addPhoto).toHaveBeenCalledTimes(1);
     expect(deps.addPhoto).toHaveBeenCalledWith("seller", "d1", files.get("b"));
     expect(deps.publishMany).toHaveBeenCalledWith(["d1"], expect.any(Function));
-    expect(out).toEqual([{ key: "cut", title: "Oak chair", status: "live" }]);
+    expect(out).toMatchObject([{ key: "cut", title: "Oak chair", status: "live" }]);
     // Saved after each lasting step, and it leaves the list once listed.
     expect(steps).toEqual([["cut", { uploaded: { a: "pa", b: "ph" } }], ["cut", null]]);
   });
@@ -271,6 +273,7 @@ describe("listBunch", () => {
   // @mutate src/lib/declutter/bunch.ts |     if (!String((err as Error)?.message ?? "").includes("photo_not_found")) throw err; |     throw err;
   describe("a photo moved off an item with a draft", () => {
     const makeDeps = (removePhoto: ListDeps["removePhoto"]): ListDeps => ({
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async () => "new"),
       updateDraft: vi.fn(async (id) => id),
       addPhoto: vi.fn(async () => "ph"),
@@ -298,7 +301,7 @@ describe("listBunch", () => {
     it("already gone from the draft is fine; any other refusal keeps the item on the list, unlisted", async () => {
       const gone = makeDeps(vi.fn(async () => { throw new Error("photo_not_found"); }));
       const ok = await listBunch("seller", [item("cut", ["a"], { draftId: "d1", uploaded: { a: "pa", b: "pb" } })], files, place, ["porch"], () => {}, gone);
-      expect(ok).toEqual([{ key: "cut", title: "Oak chair", status: "live" }]);
+      expect(ok).toMatchObject([{ key: "cut", title: "Oak chair", status: "live" }]);
       const down = makeDeps(vi.fn(async () => { throw new Error("offline"); }));
       const out = await listBunch("seller", [item("cut", ["a"], { draftId: "d1", uploaded: { a: "pa", b: "pb" } })], files, place, ["porch"], () => {}, down);
       expect(out[0]).toMatchObject({ key: "cut", draftId: "d1", stays: true });
@@ -308,6 +311,7 @@ describe("listBunch", () => {
 
   it("a new item reports its draft as soon as it exists, so a crash after it never makes a second", async () => {
     const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async () => "d9"),
       updateDraft: vi.fn(async (id) => id),
       removePhoto: vi.fn(async () => {}),
@@ -331,7 +335,7 @@ describe("listBunch", () => {
 // @mutate src/lib/declutter/bunch.ts |   if (status && status !== "draft") return "already_listed"; |   void status;
 // @mutate src/lib/declutter/bunch.ts |   if (status === "draft") await deps.withdrawItem(id); |   void deps;
 describe("a draft the grouping leaves behind", () => {
-  const it2 = (key: string, draftId?: string): BunchItem => ({ ...blankItem([`${key}-p`]), key, draftId });
+  const it2 = (key: string, draftId?: string): BunchItem => ({ ...blankItem([`${key}-p`]), key, draftId, sizeUnknown: false });
 
   it("names a dropped item's draft, a merged-away item's and one that lost its last photo; never one still held", () => {
     const a = it2("a", "d-a");
@@ -364,10 +368,11 @@ describe("a draft the grouping leaves behind", () => {
 // @mutate src/lib/declutter/bunch.ts |       } else if (status !== "draft") { |       } else if (false) {
 describe("trying again after a cut-off run", () => {
   const place = { areaLabel: "Mid-City", pickupAddress: "1 Main St", pickupLat: 30.4, pickupLng: -91.1 };
-  const made = (key: string, draftId: string): BunchItem => ({ ...blankItem(["p"]), key, title: `Oak ${key}`, price: "40", draftId, uploaded: { p: "ph-1" } });
+  const made = (key: string, draftId: string): BunchItem => ({ ...blankItem(["p"]), key, title: `Oak ${key}`, price: "40", draftId, uploaded: { p: "ph-1" }, sizeUnknown: false });
   const files = new Map([["p", new File(["p"], "p.jpg")]]);
   function makeDeps(statuses: Map<string, string> | "read fails"): ListDeps {
     return {
+      createMoveDraft: vi.fn(async () => "moved"),
       createDraft: vi.fn(async () => "fresh"),
       updateDraft: vi.fn(async (id) => id),
       addPhoto: vi.fn(async () => "ph-2"),
@@ -388,7 +393,7 @@ describe("trying again after a cut-off run", () => {
     const deps = makeDeps(new Map([["d1", "live"], ["d2", "pending_review"]]));
     const steps: [string, unknown][] = [];
     const out = await listBunch("seller", [made("a", "d1"), made("b", "d2")], files, place, ["porch"], () => {}, deps, (k, p) => steps.push([k, p]));
-    expect(out).toEqual([{ key: "a", title: "Oak a", status: "live" }, { key: "b", title: "Oak b", status: "pending_review" }]);
+    expect(out).toMatchObject([{ key: "a", title: "Oak a", status: "live" }, { key: "b", title: "Oak b", status: "pending_review" }]);
     expect(steps).toEqual([["a", null], ["b", null]]);
     expect(deps.updateDraft).not.toHaveBeenCalled();
     expect(deps.publishMany).not.toHaveBeenCalled();

@@ -8,7 +8,7 @@ import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from '../_shared/caughtMessage.ts'
-import { splitSupportGuest, SUPPORT_GUEST_REPORTED_ID } from '../_shared/supportGuest.ts'
+import { splitSupportGuest, SUPPORT_GUEST_REPORTED_ID, supportTicketRef } from '../_shared/supportGuest.ts'
 
 /**
  * An admin's reply to a support ticket (owner 2026-10-23, via the lead).
@@ -284,8 +284,17 @@ serve(async (req) => {
               // One paragraph per line the admin wrote, so their line breaks survive.
               ...message.split(/\n+/).map((line: string) => line.trim()).filter(Boolean),
             ],
-            ctaUrl: `${appUrl}/support`,
-            ctaLabel: 'Open Helpr support',
+            // Nobody is told to answer by email (owner 10-30): a member goes to the
+            // team thread, a guest to the form with their ticket already noted.
+            ctaUrl: guest
+              ? `${appUrl}/support?subject=${encodeURIComponent(`Follow-up on ticket ${supportTicketRef(reportId)}`)}`
+              : threadMessageId
+                ? `${appUrl}/messages?teamThread=${memberId}&userId=${adminId}`
+                : `${appUrl}/support`,
+            ctaLabel: guest ? 'Write back to us' : 'Reply in the app',
+            footerNote: guest
+              ? 'Questions? Use the button above to write back. It notes your ticket for us.'
+              : 'Questions? Use the button above to reply in the app.',
             signOff: '— Louisiana Helpr Team',
           }),
         )

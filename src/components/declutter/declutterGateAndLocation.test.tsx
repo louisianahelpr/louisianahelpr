@@ -401,7 +401,7 @@ describe("Declutter location ask", () => {
 
   it("desktop website: Browse's count beside the tab, and search, Filters and the map toggle at the END of the tabs row; no search row, no Filters column; list | map", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |         count: listLoading \|\| items.isError ? undefined : rows.length, |         count: undefined,
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |       end={browse?.end} |
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |     body = desktop && mapVisible ? ( |     body = false ? (
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
     screenWidth.desktop = true;

@@ -106,6 +106,7 @@ const OWNERS = {
   "/declutter": ["lh-long-tail-features"],
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/move": ["lh-long-tail-features", "lh-input-boundary"],
+  "/declutter/settings": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/item/:id": ["lh-long-tail-features", "lh-trust-safety"],
   // Quotes on jobs (hidden switch 'quotes', created off).
   "/quotes": ["lh-long-tail-features"],

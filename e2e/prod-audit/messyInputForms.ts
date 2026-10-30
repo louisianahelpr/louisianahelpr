@@ -832,6 +832,7 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  "src/components/declutter/DeclutterListingDefaults.tsx": "no typed text: switches and choices only, saved as the seller's listing defaults.",
   // Message quiet time (Messages audit): the browser's own time picker.
   "src/components/notificationPreferences/QuietTimeInput.tsx": "no text input: one native type=time control, which only ever yields a valid HH:MM or empty.",
   // Live on post (20261030071816): the admin takes a live listing down from a report.

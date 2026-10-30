@@ -149,7 +149,7 @@ const Signup = () => {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_IMAGE_TYPES, "Profile picture")) {
+    if (file && validateFile(file, ALLOWED_IMAGE_TYPES, t("profileGate.photoLabel"))) {
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
@@ -367,7 +367,7 @@ const Signup = () => {
       let result: Awaited<ReturnType<typeof completeProfile>>;
       try {
         const gaveUp = new AbortController(); // aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810)
-        result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), "Finishing your account").finally(() => gaveUp.abort());
+        result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), t("signup.finishingLabel")).finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
         if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }

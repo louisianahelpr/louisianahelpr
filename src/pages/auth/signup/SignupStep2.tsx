@@ -253,7 +253,7 @@ export function SignupStep2(props: SignupStep2Props) {
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
-            {UNKNOWN_ZIP_MESSAGE}
+            {t(UNKNOWN_ZIP_MESSAGE)}
           </p>
         )}
         {zipCityMismatch && (

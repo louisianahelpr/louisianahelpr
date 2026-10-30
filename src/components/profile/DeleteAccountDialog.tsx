@@ -5,6 +5,8 @@ import { useInRouterContext, useLocation } from "react-router-dom";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
 import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -66,15 +68,12 @@ const CONFIRM_PHRASE = "DELETE";
  * Keep in sync with LIVE_STATUS_FILTER / findActiveWork. Guard:
  * src/test/deleteAccountCopyMatchesServer.test.ts.
  */
-const WHAT_HAPPENS = [
-  "Open work finishes first. You can't delete while a job is booked, in progress or disputed, a sale or order is underway, a job's payment is held or waiting to be paid out, or money is still on its way to you.",
-  "If you have a membership, it stops billing.",
-] as const;
+const WHAT_HAPPENS: readonly MsgKey[] = ["deleteAccount.whatOpenWork", "deleteAccount.whatMembership"];
 
 // Only where Settings is reachable: /account-banned and /complete-profile
 // open this dialog too, and ProtectedRoute keeps those members out of
 // /profile (lh-money-escrow review, 2026-10-21).
-const DOWNLOAD_LINE = "You can download your data first, from Settings.";
+const DOWNLOAD_LINE: MsgKey = "deleteAccount.downloadFirst";
 
 function WhatHappens() {
   const inRouter = useInRouterContext();
@@ -87,7 +86,8 @@ function WhatHappensRouted() {
   return <WhatHappensList lines={lines} />;
 }
 
-function WhatHappensList({ lines }: { lines: readonly string[] }) {
+function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
+  const { t } = useLanguage();
   return (
     <ul
       className="my-1 space-y-2 rounded-2xl px-4 py-3"
@@ -98,7 +98,7 @@ function WhatHappensList({ lines }: { lines: readonly string[] }) {
       {lines.map((line) => (
         <li key={line} className="flex items-start gap-2 text-ds-13 leading-snug text-foreground">
           <Check aria-hidden="true" className="w-4 h-4 shrink-0 mt-[2px]" style={{ color: "hsl(var(--bark))" }} />
-          <span>{line}</span>
+          <span>{t(line)}</span>
         </li>
       ))}
     </ul>
@@ -139,20 +139,21 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
   // the scroll on first paint — measured, not guessed. The dialog does scroll,
   // so nothing was unreachable, but a destructive confirm whose buttons you
   // have to go looking for is a hierarchy defect. Same facts, fewer words.
+  const { t } = useLanguage();
   const erased = [
-    "Your name, photo, phone, email and address",
-    "Your ID document and verification files",
-    "Messages you sent, your notifications, saved jobs and devices",
-    "Reviews other people left about you",
-    "Jobs you posted that nobody applied to and that took no payment",
+    t("deleteAccount.erasedContact"),
+    t("deleteAccount.erasedId"),
+    t("deleteAccount.erasedMessages"),
+    t("deleteAccount.erasedReviewsAbout"),
+    t("deleteAccount.erasedUnusedJobs"),
     // Referral credit is real spendable value and it does not survive the
     // account, so the person deciding deserves to know before they decide.
-    "Any referral credit you haven't spent",
+    t("deleteAccount.erasedCredit"),
   ];
   const kept = [
-    "Payment records — the law requires we keep them",
-    "Reviews you wrote — they stay on that Helpr's profile",
-    "Jobs that took a payment, minus your address",
+    t("deleteAccount.keptPayments"),
+    t("deleteAccount.keptReviewsWritten"),
+    t("deleteAccount.keptPaidJobs"),
     // Caller-supplied, and it leads nothing — the shared three are the same
     // for everybody, and the extra row is the one that only applies here.
     ...(extraKeptItems ?? []),
@@ -165,7 +166,7 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
           className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--alert-ink))" }}
         >
-          Erased for good
+          {t("deleteAccount.erasedHeading")}
         </p>
         <ul className="space-y-1">
           {erased.map((item) => (
@@ -185,7 +186,7 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
           className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
           style={{ color: "hsl(var(--olivewood))" }}
         >
-          Kept, without your name
+          {t("deleteAccount.keptHeading")}
         </p>
         <ul className="space-y-1">
           {kept.map((item) => (
@@ -227,6 +228,7 @@ export function DeleteAccountDialog({
   // `useDeleteAccount.requestDelete()` already resets both on the way in,
   // which is the only moment either needs resetting.
   const handleOpenChange = (o: boolean) => { onOpenChange(o); };
+  const { t } = useLanguage();
 
   /**
    * The confirmation. Deletion is the most irreversible action in the app and
@@ -253,21 +255,20 @@ export function DeleteAccountDialog({
               quietly become the app's 150th slightly-different header. */}
           <DialogHero
             // The check on the title's own line (A3-L9: it sat alone above it).
-            title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 shrink-0" strokeWidth={2.5} aria-hidden /> Your account is deleted.</span>}
+            title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 shrink-0" strokeWidth={2.5} aria-hidden /> {t("deleteAccount.deletedTitle")}</span>}
           />
           {/* Left-aligned like the title above it (A3-L9: a centred body under a left title). */}
           <div className="space-y-4 py-2" role="status" aria-live="polite">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
-              Your profile, photos and ID documents have been erased. The payment
-              records the law requires us to keep no longer carry your name.
+              {t("deleteAccount.deletedBody")}
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              You&rsquo;re being signed out on this device. Nothing else is needed.
+              {t("deleteAccount.signedOut")}
             </p>
           </div>
           <DialogFooter>
             {/* The panel's only way forward is its commit, so it wears the primary fill, not the grey (A3-L9). */}
-            <DialogPrimaryAction onClick={onAcknowledgeDeleted}>Done</DialogPrimaryAction>
+            <DialogPrimaryAction onClick={onAcknowledgeDeleted}>{t("deleteAccount.done")}</DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -279,15 +280,15 @@ export function DeleteAccountDialog({
       <BrandConfirmDialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="Before you go"
-        description="Here's what happens."
+        title={t("deleteAccount.beforeYouGo")}
+        description={t("deleteAccount.whatHappens")}
         // Olive, not alert: Continue deletes nothing. The ONE alert button in
         // the flow (and in the app, spec v2 §9.26) is step 2's delete.
-        primaryLabel="Continue"
+        primaryLabel={t("deleteAccount.continue")}
         primaryTone="bark"
         primaryHaptic="warning"
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
-        secondaryLabel="Cancel"
+        secondaryLabel={t("deleteAccount.cancel")}
       >
         <WhatHappens />
         <RetentionSummary extraKeptItems={extraKeptItems} />
@@ -323,22 +324,23 @@ function DeleteStepTwo({
   // Password, or an emailed code for members without one (A3-I5, owner
   // 2026-10-29). The server refuses without it too (recentSignIn.ts).
   const reauth = useDeleteReauth(deletingAccount);
+  const { t } = useLanguage();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent role="alertdialog">
         <DialogHero
-          title="Delete account"
+          title={t("deleteAccount.title")}
         />
         {/* The field used to carry the only instruction — a placeholder that
             vanishes the moment you start typing, with nothing above it saying
             why. `aria-label` covered screen readers; sighted users got a bare
             box under a title. This is the visible instruction that stays put. */}
         <DialogDescription>
-          Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below, then confirm it&rsquo;s you.
+          {t("deleteAccount.typeLead")} <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> {t("deleteAccount.typeTail")}
         </DialogDescription>
         <Input
           autoFocus
-          aria-label={`Type ${CONFIRM_PHRASE} to confirm account deletion`}
+          aria-label={t("deleteAccount.typeAria", { phrase: CONFIRM_PHRASE })}
           value={deleteConfirmText}
           onChange={(e) => setDeleteConfirmText(e.target.value)}
           placeholder={CONFIRM_PHRASE}
@@ -355,7 +357,7 @@ function DeleteStepTwo({
             disabled={deletingAccount}
             onClick={(e) => { e.preventDefault(); setDeleteStep(1); setDeleteConfirmText(""); }}
           >
-            Back
+            {t("deleteAccount.back")}
           </DialogSecondaryAction>
           {/* The shared destructive treatment (the --alert fill), not a
               hand-copied style block: the one alert button in the flow
@@ -367,7 +369,7 @@ function DeleteStepTwo({
             onClick={(e) => { e.preventDefault(); void hapticError(); onDelete(reauth.confirm); }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            {deletingAccount ? "Deleting…" : "Delete my account"}
+            {deletingAccount ? t("deleteAccount.deleting") : t("deleteAccount.deleteMine")}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

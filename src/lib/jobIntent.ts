@@ -1,5 +1,7 @@
 import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { safeInternalRedirect } from "@/lib/authRedirects";
+import { en } from "@/lib/i18n/en";
+import { t } from "@/lib/i18n/language";
 
 /**
  * "The job I tapped before you asked me to sign up."
@@ -112,11 +114,12 @@ export function signupUrlFor(path?: string | null): string {
 export const NOTIFY_SIGNUP_URL = `${signupUrlFor("/jobs")}&reason=notify`;
 
 /** The line Signup step 1 shows when the visitor arrived from that button. */
-export const NOTIFY_SIGNUP_SUBTITLE = "Sign up to get notified when paid work lands.";
+/** English, for tests and comparisons; the screen shows notifySignupSubtitle() in the member's language. */
+export const NOTIFY_SIGNUP_SUBTITLE = en["signup.notifySubtitle"];
 
 /** Signup's step-1 subtitle for a `reason` query value (undefined = none). */
 export function notifySignupSubtitle(reason: string | null | undefined): string | undefined {
-  return reason === "notify" ? NOTIFY_SIGNUP_SUBTITLE : undefined;
+  return reason === "notify" ? t("signup.notifySubtitle") : undefined;
 }
 
 

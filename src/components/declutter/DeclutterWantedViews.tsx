@@ -12,7 +12,7 @@
  * "Let sellers near me reply" switch is gone, and what they see is said as plain text under the form.
  * The server enforces every rule (20261016053541, 20261021031757); this file only explains.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Camera, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
+import { safeStorage } from "@/lib/safeStorage";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -54,6 +55,38 @@ import { focusSheetItself } from "./focusSheetItself";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
+
+/**
+ * Audit 10-30 #13: what was typed survives a reload, an app kill or leaving the page. Words, category, price and
+ * distance only; chosen photos can't be kept and are picked again.
+ */
+const WANTED_DRAFT_KEY = "helpr_wanted_draft";
+
+function readWantedDraft(): WantedForm {
+  try {
+    const raw = safeStorage.getItem(WANTED_DRAFT_KEY);
+    if (!raw) return EMPTY;
+    const d = JSON.parse(raw) as Partial<WantedForm>;
+    return {
+      what: typeof d.what === "string" ? d.what : "",
+      category: typeof d.category === "string" ? d.category : "",
+      maxPrice: typeof d.maxPrice === "string" ? d.maxPrice : "",
+      radius: WANTED_RADIUS_CHOICES.find((m) => m === d.radius) ?? EMPTY.radius,
+    };
+  } catch (err) {
+    console.warn("[declutter] ignored an unreadable Wanted draft", err);
+    return EMPTY;
+  }
+}
+
+function clearWantedDraft() {
+  safeStorage.removeItem(WANTED_DRAFT_KEY);
+}
+
+function saveWantedDraft(form: WantedForm) {
+  if (form.what === "" && form.category === "" && form.maxPrice === "" && form.radius === EMPTY.radius) clearWantedDraft();
+  else safeStorage.setItem(WANTED_DRAFT_KEY, JSON.stringify(form));
+}
 
 /** What sellers near the poster see (shown under the form, in place of the old switch). */
 const WANTED_SELLERS_SEE = "Sellers near you see your first name, what you want and your max price, never your address.";
@@ -133,7 +166,8 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
 function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
-  const [form, setForm] = useState<WantedForm>(EMPTY);
+  const [form, setForm] = useState<WantedForm>(readWantedDraft);
+  useEffect(() => { saveWantedDraft(form); }, [form]);
   const [files, setFiles] = useState<File[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const post = useMutation({
@@ -149,6 +183,7 @@ function WantedFormSheet({ open, at, userId, onClose, where }: { open: boolean; 
     },
     onSuccess: (failed) => {
       setForm(EMPTY);
+      clearWantedDraft();
       setFiles([]);
       setProblem(null);
       if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
@@ -330,8 +365,15 @@ export function WantedView() {
   const mine = useQuery({ queryKey: ["declutter", "wanted"], queryFn: fetchMyWanted });
   // The sell chooser's "Looking for something? Post a Wanted" (?post=1, owner 2026-10-30) opens the form at once
   // (it shows once the area is known, as the button does).
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1");
+  // Audit 10-30 #13: the ask is used up once read, or Cancel, a reload or Back brings the form back.
+  useEffect(() => {
+    if (!params.has(WANTED_POST_PARAM)) return;
+    const next = new URLSearchParams(params);
+    next.delete(WANTED_POST_PARAM);
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   const at = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
 
   return (

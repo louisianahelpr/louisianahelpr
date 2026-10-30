@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.replied ? ( |             {false ? (
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |                 <Link to={quickListHref(post)}> |                 <Link to="/declutter/sell">
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |               <div className="min-w-0 space-y-2"> |               <div className="space-y-2">
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |       clearPick();\n      void qc.invalidateQueries({ queryKey: ["declutter"] }); |       void qc.invalidateQueries({ queryKey: ["declutter"] });
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const listings = (mine.data ?? []).filter(canAnswerWanted); |   const listings = mine.data ?? [];
+ * @mutate src/lib/declutter/wanted.ts |   return item.current_price_cents >= 100; |   return true;
  *
  * Audit W1 (the sheet slid sideways on WebKit): the listings are the shared RadioCardList inside a min-w-0 box.
  * Quick-list (owner 2026-10-30): "List it now" opens the shared sell flow with the post to answer.
@@ -87,6 +90,45 @@ describe("board 117: Wanted near you and I have this", () => {
     fireEvent.click(await screen.findByRole("button", { name: "I have this" }));
     expect(await screen.findByRole("link", { name: "List it now" })).toHaveAttribute("href", "/declutter/sell?answer=w1&max=3000&what=Kids+bike%2C+16+inch");
     expect(screen.getByText(/it answers Lexi as soon as it's live/)).toBeInTheDocument();
+  });
+
+  // Audit 10-30 #6: the next post starts clean, so one tap on Send can never offer a bike to someone wanting a crib.
+  it("after Send, the next I have this has no listing picked and no price", async () => {
+    state.near = [POST, { ...POST, id: "w3", what: "Crib" }];
+    renderIt();
+    fireEvent.click((await screen.findAllByRole("button", { name: "I have this" }))[0]);
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(await within(sheet).findByRole("radio", { name: /Blue kids bike/ }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send to Lexi · $30" }));
+    await waitFor(() => expect(state.sent).toEqual([["w1", "i1", 3000]]));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getAllByRole("button", { name: "I have this" })[1]);
+    const next = await screen.findByRole("dialog");
+    expect(within(next).getByText("Crib")).toBeInTheDocument();
+    for (const r of await within(next).findAllByRole("radio")) expect(r).toHaveAttribute("aria-checked", "false");
+    expect(within(next).queryByLabelText("Your price")).toBeNull();
+    expect(within(next).getByRole("button", { name: "Send" })).toBeDisabled();
+  });
+
+  // Audit 10-30 #12: a free listing has no price to offer, so it is not a choice; the sheet says why.
+  it("a free listing is not offered as an answer, and the sheet says why", async () => {
+    state.listings = [{ id: "i1", title: "Blue kids bike", current_price_cents: 4000 }, { id: "i9", title: "Free moving boxes", current_price_cents: 0 }];
+    renderIt();
+    fireEvent.click((await screen.findAllByRole("button", { name: "I have this" }))[0]);
+    const sheet = await screen.findByRole("dialog");
+    await within(sheet).findByRole("radio", { name: /Blue kids bike/ });
+    expect(within(sheet).queryByRole("radio", { name: /Free moving boxes/ })).toBeNull();
+    expect(within(sheet).getByText(/Free listings can't answer a Wanted/)).toBeInTheDocument();
+  });
+
+  it("only free listings: no dead $0 choice, and List it now stays", async () => {
+    state.listings = [{ id: "i9", title: "Free moving boxes", current_price_cents: 0 }];
+    renderIt();
+    fireEvent.click((await screen.findAllByRole("button", { name: "I have this" }))[0]);
+    const sheet = await screen.findByRole("dialog");
+    expect(await within(sheet).findByRole("link", { name: "List it now" })).toBeInTheDocument();
+    expect(within(sheet).queryAllByRole("radio")).toHaveLength(0);
+    expect(within(sheet).getByText(/Free listings can't answer a Wanted/)).toBeInTheDocument();
   });
 
   // Owner 2026-10-30: the Wanted tab is a hub, so "Wanted near you" always stands and says when it has nothing.

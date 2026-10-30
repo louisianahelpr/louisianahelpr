@@ -96,7 +96,8 @@ BEGIN
   END IF;
   RETURN QUERY
   SELECT b.helpr_id,
-         hp.full_name,
+         -- Through the masking helper like every reader (an admin caller gets the full name).
+         public.display_name_for_viewer(max(hp.full_name), b.helpr_id),
          count(*)::integer,
          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM public.jobs j WHERE j.customer_id = b.user_id))::integer,
          max(b.created_at)
@@ -106,7 +107,7 @@ BEGIN
    -- Test data never counts (owner rule): neither a test Helpr nor a test poster.
    WHERE hp.is_seed IS NOT TRUE AND up.is_seed IS NOT TRUE
      AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id IN (b.helpr_id, b.user_id))
-   GROUP BY b.helpr_id, hp.full_name
+   GROUP BY b.helpr_id
    ORDER BY count(*) DESC, max(b.created_at) DESC;
 END;
 $fn$;

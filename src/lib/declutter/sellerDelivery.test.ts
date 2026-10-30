@@ -36,7 +36,6 @@ vi.mock("./position", () => ({ currentPosition: () => h.position.impl() }));
 
 import {
   answerDeliveryTime,
-  buyerCancelDelivery,
   deliveryPhotoPosition,
   fetchDeliveryOpenTimes,
   fetchMySellerDelivery,
@@ -48,7 +47,6 @@ import {
   reportNotDelivered,
   saveDeliverySchedule,
   saveSellerDelivery,
-  sellerCancelDelivery,
   setDeliveryHandoff,
   setItemSellerDelivery,
 } from "./sellerDelivery";
@@ -104,20 +102,16 @@ describe("each call sends its RPC and hands back the answer", () => {
     ]);
   });
 
-  it("delivered with or without a position, not delivered, both cancels, the handoff", async () => {
-    h.queue.push({}, {}, {}, {}, {}, { data: "door" });
+  it("delivered with or without a position, not delivered, the handoff", async () => {
+    h.queue.push({}, {}, {}, { data: "door" });
     await markDelivered("o1", "u/p.jpg", { lat: 30.1, lng: -90.2 });
     await markDelivered("o1", "u/p.jpg");
     await reportNotDelivered("o1");
-    await sellerCancelDelivery("o1");
-    await buyerCancelDelivery("o1");
     await expect(setDeliveryHandoff("o1", "door" as never)).resolves.toBe("door");
     expect(h.rpcs).toEqual([
       ["declutter_seller_delivered", { p_order_id: "o1", p_photo_path: "u/p.jpg", p_lat: 30.1, p_lng: -90.2 }],
       ["declutter_seller_delivered", { p_order_id: "o1", p_photo_path: "u/p.jpg", p_lat: null, p_lng: null }],
       ["declutter_report_not_delivered", { p_order_id: "o1" }],
-      ["declutter_seller_cancel_delivery", { p_order_id: "o1" }],
-      ["declutter_buyer_cancel_delivery", { p_order_id: "o1" }],
       ["declutter_set_delivery_handoff", { p_order_id: "o1", p_handoff: "door" }],
     ]);
   });
@@ -143,12 +137,13 @@ describe("a refusal", () => {
     expect(e.cause).toBe(err);
   });
 
-  it("each RPC uses its own table: the same code reads differently for the seller's cancel", async () => {
-    h.queue.push({ error: { message: "seller_delivered" } }, { error: { message: "seller_delivered" } });
-    const buyer = await thrown(reportNotDelivered("o1"));
-    const seller = await thrown(sellerCancelDelivery("o1"));
-    expect(buyer.userMessage).toBe(T.declutter_report_not_delivered.seller_delivered);
-    expect(seller.userMessage).toBe(T.declutter_seller_cancel_delivery.seller_delivered);
+  it("each RPC uses its own table: the same code reads differently for the door choice", async () => {
+    h.queue.push({ error: { message: "not_reschedulable" } }, { error: { message: "not_reschedulable" } });
+    const move = await thrown(proposeDeliveryTime("o1", "s"));
+    const door = await thrown(setDeliveryHandoff("o1", "door" as never));
+    expect(move.userMessage).toBe(T.declutter_propose_delivery_time.not_reschedulable);
+    expect(door.userMessage).toBe(T.declutter_set_delivery_handoff.not_reschedulable);
+    expect(move.userMessage).not.toBe(door.userMessage);
   });
 
   it("every call reads its refusal from its OWN RPC's table (floor)", async () => {
@@ -160,15 +155,13 @@ describe("a refusal", () => {
       ["declutter_seller_delivery_booking", () => fetchSellerDeliveryBooking("o1")],
       ["declutter_seller_delivered", () => markDelivered("o1", "p.jpg")],
       ["declutter_report_not_delivered", () => reportNotDelivered("o1")],
-      ["declutter_seller_cancel_delivery", () => sellerCancelDelivery("o1")],
-      ["declutter_buyer_cancel_delivery", () => buyerCancelDelivery("o1")],
       ["declutter_set_delivery_handoff", () => setDeliveryHandoff("o1", "door" as never)],
       ["declutter_propose_delivery_time", () => proposeDeliveryTime("o1", "s")],
       ["declutter_answer_delivery_time", () => answerDeliveryTime("o1", true)],
       ["declutter_delivery_open_times", () => fetchDeliveryOpenTimes("o1")],
       ["declutter_seller_delivery_offer", () => fetchSellerDeliveryOffer("seller1")],
     ];
-    expect(calls.length).toBeGreaterThan(12);
+    expect(calls.length).toBeGreaterThan(11);
     for (const [rpc, call] of calls) {
       // A code only THIS RPC words the way it does (the last entry of its table).
       const [code, words] = Object.entries(T[rpc]).slice(-1)[0]!;

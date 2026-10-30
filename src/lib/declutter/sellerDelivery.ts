@@ -31,8 +31,7 @@ export const SELLER_DELIVERY_RULES = {
   hold_minutes: 35,
   not_delivered_after_minutes: 15,
   auto_confirm_hours: 24,
-  proposals_per_side: 3,
-  buyer_cancel_hours: 24,
+  proposals_per_side: 1,
   reminder_hours: [24, 1],
   timezone: "America/Chicago",
 } as const;
@@ -55,7 +54,6 @@ export type SellerDeliveryRules = {
   not_delivered_after_minutes: number;
   auto_confirm_hours: number;
   proposals_per_side: number;
-  buyer_cancel_hours: number;
   reminder_hours: readonly number[];
   timezone: string;
 };
@@ -283,16 +281,6 @@ export async function reportNotDelivered(orderId: string): Promise<void> {
     (e) => rpcErrorMessage("declutter_report_not_delivered", e));
 }
 
-export async function sellerCancelDelivery(orderId: string): Promise<void> {
-  data(await supabase.rpc("declutter_seller_cancel_delivery", { p_order_id: orderId }),
-    (e) => rpcErrorMessage("declutter_seller_cancel_delivery", e));
-}
-
-/** The buyer cancels until 24 h before the slot: everything back except the card fee (owner 2026-10-22). */
-export async function buyerCancelDelivery(orderId: string): Promise<void> {
-  data(await supabase.rpc("declutter_buyer_cancel_delivery", { p_order_id: orderId }),
-    (e) => rpcErrorMessage("declutter_buyer_cancel_delivery", e));
-}
 
 /** The buyer's door choice after paying (owner 2026-10-22); the seller is told. */
 export async function setDeliveryHandoff(orderId: string, handoff: DeliveryHandoff): Promise<DeliveryHandoff> {

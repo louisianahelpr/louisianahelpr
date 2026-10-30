@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t; |   SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |         {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null} |
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <BundleDiscountCard />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <BundleDiscountCard />\n |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -89,9 +89,9 @@ describe("Q2427 bundle discounts: the screens", () => {
     expect(BUNDLE_PERCENTS.length).toBeGreaterThan(4);
   });
 
-  it("the item page's bundle row says the offer; Selling shows the setting; no fee numbers in the new copy", () => {
+  it("the item page's bundle row says the offer; Declutter settings shows the setting; no fee numbers in the new copy", () => {
     expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("{bundleLabel(rule.data)}.");
-    expect(read("src/components/declutter/DeclutterHomeView.tsx")).toContain("<BundleDiscountCard />");
+    expect(read("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain("<BundleDiscountCard />");
     const card = blankComments(readFileSync("src/components/declutter/BundleDiscountCard.tsx", "utf8"));
     expect(card).not.toMatch(/\bfees?\b|\$\d/i);
   });

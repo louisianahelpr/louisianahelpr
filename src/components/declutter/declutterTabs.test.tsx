@@ -740,7 +740,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(container.querySelector("[data-selling-settings]")).toBeNull();
     // All: the settings and every open offer are back.
     fireEvent.click(screen.getByRole("button", { name: /^All/ }));
-    expect(await screen.findByRole("region", { name: "Selling settings" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Declutter settings/ })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Offers on your items" }).querySelectorAll("li").length).toBeGreaterThan(1);
   });
 

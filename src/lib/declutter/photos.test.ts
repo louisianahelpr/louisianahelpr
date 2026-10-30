@@ -6,6 +6,7 @@
  * block.
  *
  * @mutate src/lib/declutter/photos.ts |   if (cleaned === file \|\| cleaned.type !== "image/jpeg") throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE); |   if (cleaned.size < 0) throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
+ * @mutate src/lib/declutter/photos.ts |     return await compressImage(file, BUNCH_THUMB_SIZE, 0.6); |     return file;
  * @mutate src/lib/declutter/photos.ts |     if (marker === 0xe1) return true; // APP1 = Exif or XMP |     if (marker === 0xe1) return false;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,7 +19,7 @@ const compress = {
 };
 vi.mock("@/lib/imageCompression", () => ({ compressImage: (f: File) => compressImpl(f) }));
 
-import { cleanListingPhoto, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath, stripJpegAppSegments } from "./photos";
+import { bunchThumbnail, cleanListingPhoto, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath, stripJpegAppSegments } from "./photos";
 
 /** SOI, optional APP1 "Exif" segment, APP0, SOS. */
 function jpeg(withExif: boolean): Uint8Array {
@@ -109,5 +110,25 @@ describe("Declutter listing photos are cleaned before upload", () => {
     const uid = "11111111-1111-1111-1111-111111111111";
     const item = "22222222-2222-2222-2222-222222222222";
     expect(listingPhotoPath(uid, item, "a b/../c")).toMatch(/^[0-9a-f-]{36}\/declutter\/[0-9a-f-]{36}\/[A-Za-z0-9._-]{1,100}$/);
+  });
+});
+
+describe("Sell a bunch's previews", () => {
+  const original = new File(["big"], "big.jpg", { type: "image/jpeg" });
+
+  beforeEach(() => compress.mockReset());
+
+  it("are the small copy", async () => {
+    const small = new File(["s"], "big.jpg", { type: "image/jpeg" });
+    compress.mockResolvedValue(small);
+    expect(await bunchThumbnail(original)).toBe(small);
+  });
+
+  it("fall back to the photo itself, and say so in the console", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    compress.fail("Image load timed out");
+    expect(await bunchThumbnail(original)).toBe(original);
+    expect(warn).toHaveBeenCalledWith("[declutter] no small preview for a photo", expect.any(Error));
+    warn.mockRestore();
   });
 });

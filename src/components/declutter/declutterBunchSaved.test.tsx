@@ -42,17 +42,19 @@ vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyItems: async () => [], fetchMyPickupWindows: async () => [], fetchHasAgreedSales: async () => false }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/photos", async (orig) => ({ ...(await orig<object>()), bunchThumbnail: async (f: File) => f }));
 vi.mock("@/lib/declutter/bunch", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/bunch")>();
   return {
     ...real,
-    groupPhotos: async (photos: { key: string }[]) => ({
-      items: [
+    groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
+      const items = [
         { key: "i1", photoKeys: [photos[0].key], title: "Oak chair", description: "Solid oak.", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false, price: "" } as BunchItem,
         { key: "i2", photoKeys: [photos[1].key], title: "Floor lamp", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" } as BunchItem,
-      ],
-      failed: [],
-    }),
+      ];
+      onProgress(1, 1, items);
+      return { items, failed: [], unusable: [] };
+    },
   };
 });
 
@@ -107,7 +109,7 @@ describe("Sell a bunch survives leaving", () => {
     expect((within(back[0] as HTMLElement).getByLabelText("Price ($)") as HTMLInputElement).value).toBe("40");
     expect((screen.getByLabelText("Pickup address") as HTMLInputElement).value).toBe("1 Main St, Baton Rouge");
     expect((screen.getByLabelText("Area buyers see") as HTMLInputElement).value).toBe("Mid-City");
-    expect(back[0].querySelectorAll("img")).toHaveLength(1);
+    await waitFor(() => expect(back[0].querySelectorAll("img")).toHaveLength(1));
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {

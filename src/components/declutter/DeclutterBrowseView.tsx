@@ -41,6 +41,7 @@ import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterBrowseBar, DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones } from "./DeclutterSkeletons";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
@@ -63,7 +64,8 @@ function widerMiles(miles: number): number | null {
 
 /**
  * The desktop map column's height: the scroll column's visible height, so the sticky map fills the screen beside
- * the list while the list scrolls under the steady header (the Jobs map column fills its panel the same way).
+ * the list while the list scrolls under the steady header (the Jobs map column fills its panel the same way), less
+ * the padding around the list (mapFillHeight), so a short list beside the map does not scroll (DA-8).
  */
 function useFillHeight() {
   const ref = useRef<HTMLDivElement>(null);
@@ -71,7 +73,7 @@ function useFillHeight() {
   useLayoutEffect(() => {
     const scroller = ref.current?.closest<HTMLElement>("[data-app-page-scroll]");
     if (!scroller) return;
-    const measure = () => setHeight(Math.max(320, scroller.clientHeight - 24));
+    const measure = () => setHeight(mapFillHeight(scroller));
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(measure);

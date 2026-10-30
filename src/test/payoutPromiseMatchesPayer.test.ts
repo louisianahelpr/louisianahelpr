@@ -11,7 +11,7 @@
  * @mutate supabase/functions/_shared/payoutPromise.ts | const setupFeeCents = opts.giveaway ? 0 : Math.max(0, opts.setupFeeOwedCents); | const setupFeeCents = 0;
  * @mutate supabase/functions/_shared/payoutPromise.ts | return { cents: afterFee - debtCents, setupFeeCents, debtCents }; | return { cents: afterFee, setupFeeCents, debtCents };
  * @mutate supabase/functions/_shared/payoutPromise.ts | Math.min(Math.max(0, opts.debtOwedCents), helprFaultFeeCapCents(opts.unroundedCents - setupFeeCents)); | Math.max(0, opts.debtOwedCents);
- * @mutate supabase/functions/_shared/payoutPromise.ts |   if (!promised) return `Your pay will be sent to your account ${payDay}.`; |   if (!promised) return `$0 will be sent to your account ${payDay}.`;
+ * @mutate supabase/functions/_shared/payoutPromise.ts |   if (!promised) return `Your pay will be sent to your account${payDay}.`; |   if (!promised) return `$0 will be sent to your account${payDay}.`;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; | const payoutCents = roundPayoutDownCents(unroundedPayoutCents - helprFaultFeeCents);
  * @mutate supabase/functions/create-payment/index.ts | payoutPromiseSentence(await readPromisedPayout(supabaseAdmin, job.helper_id, job, helperPayout), payDay) | `$${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`
  * @mutate supabase/functions/auto-release-payment/index.ts | payoutPromiseSentence(await readPromisedPayout(supabaseAdmin, job.helper_id, job, helperPayout), payDay) | `$${helperPayout} will be sent to your account ${payDay}.`
@@ -37,6 +37,10 @@ describe("what the notice promises", () => {
     const p = promisedPayoutCents({ ...base, unroundedCents: 8930 });
     expect(p.cents).toBe(8900);
     expect(payoutPromiseSentence(p, DAY)).toBe("$89 will be sent to your account Tue, Nov 3.");
+    // No known day: the sentence leaves it out, and never prints "null".
+    expect(payoutPromiseSentence(p, null)).toBe("$89 will be sent to your account.");
+    expect(payoutPromiseSentence(null, null)).toBe("Your pay will be sent to your account.");
+    expect(payoutPromiseSentence(null, DAY)).toBe("Your pay will be sent to your account Tue, Nov 3.");
   });
 
   it("a debt comes off in exact cents after the whole-dollar floor", () => {

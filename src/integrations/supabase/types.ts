@@ -3332,6 +3332,39 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_seller_defaults: {
+        Row: {
+          drop_pct: number
+          drops: boolean
+          floor_pct: number
+          free_after_days: number | null
+          handovers: string[]
+          keep_up: boolean
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          drop_pct?: number
+          drops?: boolean
+          floor_pct?: number
+          free_after_days?: number | null
+          handovers?: string[]
+          keep_up?: boolean
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          drop_pct?: number
+          drops?: boolean
+          floor_pct?: number
+          free_after_days?: number | null
+          handovers?: string[]
+          keep_up?: boolean
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       declutter_seller_porch_days: {
         Row: {
           seller_id: string

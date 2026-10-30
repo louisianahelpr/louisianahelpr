@@ -7,7 +7,7 @@
  * Read from the NEWEST definition of notify_message_recipient (the only producer
  * of 'message' bell rows) and the Settings screen's own defaults. The behaviour
  * runs in src/test/pglite/messageAlertThrottleMute.pglite.mjs (migration applied
- * 3x; red with NEW_MIGRATION=skip, 14 checks fail on prod's code).
+ * 3x; red with NEW_MIGRATION=skip, 14 checks fail on prod's code, measured 2026-10-30).
  *
  * @mutate supabase/migrations/20261030141139_message_email_throttle_mute.sql |   IF NEW.job_id IS NOT NULL AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm | IF NEW.job_id IS NOT NULL AND false AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm
  * @mutate supabase/migrations/20261030141139_message_email_throttle_mute.sql |        AND n.created_at > now() - interval '15 minutes' |        AND n.created_at > now() - interval '15 seconds'

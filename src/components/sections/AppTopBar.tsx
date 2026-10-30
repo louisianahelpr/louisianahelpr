@@ -8,6 +8,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
+import { HelpEntry } from "@/components/help/HelpEntry";
 import { ExploreSwitcher } from "./ExploreSwitcher";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
@@ -99,9 +100,10 @@ export function AppTopBar({
   const title = chipsRow ? sectionTitle : phoneExplore ? tr("nav.explore") : sectionTitle;
   if (isWebDesktop && !title) return null;
   const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
-  // The bell and the photo: the same two controls on every phone bar.
+  // Help (UX-6), the bell and the photo: the same controls on every phone bar.
   const personal = (
     <>
+      {!isWebDesktop && <HelpEntry />}
       {!isWebDesktop && (
       <span data-testid="top-bar-bell">
         <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />

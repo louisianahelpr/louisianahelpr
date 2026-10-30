@@ -96,13 +96,13 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
 });
 
 describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
-  it("phone: H emblem left, bell + avatar right", () => {
+  it("phone: H emblem left, Help + bell + avatar right", () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile"]);
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Help", "Notifications", "Profile"]);
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {

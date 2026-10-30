@@ -1,3 +1,4 @@
+import { HelpEntry } from "@/components/help/HelpEntry";
 import BackButton, { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import HelprMark from "@/components/HelprMark";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
@@ -368,9 +369,11 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                 {title}
               </span>
             )}
-            {titleActions && (
-              <div className="ml-auto flex items-center gap-1 shrink-0">{titleActions}</div>
-            )}
+            {/* UX-6: the one Help entry on a phone's back-arrow screens. `empty:hidden`: a guest, who has none, keeps the row as it was. */}
+            <div className="ml-auto flex items-center gap-1 shrink-0 empty:hidden">
+              {titleActions}
+              <HelpEntry />
+            </div>
           </div>
         </>,
       )}

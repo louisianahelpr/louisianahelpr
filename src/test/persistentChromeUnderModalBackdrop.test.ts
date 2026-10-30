@@ -17,6 +17,12 @@ import { readSource, walkSource } from "./helpers/walkSource";
  * that src/index.css drops below 50 while a Radix modal holds the scroll lock
  * (`body[data-scroll-locked] .<class> { z-index: <50 }`), or be listed in
  * KNOWN_ABOVE_MODAL — exact, two-way.
+ *
+ * DC-10 (Declutter selling audit 2026-10-30): the scan read only className strings, so chrome whose fixed position and
+ * z-index live in src/index.css slipped past it. `.compact-title-bar` (largeTitles.ts, z-index 60) stayed bright over
+ * the Manage listing sheet's scrim on a scrolled item page (~/.lh-shots/declutter-audit-1030/selling/dc-mg-sheet-1-375wk.png).
+ * The CSS rules are inventoried too: every rule that sets `position: fixed` and a z-index above 50 and is not a
+ * full-screen layer (`inset: 0`) must name a class that is lowered the same way.
  */
 
 // Empty since Q313 (2026-09-25): OfflineBanner was the one entry, and it now
@@ -49,6 +55,18 @@ for (const file of files) {
   }
 }
 
+// CSS-declared fixed chrome (DC-10): rules in src/index.css that set position: fixed with a z-index above 50.
+type CssHit = { selector: string; z: number; classes: string[] };
+const cssHits: CssHit[] = [];
+for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  const body = m[2];
+  if (!/position:\s*fixed/.test(body) || /(^|[;\s])inset:\s*0\b/.test(body)) continue;
+  const z = /z-index:\s*(\d+)/.exec(body);
+  if (!z || Number(z[1]) <= 50) continue;
+  const selector = m[1].trim().replace(/\s+/g, " ");
+  cssHits.push({ selector, z: Number(z[1]), classes: [...selector.matchAll(/\.([\w-]+)/g)].map((c) => c[1]) });
+}
+
 const isLowered = (h: Hit) => h.classes.some((c) => (lowered.get(c) ?? 99) < 50);
 
 describe("persistent fixed chrome drops under the modal backdrop (Q303)", () => {
@@ -65,6 +83,21 @@ describe("persistent fixed chrome drops under the modal backdrop (Q303)", () => 
       .filter((h) => !isLowered(h))
       .map((h) => `${h.file}: ${h.classes.join(" ")}`);
     expect(offenders).toEqual([]);
+  });
+
+  it("every CSS-declared fixed rule above z-50 is lowered under a scroll-locked body (DC-10)", () => {
+    // @mutate src/index.css | body[data-scroll-locked] .compact-title-bar { | body[data-scroll-lockedx] .compact-title-bar {
+    expect(cssHits.length).toBeGreaterThan(0);
+    const offenders = cssHits
+      .filter((h) => !h.classes.some((c) => (lowered.get(c) ?? 99) < 50))
+      .map((h) => `src/index.css: ${h.selector} (z-index ${h.z})`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("the compact title bar is in the CSS inventory and lowered (DC-10)", () => {
+    const bar = cssHits.filter((h) => h.classes.includes("compact-title-bar"));
+    expect(bar.length).toBe(1);
+    expect(lowered.get("compact-title-bar")).toBeLessThan(50);
   });
 
   it("StrikeBanner's two variants are both lowered", () => {

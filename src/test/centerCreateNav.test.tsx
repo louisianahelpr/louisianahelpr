@@ -186,7 +186,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
 
   it.each([
     ["jobs", "/post-job"],
-    ["declutter", "/declutter/sell"],
+    ["declutter", "/declutter/sell?mode=choose"],
     ["shops", "/shops/mine"],
     ["homes", "/rentals?tab=own&add=1"],
   ])("the %s main action goes to %s", (key, path) => {

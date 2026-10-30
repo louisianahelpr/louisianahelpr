@@ -67,7 +67,6 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_setup_fee_refunded: "cart",
   declutter_setup_job_fee_debt: "mine",
   declutter_take_item: "cart,selling",
-  declutter_wanted_reply: "offers",
   declutter_withdraw_problem: "<dynamic>",
   declutter_withdraw_refund: "selling",
   helpr_task_close: "deliver",

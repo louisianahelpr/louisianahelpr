@@ -27,6 +27,8 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/pages/posts/postedJobs/useApplicantCategoryCounts", () => ({ useApplicantCategoryCounts: () => null }));
@@ -51,6 +53,13 @@ import { ApplicantsCompareCard } from "@/pages/posts/postedJobs/applicantsPanel/
 import type { EnrichedApplication, Job } from "@/components/job-card/activityConstants";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "./helpers/jobLocalDate";
+
+
+/** The applicant trust line (Q2478) reads through React Query; every render gets a fresh client (rpc stubbed above). */
+function QueryWrap({ children }: { children: ReactNode }) {
+  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 const DAY = jobLocalDateISO(9);
 
@@ -107,6 +116,7 @@ function renderPanel(applications: EnrichedApplication[]) {
         distanceBandMap={empty}
       />
     </MemoryRouter>,
+    { wrapper: QueryWrap },
   );
   return screen.getByRole("region", { name: /Applicants for Pressure wash driveway/ });
 }
@@ -133,6 +143,7 @@ function renderTable(apps: EnrichedApplication[], handlers: Partial<Record<"onHi
         onBlock={handlers.onBlock ?? vi.fn()}
       />
     </MemoryRouter>,
+    { wrapper: QueryWrap },
   );
   return compare;
 }

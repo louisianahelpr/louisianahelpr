@@ -12735,7 +12735,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 381,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12745,7 +12745,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 392,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12755,7 +12755,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 394,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12765,7 +12765,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 409,
+      "line": 412,
       "kind": "toast.error",
       "title": {
         "form": "literal",

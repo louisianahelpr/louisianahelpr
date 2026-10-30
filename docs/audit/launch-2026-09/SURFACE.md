@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 199 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1042 (across 282 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1043 (across 283 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 33 |
 | Multi-step flows — probable | flow | 28 |
 | Back/next navigation only | flow | 56 |
 | Forms (submittable) | form | 89 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 166 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 167 |
 | Email templates | **exported template** | 22 |
-| Notification types (defined in notification_type_pref_map) | type | 25 |
-| **Navigable surfaces** (places a person can stand) | mixed | **686** |
-| **Copy surfaces** (strings a person may read) | mixed | **1089** |
-| **Total auditable surface** | mixed | **1775** |
+| Notification types (defined in notification_type_pref_map) | type | 26 |
+| **Navigable surfaces** (places a person can stand) | mixed | **687** |
+| **Copy surfaces** (strings a person may read) | mixed | **1091** |
+| **Total auditable surface** | mixed | **1778** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -655,4 +655,4 @@ long/missing fields, and a working unsubscribe where required.
 
 ## Notification types (each is distinct copy + a tap destination)
 
-`admin_alert` · `application` · `declutter_listings` · `declutter_offers` · `declutter_pickups` · `declutter_price_drops` · `declutter_refunds` · `declutter_sales` · `declutter_wanted` · `expired` · `financial_alerts` · `info` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `success` · `system_alert` · `transit_updates` · `verified` · `warning` · `work_status`
+`admin_alert` · `application` · `declutter_listings` · `declutter_offers` · `declutter_pickups` · `declutter_price_drops` · `declutter_questions` · `declutter_refunds` · `declutter_sales` · `declutter_wanted` · `expired` · `financial_alerts` · `info` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `success` · `system_alert` · `transit_updates` · `verified` · `warning` · `work_status`

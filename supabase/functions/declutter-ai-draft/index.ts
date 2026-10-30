@@ -103,11 +103,13 @@ const ITEM_SCHEMA = {
 
 /**
  * Owner 2026-10-29 ("ai should always be doing most of the work"): Claude also
- * sets the starting price. Never a retail claim; sanitizeDraft drops a reason
+ * sets the starting price, at the high end of fair (owner 2026-10-30: "I would also
+ * rather my listing be on the high end bc people will low ball me anyway"), the same for
+ * one item and a bunch. Never a retail claim; sanitizeDraft drops a reason
  * that makes one, and groundPrice clamps the price to our own sold prices when
  * the fair-price hint has a range.
  */
-const PRICE_RULE = `Suggest a fair starting price in whole US dollars (1 to 1000) for a quick local sale of this USED item, from what you see: the kind of item, its condition and its size. Give price_reason as one short plain line about the item itself (for example "Solid wood and only light wear, so it should sell fast at this price"). Never mention retail, new, original or store prices, or any website or marketplace.`;
+const PRICE_RULE = `Suggest a starting price in whole US dollars (1 to 1000) for this USED item, from what you see: the kind of item, its condition and its size. Buyers here usually offer less than the asking price, so pick the HIGH end of the fair range for this exact item, not the middle. Stay honest: never above what a similar used item in this condition plausibly sells for locally. Give price_reason as one short plain line about the item itself (for example "Solid wood and only light wear, so it can ask near the top of a fair price"). Never mention retail, new, original or store prices, or any website or marketplace.`;
 
 const PHOTO_COACH_RULE = `Read any labels, tags or markings in the photos: put the brand, model, size or measurements you can actually read into details as one short line (for example "Brand: KitchenAid. Model: KSM150. 5 quart."); leave details empty when nothing is readable, and never guess. Set cover_photo to the number of the photo (0 for the first one sent) that shows the whole item best for a listing's cover. Set photo_tip to at most ONE short tip for one more photo that would help a buyer (for example "A photo of the label" or "A photo of the back"), or leave it empty when the photos are enough.`;
 

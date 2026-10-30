@@ -52,7 +52,7 @@ import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
-import { nextPriceDrop } from "@/lib/declutter/priceDrop";
+import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
@@ -135,7 +135,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const free = isFreeItem(it);
   const dropped = it.current_price_cents < it.price_cents;
   // Board 4: the next drop only from the real rule (priceDrop.ts), never a promise the server may not keep.
-  const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
+  const planned = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
+  // The seller's own listing also knows its private lowest price and whether they stopped the drops: one that can't drop says nothing.
+  const sellerState = isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" ? sellerDrops.data : null;
+  const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 
   return (
@@ -190,7 +193,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
               <ConditionChip stars={it.condition_stars} />
             </div>
-            {drop && !(isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" && sellerDrops.data.drops_stopped) && (
+            {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}
             {/* The title once (audit #47): the desktop page header already prints it. The condition is said once too:

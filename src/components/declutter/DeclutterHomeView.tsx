@@ -10,10 +10,11 @@
  * open the tab that now holds them. Hidden unless the 'declutter' switch is on
  * for the member (DeclutterGate).
  */
+import { sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   fetchOpenFreeRequestCounts,
   fetchPhotos,
   fetchDropStates,
+  fetchManageState,
   photoPublicUrl,
   withdrawItem,
 } from "@/lib/declutter/api";
@@ -174,6 +176,17 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
+  // "May drop tonight" is said only when it can: the seller's own read knows their lowest price and whether they stopped
+  // the drops (same read and cache entry as the Manage sheet). Asked only for the few rows that would say it.
+  const droppingTonight = (mine.data ?? []).filter((i) => i.status === "live" && dropOutlook(i, myDrops.data?.get(i.id)).tonight);
+  const myDropStops = useQueries({
+    queries: droppingTonight.map((i) => ({ queryKey: ["declutter", "manage", i.id], queryFn: () => fetchManageState(i.id) })),
+  });
+  const cannotDrop = new Set(droppingTonight.filter((i, n) => {
+    const st = myDropStops[n]?.data;
+    // Until it is read, say nothing: hiding is the safe side of the truth rule.
+    return !st || (st !== "not_deployed" && sellerStateStopsDrops(st, i.current_price_cents));
+  }).map((i) => i.id));
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
   const freeAsks = useQuery({ queryKey: ["declutter", "free-request-counts", userId], queryFn: () => fetchOpenFreeRequestCounts(userId), enabled: anyFreeLive });
@@ -302,7 +315,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           line, the price in money ink; the actions sit at the row's right end from sm up (owner 2026-10-28). */}
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">
         {list.map((item) => {
-          const drop = item.status === "live" && dropOutlook(item, myDrops.data?.get(item.id)).tonight;
+          const drop = droppingTonight.some((i) => i.id === item.id) && !cannotDrop.has(item.id);
           const thumb = myCover.get(item.id);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">

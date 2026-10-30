@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Waiting for a review. We'll send you a notice.", |   pending_review: "pending_review",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
- * @mutate src/components/declutter/SellFormParts.tsx | <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} /> | <input type="checkbox" id="sell-tax" className="mt-0.5" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
+ * @mutate src/components/declutter/declutterUi.tsx | <Checkbox id={id} className="mt-0.5" checked={checked} onCheckedChange={(v) => onChange(v === true)} /> | <input type="checkbox" id={id} className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
  * Owner 2026-10-28 "make these checks 1": one box, all four facts; one tick lists (attestItem's four trues: api.test.ts).
  * @mutate src/components/declutter/useSellFlowState.ts |     if (!attested) { |     if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
@@ -527,9 +527,9 @@ describe("Declutter controls are the shared ones", () => {
     expect(boxes.length).toBe(1);
     expect(boxes[0].tagName).toBe("BUTTON");
     expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
-    // Its label states all four facts (R.S. 47:305(A), LDR RR 15-001).
-    const name = boxes[0].getAttribute("id") ? document.querySelector(`label[for="${boxes[0].id}"]`)?.textContent ?? "" : "";
-    for (const fact of [/own personal or household use/, /not in the business of selling items like this/, /occasional sale/, /keep it until I hand it over/]) {
+    // All four facts stay on screen, as one list above the box (R.S. 47:305(A), LDR RR 15-001; owner 2026-10-30).
+    const name = document.querySelector("[data-tax-statements] ul")?.textContent ?? "";
+    for (const fact of [/own personal or household use/, /not in the business of selling items like this/, /occasional sale/, /keep the item until I hand it over/]) {
       expect(name).toMatch(fact);
     }
     // Untick: List it refuses and lists nothing; one tick lists, attesting all four.

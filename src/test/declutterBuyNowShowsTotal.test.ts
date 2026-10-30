@@ -29,7 +29,7 @@
  * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents))}{suffix}
  * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
  * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | <BuyerTotal priceCents={takeCents} /> | {takeCents}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <BuyerTotal priceCents={takeCents} /> | {takeCents}
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /> | {cents}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
@@ -110,7 +110,7 @@ describe("D6: Buy now names what checkout will charge", () => {
       ["DeclutterOfferPanel.tsx", "You pay if the seller says yes"],
       // "Total with pickup" left with the Buy now reserve sheet (DB-5, 2026-10-30: Buy now goes straight to checkout).
       // DB-4 (2026-10-30): the way words follow the seller's ticks (pickupWords.ts), so the label is built, not literal.
-      ["DeclutterTradeViews.tsx", "You pay {totalPhrase("],
+      ["DeclutterOffersSection.tsx", "You pay {totalPhrase("],
       ["OfferSentWhatNext.tsx", "{forPhrase(way)}"],
     ];
     for (const [file, label] of SITES) {

@@ -28,7 +28,7 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/admin/BanDialog.tsx::${profile.full_name || \"user\"}.": "an admin view; profiles.full_name, the full name",
   "src/components/profile/profileEditForm/usePortfolio.ts::${file.name}.": "a file name, not a person",
   "src/components/admin/adminJobs/RemoveJobDialog.tsx::{detailJob?.helper_id ? \" and assigned Helpr\" : \"\"}.": "two string literals, neither ends in a period",
-  "src/components/declutter/DeclutterTradeViews.tsx::${o.my_side === \"buyer\" ? \"seller\" : \"buyer\"}.": "a role word (\"seller\" or \"buyer\"), never a person's name",
+  "src/components/declutter/DeclutterOffersSection.tsx::${o.my_side === \"buyer\" ? \"seller\" : \"buyer\"}.": "a role word (\"seller\" or \"buyer\"), never a person's name",
   "src/components/declutter/DeclutterBundleRow.tsx::{name}.": "the seller's FIRST name only (formatName(...).split(\" \")[0]) or \"this seller\"",
   "src/components/declutter/DeclutterOrderBits.tsx::{side === \"seller\" ? \", or have someone home\" : \"\"}.": "two string literals, neither ends in a period",
   "src/components/refund/RefundRequestDialog.tsx::${first}.": "firstNameOf(): the first name only",

@@ -293,7 +293,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 
   it("lead 10-28: Accept and Cancel sale ask in an in-app sheet, never window.confirm; nothing runs until its button", async () => {
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             onClick={() => setAccepting(true)} |             onClick={() => act.mutate({ action: "accept" })}
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |             onClick={() => setAccepting(true)} |             onClick={() => act.mutate({ action: "accept" })}
     // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |               onClick={() => setAsking(l.item_id)} |               onClick={() => { if (l.item_id) cancel.mutate(l.item_id); }}
     const confirmSpy = vi.spyOn(window, "confirm");
     everything();
@@ -666,7 +666,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count; |   const toAnswer = todo?.sellerOffers ?? 0;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | const ASKABLE = new Set(["live", "paused"]); | const ASKABLE = new Set(["live", "paused", "draft", "sold"]);
   it("DC-9: To answer counts and shows the offers waiting on the seller and the unanswered questions, nothing else", async () => {

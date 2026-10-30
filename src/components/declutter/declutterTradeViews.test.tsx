@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (!buy.isPending) buy.mutate(); |     if (window.confirm("Buy?")) buy.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate(checkoutLinkFor(item.seller_id)); |       void checkoutLinkFor;
  * @mutate src/lib/declutter/buyNowHold.ts |   return sellerId ? `/declutter?tab=buying&checkout=${encodeURIComponent(sellerId)}` : "/declutter?tab=buying"; |   return "/declutter?tab=buying";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
@@ -379,8 +379,8 @@ describe("Declutter slice 3 screens", () => {
   // Audit 1a #7 (prod 2026-10-29): a $30 listing with no lowest price stores $30 there, so a $20 offer AND the seller's
   // own $25 counter both read "This is under your lowest price ($30)". The note is for a buyer's amount waiting on the
   // seller, under a lowest price the seller set below the price.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null | const underFloor = o.my_side === "seller" && o.floor_price_cents !== null
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | null && o.floor_price_cents < o.current_price_cents && o.amount_cents | null && o.amount_cents
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null | const underFloor = o.my_side === "seller" && o.floor_price_cents !== null
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | null && o.floor_price_cents < o.current_price_cents && o.amount_cents | null && o.amount_cents
   it("audit 1a #7: no under-floor note when no lowest price was set, nor on the seller's own counter", async () => {
     state.offers = [
       { ...OFFER, offer_id: "n1", amount_cents: 2000, current_price_cents: 3000, floor_price_cents: 3000, item_title: "No floor lamp" },
@@ -401,7 +401,7 @@ describe("Declutter slice 3 screens", () => {
       { ...OFFER, offer_id: "s9", status: "declined", item_title: "Desk" },
     ];
     show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | {o.my_side === "buyer" && (o.status === "declined" \|\| o.status === "expired") && ( | {false && (
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx | {o.my_side === "buyer" && (o.status === "declined" \|\| o.status === "expired") && ( | {false && (
     const ended = await screen.findAllByText(/^Nothing was charged\./);
     expect(ended).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "See the item" })[0].getAttribute("href")).toBe(`/declutter/item/${OFFER.item_id}`);
@@ -410,9 +410,9 @@ describe("Declutter slice 3 screens", () => {
 
   // Deep audit #30 (2026-10-28, shot 125): "Offers on your items" kept every closed offer (Declined, Taken back,
   // Accepted) above the live ones. The seller sees the open offers; the closed ones fold under one dated button.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           {showClosed && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {showClosed && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
   it("deep audit #30: the seller sees open offers; closed ones fold under one button, and open again on tap", async () => {
     const CLOSED = ["declined", "withdrawn", "accepted", "expired", "voided"] as const;
     state.offers = [
@@ -450,7 +450,7 @@ describe("Declutter slice 3 screens", () => {
       { ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp", counter_count: 1 },
     ];
     show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const takeCents = Math.min(o.amount_cents, o.current_price_cents); |   const takeCents = o.amount_cents;
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const takeCents = Math.min(o.amount_cents, o.current_price_cents); |   const takeCents = o.amount_cents;
     expect((await screen.findByText(/If you accept and the buyer pays/)).textContent).toMatch(/you keep the whole \$22\./);
     expect(screen.getByText("their offer")).toBeInTheDocument();
     expect(screen.getByText("their counter")).toBeInTheDocument();
@@ -461,8 +461,8 @@ describe("Declutter slice 3 screens", () => {
   });
 
   // Audit 1030 DB-4: the counter said "You pay with pickup" on an item the seller offers no pickup for.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | You pay {totalPhrase(noDeliveryWay(ways.data))}</dt> | You pay with pickup</dt>
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn | queryFn: () => fetchItemHandovers(o.item_id), enabled: false && myTurn
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | You pay {totalPhrase(noDeliveryWay(ways.data))}</dt> | You pay with pickup</dt>
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn | queryFn: () => fetchItemHandovers(o.item_id), enabled: false && myTurn
   it("DB-4: the counter's total names the way the seller offers", async () => {
     for (const [ways, words] of [[["meetup", "seller_delivery"], "at a safe meetup"], [["delivery"], "before delivery"], [["porch"], "with porch pickup"]] as const) {
       state.handovers = [...ways];

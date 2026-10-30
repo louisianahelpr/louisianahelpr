@@ -4,7 +4,7 @@
  * an error, so it read as a warning. Good news now sits on the sage tint (GOOD_NEWS_NOTE, goodNews.ts) in ordinary
  * ink, the amount in money ink; the held payout and the buyer's "You paid" keep the rust tint.
  *
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | <p className={GOOD_NEWS_NOTE} data-offer-note="" data-tone="good"> | <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-offer-note="" data-tone="good">
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <p className={GOOD_NEWS_NOTE} data-offer-note="" data-tone="good"> | <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-offer-note="" data-tone="good">
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const goodNews = side === "seller" && !problemOpen; |   const goodNews = false;
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const goodNews = side === "seller" && !problemOpen; |   const goodNews = side === "seller";
  * @mutate src/components/declutter/goodNews.ts | bg-[hsl(var(--sage)/0.14)] | bg-[hsl(var(--burnt-sienna)/0.10)]

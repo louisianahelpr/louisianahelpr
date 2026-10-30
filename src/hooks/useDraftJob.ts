@@ -69,6 +69,23 @@ export interface JobDraft {
   savedAt: number;
 }
 
+/**
+ * Audit 10-30 #14: the saved draft's words when it is a live draft in this category, read at once (a prefill runs
+ * before the hook's own effect has read it). A draft from another kind of job is not this job's, so it reads as none.
+ */
+export function keptDraftInCategory(category: string): { title: string; description: string } | null {
+  try {
+    const saved = safeStorage.getItem(DRAFT_KEY);
+    if (!saved) return null;
+    const d = JSON.parse(saved) as Partial<JobDraft>;
+    if (d.category !== category || !d.description || Date.now() - (d.savedAt ?? 0) >= 7 * 24 * 60 * 60 * 1000) return null;
+    return { title: d.title ?? "", description: d.description };
+  } catch (err) {
+    console.warn("[post-job] could not read the saved draft", err);
+    return null;
+  }
+}
+
 const emptyDraft: JobDraft = {
   title: "", description: "", category: "other", location: "",
   dateNeeded: "", startTime: "", estimatedHours: "", budget: "",

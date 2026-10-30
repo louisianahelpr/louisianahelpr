@@ -30,10 +30,14 @@
  * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" /> | groups={CATEGORY_PICKER_GROUPS} />
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <div className="min-w-0 space-y-1" data-wanted-category-row=""> | <div className="grid grid-cols-2 gap-3" data-wanted-category-row="">
+ * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_POST_PARAM);\n |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { saveWantedDraft(form); }, [form]); |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |       clearWantedDraft();\n |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { WantedNear, WantedPost } from "@/lib/declutter/wanted";
 
@@ -66,13 +70,53 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 import { toast } from "sonner";
 import { WantedView, wantedWhereWords } from "./DeclutterWantedViews";
 
+function Where() {
+  const l = useLocation();
+  return <p data-testid="where">{l.pathname + l.search}</p>;
+}
+
 function open(url = "/declutter?tab=wanted") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[url]}><WantedView /></MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[url]}><WantedView /><Where /></MemoryRouter></QueryClientProvider>);
 }
 
 describe("the Wanted hub", () => {
-  beforeEach(() => { posted.length = 0; near.rows = []; mine.rows = []; photoCalls.length = 0; });
+  beforeEach(() => { posted.length = 0; near.rows = []; mine.rows = []; photoCalls.length = 0; localStorage.clear(); });
+
+  it("#13: post=1 opens the form once and leaves the address, so Cancel and a reload don't bring it back", async () => {
+    open("/declutter?tab=wanted&post=1");
+    await screen.findByRole("dialog");
+    await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter?tab=wanted"));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const after = screen.getByTestId("where").textContent!;
+    cleanup();
+    open(after);
+    await screen.findByRole("button", { name: "Post what you're looking for" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("#13: words typed survive a reload, a broken draft is ignored, and a successful post forgets them", async () => {
+    open("/declutter?tab=wanted&post=1");
+    fireEvent.change(await screen.findByLabelText("I'm looking for"), { target: { value: "Oak dresser" } });
+    fireEvent.change(screen.getByLabelText("Up to"), { target: { value: "40" } });
+    cleanup();
+    open("/declutter?tab=wanted&post=1");
+    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Oak dresser");
+    expect(screen.getByLabelText("Up to")).toHaveValue("40");
+    cleanup();
+    localStorage.setItem("helpr_wanted_draft", "{not json");
+    open("/declutter?tab=wanted&post=1");
+    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("");
+    cleanup();
+    localStorage.setItem("helpr_wanted_draft", JSON.stringify({ what: "Crib", category: "baby_kids", maxPrice: "40", radius: 10 }));
+    open("/declutter?tab=wanted&post=1");
+    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Crib");
+    fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
+    await waitFor(() => expect(posted.length).toBe(1));
+    await waitFor(() => expect(localStorage.getItem("helpr_wanted_draft")).toBeNull());
+  });
 
   const POST: WantedPost = {
     id: "w9", what: "Kids bike", category: "baby_kids", max_price_cents: 3000, radius_miles: 10, status: "open",

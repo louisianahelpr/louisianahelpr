@@ -17,7 +17,13 @@
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
  * @mutate src/components/declutter/DeclutterItemView.tsx |       phoneHidesTitle\n |
  * @mutate src/components/PageHeader.tsx | ${phoneHidesTitle ? " max-sm:sr-only" : ""} | ${phoneHidesTitle ? "" : ""}
- * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} /> | rightSlot={titleActions} />
+ * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | rightSlot={titleActions} sticky={stickyHeader} />
+ * DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned on the item page while it scrolls.
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n      titleActions={ |       titleActions={
+ * @mutate src/components/AppPage.tsx | data-own-title-row={stickyHeader ? "" : undefined} | data-own-title-row={undefined}
+ * @mutate src/components/AppPage.tsx | phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | phoneHidesTitle={phoneHidesTitle} />
+ * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"
+ * @mutate src/components/PageHeader.tsx |             {stickyTitle && phoneHidesTitle && ( |             {false && (
  * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |
  * @mutate src/lib/declutter/api.ts |       .eq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
@@ -71,8 +77,8 @@ vi.mock("@/hooks/useUserLocation", () => ({
   deriveFallbackLocation: async () => null,
 }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children, titleActions, phoneHidesTitle }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode; phoneHidesTitle?: boolean }) => (
-    <main>
+  default: ({ title, children, titleActions, phoneHidesTitle, stickyHeader }: { title: string; children: React.ReactNode; titleActions?: React.ReactNode; phoneHidesTitle?: boolean; stickyHeader?: boolean }) => (
+    <main data-sticky-header={stickyHeader ? "" : undefined}>
       <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined}>{title}</h1>
       {titleActions}
       {children}
@@ -409,6 +415,36 @@ describe("the photo-first Declutter item page", () => {
     unmount();
     render(<MemoryRouter><PageHeader title="Plain title" /></MemoryRouter>);
     expect(screen.getByRole("heading", { name: "Plain title" }).className).not.toMatch(/sr-only/);
+  });
+
+  it("DA-9: the item page asks for a pinned title row, so back, share and heart stay on screen as it scrolls", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 });
+    expect(screen.getByRole("main")).toHaveAttribute("data-sticky-header");
+  });
+
+  it("DA-9: the real AppPage's stickyHeader pins the row (back + actions + the scrolled title) and turns off the title-only bar", async () => {
+    const { default: RealAppPage } = await vi.importActual<typeof import("@/components/AppPage")>("@/components/AppPage");
+    const actions = <button type="button" aria-label="Watch this item">h</button>;
+    const { container, unmount } = render(<MemoryRouter><RealAppPage title="Blue mug" phoneHidesTitle stickyHeader titleActions={actions}><p>body</p></RealAppPage></MemoryRouter>);
+    const scroller = container.querySelector("[data-app-page-scroll]");
+    expect(scroller).toHaveAttribute("data-own-title-row");
+    const row = container.querySelector(".sticky-title-row");
+    expect(row?.className).toMatch(/(^|\s)sticky(\s|$)/);
+    expect(row?.className).toMatch(/(^|\s)top-\[calc\(-1\*var\(--shell-gap\)\)\](\s|$)/);
+    // The row's parent is the page body (everything below), so the row can stick past the header.
+    expect(row?.parentElement?.contains(screen.getByText("body"))).toBe(true);
+    expect(within(row as HTMLElement).getByRole("button", { name: "Go back" })).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
+    const name = row?.querySelector(".sticky-title-row-name");
+    expect(name?.textContent).toBe("Blue mug");
+    expect(name).toHaveAttribute("aria-hidden", "true");
+    unmount();
+    // Without it, every other AppPage is exactly as before.
+    const plain = render(<MemoryRouter><RealAppPage title="Earnings"><p>body</p></RealAppPage></MemoryRouter>);
+    expect(plain.container.querySelector("[data-own-title-row]")).toBeNull();
+    expect(plain.container.querySelector(".sticky-title-row")).toBeNull();
+    expect(plain.container.querySelector(".sticky-title-row-name")).toBeNull();
   });
 
   it("the real AppPage passes phoneHidesTitle down to the header", async () => {

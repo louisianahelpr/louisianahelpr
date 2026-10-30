@@ -64,11 +64,17 @@ interface AppPageProps {
   titleActions?: ReactNode;
   /** Phone: keep the h1 for screen readers but paint only back + titleActions (PageHeader's `phoneHidesTitle`). */
   phoneHidesTitle?: boolean;
+  /**
+   * Phone: the title row (back + titleActions) stays pinned at the top while the page scrolls, with the title
+   * shown in it once scrolled, instead of scrolling away under the title-only compact bar (DA-9, Declutter audit
+   * 2026-10-30: the item page lost its back and heart buttons on scroll).
+   */
+  stickyHeader?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyHeader, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -100,7 +106,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, childre
             `px-3` stays and is now genuinely cancelled: the padding is what
             keeps a card's focus ring and shadow off this scroll container's
             `overflow` clip. */}
-        <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
+        <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav" data-own-title-row={stickyHeader ? "" : undefined}>
           <div>
             {/* The shared tab shell — literally the same component every
                 Profile tab renders through, not a copy of its class string.
@@ -109,7 +115,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, childre
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} />
               {children}
             </ProfileTabBody>
           </div>

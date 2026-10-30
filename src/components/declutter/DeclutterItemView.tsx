@@ -126,6 +126,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
       backTo="/declutter"
       // Phone (lead, 2026-10-19): back + share + heart only, the photo is the hero; the full title sits under the price.
       phoneHidesTitle
+      // DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned while the buyer scrolls the page.
+      stickyHeader
       titleActions={
         <>
           <button

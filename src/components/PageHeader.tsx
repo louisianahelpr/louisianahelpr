@@ -54,6 +54,11 @@ interface PageHeaderProps {
    */
   phoneHidesTitle?: boolean;
   /**
+   * With `phoneHidesTitle`, on a pinned title row (AppPage `stickyHeader`, DA-9): paint the title, aria-hidden (the
+   * h1 stays the heading), between back and the actions once the page has scrolled (index.css `.sticky-title-row`).
+   */
+  stickyTitle?: boolean;
+  /**
    * Let a long title wrap onto a second line instead of ending in "..." (default: one line, truncated). For a
    * public page whose title is a sentence, e.g. /sms-opt-in "How to opt in to Louisiana Helpr text alerts", which
    * truncated to "How to opt in to Louisia..." at 375 (measured 2026-10-23).
@@ -207,7 +212,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -358,6 +363,11 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                 ~140 call sites that pass no `titleActions`. `shrink-0` keeps
                 the icon buttons at full size when the title is long enough to
                 claim the rest of the row. */}
+            {stickyTitle && phoneHidesTitle && (
+              <span aria-hidden="true" className="sticky-title-row-name min-w-0 flex-1 truncate text-center font-semibold">
+                {title}
+              </span>
+            )}
             {titleActions && (
               <div className="ml-auto flex items-center gap-1 shrink-0">{titleActions}</div>
             )}

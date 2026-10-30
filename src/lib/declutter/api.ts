@@ -15,7 +15,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
-import { takeDeclutterItemsPrefetch, takeDeclutterPhotosPrefetch } from "@/lib/declutter/bootPrefetch";
+import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -153,9 +153,10 @@ async function readItems(run: (columns: string) => PromiseLike<ItemRead>): Promi
 
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */
 export async function fetchLiveItems(): Promise<DeclutterItem[]> {
-  // Started at boot on a cold /declutter (src/boot/declutterPrefetch.ts); taken once. Failed or old: ask as before.
-  const prefetched = await takeDeclutterItemsPrefetch();
-  if (prefetched) return prefetched as DeclutterItem[];
+  // Started at boot on a cold /declutter (src/boot/declutterPrefetch.ts); taken once. Failed, old, not deployed yet, or
+  // a list longer than the answer: ask as before. It leaves out the member's own listings; every caller drops them.
+  const prefetched = await takeFirstScreenItems();
+  if (prefetched) return prefetched as unknown as DeclutterItem[];
   const rows = await readItems((cols) =>
     supabase
       .from("declutter_items")
@@ -314,7 +315,8 @@ export async function setDropPct(itemId: string, pct: number): Promise<number> {
 export async function fetchDropStates(itemIds: string[]): Promise<Map<string, DropStateRow>> {
   const out = new Map<string, DropStateRow>();
   if (itemIds.length === 0) return out;
-  const rows = (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
+  const prefetched = await takeFirstScreenDropStates(itemIds);
+  const rows = prefetched ?? (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
     (DropStateRow & { id: string })[] | null;
   for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct });
   return out;
@@ -322,7 +324,7 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
 
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {
   if (itemIds.length === 0) return [];
-  const prefetched = await takeDeclutterPhotosPrefetch(itemIds);
+  const prefetched = await takeFirstScreenPhotos(itemIds);
   if (prefetched) return prefetched as DeclutterPhoto[];
   const rows = unwrap(
     await supabase
@@ -376,6 +378,8 @@ export async function fetchUnansweredQuestions(itemIds: string[]): Promise<Pick<
 }
 
 export async function fetchWatching(userId: string): Promise<Set<string>> {
+  const prefetched = await takeFirstScreenWatching(userId);
+  if (prefetched) return new Set(prefetched);
   const rows = unwrap(await supabase.from("declutter_watchlist").select("item_id").eq("user_id", userId));
   return new Set((rows ?? []).map((r: { item_id: string }) => r.item_id));
 }

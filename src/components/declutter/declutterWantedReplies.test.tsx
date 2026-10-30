@@ -8,6 +8,11 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     if (post && it) setPrice(String(Math.min(post.max_price_cents, it.current_price_cents) / 100)); |     if (post && it) setPrice(String(it.current_price_cents / 100));
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     mutationFn: () => replyToWanted(post!.id, itemId!, cents!), |     mutationFn: () => replyToWanted(post!.id, itemId!, limit!),
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.replied ? ( |             {false ? (
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |                 <Link to={quickListHref(post)}> |                 <Link to="/declutter/sell">
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx |               <div className="min-w-0 space-y-2"> |               <div className="space-y-2">
+ *
+ * Audit W1 (the sheet slid sideways on WebKit): the listings are the shared RadioCardList inside a min-w-0 box.
+ * Quick-list (owner 2026-10-30): "List it now" opens the shared sell flow with the post to answer.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -46,7 +51,8 @@ describe("board 117: Wanted near you and I have this", () => {
   it("lists posts with First L., money-ink 'Up to' and miles; an answered one says so", async () => {
     renderIt();
     expect(await screen.findByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
-    const rows = screen.getAllByRole("listitem");
+    // The heading stands from the start now (the hub, owner 2026-10-30); the rows arrive with the answer.
+    const rows = await screen.findAllByRole("listitem");
     expect(rows[0].textContent).toContain("Up to $30 · Lexi L. · 4 mi");
     expect(within(rows[0]).getByText("$30").className).toContain("--burnt-sienna");
     expect(within(rows[1]).getByText("Answered")).toBeInTheDocument();
@@ -58,7 +64,11 @@ describe("board 117: Wanted near you and I have this", () => {
     fireEvent.click(await screen.findByRole("button", { name: "I have this" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Kids bike, 16 inch")).toBeInTheDocument();
-    fireEvent.click(await within(sheet).findByLabelText(/Blue kids bike/));
+    // W1: the shared radio cards, in a box that can shrink below its content (min-w-0), so a long title wraps.
+    const card = await within(sheet).findByRole("radio", { name: /Blue kids bike/ });
+    expect(card.closest("[role=radiogroup]")?.parentElement?.className).toContain("min-w-0");
+    expect(within(sheet).getByRole("link", { name: "List something new for this" })).toHaveAttribute("href", "/declutter/sell?answer=w1&max=3000&what=Kids+bike%2C+16+inch");
+    fireEvent.click(card);
     const price = within(sheet).getByLabelText("Your price");
     expect(price).toHaveValue("30");
     expect(within(sheet).getByText(/You keep the whole/).textContent).toBe("You keep the whole $30. If Lexi accepts, Lexi pays and you're paid after the handover.");
@@ -71,17 +81,20 @@ describe("board 117: Wanted near you and I have this", () => {
     await waitFor(() => expect(state.sent).toEqual([["w1", "i1", 2500]]));
   });
 
-  it("no listing that can answer: points to listing one first", async () => {
+  it("no listing that can answer: List it now opens the sell flow with this post to answer", async () => {
     state.listings = [];
     renderIt();
     fireEvent.click(await screen.findByRole("button", { name: "I have this" }));
-    expect(await screen.findByRole("link", { name: "List the item first" })).toHaveAttribute("href", "/declutter/sell");
+    expect(await screen.findByRole("link", { name: "List it now" })).toHaveAttribute("href", "/declutter/sell?answer=w1&max=3000&what=Kids+bike%2C+16+inch");
+    expect(screen.getByText(/it answers Lexi as soon as it's live/)).toBeInTheDocument();
   });
 
-  it("nothing near you: the section stays out of the way", async () => {
+  // Owner 2026-10-30: the Wanted tab is a hub, so "Wanted near you" always stands and says when it has nothing.
+  it("nothing near you: the section says so, with no I have this", async () => {
     state.near = [];
-    const { container } = renderIt();
-    await new Promise((r) => setTimeout(r, 20));
-    expect(container.textContent).toBe("");
+    renderIt();
+    expect(await screen.findByText(/No one near you has posted a Wanted yet/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I have this" })).toBeNull();
   });
 });

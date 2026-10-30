@@ -1,9 +1,12 @@
 /**
  * Board 117 / Q2267: "Wanted near you" and the seller's "I have this" (owner approved 2026-10-21; lead-approved
- * privacy design). Only posts whose poster turned replies on, near the reader, through declutter_wanted_browse:
+ * privacy design). Every open post near the reader (a Wanted is always visible to sellers near the poster, owner
+ * 2026-10-30), through declutter_wanted_browse:
  * the poster as First L., the words, "Up to", whole miles from a point snapped to a few miles. Never an address.
  * A reply is an OFFER from one of your live listings (photos and condition come from the listing), at most their
  * Wanted price and at most your listing's price; it waits for the poster in their offers like any offer.
+ * Nothing listed that fits: "List it now" opens the shared sell flow, which answers this post once the new listing
+ * is live (quickListHref / answerAfterListing, owner 2026-10-30).
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -11,10 +14,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { RadioCardList } from "@/components/ui/RadioCardList";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { photoPublicUrl } from "@/lib/declutter/api";
+import { FallbackImg } from "./FallbackImg";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 
 
 const firstName = (posterName: string) => (posterName === "A neighbor" ? "them" : posterName.split(" ")[0]);
@@ -22,7 +29,7 @@ const money = "font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]";
 
 function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; userId: string; onClose: () => void }) {
   const qc = useQueryClient();
-  // Only a listing for sale now, taking offers, can answer (the server checks the same).
+  // Any listing of yours for sale now can answer (audit W7); the server also checks it is inside the post's distance.
   const mine = useQuery({ queryKey: ["declutter", "reply-listings", userId], queryFn: () => fetchMyReplyListings(userId), enabled: !!post });
   const listings = mine.data ?? [];
   const [itemId, setItemId] = useState<string | null>(null);
@@ -61,20 +68,23 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
               </p>
             </div>
             {mine.isLoading ? null : listings.length === 0 ? (
-              <p className="text-ds-14">
-                Answer with one of your listings. <Link to="/declutter/sell" className="font-semibold underline underline-offset-2">List the item first</Link>, then come back.
-              </p>
+              <p className="text-ds-14">Nothing listed yet? List it now: add photos and a price, and it answers {who} as soon as it's live.</p>
             ) : (
-              <fieldset className="space-y-2">
-                <legend className="text-ds-15 font-semibold">Which of your listings?</legend>
-                {listings.map((it) => (
-                  <label key={it.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-border px-4 py-2">
-                    <input type="radio" name="wanted-reply-item" checked={itemId === it.id} onChange={() => pick(it.id)} />
-                    <span className="min-w-0 flex-1 truncate text-ds-14" title={it.title}>{it.title}</span>
-                    <span className={`shrink-0 text-ds-14 ${money}`}>{itemPriceLabel(it.current_price_cents)}</span>
-                  </label>
-                ))}
-              </fieldset>
+              // Audit W1: the shared radio cards (labels wrap, nothing wider than the sheet), not hand-built rows.
+              <div className="min-w-0 space-y-2">
+                <p className="text-ds-15 font-semibold" id="wanted-reply-pick">Which of your listings?</p>
+                <RadioCardList
+                  label="Which of your listings?"
+                  value={itemId ?? ""}
+                  onChange={(v) => pick(v)}
+                  options={listings.map((it) => ({ value: it.id, label: it.title, sub: <span className={money}>{itemPriceLabel(it.current_price_cents)}</span> }))}
+                />
+              </div>
+            )}
+            {!mine.isLoading && (
+              <Button asChild variant="outline" className="w-full" data-quick-list="">
+                <Link to={quickListHref(post)}>{listings.length === 0 ? "List it now" : "List something new for this"}</Link>
+              </Button>
             )}
             {item && (
               <div className="space-y-1">
@@ -110,14 +120,24 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
 export function WantedNearSection({ at, userId }: { at: { lat: number; lng: number }; userId: string }) {
   const near = useQuery({ queryKey: ["declutter", "wanted-near", at.lat, at.lng], queryFn: () => fetchWantedNear(at) });
   const [replying, setReplying] = useState<WantedNear | null>(null);
-  // Nothing to show is the empty state: the section stays out of the way (and before the migration, [] hides it).
-  if (near.isError || !near.data || near.data.length === 0) return null;
+  // The Wanted tab is a hub (owner 2026-10-30): this section always stands, with its own empty state and error.
   return (
     <section className="space-y-2" aria-labelledby="wanted-near-title" data-wanted-near="">
       <h2 id="wanted-near-title" className="text-base font-semibold">Wanted near you</h2>
+      {near.isError ? (
+        <ErrorState variant="inline" title="We couldn't load posts near you." body={declutterErrorMessage(near.error)} onRetry={() => void near.refetch()} />
+      ) : near.isLoading ? (
+        <p className="text-sm text-muted-foreground" role="status">Looking near you…</p>
+      ) : (near.data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p>
+      ) : (
       <ul className="space-y-2">
-        {near.data.map((w) => (
+        {(near.data ?? []).map((w) => (
           <li key={w.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+            {/* Owner 2026-10-30: the post's first photo of what they're looking for (20261030064727). */}
+            {w.photo_path && (
+              <FallbackImg src={photoPublicUrl(w.photo_path)} alt={w.what} className="h-14 w-14 shrink-0 rounded-xl bg-photo-empty object-cover" data-wanted-near-photo="" />
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-ds-15 font-semibold" title={w.what}>{w.what}</p>
               <p className="text-ds-13 text-muted-foreground">
@@ -132,6 +152,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
           </li>
         ))}
       </ul>
+      )}
       <IHaveThisSheet post={replying} userId={userId} onClose={() => setReplying(null)} />
     </section>
   );

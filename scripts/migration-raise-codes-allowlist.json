@@ -114,6 +114,12 @@
       "function": "public.declutter_seller_cancel_delivery",
       "code": "not_reschedulable",
       "reason": "Not a lost guard (owner 2026-10-29, Q2477: \"once they pay it can only be rescheduled once. never cancelled.\"): declutter_seller_cancel_delivery now refuses EVERY paid seller-delivery cancel with RAISE 'paid_order_not_cancellable' right after the auth, ban, membership, order-state and side checks, so the narrower cancel refusals (problem_open, seller_delivered, cancel_window_closed, not_reschedulable) can no longer be reached: no cancel reaches declutter_close_paid_order at all. Proven in src/test/pglite/declutterPaidOrderNeverCancelled.pglite.mjs."
+    },
+    {
+      "migration": "20261030064727_declutter_wanted_photos_and_replies.sql",
+      "function": "public.declutter_wanted_reply",
+      "code": "sale_mode_unavailable",
+      "reason": "Dropped ON PURPOSE (Declutter audit W7, lead/owner 2026-10-30: any listing for sale now can answer a Wanted). The only other sale_mode, 'auction', has no logic and no rows on prod (measured 2026-10-30: array_agg(distinct sale_mode) from declutter_items = {offers}); the answer is the seller's own counter at most the listing's price, so no sale-mode rule is needed. The other reply guards (live listing, distance, amount, one open offer per listing, rate limits) are intact; src/test/declutterWantedReplyReach.test.ts and src/test/pglite/declutterWantedPhotosReplies.pglite.mjs (auctionListingAnswers) pin it."
     }
   ]
 }

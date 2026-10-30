@@ -55,6 +55,16 @@ describe("buildJobInsertPayload — sales tax", () => {
     expect(p.sales_tax_amount).toBeCloseTo(10.45, 2);
   });
 
+  // Q1843 (owner 2026-10-21): the urgent bonus is taxed like the labor.
+  // @mutate src/pages/post-job/jobSubmitHelpers.ts | salesTaxCents(Math.round(parseFloat(budget) * 100) + urgentBonusCents, category, salesTaxRate) | salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate)
+  it("taxes the urgent bonus with the labor on a taxable category, and neither on an exempt one", () => {
+    const urgent = { ...base, isUrgent: true, urgentFee: "20", salesTaxRate: 10 };
+    expect((buildJobInsertPayload({ ...urgent, category: "assembly" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(12, 2);
+    expect((buildJobInsertPayload(urgent) as Record<string, unknown>).sales_tax_amount).toBe(0);
+    // Not urgent: a stale urgentFee in the form never adds tax.
+    expect((buildJobInsertPayload({ ...urgent, isUrgent: false, category: "assembly" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(10, 2);
+  });
+
   it("writes zero when the parish rate is unknown (0), not a guess", () => {
     const p = buildJobInsertPayload({ ...base, category: "assembly", salesTaxRate: 0 }) as Record<string, unknown>;
     expect(p.sales_tax_rate).toBe(0);

@@ -1178,7 +1178,7 @@ async function settleCheckoutSession(
         // escrow update on the first taxed job.
         const { data: jobRow } = await supabase
           .from("jobs")
-          .select("budget, category, customer_fee_amount, poster_fee_flat_cents")
+          .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee")
           .eq("id", jobId)
           .maybeSingle();
         // The fee THIS charge carried (its PaymentIntent's service_fee_cents,

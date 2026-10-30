@@ -131,6 +131,10 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
     authenticated: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
     unscoped: "scripts/check-live-privileges.mjs:const unscopedStale = [...allowedUnscoped]",
   },
+  "src/test/handBuiltUi.baseline.json": {
+    files: "src/test/noHandBuiltUi.test.ts:FELL from ${was} to ${is}",
+    exceptions: "src/test/noHandBuiltUi.test.ts:stale exception ${key}",
+  },
   "src/test/auditBinaries.allowlist.json": {
     "[]": "src/test/auditBinariesFrozen.test.ts:expect(allowed.filter((f) => !present.has(f))).toEqual([]);",
   },

@@ -6881,7 +6881,7 @@
       },
       "description": {
         "form": "literal",
-        "text": "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait."
+        "text": "Turn on Instant Release to approve automatically when your Helpr marks done with photo proof. They're paid 3 days later."
       },
       "renders": true
     },

@@ -185,35 +185,40 @@ async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promi
  */
 async function handoverNotOffered(admin: Db, buyerId: string, sellerId: string, handover: string): Promise<boolean | null> {
   // The lines the RPC groups: in the cart and not past their checkout time (review nit 6).
-  const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id")
+  const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id, price_cents")
     .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart").gt("checkout_by", new Date().toISOString());
   if (linesErr) {
     console.error(`[declutter-checkout] cart read failed: ${linesErr.message}`);
     return null;
   }
-  const ids = ((lines ?? []) as { item_id: string }[]).map((l) => l.item_id);
+  const cart = (lines ?? []) as { item_id: string; price_cents: number }[];
+  const ids = cart.map((l) => l.item_id);
   if (ids.length === 0) return false;
-  const { data: items, error: itemsErr } = await admin.from("declutter_items").select("id, handovers, porch_ok").in("id", ids);
+  const { data: items, error: itemsErr } = await admin.from("declutter_items").select("id, handovers, porch_ok, price_cents").in("id", ids);
   if (itemsErr) {
     if ((itemsErr as { code?: string }).code === "42703") return false;
     console.error(`[declutter-checkout] handovers read failed: ${itemsErr.message}`);
     return null;
   }
-  const rows = (items ?? []) as { handovers: string[] | null; porch_ok: boolean | null }[];
+  const rows = (items ?? []) as { handovers: string[] | null; porch_ok: boolean | null; price_cents: number }[];
   if (!rows.some((i) => Array.isArray(i.handovers))) return false;
+  // Paid only when every line and its item carry a price (as the SQL rule's all_paid).
+  const allPaid = cart.every((l) => l.price_cents > 0) && rows.length > 0 && rows.every((i) => i.price_cents > 0);
   // An older line allows every way, but not porch when its porch is off (as the SQL rule).
   return handoverRefusedFor(rows.map((i) => (Array.isArray(i.handovers) ? i.handovers
-    : i.porch_ok === false ? ["pickup_home", "seller_delivery", "meetup", "delivery"] : null)), handover);
+    : i.porch_ok === false ? ["pickup_home", "seller_delivery", "meetup", "delivery"] : null)), handover, allPaid);
 }
 
 /**
- * declutter_handover_refused, the same rule: the way must be one every line allows (NULL = every way). No
- * fallback to the seller's door (owner 2026-10-28, Q2462 #3730): when none works, the buyer and seller talk it
- * through in the app (declutter_open_handover_talk).
+ * declutter_handover_refused, the same rule (20261030045905): Helpr delivery is never refused for paid lines
+ * (owner 2026-10-29, DC-4: buyers can always choose it); any other way must be one every line allows (NULL =
+ * every way). No fallback to the seller's door (owner 2026-10-28, Q2462 #3730): when none works, the buyer and
+ * seller talk it through in the app (declutter_open_handover_talk).
  */
-function handoverRefusedFor(lineWays: (string[] | null)[], handover: string): boolean {
+function handoverRefusedFor(lineWays: (string[] | null)[], handover: string, allPaid: boolean): boolean {
   const ticked = lineWays.filter((w): w is string[] => Array.isArray(w));
   if (ticked.length === 0) return false;
+  if (handover === "delivery" && allPaid) return false;
   const shared = ["porch", "pickup_home", "seller_delivery", "meetup", "delivery"].filter((w) => ticked.every((t) => t.includes(w)));
   return !shared.includes(handover);
 }

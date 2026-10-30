@@ -34,6 +34,7 @@ import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfile
 import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
 import { OwnProfileEditButton } from "./OwnProfileEditButton";
+import { BookMeShareButton } from "./BookMeShareButton";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
@@ -482,7 +483,10 @@ const UserProfile = () => {
               </DropdownMenu>
             </>
           ) : isOwnProfile ? (
-            <OwnProfileEditButton />
+            <div className="flex items-center gap-1">
+              {userId && <BookMeShareButton userId={userId} displayName={displayName} />}
+              <OwnProfileEditButton />
+            </div>
           ) : null
         }
       />

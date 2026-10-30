@@ -4,6 +4,7 @@ import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
 import { POST_JOB_DESKTOP_GRID, PostJobStepRail } from "@/components/postjob/PostJobStepRail";
 import { FORM_PAGE_OF, type PostJobScreen } from "@/components/postjob/postJobScreens";
 import { useAskForQuotes } from "@/components/quotes/PostJobQuoteChoice";
+import { FirstPostGuarantee } from "@/components/guarantee/FirstPostGuarantee";
 import type { ReactNode } from "react";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -90,6 +91,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           step 1, next to the fields it is judging — not above the total. The
           component and its usePostingQuality hook had no other callers, so both
           were deleted with it. */}
+      {/* First post (B59): the Helpr Guarantee, said plainly, from one shared constant. */}
+      <FirstPostGuarantee oneHelpr={!form.isGroupJob} />
       {form.quoteReview ? <WithQuoteAsk form={form}>{(ask) => checkout(ask)}</WithQuoteAsk> : checkout()}
       </div>
       <aside className="hidden xl:block sticky top-6">

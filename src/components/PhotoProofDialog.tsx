@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
-import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
+import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 
 /* ── The full before/after gallery, on its own ──────────────────────────────
  *
@@ -41,7 +42,7 @@ export const PhotoProofDialog = ({
               <div className="grid grid-cols-3 gap-2">
                 {beforeUrls.map((url, i) => (
                   <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                    <ProofPhotoImg insideControl src={beforeSrcs[i]} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
               </div>
@@ -53,7 +54,7 @@ export const PhotoProofDialog = ({
               <div className="grid grid-cols-3 gap-2">
                 {afterUrls.map((url, i) => (
                   <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                    <ProofPhotoImg insideControl src={afterSrcs[i]} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
               </div>

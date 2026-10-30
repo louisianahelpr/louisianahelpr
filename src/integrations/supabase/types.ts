@@ -4433,6 +4433,52 @@ export type Database = {
         Relationships: [
         ]
       }
+      helpr_start_reminder_sends: {
+        Row: {
+          job_id: string
+          kind: string
+          merged: boolean
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          job_id: string
+          kind: string
+          merged?: boolean
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          job_id?: string
+          kind?: string
+          merged?: boolean
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpr_start_reminder_sends_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpr_start_reminder_sends_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpr_start_reminder_sends_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpr_task_events: {
         Row: {
           actor_id: string | null
@@ -7329,8 +7375,11 @@ export type Database = {
           quiet_end: string | null
           quiet_start: string | null
           remind_finish_job: boolean
+          remind_head_out: boolean
+          remind_morning_of: boolean
           remind_payout_followups: boolean
           remind_starting_soon: boolean
+          remind_two_hours: boolean
           reviews: boolean
           saved_helper_availability: boolean
           saved_searches_paused: boolean
@@ -7385,8 +7434,11 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           remind_finish_job?: boolean
+          remind_head_out?: boolean
+          remind_morning_of?: boolean
           remind_payout_followups?: boolean
           remind_starting_soon?: boolean
+          remind_two_hours?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
@@ -7441,8 +7493,11 @@ export type Database = {
           quiet_end?: string | null
           quiet_start?: string | null
           remind_finish_job?: boolean
+          remind_head_out?: boolean
+          remind_morning_of?: boolean
           remind_payout_followups?: boolean
           remind_starting_soon?: boolean
+          remind_two_hours?: boolean
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
@@ -18298,6 +18353,10 @@ export type Database = {
       sweep_disputes_closed_without_payment: { Args: never; Returns: Json }
       sweep_email_dlqs: { Args: never; Returns: Json }
       sweep_expired_auto_bans: { Args: never; Returns: number }
+      sweep_helpr_start_reminders: {
+        Args: { p_now?: string }
+        Returns: number
+      }
       sweep_job_match_queue: { Args: never; Returns: number }
       sweep_job_start_reminders: { Args: never; Returns: number }
       sweep_no_show_alerts: { Args: never; Returns: number }

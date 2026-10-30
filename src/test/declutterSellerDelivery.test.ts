@@ -31,12 +31,12 @@
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   SELECT round((greatest(COALESCE(p_items_cents, 0), 0) + greatest(COALESCE(p_delivery_cents, 0), 0)) * 0.05)::integer + 70; |   SELECT round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70;
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_debt, o.items_cents + v_rate - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_debt, o.items_cents - v_debt,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL OR o.handover = 'seller_delivery' THEN |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL THEN
- * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
  * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
  * @mutate supabase/migrations/20261029223949_export_my_data_seller_porch_days.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); |   RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', NULL, NULL, NULL);
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     AND now() > d.slot_start - make_interval(hours => (public.declutter_seller_delivery_rules() ->> 'buyer_cancel_hours')::integer) THEN |     AND false THEN
@@ -210,7 +210,8 @@ describe("Declutter seller delivery (20261027153244)", () => {
 
   it("the pickup sweep never auto-pays or no-shows a seller delivery, and no pickup booking can sit on one", () => {
     const sweep = flat(body("declutter_handover_sweep"));
-    expect(sweep.match(/handover NOT IN \('delivery', 'seller_delivery'\)/g)?.length).toBe(4);
+    // Shipping S2 (20261030000030): the four lists name 'ship' too (a parcel in the mail is no pickup).
+    expect(sweep.match(/handover NOT IN \('delivery', 'seller_delivery', 'ship'\)/g)?.length).toBe(4);
     expect(sweep).not.toMatch(/handover <> 'delivery'/);
     expect(flat(body("declutter_bookings_not_delivery"))).toContain("o.handover = 'seller_delivery') THEN RAISE EXCEPTION 'delivery_order'");
   });
@@ -240,7 +241,7 @@ describe("Declutter seller delivery (20261027153244)", () => {
     expect(exp).toContain("ELSE to_jsonb(t) - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' END)");
     expect(exp).toContain("WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)");
     // Q2425 (20261027204500): a safe-spot meetup is excluded too (no home address for a meetup).
-    expect(flat(body("declutter_address_access"))).toContain("AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'");
+    expect(flat(body("declutter_address_access"))).toContain("AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer'");
   });
 
   it("owner 2026-10-22: the buyer cancels until 24 h before (all back but the card fee); a door drop-off needs a photo", () => {

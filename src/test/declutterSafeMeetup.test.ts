@@ -29,7 +29,9 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/
 describe("Q2425 safe meetup spots: the server", () => {
   it("reads the newest definitions (floor)", () => {
     const names = ["declutter_meetup_spots_near", "declutter_set_meetup_spot", "declutter_meetup_here", "admin_declutter_save_meetup_spot",
-      "declutter_meetup_spot_near_lines", "declutter_address_access", "declutter_seller_picked_up"];
+      "declutter_meetup_spot_near_lines", "declutter_seller_picked_up"];
+    // declutter_address_access: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql) with the meetup exclusion kept (asserted below).
+    expect(newestFunction("declutter_address_access").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     // declutter_start_checkout: restated again by Q2427 (20261027211754) with the meetup lines kept (asserted below).
     expect(newestFunction("declutter_start_checkout").file >= FILE).toBe(true);
     // declutter_seller_picked_up: restated by anti-lying #1 (20261028235709, its photo taken at the spot) with the
@@ -38,7 +40,7 @@ describe("Q2425 safe meetup spots: the server", () => {
       if (n === "declutter_seller_picked_up") expect(newestFunction(n).file >= FILE, n).toBe(true);
       else expect(newestFunction(n).file, n).toContain(FILE);
     }
-    expect(names.length).toBeGreaterThan(6);
+    expect(names.length).toBeGreaterThan(5);
   });
 
   it("a spot is offered and accepted only while active and within the rule's miles of every item", () => {
@@ -58,7 +60,7 @@ describe("Q2425 safe meetup spots: the server", () => {
   });
 
   it("the home address is never shared for a meetup; Picked up works at a meetup", () => {
-    expect(code("declutter_address_access")).toContain("AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'");
+    expect(code("declutter_address_access")).toContain("AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer'");
     expect(code("declutter_seller_picked_up")).toContain("IF o.handover NOT IN ('pickup_home', 'meetup') THEN RAISE EXCEPTION 'not_a_door_pickup'");
   });
 

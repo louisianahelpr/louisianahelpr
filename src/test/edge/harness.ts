@@ -446,6 +446,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/accountPurge\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/accountPurge.ts";`,
   );
+  // Sign in with Apple (Q1791): `_shared/appleSignIn.ts` imports only `./jwt.ts`, which has
+  // none, so apple-token-store runs the REAL exchange and identity check (fetch is stubbed).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleSignIn\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/appleSignIn.ts";`,
+  );
   // A3-I5 (delete-own-account's reauth check): `_shared/recentSignIn.ts` imports only `./caughtMessage.ts`,
   // which has none, so it points at the REAL module and the 10-minute window stays under test.
   out = out.replace(

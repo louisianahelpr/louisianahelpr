@@ -22,7 +22,7 @@
  *   5. MERGE — Profile > Security offers Connect for every provider the sign-in
  *      screen offers.
  *
- * @mutate src/lib/socialAuth.ts | if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken }); | void choice;
+ * @mutate src/lib/socialAuth.ts | if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken, appleCode }); | void choice;
  * @mutate src/lib/socialAuth.ts | if (err instanceof AccountChoiceRequired) return { kind: "choose", choice: err.choice }; | void AccountChoiceRequired;
  * @mutate src/lib/oauthRedirectError.ts | if (choice) return hold(loc, hist, query, hash, { provider: pending.provider, | if (false) return hold(loc, hist, query, hash, { provider: pending.provider,
  * @mutate src/components/auth/SocialAuthButtons.tsx | <AccountChoiceDialog choice={choice} | <AccountChoiceDialog choice={null}

@@ -198,6 +198,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_money_rows_seed: "tags",
   shop_order_captured: "tags",
   shop_orders_seed_from_parties: "tags",
+  shop_refund_sweep: "alerts",
   shop_rows_seed_from_owner: "tags",
   shop_state_ok: "hides",
   shops_admin_queue: "tags",

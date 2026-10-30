@@ -9,8 +9,8 @@
  * Reads the EFFECTIVE definition (helpers/effectiveFunctionDefs). Backend proof on a real database:
  * src/test/pglite/declutterSellerCancelWords.pglite.mjs (3x; 4 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261029225235_declutter_seller_cancel_words.sql | Nothing was charged.', v_item.title) | If you already paid, every cent comes back to your card.', v_item.title)
-// @mutate supabase/migrations/20261029225235_declutter_seller_cancel_words.sql |     CASE WHEN v_line.source = 'offer' |     CASE WHEN true
+// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql | Nothing was charged.', v_item.title) | If you already paid, every cent comes back to your card.', v_item.title)
+// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql |     CASE WHEN v_line.source = 'offer' |     CASE WHEN true
 // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | Your listing comes down too; relist it from History. |
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -26,7 +26,8 @@ const sheet = blankComments(readFileSync(resolve(__dirname, "../components/declu
 describe("Declutter seller cancel: the words match what happened", () => {
   it("reads the newest definition (floor)", () => {
     expect(flat.length).toBeGreaterThan(1500);
-    expect(def?.file).toMatch(/20261029225235_declutter_seller_cancel_words\.sql$/);
+    // 20261030132149 (B100) restated it, keeping both D2 changes for paid lines.
+    expect(def?.file).toMatch(/20261030132149_declutter_free_claim_cancel_no_strike\.sql$/);
   });
 
   it("D2-16: the cancel refuses a paid sale, so the buyer is told nothing was charged", () => {

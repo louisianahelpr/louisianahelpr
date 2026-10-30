@@ -2,8 +2,8 @@
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *
- * @mutate src/components/declutter/useBunchSaved.ts |     window.addEventListener("beforeunload", warn); |     void warn;
- * @mutate src/components/declutter/useBunchSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
+ * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("beforeunload", warnNow); |     void warnNow;
+ * @mutate src/components/declutter/useDeviceSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
  * @mutate src/components/declutter/useBunchSaved.ts |       const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key)); |       const keep = s.photos;
  * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;

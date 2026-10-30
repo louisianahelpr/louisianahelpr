@@ -8,6 +8,7 @@
  * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}. | with their photos and prices.
  * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,7 +118,7 @@ describe("Sell a bunch survives leaving", () => {
     first.unmount();
 
     renderFlow();
-    expect(await screen.findByText(/We kept your work from last time: 2 items/)).toBeTruthy();
+    expect((await screen.findByText(/We kept your work from last time: 2 items/)).textContent).toContain("with their photos and prices.");
     const back = document.querySelectorAll("[data-bunch-item]");
     expect(back).toHaveLength(2);
     expect((within(back[0] as HTMLElement).getByLabelText("Name") as HTMLInputElement).value).toBe("Oak chair");
@@ -168,7 +169,8 @@ describe("Sell a bunch survives leaving", () => {
     renderFlow();
     expect((await screen.findByText(/This photo wasn't added \(bad\.jpg\)/)).textContent).toContain("can't be used");
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
-    expect(await screen.findByText(/We kept your work from last time: 1 item,/)).toBeTruthy();
+    // Nothing was priced mid-sort, so the banner doesn't promise prices (T3, 10-30).
+    expect((await screen.findByText(/We kept your work from last time: 1 item,/)).textContent).toContain("with their photos.");
     await waitFor(() => expect(photoEntries()).toEqual(["lh-bunch-v1-photo:ok"]));
   });
 

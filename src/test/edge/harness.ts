@@ -834,6 +834,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helprFaultFee.ts";`,
   );
 
+  // What an approval notice may promise (jobs audit item 6): `_shared/payoutPromise.ts`
+  // imports only pure `_shared` modules and reads through the client it is given.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutPromise\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutPromise.ts";`,
+  );
+
   // Admin-id fan-out for ops alerts: `_shared/adminIds.ts` takes the supabase
   // client as an argument and has no module-scope Deno imports, so the
   // generated file points at the REAL module. That keeps the "did we actually

@@ -128,6 +128,8 @@
     "supabase/functions/_shared/tierPerks.ts",
     "supabase/functions/_shared/helperFees.ts",
     "supabase/functions/_shared/helprFlatFee.ts",
+    "supabase/functions/_shared/payoutPromise.ts",
+    "supabase/functions/_shared/helprFaultFee.ts",
     "supabase/functions/_shared/posterJobFee.ts",
     "supabase/functions/_shared/jobCheckout.ts",
     // Card hold (Q2399): the pure halves the app and its tests import.

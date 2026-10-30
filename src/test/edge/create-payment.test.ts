@@ -1751,10 +1751,13 @@ describe("create-payment edge function", () => {
       expect(Math.abs(Date.parse(String(jobUpdatePayload()?.payout_scheduled_at)) - (approvedAt + 72 * 3600e3))).toBeLessThan(1000);
     });
 
-    // @mutate supabase/functions/create-payment/index.ts | `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.` | `"${job.title}" is complete. Payment has been captured.`
+    // @mutate supabase/functions/create-payment/index.ts | `"${job.title}" was approved. ${promise}` | `"${job.title}" is complete. Payment has been captured.`
     it("the approval notices name the DAY and never say 'captured' or 'being processed'", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = { rows: [bothDoneRow()] };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+      scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "onboarding_fee_paid", result: { rows: [{ onboarding_fee_paid: true }] } }] };
+      scenario.reads.job_helpr_fault_rulings = { rows: [] };
       await releaseAs();
       const toHelper = notes().filter((n) => n.user_id === HELPER.id);
       const toPoster = notes().filter((n) => n.user_id === POSTER.id);
@@ -1763,6 +1766,28 @@ describe("create-payment edge function", () => {
       expect(String(toHelper[0].message)).toMatch(DAY);
       expect(String(toPoster[0].message)).toMatch(DAY);
       expect(notes().some((n) => /captured|being processed|days after/i.test(String(n.message)))).toBe(false);
+    });
+
+    // Jobs audit item 6: $90 take-home, $2 setup fee unpaid, so $88 really lands.
+    it("the Helpr's notice takes off an unpaid setup fee, as the payout will", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [bothDoneRow()] };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+      scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "onboarding_fee_paid", result: { rows: [{ onboarding_fee_paid: false }] } }] };
+      scenario.reads.job_helpr_fault_rulings = { rows: [] };
+      await releaseAs();
+      const toHelper = notes().filter((n) => n.user_id === HELPER.id);
+      expect(String(toHelper[0].message)).toMatch(/^"Mow two lawns" was approved\. \$88 will be sent to your account .*, after the one-time \$2 account setup fee\.$/);
+    });
+
+    it("the Helpr's notice names no figure when the fee cannot be read", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [bothDoneRow()] };
+      scenario.reads.platform_settings = { error: { message: "boom" } };
+      scenario.reads.job_helpr_fault_rulings = { rows: [] };
+      await releaseAs();
+      const toHelper = notes().filter((n) => n.user_id === HELPER.id);
+      expect(String(toHelper[0].message)).toMatch(/^"Mow two lawns" was approved\. Your pay will be sent to your account /);
     });
 
     describe("an admin approves for the poster (Helpr support stepped in)", () => {

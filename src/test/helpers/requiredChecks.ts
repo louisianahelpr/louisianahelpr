@@ -16,9 +16,12 @@
  *
  * Measured 2026-10-03 with CodeQL added (owner: "CodeQL REQUIRED on main", Q1151).
  * `workflow` is the file whose job posts the check; null for a check GitHub
- * posts itself (code scanning default setup, app 57789 github-advanced-security:
- * no workflow file, nothing to dispatch; it reported on land PR #2176, bot
- * refresh PRs #2148 and #2169, and Dependabot PR #1979).
+ * posts itself (app 57789 github-advanced-security, from the analyses that
+ * .github/workflows/codeql.yml uploads: no job there carries the name).
+ *
+ * DB Smoke's line is the merge queue step (owner 2026-10-30): it lands with the
+ * lead adding that check to the ruleset, and CodeQL moved from default setup to
+ * codeql.yml in the same step.
  */
 export type RequiredCheck = { name: string; app: number; workflow: string | null };
 
@@ -27,6 +30,7 @@ export const REQUIRED_CHECKS: readonly RequiredCheck[] = [
   { name: "Lint, type-check, build, test", app: 15368, workflow: ".github/workflows/test.yml" },
   { name: "Playwright happy-path smoke (mocked Supabase, mobile viewport)", app: 15368, workflow: ".github/workflows/e2e-happy-path.yml" },
   { name: "Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)", app: 15368, workflow: ".github/workflows/mobile-viewports.yml" },
+  { name: "Apply migrations + post-job trigger smoke", app: 15368, workflow: ".github/workflows/db-smoke.yml" },
   { name: "CodeQL", app: 57789, workflow: null },
 ];
 

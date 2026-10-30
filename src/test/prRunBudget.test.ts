@@ -13,7 +13,7 @@
  * checked within ~20 min. These tests pin both halves: no per-push trigger,
  * and a dispatcher that still reaches each one.
  */
-// @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: []
+// @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**", "gh-readonly-queue/**"] | branches-ignore: []
 // @mutate .github/workflows/secret-scan.yml | \|\| toJSON(github.event.commits) != '[]' | 
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -71,7 +71,7 @@ describe("PR run budget", () => {
   });
 
   it("secret-scan does not scan a land/** push twice", () => {
-    expect(onBlock(read("secret-scan.yml"))).toMatch(/^\s{2}push:\s*\n\s+branches-ignore: \["land\/\*\*"\]/m);
+    expect(onBlock(read("secret-scan.yml"))).toMatch(/^\s{2}push:\s*\n\s+branches-ignore: \["land\/\*\*", "gh-readonly-queue\/\*\*"\]/m);
   });
 
   // 2026-10-12: every claim/* marker push (a branch created at an existing

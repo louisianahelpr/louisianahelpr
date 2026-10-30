@@ -93,6 +93,7 @@ jobs:
           branch-prune.yml:1
           broken-links.yml:14
           code-scanning-alerts.yml:2
+          codeql.yml:8
           core-loop-canary.yml:1
           db-backup.yml:2
           db-drift-detect.yml:3

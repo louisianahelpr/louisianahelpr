@@ -41,6 +41,9 @@ on:
   # the check "Expected" forever and deadlock auto-merge.
   pull_request:
     branches: [main]
+  # The merge queue's own run. merge_group takes no paths filter, so it always
+  # starts and the queue cannot wait on it forever. It never deploys.
+  merge_group:
   workflow_dispatch:
 
 # Cancel superseded runs on the same ref so a fast follow-up commit
@@ -89,12 +92,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
           EVENT: ${{ github.event_name }}
+          MG_BASE: ${{ github.event.merge_group.base_sha }}
+          MG_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT" = "pull_request" ]; then
             CHANGED_FILES=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path')
             export CHANGED_FILES
             node scripts/ci/docs-only-tests.mjs > scope.json
+          elif [ "$EVENT" = "merge_group" ]; then
+            # A queue entry has no PR number, so its change is the event's two
+            # commits. A base it cannot read runs the whole suite, never less.
+            if [ -n "$MG_BASE" ] && [ -n "$MG_HEAD" ] && git fetch --no-tags --depth=1 origin "$MG_BASE" "$MG_HEAD" && CHANGED_FILES=$(git diff --no-renames --name-only "$MG_BASE" "$MG_HEAD"); then
+              export CHANGED_FILES
+              node scripts/ci/docs-only-tests.mjs > scope.json
+            else
+              echo "::notice::merge group base not readable: the whole suite runs"
+              echo '{"docsOnly":false,"files":[]}' > scope.json
+            fi
           else
             # Only a pull request can take the fast path; a push runs everything.
             echo '{"docsOnly":false,"files":[]}' > scope.json
@@ -156,6 +171,10 @@ jobs:
     # the floor on the WHOLE suite's coverage. A local trial merged two shards'
     # blobs to exactly the unsharded run's figure (132/12481 lines).
     name: Coverage shard ${{ matrix.shard }}/4
+    # Not in the merge queue: the floor is not a required check, and the PR before
+    # it and the push after it both run it. Four shards at about 15 min each would
+    # be the largest part of every queue entry.
+    if: ${{ github.event_name != 'merge_group' }}
     runs-on: ubuntu-latest
     # 30: a quarter of a ~58-minute run plus install, with headroom.
     timeout-minutes: 30
@@ -232,7 +251,7 @@ jobs:
     # it). It merges the four coverage shards' blobs and floors the whole suite.
     name: Coverage floor
     needs: coverage-shard
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name != 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

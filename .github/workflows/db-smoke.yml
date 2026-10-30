@@ -15,7 +15,11 @@ permissions:
 # the PR before merge.
 #
 # Cost-conscious:
-# - Only runs when supabase/migrations/** changes
+# - A required check, so it reports on every PR and merge queue entry: a `paths:`
+#   filter on the trigger would leave it "Expected" forever. The `changes` job
+#   decides, the `smoke` job does the work only when SQL changed, and the job
+#   carrying the required name reports either way.
+# - db-deploy's workflow_call and a dispatch always run the full smoke.
 # - Uses ubuntu-latest (cheapest)
 # - Concurrency-cancels superseded runs
 # - ~3-5 min run time
@@ -30,17 +34,9 @@ on:
   workflow_call:
   pull_request:
     branches: [main]
-    paths:
-      - "supabase/migrations/**"
-      - ".github/workflows/db-smoke.yml"
-      - "scripts/ci/replay-migrations.sh"
-      - "scripts/ci/null-arg-validators.sql"
-      - "scripts/ci/rowtype-args-unreadable.sql"
-      - "scripts/ci/client-insert-columns.sql"
-      - "scripts/ci/current-date-time-zone.sql"
-      - "scripts/ci/unconfirmed-email-gate.sql"
-      - "scripts/sql/identity-linking-scenarios.sql"
-      - "scripts/check-identity-linking.mjs"
+  # The merge queue's own run. merge_group takes no paths filter, so it always
+  # starts and the queue cannot wait on it forever. It never deploys.
+  merge_group:
   workflow_dispatch:
     inputs:
       exclude_migrations:
@@ -55,8 +51,82 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  smoke:
+  changes:
+    name: Did the smoke's inputs change?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      # The merge queue diffs with git; a pull_request reads the PR's file list.
+      - name: Checkout
+        if: github.event_name == 'merge_group'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Detect SQL changes
+        id: filter
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            sql:
+              - "supabase/migrations/**"
+              - ".github/workflows/db-smoke.yml"
+              - "scripts/ci/replay-migrations.sh"
+              - "scripts/ci/client-default-privileges.sql"
+              - "scripts/ci/client-writable-views.sql"
+              - "scripts/ci/null-arg-validators.sql"
+              - "scripts/ci/null-uid-trust.sql"
+              - "scripts/ci/rowtype-args-unreadable.sql"
+              - "scripts/ci/client-insert-columns.sql"
+              - "scripts/ci/current-date-time-zone.sql"
+              - "scripts/ci/unconfirmed-email-gate.sql"
+              - "scripts/sql/identity-linking-scenarios.sql"
+              - "scripts/check-identity-linking.mjs"
+
+      # Skips only on a clear "false" from a PR or the queue. A push through
+      # db-deploy's workflow_call, a dispatch, or an empty answer runs the smoke.
+      - name: Decide
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          SQL: ${{ steps.filter.outputs.sql }}
+        run: |
+          RUN=true
+          if { [ "$EVENT" = "pull_request" ] || [ "$EVENT" = "merge_group" ]; } && [ "$SQL" = "false" ]; then
+            RUN=false
+          fi
+          echo "event=$EVENT sql=$SQL run=$RUN"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
+  # The check name (required on main, and a land-queue gate) lives on `report`.
+  report:
     name: Apply migrations + post-job trigger smoke
+    needs: [changes, smoke]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Green only on a smoke that passed, or on a skip `changes` itself decided.
+      # A failed `changes`, or a cancelled or skipped smoke it asked for, is red.
+      - name: Smoke passed, or nothing it reads changed
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RUN: ${{ needs.changes.outputs.run }}
+          SMOKE: ${{ needs.smoke.result }}
+        run: |
+          echo "changes=$CHANGES run=$RUN smoke=$SMOKE"
+          test "$CHANGES" = "success"
+          if [ "$RUN" = "false" ]; then
+            test "$SMOKE" = "skipped"
+          else
+            test "$SMOKE" = "success"
+          fi
+
+  smoke:
+    name: Replay migrations and run the smoke steps
+    needs: changes
+    if: ${{ needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

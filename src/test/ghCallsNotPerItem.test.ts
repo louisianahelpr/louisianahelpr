@@ -130,7 +130,7 @@ function shellHits(): string[] {
 // @two-way src/test/ghCallsNotPerItem.test.ts:a BOUNDED entry that no longer matches a per-item call
 const BOUNDED: Record<string, string> = {
   ".github/actions/refresh-pr/action.yml: gh workflow run \"$wf\" --repo \"$GITHUB_REPOSITORY\" --ref \"$BR":
-    "one dispatch per CHECK_WORKFLOWS entry (4 required-check workflows), once per refresh",
+    "one dispatch per CHECK_WORKFLOWS entry (6 required-check workflows), once per refresh",
   ".github/workflows/functions-deploy.yml: RUN=$(gh api \"repos/${GITHUB_REPOSITORY}/actions/workflows/d":
     "GITHUB_TOKEN; polls the one db-deploy run of this commit until its elapsed limit",
   ".github/workflows/nightly-red-age.yml: gh issue list --repo \"${{ github.repository }}\" --label \"$LA":

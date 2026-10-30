@@ -473,11 +473,22 @@ function loadScript(): Promise<MapKitStatus> {
  * React hook wrapper around the module-level loader. Returns the
  * current status so a component can render its fallback (plain
  * inputs) when MapKit isn't usable, and the autocomplete when it is.
+ *
+ * `enabled: false` starts nothing (Apple's script is 232 KB gzip, and the token
+ * is an edge call): a caller whose inputs cannot use MapKit yet passes it, and
+ * still sees the status if another screen has already loaded it.
  */
-export function useMapKitJs(): MapKitStatus {
+export function useMapKitJs({ enabled = true }: { enabled?: boolean } = {}): MapKitStatus {
   const [status, setStatus] = useState<MapKitStatus>(cachedStatus);
 
   useEffect(() => {
+    if (!enabled) {
+      statusListeners.add(setStatus);
+      setStatus(cachedStatus);
+      return () => {
+        statusListeners.delete(setStatus);
+      };
+    }
     let cancelled = false;
     // Subscribe BEFORE kicking off the load, and keep the subscription for the
     // component's whole life. The promise below reports exactly one value; the
@@ -494,7 +505,7 @@ export function useMapKitJs(): MapKitStatus {
       cancelled = true;
       statusListeners.delete(setStatus);
     };
-  }, []);
+  }, [enabled]);
 
   return status;
 }

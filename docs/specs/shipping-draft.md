@@ -175,12 +175,20 @@ published position, and the only published guidance on this point.
   Priority Mail CUBIC 0.10 $8.03/8.28/8.62/9.30 ... 0.50 $10.52/10.69/11.84/14.20. The page shows two dates
   (October 5, 2025 and October 25, 2026) and does not say which table each belongs to: NOT verified as current.
   Ground Advantage cubic applies to parcels "less than 20 pounds and up to 1 cubic foot" (easypost.com/ground-advantage).
-  So a small dense box in Louisiana can be ~$1 cheaper than the $7.33-$7.86 weight rate (section 3). How EasyPost
+  So a small dense box in Louisiana may be about $1 cheaper than the $7.33-$7.86 weight rate in section 3 (two
+  different sources: section 3 is USPS Commercial from Notice 123, this chart is EasyPost's discounted rate; the live
+  quote through ship-rates settles it). How EasyPost
   returns cubic rates (a separate service name, or automatically from the box dimensions) is NOT in its public docs
   ("Service levels are generated from live carrier metadata", docs.easypost.com/carriers/usps-wallet-guide): it is
   read from GET /v2/metadata/carriers with the first API key (S0). Build: ship-rates always sends the box
   dimensions, asks for every USPS rate EasyPost returns, and offers the cheapest of Ground Advantage (incl. cubic)
   as the default plus Priority as the faster option.
+- **Helpr sends every shipping notice itself (lead design rule, 2026-10-30).** In-app, push, email and SMS go out
+  from the tracking webhook (S6). The buyer's and seller's email and phone are NEVER sent to EasyPost: the
+  to_address / from_address `email` and `phone` fields stay empty, so EasyPost's own customer emails and texts can
+  never fire. If a carrier strictly requires a phone, the field carries Helpr's support number, never a member's.
+  A guard on the EasyPost request builder (s2-rates) fails if either address object carries `email`, or a `phone`
+  other than the support number.
 - **USPS Connect Local: not available through EasyPost (as far as published).** USPS: "Use the Click-N-Ship
   application to easily print shipping labels"; drop off "at the Postal Service facility in the delivery ZIP Code
   area by critical entry time"; same-day "expected but not guaranteed and may not be available at all locations"

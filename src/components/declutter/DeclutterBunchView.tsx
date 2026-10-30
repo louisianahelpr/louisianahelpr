@@ -35,7 +35,7 @@ import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, rewrittenPrice, splitItem, unusablePhotosNote,
+  askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, rewrittenPrice, splitItem, unusablePhotosNote,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -151,10 +151,12 @@ export default function BunchFlow() {
       : AREA_ADDRESS_RE.test(areaLabel) ? "Use your neighborhood or town for the area, not a street address."
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
-  const ready = items.filter((it) => !bunchItemProblem(it));
+  // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
+  const ready = bunchListable(items, feeDue != null);
+  const heldForFee = feeDue != null ? bunchListable(items, false).length - ready.length : 0;
   const savedWays = ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   const busy = !!sorting || !!listing || listingDrafts;
-  const blocked = busy || feeDue != null;
+  const blocked = busy;
 
   async function locate(): Promise<{ lat: number; lng: number } | null> {
     const address = pickupAddress.trim();
@@ -225,8 +227,7 @@ export default function BunchFlow() {
 
   async function onListAll() {
     setProblem(null);
-    const p = (feeDue != null ? "Pay the one-time setup fee above first, then list these items." : null)
-      ?? placeProblem
+    const p = placeProblem
       ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null)
       ?? (ready.length === 0 ? "No item is ready to list yet." : null);
@@ -285,7 +286,7 @@ export default function BunchFlow() {
       </p>
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      {feeDue == null && <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} onBusy={setListingDrafts} />}
+      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} />
 
       {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
       {saved.restoredCount > 0 && items.length > 0 && (
@@ -328,7 +329,7 @@ export default function BunchFlow() {
       </Section>
 
       {items.length > 0 && (
-        <Section id="bunch-check" title={`3. Check each item (${ready.length} of ${items.length} ready)`}>
+        <Section id="bunch-check" title={`3. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
           </p>
@@ -377,6 +378,7 @@ export default function BunchFlow() {
               <label htmlFor={`bunch-tax-${i}`}>{s}</label>
             </div>
           ))}
+          {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
             {listing ? `Listing… (${Math.min(listing.done, listing.total)} of ${listing.total} steps)` : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}

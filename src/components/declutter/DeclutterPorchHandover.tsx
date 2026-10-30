@@ -20,6 +20,7 @@ import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
+import { GOOD_NEWS_NOTE } from "./goodNews";
 
 type Pickup = "porch" | "pickup_home";
 
@@ -111,16 +112,21 @@ export function PickupStatus({
         // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
         // after the handover, with no refund request open; 20261026155251). It holds for every pickup kind.
         : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
+  // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
+  // keeps (audit 1030 DC-13).
+  const goodNews = side === "seller" && !problemOpen;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
       <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
-      {money && (
+      {money && (goodNews ? (
+        <p className={GOOD_NEWS_NOTE} data-money-note="" data-tone="good">{money}</p>
+      ) : (
         // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
-        <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
+        <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-money-note="">
           {money}
         </p>
-      )}
+      ))}
     </div>
   );
 }

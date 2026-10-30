@@ -57,6 +57,7 @@ import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverC
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
+import { GOOD_NEWS_NOTE } from "./goodNews";
 import { CartHold } from "./DeclutterReserveSheet";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPaySettling";
@@ -162,8 +163,9 @@ function OfferRow({ o }: { o: MyOffer }) {
       )}
       {myTurn && o.my_side === "seller" && (
         // Sellers keep the whole price (spec v2 §9.11). Members never see a fee name or number (owner 2026-10-25).
-        <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-offer-note="">
-          If you accept and the buyer pays, you keep the whole {formatPrice(takeCents)}.
+        // Good news, so the sage tint, not the rust one problems use (audit 1030 DC-13).
+        <p className={GOOD_NEWS_NOTE} data-offer-note="" data-tone="good">
+          If you accept and the buyer pays, you keep the whole <strong className="tabular-nums">{formatPrice(takeCents)}</strong>.
         </p>
       )}
       {myTurn && o.my_side === "buyer" && (

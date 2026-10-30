@@ -10,7 +10,7 @@
 /** Same string as DECLUTTER_PREFETCH_KEY in the boot module (the test pins it). */
 const KEY = "__lhDeclutterPrefetch";
 /** An answer older than this is not handed out: the page asks afresh. */
-export const DECLUTTER_PREFETCH_MAX_AGE_MS = 30_000;
+const DECLUTTER_PREFETCH_MAX_AGE_MS = 30_000;
 
 export interface FirstScreenAnswer {
   switches: Record<string, unknown>;

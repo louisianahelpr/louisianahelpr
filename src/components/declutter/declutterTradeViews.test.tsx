@@ -744,6 +744,9 @@ describe("Declutter slice 3 screens", () => {
     expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "seller_delivery"]);
     expect(screen.getByLabelText(/Porch or safe place/)).toBeChecked();
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
+    // DB-9: the address is typed and checked in this checkout first (see the DB-9 tests below).
+    fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "12 Oak St, Baton Rouge" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
     // Pay waits for a time AND the door choice.
     fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
     // $3 item + $20 rate: the server's premium is 5% of $23 + 70c = $1.85, folded into the $24.85 total (never its own line, issue #3672).
@@ -755,6 +758,68 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$1\.85/i);
     fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
+  });
+
+  // Audit 2026-10-30 DB-9: the server keeps the last drop-off per buyer and seller (the Helpr delivery box writes the
+  // same row). The box opened empty with Pay on and the order went to an address the buyer never saw here.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | && !!handoff && sdChecked !== null; | && !!handoff;
+  // @mutate src/components/declutter/SellerDeliveryChoice.tsx |       {state === "pick" && shownDay && checked !== null && ( |       {state === "pick" && shownDay && (
+  // @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onSuccess: (o, typed) => { onSlot(null); setDay(null); onOffer(o); onChecked(typed); }, |     onSuccess: (o) => { onSlot(null); setDay(null); onOffer(o); },
+  it("DB-9: a stored drop-off is never used silently: the buyer types and checks the full address here, sees it, and only then can pay", async () => {
+    state.sellerDeliveryOn = true;
+    const slots = ["2026-11-03T15:00:00.000Z", "2026-11-03T16:00:00.000Z"];
+    // The server already holds an address for this pair (from an earlier check or the Helpr delivery box).
+    state.sdOffer = { available: true, reason: null, rate_cents: 2000, radius_miles: 10, dropoff_area: "Mid-City", slot_minutes: 60, slots, held_slot: null };
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Seller delivers/));
+    const input = screen.getByLabelText(/^Deliver to/) as HTMLInputElement;
+    expect(input.value).toBe("");
+    // No times, no "Deliver to: Mid-City" label, and Pay is off while the box is empty.
+    expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
+    expect(screen.queryByText(/Mid-City/)).toBeNull();
+    expect(document.querySelector("[data-sd-address-needed]")).toHaveTextContent("Type the full address and tap Check");
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "12 Oak St, Baton Rouge" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+    // The full address, written out, before the times.
+    expect(await screen.findByText("12 Oak St, Baton Rouge")).toBeInTheDocument();
+    expect(document.querySelector("[data-sd-deliver-to]")).toHaveTextContent("Delivering to 12 Oak St, Baton Rouge. The seller sees this address only after you pay.");
+    fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
+    fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeEnabled();
+    // Editing the address takes the check back: the times go and Pay is off until it is checked again.
+    fireEvent.change(input, { target: { value: "14 Oak St, Baton Rouge" } });
+    expect(document.querySelector("[data-sd-deliver-to]")).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+  });
+
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | setQuotedFor(itemsTotalCents); setSdChecked(null); }, | setQuotedFor(itemsTotalCents); },
+  it("DB-9: pricing Helpr delivery to another address (it replaces the stored drop-off) makes seller delivery check its address again", async () => {
+    state.sellerDeliveryOn = true;
+    state.deliveryOn = true;
+    const slots = ["2026-11-03T15:00:00.000Z"];
+    state.sdOffer = { available: true, reason: null, rate_cents: 2000, radius_miles: 10, dropoff_area: "Mid-City", slot_minutes: 60, slots, held_slot: null };
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Seller delivers/));
+    fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "12 Oak St, Baton Rouge" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+    expect(await screen.findByText("12 Oak St, Baton Rouge")).toBeInTheDocument();
+    // The Helpr delivery box stores a different address on the server.
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "900 Far Rd, Baker" } });
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    await waitFor(() => expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker" }]));
+    fireEvent.click(screen.getByLabelText(/Seller delivers/));
+    await waitFor(() => expect(document.querySelector("[data-sd-deliver-to]")).toBeNull());
+    expect(document.querySelector("[data-sd-address-needed]")).not.toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    state.deliveryOn = false;
   });
 
   it("seller delivery: no open times shows the rate's place as 'No delivery times open'; a stored out-of-range address hides it", async () => {

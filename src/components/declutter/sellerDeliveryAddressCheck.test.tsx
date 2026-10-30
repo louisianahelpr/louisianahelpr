@@ -3,12 +3,15 @@
  * only ever said "Checking…" (the error was a passing toast) and checkout still went through on a time picked
  * before. Now a failed check says what went wrong UNDER the field (role="alert", tied to the input), clears the
  * picked time and hides the times, so Pay (sdReady needs a time) stays off until the address checks out or is
- * changed.
+ * changed. DB-9 (2026-10-30): the times show only for an address checked in this checkout (`checked`), so a
+ * failed check hides them by taking the checked address back (onMutate), and editing the address no longer
+ * brings them back: a check that works does.
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onError: (err) => setFailed(sellerDeliveryErrorMessage(err)), |     onError: () => undefined,
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); }, |     onMutate: () => { setFailed(null); },
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx |       {state === "pick" && shownDay && !failed && ( |       {state === "pick" && shownDay && (
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onChange={(e) => { setAddress(e.target.value); setFailed(null); }} | onChange={(e) => { setAddress(e.target.value); }}
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onChecked(null); },
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onSlot(null); },
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onChange={(e) => { setAddress(e.target.value); setFailed(null); if (checked | onChange={(e) => { setAddress(e.target.value); if (checked
  */
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,12 +35,20 @@ const OFFER: SellerDeliveryOffer = {
   radius_miles: 10, dropoff_area: "Mid City, Baton Rouge", slot_minutes: 60, slots: [SLOT], held_slot: null,
 };
 
+/** The checkout holds the checked address (DB-9); this one starts with an address already checked here. */
+function Picker({ onSlot }: { onSlot: (s: string | null) => void }) {
+  const [checked, setChecked] = useState<string | null>("1 Old St, Baton Rouge");
+  return (
+    <SellerDeliveryPicker sellerId="s1" offer={OFFER} state="pick" slot={SLOT} onSlot={onSlot} onOffer={() => undefined}
+      handoff="leave" onHandoff={() => undefined} checked={checked} onChecked={setChecked} />
+  );
+}
+
 function show(onSlot: (s: string | null) => void) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <SellerDeliveryPicker sellerId="s1" offer={OFFER} state="pick" slot={SLOT} onSlot={onSlot} onOffer={() => undefined}
-        handoff="leave" onHandoff={() => undefined} />
+      <Picker onSlot={onSlot} />
     </QueryClientProvider>,
   );
 }
@@ -61,13 +72,17 @@ describe("a failed delivery address check is said, and never lets checkout throu
     await waitFor(() => expect(onSlot).toHaveBeenLastCalledWith(null));
     expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
     expect(screen.getByRole("button", { name: "Check" })).toBeEnabled();
-    // Changing the address takes the warning away and offers the times again.
+    // Changing the address takes the warning away; the times come back only once that address checks out (DB-9).
     fireEvent.change(input, { target: { value: "125 Nowhere St, Baton Rouge" } });
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByRole("radiogroup", { name: "Delivery time" })).toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
+    state.fail = false;
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+    expect(await screen.findByRole("radiogroup", { name: "Delivery time" })).toBeInTheDocument();
+    expect(document.querySelector("[data-sd-deliver-to]")).toHaveTextContent("Delivering to 125 Nowhere St, Baton Rouge.");
   });
 
-  it("a check that works shows no warning", async () => {
+  it("a check that works shows no warning; checking the same address again and failing hides the times", async () => {
     state.fail = false;
     const onSlot = vi.fn();
     show(onSlot);
@@ -75,6 +90,12 @@ describe("a failed delivery address check is said, and never lets checkout throu
     fireEvent.click(screen.getByRole("button", { name: "Check" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Check" })).toBeEnabled());
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByText("The seller sees your address only after you pay.")).toBeInTheDocument();
+    expect(document.querySelector("[data-sd-deliver-to]")).toHaveTextContent("Delivering to 123 Main St, Baton Rouge. The seller sees this address only after you pay.");
+    expect(screen.getByRole("radiogroup", { name: "Delivery time" })).toBeInTheDocument();
+    // Check again without editing, and the lookup fails: the address is no longer checked, so the times go.
+    state.fail = true;
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+    await screen.findByRole("alert");
+    expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
   });
 });

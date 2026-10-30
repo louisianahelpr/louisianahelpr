@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
+    "calls": 1058,
     "files": 287,
-    "rendering": 883,
-    "suppressedByPolicy": 168,
+    "rendering": 886,
+    "suppressedByPolicy": 172,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 737,
+      "toast.error": 740,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 172,
+      "toast.success": 176,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 455,
+      "literal": 459,
       "template": 100,
-      "dynamic": 546,
+      "dynamic": 549,
       "jsx": 0
     }
   },
@@ -5881,7 +5881,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
-      "line": 46,
+      "line": 55,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5891,7 +5891,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
-      "line": 50,
+      "line": 60,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5900,8 +5900,48 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterWantedReplies.tsx",
+      "line": 178,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "You already answered this post."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedReplies.tsx",
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "fromAlert.isError ? declutterErrorMessage(fromAlert.error) : \"That post has closed, or your listing is no longer close enough to answer it.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(fromAlert.error)"
+          },
+          {
+            "form": "literal",
+            "text": "That post has closed, or your listing is no longer close enough to answer it."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 154,
+      "line": 226,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. Sellers near you see the new words and price."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5911,17 +5951,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 155,
+      "line": 229,
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Posted. Sellers near you can answer it, and we'll tell you when a match is listed at or under your price."
+        "text": "Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price."
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 162,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5941,7 +5981,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 221,
+      "line": 303,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5951,7 +5991,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 222,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5961,7 +6001,47 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 276,
+      "line": 357,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Posted again for another 30 days."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 358,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 362,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Removed."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 363,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 372,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5981,7 +6061,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 281,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11779,7 +11859,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 257,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11789,7 +11869,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 317,
+      "line": 318,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11799,7 +11879,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 321,
+      "line": 322,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11809,7 +11889,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 341,
+      "line": 342,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11819,7 +11899,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 361,
+      "line": 362,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11829,7 +11909,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 371,
+      "line": 372,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11839,7 +11919,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 432,
+      "line": 436,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11849,7 +11929,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 437,
+      "line": 441,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11859,7 +11939,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 441,
+      "line": 445,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -11869,7 +11949,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 460,
+      "line": 464,
       "kind": "toast.error",
       "title": {
         "form": "literal",

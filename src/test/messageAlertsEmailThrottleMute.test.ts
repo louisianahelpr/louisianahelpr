@@ -9,11 +9,12 @@
  * runs in src/test/pglite/messageAlertThrottleMute.pglite.mjs (migration applied
  * 3x; red with NEW_MIGRATION=skip, 14 checks fail on prod's code, measured 2026-10-30).
  *
- * @mutate supabase/migrations/20261030150631_message_email_throttle_mute.sql |   IF NEW.job_id IS NOT NULL AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm | IF NEW.job_id IS NOT NULL AND false AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm
- * @mutate supabase/migrations/20261030150631_message_email_throttle_mute.sql |        AND n.created_at > now() - interval '15 minutes' |        AND n.created_at > now() - interval '15 seconds'
- * @mutate supabase/migrations/20261030150631_message_email_throttle_mute.sql |     CASE WHEN v_show_preview THEN preview ELSE 'Sent you a message.' END, |     preview,
- * @mutate supabase/migrations/20261030150631_message_email_throttle_mute.sql |  sent you a message on Louisiana Helpr. Open the conversation to read it and reply.', |  sent you a message: ' \|\| preview,
- * @mutate supabase/migrations/20261030150631_message_email_throttle_mute.sql |   IF v_email_on THEN |   IF false THEN
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |   IF NEW.job_id IS NOT NULL AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm | IF NEW.job_id IS NOT NULL AND false AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |        AND n.created_at > now() - interval '15 minutes' |        AND n.created_at > now() - interval '15 seconds'
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |     CASE WHEN v_show_preview THEN preview ELSE 'Sent you a message.' END, |     preview,
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |  sent you a message on Louisiana Helpr. Open the conversation to read it and reply.', |  sent you a message: ' \|\| preview,
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |   IF v_email_on THEN |   IF false THEN
+ * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |        AND (tm.mute_until IS NULL OR tm.mute_until > now())\n |
  * @mutate src/components/notificationPreferences/constants.tsx | email_job_updates: true, email_messages: true, | email_job_updates: true, email_messages: false,
  * @mutate src/components/NotificationPreferences.tsx |             <MessagePreviewRow | <div
  */
@@ -28,6 +29,10 @@ const at = (s: string) => body.indexOf(s);
 const bellInsert = at("INSERT INTO public.notifications");
 
 describe("new-message alerts: email, throttle, preview switch, mute (Messages audit H1/M6/M4)", () => {
+  it("an ended snooze is not a mute: the trigger reads mute_until as the screen does (run in messageSnoozeExpires.pglite.mjs)", () => {
+    expect(body).toMatch(/tm\.other_user_id = NEW\.sender_id\s+AND \(tm\.mute_until IS NULL OR tm\.mute_until > now\(\)\)/);
+  });
+
   it("reads the newest definition, which inserts the bell row", () => {
     expect(fn.file >= "20261030150631").toBe(true);
     expect(body.length).toBeGreaterThan(2500);

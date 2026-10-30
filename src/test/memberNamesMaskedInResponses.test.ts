@@ -67,7 +67,7 @@ const RESTATED_LATER: Record<string, string> = {
   // A2-B15 (2026-10-29): the poster's own reopen files no backout notice; the name read is verbatim.
   record_backout_notice: "20261029162907_poster_own_reopen_files_no_backout_notice.sql",
   // Messages audit H1/M4/M6 (owner 2026-10-30): mute, 15-minute throttle, preview switch, email; the name read is verbatim.
-  notify_message_recipient: "20261030150631_message_email_throttle_mute.sql",
+  notify_message_recipient: "20261030212051_message_snooze_ends.sql",
 };
 
 /** Blank every call to the masking helpers, balanced parentheses, so what is left reads names raw. */

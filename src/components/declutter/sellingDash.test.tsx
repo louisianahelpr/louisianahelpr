@@ -18,8 +18,11 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
- * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <SellingSettingsEntry />\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={browse?.end}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<><SectionSettingsButton settings={DECLUTTER_SETTINGS} />{browse?.end}</>}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const; | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter" } as const;
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
@@ -122,6 +125,7 @@ vi.mock("@/lib/declutter/donate", () => ({
 }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
+  fetchMyFreePause: async () => null,
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
   fetchMySales: async () => state.sales,
@@ -155,6 +159,7 @@ function at(path: string) {
         <Routes>
           <Route path="/declutter" element={<DeclutterPage />} />
           <Route path="/declutter/sell" element={<p>Sell page</p>} />
+          <Route path="/declutter/settings" element={<p data-testid="where">/declutter/settings</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -261,20 +266,30 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     }
   });
 
-  it("the seller's settings sit in ONE area after the lists, never among them", async () => {
+  it("Selling has one row to Declutter settings after the lists; the settings cards are not on Selling any more", async () => {
     const { container } = at("/declutter?tab=selling");
-    const settings = await screen.findByRole("region", { name: "Selling settings" });
-    expect(await within(settings).findByRole("region", { name: "Pickup times" })).toBeInTheDocument();
-    expect(within(settings).getByRole("region", { name: "Bundle discount" })).toBeInTheDocument();
-    expect(within(settings).getByRole("region", { name: "Your delivery" })).toBeInTheDocument();
-    const cards = container.querySelectorAll("[data-bundle-card], [data-seller-delivery-card], [data-pickup-times-card]");
-    expect(cards.length).toBeGreaterThan(2);
-    for (const c of Array.from(cards)) expect(settings.contains(c)).toBe(true);
-    // After every list: nothing of the lists follows the settings.
+    const row = await screen.findByRole("link", { name: /Declutter settings/ });
+    expect(row).toHaveAttribute("href", "/declutter/settings");
+    expect(screen.queryByRole("region", { name: "Bundle discount" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Pickup times" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Your delivery" })).toBeNull();
+    expect(container.querySelectorAll("[data-bundle-card], [data-seller-delivery-card], [data-pickup-times-card]")).toHaveLength(0);
+    // After every list: nothing of the lists follows the row.
     for (const name of ["Your listings", "Offers on your items", "Sold: pickup and payout", "More ways to sell"]) {
       const list = screen.getByRole("region", { name });
-      expect(list.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(list.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+
+  it.each(["/declutter", "/declutter?tab=buying", "/declutter?tab=selling", "/declutter?tab=deliver", "/declutter?tab=free"])("%s: the gear is the LAST control in the tabs row and opens /declutter/settings", async (url) => {
+    at(url);
+    const gear = await screen.findByRole("button", { name: "Declutter settings" });
+    const row = screen.getByTestId("section-tabs");
+    const controls = Array.from(row.querySelectorAll("button:not([role='tab'])"));
+    expect(controls.length).toBeGreaterThan(0);
+    expect(controls[controls.length - 1]).toBe(gear);
+    fireEvent.click(gear);
+    await vi.waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter/settings"));
   });
 });
 

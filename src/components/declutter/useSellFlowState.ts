@@ -54,6 +54,7 @@ import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
 import { useLastListingSetup } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
+import { useSellSaved } from "./useSellSaved";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -78,6 +79,9 @@ export function useSellFlowState(urlItemId: string | null) {
   // Why the last photos didn't go up (audit posting 1030 #2); the photos themselves stay in `held`.
   const [photoFailure, setPhotoFailure] = useState<string | null>(null);
   const failedPhotos = useRef(0);
+  // A listing brought back from this device (useSellSaved): the prefills below never overwrite it, and Claude isn't
+  // asked again for what it already wrote.
+  const [broughtBack, setBroughtBack] = useState<"no" | "unwritten" | "written">("no");
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   // One tick for the four tax facts (owner 2026-10-28); attestItem still records all four.
   const [attested, setAttested] = useState(false);
@@ -172,11 +176,12 @@ export function useSellFlowState(urlItemId: string | null) {
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
   const resumedEmpty = !!urlItemId && loadedId === urlItemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
-  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !urlItemId && held.length > 0, autoFillEmpty: resumedEmpty, onDraft: setCoverFirst });
-  const usedLastSetup = useLastListingSetup(urlItemId ? undefined : user?.id, { setForm, setWays, setCoords });
+  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !urlItemId && held.length > 0 && broughtBack !== "written", autoFillEmpty: resumedEmpty, onDraft: setCoverFirst });
+  const prefillFor = urlItemId || broughtBack !== "no" ? undefined : user?.id;
+  const usedLastSetup = useLastListingSetup(prefillFor, { setForm, setWays, setCoords });
   // Saved settings are the source once they exist (owner 2026-10-30): they replace what the last listing filled in,
   // never what the seller typed, and the point comes with them.
-  const saved = useSavedPickup(urlItemId ? undefined : user?.id, (p, lastAddress) => {
+  const saved = useSavedPickup(prefillFor, (p, lastAddress) => {
     const mine = (address: string) => !address.trim() || address === lastAddress;
     setForm((f) => (mine(f.pickupAddress) ? { ...f, areaLabel: p.areaLabel, pickupAddress: p.address } : f));
     setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
@@ -189,8 +194,28 @@ export function useSellFlowState(urlItemId: string | null) {
   // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
   // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
-  const prefs = useSellerDefaultsPrefill(urlItemId ? undefined : user?.id, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
+  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+  // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
+  // (it belongs to that answer).
+  const keptWork = useSellSaved(urlItemId || answer ? undefined : user?.id, { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId }, held, (back) => {
+    setBroughtBack(back.form.title.trim() ? "written" : "unwritten");
+    setForm(back.form);
+    setCoords(back.coords);
+    setWays(back.ways);
+    setWindows(back.windows);
+    setKeepUpWanted(back.keepUpWanted);
+    setAutoFreeWanted(back.autoFreeWanted);
+    setHeld((h) => [...back.held, ...h]);
+    if (back.createdId) {
+      // The form holds what the seller last had; the draft's own reads must not reset it.
+      loadedFor.current = back.createdId;
+      dropLoadedFor.current = back.createdId;
+      waysLoadedFor.current = back.createdId;
+      setLoadedId(back.createdId);
+      setCreatedId(back.createdId);
+    }
+  });
 
   async function saveDetails(waiting: File[] = held): Promise<string | null> {
     if (problem) {
@@ -376,6 +401,7 @@ export function useSellFlowState(urlItemId: string | null) {
       await requestAiCheckWithRetry(id);
       setPostStep("Putting it up");
       const status = await publishItem(id);
+      void keptWork.finish();
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       if (answer) {
@@ -413,7 +439,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork,
   };
 }
 

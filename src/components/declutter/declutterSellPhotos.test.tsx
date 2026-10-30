@@ -5,11 +5,11 @@
  * the device (previews only, nothing uploaded); Post creates the draft and uploads them to it, then lists it.
  * The API is stubbed: this checks the order of calls, not the backend.
  *
- * @mutate src/components/declutter/useSellFlowState.ts |       const added = await uploadPhotos(id, waiting); |       const added = 0; void waiting;
+ * @mutate src/components/declutter/useSellFlowState.ts |       await uploadHeld(id, waiting); |       void waiting;
  * @mutate src/components/declutter/useSellFlowState.ts |     if (!itemId) {\n      setHeld((h) => [...h, ...list]);\n      return;\n    } |     if (!itemId) return;
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |   const count = uploaded.length + held.length; |   const count = uploaded.length;
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellPhotos\n |           <span hidden />{false && <SellPhotos\n
- * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {uploaded.length === 0 && i === 0 && <CoverChip />} |             {<CoverChip />}
+ * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             ) : uploaded.length === 0 && i === 0 && <CoverChip />} |             ) : <CoverChip />}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";

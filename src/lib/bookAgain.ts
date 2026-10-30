@@ -12,7 +12,7 @@
  * offer) and `?offerTo=` (the direct-offer banner and offered_to_helper_id on
  * submit). `bookAgain=1` only says "open at When and where".
  */
-export const BOOK_AGAIN_PARAM = "bookAgain";
+const BOOK_AGAIN_PARAM = "bookAgain";
 
 /** The Post a job link for "Book <Helpr> again" on a finished job. */
 export function bookAgainLink(jobId: string, helperId: string): string {

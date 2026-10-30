@@ -168,6 +168,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   log_deleted_job: "tags",
   notification_crosses_seed_boundary: "hides",
   notify_admins_new_member: "hides",
+  send_new_member_daily_summary: "hides",
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",

@@ -49,11 +49,11 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   detect_stuck_payments: "link",
   enforce_retained_payment_ban: "gap",
   facilitator_threshold_check: "gap",
-  notify_admins_new_member: "explicit",
   open_dispute_as: "gap",
   rentals_submit_landlord_id: "caller",
   rentals_submit_ownership_proof: "caller",
   rpc_escalate_dispute: "link",
+  send_new_member_daily_summary: "explicit",
   settle_one_off_jobs_for_banned_account: "link",
   shop_refund_sweep: "gap",
   shops_report_not_received: "caller",
@@ -92,7 +92,7 @@ describe("every function that notifies admins skips test accounts", () => {
   it("reads a plausible inventory (guards the parser)", () => {
     expect(BODIES.size).toBeGreaterThan(800);
     expect(INVENTORY.length).toBeGreaterThan(15);
-    expect(INVENTORY).toContain("notify_admins_new_member");
+    expect(INVENTORY).toContain("send_new_member_daily_summary");
   });
 
   it("every admin notifier is classified, exactly (both ways)", () => {

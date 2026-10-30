@@ -4,6 +4,7 @@
  * The pick is required by the server for porch pickup and Helpr delivery from a seller with places
  * (porch_place_needed), and frozen on the order at checkout. Afterwards the order shows the frozen place.
  */
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -16,13 +17,27 @@ import { shortDays } from "./DeclutterPickupTimes";
 const placesKey = (sellerId: string, cartKey: number) => ["declutter", "seller-porch-places", sellerId, cartKey] as const;
 
 /**
- * The seller's places for this cart, and whether a checkout that needs a place can go ahead. A failed read does not
- * hold the Pay button: most sellers have no places, and the server still refuses a missing pick.
+ * How long a first read of the places may hold Pay. The app's requests have no timeout of their own and a read that
+ * fails is tried once more, so without this a stalled read held Pay for as long as the connection hung.
+ */
+export const PORCH_PLACES_WAIT_MS = 3000;
+
+/**
+ * The seller's places for this cart, and whether a checkout that needs a place can go ahead. A failed read, or one
+ * still going after PORCH_PLACES_WAIT_MS, does not hold the Pay button: most sellers have no places, and the server
+ * still refuses a missing pick (porch_place_needed). If the read then brings places, Pay waits for the pick again.
  */
 export function useSellerPorchPlaces(sellerId: string, cartKey: number) {
   const q = useQuery({ queryKey: placesKey(sellerId, cartKey), queryFn: () => fetchSellerPorchPlaces(sellerId) });
+  const [waitedOut, setWaitedOut] = useState(false);
+  useEffect(() => {
+    setWaitedOut(false);
+    if (!q.isLoading) return undefined;
+    const timer = setTimeout(() => setWaitedOut(true), PORCH_PLACES_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [q.isLoading, sellerId, cartKey]);
   const places: SellerPorchPlace[] = q.data && q.data !== PORCH_PLACES_NOT_DEPLOYED ? q.data : [];
-  return { query: q, places, ready: !q.isLoading && (places.length === 0 || places.some((p) => p.chosen)) };
+  return { query: q, places, ready: (!q.isLoading || waitedOut) && (places.length === 0 || places.some((p) => p.chosen)) };
 }
 
 export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen }: {

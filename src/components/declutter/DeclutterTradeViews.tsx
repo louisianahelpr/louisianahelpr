@@ -136,7 +136,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const priceIt = useMutation({
     mutationFn: () => fetchDeliveryQuote(sellerId, address.trim()),
     onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); setSdChecked(null); }, // DB-9: it stored a new drop-off: seller delivery checks again
-    onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); },
+    onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); void porchPlaces.query.refetch(); },
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
@@ -302,6 +302,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             } else {
               toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));
             }
+            // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
+            if (needsPlace) void porchPlaces.query.refetch();
             setOpening(false);
           }
         }}

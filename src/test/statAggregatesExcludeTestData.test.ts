@@ -179,7 +179,7 @@ const REQUIRED_HELPER = [
   "get_applicant_category_counts", "get_job_match_reach", "admin_sms_status", "admin_list_category_suggestions",
   "rentals_admin_listings", "get_public_profile_stats",
 ];
-/** Restated by 20261030015205 with a table-specific test marker instead of the helper. */
+/** Restated by the b62 migration (20261030015205): a table-specific test marker instead of the helper. */
 const REQUIRED_SEED = { admin_list_signup_leads: /is_seed_email\s*\(/i, shops_admin_pending_items: /\bis_seed\s+IS\s+NOT\s+TRUE/i };
 
 const AGG = /\b(count|sum|avg)\s*\(/i;

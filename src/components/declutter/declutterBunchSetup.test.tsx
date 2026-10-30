@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     setAreaLabel((a) => (a.trim() ? a : s.areaLabel)); |     void s.areaLabel;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     void s.pickup.address;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setCoords((c) => c ?? { ...s.pickup! }); |     void setCoords;
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |     place.setPoint((c) => c ?? { ...s.pickup! }); |     void place;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | Smaller copies, with location data removed, are sent to sort them and write your listings. | Location data is removed before anything is sent, and nothing goes up until you list.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,8 +26,8 @@ vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => nul
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
-vi.mock("@/lib/geocode", () => ({
-  geocodeAddress: async (a: string) => { state.geocodes.push(a); return { latitude: 1, longitude: 2 }; },
+vi.mock("@/lib/addressLookup", () => ({
+  lookUpAddress: async (a: string) => { state.geocodes.push(a); return { status: "exact", lat: 1, lng: 2 }; },
 }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => { await state.gate; return state.last; } }));

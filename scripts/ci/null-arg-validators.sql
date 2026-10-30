@@ -155,6 +155,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('quote_job_offered_to_quoter',   'classify', 'labels a job as booked from an agreed quote and offered to that quoter (20261018155222): the hire trigger acts on it and the direct-offer notice stands aside; no access decision (EXECUTE revoked from clients), and a NULL job or helper is false'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
+  ('is_test_subject',               'classify', 'labels a member as a test account so admin alerts skip them (20261030143141); NULL is false, not a test subject'),
   ('refund_request_is_live',        'classify', 'labels a refund_requests row live (open, a come-back not settled, declined awaiting its dispute, or agreed and unsettled; 20261021102943); no access decision (EXECUTE revoked from clients), called only on rows whose status is NOT NULL, and a NULL status is false'),
   ('refund_come_back_pending',      'deny',     'TRUE = the Helpr agreed to come back and finish and the agreed time is still ahead, so a new done stamp is REFUSED (trg_refuse_done_before_come_back, create-payment release); a NULL job is TRUE (fails safe); service only (20261021102943)'),
   ('refund_party_held',             'deny',     'TRUE = a party is banned, suspended, under a ban review or on a payout hold, so an agreed refund is NOT settled automatically (it goes to an admin); a NULL user is TRUE (fails safe); service only (20261021102943)'),

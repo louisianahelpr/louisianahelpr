@@ -46,9 +46,10 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
 }
 
 /**
- * Whether ANY line on the checkout is taxable. Deliberately narrower than it
- * looks: the service fee, urgent tip and one-time setup fee are all
- * `txcd_00000000`, so the labor line is the only line tax can land on.
+ * Whether ANY line on the checkout is taxable. Tax lands only where the labor
+ * is taxable: the labor line, the urgent bonus (taxed like labor, Q1843) and a
+ * poster-fee job's service fee carry the labor's tax code; the one-time setup
+ * fee is `txcd_00000000`.
  */
 export function hasTaxableLine(category: string | null | undefined): boolean {
   return isLaborTaxable(category);

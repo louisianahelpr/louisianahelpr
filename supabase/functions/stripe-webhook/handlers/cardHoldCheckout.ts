@@ -171,7 +171,7 @@ export async function settleCardHoldCheckout(
   const taxCents = typeof session.total_details?.amount_tax === "number" ? session.total_details.amount_tax : null;
   const { data: jobRow, error: jobErr } = await supabase
     .from("jobs")
-    .select("id, budget, category, customer_fee_amount, poster_fee_flat_cents, helper_id, helper_confirmed_at, title, customer_id, offered_to_helper_id, direct_offer_status, stripe_payment_intent_id, payment_status")
+    .select("id, budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee, helper_id, helper_confirmed_at, title, customer_id, offered_to_helper_id, direct_offer_status, stripe_payment_intent_id, payment_status")
     .eq("id", jobId)
     .maybeSingle();
   if (jobErr) throw new Error(`card-hold: job ${jobId} read failed: ${jobErr.message}`);

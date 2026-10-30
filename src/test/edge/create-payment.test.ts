@@ -932,9 +932,10 @@ describe("create-payment edge function", () => {
           expect(li.price_data.tax_behavior).toBe("exclusive");
           expect(li.price_data.product_data.tax_code).toMatch(/^txcd_\d{8}$/);
         }
-        // Fees and the urgent tip stay non-taxable whatever the category.
+        // The urgent bonus is taxed like the labor (owner 2026-10-21, Q1843):
+        // the same code as the labor line, taxable or exempt.
         for (const li of args.line_items.slice(1)) {
-          expect(li.price_data.product_data.tax_code).toBe("txcd_00000000");
+          expect(li.price_data.product_data.tax_code).toBe(args.line_items[0].price_data.product_data.tax_code);
         }
         return args.line_items[0].price_data.product_data.tax_code;
       };
@@ -945,7 +946,7 @@ describe("create-payment edge function", () => {
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
-    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100), job.category); |         + 0;
+    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category); |         + 0;
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();

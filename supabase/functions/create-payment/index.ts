@@ -1239,7 +1239,9 @@ serve(async (req) => {
       // poster pays exactly the job price. The 2026-10-11 card-cost line that
       // stood here is gone for every job funded from now on.
 
-      // Urgent bonus (F3 review N5: not called a tip, the 5% applies to it) — non-taxable (passes through to helper). Uses the
+      // Urgent bonus (F3 review N5: not called a tip, the 5% applies to it). Taxed like
+      // the labor (owner 2026-10-21, Q1843): the labor's own tax code, so a taxable
+      // category taxes it and an exempt one does not. Uses the
       // server-recomputed urgentFeeCents (see above), never the stored column:
       // present and >= the floor whenever the job is urgent, absent otherwise.
       if (urgentFeeCents > 0) {
@@ -1250,7 +1252,7 @@ serve(async (req) => {
             product_data: {
               name: "Urgent bonus",
               description: "Urgent bonus, part of the job price",
-              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable: passes through to helper
+              tax_code: laborTaxCode(job.category), // Q1843: taxed exactly like the labor line
             },
             unit_amount: urgentFeeCents,
           },
@@ -1414,7 +1416,7 @@ serve(async (req) => {
       // card can be used there). A taxable job's service fee is taxed too.
       const threeDSCents = payInFour ? 0 : lineItemsCents
         + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0)
-        + salesTaxCeilingCents(Math.round(job.budget * 100), job.category);
+        + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category);
       const session = await stripe.checkout.sessions.create({
         customer: await payerWalletCustomer(),
         customer_update: { address: 'auto' },

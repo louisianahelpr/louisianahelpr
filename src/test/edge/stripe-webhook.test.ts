@@ -296,12 +296,14 @@ describe("stripe-webhook edge function", () => {
     // taxable category the "Service fee" line is taxed with the labor, so the
     // rate is tax over budget + fee. Dividing by the budget alone stored
     // 0.1105 for a 10.45% rate.
-    // @mutate supabase/functions/_shared/salesTax.ts |   return laborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0); |   return laborCents;
+    // @mutate supabase/functions/_shared/salesTax.ts |   return taxedLaborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0); |   return taxedLaborCents;
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const taxableBaseCents = jobEscrowTaxableBaseCents(taxedRow); |         const taxableBaseCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
     // The edge mock ignores select lists, so the fee columns come ONLY through
     // a selectOverride keyed on them: a select that drops them reads the plain
     // row (no fee) and the rate goes wrong (review of the pre-flip items, #1).
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents") | .select("budget, category")
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category")
+    // Q1843: the urgent bonus is taxed like the labor, so its columns must be read too.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category, customer_fee_amount, poster_fee_flat_cents")
     // The charge's own fee (PaymentIntent metadata) wins over a re-priced row (#2).
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 } |           ? jobRow
     it.each([
@@ -311,14 +313,22 @@ describe("stripe-webhook edge function", () => {
       ["a flat-model job divides by the budget", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
       // The row was re-priced to Pay in 4 ($9.70) after this $5.70 charge opened.
       ["the charge's own fee wins over a re-priced row", { budget: 100, category: "assembly", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
+      // Q1843: a taxed urgent job's $20 bonus is taxed with the labor: 10.45% of $120.
+      ["a taxed urgent job divides by budget + the bonus", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1254, 0.1045],
+      ["an exempt urgent job's bonus is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1045, 0.1045],
     ] as Array<[string, Record<string, unknown>, number, number]>)("%s", async (_label, jobIn, taxCents, rate) => {
       const fn = await loadConfigured();
       const { piFee, ...job } = jobIn;
-      const { budget, category, customer_fee_amount, poster_fee_flat_cents, ...rest } = job;
-      // Plain rows carry the budget only; the fee columns arrive only for a select naming them.
+      const { budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee, ...rest } = job;
+      // Plain rows carry the budget only; the fee columns arrive only for a select naming them,
+      // and the urgent columns only for a select naming those too (first match wins).
+      const feeRow = { id: "job-tax-p", is_seed: false, budget, category, customer_fee_amount, poster_fee_flat_cents };
       scenario.reads.jobs = {
         rows: [{ id: "job-tax-p", is_seed: false, budget, ...rest }],
-        selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [{ id: "job-tax-p", is_seed: false, budget, category, customer_fee_amount, poster_fee_flat_cents }] } }],
+        selectOverrides: [
+          { includes: "urgent_fee", result: { rows: [{ ...feeRow, is_urgent: is_urgent ?? false, urgent_fee: urgent_fee ?? 0 }] } },
+          { includes: "poster_fee_flat_cents", result: { rows: [feeRow] } },
+        ],
       };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_tax_p",
@@ -326,7 +336,7 @@ describe("stripe-webhook edge function", () => {
         ...(piFee ? { metadata: { service_fee_cents: piFee } } : {}),
       });
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
-        id: `evt_tax_rate_p_${String(category)}_${String(poster_fee_flat_cents)}_${String(piFee ?? "")}`,
+        id: `evt_tax_rate_p_${String(category)}_${String(poster_fee_flat_cents)}_${String(piFee ?? "")}_${String(urgent_fee ?? "")}`,
         type: "checkout.session.completed",
         data: {
           object: {

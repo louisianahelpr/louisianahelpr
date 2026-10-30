@@ -63,7 +63,15 @@ const hasPerformedJobAction = (): boolean =>
  * dashboard surfaces the prompt on the next paint without a route
  * change. Safe to call multiple times.
  */
+/** Fired on EVERY job action; the website's push ask listens (useWebPushAskAfterJobAction). */
+export const JOB_ACTION_EVENT = "helpr:job-action";
+
 export const recordJobActionForPermissionPrompt = (): void => {
+  // Before the first-action early return: the web push ask keeps its own
+  // 14-day cooldown and wants every job action (src/hooks/useWebPush.ts).
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(JOB_ACTION_EVENT));
+  }
   if (hasPerformedJobAction()) return;
   markJobActionPerformed();
   if (typeof window !== "undefined") {

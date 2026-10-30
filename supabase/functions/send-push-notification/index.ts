@@ -72,6 +72,7 @@ import { logPush } from '../_shared/notificationLog.ts'
 import { inferCategoryFromLink, type PushCategory } from './category.ts'
 import { isInQuietHours, QUIET_HOURS_TIME_ZONE } from './quietHours.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { sendWebPush, type VapidKeys } from '../_shared/webPush.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,6 +106,14 @@ interface PushToken {
   id: string
   token: string
   platform: string
+}
+
+/** A browser subscription row (public.push_subscriptions). */
+interface WebSub {
+  id: string
+  endpoint: string
+  p256dh: string
+  auth: string
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -278,15 +287,22 @@ serve(async (req) => {
       error: error ?? null,
     })
 
-  // APNs is the only backend (iOS only, Q1126); without its four secrets every
-  // send is skipped.
+  // Two backends: APNs for the iOS app (Q1126) and Web Push for browsers
+  // (VAPID, B61 2026-10-29: 36 of 37 real active members use the website).
+  // Without either's secrets every send is skipped.
   const apnsConfigured = !!(
     Deno.env.get('APNS_KEY_ID') &&
     Deno.env.get('APNS_TEAM_ID') &&
     Deno.env.get('APNS_BUNDLE_ID') &&
     Deno.env.get('APNS_AUTH_KEY')
   )
-  if (!apnsConfigured) {
+  const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
+  const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
+  const vapidSubject = Deno.env.get('VAPID_SUBJECT')
+  const vapid: VapidKeys | null = vapidPublic && vapidPrivate && vapidSubject
+    ? { publicKey: vapidPublic, privateKey: vapidPrivate, subject: vapidSubject }
+    : null
+  if (!apnsConfigured && !vapid) {
     console.warn('No push backend configured — skipping')
     await logOutcome('skipped', 'no_push_backend_configured')
     return new Response(
@@ -349,7 +365,23 @@ serve(async (req) => {
     })
   }
   const tokens = (rawTokens ?? []) as PushToken[]
-  if (tokens.length === 0) {
+  // Browser subscriptions (public.push_subscriptions). A failed read is
+  // logged and counted as a failure, never read as "no browsers".
+  let webSubs: WebSub[] = []
+  let webReadError: string | null = null
+  if (vapid) {
+    const { data: rawSubs, error: subErr } = await supabase
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth')
+      .eq('user_id', payload.user_id)
+    if (subErr) {
+      webReadError = subErr.message
+      console.error('Failed to load push_subscriptions', subErr)
+    } else {
+      webSubs = (rawSubs ?? []) as WebSub[]
+    }
+  }
+  if (tokens.length === 0 && webSubs.length === 0 && !webReadError) {
     // An ordinary user with no push token is unremarkable — they never granted
     // permission, and the in-app notification is waiting for them next time
     // they open the app.
@@ -492,8 +524,10 @@ serve(async (req) => {
   const deadTokens: { id: string; platform: string; status: number; reason: string }[] = []
   const result: Record<string, unknown> = {}
 
-  // ── iOS path (APNs is configured: the early return above guarantees it) ──
-  if (iosTokens.length > 0) {
+  // ── iOS path (only when APNs is configured) ──
+  if (iosTokens.length > 0 && !apnsConfigured) {
+    result.ios = { skipped: 'apns_not_configured', tokens: iosTokens.length }
+  } else if (iosTokens.length > 0) {
     try {
       const jwt = await buildApnsJwt(
         Deno.env.get('APNS_KEY_ID')!,
@@ -540,6 +574,56 @@ serve(async (req) => {
       tokens: otherTokens.length,
       platforms: [...new Set(otherTokens.map((t) => t.platform))].sort(),
     }
+  }
+
+  // ── Web path (browsers, RFC 8291 + VAPID) ─────────────────────────
+  // A 404/410 means the browser dropped the subscription for good: its row is
+  // deleted below and logged token_deleted, like a dead APNs token.
+  const deadWebSubs: { id: string; status: number }[] = []
+  if (webReadError) {
+    failed += 1
+    result.web = { error: 'push_subscriptions_read_failed' }
+  } else if (webSubs.length > 0 && vapid) {
+    const webResults = await mapWithConcurrency(webSubs, SEND_CONCURRENCY, async (sub) => {
+      const r = await sendWebPush(
+        sub,
+        { title: payload.title, message: payload.body, link: payload.link ?? null, tag: payload.thread_id ?? null },
+        vapid,
+      )
+      if (!r.ok) {
+        console.warn('Web push send failed', { subscription_id: sub.id, status: r.status, reason: r.reason })
+        if (r.gone) deadWebSubs.push({ id: sub.id, status: r.status })
+      }
+      return r.ok
+    })
+    const webSent = webResults.filter(Boolean).length
+    sent += webSent
+    failed += webResults.length - webSent
+    result.web = { sent: webSent, failed: webResults.length - webSent, subscriptions: webSubs.length }
+  }
+  const deletedWebIds = new Set<string>()
+  let webCleanupFailure: string | null = null
+  if (deadWebSubs.length > 0) {
+    const { data: deleted, error: delErr } = await supabase
+      .from('push_subscriptions')
+      .delete()
+      .in('id', deadWebSubs.map((d) => d.id))
+      .select('id')
+    if (delErr) {
+      webCleanupFailure = delErr.message
+      console.error('[send-push-notification] dead web subscription cleanup failed:', delErr.message)
+    } else {
+      for (const r of (deleted ?? []) as { id: string }[]) deletedWebIds.add(r.id)
+    }
+  }
+  for (const d of deadWebSubs) {
+    const removed = deletedWebIds.has(d.id)
+    await logOutcome(
+      'token_deleted',
+      `web subscription gone (HTTP ${d.status}) — push_subscriptions row ${d.id} ${
+        removed ? 'deleted' : `NOT deleted: ${webCleanupFailure ?? 'delete matched 0 rows'}`
+      }`,
+    )
   }
 
   // Best-effort cleanup of dead tokens.
@@ -604,9 +688,9 @@ serve(async (req) => {
   // Either is a skip, not a failure.
   const perPlatform = JSON.stringify(result)
   if (sent > 0) {
-    await logOutcome('sent', failed > 0 ? `partial: ${failed} of ${tokens.length} failed — ${perPlatform}` : null)
+    await logOutcome('sent', failed > 0 ? `partial: ${failed} of ${tokens.length + webSubs.length} failed — ${perPlatform}` : null)
   } else if (failed > 0) {
-    await logOutcome('failed', `0 of ${tokens.length} delivered — ${perPlatform}`)
+    await logOutcome('failed', `0 of ${tokens.length + webSubs.length} delivered — ${perPlatform}`)
   } else {
     await logOutcome('skipped', `no send attempted — ${perPlatform}`)
   }
@@ -616,8 +700,8 @@ serve(async (req) => {
       sent,
       failed,
       no_tokens: false,
-      total: tokens.length,
-      cleaned_up: cleanedUp,
+      total: tokens.length + webSubs.length,
+      cleaned_up: cleanedUp + deletedWebIds.size,
       ...result,
     }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

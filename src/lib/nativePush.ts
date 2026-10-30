@@ -2,7 +2,7 @@
  * Native push notifications (deep links: src/lib/deepLinkRouter.ts).
  *
  * Wires APNs/FCM via @capacitor/push-notifications. On the web this is
- * a no-op — we already have web push via /sw-push.js.
+ * a no-op — web push lives in src/lib/webPush.ts (push_subscriptions).
  *
  * Flow:
  *   1. App boots → useNativePushSetup() runs once.
@@ -22,10 +22,10 @@ import { report } from "@/lib/errorLogger";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import {
   isPushSupported,
-  registerServiceWorker,
   requestPushPermission as requestWebPushPermission,
   setNativePushPermission,
 } from "@/lib/pushNotifications";
+import { removeWebPushSubscription, subscribeWebPush } from "@/lib/webPush";
 import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
 import { startDeepLinkRouting } from "@/lib/deepLinkRouter";
 import { captureJobRef } from "@/lib/jobLinkRef";
@@ -509,7 +509,7 @@ export async function requestPushPermission(): Promise<boolean> {
  * (on confirm) triggers the OS-level permission prompt.
  *
  * Works on both native (Capacitor PushNotifications.requestPermissions)
- * and web (Notification.requestPermission, after registering /sw-push.js).
+ * and web (Notification.requestPermission, then subscribeWebPush on a yes).
  * Using the same hook for both keeps the rationale UX consistent, which
  * is also what App Review looks for on the native side.
  *
@@ -536,8 +536,12 @@ export function useRequestPushPermissionOutcome() {
       if (isNativePlatform) {
         granted = await requestPushPermission();
       } else {
-        await registerServiceWorker();
+        // FIRST, with nothing awaited before it: Safari shows the browser's
+        // prompt only inside the tap. Then save this browser's subscription
+        // (src/lib/webPush.ts waits for the service worker itself; it never
+        // throws and reports its own failures).
         granted = await requestWebPushPermission();
+        if (granted) await subscribeWebPush();
       }
     });
     if (granted) return "granted";
@@ -570,14 +574,19 @@ export async function unregisterPushOnSignOut(userId: string) {
     // WEB SIGN-OUT MUST NEVER TOUCH NATIVE TOKENS.
     //
     // `push_tokens` only ever holds rows written by the native registration
-    // listener (platform 'ios' | 'android') — web push does not persist a
-    // row here at all. So on web, `currentDeviceToken` is always null and the
+    // listener (platform 'ios' | 'android') — web push persists its rows in
+    // push_subscriptions instead, never here. So on web, `currentDeviceToken` is always null and the
     // user-wide fallback below would delete the user's PHONE tokens because
     // they signed out of a browser tab. That is all cost and no benefit: it
     // protects nothing on the device being signed out of (there is nothing
     // there to protect) and silently kills push on a device the user still
     // holds. The hand-off leak F-PRIV-01 the fallback exists for is a
     // shared-DEVICE concern, so scope the fallback to native.
+    //
+    // Web push (2026-10-29) is that shared-device concern on a browser: drop
+    // THIS browser's push_subscriptions row (and its subscription) while the
+    // session still exists. It never throws and reports its own failures.
+    if (!isNativePlatform) await removeWebPushSubscription();
     if (!isNativePlatform && !currentDeviceToken) return;
 
     let query = supabase.from("push_tokens").delete().eq("user_id", userId);

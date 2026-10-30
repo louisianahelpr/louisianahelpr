@@ -83,6 +83,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   notification_logs: { by: ["user_id", "recipient_email"] },
   notification_dedupe_suppressions: { by: ["user_id"] },
   push_tokens: { by: ["user_id"] },
+  push_subscriptions: { by: ["user_id"] },
   saved_jobs: { by: ["user_id"] },
   saved_searches: { by: ["user_id"] },
   saved_search_alert_queue: { by: ["user_id"] },

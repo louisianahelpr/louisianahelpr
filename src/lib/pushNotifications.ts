@@ -84,17 +84,34 @@ export const getPushPermission = (): PushPermissionState => {
   return Notification.permission; // "default" | "granted" | "denied"
 };
 
+/** How long to wait for the website's service worker before giving up (dev and blocked browsers have none). */
+export const SW_READY_TIMEOUT_MS = 10_000;
+
+/**
+ * The website's ONE service worker: the Workbox /sw.js (main.tsx and
+ * vite-plugin-pwa register it), with the push handlers imported into it
+ * (vite.config.ts workbox.importScripts -> public/sw-push-handlers.js). This
+ * only waits for it. It used to register /sw-push.js, a second worker at the
+ * same "/" scope, and each replaced the other (web push, 2026-10-29).
+ * `ready` never settles where no worker is registered (dev), so the wait is
+ * bounded.
+ */
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   // Native ships no service worker — push arrives through the OS, and the
   // `capacitor://` origin cannot host one anyway.
   if (isNativePlatform) return null;
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
+  if (typeof navigator === "undefined" || !navigator.serviceWorker) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), SW_READY_TIMEOUT_MS);
+  });
   try {
-    const registration = await navigator.serviceWorker.register("/sw-push.js");
-    return registration;
+    return await Promise.race([navigator.serviceWorker.ready, timeout]);
   } catch (err) {
     report(err, { tags: { source: "pushNotifications.registerSW" } });
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 };
 

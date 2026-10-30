@@ -347,7 +347,9 @@ export default function MoveFlow() {
         {moveDetailsProblem ? (
           <p className="text-xs text-muted-foreground" data-move-needs-details="">First, fill in your move above: {moveDetailsProblem}</p>
         ) : null}
+        {/* Its own name too: while the move's details are missing there is no <label> for it (axe "label", critical). */}
         <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="move-files" disabled={!!moveDetailsProblem || scanning}
+          aria-label="Add room photos"
           onChange={(e) => void onRoomPhotos(e.target.files)} />
         {moveDetailsProblem ? (
           // A real disabled button (the shared disabled look), not a label that only looks inert.

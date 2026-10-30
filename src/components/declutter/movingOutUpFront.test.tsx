@@ -9,6 +9,7 @@
  *
  * @mutate src/components/declutter/DeclutterMoveView.tsx |         {moveDetailsProblem ? (\n          <p className="text-xs | {false ? (\n          <p className="text-xs
  * @mutate src/components/declutter/DeclutterMoveView.tsx | id="move-files" disabled={!!moveDetailsProblem \|\| scanning} | id="move-files" disabled={scanning}
+ * @mutate src/components/declutter/DeclutterMoveView.tsx |           aria-label="Add room photos" |
  * @mutate src/components/declutter/DeclutterMoveView.tsx |         {date && dateProblem && <p | {false && <p
  * @mutate src/components/declutter/DeclutterMoveView.tsx |     writeMoveDraft(user.id, { date, areaLabel, pickupAddress, rows }); |     void 0;
  * @mutate src/components/declutter/DeclutterMoveView.tsx | Each item needs at least {photosWord(DECLUTTER_MIN_PHOTOS)} of its own (up to {DECLUTTER_MAX_PHOTOS}) | Each item needs 3 to 12 photos of its own
@@ -80,6 +81,8 @@ describe("Moving out asks for the move first (audit #33)", () => {
     renderPage();
     expect(await screen.findByText("First, fill in your move above: Pick your move-out date.")).toBeInTheDocument();
     expect(document.getElementById("move-files")).toBeDisabled();
+    // While it waits there is no <label> for it, so it carries its own name (axe "label", critical, on /declutter/move).
+    expect(document.getElementById("move-files")).toHaveAccessibleName("Add room photos");
   });
 
   it("a past date is named at the date field, before any scan", async () => {

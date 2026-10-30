@@ -7,6 +7,11 @@
  *
  * @mutate src/components/declutter/BoughtWhatNext.tsx |   const total = orderId ? paidCents?.get(orderId) ?? null : null; |   const total = first.total_cents;
  * @mutate src/components/declutter/BoughtWhatNext.tsx |   return ids.length === 1 ? mine : null; |   return mine.length ? mine : null;
+ * B48 live check 2026-10-29: the sheet stayed shut for a buyer with two paid orders. The return names the order
+ * (?order=<id>), and the sheet is about that order.
+ * @mutate src/components/declutter/BoughtWhatNext.tsx | justPaidOrder(lines, params.get("order")) | justPaidOrder(lines)
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |     return named.length ? named : null; |     return mine.length ? mine : null;
+ * @mutate supabase/functions/declutter-checkout/index.ts | `/declutter?view=cart&paid=1&order=${order.order_id}` | "/declutter?view=cart&paid=1"
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
  * Audit 1028 D1-3 (1a-b-pay-after-p1-375, 1a-b-meetpay-after-p1-1440): "Pick it up from the porch · Now" before any day
  * was booked, while the card behind said "Pick the day you'll come for it". The Now step is the buyer's real next move.
@@ -84,6 +89,22 @@ describe("board 82: after buying", () => {
       unmount();
     }
     expect(cases.length).toBeGreaterThan(6);
+  });
+
+  it("two paid orders and the return names one: the sheet is about that order", async () => {
+    const A = "11111111-1111-4111-8111-111111111111";
+    const B = "22222222-2222-4222-8222-222222222222";
+    cart = [line({ order_id: A, item_title: "Box fan" }), line({ order_id: B, item_title: "Lamp", line_id: "l2" })];
+    paid = { [A]: 2527, [B]: 1800 };
+    bookings = [];
+    at(`?paid=1&order=${B}&tab=buying`);
+    expect(await screen.findByRole("heading", { name: "You bought Lamp" })).toBeTruthy();
+    expect(await screen.findByText(/^\$18(\.00)?$/)).toBeTruthy();
+    expect(justPaidOrder(cart as CartLine[], A)?.map((l) => l.item_title)).toEqual(["Box fan"]);
+    expect(justPaidOrder(cart as CartLine[], "33333333-3333-4333-8333-333333333333")).toBeNull();
+    expect(justPaidOrder(cart as CartLine[], "not-an-id")).toBeNull();
+    const edge = readFileSync(resolve(__dirname, "../../supabase/functions/declutter-checkout/index.ts"), "utf8");
+    expect(edge).toContain("success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),");
   });
 
   it("two paid orders, or no ?paid=1: no sheet (never a guess)", () => {

@@ -486,7 +486,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       // Q202: 3D Secure from $300 up (card-fraud disputes move to the issuer).
       payment_method_options: threeDSecureOptions(chargeCents),
       expires_at: expiresAt,
-      success_url: buildRedirectUrl("/declutter?view=cart&paid=1", native),
+      // B48 live check 2026-10-29: the return names the order just paid, so "What happens next" opens for it even
+      // when the buyer has other paid orders in their handover (BoughtWhatNext, justPaidOrder).
+      success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),
       cancel_url: buildRedirectUrl("/declutter?view=cart", native),
     },
     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` },

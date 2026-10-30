@@ -248,6 +248,14 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
+  // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "a time to meet" : "a pickup time"} | a pickup time
+  it("meetup: the seller waits for the buyer to book a time to meet", async () => {
+    show([line({ my_side: "seller", handover: "meetup" })]);
+    expect(await screen.findByText(/Waiting for the buyer to book a time to meet/)).toBeInTheDocument();
+    expect(screen.queryByText(/book a pickup time/)).toBeNull();
+  });
+
   // Deep audit #25: each side moves a booked time once; after that the Move control is gone and the card says so.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const movedAlready = !!booked && | const movedAlready = false &&
   it("after a side has moved the pickup once, it is no longer offered Move", async () => {

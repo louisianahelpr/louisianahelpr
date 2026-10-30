@@ -492,6 +492,7 @@
     "declutter_book_porch_day(uuid, date)": "client",
     "declutter_set_meetup_spot(uuid, uuid)": "client",
     "declutter_meetup_here(uuid)": "client",
+    "declutter_on_my_way(uuid)": "client",
     "admin_declutter_save_meetup_spot(uuid, text, text, text, numeric, numeric, text, text, boolean)": "client",
     "declutter_set_seller_delivery(boolean, integer, integer, integer)": "reviewed 2026-10-27 (Q2333): seller delivery (20261027153244): both switches, banned refused, declutter_assert_member; writes only the caller's own setting row: $0 or a whole-dollar rate inside the rules, an optional free-delivery amount (whole dollars, paid rate only), one of the distances.",
     "declutter_set_delivery_schedule(jsonb, date[])": "reviewed 2026-10-27 (Q2333): seller delivery (20261027153244): both switches, banned refused, declutter_assert_member; replaces only the caller's own windows and days off, each checked (length, at least one slot, within a year).",

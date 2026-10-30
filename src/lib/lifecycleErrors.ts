@@ -545,6 +545,15 @@ export const RPC_ERROR_COPY = {
   // the delivery screens, so the shared signed-in bundle does not carry them
   // (/posts critical-path budget, 2026-10-17).
   // Slice 4 (20261015042253): pickup, handover, porch, no-shows, problems, reviews.
+  // D-NEW11 "I'm on my way" (the pickup-day card).
+  declutter_on_my_way: {
+    account_restricted: DC.account_restricted,
+    item_not_found: DC.item_not_found,
+    not_a_pickup: "This order isn't a pickup that's waiting.",
+    not_authenticated: DC.not_authenticated,
+    not_booked_yet: DC.not_booked_yet,
+    not_pickup_day: "You can tell the seller on the day of your pickup.",
+  },
   declutter_book_pickup: {
     account_restricted: DC.account_restricted,
     invalid_slot: DC.invalid_slot,

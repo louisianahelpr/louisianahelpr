@@ -13,7 +13,7 @@
 import { useEffect } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
-import { fetchMyBookings, fetchMyHandover, type MyHandover } from "@/lib/declutter/handover";
+import { fetchMyBookings, fetchMyHandover, type MyBooking, type MyHandover } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
@@ -149,6 +149,9 @@ export type BuyingTracker = {
   checkouts: number;
   ended: CartLine[];
   counts: Record<OrderBucket, number>;
+  /** D-NEW11: the orders and booked times the pickup-day card reads (the same read as above). */
+  live: { orderId: string; handover: string | null; status: string | null; lines: CartLine[] }[];
+  bookings: MyBooking[] | undefined;
 };
 
 export function useBuyingTracker(): BuyingTracker {
@@ -216,7 +219,7 @@ export function useBuyingTracker(): BuyingTracker {
   counts.needs_you += checkouts;
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
-  return { ready: !!cart.data, views, checkouts, ended, counts };
+  return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };
 }
 
 /**

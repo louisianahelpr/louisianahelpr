@@ -14709,6 +14709,7 @@ export type Database = {
         Returns: Json
       }
       declutter_member_out: { Args: { p_user: string }; Returns: boolean }
+      declutter_on_my_way: { Args: { p_order_id: string }; Returns: string }
       declutter_meetup_here: {
         Args: { p_order_id: string }
         Returns: string

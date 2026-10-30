@@ -174,6 +174,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
   declutter_handover_talks: { by: ["buyer_id", "seller_id"] },
   declutter_handover_talk_messages: { by: ["sender_id"] },
+  declutter_order_talk_messages: { by: ["sender_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
@@ -282,6 +283,14 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
   },  // Q2451 (20261027233614): the meeting spot of each order the member is a side of (no person column; a public place).
   declutter_order_meetups: {
     table: "declutter_order_meetups",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: [],
+    noPersonColumn: true,
+  },
+  // D2-1 (20261030004216, exported by 20261030024748): the chat of each paid order the member is a side of (no person
+  // column; one row per order). Its messages are EXPORTED by sender_id and through this chat (talk_id IN ...).
+  declutter_order_talks: {
+    table: "declutter_order_talks",
     scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
     stripped: [],
     noPersonColumn: true,

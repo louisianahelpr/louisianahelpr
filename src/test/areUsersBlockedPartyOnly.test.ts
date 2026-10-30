@@ -80,8 +80,13 @@ const EXPECTED_CALLERS = [
   // (helpr_tasks.helpr_id of the order's task), both parties to that delivery, as helpr_task_tip_start does.
   "declutter_delivery_tip_open",
   "declutter_lock_buyable_item",
+  // The paid-order chat (20261030004216, D2-1): the caller must be the order's buyer or seller (declutter_order_side), and
+  // each passes the order's own pair (o.buyer_id, o.seller_id), so the caller is always one party.
+  "declutter_my_order_talks",
   // The handover chat (20261028235249, #3730): v_uid := auth.uid() (the caller is one of the pair), then are_users_blocked(buyer, seller).
   "declutter_open_handover_talk",
+  // The paid-order chat view: declutter_order_side(o.buyer_id, o.seller_id, auth.uid()) must name a side first.
+  "declutter_order_talk_view",
   // Price-drop alerts (20261027204745, Train D): an AFTER UPDATE trigger on declutter_items passes the
   // pair (the watcher, the item's seller); neither is necessarily auth.uid() (the evening sweep lowers
   // prices as service_role) and it gets the real answer through the pg_trigger_depth() > 0 arm.
@@ -94,6 +99,8 @@ const EXPECTED_CALLERS = [
   "declutter_seller_moving_sale",
   // The handover chat: the caller is the talk's buyer or seller (the row is read WHERE buyer_id = v_uid OR seller_id = v_uid).
   "declutter_send_handover_message",
+  // The paid-order chat: membership is checked first (buyer_id = v_uid OR seller_id = v_uid), then are_users_blocked(o.buyer_id, o.seller_id).
+  "declutter_send_order_message",
   "declutter_set_watch",
   "declutter_start_checkout",
   // Declutter Wanted public replies (20261021031757, board 117): v_uid := declutter_assert_member(true)

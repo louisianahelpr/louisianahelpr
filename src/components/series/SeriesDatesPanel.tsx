@@ -278,7 +278,7 @@ export function SeriesDatesPanel({
                                 return `Offered ${r.openDates} open date${r.openDates === 1 ? "" : "s"} to ${endSentence(a.name)}`;
                               })
                             }
-                            className="min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
+                            className="min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40"
                           >
                             {view.offeredTo.includes(a.id) ? "Offered" : "Offer dates"}
                           </button>

@@ -27,11 +27,12 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
+import { useScreenAwake } from "@/hooks/useScreenAwake";
 import { geocodeAddress } from "@/lib/geocode";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  BUNCH_MAX_PHOTOS, bunchItemProblem, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, splitItem,
+  BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListingMinutes, dropItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, splitItem,
   type BunchItem, type BunchOutcome, type BunchPhoto,
 } from "@/lib/declutter/bunch";
 import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
@@ -87,6 +88,7 @@ export default function BunchFlow() {
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
   const files = useMemo(() => new Map(photos.map((p) => [p.key, p.file])), [photos]);
   const [askingStartOver, setAskingStartOver] = useState(false);
+  useScreenAwake(!!sorting || !!listing || listingDrafts);
   const saved = useBunchSaved(
     user?.id,
     { areaLabel, pickupAddress, coords, photos, items, sorting: !!sorting, finished: !!results && items.length === 0 },
@@ -207,9 +209,9 @@ export default function BunchFlow() {
         savedWays, (done, total) => setListing({ done, total }), undefined, saved.applyStep,
       );
       setResults(out);
-      // Listed items and items whose draft now exists leave the list (a draft is finished under Selling);
-      // an item refused before its draft was made stays, to fix and list again.
-      const gone = new Set(out.filter((o) => "status" in o || o.draftId).map((o) => o.key));
+      // Listed items and items refused at publish leave the list (that draft is finished under Selling);
+      // an item that failed getting ready stays with its photos, to fix and try again.
+      const gone = new Set(out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
       setItems((its) => its.filter((it) => !gone.has(it.key)));
     } catch (err) {
       // Not silent: the address, pickup-times or listing refusal is shown beside the button (role="alert"),
@@ -282,7 +284,7 @@ export default function BunchFlow() {
         )}
         {sorting && (
           <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done)…
+            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done). Keep this page open.
           </p>
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
@@ -341,7 +343,7 @@ export default function BunchFlow() {
             {listing ? `Listing… (${Math.min(listing.done, listing.total)} of ${listing.total} steps)` : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing many takes a few seconds each.
+            Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing takes about {BUNCH_SECONDS_EACH} seconds each{ready.length > 1 ? `, so about ${bunchListingMinutes(ready.length)} ${bunchListingMinutes(ready.length) === 1 ? "minute" : "minutes"} for these` : ""}. Keep this page open and your phone unlocked until it's done.
           </p>
         </Section>
       )}
@@ -359,7 +361,7 @@ export default function BunchFlow() {
               {failed.map((f) => (
                 <li key={f.key}>
                   <span className="font-semibold">{f.title || "An item"}</span> wasn't listed: {declutterErrorMessage(f.error)}
-                  {f.draftId ? " It's saved as a draft under Selling, to finish there." : " It's still above, to fix and list again."}
+                  {f.stays ? " It's still above, to fix and list again." : " It's saved as a draft under Selling, to finish there."}
                 </li>
               ))}
             </ul>

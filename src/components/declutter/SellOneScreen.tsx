@@ -98,7 +98,7 @@ export function SellOneScreen() {
         <SellerPayoutPrompt />
 
         <section className="space-y-4" aria-labelledby="sell-step" data-sell-row="photos">
-          <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. Claude writes the listing from them.`} />
+          <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. We write the listing from them.`} />
           <SellPhotos
             uploaded={photos.data ?? []}
             held={held}

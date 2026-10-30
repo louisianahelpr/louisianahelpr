@@ -42,6 +42,7 @@ import { PickupTimesCard } from "./DeclutterPickupTimes";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
+import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
@@ -248,6 +249,10 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   // An id, not a snapshot (money review 5): the sheet always shows the freshly read listing.
   const [managingId, setManagingId] = useState<string | null>(null);
   const managing = (mine.data ?? []).find((i) => i.id === managingId) ?? null;
+  // CMP-5: opened from the "drop the price?" nudge (the row or the notice's link): Change price, about 15% off filled in.
+  const [suggestDrop, setSuggestDrop] = useState(false);
+  const openNudge = (id: string) => { setSuggestDrop(true); setManagingId(id); };
+  usePriceNudgeLink(mine.data, openNudge);
   // #18: "Take this item off sale?" asks in the app (ConfirmSheet), never window.confirm.
   const [asking, setAsking] = useState<DeclutterItem | null>(null);
   const takeDown = useMutation({
@@ -329,7 +334,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => setManagingId(item.id)}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
                     Manage
                   </Button>
                 )}
@@ -355,6 +360,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
               </div>
             </div>
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
+            <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
           </li>
           );
         })}
@@ -369,6 +375,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           key={managing.id}
           item={managing}
           coverUrl={myCover.get(managing.id) ? photoPublicUrl(myCover.get(managing.id)!) : null}
+          startOn={suggestDrop ? "price" : "menu"}
+          suggestDrop={suggestDrop}
           open
           onOpenChange={(o) => {
             if (!o) setManagingId(null);

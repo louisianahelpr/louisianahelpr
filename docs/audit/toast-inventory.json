@@ -1,17 +1,17 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1049,
+    "calls": 1050,
     "files": 286,
     "rendering": 882,
-    "suppressedByPolicy": 167,
+    "suppressedByPolicy": 168,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
       "toast.error": 736,
-      "toast.info": 3,
+      "toast.info": 4,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 171,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 454,
       "template": 101,
-      "dynamic": 544,
+      "dynamic": 545,
       "jsx": 0
     }
   },
@@ -4878,13 +4878,23 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 116,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterItemView.tsx",
+      "line": 140,
+      "kind": "toast.info",
+      "title": {
+        "form": "dynamic",
+        "text": "PREVIEW_ACTION_NOTE"
+      },
+      "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
@@ -4918,7 +4928,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 78,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4928,7 +4938,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 82,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

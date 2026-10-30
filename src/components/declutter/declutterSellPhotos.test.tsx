@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {uploaded.length === 0 && i === 0 && <CoverChip />} |             {<CoverChip />}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -149,6 +149,18 @@ describe("photo-first selling, one screen", () => {
     expect(rows).toEqual(["title", "price", "category", "condition", "size", "description"]);
     expect(screen.getByRole("heading", { name: "How buyers get it" })).toBeInTheDocument();
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();
+  });
+
+  // DA-5 (Declutter audit 2026-10-30): a free listing's private address said "Only the buyer who pays sees it".
+  // @mutate src/components/declutter/SellFormParts.tsx | {form.free ? "Private. Only the person who gets it sees it." : | {false ? "Private. Only the person who gets it sees it." :
+  it("DA-5: the private pickup address names who sees it: the buyer who pays, or (free) the person who gets it", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    const hint = () => screen.getByLabelText("Pickup address").parentElement?.textContent ?? "";
+    expect(hint()).toContain("Only the buyer who pays sees it.");
+    fireEvent.click(within(document.querySelector("[data-sell-free]") as HTMLElement).getByRole("checkbox"));
+    await waitFor(() => expect(hint()).toContain("Only the person who gets it sees it."));
+    expect(hint()).not.toMatch(/pays/);
   });
 
   it("held photos wait on the device; Post creates the draft, uploads them, saves the price choice, then lists it", async () => {

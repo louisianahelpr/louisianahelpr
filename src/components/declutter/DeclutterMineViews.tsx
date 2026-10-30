@@ -40,7 +40,7 @@ import { CartView, OffersSection, PaidOrders, SectionHeading } from "./Declutter
 import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
 import { ORDER_BUCKETS } from "./OrderSteps";
 import { usePaySettling } from "./DeclutterPaySettling";
-import { SalesWaiting } from "./DeclutterSalesWaiting";
+import { SalesWaiting, useWaitingChipLabel } from "./DeclutterSalesWaiting";
 import { TakenDownSection } from "./DeclutterTakenDown";
 import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
@@ -112,6 +112,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   const ended = useEndedSales();
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
+  const waitingLabel = useWaitingChipLabel();
   return (
     <div className="space-y-6">
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
@@ -122,7 +123,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
         chips={[
           { key: "offers", label: "To answer", count: todo?.sellerOffers ?? 0, hot: true },
           { key: "listings", label: "Listed", count: listed },
-          { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
+          { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),

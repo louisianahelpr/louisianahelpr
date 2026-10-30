@@ -63,6 +63,7 @@ import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPa
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { RemoveFromCart } from "./DeclutterCartRemove";
+import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -554,8 +555,8 @@ export function CartView() {
   // A line still waiting for checkout always has its seller (an account with a line in flight cannot be deleted).
   for (const l of waiting) if (l.seller_id) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
   return (
-    <section className="space-y-3" aria-label="Your cart">
-      <SectionHeading title="Your cart" todo={waiting.length} todoWords="to check out" />
+    <section className="space-y-3" aria-label={cartSectionWords(waiting).title /* DA-4: "Claimed" when all free */}>
+      <SectionHeading title={cartSectionWords(waiting).title} todo={waiting.length} todoWords={cartSectionWords(waiting).todoWords} />
       <PaySettlingNotice s={settling} />
       {waiting.length === 0 ? (
         <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.</DeclutterNotice>
@@ -569,8 +570,7 @@ export function CartView() {
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
-              <h3 className="text-base font-semibold">{lines.length > 1 ? `One checkout for ${lines.length} items` : "Checkout"}</h3>
-              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p>}
+              <CheckoutCardHead allFree={allFree} count={lines.length} />
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0">

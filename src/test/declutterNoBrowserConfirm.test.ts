@@ -12,7 +12,7 @@
  * "are you sure" is the ConfirmSheet (or the handover / reserve sheets built from the same parts).
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | import { ConfirmSheet } from "./DeclutterConfirmSheet";\n | import { ConfirmSheet } from "./DeclutterConfirmSheet";\nimport { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";\nvoid BrandConfirmDialog;\n
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
- * @mutate src/components/declutter/DeclutterSalesWaiting.tsx |               onClick={() => setAsking(l.item_id)} |               onClick={() => { if (window.confirm("Cancel?") && l.item_id) cancel.mutate(l.item_id); }}
+ * @mutate src/components/declutter/DeclutterSalesWaiting.tsx |                   onClick={() => l.item_id && setAsking({ itemId: l.item_id, kind })} |                   onClick={() => { if (window.confirm("Cancel?") && l.item_id) cancel.mutate({ itemId: l.item_id, kind }); }}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

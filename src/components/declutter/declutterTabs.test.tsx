@@ -285,7 +285,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   it("lead 10-28: Accept and Cancel sale ask in an in-app sheet, never window.confirm; nothing runs until its button", async () => {
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |             onClick={() => setAccepting(true)} |             onClick={() => act.mutate({ action: "accept" })}
-    // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |               onClick={() => setAsking(l.item_id)} |               onClick={() => { if (l.item_id) cancel.mutate(l.item_id); }}
+    // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |                   onClick={() => l.item_id && setAsking({ itemId: l.item_id, kind })} |                   onClick={() => { if (l.item_id) cancel.mutate({ itemId: l.item_id, kind }); }}
     const confirmSpy = vi.spyOn(window, "confirm");
     everything();
     at("/declutter?tab=selling");
@@ -417,6 +417,56 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
     expect(offers()).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+  });
+
+  // DA-3 + DA-4 (Declutter audit 2026-10-30, shots da-seller-claimed-mid-wk375, da-claim-after-wk375): a FREE item
+  // someone claimed read as a sale on both sides ("Sold, waiting for the buyer to pay", "Cancel sale", "To be paid",
+  // "Sold: pickup and payout"; the claimer's "Your cart · 1 to check out" over a "Checkout" card). Free lines now use
+  // give-away words; a paid line beside them keeps the sale words (the class: every waiting kind on both tabs).
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0)], |     ["paid", waiting.filter((l) => l.price_cents === 0)],
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? "Claimed" : "Waiting"; |   return "To be paid";
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
+  // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : | return false ? { title: "Claimed", todoWords: "to choose a pickup" } :
+  // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
+  it("DA-3/DA-4: a free claim reads as a give-away on Selling and on Buying, never as a sale", async () => {
+    const FREE = { ...LINE, price_cents: 0, porch_ok: true };
+    state.mine = [ITEM];
+    state.offers = [];
+    state.cart = [
+      { ...FREE, line_id: "f1", item_id: "if1", item_title: "Free mug", my_side: "seller", seller_id: "u1" },
+      { ...FREE, line_id: "f2", item_id: "if2", item_title: "Free rug", my_side: "seller", seller_id: "u1", status: "paid", order_id: "ord-given", order_status: "paid", handover: "porch" },
+      { ...FREE, line_id: "f3", item_id: "if3", item_title: "Free vase", my_side: "buyer", seller_id: "s2" },
+    ];
+    const { container, unmount } = at("/declutter?tab=selling");
+    const claimed = await screen.findByRole("region", { name: "Claimed, they're choosing a pickup" });
+    expect(within(claimed).getByText(/They're choosing how to pick it up/)).toBeInTheDocument();
+    expect(within(claimed).getByRole("button", { name: "Cancel claim" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Sold, waiting for the buyer to pay" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel sale" })).toBeNull();
+    expect(container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Claimed/);
+    expect(screen.getByRole("heading", { name: /^Given away: pickup/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Sold: pickup and payout/ })).toBeNull();
+    fireEvent.click(within(claimed).getByRole("button", { name: "Cancel claim" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Cancel this claim?");
+    expect(within(sheet).getByRole("button", { name: "Keep the claim" })).toBeInTheDocument();
+    unmount();
+
+    // A paid sale waiting beside the free claim keeps the sale words; the chip names both.
+    state.cart = [...state.cart, { ...LINE, line_id: "p1", item_id: "ip1", item_title: "Paid lamp", my_side: "seller", seller_id: "u1" }];
+    const both = at("/declutter?tab=selling");
+    expect(await screen.findByRole("region", { name: "Sold, waiting for the buyer to pay" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Claimed, they're choosing a pickup" })).toBeInTheDocument();
+    expect(both.container.querySelector('[data-status-box="waiting"]')?.textContent ?? "").toMatch(/^Waiting/);
+    both.unmount();
+
+    // The claimer: no cart, no checkout.
+    state.cart = state.cart.filter((l) => (l as { line_id: string }).line_id === "f3");
+    at("/declutter?view=buying");
+    expect(await screen.findByRole("heading", { name: /^Claimed/ })).toHaveTextContent("to choose a pickup");
+    expect(screen.getByRole("heading", { name: "Choose how you'll get it" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Your cart/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Checkout" })).toBeNull();
   });
 
   it("Buying: the cart, the offers you sent and your purchases, every old action still there", async () => {

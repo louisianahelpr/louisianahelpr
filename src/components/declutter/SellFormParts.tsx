@@ -122,7 +122,8 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
     <div className="space-y-2">
       <FieldLabel htmlFor="sell-address" text="Pickup address" />
       <input id="sell-address" className={SELL_INPUT} maxLength={300} value={form.pickupAddress} onChange={(e) => set("pickupAddress", e.target.value)} placeholder="Street, city, ZIP" autoComplete="street-address" />
-      <p className="text-ds-13 text-muted-foreground">Private. Only the buyer who pays sees it.</p>
+      {/* DA-5: nobody pays for a free item; the address shows to the person it goes to once their pickup is set. */}
+      <p className="text-ds-13 text-muted-foreground">{form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it."}</p>
     </div>
     <div className="space-y-2" aria-labelledby="sell-pickup">
       <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">Your usual pickup times</h3>

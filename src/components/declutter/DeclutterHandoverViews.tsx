@@ -212,7 +212,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? " · You're selling" : ""}
+            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(items)}</span>

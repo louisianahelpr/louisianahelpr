@@ -5491,17 +5491,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 25,
+      "line": 64,
       "kind": "toast.success",
       "title": {
         "form": "template",
-        "text": "Sale cancelled. You have ${Math.min(n, 3)} of 3 strikes."
+        "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 29,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5541,7 +5541,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 113,
+      "line": 114,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5591,7 +5591,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 121,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5601,7 +5601,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 342,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5611,7 +5611,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 484,
+      "line": 485,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5621,7 +5621,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 493,
+      "line": 494,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5646,7 +5646,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 500,
+      "line": 501,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

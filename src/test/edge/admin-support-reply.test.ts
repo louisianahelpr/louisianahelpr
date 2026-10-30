@@ -9,6 +9,9 @@
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (replyError \|\| !insertedId) { |     if (replyError) {
  * @mutate supabase/functions/admin-support-reply/index.ts |         .eq('status', 'pending') |
  * @mutate supabase/functions/admin-support-reply/index.ts |     if (!memberId && !guest) { |     if (false) {
+ * @mutate supabase/functions/admin-support-reply/index.ts |            footerNote: guest\n |            footerNote: undefined && guest\n
+ * @mutate supabase/functions/admin-support-reply/index.ts |            ctaLabel: guest ? 'Write back to us' : 'Reply in the app', |            ctaLabel: 'Open Helpr support',
+ * @mutate supabase/functions/admin-support-reply/index.ts |                ? `${appUrl}/messages?teamThread=${memberId}&userId=${adminId}` |                ? `${appUrl}/support`
  * @mutate supabase/functions/admin-support-reply/index.ts |     const guest = !memberId && ticket.reported_id === SUPPORT_GUEST_REPORTED_ID |     const guest = !memberId
  * @mutate supabase/functions/admin-support-reply/index.ts |     let mailTo: string \| null = guest?.email ?? null |     let mailTo: string \| null = null
  * @mutate supabase/functions/admin-support-reply/index.ts |     const subject = guest ? '' : subjectOf(ticket.reason) |     const subject = subjectOf(ticket.reason)
@@ -105,8 +108,16 @@ describe("admin-support-reply", () => {
       const props = (emailRenders[0] as { props: { paragraphs: unknown[]; ctaUrl: string; greetingName: string } }).props;
       expect(JSON.stringify(props.paragraphs)).toContain("We reset it.");
       expect(JSON.stringify(props)).not.toContain("BUY NOW");
-      expect(props.ctaUrl).toMatch(/\/support$/);
+      expect(props.ctaUrl).toMatch(/\/support\?subject=/);
       expect(props.greetingName).toBe("Dana");
+    });
+
+    it("the guest's link is the support form with their ticket noted, and nobody is told to reply by email", async () => {
+      await call({ reportId: TICKET, message: "Hi" });
+      const { ctaUrl, ctaLabel, footerNote } = (emailRenders[0] as { props: { ctaUrl: string; ctaLabel: string; footerNote: string } }).props;
+      expect(ctaUrl).toMatch(/\/support\?subject=Follow-up%20on%20ticket%2011111111$/);
+      expect(ctaLabel).toBe("Write back to us");
+      expect(footerNote).not.toMatch(/reply to this email/i);
     });
 
     it("a typed name that is not a plain first name is not repeated in the mail", async () => {
@@ -133,6 +144,21 @@ describe("admin-support-reply", () => {
       expect(queuedEmails).toEqual([]);
       expect(writesTo("support_replies")).toEqual([]);
     });
+  });
+
+  it("a member's email says Reply in the app, links to the support thread when it landed, and never says reply by email", async () => {
+    scenario.rpc.admin_send_team_message = { id: "msg-1", created_at: "2026-10-29T12:00:00Z" };
+    await call({ reportId: TICKET, message: "Hi" });
+    const { ctaUrl, ctaLabel, footerNote } = (emailRenders[0] as { props: { ctaUrl: string; ctaLabel: string; footerNote: string } }).props;
+    expect(ctaLabel).toBe("Reply in the app");
+    expect(ctaUrl).toMatch(new RegExp(`/messages\\?teamThread=${MEMBER}&userId=${ADMIN.id}$`));
+    expect(footerNote).toMatch(/reply in the app/i);
+    expect(footerNote).not.toMatch(/reply to this email/i);
+  });
+
+  it("a member whose thread message failed still gets a link that works in the app", async () => {
+    await call({ reportId: TICKET, message: "Hi" });
+    expect((emailRenders[0] as { props: { ctaUrl: string } }).props.ctaUrl).toMatch(/\/support$/);
   });
 
   it("records the reply, tells the REPORTER in the app and by email, and audits it", async () => {

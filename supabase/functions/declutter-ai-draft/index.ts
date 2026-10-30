@@ -110,9 +110,16 @@ const PHOTO_COACH_RULE = `Read any labels, tags or markings in the photos: put t
 
 const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
 
+/**
+ * The category: the most specific one (owner 2026-10-30: a dog bed listed as "Other" because there was no Pets).
+ * The keys are DECLUTTER_CATEGORIES (the tool schema's enum); these examples steer the near misses.
+ */
+const CATEGORY_RULE = `For the category pick the MOST SPECIFIC one that fits and use other only when none does. For example: a dog bed, cat tree, leash, aquarium or pet crate is pets; a cast net, rod and reel, tackle box, decoy, tree stand or hunting blind (never a gun, ammunition or a knife) is hunting_fishing; a life jacket, trolling motor, anchor, kayak paddle or other boat gear (never a boat itself) is boats_marine; a tent, sleeping bag or camp stove is camping; a bicycle, bike helmet or bike rack is bikes; a car part, tire, floor mats or car seat cover is auto_parts; a guitar, keyboard or drum is musical_instruments; Mardi Gras beads, throws, costumes, Christmas or Halloween decorations are holiday_seasonal; a canopy, ice chest, folding chairs or a team flag for a tailgate is tailgating_game_day; party supplies, a backdrop or event decor is party_events; a treadmill, weights or a yoga mat is exercise_fitness; sheets, towels, a comforter or a shower curtain is bedding_bath; bins, shelving or closet organizers are storage_organization; moving boxes, packing paper or a dolly is moving_supplies; a desk lamp, binder, backpack or school supplies is office_school; yarn, fabric, a sewing machine or paints is crafts_hobbies; makeup, a hair dryer or a massager is health_beauty; a necklace, watch, purse or sunglasses is jewelry_accessories; an antique, vintage sign, coins or trading cards are collectibles_antiques.`;
+
 /** One item's listing from its photos: a saved draft's (mode 'draft') or a new listing's held photos (photosDraft). */
 const ITEM_SYSTEM_PROMPT = `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
 Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
+${CATEGORY_RULE}
 ${PRICE_RULE}
 ${PHOTO_COACH_RULE}
 ${BANNED_RULE}`;
@@ -417,6 +424,7 @@ async function roomScan(req: Request, anon: Client, admin: Client, user: Paramet
   const systemPrompt = `You help a person in Louisiana who is MOVING OUT sell the USED HOUSEHOLD ITEMS in a room on Louisiana Helpr's Declutter section, from photos of the room.
 List each separate item a buyer could take home (at most ${ROOM_MAX_ITEMS}): furniture, appliances, lamps, decor, tools and the like. Skip the walls, floors, built-in fixtures, people, pets, papers and anything too small to sell on its own.
 For each item write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (1-3 sentences), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
+${CATEGORY_RULE}
 ${BANNED_RULE}`;
   const answer = await askModel(
     ANTHROPIC_API_KEY,

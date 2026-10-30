@@ -7,7 +7,7 @@
  * DEFINES a Declutter category-name map when it gives a Declutter-only category key ("home_decor",
  * "outdoor_garden", "books_media") a string. Exactly one file may: src/lib/declutter/categoryIcons.ts.
  *
- * @mutate src/components/declutter/declutterUi.tsx | export { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons"; | export const CATEGORY_LABEL: Record<string, string> = { home_decor: "Decor" };
+ * @mutate src/components/declutter/declutterUi.tsx | export { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons"; | export { CATEGORY_GROUPS } from "@/lib/declutter/categoryIcons"; export const CATEGORY_LABEL: Record<string, string> = { home_decor: "Decor" };
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,7 +19,8 @@ import { CATEGORY_LABEL as UI_LABEL } from "@/components/declutter/declutterUi";
 
 const ROOT = resolve(__dirname, "../..");
 const files = walkSource([join(ROOT, "src"), join(ROOT, "supabase/functions")]).filter((f) => !/\.test\.tsx?$|\/src\/test\//.test(f));
-const DEFINES = /\b(home_decor|outdoor_garden|books_media)\s*:\s*["'`]/;
+// Either shape: a map entry (home_decor: "...") or a list entry ({ key: "home_decor", label: "..." }, owner 2026-10-30).
+const DEFINES = /\b(home_decor|outdoor_garden|books_media)\s*:\s*["'`]|\bkey:\s*["'](home_decor|outdoor_garden|books_media)["']\s*,\s*label:/;
 
 describe("Declutter has one category-name map", () => {
   it("reads a real source tree", () => {

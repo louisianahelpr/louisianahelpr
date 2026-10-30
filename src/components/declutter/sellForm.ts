@@ -34,9 +34,10 @@ export interface FormState {
   price: string;
   floor: string;
   /**
-   * Owner 2026-10-28: "Lower the price if it doesn't sell?" is the seller's own yes/no, OFF until
-   * they turn it on (a lowest price never turns drops on by itself), and the step is theirs too.
-   * Off saves the lowest price as the price and drop_pct 0.
+   * "Lower the price if it doesn't sell?" is the seller's own yes/no, and the step is theirs too. A NEW
+   * listing starts with it ON at 5% down to half the price, or the seller's remembered choice (owner
+   * 2026-10-30, useSellerDefaultsPrefill; it was OFF until turned on, owner 2026-10-28). EMPTY keeps it
+   * off for a saved draft, which loads its own. Off saves the lowest price as the price and drop_pct 0.
    */
   drops: boolean;
   dropPct: number;

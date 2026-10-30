@@ -43,7 +43,7 @@ import {
 } from "@/lib/declutter/wanted";
 import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
-import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 
@@ -100,7 +100,11 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
           <select id="wanted-category" className={input} value={form.category}
             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
             <option value="">Pick one</option>
-            {Object.entries(CATEGORY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {CATEGORY_GROUPS.map((g) => (
+              <optgroup key={g.heading} label={g.heading}>
+                {g.values.map((k) => <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>)}
+              </optgroup>
+            ))}
           </select>
         </div>
       </div>

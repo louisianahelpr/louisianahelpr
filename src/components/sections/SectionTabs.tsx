@@ -3,10 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 export interface SectionTabDef<T extends string> {
   value: T;
   label: string;
+  /** The dictionary key of the shown word (Spanish option, 2026-10-29); `label` stays the English config name. */
+  labelKey?: MsgKey;
   count?: number;
 }
 
@@ -71,7 +75,8 @@ export function SectionTabs<T extends string>({
   /** How many results Browse lists, shown quietly beside its label (owner 2026-10-28: "move the 1 next to browse"). */
   browseCount?: number;
 }) {
-  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
+  const { t: tr } = useLanguage();
+  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
   options[0].quiet = browseCount;
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;
@@ -118,7 +123,7 @@ export function SectionTabs<T extends string>({
                 active ? "text-foreground section-tab-selected" : "text-muted-foreground",
               )}
             >
-              {o.label}
+              {o.value === BROWSE ? tr("tabs.browse") : o.label}
               {o.quiet !== undefined && (
                 <span data-testid="browse-count" className="tabular-nums text-ds-13 font-medium text-muted-foreground">{o.quiet}</span>
               )}

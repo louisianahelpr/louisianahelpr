@@ -39,7 +39,7 @@
  * (Owner 2026-10-29, A2-L11: the caption under a closed chip is "Soon" at 11px, not "Coming soon" at 9px; the
  * chip's accessible name stays "Declutter, coming soon" and the desktop rail keeps "Coming soon".)
  * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
- * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel, |       ariaLabel: s.navLabel,
+ * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name, |       ariaLabel: name,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">

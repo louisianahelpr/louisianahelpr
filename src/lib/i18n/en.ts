@@ -224,6 +224,18 @@ export const en = {
   "deleteAccount.newCode": "Send a new code",
   "deleteAccount.emailCode": "Email me a code",
   "deleteAccount.usePassword": "Use my password instead",
+
+  // Jobs browse (the section tabs)
+  "tabs.browse": "Browse",
+  "jobs.tabPosted": "Posted",
+  "jobs.tabWorking": "Working",
+  "jobs.tabsLabel": "Jobs & Posts",
+
+  // Jobs browse header (Explore chips, Soon, settings gear)
+  "jobs.settings": "Jobs settings",
+  "nav.sections": "Sections",
+  "soon.short": "Soon",
+  "soon.full": "Coming soon",
 } as const;
 
 export type MsgKey = keyof typeof en;

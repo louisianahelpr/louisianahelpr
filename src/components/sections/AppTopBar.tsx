@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { ExploreSwitcher } from "./ExploreSwitcher";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
@@ -93,7 +95,8 @@ export function AppTopBar({
   const isWebDesktop = useIsWebDesktop();
   const phoneExplore = explore && !isWebDesktop;
   const chipsRow = phoneExplore && !!section;
-  const title = chipsRow ? sectionTitle : phoneExplore ? "Explore" : sectionTitle;
+  const { t: tr } = useLanguage();
+  const title = chipsRow ? sectionTitle : phoneExplore ? tr("nav.explore") : sectionTitle;
   if (isWebDesktop && !title) return null;
   const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
   // The bell and the photo: the same two controls on every phone bar.
@@ -107,7 +110,7 @@ export function AppTopBar({
       {user && !isWebDesktop && showProfile && (
         <button
           type="button"
-          aria-label="Profile"
+          aria-label={tr("nav.profile")}
           data-testid="top-bar-profile"
           onClick={() => navigate("/profile")}
           className="btn-press h-10 w-10 rounded-full flex items-center justify-center"
@@ -159,14 +162,15 @@ export function AppTopBar({
  * never jumps between tabs. The same 40px ghost square as the row's search, filters and map.
  * Guard: src/test/profileIsAccountMoneyHelp.test.tsx.
  */
-export function SectionSettingsButton({ settings }: { settings: { label: string; path: string } }) {
+export function SectionSettingsButton({ settings }: { settings: { label: string; labelKey?: MsgKey; path: string } }) {
   const navigate = useNavigate();
+  const { t: tr } = useLanguage();
   return (
     <Button
       type="button"
       variant="ghost"
       size="icon"
-      aria-label={settings.label}
+      aria-label={settings.labelKey ? tr(settings.labelKey) : settings.label}
       data-testid="section-settings"
       onClick={() => navigate(settings.path, { replace: false })}
       className={TABS_ROW_ICON_CLASS}

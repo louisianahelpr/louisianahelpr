@@ -28,7 +28,7 @@
  * (tests excepted, comments blanked) is scanned: the label "Opening soon" is
  * gone. The owner's sentence form ("Homes is opening soon", openingSoonLine,
  * youBoard18) is a sentence, not the label, and is not matched.
- * @mutate src/components/sections/SoonPill.tsx | {variant === "full" ? "Coming soon" : "Soon"} | {variant === "full" ? "Opening soon" : "Soon"}
+ * @mutate src/lib/i18n/en.ts |   "soon.full": "Coming soon", |   "soon.full": "Opening soon",
  * @mutate src/pages/search/SearchPage.tsx |         Coming soon\n |         Opening soon\n
  * @mutate src/components/profile/SettingsTab.tsx | sub={on ? SECTION_BLURB[s.key] : "Coming soon"} | sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
  */

@@ -10,6 +10,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useDraftJob } from "./useDraftJob";
 
+const account = vi.hoisted(() => ({
+  read: vi.fn(async () => null as unknown),
+  save: vi.fn(async () => {}),
+  clear: vi.fn(async () => {}),
+}));
+vi.mock("@/lib/jobPostDraftAccount", () => ({
+  readDraftFromAccount: account.read,
+  saveDraftToAccount: account.save,
+  clearDraftOnAccount: account.clear,
+}));
+
 const getItemMock = vi.fn();
 const setItemMock = vi.fn();
 const removeItemMock = vi.fn();
@@ -307,5 +318,85 @@ describe("useDraftJob — a second tab never resurrects a posted draft (CC-002)"
     act(() => result.current.saveDraft({ title: "Paint fence" }));
     unmount();
     expect(setItemMock).toHaveBeenCalledWith(DRAFT_KEY, expect.stringContaining("Paint fence"));
+  });
+});
+
+// OPS-3: the draft is kept on the account too, and another device can pick it up.
+// @mutate src/hooks/useDraftJob.ts |       void saveDraftToAccount(pendingDraft.current);\n    }, SAVE_DEBOUNCE_MS); |     }, SAVE_DEBOUNCE_MS);
+// @mutate src/hooks/useDraftJob.ts |     void saveDraftToAccount(pendingDraft.current);\n  }, []);\n\n  // Another tab |   }, []);\n\n  // Another tab
+// @mutate src/hooks/useDraftJob.ts |   void clearDraftOnAccount();\n |
+// @mutate src/hooks/useDraftJob.ts |       if (fromAccount && pendingDraft.current.savedAt === 0) { |       if (fromAccount) {
+// @mutate src/hooks/useDraftJob.ts |     if (found) {\n      setDraftLoaded(true);\n      return;\n    } |     if (found) {\n      setDraftLoaded(true);\n    }
+describe("useDraftJob: kept on the account (OPS-3)", () => {
+  const FROM_ACCOUNT = { title: "Mow my lawn", description: "Front", savedAt: Date.now() - 1000 };
+  beforeEach(() => {
+    getItemMock.mockReset();
+    setItemMock.mockReset();
+    removeItemMock.mockReset();
+    getItemMock.mockReturnValue(null);
+    account.read.mockReset();
+    account.read.mockResolvedValue(null);
+    account.save.mockClear();
+    account.clear.mockClear();
+  });
+
+  it("nothing on this device: the account's draft comes back, and loading waits for it", async () => {
+    let answer: (d: unknown) => void = () => {};
+    account.read.mockReturnValue(new Promise((r) => { answer = r; }));
+    const { result } = renderHook(() => useDraftJob());
+    expect(result.current.draftLoaded).toBe(false);
+    await act(async () => { answer(FROM_ACCOUNT); });
+    expect(result.current.draftLoaded).toBe(true);
+    expect(result.current.hasDraft).toBe(true);
+    expect(result.current.draft.title).toBe("Mow my lawn");
+  });
+
+  it("the account has none, or no answer: loading still finishes, with no draft", async () => {
+    const { result } = renderHook(() => useDraftJob());
+    await act(async () => {});
+    expect(result.current.draftLoaded).toBe(true);
+    expect(result.current.hasDraft).toBe(false);
+  });
+
+  it("a draft on this device wins, and the account isn't asked", () => {
+    getItemMock.mockReturnValue(JSON.stringify({ title: "Here", savedAt: Date.now() }));
+    const { result } = renderHook(() => useDraftJob());
+    expect(result.current.draft.title).toBe("Here");
+    expect(result.current.draftLoaded).toBe(true);
+    expect(account.read).not.toHaveBeenCalled();
+  });
+
+  it("what was typed while the account answered is kept", async () => {
+    let answer: (d: unknown) => void = () => {};
+    account.read.mockReturnValue(new Promise((r) => { answer = r; }));
+    const { result } = renderHook(() => useDraftJob());
+    act(() => result.current.saveDraft({ title: "Typed now" }));
+    await act(async () => { answer(FROM_ACCOUNT); });
+    expect(result.current.draft.title).toBe("Typed now");
+  });
+
+  it("each save reaches the account after the pause, and on leaving", async () => {
+    vi.useFakeTimers();
+    try {
+      const { result, unmount } = renderHook(() => useDraftJob());
+      await act(async () => {});
+      act(() => result.current.saveDraft({ title: "One" }));
+      expect(account.save).not.toHaveBeenCalled();
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(account.save).toHaveBeenCalledTimes(1);
+      act(() => result.current.saveDraft({ title: "Two" }));
+      unmount();
+      expect(account.save).toHaveBeenCalledTimes(2);
+      expect(account.save.mock.calls[1][0 as never]).toEqual(expect.objectContaining({ title: "Two" }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("thrown away or paid for: the account's copy goes too", async () => {
+    const { result } = renderHook(() => useDraftJob());
+    await act(async () => {});
+    act(() => result.current.clearDraft());
+    expect(account.clear).toHaveBeenCalledTimes(1);
   });
 });

@@ -31,6 +31,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
 import type { CartLine } from "@/lib/declutter/api";
 import {
@@ -220,6 +221,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
+      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
+      <OrderTalkButton orderId={order.orderId} side={order.side} />
       {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
         <PickupStatus
           orderId={order.orderId}

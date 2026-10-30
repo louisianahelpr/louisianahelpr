@@ -134,7 +134,8 @@ describe("every pop-up title is sentence case", () => {
     // 2026-10-28 #59), whose title is a prop this reader does not see.
     // 181: + "Agree the handover" (the Declutter handover chat, #3730, DeclutterHandoverTalk).
     // 182: + "Edit listing" (Declutter Manage listing, audit 1028 D1-1, Q2475).
-    expect(all.length).toBe(182);
+    // 184: +2 the paid-order chat (audit 1028 D2-1, DeclutterOrderTalk): "Message the ${other}" and "Order chat" while it loads.
+    expect(all.length).toBe(184);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

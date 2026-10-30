@@ -232,6 +232,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:enforce_application_job_state": "no-return",
     // Q946: refuses a direct offer on a test fixture job; a trigger, returns NEW.
     "function:enforce_test_fixture_job_never_hired": "no-return",
+    // Q1755 (20261030063902): refuses putting a test account on a real job, offeree included; a trigger, returns NEW.
+    "function:enforce_test_account_off_real_jobs": "no-return",
     "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",
     "function:get_messaging_closes_at": "no-return",

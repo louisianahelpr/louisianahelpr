@@ -6,7 +6,7 @@
  *  - iPhone Safari outside the Home Screen gets the Add to Home Screen sheet instead;
  *  - one ask per 14 days; SessionManager mounts both hooks.
  *
- * @mutate src/hooks/useWebPush.ts |     if (answer === "granted") await subscribeWebPush(); |     await subscribeWebPush();
+ * @mutate src/hooks/useWebPush.ts |     if (answer === "granted") await subscribeWebPushOnUse(); |     await subscribeWebPushOnUse();
  * @mutate src/hooks/useWebPush.ts |   if (Number.isFinite(last) && last > 0 && now - last < WEB_PUSH_ASK_COOLDOWN_MS) return null; |
  * @mutate src/components/SessionManager.tsx |   useWebPushBootSync(user?.id); |
  */

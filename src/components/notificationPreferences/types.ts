@@ -55,8 +55,8 @@ export interface Prefs {
   /** Declutter (20261028162048), one push column and its email twin per
       kind, shown as the "Declutter" group. All default true; price drops and
       Wanted matches were backfilled from `new_offers`, the switch that used to
-      gate them. Only pickups and price drops send email today, so the other
-      five rows show no Email switch (`noEmailSwitch` in constants.tsx). */
+      gate them. Only pickups, price drops and Wanted matches send email today, so the
+      other four rows show no Email switch (`noEmailSwitch` in constants.tsx). */
   declutter_listings: boolean;
   email_declutter_listings: boolean;
   declutter_offers: boolean;

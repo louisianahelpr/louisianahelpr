@@ -37,8 +37,9 @@ import { splitSupportGuest, SUPPORT_GUEST_REPORTED_ID, supportTicketRef } from '
  * account to tell, so step 2 is skipped and step 3 mails the address they typed
  * on /support, read from the ticket. Nobody confirmed that address, so a stranger
  * can type someone else's: the mail carries the admin's words and nothing the
- * guest typed (no subject, and a name only if it is a plain first name). A test
- * or fixture address never gets a ticket, and the queue worker suppresses one.
+ * guest typed: no subject and no name, so a stranger's words cannot reach someone
+ * else's inbox. A test or fixture address never gets a ticket, and the queue worker
+ * suppresses one.
  */
 
 const corsHeaders = {
@@ -68,12 +69,6 @@ const subjectOf = (reason: string | null | undefined) =>
 const greetingOf = (fullName: string | null | undefined) => {
   const first = (fullName ?? '').trim().split(/\s+/)[0] ?? ''
   return first.length >= 2 ? first : 'there'
-}
-
-/** A guest's name is typed by a stranger, and this mail can reach someone else: plain first names only. */
-const guestGreeting = (name: string) => {
-  const first = name.trim().split(/\s+/)[0] ?? ''
-  return /^\p{L}[\p{L}'-]{1,29}$/u.test(first) ? first : 'there'
 }
 
 serve(async (req) => {
@@ -278,7 +273,7 @@ serve(async (req) => {
           React.createElement(AdminActionEmail, {
             preheader: subject ? `A reply about "${subject}"` : 'A reply from Helpr support',
             title: 'Louisiana Helpr Team replied',
-            greetingName: guest ? guestGreeting(guest.name) : greetingOf(member?.full_name),
+            greetingName: guest ? undefined : greetingOf(member?.full_name),
             paragraphs: [
               ...(subject ? [[`About your message "`, { b: subject }, `":`]] : ['About your message to Helpr support:']),
               // One paragraph per line the admin wrote, so their line breaks survive.

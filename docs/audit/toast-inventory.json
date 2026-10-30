@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1021,
-    "files": 273,
-    "rendering": 861,
-    "suppressedByPolicy": 160,
+    "calls": 1023,
+    "files": 275,
+    "rendering": 862,
+    "suppressedByPolicy": 161,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 717,
+      "toast.error": 718,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 163,
+      "toast.success": 164,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
+      "literal": 459,
       "template": 104,
-      "dynamic": 509,
+      "dynamic": 510,
       "jsx": 0
     }
   },
@@ -4342,7 +4342,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 226,
+      "line": 233,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4352,7 +4352,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 230,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4362,7 +4362,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 294,
+      "line": 301,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4372,7 +4372,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 299,
+      "line": 306,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4382,7 +4382,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 399,
+      "line": 406,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4392,17 +4392,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 411,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 532,
+      "line": 523,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6119,6 +6109,36 @@
             "text": "declutterErrorMessage(err)"
           }
         ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/SellerHandedOver.tsx",
+      "line": 24,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Thanks. The Helpr can mark it picked up now."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/SellerHandedOver.tsx",
+      "line": 27,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/StopActions.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

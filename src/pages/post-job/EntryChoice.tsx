@@ -8,6 +8,7 @@ import { sampleJobs } from "@/data/sampleJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { ChoiceCard } from "@/components/ui/ChoiceCard";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { OfferToSavedHelpr, useSavedHelpersLite } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -214,24 +215,9 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     );
   }
 
+  // The shared first-step card (owner 2026-10-30: Declutter's "What do you want to sell?" uses the same one).
   const startCard = (key: string, icon: ReactNode, title: string, line: string, onClick: () => void, extra?: ReactNode) => (
-    <button
-      key={key}
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-card text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      style={{ minHeight: "104px" }}
-    >
-      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-sans text-ds-17 font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">{line}</span>
-        {extra}
-      </span>
-      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-    </button>
+    <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} />
   );
 
   // A way to start, opened in place of the cards (owner 2026-10-21: "tapping goes straight on"). The

@@ -37,21 +37,16 @@ export const QUOTE_SOON_LINE = "Asking a business for a quote opens soon. For no
 const ROW = "flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
- * The way in: on Declutter's Selling tab (with the listings, so it shows on
- * the empty state too) and on the Sell an item page. Opens the sheet.
+ * The way in: on the Sell an item page, for a new listing. Opens the sheet. (The Selling tab's "More ways to sell"
+ * opens the sell chooser instead, whose "Have a Helpr list it for me" goes straight to Post a job: owner 2026-10-30.)
  */
-export function SellItForMeEntry({ grouped = false }: { grouped?: boolean }) {
+export function SellItForMeEntry() {
   const declutterOn = useFeature("declutter");
   const [open, setOpen] = useState(false);
   if (!declutterOn) return null;
-  // grouped: a row inside the Selling tab's "More ways to sell" card (owner 2026-10-28: rows, not loose grey pills),
-  // so the card draws the border and this row only its own padding.
-  const rowClass = grouped
-    ? "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-    : ROW;
   return (
     <>
-      <button type="button" className={rowClass} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">
+      <button type="button" className={ROW} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">
         <HandHelping className="h-5 w-5 shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">
           <span className="block font-semibold text-sm">Sell it for me</span>

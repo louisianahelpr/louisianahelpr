@@ -6,12 +6,12 @@
  *     back as an editable card; a flagged item is marked and not counted ready;
  *   - the four confirmations are needed once, then only the ready items are
  *     listed, and an item that failed is named with its reason.
- *   - "Sell a bunch" is a row in More ways to sell (DeclutterBunchEntry).
+ *   - "A bunch of things" is a choice in "What do you want to sell?" (DeclutterSellChooser, owner 2026-10-30).
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = items.filter((it) => !bunchItemProblem(it)); |   const ready = items;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null) |       ?? null
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.flagged && ( |       {false && (
- * @mutate src/pages/declutter/DeclutterSellPage.tsx |       {params.get("mode") === "bunch" ? ( |       {false ? (
+ * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : params.get("mode") === "bunch" ? ( |       ) : false ? (
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -62,7 +62,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 });
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
-import { SellBunchEntry } from "./DeclutterBunchEntry";
+import DeclutterSellChooser from "./DeclutterSellChooser";
 
 beforeAll(() => {
   let n = 0;
@@ -113,8 +113,8 @@ describe("Sell a bunch", () => {
     expect(failed.textContent).toContain("still above, to fix and list again");
   });
 
-  it("is a row in More ways to sell", () => {
-    render(<MemoryRouter><SellBunchEntry /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /Sell a bunch/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
+  it("is a choice in What do you want to sell?", () => {
+    render(<MemoryRouter><DeclutterSellChooser /></MemoryRouter>);
+    expect(screen.getByRole("link", { name: /A bunch of things/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
   });
 });

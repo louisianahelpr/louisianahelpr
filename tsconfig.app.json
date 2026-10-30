@@ -84,6 +84,7 @@
     "supabase/functions/_shared/confirmLink.ts",
     "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
+    "supabase/functions/_shared/easypostRates.ts",
     "supabase/functions/_shared/emailSendLog.ts",
     "supabase/functions/_shared/payments/types.ts",
     "supabase/functions/_shared/payments/paypalClient.ts",

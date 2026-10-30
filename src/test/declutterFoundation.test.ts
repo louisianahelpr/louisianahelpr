@@ -172,9 +172,12 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
     for (const f of files) {
       if (/\.test\.|\/test\/|integrations\/supabase\/types/.test(f)) continue;
       const code = readSource(f);
-      if (code && /declutter_item_private/.test(blankComments(code))) hits.push(f);
+      if (code && /declutter_item_private/.test(blankComments(code))) hits.push(f.slice(ROOT.length + 1));
     }
-    expect(hits).toEqual([]);
+    // EXACT both ways. ship-rates (Shipping S2, Q2259) runs as the service role and reads ONLY pickup_address of the
+    // signed-in buyer's own in-cart items, to take the seller's ZIP for a postage quote; the address is never returned
+    // and only the ZIP goes to EasyPost (src/test/shipRatesFunction.test.ts).
+    expect(hits.sort()).toEqual(["supabase/functions/ship-rates/index.ts"]);
   });
 
   it("5. the switch is created OFF and the behaviour proof exists", () => {

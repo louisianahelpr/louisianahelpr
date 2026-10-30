@@ -68,6 +68,9 @@ const DISCLOSED: Record<string, string> = {
 const PENDING_BEHIND_SWITCH: Record<string, { name: string; switchKey: string; onlyUnder: string }> = {
   "api-m.sandbox.paypal.com": { name: "PayPal", switchKey: "paypal_payments", onlyUnder: "supabase/functions/_shared/payments/" },
   "api-m.paypal.com": { name: "PayPal", switchKey: "paypal_payments", onlyUnder: "supabase/functions/_shared/payments/" },
+  // Shipping S2 (Q2259): ship-rates sends the buyer's Louisiana street address and the seller's ZIP to EasyPost for
+  // postage quotes, testers only (declutter_shipping). The policy names EasyPost when members can reach it.
+  "api.easypost.com": { name: "EasyPost", switchKey: "declutter_shipping", onlyUnder: "supabase/functions/ship-rates/" },
 };
 // Hosts that are links, our own domains, test fixtures, or calls that carry no
 // personal data (HIBP gets a 5-char hash prefix only).

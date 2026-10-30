@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { confirmHandover, uploadHandoverPhoto } from "@/lib/declutter/handover";
+import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import {
   answerDeliveryTime,
   deliveryPhotoPosition,
@@ -97,7 +98,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
     return markDelivered(orderId, photo ? await uploadHandoverPhoto(userId, orderId, photo) : "", where);
   },
     b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in 24 hours." : "Marked delivered. You're paid when the buyer confirms, or in 24 hours."));
-  const gotIt = useMutation(act(() => confirmHandover(orderId), "Handover done. Enjoy your item."));
+  const gotIt = useMutation(act(async () => { const r = await confirmHandover(orderId); markReviewPrompt(orderId); return r; }, "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(() => reportNotDelivered(orderId), "Sorry it didn't come. Everything you paid is coming back to your card."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));
   const answer = useMutation(act((accept: boolean) => answerDeliveryTime(orderId, accept),

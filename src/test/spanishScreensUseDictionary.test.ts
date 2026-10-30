@@ -37,6 +37,7 @@ const ROOT = resolve(__dirname, "..", "..");
 /** Screens (and shared pieces of them) whose words all go through t(). */
 const CONVERTED = [
   "src/components/LanguageToggle.tsx",
+  "src/components/auth/OrRule.tsx",
   "src/pages/auth/Login.tsx",
   "src/pages/auth/Signup.tsx",
   "src/pages/auth/signup/SignupStep1.tsx",

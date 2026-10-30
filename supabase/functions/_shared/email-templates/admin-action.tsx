@@ -114,7 +114,8 @@ export interface AdminActionEmailProps {
   preheader: string
   title: string
   /** Already defaulted to "there" by the caller. Escaped by React. */
-  greetingName: string
+  /** Left out when nothing trustworthy names the reader: the mail opens "Hi,". */
+  greetingName?: string
   paragraphs: Line[]
   /** Rendered after the paragraphs, before the CTA. */
   callouts?: AdminActionCallout[]
@@ -156,7 +157,7 @@ export const AdminActionEmail = ({
       {title}
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName},
+      {greetingName ? `Hey ${greetingName},` : 'Hi,'}
     </Text>
     {paragraphs.map((p, i) => (
       <Text key={i} className="e-text" style={textStyle}>

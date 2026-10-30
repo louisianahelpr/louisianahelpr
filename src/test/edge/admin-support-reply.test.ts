@@ -12,6 +12,7 @@
  * @mutate supabase/functions/admin-support-reply/index.ts |            footerNote: guest\n |            footerNote: undefined && guest\n
  * @mutate supabase/functions/admin-support-reply/index.ts |            ctaLabel: guest ? 'Write back to us' : 'Reply in the app', |            ctaLabel: 'Open Helpr support',
  * @mutate supabase/functions/admin-support-reply/index.ts |                ? `${appUrl}/messages?teamThread=${memberId}&userId=${adminId}` |                ? `${appUrl}/support`
+ * @mutate supabase/functions/admin-support-reply/index.ts |            greetingName: guest ? undefined : greetingOf(member?.full_name), |            greetingName: greetingOf(guest?.name ?? member?.full_name),
  * @mutate supabase/functions/admin-support-reply/index.ts |     const guest = !memberId && ticket.reported_id === SUPPORT_GUEST_REPORTED_ID |     const guest = !memberId
  * @mutate supabase/functions/admin-support-reply/index.ts |     let mailTo: string \| null = guest?.email ?? null |     let mailTo: string \| null = null
  * @mutate supabase/functions/admin-support-reply/index.ts |     const subject = guest ? '' : subjectOf(ticket.reason) |     const subject = subjectOf(ticket.reason)
@@ -30,6 +31,7 @@
  * @mutate supabase/functions/admin-support-reply/index.ts |           from: FROM_SUPPORT, |
  * @mutate supabase/functions/admin-support-reply/index.ts |             signOff: '— Louisiana Helpr Team', |
  */
+import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -109,7 +111,8 @@ describe("admin-support-reply", () => {
       expect(JSON.stringify(props.paragraphs)).toContain("We reset it.");
       expect(JSON.stringify(props)).not.toContain("BUY NOW");
       expect(props.ctaUrl).toMatch(/\/support\?subject=/);
-      expect(props.greetingName).toBe("Dana");
+      expect(props.greetingName).toBeUndefined();
+      expect(JSON.stringify(props)).not.toContain("Dana");
     });
 
     it("the guest's link is the support form with their ticket noted, and nobody is told to reply by email", async () => {
@@ -120,10 +123,9 @@ describe("admin-support-reply", () => {
       expect(footerNote).not.toMatch(/reply to this email/i);
     });
 
-    it("a typed name that is not a plain first name is not repeated in the mail", async () => {
-      scenario.reads.reports.rows![0].description = "Help\n\nGuest: cheap.example/win Now <dana@bayoumail.net>";
-      await call({ reportId: TICKET, message: "Hi" });
-      expect((emailRenders[0] as { props: { greetingName: string } }).props.greetingName).toBe("there");
+    it("with no name the template opens Hi, and a member's keeps theirs", async () => {
+      const tpl = readFileSync("supabase/functions/_shared/email-templates/admin-action.tsx", "utf8");
+      expect(tpl).toContain("{greetingName ? `Hey ${greetingName},` : 'Hi,'}");
     });
 
     it("resolve on send works once the email is queued", async () => {

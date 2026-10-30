@@ -43,7 +43,13 @@ function postProblem(s: SellFlow): { message: string; at: Where } | null {
   return null;
 }
 
+/** Start over (a listing brought back from this device): a fresh form, with the seller's saved settings read again. */
 export function SellOneScreen() {
+  const [run, setRun] = useState(0);
+  return <SellOneForm key={run} onStartOver={() => setRun((r) => r + 1)} />;
+}
+
+function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   const [open, setOpen] = useState<SummaryField | null>(null);
@@ -80,6 +86,14 @@ export function SellOneScreen() {
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
         {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). */}
         <SellerPayoutPrompt />
+
+        {s.keptWork.restored && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">
+            <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">We kept your listing from last time.</p>
+            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.keptWork.finish().then(onStartOver)}>Start over</Button>
+          </div>
+        )}
+        {s.keptWork.note && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-sell-not-kept="">{s.keptWork.note}</p>}
 
         <section className="space-y-4" aria-labelledby="sell-step" data-sell-row="photos">
           <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. We write the listing from them.`} />

@@ -64,10 +64,12 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | !isMinimalCard && !isExpanded ? (\n                <HelperCollapsedStrip | false ? (\n                <HelperCollapsedStrip
  * @mutate src/pages/posts/PostedJobCard.tsx | status={isExpanded ? null : (\n                <PosterStatusStrip | status={true ? null : (\n                <PosterStatusStrip
+ * @mutate src/pages/posts/PostedJobCard.tsx |               extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />} |
+ * @mutate src/components/jobs/JobProofPhotos.tsx |  onClick={(e) => e.stopPropagation()} className={card ? undefined : "space-y-2"} |  className={card ? undefined : "space-y-2"}
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
@@ -223,6 +225,50 @@ function renderPosted(job: Job, expanded: boolean) {
       inlineApplicants={{}} loadingApplicants={{}} applicantErrors={{}}
       onActionComplete={noop}
     />,
+  );
+}
+
+describe("Posted: the collapsed card shows the Helpr's photos (Tester 6, 10-30)", () => {
+  it("shows them, and opening them neither approves nor leaves the card", () => {
+    const onComplete = vi.fn();
+    renderPostedAt(baseJob, onComplete);
+    const photos = document.querySelector("[data-mine-face-extra] [data-job-proof-photos=card]");
+    expect(photos, "the collapsed Posted card has no photos").not.toBeNull();
+    expect(photos!.querySelectorAll("img")).toHaveLength(2);
+    fireEvent.click(photos!.querySelector("button")!);
+    expect(screen.getByText("Photo proof")).toBeInTheDocument();
+    expect(screen.queryByTestId("left-the-card"), "the tap fell through to the row, which opens the job").toBeNull();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("no photos, nothing on the card", () => {
+    renderPosted({ ...baseJob, proof_before_urls: [], proof_after_urls: null } as unknown as Job, false);
+    expect(document.querySelector("[data-job-proof-photos]")).toBeNull();
+  });
+});
+
+function renderPostedAt(job: Job, onComplete: () => void) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={["/posts"]}>
+        <Routes>
+          <Route path="/jobs/*" element={<p data-testid="left-the-card" />} />
+          <Route path="*" element={
+            <PostedJobCard
+              job={job} applicantCounts={{}} expandedJobIds={new Set()} toggleExpandedJobId={noop}
+              helperNames={{ [HELPER]: "Hallie H." }} helperAvatars={{ [HELPER]: null }} completedJobMeta={{}} userId={POSTER}
+              onBoost={noop} onEdit={noop} onCancel={noop} onComplete={onComplete} completingJobId={null}
+              onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
+              onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
+              onConfirmWorking={noop} confirmingWorkingJobId={null}
+              onLoadApplications={noop} onLoadInlineApplicants={noop}
+              inlineApplicants={{}} loadingApplicants={{}} applicantErrors={{}} onActionComplete={noop}
+            />
+          } />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

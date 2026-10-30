@@ -1,6 +1,8 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
-import { useEffect, useState } from "react";
+import { heicToJpeg, isHeicFile } from "@/lib/heicToJpeg";
+import { ProofPhotoImg } from "@/components/ProofPhotoImg";
+import { useEffect, useRef, useState } from "react";
 import { takePhotoCapture } from "@/components/job-card/photoCaptureRequest";
 import { isAlreadyStored } from "@/lib/storageAlreadyStored";
 import { PhotoProofDialog } from "./PhotoProofDialog";
@@ -26,7 +28,7 @@ import { PhotoProofRequirementNote } from "./PhotoProofRequirementNote";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, JobStepPrimaryButton, jobActionChipStyle } from "@/components/job-card/JobActionRow";
-import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { photoPrimaryLabel } from "@/components/job-card/photoPrimaryLabel";
 import { proofPhotoLinkName } from "./proofPhotoLinkName";
 
@@ -122,27 +124,41 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   // dialog, and lives ten minutes.
   const existingSrcs = useProofPhotoUrls(existingUrls);
 
-  const addFiles = (picked: File[]) => {
-    const selected = picked.filter((f) => {
-      if (isAllowedUploadType(f, PROOF_PHOTO_TYPES)) return true;
-      toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
-      return false;
-    });
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const [converting, setConverting] = useState(false);
+
+  const addFiles = async (picked: File[]) => {
+    // A HEIC becomes a JPEG here, so every browser can draw it later. One this browser can't read is refused
+    // out loud and left where it is on the device: stored as it was, the poster's browser may show nothing.
+    const selected: File[] = [];
+    setConverting(picked.some(isHeicFile));
+    try {
+      for (const f of picked) {
+        const ready = isHeicFile(f) ? await heicToJpeg(f) : f;
+        if (!ready) toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);
+        else if (isAllowedUploadType(ready, PROOF_PHOTO_TYPES)) selected.push(ready);
+        else toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+      }
+    } finally {
+      setConverting(false);
+    }
     if (selected.length === 0) return;
-    if (files.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
-    const newFiles = [...files, ...selected].slice(0, 5);
+    const current = filesRef.current;
+    if (current.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
+    const newFiles = [...current, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
   };
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    addFiles(Array.from(e.target.files || []));
+    void addFiles(Array.from(e.target.files || []));
   };
 
   const handleNativeAdd = async () => {
     try {
       const picked = await pickImagesNative(5 - files.length);
-      addFiles(picked);
+      await addFiles(picked);
     } catch (err) {
       const failure = pickerFailure(err, "photos");
       if (failure?.isError) report(err, { tags: { source: "PhotoProof.handleNativeAdd" } });
@@ -299,18 +315,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {existingUrls.map((url, i) => (
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      key={url ?? i}
-                      src={existingSrcs[i] ?? PENDING_PHOTO_SRC}
-                      alt={`Job photo ${i + 1}`}
-                      className="w-20 h-20 rounded-2xl object-cover"
-                      style={{
-                        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                        boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06)",
-                      }}
-                    />
+                    <ProofPhotoImg key={url ?? i} src={existingSrcs[i]} alt={`Job photo ${i + 1}`} className="w-20 h-20 rounded-2xl object-cover border border-border" />
                   ))}
                 </div>
               </div>
@@ -397,7 +402,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                 style object, which lost the shared 50%-opacity treatment. */}
             <DialogPrimaryAction
               onClick={upload}
-              disabled={uploading || files.length === 0}
+              disabled={uploading || converting || files.length === 0}
             >
               {uploading ? "Uploading…" : "Upload"}
             </DialogPrimaryAction>
@@ -479,7 +484,7 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
                   <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
-                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                    <ProofPhotoImg insideControl src={beforeSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
@@ -503,7 +508,7 @@ export const PhotoProofGroup = ({
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
                   <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
-                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                    <ProofPhotoImg insideControl src={afterSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {afterUrls.length > 3 && (

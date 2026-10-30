@@ -46,6 +46,25 @@ export function sameHoursEveryDay(windows: PickupWindow[]): boolean {
   return days.size === windows.length && windows.every((w) => w.starts === windows[0].starts && w.ends === windows[0].ends);
 }
 
+/**
+ * ONE weekday chip for every Sun-Sat picker in Declutter (audit 1030 DC-3: the porch days and the pickup-time
+ * days were two pickers with chips of different sizes). The pickup times' Days row and the porch-days choice
+ * (SellPorchDays.tsx) both use it.
+ */
+export function DayChip({ day, on, onToggle, disabled }: { day: number; on: boolean; onToggle: () => void; disabled?: boolean }) {
+  return (
+    <button type="button" aria-pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled} onClick={onToggle} data-day-chip=""
+      className={`flex h-11 min-w-[3.25rem] items-center justify-center rounded-full px-3 text-ds-13 font-semibold focus-visible:ring-2 focus-visible:ring-ring ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+      {SHORT[day]}
+    </button>
+  );
+}
+
+/** "Sat, Sun": short weekday names, in week order. */
+export function shortDays(days: number[]): string {
+  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).join(", ");
+}
+
 const byDayThenStart = (a: PickupWindow, b: PickupWindow) => a.weekday - b.weekday || a.starts.localeCompare(b.starts);
 
 function TimeSelect({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
@@ -112,15 +131,7 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
       <fieldset className="space-y-2">
         <legend className="text-ds-13 font-semibold text-foreground">Days</legend>
         <div className="flex flex-wrap gap-2">
-          {SHORT.map((label, d) => {
-            const on = days.includes(d);
-            return (
-              <button key={label} type="button" aria-pressed={on} aria-label={WEEKDAYS[d]} onClick={() => toggleDay(d)}
-                className={`flex h-11 min-w-[3.25rem] items-center justify-center rounded-full px-3 text-ds-13 font-semibold focus-visible:ring-2 focus-visible:ring-ring ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
-                {label}
-              </button>
-            );
-          })}
+          {SHORT.map((label, d) => <DayChip key={label} day={d} on={days.includes(d)} onToggle={() => toggleDay(d)} />)}
         </div>
       </fieldset>
 
@@ -138,7 +149,7 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
 
           {!perDay ? (
             <div className="space-y-1" data-same-hours="">
-              <p className="text-ds-13 text-muted-foreground">{days.map((d) => SHORT[d]).join(", ")}</p>
+              <p className="text-ds-13 text-muted-foreground">{shortDays(days)}</p>
               <RangeRow idBase="pw-all" w={shared} onChange={setShared} />
             </div>
           ) : (

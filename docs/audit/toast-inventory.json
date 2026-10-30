@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1027,
-    "files": 278,
-    "rendering": 865,
-    "suppressedByPolicy": 162,
+    "calls": 1026,
+    "files": 279,
+    "rendering": 866,
+    "suppressedByPolicy": 160,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
@@ -14,11 +14,11 @@
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 165,
+      "toast.success": 164,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 450,
+      "literal": 449,
       "template": 97,
       "dynamic": 530,
       "jsx": 0
@@ -4349,7 +4349,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 129,
+      "line": 127,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4359,7 +4359,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 133,
+      "line": 131,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4373,13 +4373,13 @@
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Saved."
+        "text": "Delivery accepted. The seller and the buyer are told your pickup time."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 242,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4389,17 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 306,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "It's yours. The seller and the buyer are told your pickup time."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 311,
+      "line": 345,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4409,17 +4399,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 411,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 528,
+      "line": 465,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5820,6 +5800,16 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeliverVehicleForm.tsx",
+      "line": 39,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeliveryRaisePanel.tsx",
       "line": 41,
       "kind": "toast.success",
@@ -5851,7 +5841,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 43,
+      "line": 48,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5871,7 +5861,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 47,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

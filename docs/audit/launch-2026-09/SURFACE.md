@@ -20,7 +20,7 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 198 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1027 (across 278 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1026 (across 279 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 34 |
 | Multi-step flows — probable | flow | 28 |
 | Back/next navigation only | flow | 56 |
@@ -29,8 +29,8 @@ reports coverage against THIS file, not against the route list.
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 25 |
 | **Navigable surfaces** (places a person can stand) | mixed | **682** |
-| **Copy surfaces** (strings a person may read) | mixed | **1074** |
-| **Total auditable surface** | mixed | **1756** |
+| **Copy surfaces** (strings a person may read) | mixed | **1073** |
+| **Total auditable surface** | mixed | **1755** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -548,7 +548,6 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/settings/DeclutterReviewCard.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
-- [ ] `src/components/declutter/DeclutterDeliveryViews.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterHandoverTalk.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
@@ -559,6 +558,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/DeclutterQuestions.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterWantedViews.tsx` (form tag)
+- [ ] `src/components/declutter/DeliverVehicleForm.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeliveryRaisePanel.tsx` (form tag)
 - [ ] `src/components/declutter/KeepUpRow.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellerDeliverySettings.tsx` (form tag)

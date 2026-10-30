@@ -61,7 +61,7 @@ describe("Q366: report or block an applicant", () => {
   it("ReportDialog knows the application subject", () => {
     // The reason tables moved out of ReportDialog.tsx (Q806).
     const src = read("src/components/reportDialog/reportReasons.ts");
-    expect(src).toContain('export type ReportedType = "job" | "message" | "user" | "review" | "application";');
+    expect(src).toContain('export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item";');
     expect(src).toContain(`application: "What's wrong with this application?"`);
   });
 
@@ -83,7 +83,7 @@ describe("Q366: report or block an applicant", () => {
 
   it("the admin queue resolves an application to its applicant, not to a person with the application's id", () => {
     const src = read("src/components/admin/AdminReports.tsx");
-    expect(src).toContain('const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application";');
+    expect(src).toContain('const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT;');
     expect(src).toContain('r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null');
     expect(src).toContain("navigate(`/user/${report.subject_user_id ?? report.reported_id}`)");
     expect(src).toContain("userId: report.subject_user_id ?? report.reported_id");

@@ -19,6 +19,13 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+// Web push is loaded on use (bundle split, 1030e): its dynamic import would land after the fake-timer
+// advance below, so sign-out's web-push cleanup is answered at once here (its own tests cover it).
+vi.mock("@/lib/webPushSupport", async (orig) => ({
+  ...(await orig<typeof import("@/lib/webPushSupport")>()),
+  removeWebPushSubscriptionOnUse: async () => {},
+}));
+
 const toastInfoMock = vi.fn();
 vi.mock("sonner", () => ({
   toast: { info: (...args: unknown[]) => toastInfoMock(...args) },

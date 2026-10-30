@@ -26,6 +26,8 @@ vi.mock("@capacitor/core", () => ({
   Capacitor: {
     isNativePlatform: () => isNativePlatformMock(),
     isPluginAvailable: (name: string) => isPluginAvailableMock(name),
+    // Q1791: the Apple code is read on iOS only (appleAuthorizationCode).
+    getPlatform: () => "ios",
   },
 }));
 
@@ -46,6 +48,8 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithOAuth: (...args: unknown[]) => signInWithOAuthMock(...args),
     },
     rpc: (...args: unknown[]) => rpcMock(...args),
+    // Q1791: apple-token-store is fire-and-forget after an Apple sign-in.
+    functions: { invoke: async () => ({ data: null, error: null }) },
   },
 }));
 
@@ -343,7 +347,7 @@ describe("one account per person (Q446)", () => {
     const result = await signInWithProvider("apple");
     expect(result).toEqual({
       kind: "choose",
-      choice: { provider: "apple", choiceId: "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60", relay: true, idToken: "apple-jwt" },
+      choice: { provider: "apple", choiceId: "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60", relay: true, idToken: "apple-jwt", appleCode: null },
     });
     expect(signInWithIdTokenMock).toHaveBeenCalledTimes(1);
     expect(reportMock).not.toHaveBeenCalled();

@@ -30,12 +30,14 @@ const PLACE: Record<string, string[]> = {
   helpr_task_picked_up: ["t.pickup_lat"],
   helpr_task_delivered: ["t.dropoff_lat"],
   helpr_task_pickup_no_show: ["t.pickup_lat"], // "the seller was not there": a photo at the pickup point
+  declutter_return_dropped_off: ["p.pickup_lat"], // returns (Q2486): the buyer drops it at the seller's pickup point
 };
 // Functions that check a handover-bucket photo but are not a handover photo, and why.
 const NOT_A_HANDOVER = new Set([
   "declutter_report_problem", // a problem report's evidence (damage, a wrong item) is wherever the buyer is
   "declutter_handover_photo_access", // the storage policy helper (who may read or write the bucket)
   "helpr_task_photo_ok", // the path check every Helpr task photo RPC calls; the RPCs carry the place check
+  "declutter_refund_item_returned", // returns (Q2486): the seller's "I got it back"; its photo is OPTIONAL evidence of the item (the refund is the same without it), taken wherever the seller has it; the drop-off photo carries the place check
 ]);
 
 function inventory(): string[] {

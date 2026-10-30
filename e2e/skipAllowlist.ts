@@ -184,6 +184,8 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed job in status", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed group job", verdict: "failure", why: MISSING_FIXTURE },
+  // B85 owner bug (04e980f67d): the section tab row never scrolls vertically, checked signed in as the poster.
+  { file: "e2e/a11y-prod/sectionTabsStayPut.spec.ts", match: "poster session unavailable", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "no poster session", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/prod-audit/", match: "GAP:", verdict: "failure", why: MISSING_FIXTURE },

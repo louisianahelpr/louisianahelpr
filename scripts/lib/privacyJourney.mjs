@@ -66,6 +66,8 @@ export const EXPECTED_PURGE_STEPS = [
   "storage",
   "avatar_pointer",
   "retain_ban",
+  // Q1791: the Sign in with Apple revoke reports on every run ("no_token" for an account with no Apple token, as the journey's).
+  "apple_revoke",
   "declutter_scrub",
   "database",
   "job_media",

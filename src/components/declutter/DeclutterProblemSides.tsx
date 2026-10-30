@@ -3,7 +3,8 @@
  * reason, the words and the photos, and adds their own side (declutter_problem_add_side, 20261029225634); the
  * reporter sees the other side's answer. Louisiana Helpr reads both before it decides.
  *
- * Reads the order's newest problem through RLS ("the two sides and admins read"); shows nothing once it is decided
+ * Reads the order's newest problem through declutter_order_problem (audit 1030 DB-1: the two sides and admins, only
+ * the columns below; the old direct select("*") was refused for every member on prod); shows nothing once it is decided
  * (the decision notices and the refund panel say what happened). Photos are signed links (the bucket is private).
  */
 import { useState } from "react";

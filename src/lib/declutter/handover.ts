@@ -312,12 +312,22 @@ export interface OrderProblem {
   other_side_at?: string | null;
 }
 
+/**
+ * Audit 1030 DB-1: through the party-scoped read declutter_order_problem (20261030044444: buyer, seller or admin;
+ * only the card's columns). The old select("*") was refused 42501 on prod for every member: authenticated's column
+ * grant has no other_side_* or decided_by. Until the read is deployed (PGRST202) the granted columns are read, so the
+ * card shows the report without the other side's words, instead of nothing.
+ */
 export async function fetchOrderProblem(orderId: string): Promise<OrderProblem | null> {
-  const rows = unwrap(
-    // "*": the other side's columns (20261029225634) are read when they exist, and the read never fails before.
-    await supabase.from("declutter_problems").select("*").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1),
-  );
-  return ((rows ?? [])[0] ?? null) as OrderProblem | null;
+  const res = await supabase.rpc("declutter_order_problem", { p_order_id: orderId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_order_problem")) {
+    const rows = unwrap(
+      await supabase.from("declutter_problems").select("id, reporter_side, reason, note, photo_paths, status, created_at")
+        .eq("order_id", orderId).order("created_at", { ascending: false }).limit(1),
+    );
+    return ((rows ?? [])[0] ?? null) as OrderProblem | null;
+  }
+  return (rpcData(res, (e) => rpcErrorMessage("declutter_order_problem", e)) ?? null) as unknown as OrderProblem | null;
 }
 
 /** D2-3: the OTHER side of the sale adds their words (and up to 3 problem-folder photos) to an open problem. */

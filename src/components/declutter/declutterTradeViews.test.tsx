@@ -25,7 +25,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
@@ -36,7 +36,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 
 const state = {
   underAge: false,
@@ -759,6 +759,34 @@ describe("Declutter slice 3 screens", () => {
     expect(state.chosenSpots).toEqual(["sp1"]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $3.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "meetup" }]));
+    state.deliveryOn = false;
+  });
+
+  // Audit 1030 DB-15: a seller who allows only a safe spot and Helpr delivery. The spots load after the first render,
+  // when Helpr delivery was the only way, and useState(offered[0]) froze it as the pick (Pay disabled until a quote).
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const [frozen] = useState(offered[0]); const chosen = picked && offered.includes(picked) ? picked : frozen;
+  it("DB-15: nothing the buyer tapped is preselected from before the ways loaded; the first way offered once they have", async () => {
+    state.deliveryOn = true;
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Mug", my_side: "buyer", seller_id: "s2", price_cents: 2800, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null,
+      total_cents: null, porch_ok: false, handovers: ["meetup", "delivery"] }];
+    state.spots = [{ id: "sp1", name: "BRPD Safe Exchange Zone", address: "9000 Airline Hwy, Baton Rouge", parish: "East Baton Rouge", kind: "police", note: null, miles: 0.9, chosen: false }];
+    show(<CartView />);
+    const ways = async () => (await screen.findAllByRole("radio")).map((r) => r as HTMLInputElement).filter((r) => r.name.startsWith("handover-")).map((r) => r.value);
+    await waitFor(async () => expect(await ways()).toEqual(["meetup", "delivery"]));
+    await waitFor(() => expect((screen.getByLabelText(/Meet at a safe spot/) as HTMLInputElement).checked).toBe(true));
+    expect((screen.getByLabelText(/Helpr delivery/) as HTMLInputElement).checked).toBe(false);
+    // A tap is kept.
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    expect((screen.getByLabelText(/Helpr delivery/) as HTMLInputElement).checked).toBe(true);
+    // A tapped way the cart no longer offers falls back to the first way offered now: the spots go, after a meetup tap.
+    fireEvent.click(screen.getByLabelText(/Meet at a safe spot/));
+    state.spots = [];
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    await waitFor(async () => expect(await ways()).toEqual(["delivery"]));
+    expect((screen.getByLabelText(/Helpr delivery/) as HTMLInputElement).checked).toBe(true);
+    focusManager.setFocused(undefined);
     state.deliveryOn = false;
   });
 

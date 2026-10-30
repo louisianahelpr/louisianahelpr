@@ -5,6 +5,8 @@
  * the protection. Errors are thrown as they come from Supabase; screens turn
  * them into plain words with declutterErrorMessage().
  */
+import { uploadSteadily, PhotoUploadRefused, type UploadHooks } from "@/lib/declutter/steadyUpload";
+import { isNetworkFailure } from "@/lib/networkFailure";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -534,6 +536,51 @@ export async function addPhoto(sellerId: string, itemId: string, file: File): Pr
     throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
   }
   return data as string;
+}
+
+/**
+ * What Sell a bunch lists with: the listing's copy, a little smaller than the single form's, because many go up one
+ * after another on whatever signal the seller has.
+ */
+const BUNCH_UPLOAD_SIZE = 1600;
+const BUNCH_UPLOAD_QUALITY = 0.78;
+
+/**
+ * addPhoto for a weak connection: the photo is made ready once, then each step is tried again by itself with backoff,
+ * and never stores or attaches it twice (lib/declutter/steadyUpload.ts). Throws once it is out of tries.
+ */
+export async function addPhotoSteadily(sellerId: string, itemId: string, file: File, hooks: UploadHooks = {}): Promise<string> {
+  const cleaned = await cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY);
+  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
+  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
+  const path = listingPhotoPath(sellerId, itemId, nonce);
+  const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
+  return uploadSteadily({
+    store: async (again) => {
+      const { error } = await bucket.upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+      if (!error) return;
+      // The first try landed and only its answer was lost.
+      if (again && /already exists|duplicate/i.test(error.message)) return;
+      const status = (error as { status?: unknown }).status;
+      if (typeof status === "number" && status >= 400 && status < 500 && status !== 408 && status !== 429) throw new PhotoUploadRefused("photo_not_uploaded");
+      throw new Error("photo_not_uploaded");
+    },
+    attach: async () => {
+      const { data, error } = await supabase.rpc("declutter_add_item_photo", { p_item_id: itemId, p_storage_path: path });
+      if (!error) return data as string;
+      // Dropped on the wire: we don't know yet, so the file stays and the next try asks first.
+      if (isNetworkFailure(error)) throw new Error(error.message);
+      const { error: rmErr } = await bucket.remove([path]);
+      if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message);
+      const words = rpcErrorMessage("declutter_add_item_photo", error);
+      throw Object.assign(new PhotoUploadRefused(error.message), error, words ? { userMessage: words } : {});
+    },
+    findAttached: async () => {
+      const { data, error } = await supabase.from("declutter_item_photos").select("id").eq("item_id", itemId).eq("storage_path", path).maybeSingle();
+      if (error) throw new Error(error.message);
+      return data?.id ?? null;
+    },
+  }, hooks);
 }
 
 /** Remove storage objects the server detached (photo removed, listing withdrawn). */

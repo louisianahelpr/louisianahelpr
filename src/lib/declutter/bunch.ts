@@ -26,7 +26,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhoto, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -69,6 +69,8 @@ export interface BunchItem {
   uploaded?: Record<string, string>;
   /** Photos waiting to be sorted, kept together with why: not an item yet, so it can't be listed. The screen offers Sort again. */
   notSorted?: boolean;
+  /** The photo that was out of tries when listing stopped: the card marks it and offers Try again. Nothing after it went, so the order holds. */
+  failedPhoto?: string;
   /** Why they aren't sorted, in the seller's words. */
   sortReason?: string;
   /** The item this may be the same thing as, when the check across two batches couldn't run. The screen offers to merge. */
@@ -470,10 +472,19 @@ export type BunchOutcome =
    */
   | { key: string; title: string; error: unknown; draftId: string | null; stays?: boolean };
 
+/** Where a run has got to, photo by photo. `retrying`: this one's connection dropped, and it is being tried again. */
+export interface PhotoProgress {
+  itemName: string;
+  /** 1 for the first photo of the run. */
+  photo: number;
+  of: number;
+  retrying: boolean;
+}
+
 export interface ListDeps {
   createDraft: typeof createDraft;
   updateDraft: typeof updateDraft;
-  addPhoto: typeof addPhoto;
+  addPhoto: typeof addPhotoSteadily;
   removePhoto: typeof removePhoto;
   /** Each id's status now; an id with no row is gone. */
   itemStatuses: typeof fetchItemStatuses;
@@ -484,7 +495,7 @@ export interface ListDeps {
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, updateDraft, addPhoto, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -511,6 +522,7 @@ export interface BunchRunWatcher {
   onProgress: (done: number, total: number) => void;
   onStep: (key: string, patch: Partial<BunchItem> | null) => void;
   onDone: (result: { out: BunchOutcome[] } | { error: unknown }) => void;
+  onPhoto?: (progress: PhotoProgress) => void;
 }
 
 interface BunchRun {
@@ -531,7 +543,7 @@ export function startBunchRun(
   userId: string,
   watcher: BunchRunWatcher,
   total: number,
-  work: (onProgress: BunchRunWatcher["onProgress"], onStep: BunchRunWatcher["onStep"]) => Promise<BunchOutcome[]>,
+  work: (onProgress: BunchRunWatcher["onProgress"], onStep: BunchRunWatcher["onStep"], onPhoto: NonNullable<BunchRunWatcher["onPhoto"]>) => Promise<BunchOutcome[]>,
 ): boolean {
   if (activeRun) return false;
   const run: BunchRun = { userId, watcher, done: 0, total };
@@ -543,6 +555,7 @@ export function startBunchRun(
       run.watcher.onProgress(done, of);
     },
     (key, patch) => run.watcher.onStep(key, patch),
+    (progress) => run.watcher.onPhoto?.(progress),
   ).then((out) => ({ out }), (error: unknown) => ({ error })).then((result) => {
     activeRun = null;
     run.watcher.onDone(result);
@@ -574,8 +587,12 @@ export async function listBunch(
   /** Each lasting step on one item, to save at once: its draft, each photo, and null once it has been listed or refused. */
   onStep: (key: string, patch: Partial<BunchItem> | null) => void = () => {},
   choices: BunchChoices = NO_CHOICES,
+  /** Each photo as it starts to go, and again if it is tried again. */
+  onPhoto?: (progress: PhotoProgress) => void,
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
+  const photosToSend = items.reduce((n, it) => n + it.photoKeys.filter((k) => !(k in (it.uploaded ?? {}))).length, 0);
+  let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
@@ -651,8 +668,19 @@ export async function listBunch(
         if (k in uploaded) continue;
         const f = photos.get(k);
         if (!f) throw new Error("photo_not_uploaded");
-        uploaded[k] = await deps.addPhoto(sellerId, id, f);
-        onStep(it.key, { uploaded: { ...uploaded } });
+        photosStarted += 1;
+        const progress = { itemName: it.title.trim(), photo: photosStarted, of: photosToSend };
+        onPhoto?.({ ...progress, retrying: false });
+        try {
+          // One at a time, in order: the phone's upload speed is the limit, so two at once finish no sooner, and each
+          // photo takes the next place on the listing. Out of tries, this item stops here, so a later photo never takes
+          // this one's place; the run goes on to the next item.
+          uploaded[k] = onPhoto ? await deps.addPhoto(sellerId, id, f, { onRetry: () => onPhoto({ ...progress, retrying: true }) }) : await deps.addPhoto(sellerId, id, f);
+        } catch (err) {
+          onStep(it.key, { failedPhoto: k });
+          throw err;
+        }
+        onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) });
       }
       // A free item is picked up from the porch only (the free checkout's one way).
       await deps.setHandovers(id, it.free ? ["porch"] : ways);

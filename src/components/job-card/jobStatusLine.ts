@@ -468,6 +468,22 @@ export function withDisputeSettling<J extends { id: string }>(
   return unsettledJobIds?.has(job.id) ? { ...job, dispute_settling: true } : job;
 }
 
+/** What the card knows of a finished job's loose ends (useActivityData's CompletedJobMeta entry). */
+type PosterCompletion = { tipped: boolean; reviewed: boolean; crewToReview?: ReadonlyArray<{ id: string }> };
+
+/**
+ * Is there anyone to review or tip on this finished job? (Live bug 2026-10-29, AL-009's class.)
+ *
+ * A Helpr who deleted their account leaves `helper_id` NULL (jobs_helper_id_fkey ON DELETE SET NULL), and a crew
+ * whose every member left has nobody in `crewToReview`. The face's Review handler (openReviewForPosted) returns early
+ * on both and the Tip has no payee, so a loose end there would be a button that does nothing. CompletedStep's
+ * canReview refuses the same cases. Guard: src/test/faceNeverOffersADeadReview.test.ts.
+ */
+function hasCounterpart(job: Pick<Job, "is_group_job" | "helper_id">, completion: PosterCompletion): boolean {
+  if (job.is_group_job) return (completion.crewToReview?.length ?? 0) > 0 || completion.reviewed;
+  return !!job.helper_id;
+}
+
 /**
  * Which sentence a job I POSTED is owed.
  *
@@ -494,7 +510,7 @@ export function derivePosterWait(
    * Absent meta keeps the old answer, `done_paid`: a caller that cannot see the
    * loose end must not invent one.
    */
-  completion?: { tipped: boolean; reviewed: boolean },
+  completion?: PosterCompletion,
 ): PosterWait {
   // Money first (Q360): a chargeback or a declined card is invisible in
   // `jobs.status`, so the switch below would call the job healthy.
@@ -507,8 +523,9 @@ export function derivePosterWait(
       return job.poster_marked_done_at ? "done_marked" : "cancelled";
     case "completed":
       if (disputeSettling(job)) return "dispute_settling";
-      /* Which finish it is depends on the loose ends, not on the row. */
-      if (completion && !(completion.tipped && completion.reviewed)) {
+      /* Which finish it is depends on the loose ends, not on the row. A loose end needs someone to close it
+         with (hasCounterpart): with nobody, the job is simply finished. */
+      if (completion && hasCounterpart(job, completion) && !(completion.tipped && completion.reviewed)) {
         if (completion.reviewed) return "done_tip_open";
         if (completion.tipped) return "done_review_open";
         return "done_both_open";
@@ -591,7 +608,7 @@ export function posterStatusLine(
    * finished job has it. Absent meta is NOT treated as "both open": a caller
    * that cannot see the loose end should not invent one.
    */
-  completion?: { tipped: boolean; reviewed: boolean },
+  completion?: PosterCompletion,
   /**
    * The poster's instant-release setting (`profiles.auto_release_on_complete`).
    * It is not on the job row, so only a caller that has it can pass it; with it

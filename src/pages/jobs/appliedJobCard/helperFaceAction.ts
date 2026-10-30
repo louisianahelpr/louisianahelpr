@@ -90,7 +90,10 @@ export function helperFaceAction(s: {
   /** Applied and waiting (audit #48): the face says what the card holds, the application. */
   isPending?: boolean;
   owesReview: boolean;
-  review: () => void;
+  /** The poster, or null once they deleted their account (customer_id ON DELETE SET NULL): a review needs a reviewee,
+   *  so with none the face offers no review (live bug 2026-10-29; guard src/test/faceNeverOffersADeadReview.test.ts). */
+  posterId?: string | null;
+  review: (posterId: string) => void;
   manage: () => void;
   /** Opens the card (never closes it), for a direct step. */
   open?: () => void;
@@ -105,8 +108,9 @@ export function helperFaceAction(s: {
   message?: { name: string; onClick: () => void };
 }): MineFaceAction | null {
   if (s.isMinimalCard || s.isOffered) return null;
-  if (s.owesReview)
-    return { label: "Leave a review", onClick: s.review, tone: "primary" };
+  const posterId = s.posterId;
+  if (s.owesReview && posterId)
+    return { label: "Leave a review", onClick: () => s.review(posterId), tone: "primary" };
   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" };
   // THE BUTTON DOES WHAT THE LINE ASKS (owner, 2026-10-23, card critique items 1 and 15).
   const jobId = s.jobId;

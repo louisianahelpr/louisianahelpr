@@ -321,7 +321,7 @@ function AppliedJobCardInner({
   const faceAction = helperFaceAction({
     isMinimalCard, isOffered, isPending, message: (isConfirmed || isActive || isDisputed) && !job.is_group_job && posterId ? { name: (app.posterName ?? "").split(" ")[0] || "them", onClick: () => navigate(`/messages?jobId=${job.id}&userId=${posterId}`) } : undefined,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
-    review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
+    posterId, review: (id) => onHelperReview(app.job_id, id, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
   });

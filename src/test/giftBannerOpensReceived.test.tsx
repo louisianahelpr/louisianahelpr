@@ -7,9 +7,11 @@
  *
  * @mutate src/pages/post-job/GiftCardTeaser.tsx | <Link to={GIFT_RECEIVED_HREF} className | <Link to="/profile?tab=gift_card" className
  * @mutate src/pages/profile/GiftCard.tsx | <div id={GIFT_RECEIVED_ID} className="scroll-mt-4"> | <div>
+ * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | tab=gift_card&show=received&user= | tab=gift_card&user=
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | link: "/profile?tab=gift_card&show=received" | link: "/profile?tab=gift_card"
  * @mutate src/pages/profile/giftCards/useShowReceivedGifts.ts |     if (!wanted \|\| !ready \|\| done.current) return; |     if (!ready \|\| done.current) return;
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -56,5 +58,19 @@ describe("See them opens the cards waiting for you (A2-C26)", () => {
     const at = page.indexOf("<div id={GIFT_RECEIVED_ID}");
     expect(at).toBeGreaterThan(0);
     expect(page.slice(at, at + 400)).toContain("Gift cards sent to you");
+  });
+
+  // #16: "You received a Helpr credit!" opened the same send-a-gift form. Every notice that sends a member to the
+  // Gift card tab is about a credit they hold, so each one asks for the received cards. Built from the functions
+  // themselves: a new notice with a bare link fails here. Checkout return URLs and the claim link are not notices.
+  it("every notice linking to the Gift card tab opens the received cards", () => {
+    const functionsDir = resolve(__dirname, "../../supabase/functions");
+    const links: string[] = [];
+    for (const f of (readdirSync(functionsDir, { recursive: true }) as string[]).filter((x) => x.endsWith(".ts"))) {
+      const src = blankComments(readFileSync(resolve(functionsDir, f), "utf8"));
+      for (const m of src.matchAll(/\blink:\s*["'`](\/profile\?tab=gift_card[^"'`]*)["'`]/g)) links.push(`${f}: ${m[1]}`);
+    }
+    expect(links.length).toBeGreaterThan(1);
+    expect(links.filter((l) => !l.includes("&show=received"))).toEqual([]);
   });
 });

@@ -25,15 +25,15 @@
  */
 import { hasToken } from "./routePreload";
 
-/** Copy of GUEST_JOBS_SELECT in src/lib/guestJobsQuery.ts (see above). */
+/** Copy of GUEST_JOBS_SELECT in src/lib/guestJobsQuery.ts (see above), without its spaces: entry bytes. */
 const SELECT =
-  "id, title, description, scope_video_url, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode, credential_tier, parish, helper_fee_flat_cents, helper_fee_percent";
+  "id,title,description,scope_video_url,category,budget,date_needed,location,latitude,longitude,customer_id,status,created_at,updated_at,is_urgent,urgent_fee,is_flexible_schedule,is_recurring,is_group_job,helpers_needed,estimated_hours,materials_note,photos,boosted_at,boost_expires_at,expires_at,start_time,recurrence_interval,recurrence_end_date,parent_job_id,payment_status,pricing_mode,credential_tier,parish,helper_fee_flat_cents,helper_fee_percent";
 const LIMIT = 40;
 
 /** The REST URL supabase-js sends for DashboardGuest's query (see the test). */
 export function guestJobsRestUrl(supabaseUrl: string): string {
   const u = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/open_jobs_browse`);
-  u.searchParams.set("select", SELECT.replace(/\s+/g, ""));
+  u.searchParams.set("select", SELECT);
   u.searchParams.set("payment_status", "neq.abandoned");
   u.searchParams.set("order", "boosted_at.desc.nullslast,created_at.desc");
   u.searchParams.set("limit", String(LIMIT));

@@ -30,7 +30,7 @@
 // @mutate src/App.tsx | const [Animated] = useState(() => AnimatedPageTransition); | const Animated = lazy(() => import("@/components/PageTransition"));
 // Q1356: the pick is re-made per navigation, or a cold start's plain div (no swipe-back) sticks.
 // @mutate src/App.tsx | return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>; | return <PageTransitionPick>{children}</PageTransitionPick>;
-// @mutate src/entry.ts | .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(hasToken(), window.location.pathname)) | .then(() => undefined)
+// @mutate src/main.tsx | .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(tokenProbeAtBoot(), window.location.pathname)) | .then(() => undefined)
 // @mutate src/lib/routePrefetch.ts | if (isConstrainedNetwork()) return () => {}; | if (false) return () => {};
 // @mutate scripts/perf/critical-path.mjs | if (got !== want) | if (got > want)
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -212,10 +212,12 @@ describe("the next pages are warmed once the current one has loaded", () => {
     expect(all.length).toBeGreaterThan(7);
   });
 
-  it("the entry schedules it after `load`", () => {
-    const entry = code("src/entry.ts");
-    expect(entry).toMatch(/addEventListener\(\s*["']load["']/);
-    expect(entry).toContain("prefetchLikelyNextRoutes(hasToken(), window.location.pathname)");
+  it("main.tsx schedules it after `load`, even if `load` has already fired", () => {
+    const main = code("src/main.tsx");
+    expect(main).toContain('window.addEventListener("load", warmLikelyNextRoutes, { once: true })');
+    expect(main).toMatch(/document\.readyState === "complete"\) \{\s*warmLikelyNextRoutes\(\);/);
+    expect(main).toContain("prefetchLikelyNextRoutes(tokenProbeAtBoot(), window.location.pathname)");
+    expect(code("src/entry.ts")).not.toMatch(/prefetchLikelyNextRoutes\(/);
   });
 
   it("skips it under Save-Data and on 2G, and schedules it otherwise", () => {

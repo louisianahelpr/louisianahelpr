@@ -48,19 +48,5 @@ if (hasToken() && /^\/declutter\/?$/.test(window.location.pathname)) {
     });
 }
 
-// Then, once THIS page has loaded, warm the pages a visitor most likely opens
-// next (guest: browse / login / signup; signed in: the dock tabs + post-job),
-// so the first tap to them is instant. Skipped on Save-Data / 2G inside
-// prefetchRoutesWhenIdle. Loaded dynamically: routePrefetch lives in the app's
-// shared chunk, which is already in memory by the time `load` fires.
-window.addEventListener(
-  "load",
-  () => {
-    void import("@/lib/routePrefetch")
-      .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(hasToken(), window.location.pathname))
-      .catch(() => {
-        /* speculative: the real navigation loads its own chunk */
-      });
-  },
-  { once: true },
-);
+// Warming the likely next pages after `load` lives in main.tsx: nothing about it
+// has to run before the app, so every page's entry need not carry it.

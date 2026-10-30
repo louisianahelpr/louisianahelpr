@@ -51,7 +51,10 @@ export function installLargeTitles(doc: Document = document): () => void {
       // that, on the desktop website, also covered the rail's logo and the top bar. The bar shows only with a title
       // to show, and never on the desktop website, whose top bar already holds the page's title.
       const desktop = doc.documentElement.classList.contains("web-desktop");
-      b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop);
+      // DA-9 (Declutter audit 2026-10-30): a page whose own title row stays pinned (AppPage `stickyHeader`, the item
+      // page) keeps its back, share and heart buttons on screen; this bar, title only, would paint over them.
+      const ownRow = t.hasAttribute("data-own-title-row");
+      b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop && !ownRow);
     }
   };
   doc.addEventListener("scroll", onScroll, { capture: true, passive: true });

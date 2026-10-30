@@ -33,6 +33,7 @@ import { CreateSheet } from "@/components/create/CreateSheet";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
+import { dockRevealsAtEnd } from "@/components/mobileNav/dockAtEnd";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 
@@ -313,19 +314,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       syncObserver();
       setScrolled(y > 8);
       const delta = y - lastY;
-      // Ignore sub-threshold jitter and iOS rubber-band overscroll (y < 0),
-      // which would otherwise flicker the bar during momentum scrolling.
-      if (y < 0 || Math.abs(delta) < 6) {
+      const surface = activeScroller ?? document.documentElement;
+      const atEnd = dockRevealsAtEnd(surface.scrollHeight, surface.clientHeight, y); // DA-9: dockAtEnd.ts
+      // Ignore sub-threshold jitter and iOS rubber-band overscroll (y < 0), which would otherwise flicker the bar
+      // during momentum scrolling; never at the end, whose last step is often under 6px.
+      if (!atEnd && (y < 0 || Math.abs(delta) < 6)) {
         lastY = y;
         return;
       }
-      if (y < 64) {
-        setNavHidden(false); // near the top → always reveal
-      } else if (delta > 0) {
-        setNavHidden(true); // scrolling down → hide
-      } else {
-        setNavHidden(false); // scrolling up → reveal
-      }
+      // Near the top or at the end: reveal. Otherwise scrolling down hides and scrolling up reveals.
+      setNavHidden(!atEnd && y >= 64 && delta > 0);
       lastY = y;
     };
     checkScroll();

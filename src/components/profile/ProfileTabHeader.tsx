@@ -20,6 +20,8 @@ interface ProfileTabHeaderProps {
   rightSlot?: ReactNode;
   /** See PageHeader's `phoneHidesTitle`. */
   phoneHidesTitle?: boolean;
+  /** AppPage's `stickyHeader` (DA-9): this wrapper is the header's only box under the page body, so it is what sticks. */
+  sticky?: boolean;
 }
 
 /**
@@ -65,15 +67,19 @@ interface ProfileTabHeaderProps {
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
-export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle }: ProfileTabHeaderProps) {
+export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle, sticky }: ProfileTabHeaderProps) {
+  // `sticky` pins this wrapper (its parent is the whole page body, so it can stick): the row's top padding slides
+  // under the scroller's top edge and the 44px buttons sit at the top. -mx-3/px-3 reach the scroller's own padding,
+  // so content scrolling under the row is covered edge to edge once index.css paints it (`.sticky-title-row`).
   return (
-    <div className="-mb-[var(--section-gap)]">
+    <div className={sticky ? "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" : "-mb-[var(--section-gap)]"}>
       <PageHeader
         title={title}
         onBack={onBack}
         backTo={backTo}
         titleActions={rightSlot}
         phoneHidesTitle={phoneHidesTitle}
+        stickyTitle={sticky}
         width="none"
         topInsetHandled
       />

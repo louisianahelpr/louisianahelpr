@@ -9,7 +9,8 @@
  * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return; |     if (t.scrollHeight <= t.clientHeight + 1) return;
  * @mutate src/pages/post-job/PostJob.tsx |     resetLargeTitles();\n  }, [form.step |     void 0;\n  }, [form.step
  * @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24); |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 0);
- * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop); |       b.classList.toggle("on", t.scrollTop > 24 && title !== "" && !desktop);
+ * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop && !ownRow); |       b.classList.toggle("on", t.scrollTop > 24 && title !== "" && !desktop && !ownRow);
+ * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop && !ownRow); |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop);
  * @mutate src/lib/largeTitles.ts |     bar?.remove(); |     void bar;
  */
 import { readFileSync } from "node:fs";
@@ -104,6 +105,19 @@ describe("installLargeTitles", () => {
     // One bar, reused.
     scrollTo(el, 80);
     expect(document.querySelectorAll(".compact-title-bar")).toHaveLength(1);
+  });
+
+  it("a page with its own pinned title row (AppPage stickyHeader) never gets the title-only bar over its buttons (DA-9)", () => {
+    uninstall = installLargeTitles();
+    const el = scroller({ appPage: true, title: "Blue mug" });
+    el.setAttribute("data-own-title-row", "");
+    scrollTo(el, 300);
+    expect(html().contains("page-scrolled")).toBe(true);
+    expect(bar()?.classList.contains("on")).toBe(false);
+    // The same page without the attribute does get it: the check is the attribute, not the page.
+    el.removeAttribute("data-own-title-row");
+    scrollTo(el, 320);
+    expect(bar()?.classList.contains("on")).toBe(true);
   });
 
   it("uninstall removes the bar, the flag and the listener", () => {

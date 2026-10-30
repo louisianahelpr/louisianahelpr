@@ -6,8 +6,7 @@
  *     buyers get it come from it.
  *   - No row yet: the app's defaults. Keep it up ON and price drops ON (owner: both on by default), never free, and
  *     the last listing's ways and drop step if there was one (SellLastSetup, applied first).
- *   - "Lowest you'll take" fills itself from the saved percent of the asking price (half by default) until the
- *     seller types their own.
+ *   - The lowest price is the saved percent of the asking price (half by default).
  * Applied once, after the last-listing setup has settled, so the two never fight. A saved draft gets none of this.
  * Guard: src/components/declutter/declutterSellLastSetup.test.tsx.
  */
@@ -15,7 +14,7 @@ import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { fetchLastSetup } from "@/lib/declutter/lastSetup";
-import { SELLER_DEFAULTS, fetchSellerDefaults, floorFromPct, pctFromFloor, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import { SELLER_DEFAULTS, fetchSellerDefaults, floorFromPct, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import type { FormState } from "./sellForm";
 
 export function useSellerDefaultsPrefill(
@@ -34,8 +33,6 @@ export function useSellerDefaultsPrefill(
   const last = useQuery({ queryKey: ["declutter", "last-setup", userId], queryFn: () => fetchLastSetup(userId!), enabled: !!userId, staleTime: 60_000 });
   const applied = useRef(false);
   const floorPct = useRef(SELLER_DEFAULTS.floorPct);
-  const autoFloor = useRef<string | null>(null);
-  const floorEdited = useRef(false);
 
   useEffect(() => {
     if (!userId || applied.current) return;
@@ -56,17 +53,12 @@ export function useSellerDefaultsPrefill(
     }
   }, [userId, saved.isFetched, saved.isError, saved.data, last.isFetched, last.isError, setForm, setWays, setKeepUpWanted, setAutoFreeWanted]);
 
-  // "Lowest you'll take" follows the asking price until the seller changes it (then it is theirs, even cleared).
+  // The lowest price is the saved share of the asking price: a new listing has no box for it (owner 2026-10-30); one
+  // listing's is changed in Manage after it's posted.
   useEffect(() => {
-    if (!userId || !applied.current || floorEdited.current || form.free || !form.drops) return;
-    if (form.floor !== (autoFloor.current ?? "")) {
-      floorEdited.current = true;
-      return;
-    }
+    if (!userId || !applied.current || form.free || !form.drops) return;
     const next = floorFromPct(form.price, floorPct.current);
-    if (next === form.floor) return;
-    autoFloor.current = next;
-    setForm((f) => ({ ...f, floor: next }));
+    if (next !== form.floor) setForm((f) => ({ ...f, floor: next }));
   }, [userId, form.price, form.floor, form.drops, form.free, setForm]);
 
   /** Called once a new listing is posted: what the seller chose becomes next time's start. A free listing is skipped. */
@@ -76,9 +68,7 @@ export function useSellerDefaultsPrefill(
       keepUp,
       drops: form.drops,
       dropPct: form.dropPct,
-      // Only a lowest price the seller typed changes the saved share: the filled-in one is the share, rounded to a
-      // whole dollar, and reading it back would creep (half of $45 fills $23, which reads back as 51%).
-      floorPct: (form.drops && form.floor !== autoFloor.current && pctFromFloor(form.price, form.floor)) || floorPct.current,
+      floorPct: floorPct.current,
       freeAfterDays,
       handovers: ways,
     };

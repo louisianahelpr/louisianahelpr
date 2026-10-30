@@ -72,7 +72,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
   priceExtras: ReactNode;
   problems?: Partial<Record<SummaryField, ReactNode>>;
 }) {
-  const { form, set, ai, hintAt, priceCents } = s;
+  const { form, set, ai, hintAt, priceCents, sizeKnown, setSizePicked } = s;
   const busy = ai.state.status === "busy";
   const toggle = (f: SummaryField) => setOpen((o) => (o === f ? null : f));
   const row = (field: SummaryField) => ({ field, open: open === field, onToggle: () => toggle(field), busy, problem: problems?.[field] });
@@ -109,9 +109,12 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
         <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
         </Row>
-        <Row {...row("size")} title="Size" value={SIZE_LABEL[form.deliverySize] ?? ""} empty={false}>
-          <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
-        </Row>
+        {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
+        {!sizeKnown && !busy && (
+          <Row {...row("size")} title="Size" value="" empty>
+            <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
+          </Row>
+        )}
         <Row {...row("description")} title="Details" value={form.description.trim()} empty={!form.description.trim()}>
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />

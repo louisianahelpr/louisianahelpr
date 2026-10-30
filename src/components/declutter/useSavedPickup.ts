@@ -5,8 +5,7 @@
  *
  *   1. Saved pickup places (Declutter settings, src/lib/declutter/porchPlaces.ts): the first is the listing's own
  *      address and area; buyers still pick among them at checkout, as porch places already do.
- *   2. No place, but saved listing settings and an address on the last listing: that address, as the single form's
- *      "Remember my setup" already carries it.
+ *   2. No place, but an address on the last listing: that address, as "Remember my setup" already carried it.
  *
  * Saved points stay exact (the owner's no-approximate-points rule): the point comes with the place or the listing,
  * never from a town or a fresh guess, and a place with no real point is not used.
@@ -56,8 +55,9 @@ export function useSavedPickup(userId: string | undefined, apply: (p: SavedPicku
   const hasSettings = !!saved.data;
   const fromPlaces = Array.isArray(places.data) ? pickupFromPlaces(places.data) : null;
   const lastPickup = last.data?.pickup ?? null;
+  const lastPoint = lastPickup && Number.isFinite(lastPickup.lat) && Number.isFinite(lastPickup.lng) ? lastPickup : null;
   const pickup: SavedPickup | null = fromPlaces
-    ?? (hasSettings && lastPickup && (last.data?.areaLabel ?? "").trim()
+    ?? (lastPoint && lastPickup && (last.data?.areaLabel ?? "").trim()
       ? { areaLabel: last.data!.areaLabel, address: lastPickup.address, lat: lastPickup.lat, lng: lastPickup.lng, line: `Pickup at ${lastPickup.address}` }
       : null);
   const applied = useRef(false);
@@ -68,5 +68,14 @@ export function useSavedPickup(userId: string | undefined, apply: (p: SavedPicku
     applied.current = true;
     applyNow.current(pickup, lastPickup?.address ?? null);
   }, [settled, pickup, lastPickup]);
-  return { settled, pickup, hasSettings, hasPlaces: !!fromPlaces };
+  return {
+    settled,
+    pickup,
+    hasSettings,
+    settings: saved.data ?? null,
+    hasPlaces: !!fromPlaces,
+    hasWays: (saved.data?.handovers ?? last.data?.ways ?? []).length > 0,
+    failed: places.isError || saved.isError || last.isError,
+    retry: () => { void places.refetch(); void saved.refetch(); void last.refetch(); },
+  };
 }

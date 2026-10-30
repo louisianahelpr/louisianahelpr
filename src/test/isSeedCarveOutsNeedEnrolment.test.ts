@@ -76,6 +76,10 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // Admin review card leaves out test sellers' listings (owner rule, 2026-10-28).
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",
+  declutter_admin_reported_wanted: "tags", // posting audit #8 (20261030225143): the admin's read returns is_seed so the queue drops a test post
+  declutter_block_wanted_poster: "hides", // posting audit #8: a test post reads as not found to a member
+  declutter_wanted_hold_photos: "alerts", // posting audit #8: a test post's held photo files no report for admin
+  report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   declutter_seller_sold_count: "hides",
   declutter_apply_seller_fault: "alerts",

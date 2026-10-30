@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted";
 
 interface Reason {
   label: string;
@@ -70,6 +70,14 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // Posting audit 10-30 #8: a Wanted post goes live when posted, so members report the ones that slip through.
+  declutter_wanted: [
+    { label: "Prohibited item" },
+    { label: "Scam or fake" },
+    { label: "Offensive" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -85,6 +93,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   review: "Review",
   application: "Application",
   declutter_item: "Listing",
+  declutter_wanted: "Wanted Post",
 };
 
 /**
@@ -100,6 +109,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   review: "review",
   application: "application",
   declutter_item: "listing",
+  declutter_wanted: "Wanted post",
 };
 
 /**
@@ -114,4 +124,5 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   review: "What's wrong with this review?",
   application: "What's wrong with this application?",
   declutter_item: "What's wrong with this listing?",
+  declutter_wanted: "What's wrong with this Wanted post?",
 };

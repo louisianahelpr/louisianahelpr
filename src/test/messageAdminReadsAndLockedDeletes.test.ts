@@ -16,8 +16,8 @@
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   IF public.message_delete_locked(OLD.id, OLD.job_id) THEN |   IF false THEN
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |     AND NOT public.message_attachment_locked(name) |     AND true
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |             OR EXISTS (SELECT 1 FROM public.disputes d WHERE d.job_id = p_job_id) |             OR false
- * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
- * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   NEW.reported_content := left(concat_ws( |   NEW.reported_content := NULL AND left(concat_ws(
+ * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
+ * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |   NEW.reported_content := left(concat_ws( |   NEW.reported_content := NULL AND left(concat_ws(
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   BEFORE UPDATE OF content ON public.messages |   AFTER UPDATE OF read ON public.messages
  * @mutate src/pages/messages/Messages.tsx | toast.error(error && /message_locked/.test(error.message) ? | toast.error(false ?
  */

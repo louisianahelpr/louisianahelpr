@@ -70,6 +70,7 @@ vi.mock("@/lib/declutter/wanted", async (orig) => ({
   fetchWantedNear: async () => near.rows,
   createWanted: async (f: unknown, at: unknown) => { posted.push([f, at]); return "w1"; },
   addWantedPhoto: async (...a: unknown[]) => { photoCalls.push(["add", ...a]); return 1; },
+  checkWantedPhotos: async (...a: unknown[]) => { photoCalls.push(["check", ...a]); return false; },
   removeWantedPhoto: async (...a: unknown[]) => { photoCalls.push(["remove", ...a]); return 0; },
   closeWanted: async (id: string) => { closed.push(id); return "closed"; },
   updateWanted: async (id: string, f: { what: string; maxPrice: string }) => { edits.push([id, f.what, f.maxPrice]); return id; },
@@ -317,7 +318,8 @@ describe("the Wanted hub", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Baby and kids" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Post wanted" }));
-    await waitFor(() => expect(photoCalls).toEqual([["add", "u1", "w1", file]]));
+    // The photo first, then its automatic check (audit 10-30 #8).
+    await waitFor(() => expect(photoCalls).toEqual([["add", "u1", "w1", file], ["check", "w1"]]));
   });
 
   it("a Wanted near you card shows the post's first photo", async () => {

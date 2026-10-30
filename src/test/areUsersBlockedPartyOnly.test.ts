@@ -84,6 +84,8 @@ const EXPECTED_CALLERS = [
   // The paid-order chat (20261030004216, D2-1): the caller must be the order's buyer or seller (declutter_order_side), and
   // each passes the order's own pair (o.buyer_id, o.seller_id), so the caller is always one party.
   "declutter_my_order_talks",
+  // I have this's listing read (20261030221255): v_uid and the Wanted post's owner, as in the browse below.
+  "declutter_my_reply_listings",
   // Wanted photos and replies (20261030064727, B82): v_uid := auth.uid() (the poster reading the replies to their own posts) and each reply's seller.
   "declutter_my_wanted",
   // The handover chat (20261028235249, #3730): v_uid := auth.uid() (the caller is one of the pair), then are_users_blocked(buyer, seller).

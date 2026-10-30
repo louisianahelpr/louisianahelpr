@@ -15490,6 +15490,28 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_admin_reported_wanted: {
+        Args: { p_wanted_ids: string[] }
+        Returns: {
+          is_seed: boolean
+          photo_paths: string[]
+          photos_held: string[]
+          poster_id: string
+          removed: boolean
+          status: string
+          wanted_id: string
+          what: string
+        }[]
+      }
+      declutter_admin_release_wanted_photos: {
+        Args: { p_report_id: string; p_wanted_id: string }
+        Returns: string
+      }
+      declutter_admin_take_down_wanted: {
+        Args: { p_note: string; p_report_id?: string; p_wanted_id: string }
+        Returns: string
+      }
+      declutter_block_wanted_poster: { Args: { p_wanted_id: string }; Returns: string }
       declutter_reopen_wanted: { Args: { p_wanted_id: string }; Returns: string }
       declutter_remove_wanted: { Args: { p_wanted_id: string }; Returns: string[] }
       declutter_my_reply_listings: {

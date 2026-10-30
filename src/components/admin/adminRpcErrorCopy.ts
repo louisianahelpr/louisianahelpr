@@ -242,6 +242,26 @@ export const ADMIN_RPC_ERROR_COPY = {
   },
   // The reports queue names a reported listing whatever its status (AdminReports via src/lib/declutter/api.ts).
   declutter_admin_reported_items: { feature_disabled: DC.feature_disabled, not_admin: DC.not_admin },
+  // Audit 10-30 #8: a reported or held Wanted post, from the reports queue (WantedReportPanel).
+  declutter_admin_reported_wanted: { feature_disabled: DC.feature_disabled, not_admin: DC.not_admin },
+  declutter_admin_take_down_wanted: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_admin: DC.not_admin,
+    own_post: "Another admin has to decide on your own post.",
+    report_not_for_post: "That report is about something else. Refresh the reports list.",
+    review_note_required: "Say why it's taken down. The poster reads it.",
+    review_note_too_long: DC.review_note_too_long,
+    wanted_not_found: DC.wanted_not_found,
+  },
+  declutter_admin_release_wanted_photos: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_admin: DC.not_admin,
+    own_post: "Another admin has to decide on your own post.",
+    report_not_for_post: "That report is about something else. Refresh the reports list.",
+    wanted_not_found: DC.wanted_not_found,
+  },
   // "Suggest a category" review (I1, migration 20261015051141): CategorySuggestionsCard.
   admin_list_category_suggestions: {
     feature_disabled: "Category suggestions are switched off for your account.",

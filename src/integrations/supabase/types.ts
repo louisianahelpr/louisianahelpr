@@ -10358,7 +10358,6 @@ export type Database = {
           id: string
           reason: string
           reported_content: string | null
-          reported_content?: string | null
           reported_id: string
           reported_type: string
           reporter_id: string | null
@@ -10370,6 +10369,7 @@ export type Database = {
           description?: string | null
           id?: string
           reason: string
+          reported_content?: string | null
           reported_id: string
           reported_type: string
           reporter_id?: string | null

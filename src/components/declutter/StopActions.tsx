@@ -20,14 +20,14 @@ const PICKUP_OPENS_MIN_BEFORE = 30;
 const SELLER_AWAY_MIN_AFTER = 15;
 
 /** When "Picked up" opens for a booked pickup, or null if it is open now. */
-export function pickupOpensAt(slotStart: string | null | undefined, now = Date.now()): string | null {
+function pickupOpensAt(slotStart: string | null | undefined, now = Date.now()): string | null {
   if (!slotStart) return null;
   const opens = new Date(slotStart).getTime() - PICKUP_OPENS_MIN_BEFORE * 60_000;
   return now < opens ? new Date(opens).toISOString() : null;
 }
 
 /** "You can mark it picked up from Sat, Oct 31, 8:30 AM, or once the seller taps Handed over." */
-export function PickupWindowNote({ opensAt }: { opensAt: string }) {
+function PickupWindowNote({ opensAt }: { opensAt: string }) {
   return (
     <p className="text-ds-13 text-muted-foreground" data-pickup-opens="">
       You can mark it picked up from {day(opensAt)}, {clock(opensAt)}, or once the seller taps Handed over.
@@ -40,7 +40,7 @@ export function PickupWindowNote({ opensAt }: { opensAt: string }) {
  * door taken at the pickup address, asked in the app. Shared by the delivery card and My route's pickup stop
  * (audit 1c #4: the route stop never offered it).
  */
-export function SellerAwayStep({ taskId, userId, slotStart, label, onReported }: {
+function SellerAwayStep({ taskId, userId, slotStart, label, onReported }: {
   taskId: string;
   userId: string;
   slotStart: string | null;

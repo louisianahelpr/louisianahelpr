@@ -16529,6 +16529,7 @@ export type Database = {
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
       helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
+      helpr_task_same_pickup_slot: { Args: { p_task_id: string }; Returns: string }
       helpr_task_pickup_windows: {
         Args: { p_task_id: string }
         Returns: {

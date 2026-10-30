@@ -15,7 +15,6 @@
 import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
-import { PickupWindowNote, SellerAwayStep, pickupOpensAt } from "./StopActions";
 import { SellerHandedOver } from "./SellerHandedOver";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
@@ -45,7 +44,6 @@ import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { VehicleForm } from "./DeliverVehicleForm";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
-import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import {
   acceptTask,
   confirmReceived,
@@ -328,15 +326,15 @@ function DeliveryPayoutHeld({ tasks }: { tasks: MyTask[] }) {
   );
 }
 
-/** One delivery the Helpr took: the addresses and every step. */
+/**
+ * One delivery the Helpr took: the addresses, its state and Back out. Audit 1c D3-9: the photo steps live on Your route's
+ * stop cards only (every delivery in hand is a stop there, except one held by a problem, which has no step anyway).
+ */
 function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; tipCents?: number }) {
   const active = t.status === "accepted" || t.status === "picked_up" || t.status === "delivered";
   // Exact addresses: never written to the on-device query cache (lh-authz-rls review #6).
   const view = useQuery({ queryKey: ["helpr-tasks", "view", t.task_id], queryFn: () => fetchTaskView(t.task_id), enabled: active, meta: { persist: false } });
-  const [dropPhoto, setDropPhoto] = useState<File | null>(null);
-  // "Picked up" and "Left at the door" are shared with My route (useTaskSteps).
-  const { pickedUp, delivered: deliverStep, done } = useTaskSteps(t.task_id, userId, () => setDropPhoto(null));
-  const deliver = { isPending: deliverStep.isPending, mutate: () => deliverStep.mutate(dropPhoto) };
+  const { done } = useTaskSteps(t.task_id, userId);
   // Back out asks in the app, never window.confirm (lead 2026-10-28); "the seller wasn't there" is SellerAwayStep's.
   const [ask, setAsk] = useState<{ kind: "backOut" } | null>(null);
   const backOut = useMutation({
@@ -346,10 +344,12 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const v = view.data;
-  const pickId = `helpr-pick-${t.task_id}`;
-  const dropId = `helpr-drop-${t.task_id}`;
-  // Audit 1c #1: "Picked up" opens 30 minutes before the pickup, or at once after the seller's "Handed over".
-  const opensAt = v && !v.handed_over_at ? pickupOpensAt(v.pickup_slot_start) : null;
+  const toRoute = (
+    <button type="button" className="min-h-11 text-left text-ds-13 font-semibold underline" data-task-steps-on-route=""
+      onClick={() => document.querySelector('[aria-label="Your route"]')?.scrollIntoView({ block: "start" })}>
+      Take the photo at this stop on Your route
+    </button>
+  );
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <p className="font-semibold truncate" title={t.title}>{t.title}</p>
@@ -382,27 +382,16 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
           {v.status === "accepted" && !v.problem_open && (
             <>
               {v.handed_over_at && <p className="text-sm" data-task-handed-over="">The seller says they handed it over.</p>}
-              <label htmlFor={pickId} className="block text-xs font-medium">Photo of the item when you pick it up, taken at the pickup address</label>
-              {opensAt && <PickupWindowNote opensAt={opensAt} />}
-              <PhotoPickButton id={pickId} disabled={pickedUp.isPending || opensAt !== null} onPick={(f) => pickedUp.mutate(f)} />
+              {toRoute}
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} disabled={backOut.isPending}
                   onClick={() => setAsk({ kind: "backOut" })}>
                   Back out
                 </button>
               </div>
-              <SellerAwayStep taskId={t.task_id} userId={userId} slotStart={v.pickup_slot_start} onReported={done} />
             </>
           )}
-          {v.status === "picked_up" && (
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <label htmlFor={dropId} className="block text-xs font-medium">Photo at the drop-off address</label>
-              <PhotoPickButton id={dropId} picked={dropPhoto} onPick={setDropPhoto} />
-              <button type="button" className={primary} disabled={deliver.isPending || !dropPhoto} onClick={() => deliver.mutate()}>
-                Left at the door
-              </button>
-            </div>
-          )}
+          {v.status === "picked_up" && toRoute}
           <TaskPhotos view={v} />
         </>
       )}

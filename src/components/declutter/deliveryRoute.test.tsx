@@ -14,9 +14,9 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { RouteStop } from "@/lib/helprTasks/api";
 
-const state = { route: null as unknown, calls: [] as unknown[][] };
+const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as string[] };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() } }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
@@ -71,7 +71,9 @@ describe("My route", () => {
     expect(cards[1]).toHaveTextContent("On the seller's porch");
     expect(within(cards[1]).getByRole("img", { name: "Oak dresser" })).toHaveAttribute("src", "https://cdn.test/s/declutter/i/a.jpg");
     expect(cards[1]).toHaveTextContent("Mirror");
-    expect(screen.getByText(/4 stops · about 14 mi · about 48 min/)).toBeInTheDocument();
+    // D3-9: whole miles rounded up, as the delivery's own "about N miles" reads (declutter_road_miles).
+    // @mutate src/components/declutter/DeliveryRoute.tsx | Math.max(1, Math.ceil(miles)) | Math.max(1, Math.round(miles))
+    expect(screen.getByText(/4 stops · about 15 mi · about 48 min/)).toBeInTheDocument();
   });
 
   it("a taken delivery's drop-off shows its address from the start (owner 2026-10-27) and waits for the pickup", async () => {
@@ -107,13 +109,16 @@ describe("My route", () => {
     const cards = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list);
     fireEvent.change(within(cards[1]).getByLabelText(/Picked up: a photo of the item/), { target: { files: [jpeg()] } });
     await waitFor(() => expect(state.calls).toContainEqual(["picked_up", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
+    await waitFor(() => expect(state.toasts).toContain("Picked up. The buyer is told it's on the way."));
     const leave = within(cards[0]).getByRole("button", { name: "Left at the door" });
+    // @mutate src/components/declutter/StopActions.tsx | disabled={delivered.isPending \|\| !dropPhoto} | disabled={delivered.isPending}
     expect(leave).toBeDisabled();
     // Deep audit #41: each stop's input names its own stop, so a screen reader can tell three of them apart.
     // @mutate src/components/declutter/StopActions.tsx | Photo at the drop-off address<span className="sr-only"> ({stop.title}, stop {stop.seq})</span> | Photo at the drop-off address
     fireEvent.change(within(cards[0]).getByLabelText("Photo at the drop-off address (Blue lamp, stop 1)"), { target: { files: [jpeg()] } });
     fireEvent.click(leave);
     await waitFor(() => expect(state.calls).toContainEqual(["delivered", "t9", "u1/task/t9/photo.jpg", { lat: 30.5, lng: -91.15 }]));
+    await waitFor(() => expect(state.toasts).toContain("Left at the door. You're paid when the buyer confirms, or after 24 hours."));
   });
 
   it("audit 1c #4: a pickup stop 15 minutes past its time offers \"The seller wasn't there\", asked in the app", async () => {
@@ -121,8 +126,12 @@ describe("My route", () => {
     show();
     const list = await screen.findByRole("list", { name: "Stops in order" });
     fireEvent.change(within(list).getByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
+    // @mutate src/components/declutter/StopActions.tsx | <PhotoPickButton id={`${id}-away`} disabled={report.isPending} onPick={setFile} /> | <PhotoPickButton id={`${id}-away`} disabled={report.isPending} onPick={(f) => report.mutate(f)} />
     const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Report that the seller wasn't there?");
+    expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Report it" }));
+    // @mutate src/components/declutter/StopActions.tsx |       await reportPickupNoShow(taskId, uploaded.current.path, where); |       await reportPickupNoShow(taskId, "", { lat: 0, lng: 0 });
     await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });
 
@@ -130,6 +139,7 @@ describe("My route", () => {
     state.route = { ...ROUTE, stops: [stop({ seq: 1, slot_start: new Date(Date.now() + 2 * 86_400_000).toISOString() })] };
     show();
     const list = await screen.findByRole("list", { name: "Stops in order" });
+    // @mutate src/components/declutter/StopActions.tsx |         {opensAt && <PickupWindowNote opensAt={opensAt} />} |
     expect(within(list).getByText(/You can mark it picked up from .*, or once the seller taps Handed over\./)).toBeInTheDocument();
     expect(within(list).queryByLabelText(/The seller wasn't there/)).toBeNull();
   });

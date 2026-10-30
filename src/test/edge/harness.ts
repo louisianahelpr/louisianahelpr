@@ -820,6 +820,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/money.ts";`,
   );
 
+  // The payout promise's words: `_shared/payoutPromise.ts` imports only money.ts and
+  // helprFlatFee.ts, both pure and both real here, and takes the supabase client as an
+  // argument, so the generated file points at the REAL module: the figure is what is tested.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutPromise\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutPromise.ts";`,
+  );
+
   // Helpr-fault card fee (Q2082 (b)): `_shared/helprFaultFee.ts` has ZERO
   // imports (it takes the supabase client as an argument), so the generated
   // file points at the REAL module: the cap and the fail-closed read are the

@@ -85,7 +85,8 @@ vi.mock("@/lib/declutter/meetup", () => ({ fetchOrderMeetup: async () => null, m
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 vi.mock("./DeclutterReviewForm", () => ({ DeclutterReviewForm: () => <p>Review form</p> }));
 vi.mock("./DeclutterDeliveryViews", () => ({
-  OrderDeliveryPanel: ({ taskId, tipOnly }: { taskId: string; tipOnly?: boolean }) => <p>{tipOnly ? "Tip panel" : "Delivery card"} {taskId}</p>,
+  OrderDeliveryPanel: ({ taskId, tipOnly, askGot }: { taskId: string; tipOnly?: boolean; askGot?: boolean }) =>
+    <p>{tipOnly ? "Tip panel" : "Delivery card"} {taskId}{askGot ? " (asking: Do you have it?)" : ""}</p>,
 }));
 vi.mock("./SellerDeliveryOrder", () => ({ SellerDeliveryOrderPanel: ({ orderId }: { orderId: string }) => <p>Seller delivery {orderId}</p> }));
 vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => null }));
@@ -275,5 +276,32 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     // The other order is untouched.
     expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();
     state.problems = [];
+  });
+
+  // Audit 1c D3-3 (1c-b3-buying-p1-375): two days before the booked pickup the buyer's card said "A Helpr is on the way
+  // to pick it up". It now names the Helpr and the booked pickup time, as the seller's card already did.
+  // @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.` |         : at === 1 ? "A Helpr is on the way to pick it up."
+  // @mutate src/components/declutter/BuyingOrders.tsx |       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot; |       : slot;
+  it("D3-3: a taken Helpr delivery names the Helpr and the booked pickup time, never 'on the way'", async () => {
+    const pickup = iso(48);
+    load([{ id: "hd1", line: { handover: "delivery", delivery_task_id: "t-hd1" }, task: { accepted_at: iso(-2), pickup_slot_start: pickup, helpr_first_name: "Hallie" }, step: 1, bucket: "upcoming", action: null }]);
+    show();
+    const words = new Date(pickup).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    expect(await screen.findByText(`Hallie picks it up from the seller ${words}.`)).toBeInTheDocument();
+    expect(card("hd1").textContent).not.toMatch(/on the way/i);
+  });
+
+  // Audit 1c D3-7 (1c-b4-gotit-press1-1440): the first tap on a delivered card's "I got it" only opened Details; a
+  // second "I got it" inside opened "Do you have it?". One tap now opens Details AND the confirm sheet.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} /> |         onAction={() => { setOpen(true); }} />
+  // @mutate src/components/declutter/BuyingOrders.tsx | onClick={onAction} data-next-action=""> | onClick={onOpen} data-next-action="">
+  it("D3-7: one tap on a delivered Helpr order's 'I got it' asks 'Do you have it?' at once; Details alone does not", async () => {
+    load(CASES.filter((c) => c.id === "hd3" || c.id === "hd1"));
+    show();
+    await waitFor(() => expect(card("hd3").querySelector("[data-order-step]")?.getAttribute("data-order-step")).toBe("3"));
+    fireEvent.click(within(card("hd3")).getByRole("button", { name: "I got it" }));
+    expect(await within(card("hd3")).findByText("Delivery card t-hd3 (asking: Do you have it?)")).toBeInTheDocument();
+    fireEvent.click(within(card("hd1")).getByRole("button", { name: "Details" }));
+    expect(await within(card("hd1")).findByText("Delivery card t-hd1")).toBeInTheDocument();
   });
 });

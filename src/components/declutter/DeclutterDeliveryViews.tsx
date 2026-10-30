@@ -12,7 +12,7 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { PickupWindowNote, SellerAwayStep, pickupOpensAt } from "./StopActions";
@@ -112,7 +112,8 @@ function TaskPhotos({ view }: { view: TaskView }) {
  * order card (after "I got it" the order is handed_over and the card no longer shows this
  * panel) shows just the buyer's tip, so the Helpr can still be tipped (audit 2026-10-28 A3-1).
  */
-export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean }) {
+/** `askGot` (D3-7): opened from the card's "I got it", so the confirm sheet opens once the task says it can. */
+export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, askGot: askOnOpen = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean; askGot?: boolean }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
   // A2-7: the buyer's raise read starts NOW, beside the task read, not once the task has loaded and the panel mounts.
@@ -129,6 +130,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const mayAsk = askOnOpen && !tipOnly && side === "buyer" && (task.data?.status === "picked_up" || task.data?.status === "delivered");
+  useEffect(() => { if (mayAsk) setAskGot(true); }, [mayAsk]);
   if (task.isError) {
     return <ErrorState variant="inline" title="We couldn't load this delivery." body={declutterErrorMessage(task.error)} onRetry={() => void task.refetch()} />;
   }

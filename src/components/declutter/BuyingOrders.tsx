@@ -85,7 +85,7 @@ export function buyerNextAction(f: OrderFacts): string | null {
 }
 
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-function buyerStanding(f: OrderFacts, when: string | null): string {
+function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
   if (f.problem) return PROBLEM_ON_HOLD;
   if (f.done) return "Handed over. It's yours.";
@@ -103,7 +103,11 @@ function buyerStanding(f: OrderFacts, when: string | null): string {
     case "seller_delivery":
       return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
     case "delivery":
-      return at === 0 ? "Finding a Helpr to bring it." : at === 1 ? "A Helpr is on the way to pick it up." : at === 2 ? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
+      // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
+      // never "on the way" days before it.
+      return at === 0 ? "Finding a Helpr to bring it."
+        : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`
+          : at === 2 ? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
   }
 }
 
@@ -179,18 +183,20 @@ export function useBuyingTracker(): BuyingTracker {
     const bookingRow = (bookings.data ?? []).find((b) => b.order_id === o.orderId);
     const slot = bookingRow?.slot_start ?? null;
     const sdRow = sdRows[sd.indexOf(o)]?.data ?? null;
+    const task = tasks[helpr.indexOf(o)]?.data ?? null;
     const facts: OrderFacts = {
       ...buyerOrderFacts(o, {
         slotStart: slot,
         handover: handovers[pickups.indexOf(o)]?.data ?? null,
         sellerDelivery: sdRow,
-        task: tasks[helpr.indexOf(o)]?.data ?? null,
+        task,
       }),
       problem: problems.has(o.orderId),
     };
     const bucket = orderBucket(facts);
     counts[bucket]++;
-    const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null : slot;
+    const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null
+      : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot;
     // A1-C2: a porch pickup is a DAY (pickup_day); its slot_start is only the day's start, so never show it as a time.
     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day)
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
@@ -200,7 +206,7 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      standing: buyerStanding(facts, when),
+      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });
@@ -222,7 +228,11 @@ export function bucketChips(counts: Record<OrderBucket, number>) {
  * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
  * action opens it at that control.
  */
-export function BuyerOrderHead({ view, open, onOpen, onClose }: { view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void }) {
+export function BuyerOrderHead({ view, open, onOpen, onClose, onAction = onOpen }: {
+  view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void;
+  /** The next-action button; defaults to opening Details (D3-7: a Helpr delivery's "I got it" also asks at once). */
+  onAction?: () => void;
+}) {
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       <OrderSteps facts={view.facts} />
@@ -230,7 +240,7 @@ export function BuyerOrderHead({ view, open, onOpen, onClose }: { view: BuyerOrd
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {view.action && !open && (
-          <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold" onClick={onOpen} data-next-action="">
+          <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
             {view.action}
           </button>
         )}

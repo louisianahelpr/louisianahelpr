@@ -193,6 +193,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
   const refundRequests = useFeature("declutter_refund_requests");
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
   const [open, setOpen] = useState(false);
+  // Audit 1c D3-7: a Helpr delivery's "I got it" opened Details only; it now opens the "Do you have it?" sheet too.
+  const [askGot, setAskGot] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open || !view) return;
@@ -216,7 +218,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       </div>
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
+      {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+        onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && <ProblemOpenNote problem={problem} side={order.side} />}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
@@ -257,7 +260,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         <>
           {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. */}
           {order.deliveryTaskId
-            ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} /></Suspense>
+            ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" />}
         </>

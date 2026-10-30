@@ -138,6 +138,8 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
+// The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
   openHandoverTalk: async (other: string) => { state.talksOpened.push(other); return "t1"; },
   fetchMyOpenHandoverTalks: async () => [],
@@ -790,6 +792,8 @@ describe("Declutter slice 3 screens", () => {
     const radios = screen.getAllByRole("radio");
     expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home"]);
     expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
+    // Pay waits for the seller's porch places to answer (D-NEW14).
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]));
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
@@ -1193,7 +1197,7 @@ describe("B-1: the return from the payment page never offers Pay again for what 
     expect(await screen.findByText("Payment received.")).toBeInTheDocument();
     const held = within(group(1)).getByRole("button", { name: "Confirming your payment…" });
     expect(held).toBeDisabled();
-    expect(within(group(2)).getByRole("button", { name: /^Pay / })).toBeEnabled();
+    await waitFor(() => expect(within(group(2)).getByRole("button", { name: /^Pay / })).toBeEnabled());
 
     // The webhook lands: the next read (polled, no reload) shows the lamp paid, and the notice goes.
     state.cart = [{ ...lamp(), status: "paid", order_id: "ord1", order_status: "paid", handover: "porch", total_cents: 385 }, rug()];

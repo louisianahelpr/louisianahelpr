@@ -12,7 +12,7 @@
  * every window edge is run at a fixed instant. Checks:
  *  - the filled notice: when a Helpr's accept closes the other pending applications (the
  *    complete_job_accept UPDATE), each other applicant gets 'This job was filled' / 'Thanks for
- *    applying to "<job>". The poster picked someone else this time. Tap to see similar open jobs.'
+ *    applying to "<job>". They picked someone else this time. Tap to see similar open jobs.'
  *    linked to '/jobs?tab=browse&cat=<group>', bell and email; no category -> '/jobs?tab=browse';
  *  - unchanged: a poster's decline on an unfilled job ("was not selected"), a decline note after the
  *    job filled ("not selected: <note>"), the offered Helpr told of a cancel, a block (no notice);
@@ -130,7 +130,7 @@ await db.exec(`
   UPDATE public.applications SET status = 'rejected' WHERE job_id = '${J(1)}' AND helper_id IS DISTINCT FROM '${ANN}' AND status = 'pending';
 `);
 const bob = await notes(BOB);
-const filledMsg = 'Thanks for applying to "Deep clean a kitchen". The poster picked someone else this time. Tap to see similar open jobs.';
+const filledMsg = 'Thanks for applying to "Deep clean a kitchen". They picked someone else this time. Tap to see similar open jobs.';
 check("filled: the other applicant is told kindly", bob.length === 1 && bob[0].title === "This job was filled" && bob[0].message === filledMsg, bob);
 check("filled: the link opens similar open jobs (Browse, the category group)", bob[0]?.link === "/jobs?tab=browse&cat=home", bob[0]);
 const bobMail = await mails(BOB);

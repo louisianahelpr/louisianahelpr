@@ -12,7 +12,7 @@
 --    Now, when the job HAS a Helpr and it is not this applicant (the job was
 --    filled by someone else), the notice reads:
 --      title   'This job was filled'
---      message 'Thanks for applying to "<job>". The poster picked someone else
+--      message 'Thanks for applying to "<job>". They picked someone else
 --               this time. Tap to see similar open jobs.'
 --      link    '/jobs?tab=browse&cat=<group>' : the Browse feed filtered to the
 --              job's category group (public.job_category_group, the same
@@ -259,7 +259,7 @@ BEGIN
       -- other pending applications). Said kindly, and the link opens similar open jobs.
       v_title := 'This job was filled';
       v_message := 'Thanks for applying to "' || COALESCE(job_title, 'this job')
-        || '". The poster picked someone else this time. Tap to see similar open jobs.';
+        || '". They picked someone else this time. Tap to see similar open jobs.';
       v_link := '/jobs?tab=browse' || CASE WHEN job_cat IS NOT NULL THEN '&cat=' || job_cat ELSE '' END;
     ELSE
       v_message := 'Your application for "' || job_title || '" was not selected';

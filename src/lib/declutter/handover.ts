@@ -304,7 +304,8 @@ export interface OrderProblem {
   reason: ProblemReason;
   note: string;
   photo_paths: string[];
-  status: "open" | "decided";
+  // "withdrawn": the reporter took it back (B100, 20261030134109).
+  status: "open" | "decided" | "withdrawn";
   created_at: string;
   /** The other side's words and photos; absent before 20261029225634 reaches prod. */
   other_side_note?: string | null;
@@ -331,6 +332,19 @@ export async function fetchOrderProblem(orderId: string): Promise<OrderProblem |
     return ((rows ?? [])[0] ?? null) as OrderProblem | null;
   }
   return (rpcData(res, (e) => rpcErrorMessage("declutter_order_problem", e)) ?? null) as unknown as OrderProblem | null;
+}
+
+/**
+ * B100 (owner 2026-10-30, 20261030134109): the member who reported an OPEN problem takes it back, until Louisiana
+ * Helpr decides. The payout hold lifts and the 24-hour clocks run on from where they started. "already" when it was
+ * taken back before. A build newer than the database (the RPC not deployed yet) says so instead of failing silently.
+ */
+export async function withdrawProblem(problemId: string): Promise<{ result: "withdrawn" | "already"; problem_id: string }> {
+  const res = await supabase.rpc("declutter_withdraw_problem", { p_problem_id: problemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_withdraw_problem")) {
+    throw new Error("Taking back a report isn't available yet. Try again in a few minutes.");
+  }
+  return rpcData(res, (e) => rpcErrorMessage("declutter_withdraw_problem", e)) as unknown as { result: "withdrawn" | "already"; problem_id: string };
 }
 
 /** D2-3: the OTHER side of the sale adds their words (and up to 3 problem-folder photos) to an open problem. */

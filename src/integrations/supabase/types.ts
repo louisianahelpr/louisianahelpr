@@ -2454,6 +2454,57 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_order_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side?: string
+          talk_id?: string
+        }
+        Relationships: []
+      }
+      declutter_order_talks: {
+        Row: {
+          buyer_notified_at: string | null
+          created_at: string
+          id: string
+          order_id: string
+          seller_notified_at: string | null
+        }
+        Insert: {
+          buyer_notified_at?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          seller_notified_at?: string | null
+        }
+        Update: {
+          buyer_notified_at?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          seller_notified_at?: string | null
+        }
+        Relationships: []
+      }
       declutter_orders: {
         Row: {
           bundle_discount_cents: number
@@ -13806,6 +13857,8 @@ export type Database = {
           weekday: number
         }[]
       }
+      declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
+      declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
       declutter_pair_needs_talk: {
         Args: { p_buyer: string; p_seller: string }
@@ -14408,6 +14461,7 @@ export type Database = {
         }[]
       }
       declutter_my_move_out_date: { Args: never; Returns: string }
+      declutter_my_order_talks: { Args: never; Returns: Json }
       declutter_miles_between: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
@@ -14797,6 +14851,10 @@ export type Database = {
       declutter_set_item_seller_delivery: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_send_handover_message: {
         Args: { p_body: string; p_talk_id: string }
+        Returns: string
+      }
+      declutter_send_order_message: {
+        Args: { p_body: string; p_order_id: string }
         Returns: string
       }
       declutter_set_bundle_discount: {

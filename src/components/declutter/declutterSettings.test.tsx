@@ -7,6 +7,7 @@
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
  * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
@@ -156,10 +157,18 @@ describe("Declutter settings", () => {
 
   it("pickup places have their own card, right after pickup times", async () => {
     open();
-    const card = await screen.findByRole("region", { name: "Pickup places" });
-    expect(screen.getByRole("button", { name: "Add a pickup place" })).toBeInTheDocument();
+    await screen.findByRole("button", { name: "Add a pickup place" });
+    const card = screen.getByRole("region", { name: "Pickup places" });
     expect(card.previousElementSibling).toBe(screen.getByRole("region", { name: "Pickup times" }));
     expect(card.tagName).toBe("SECTION");
+  });
+
+  it("while the places read, their row holds the spot like its neighbours", async () => {
+    state.places = new Promise(() => undefined) as unknown as unknown[];
+    open();
+    const card = await screen.findByRole("region", { name: "Pickup places" });
+    expect(card.textContent).toBe("Pickup placesLoading…");
+    expect(card.previousElementSibling).toBe(screen.getByRole("region", { name: "Pickup times" }));
   });
 
   it("no card at all before the places are on the server", async () => {

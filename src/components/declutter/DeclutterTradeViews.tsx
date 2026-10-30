@@ -136,7 +136,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const priceIt = useMutation({
     mutationFn: () => fetchDeliveryQuote(sellerId, address.trim()),
     onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); setSdChecked(null); }, // DB-9: it stored a new drop-off: seller delivery checks again
-    onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); void porchPlaces.query.refetch(); },
+    onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); void porchPlaces.reread(err); },
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
@@ -206,8 +206,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
       {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
-      {needsPlace && <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} loadError={porchPlaces.query.error}
-        onRetry={() => void porchPlaces.query.refetch()} onChosen={() => setQuote(null)} />}
+      {needsPlace && <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
+        onRetry={() => void porchPlaces.reread()} onChosen={() => setQuote(null)} />}
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
@@ -303,7 +303,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));
             }
             // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
-            if (needsPlace) void porchPlaces.query.refetch();
+            if (needsPlace) void porchPlaces.reread(err);
             setOpening(false);
           }
         }}

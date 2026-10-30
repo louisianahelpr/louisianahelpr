@@ -9,6 +9,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { shouldRetryQuery } from "@/lib/queryRetry";
+import { raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
 import {
   chooseSellerPorchPlace, fetchOrderPorchPlace, fetchSellerPorchPlaces, PORCH_PLACES_NOT_DEPLOYED, type SellerPorchPlace,
 } from "@/lib/declutter/porchPlaces";
@@ -23,13 +25,33 @@ const placesKey = (sellerId: string, cartKey: number) => ["declutter", "seller-p
 export const PORCH_PLACES_WAIT_MS = 3000;
 
 /**
+ * How long one read may take at all. React Query joins a refetch to a fetch still running when the query has no data
+ * yet, so an unbounded read that hung made the re-read after a refused checkout wait on that same hung request.
+ */
+export const PORCH_PLACES_READ_MS = 8000;
+const PORCH_PLACES_SLOW = "porch_places_slow";
+const PLACE_NEEDED = "porch_place_needed";
+
+/**
  * The seller's places for this cart, and whether a checkout that needs a place can go ahead. A failed read, or one
  * still going after PORCH_PLACES_WAIT_MS, does not hold the Pay button: most sellers have no places, and the server
  * still refuses a missing pick (porch_place_needed). If the read then brings places, Pay waits for the pick again.
+ * `reread`, after a refused checkout or a Try again: drops any read still out and starts a new one. A porch_place_needed
+ * refusal holds Pay until the buyer picks, or the new read finds the seller has no places after all.
  */
 export function useSellerPorchPlaces(sellerId: string, cartKey: number) {
-  const q = useQuery({ queryKey: placesKey(sellerId, cartKey), queryFn: () => fetchSellerPorchPlaces(sellerId) });
+  const qc = useQueryClient();
+  const key = placesKey(sellerId, cartKey);
+  const q = useQuery({
+    queryKey: key,
+    queryFn: ({ signal }) => raceVisibleDeadlineAbortable((s) => fetchSellerPorchPlaces(sellerId, s), PORCH_PLACES_READ_MS, PORCH_PLACES_SLOW, signal),
+    // A read that ran out of time is said at once, with Try again, rather than hung on for a second full wait.
+    retry: (count, err) => (err as Error | null)?.message !== PORCH_PLACES_SLOW && shouldRetryQuery(count, err),
+    meta: { warnOnMessage: PORCH_PLACES_SLOW },
+  });
   const [waitedOut, setWaitedOut] = useState(false);
+  const [refused, setRefused] = useState(false);
+  useEffect(() => { setRefused(false); }, [sellerId, cartKey]);
   useEffect(() => {
     setWaitedOut(false);
     if (!q.isLoading) return undefined;
@@ -37,10 +59,16 @@ export function useSellerPorchPlaces(sellerId: string, cartKey: number) {
     return () => clearTimeout(timer);
   }, [q.isLoading, sellerId, cartKey]);
   const places: SellerPorchPlace[] = q.data && q.data !== PORCH_PLACES_NOT_DEPLOYED ? q.data : [];
-  return { query: q, places, ready: (!q.isLoading || waitedOut) && (places.length === 0 || places.some((p) => p.chosen)) };
+  const reread = async (err?: unknown) => {
+    if ((err as { message?: string } | null | undefined)?.message === PLACE_NEEDED) setRefused(true);
+    await qc.cancelQueries({ queryKey: key, exact: true });
+    const r = await q.refetch();
+    if (r.isSuccess && (r.data === PORCH_PLACES_NOT_DEPLOYED || r.data.length === 0)) setRefused(false);
+  };
+  return { query: q, places, refused, reread, ready: (!q.isLoading || waitedOut) && (places.length > 0 ? places.some((p) => p.chosen) : !refused) };
 }
 
-export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen }: {
+export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen, free = false, refused = false }: {
   sellerId: string;
   cartKey: number;
   places: SellerPorchPlace[];
@@ -48,6 +76,10 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
   onRetry: () => void;
   /** After a new pick lands: a Helpr delivery quote for the old place no longer holds. */
   onChosen?: () => void;
+  /** A free claim: nobody pays, and the address opens once the claim is confirmed (declutter_checkout_free, DA-5). */
+  free?: boolean;
+  /** The server just refused for want of a pick: say why, in place, for as long as it takes to answer it. */
+  refused?: boolean;
 }) {
   const qc = useQueryClient();
   const choose = useMutation({
@@ -59,11 +91,13 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (loadError) return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(loadError)} onRetry={onRetry} />;
-  if (places.length === 0) return null;
+  const refusal = declutterErrorMessage({ message: PLACE_NEEDED });
+  if (places.length === 0) return refused ? <p role="status" className="text-sm font-semibold" data-porch-place-rereading="">{refusal} Loading them…</p> : null;
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-porch-place-picker="">
       <legend className="px-1 text-xs font-medium">Pick a pickup place</legend>
-      <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>
+      <p className="text-xs text-muted-foreground">{free ? "You get the exact address once you confirm." : "You get the exact address after you pay."}</p>
+      {refused && !places.some((p) => p.chosen) && <p role="alert" className="text-sm font-semibold">{refusal}</p>}
       {places.map((p) => (
         <label key={p.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${p.chosen ? "border-2 border-primary" : "border-border"}`}>
           <input

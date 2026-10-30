@@ -299,6 +299,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   // Found the area but not the house: AddressNeedsExactSpot under the address says what to do.
   address_not_exact: "We found your area, but not your house on the map. See the note under the address.",
   location_far_from_address: "You seem to be far from that address. Check the address, or try again when you're there.",
+  // The buyer's read of a seller's pickup places missed its deadline (useSellerPorchPlaces).
+  porch_places_slow: "The pickup places are taking too long to load. Check your connection and try again.",
   // declutter-checkout (seller delivery, 20261027153244): the price the screen showed is no longer the seller's.
   delivery_rate_changed: "The seller's delivery price just changed. Check the new price, then tap Pay again.",
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",

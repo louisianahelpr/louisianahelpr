@@ -750,6 +750,8 @@ export async function invokeAiBody(body: Record<string, unknown>, timeoutMs = AI
     if (aborted) throw new Error("ai_timed_out");
     // FunctionsHttpError keeps the JSON body on its context.
     const ctx = (error as { context?: Response }).context;
+    // Our limit answers 429 in words and the model's limit as ai_unavailable: either way, say to wait.
+    if (ctx?.status === 429) throw new Error("ai_rate_limited");
     const body: { error?: unknown } | null = ctx && typeof ctx.json === "function"
       ? await ctx.json().catch((parseErr: unknown) => {
           // A body that is not JSON carries no code: fall through to ai_unavailable.

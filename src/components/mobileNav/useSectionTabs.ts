@@ -46,8 +46,18 @@ export function useOpenSectionKeys(): SectionKey[] {
  * member never sees the mark. Guard: src/test/previewMark.test.tsx.
  */
 export function sectionIsPreview(on: boolean, feature: string, openToEveryone: ReadonlySet<string> | null): boolean {
-  return on && openToEveryone !== null && !openToEveryone.has(feature);
+  return on && openToEveryone !== null && !openToEveryone.has(feature) && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature);
 }
+
+/**
+ * Sections that read as OPEN to everyone who has them, before they open to everyone (owner 2026-10-30, via the
+ * lead): the owner and the admins already HAVE Declutter (feature_switch_members; admins pass 'testers'), yet the
+ * Explore chip said "Declutter / Soon", the rail "Coming soon" and Browse "Opens soon", because the only live
+ * listings were test accounts' (rightly hidden from real accounts). For these, `on` (the same useFeature answer the
+ * page's gate reads) is the whole story: no "Soon" or "Coming soon" mark, and Browse's real empty state. A section
+ * that is OFF for the viewer still says "Soon" (SoonPill), and Shops and Homes keep the tester mark.
+ */
+const OPEN_FOR_THOSE_WHO_HAVE_IT: ReadonlySet<string> = new Set(["declutter"]);
 
 /**
  * ONE quiet line for every section not open yet (owner, 2026-10-21: no dead

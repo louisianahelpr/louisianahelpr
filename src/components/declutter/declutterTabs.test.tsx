@@ -26,6 +26,10 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink />\n              </div> |                 {null}\n              </div>
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : q ? "Nothing matches that search." :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
+ * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions /> : |               false ? <NothingForSaleActions /> :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
@@ -313,9 +317,20 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     await screen.findByRole("tablist", { name: "Declutter view" });
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver"]);
     expect(tab(/^Browse/)).toHaveAttribute("aria-selected", "true");
-    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
     expect(screen.queryByText(/Wanted/)).toBeNull();
+    // The empty state's pills: Sell something only, never a link to a Wanted tab that is not there.
+    expect(screen.getByRole("link", { name: "Sell something" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
+  });
+
+  it("owner 10-28: with 'declutter_wanted' off, a search that finds nothing has no \"Can't find it?\" link either", async () => {
+    state.wantedOn = false;
+    at("/declutter?q=sofa");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    expect(screen.getByTestId("declutter-clear-search")).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
   });
 
   it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Show all items and the Wanted link", async () => {
@@ -323,21 +338,23 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter?q=sofa");
     expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
     expect(screen.queryByText("Opens soon")).toBeNull();
-    expect(screen.queryByText("Nothing for sale yet.")).toBeNull();
+    expect(screen.queryByText("Nothing for sale near you yet.")).toBeNull();
     expect(screen.getByTestId("declutter-wanted-link")).toBeInTheDocument();
     const clear = screen.getByTestId("declutter-clear-search");
     expect(clear).toHaveTextContent("Show all items");
     fireEvent.click(clear);
-    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-clear-search")).toBeNull();
   });
 
   it("owner 10-28: Browse's \"Can't find it? Post what you're looking for\" opens the Wanted tab, under the list and in the no-results state", async () => {
-    // No results: the link sits in the empty state.
+    // Nothing for sale at all (owner 2026-10-30): the empty state's own pill, "Post what you're looking for", beside
+    // "Sell something", and no "Opens soon".
     const empty = at("/declutter");
-    const inEmpty = await screen.findByTestId("declutter-wanted-link");
-    expect(inEmpty).toHaveTextContent("Can't find it? Post what you're looking for");
-    expect(inEmpty).toHaveAttribute("href", "/declutter?tab=wanted");
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Opens soon")).toBeNull();
+    expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
+    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
     empty.unmount();
     // A list: the link closes the end card under the cards.
     state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass floor lamp" }];

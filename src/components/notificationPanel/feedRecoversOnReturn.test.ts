@@ -8,6 +8,7 @@
  * the visit. RED on origin/main 8ca225a0e3: the focus and online tests fail
  * (one load, no reload).
  */
+// @mutate src/components/notificationPanel/notificationFeed.ts | void load(ensureFreshNotificationFeed), INITIAL_LOAD_DELAY_MS | void load(), INITIAL_LOAD_DELAY_MS
 // @mutate src/components/notificationPanel/notificationFeed.ts | const unsubscribeFocus = focusManager.subscribe((focused) => { if (focused) reloadIfFailed(); }); | const unsubscribeFocus = () => {};
 // @mutate src/components/notificationPanel/notificationFeed.ts | const unsubscribeOnline = onlineManager.subscribe((online) => { if (online) reloadIfFailed(); }); | const unsubscribeOnline = () => {};
 // @mutate src/components/notificationPanel/notificationFeed.ts | lastLoadFailed = true;\n        report(err, { tags: { source: "notificationFeed.load" } }); | report(err, { tags: { source: "notificationFeed.load" } });
@@ -33,7 +34,7 @@ vi.mock("@/integrations/supabase/client", () => {
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { useNotificationFeed, __resetNotificationFeedLoad } from "./notificationFeed";
+import { loadNotificationFeed, useNotificationFeed, __resetNotificationFeedLoad } from "./notificationFeed";
 
 const U = "22222222-2222-2222-2222-222222222222";
 
@@ -102,6 +103,18 @@ describe("the bell recovers a failed load on return", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(calls.lists).toBe(after);
+    hook.unmount();
+  });
+
+  it("a feed opened just after a bell loaded the list does not read it twice", async () => {
+    calls.fail = false;
+    await loadNotificationFeed(U);
+    expect(calls.lists).toBe(2);
+    const hook = renderHook(() => useNotificationFeed(U));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+    expect(calls.lists).toBe(2);
     hook.unmount();
   });
 

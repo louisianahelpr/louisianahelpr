@@ -179,8 +179,8 @@ function openFeed(userId: string): Feed {
   // (TanStack's focusManager / onlineManager: the browser events on the web,
   // Capacitor's appStateChange / Network on native, src/lib/appLifecycle.ts).
   let lastLoadFailed = false;
-  const load = () =>
-    loadNotificationFeed(userId).then(
+  const load = (read: (id: string) => Promise<void> = loadNotificationFeed) =>
+    read(userId).then(
       () => { lastLoadFailed = false; },
       (err) => {
         lastLoadFailed = true;
@@ -193,8 +193,9 @@ function openFeed(userId: string): Feed {
   const unsubscribeFocus = focusManager.subscribe((focused) => { if (focused) reloadIfFailed(); });
   const unsubscribeOnline = onlineManager.subscribe((online) => { if (online) reloadIfFailed(); });
   // Deferred so the first paint is not competing with it (same delay the
-  // panel always used).
-  const timer = setTimeout(() => void load(), INITIAL_LOAD_DELAY_MS);
+  // panel always used). A bell on the page may have loaded the list already
+  // (a launch into Declutter opens this feed late), so a fresh list is reused.
+  const timer = setTimeout(() => void load(ensureFreshNotificationFeed), INITIAL_LOAD_DELAY_MS);
   // The binding (notifications INSERT, user_id=eq.<me>) lives on the ONE
   // shared per-user channel (src/lib/userRealtimeBus.ts, Q105).
   const unsubscribe = subscribeUserRealtime(

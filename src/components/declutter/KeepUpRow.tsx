@@ -15,6 +15,20 @@ import { fetchKeepUp, setKeepUp } from "@/lib/declutter/api";
 export const KEEP_UP_TITLE = "Keep it up until it sells";
 export const KEEP_UP_EXPLAINER = "It renews every 30 days until someone buys it. You can turn this off anytime.";
 
+/**
+ * The new-listing form's ONE line under the switch, for the setting it is on now (lead 2026-10-30, shot
+ * ~/.lh-shots/b69-free-tab/after2-sell-375.png). It showed KEEP_UP_EXPLAINER ("renews every 30 days until someone
+ * buys it") AND, under it, the off rule ("goes back up by itself up to 3 more times (about 4 months)"): two lines
+ * that contradict each other. Same "Off. …" shape as the "Lower the price if it doesn't sell?" card above it.
+ * Off = the listing-rounds rule (30 days, relisted up to 3 more times, a reminder before each round ends; migration
+ * 20261029154323's sweep); on = no cap and no reminders.
+ */
+export function keepUpSettingLine(on: boolean): string {
+  return on
+    ? "On. It renews every 30 days until someone buys it, with no reminders."
+    : "Off. It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends.";
+}
+
 /** The switch's saved state and its flip, shared by the sell flow's review row and the switch itself. */
 export function useKeepUp(itemId: string | null) {
   const qc = useQueryClient();

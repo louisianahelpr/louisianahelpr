@@ -627,7 +627,7 @@ describe("Declutter slice 3 screens", () => {
     // #20 (owner 2026-10-28, "Words only"): the total says it holds a service fee, never how much.
     expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05Includes a small Louisiana Helpr service fee\.$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p> | <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one payment.</p>
+    // @mutate src/components/declutter/DeclutterCartWords.tsx | shared: "From the same seller: one pickup, one payment." }; | shared: "One checkout, one pickup, one payment." };
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "Checkout 1" });
     expect((card.textContent ?? "").match(/checkout/gi)?.length ?? 0).toBeLessThanOrEqual(2);

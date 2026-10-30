@@ -90,16 +90,19 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
       </section>
     );
   }
+  // DA-3: a giver whose orders are all free items sold nothing and is paid nothing.
+  const sold = lines.filter((l) => l.status === "paid" && l.order_id);
+  const sellerTitle = sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
   return (
     <PaidOrdersSection
       cart={lines}
       views={views}
       show={show}
-      label={side === "buyer" ? "Purchases" : "Sold: pickup and payout"}
+      label={side === "buyer" ? "Purchases" : sellerTitle}
       heading={
         side === "buyer"
           ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
-          : <SectionHeading title="Sold: pickup and payout" todo={todo.salesOpen} todoWords="to hand over" />
+          : <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
       }
     />
   );

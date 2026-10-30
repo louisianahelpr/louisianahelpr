@@ -537,7 +537,24 @@ describe("Declutter slice 4: paid-order cards", () => {
   // pickup kind, for both sides, read from the rendered card.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time."; |     if (at === 0) return side === "buyer" ? "Paid · book a pickup time." : "Paid. The buyer books a pickup time.";
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done ? "." : ". The seller is paid after you pick it up."} | {done ? "." : " · the seller is paid after you pick it up."}
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "seller" ? " · You're selling" : ""} | {order.side === "seller" ? " · You're selling" : " · You're buying"}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
+  // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
+  it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one still says \"You're selling\"", async () => {
+    let read = 0;
+    for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "You're selling", /giving/]] as const) {
+      state.handover = null; state.bookings = [];
+      const { container, unmount } = show([line({ my_side: "seller", price_cents: price, handover: "porch", porch_ok: true })]);
+      await waitFor(() => expect(container.querySelector("[data-order-head]")).not.toBeNull());
+      const head = container.querySelector("[data-order-head]")?.textContent ?? "";
+      expect(head, `price ${price}`).toContain(words);
+      expect(head, `price ${price}`).not.toMatch(not);
+      read++;
+      unmount();
+    }
+    expect(read).toBeGreaterThan(1);
+  });
+
   it("lead 10-28: every pickup step reads as plain sentences, and the buyer's card does not say \"You're buying\"", async () => {
     const STEPS: Record<"porch" | "pickup_home", Record<number, () => void>> = {
       porch: {

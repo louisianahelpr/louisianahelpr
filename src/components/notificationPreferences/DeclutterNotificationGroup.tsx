@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useFeature } from "@/hooks/useFeature";
 import { declutterRows } from "./constants";
 import type { Row } from "./types";
@@ -13,10 +13,18 @@ import type { Row } from "./types";
 export function DeclutterNotificationGroup({ renderRow }: { renderRow: (row: Row) => ReactNode }) {
   const declutterOn = useFeature("declutter");
   const wantedOn = useFeature("declutter_wanted");
+  const heading = useRef<HTMLDivElement>(null);
+  // Declutter settings' Notifications row links here with ?show=declutter: open at this group, not the top of the screen.
+  useEffect(() => {
+    if (!declutterOn || new URLSearchParams(window.location.search).get("show") !== "declutter") return;
+    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    heading.current?.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" });
+  }, [declutterOn]);
   if (!declutterOn) return null;
   return (
     <>
       <div
+        ref={heading}
         className="px-3 min-[360px]:px-4 pt-3 pb-1.5 shrink-0"
         style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)" }}
         data-testid="declutter-notification-group"

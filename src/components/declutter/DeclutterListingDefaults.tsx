@@ -94,7 +94,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
       <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
       <div className="space-y-2" role="group" aria-labelledby="defaults-ways">
         <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">How buyers can get it</p>
-        <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} />
+        <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" size="sm" disabled={save.isPending || noWay || same(draft, base)} onClick={() => save.mutate()}>

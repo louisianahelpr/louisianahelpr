@@ -25,7 +25,7 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email once if you don't finish.\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC;
- * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
+ * @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.admin_list_signup_leads() TO anon, authenticated, service_role;
  * @mutate src/components/admin/AdminAnalytics.tsx |       <SignupLeadsCard />\n | \n
  * @mutate supabase/functions/record-signup-lead/index.ts |   if (isReservedRecipient(email)) { |   if (false) {

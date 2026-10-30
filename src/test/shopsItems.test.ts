@@ -30,7 +30,7 @@
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261017061157_shops_items.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
-// @mutate supabase/migrations/20261017061157_shops_items.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
+// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',

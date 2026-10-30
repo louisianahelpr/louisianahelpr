@@ -77,9 +77,10 @@ export function useProfileStats(userId: string | undefined) {
     queryFn: async () => {
       const id = userId!;
       const [helperJobsRes, reviewsRes, postedRes, publicStatsRes] = await Promise.all([
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", id).eq("status", "completed"),
+        // Test data never counts in any total, your own included (owner rule, b62).
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", id).eq("status", "completed").eq("is_seed", false),
         supabase.from("reviews").select("rating, job_id").eq("reviewee_id", id).lte("feedback_visible_at", new Date().toISOString()),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", id),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", id).eq("is_seed", false),
         // Same aggregate the public profile reads, so the owner's ladder badge
         // is computed from the numbers visitors are shown (VN-14). The owner's
         // own row passes its gate even while pending.

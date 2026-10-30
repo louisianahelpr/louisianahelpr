@@ -342,11 +342,7 @@ const Messages = () => {
       }
       hapticError();
       // Messages audit M2: a closed, reported or disputed conversation keeps its messages.
-      if (error && /message_locked/.test(error.message)) {
-        toast.error("This message can't be deleted now. The conversation has ended or is being reviewed.");
-      } else {
-        toast.error("Couldn't delete that one — give it another try?");
-      }
+      toast.error(error && /message_locked/.test(error.message) ? "This message can't be deleted now. The conversation has ended or is being reviewed." : "Couldn't delete that one — give it another try?");
     } else {
       const remaining = messages.filter((m) => m.id !== messageId);
       setMessages(remaining);

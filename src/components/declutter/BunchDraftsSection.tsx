@@ -1,8 +1,9 @@
 /**
  * Sell a bunch: "List all my drafts" (audit finding 1). A seller whose items were saved as drafts (the setup fee was
  * due, a phone locked mid-run) had to open each one. This lists them together through publishMany, the same three calls
- * as one listing, after the same four confirmations; each refusal is named. Not shown while the setup fee is due, since
- * every one would be refused. Drafts still on the Check-each-item list stay with that list (exclude).
+ * as one listing, after the same four confirmations; each refusal is named. While the setup fee is due only the free
+ * drafts are offered (the server asks no fee at price 0); a priced one would be refused, and its refusal would stop the
+ * rest (publishMany), so those wait. Drafts still on the Check-each-item list stay with that list (exclude).
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,14 +14,16 @@ import { publishMany, type PublishOutcome } from "@/lib/declutter/moves";
 import { myItemsQuery } from "./myItemsQuery";
 import { TAX_STATEMENTS } from "./declutterUi";
 
-export function BunchDraftsSection({ userId, exclude, busy, onBusy }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; onBusy: (on: boolean) => void }) {
+export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; feeDue: boolean; onBusy: (on: boolean) => void }) {
   const qc = useQueryClient();
   const mine = useQuery(myItemsQuery(userId));
   const [checks, setChecks] = useState<boolean[]>(TAX_STATEMENTS.map(() => false));
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [results, setResults] = useState<{ title: string; outcome: PublishOutcome }[] | null>(null);
-  const drafts = (mine.data ?? []).filter((i) => i.status === "draft" && !exclude.has(i.id));
+  const saved = (mine.data ?? []).filter((i) => i.status === "draft" && !exclude.has(i.id));
+  const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved;
+  const waiting = saved.length - drafts.length;
 
   async function listAll() {
     setProblem(null);
@@ -54,7 +57,8 @@ export function BunchDraftsSection({ userId, exclude, busy, onBusy }: { userId: 
       {drafts.length > 0 && (
         <>
           <p className="text-xs text-muted-foreground">
-            You have {drafts.length} unfinished {drafts.length === 1 ? "listing" : "listings"}. List them together, or finish each one under Selling. Each statement counts for every draft you list now.
+            You have {drafts.length} unfinished {feeDue ? "free " : ""}{drafts.length === 1 ? "listing" : "listings"}. List them together, or finish each one under Selling. Each statement counts for every draft you list now.
+            {waiting > 0 && ` ${waiting} priced ${waiting === 1 ? "draft waits" : "drafts wait"} for the setup fee.`}
           </p>
           {TAX_STATEMENTS.map((s, i) => (
             <div key={s} className="flex items-start gap-3 text-sm">
@@ -64,7 +68,7 @@ export function BunchDraftsSection({ userId, exclude, busy, onBusy }: { userId: 
           ))}
           {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
           <Button type="button" className="rounded-full" disabled={busy} onClick={() => void listAll()}>
-            {progress ? `Listing… (${progress.done} of ${progress.total})` : "List all my drafts"}
+            {progress ? `Listing… (${progress.done} of ${progress.total})` : feeDue ? "List my free drafts" : "List all my drafts"}
           </Button>
         </>
       )}

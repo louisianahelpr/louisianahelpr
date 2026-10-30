@@ -1,11 +1,14 @@
 /**
  * Sell a bunch audit finding 1: the setup fee used to appear only after every photo was sorted, uploaded and drafted,
- * and the first publish was refused. Now a seller who owes it is asked FIRST, before any photo goes anywhere, and
- * "List all my drafts" finishes what is already saved, after the same four confirmations.
+ * and the first publish was refused. Now a seller who owes it is told FIRST, and "List all my drafts" finishes what is
+ * already saved, after the same four confirmations. Free items never owe it (declutter_setup_fee_before_list asks no
+ * fee at price 0; read on prod 2026-10-30), so they carry on while it is due: T2's finding, lead's decision 10-30.
  *
  * @mutate src/components/declutter/BunchFeeGate.tsx |   if (!profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (true) return null;
  * @mutate src/components/declutter/BunchFeeGate.tsx |   if (!profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (!profile) return null;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |   const blocked = busy \|\| feeDue != null; |   const blocked = busy;
+ * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |   const blocked = busy; |   const blocked = busy \|\| feeDue != null;
+ * @mutate src/components/declutter/BunchDraftsSection.tsx |   const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved; |   const drafts = saved;
  * @mutate src/components/declutter/BunchDraftsSection.tsx |     if (checks.some((c) => !c)) { |     if (false) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,7 +21,7 @@ const h = vi.hoisted(() => ({
   isAdmin: false,
   feeCents: 200 as number | null,
   feeFails: false,
-  mine: [] as { id: string; title: string; status: string }[],
+  mine: [] as { id: string; title: string; status: string; current_price_cents?: number }[],
   pay: vi.fn(async () => "opened"),
   publishMany: vi.fn(),
 }));
@@ -72,11 +75,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("the setup fee comes first", () => {
-  it("a seller who owes it is asked before adding a photo, at the platform's own price, and can pay from there", async () => {
+  it("a seller who owes it is told before adding a photo, at the platform's own price, can pay from there, and can still add free items", async () => {
     renderFlow();
     expect(await screen.findByText("Your first listing needs a one-time $2 setup fee")).toBeTruthy();
-    expect(addPhotos().disabled).toBe(true);
-    expect(screen.getByRole("button", { name: "Add photos" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText(/tick "Give it away free" on each one/)).toBeTruthy();
+    expect(addPhotos().disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Pay $2" }));
     await waitFor(() => expect(h.pay).toHaveBeenCalledTimes(1));
   });
@@ -141,11 +144,41 @@ describe("List all my drafts", () => {
     expect(screen.getByText("1 listed.")).toBeTruthy();
   });
 
-  it("is not offered while the fee is due: every draft would be refused", async () => {
+  it("a paid-up seller's list counts priced and free drafts alike", async () => {
+    h.mine = [
+      { id: "d1", title: "Oak chair", status: "draft", current_price_cents: 4000 },
+      { id: "f1", title: "Old rug", status: "draft", current_price_cents: 0 },
+    ];
+    renderFlow();
+    expect(await screen.findByRole("button", { name: "List all my drafts" })).toBeTruthy();
+    expect(screen.queryByText(/waits? for the setup fee/)).toBeNull();
+  });
+
+  it("is not offered for priced drafts while the fee is due: each would be refused", async () => {
     h.profile = { onboarding_fee_paid: false, is_seed: false };
+    h.mine = [{ id: "d1", title: "Oak chair", status: "draft", current_price_cents: 4000 }];
     renderFlow();
     await screen.findByText("Your first listing needs a one-time $2 setup fee");
-    expect(screen.queryByRole("button", { name: "List all my drafts" })).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole("button", { name: /List (all )?my/ })).toBeNull();
+  });
+
+  it("while the fee is due the free drafts still list together, and the priced one is left out and named", async () => {
+    h.profile = { onboarding_fee_paid: false, is_seed: false };
+    h.mine = [
+      { id: "d1", title: "Oak chair", status: "draft", current_price_cents: 4000 },
+      { id: "f1", title: "Old rug", status: "draft", current_price_cents: 0 },
+      { id: "f2", title: "Box of books", status: "draft", current_price_cents: 0 },
+    ];
+    h.publishMany.mockResolvedValue([{ id: "f1", status: "live" }, { id: "f2", status: "live" }]);
+    renderFlow();
+    const button = await screen.findByRole("button", { name: "List my free drafts" });
+    expect(screen.getByText(/1 priced draft waits for the setup fee\./)).toBeTruthy();
+    for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-drafts-tax-${i}`)!);
+    fireEvent.click(button);
+    await waitFor(() => expect(h.publishMany).toHaveBeenCalledTimes(1));
+    expect(h.publishMany.mock.calls[0][0]).toEqual(["f1", "f2"]);
+    expect(await screen.findByText("2 listed.")).toBeTruthy();
   });
 
   it("is not there with no drafts", async () => {

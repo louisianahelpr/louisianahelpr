@@ -273,6 +273,14 @@ export function bunchItemProblem(it: BunchItem): string | null {
     .replace("Give each item a price", "Give it a price") ?? null;
 }
 
+/**
+ * The items a listing run takes. While the setup fee is due, only the free ones: declutter_setup_fee_before_list asks
+ * no fee at price 0. The server stays the protection; this only keeps a priced item from being refused after its work.
+ */
+export function bunchListable(items: BunchItem[], feeDue: boolean): BunchItem[] {
+  return items.filter((it) => !bunchItemProblem(it) && (!feeDue || !!it.free));
+}
+
 /* ---- Listing them all ---------------------------------------------------- */
 
 /**

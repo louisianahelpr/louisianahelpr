@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { takeFirstScreenSwitches } from "@/lib/declutter/bootPrefetch";
 import { featureSwitchBatchKey, featureSwitchSingleKey } from "@/lib/featureSwitchQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { FEATURE_SWITCH_KEYS, type FeatureKey } from "@/config/featureSwitches";
@@ -29,10 +30,14 @@ const SWITCH_QUERY_META = { persist: false } as const;
  * build can reach prod before db-deploy has applied the migration); each switch
  * then asks feature_enabled_for on its own, as before. Any other error throws.
  */
-async function fetchAllSwitches(): Promise<Record<string, boolean> | null> {
-  const res = await supabase.rpc("feature_switches_for_me", { p_keys: [...FEATURE_SWITCH_KEYS] });
-  if (res.error && isMissingRpcNamed(res.error, "feature_switches_for_me")) return null;
-  const data = unwrap(res);
+async function fetchAllSwitches(uid: string | null): Promise<Record<string, boolean> | null> {
+  // A cold /declutter already asked, in one read with its first screen (src/boot/declutterPrefetch.ts); taken once.
+  let data: unknown = await takeFirstScreenSwitches(uid);
+  if (!data) {
+    const res = await supabase.rpc("feature_switches_for_me", { p_keys: [...FEATURE_SWITCH_KEYS] });
+    if (res.error && isMissingRpcNamed(res.error, "feature_switches_for_me")) return null;
+    data = unwrap(res);
+  }
   const out: Record<string, boolean> = {};
   if (data && typeof data === "object" && !Array.isArray(data)) {
     // Only a literal true is on; anything else in the answer reads as off.
@@ -94,7 +99,7 @@ export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boole
     enabled: signedIn,
     staleTime: STALE_MS,
     meta: SWITCH_QUERY_META,
-    queryFn: fetchAllSwitches,
+    queryFn: () => fetchAllSwitches(uid),
     select: (all: Record<string, boolean> | null) => (all === null ? undefined : all[key] === true),
   });
   // Only while the batched RPC is missing: the old per-switch read.

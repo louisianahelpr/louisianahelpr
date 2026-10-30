@@ -8,7 +8,8 @@
  * World: declutter_items, declutter_item_photos and declutter_watchlist with the SELECT policies and column grants
  * read from prod on 2026-10-30, run as role authenticated with auth.uid() from a setting. Stubbed, and said so:
  * feature_switches_for_me and feature_enabled_for (a table of switches per user), seed_hidden_in_discovery (true), and
- * declutter_bundle_sellers (raises when the switch is off, as prod's require_feature does).
+ * declutter_bundle_sellers (raises when the switch is off, as prod's require_feature does). profiles is cut down to the
+ * two position columns with its own-row policy.
  */
 import os from "node:os";
 import { readFileSync, readdirSync } from "node:fs";
@@ -29,6 +30,12 @@ const MUTANTS = {
   // Asks about bundles with the switch off, which raises.
   bundle: ["WHEN COALESCE(v_switches ->> 'declutter', 'false') = 'true' AND COALESCE(cardinality(v_sellers), 0) > 0", "WHEN true"],
   // Open to signed-out visitors.
+  // The 500 of the first draft, not what the first screen needs.
+  cap: ["v_cap constant integer := 24;", "v_cap constant integer := 500;"],
+  // Newest instead of nearest: the first cards would not be the top of the final list.
+  order: ["ORDER BY miles NULLS LAST, i.live_at DESC", "ORDER BY i.live_at DESC"],
+  // The caller's own listings use up the cap.
+  own: [" AND i.seller_id IS DISTINCT FROM v_me", ""],
   grant: ["REVOKE ALL ON FUNCTION public.declutter_first_screen(text[]) FROM PUBLIC, anon;", ""],
 };
 let mig = readFileSync(MIG_DIR + THIS, "utf8");
@@ -42,7 +49,7 @@ let failures = 0;
 const check = (ok, name) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}`); if (!ok) failures++; };
 const U = (n) => `11111111-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const I = (n) => `22222222-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const ME = U(1), SELLER = U(2), OFF = U(3);
+const ME = U(1), SELLER = U(2), OFF = U(3), NOWHERE = U(4), CROWD = U(5), MANY = U(6);
 
 const db = await PGlite.create();
 await db.exec(`
@@ -87,6 +94,11 @@ await db.exec(`
   GRANT SELECT ON public.declutter_watchlist TO authenticated;
   ALTER TABLE public.declutter_watchlist ENABLE ROW LEVEL SECURITY;
   CREATE POLICY "declutter watchlist: member reads own" ON public.declutter_watchlist FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
+  CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, latitude numeric, longitude numeric);
+  GRANT SELECT ON public.profiles TO authenticated;
+  ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
+  INSERT INTO public.profiles VALUES ('${ME}', NULL, NULL), ('${NOWHERE}', NULL, NULL), ('${CROWD}', 30.45, -91.15);
   INSERT INTO public.switch_off VALUES ('${OFF}');
   INSERT INTO public.declutter_items (id, seller_id, status, title, floor_price_cents, is_seed, seller_hidden) VALUES
     ('${I(1)}', '${SELLER}', 'live', 'real item', 5000, false, false),
@@ -124,6 +136,9 @@ check(JSON.stringify(me.value?.watching) === JSON.stringify([I(1)]), "only my ow
 check(JSON.stringify(me.value?.bundle_sellers) === JSON.stringify([SELLER]), "bundle sellers asked for what is listed");
 check(me.value?.switches?.declutter === true, "the switches come back");
 
+check(me.value?.more === false, "a list that fits says there is no more");
+check(me.value?.near === null, "no position on file, no 'near'");
+
 const off = await call(OFF);
 check(!off.error, `the switch off is an answer, not an error${off.error ? `: ${off.error}` : ""}`);
 check((off.value?.items ?? []).length === 0, "the switch off shows no items");
@@ -136,6 +151,42 @@ const priv = await db.query(
 );
 check(priv.rows[0].anon === false, "role anon cannot run it");
 check(priv.rows[0].member === true, "a member can");
+
+// The cap and the order: 30 others at growing distance, newest farthest, plus CROWD's own, all live.
+await db.exec(`
+  INSERT INTO public.declutter_items (id, seller_id, status, title, area_lat, area_lng, live_at)
+  SELECT ('33333333-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '${MANY}', 'live', 'many ' || n, 30.45 + n * 0.1, -91.15,
+         now() + (n || ' minutes')::interval
+    FROM generate_series(1, 30) n;
+  INSERT INTO public.declutter_items (id, seller_id, status, title, area_lat, area_lng) VALUES
+    ('44444444-0000-0000-0000-000000000001', '${CROWD}', 'live', 'my own, right here', 30.45, -91.15);
+  INSERT INTO public.declutter_item_photos (item_id, storage_path, position)
+  SELECT id, title || '.jpg', 0 FROM public.declutter_items WHERE seller_id = '${MANY}';
+`);
+const crowd = await call(CROWD);
+const list = crowd.value?.items ?? [];
+check(list.length === 24, `the answer stops at the cap (${list.length})`);
+check(crowd.value?.more === true, "and says there are more");
+check(!list.some((i) => i.seller_id === CROWD), "my own listings don't use up the cap");
+check(!list.some((i) => "miles" in i), "the working column is not sent");
+check(crowd.value?.near?.lat === 30.45 && crowd.value?.near?.lng === -91.15, "it says which position it sorted from");
+// The same formula as milesBetween and a stable sort over newest first: the exact top of what the browser will show.
+const rad = (d) => (d * Math.PI) / 180;
+const miles = (i) => {
+  const a = { lat: 30.45, lng: -91.15 }, b = { lat: Number(i.area_lat), lng: Number(i.area_lng) };
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+await db.exec(`SET test.uid = '${CROWD}'; SET ROLE authenticated;`);
+const full = (await db.query(`SELECT id, area_lat, area_lng FROM public.declutter_items WHERE status IN ('live','reserved') AND seller_id IS DISTINCT FROM '${CROWD}' ORDER BY live_at DESC`)).rows;
+await db.exec("RESET ROLE;");
+const browserTop = [...full].sort((x, y) => miles(x) - miles(y)).slice(0, 24).map((r) => r.id);
+check(JSON.stringify(list.map((i) => i.id)) === JSON.stringify(browserTop), "the 24 are exactly the top of the browser's own closest-first list");
+const covered = new Set(list.map((i) => i.id));
+check((crowd.value?.photos ?? []).length > 0 && crowd.value.photos.every((p) => covered.has(p.item_id)), "photos only for those 24");
+const newest = await call(NOWHERE);
+const newestAt = (newest.value?.items ?? []).map((i) => new Date(i.live_at).getTime());
+check(newestAt.length === 24 && newestAt.every((t, i) => i === 0 || newestAt[i - 1] >= t), "no position: the newest 24, newest first");
 
 const def = await db.query("SELECT p.prosecdef, p.provolatile FROM pg_proc p WHERE p.proname = 'declutter_first_screen'");
 check(def.rows.length === 1 && def.rows[0].prosecdef === false && def.rows[0].provolatile === "s", "one definition, invoker and stable");

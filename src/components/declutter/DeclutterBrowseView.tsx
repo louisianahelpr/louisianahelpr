@@ -11,9 +11,9 @@
  * Nearest first, a distance filter in the sheet, area + miles only (spec rows 5, 27). Any distance by default (owner,
  * 2026-10-19); a saved search (Q2275) opens Browse with its filters in the URL.
  */
-import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sofa } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -46,6 +46,7 @@ import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -152,11 +153,31 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   const { origin, askDevice, asked, asking, canAskAgain, deviceNote, zip } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
-  const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
+  // More listings than a cold load's first answer holds (declutter_first_screen): its cards show while the full read
+  // runs, ONLY when they are exactly the top of the final list, so nothing moves when the rest arrive. Searching,
+  // filtering, a distance or another sort needs the whole list, so each of those waits for it.
+  const [capped, setCapped] = useState<Pick<FirstScreenAnswer, "items" | "near"> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void readFirstScreenPreview().then((p) => {
+      if (alive) setCapped(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const preview =
+    !items.data && !!capped && origin.status !== "pending" &&
+    previewIsTopOfList(capped.near, from, query.trim() === "" && filters.sort === "closest" && activeFilterCount(filters, maxMiles) === 0);
+  const listed = (items.data ?? (preview ? capped?.items : undefined)) as typeof items.data;
+  const others = useMemo(() => (listed ?? []).filter((i) => i.seller_id !== userId), [listed, userId]);
+  // keepPreviousData: when the full list replaces the preview the ids change, and the cards on screen keep their photos
+  // and tags instead of going back to the bones. Below them, a card's photo comes with the next read.
   const photos = useQuery({
     queryKey: ["declutter", "photos", others.map((i) => i.id).join(",")],
     queryFn: () => fetchPhotos(others.map((i) => i.id)),
     enabled: others.length > 0,
+    placeholderData: keepPreviousData,
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   // The nightly drop plan per item (board 25's "May drop tonight" tag and the "Price drops" filter), beside the
@@ -165,10 +186,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
     queryKey: ["declutter", "drop-states", others.map((i) => i.id).join(",")],
     queryFn: () => fetchDropStates(others.map((i) => i.id)),
     enabled: others.length > 0,
+    placeholderData: keepPreviousData,
   });
   // D-NEW12: the sellers on this page with a bundle discount on (one read; no chip until it is deployed).
   const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
-  const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0 });
+  const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0, placeholderData: keepPreviousData });
   // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
   const qc = useQueryClient();
   const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
@@ -197,14 +219,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   // ONE gate for the list and its cover photos, so the cards arrive in one paint instead of the list first and its
   // photos in a second wave (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never loading) when
   // there is nothing to show.
-  const listLoading = items.isLoading || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
+  const listLoading = (items.isLoading && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip };
 
   const header: DeclutterBrowseHeader = desktop
     ? {
-        count: listLoading || items.isError ? undefined : rows.length,
+        count: listLoading || preview || items.isError ? undefined : rows.length,
         end: (
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
             <InlineListSearch value={query} onChange={setQuery} label="Search items" />
@@ -322,7 +344,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
             ))}
           </ul>
         )}
-        {rows.length > 0 && (
+        {rows.length > 0 && !preview && (
           <BrowseEndCard
             // Widen one step (DISTANCE_CHOICES), up to "Any distance"; none when the distance is already any (lead,
             // 2026-10-19).

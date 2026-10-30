@@ -4,6 +4,7 @@
  * below the item's lowest price. The cart previews the real discount from the server (the same computation checkout
  * uses); members see "Bundle discount -$X" and the total, never fee math. Every rule is the server's.
  */
+import { takeFirstScreenBundleSellers } from "@/lib/declutter/bootPrefetch";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
@@ -47,6 +48,8 @@ export async function fetchBundleApplies(itemIds: string[]): Promise<Set<string>
  *  before the read is deployed, so no chip shows until it is. */
 export async function fetchBundleSellers(sellerIds: string[]): Promise<Set<string>> {
   if (sellerIds.length === 0) return new Set();
+  const prefetched = await takeFirstScreenBundleSellers(sellerIds);
+  if (prefetched) return new Set(prefetched);
   const res = await supabase.rpc("declutter_bundle_sellers", { p_seller_ids: sellerIds.slice(0, 200) });
   if (res.error && isMissingRpcNamed(res.error, "declutter_bundle_sellers")) return new Set();
   const ids = rpcData(res, (e) => rpcErrorMessage("declutter_bundle_sellers", e)) as unknown as string[] | null;

@@ -19,6 +19,7 @@
  *   declutter_* and email_declutter_*  migration 20261028162048 (14 columns)
  *   remind_starting_soon, remind_finish_job, remind_payout_followups  migration 20261030031059 (Job reminders)
  *   remind_two_hours, remind_morning_of, remind_head_out  migration 20261030035326 (Q2483 start reminders)
+ *   message_preview            migration 20261030141139 (Messages audit M6)
  */
 const DECLUTTER_KINDS = [
   "declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
@@ -31,6 +32,7 @@ const DEPLOY_LAG_COLUMNS = [
   ...DECLUTTER_KINDS.map((k) => `email_${k}` as const),
   "remind_starting_soon", "remind_finish_job", "remind_payout_followups",
   "remind_two_hours", "remind_morning_of", "remind_head_out",
+  "message_preview",
 ] as const;
 
 type LagColumn = (typeof DEPLOY_LAG_COLUMNS)[number];

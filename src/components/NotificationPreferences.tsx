@@ -1,6 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
+import { MessagePreviewRow } from "./notificationPreferences/MessagePreviewRow";
 import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
@@ -688,7 +689,23 @@ const NotificationPreferences = () => {
         )}
       </div>
 
-      {rows.map(renderRow)}
+      {/* "Show message words" sits right under Messages (Messages audit M6). */}
+      {rows.map((item) => item.key !== "messages" ? renderRow(item) : (
+        <Fragment key={item.key}>
+          {renderRow(item)}
+          {columns.message_preview && (
+            <MessagePreviewRow
+              loaded={loaded}
+              savingKey={savingKey}
+              checked={prefs.message_preview && prefs.messages && prefs.push_enabled}
+              onToggle={() => void toggle("message_preview")}
+              disabled={locked || !prefs.messages || !prefs.push_enabled}
+              dimmed={!prefs.messages || !prefs.push_enabled}
+              saving={saving}
+            />
+          )}
+        </Fragment>
+      ))}
       {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={(key) => columns[key]} onToggle={(key) => void toggle(key)} />}
 
       {/* The Declutter group (owner 2026-10-28, via the lead): only once its

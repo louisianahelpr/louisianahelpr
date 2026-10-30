@@ -1,6 +1,8 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { heicToJpeg, isHeicFile } from "@/lib/heicToJpeg";
+import { cleanProofPhoto } from "@/lib/cleanProofPhoto";
+import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { useEffect, useRef, useState } from "react";
 import { takePhotoCapture } from "@/components/job-card/photoCaptureRequest";
@@ -131,14 +133,21 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   const addFiles = async (picked: File[]) => {
     // A HEIC becomes a JPEG here, so every browser can draw it later. One this browser can't read is refused
     // out loud and left where it is on the device: stored as it was, the poster's browser may show nothing.
+    // Then every photo loses its EXIF, GPS included. One that can't be cleaned is refused, never uploaded as it is.
     const selected: File[] = [];
-    setConverting(picked.some(isHeicFile));
+    setConverting(true);
     try {
       for (const f of picked) {
         const ready = isHeicFile(f) ? await heicToJpeg(f) : f;
-        if (!ready) toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);
-        else if (isAllowedUploadType(ready, PROOF_PHOTO_TYPES)) selected.push(ready);
-        else toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+        if (!ready) {
+          toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);
+        } else if (!isAllowedUploadType(ready, PROOF_PHOTO_TYPES)) {
+          toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+        } else {
+          const clean = await cleanProofPhoto(ready);
+          if (clean) selected.push(clean);
+          else toast.error(LISTING_PHOTO_UNCLEANABLE);
+        }
       }
     } finally {
       setConverting(false);

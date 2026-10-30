@@ -5,7 +5,10 @@
  * jsdom decodes nothing, so Image and the canvas encoder are stood in for; a real decode is the browser run's job.
  *
  * @mutate src/components/PhotoProof.tsx | const ready = isHeicFile(f) ? await heicToJpeg(f) : f; | const ready = f;
- * @mutate src/components/PhotoProof.tsx |         if (!ready) toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);\n        else if | if (!ready) continue;\n        else if
+ * @mutate src/components/PhotoProof.tsx |           toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);\n | \n
+ * @mutate src/components/PhotoProof.tsx |           const clean = await cleanProofPhoto(ready); |           const clean: File \| null = ready;
+ * @mutate src/components/PhotoProof.tsx |           else toast.error(LISTING_PHOTO_UNCLEANABLE); |           else selected.push(ready);
+ * @mutate src/lib/cleanProofPhoto.ts |     return await cleanListingPhoto(file, PROOF_MAX_SIDE, PROOF_QUALITY); |     return file;
  * @mutate src/lib/heicToJpeg.ts |   if (!blob \|\| blob.type !== "image/jpeg") return null; |   if (!blob) return null;
  * @mutate src/lib/heicToJpeg.ts |   if (type) return HEIC_TYPES.has(type);\n | \n
  * @mutate src/components/ProofPhotoImg.tsx |       onError={() => { if (src) setFailedSrc(src); }}\n |
@@ -29,12 +32,20 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+const clean = vi.hoisted(() => ({ fn: null as null | ((f: File) => Promise<File | null>) }));
+vi.mock("@/lib/cleanProofPhoto", async (orig) => {
+  const actual = await orig<typeof import("@/lib/cleanProofPhoto")>();
+  return { ...actual, cleanProofPhoto: (f: File) => (clean.fn ? clean.fn(f) : actual.cleanProofPhoto(f)) };
+});
+const compress = vi.hoisted(() => ({ fn: null as null | ((f: File) => Promise<File>) }));
+vi.mock("@/lib/imageCompression", () => ({ compressImage: (f: File) => compress.fn!(f) }));
 vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: (v: readonly string[]) => v.map((x) => `https://signed.example/${x}`), PENDING_PHOTO_SRC: "pending" }));
 
 import { PhotoProofCaptureChip } from "@/components/PhotoProof";
 import { PhotoProofDialog } from "@/components/PhotoProofDialog";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { heicToJpeg, isHeicFile } from "@/lib/heicToJpeg";
+import { cleanProofPhoto } from "@/lib/cleanProofPhoto";
 
 /** A browser that decodes (`decodes: true`, WebKit) or doesn't (Chromium), with an encoder that answers `encoded`. */
 function browser({ decodes, encoded = "image/jpeg" }: { decodes: boolean; encoded?: string }) {
@@ -57,7 +68,13 @@ function browser({ decodes, encoded = "image/jpeg" }: { decodes: boolean; encode
 }
 const heic = (name = "IMG_1.HEIC", type = "image/heic") => new File(["h"], name, { type });
 
-beforeEach(() => { uploads.length = 0; toastError.mockClear(); });
+beforeEach(() => {
+  uploads.length = 0;
+  toastError.mockClear();
+  // The upload's own tests stand a marked file in for the cleaned one, so they can see it was the one uploaded.
+  clean.fn = async (f) => new File([f], f.name, { type: f.type, lastModified: 1 });
+  compress.fn = null;
+});
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("heicToJpeg", () => {
@@ -113,14 +130,58 @@ describe("the proof upload", () => {
     expect(uploads).toHaveLength(0);
   });
 
-  it("a JPEG goes straight through, untouched", async () => {
+  it("a JPEG uploads as what the cleaner returned, never the file picked", async () => {
     browser({ decodes: false });
     const jpg = new File(["j"], "a.jpg", { type: "image/jpeg" });
     pick(jpg);
-    fireEvent.click(screen.getByRole("button", { name: "Upload" }));
+    const go = screen.getByRole("button", { name: "Upload" }) as HTMLButtonElement;
+    await waitFor(() => expect(go.disabled).toBe(false));
+    fireEvent.click(go);
     await waitFor(() => expect(uploads).toHaveLength(1));
-    expect(uploads[0].file).toBe(jpg);
+    expect(uploads[0].file).not.toBe(jpg);
+    expect(uploads[0].file.lastModified).toBe(1);
     expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("a photo that can't be cleaned is refused out loud and never uploaded", async () => {
+    browser({ decodes: false });
+    clean.fn = async () => null;
+    pick(new File(["j"], "a.jpg", { type: "image/jpeg" }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledTimes(1));
+    expect(String(toastError.mock.calls[0][0])).toMatch(/couldn.t prepare this photo\./);
+    expect((screen.getByRole("button", { name: "Upload" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(uploads).toHaveLength(0);
+  });
+});
+
+describe("cleanProofPhoto takes the EXIF out, GPS included", () => {
+  /** A JPEG: start, an APP1 block holding "Exif" and a GPS tag when asked, then start-of-scan. */
+  const jpeg = (gps: boolean) => {
+    const app1 = gps ? [0xff, 0xe1, 0x00, 0x0c, ...new TextEncoder().encode("Exif\0\0GPS\0")] : [];
+    return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46, ...app1, 0xff, 0xda, 0x00, 0x02, 0x11, 0xff, 0xd9]);
+  };
+  const text = async (f: File) => new TextDecoder("latin1").decode(await f.arrayBuffer());
+
+  it("what comes out has no EXIF or GPS, though the re-encode carried some", async () => {
+    clean.fn = null;
+    compress.fn = async () => new File([jpeg(true)], "a.jpg", { type: "image/jpeg" });
+    const got = await cleanProofPhoto(new File([jpeg(true)], "a.jpg", { type: "image/jpeg" }));
+    expect(got?.type).toBe("image/jpeg");
+    const out = await text(got!);
+    expect(out).not.toContain("Exif");
+    expect(out).not.toContain("GPS");
+  });
+
+  it("the original handed back (no canvas, empty encoder) is refused, GPS and all", async () => {
+    clean.fn = null;
+    compress.fn = async (f) => f;
+    expect(await cleanProofPhoto(new File([jpeg(true)], "a.jpg", { type: "image/jpeg" }))).toBeNull();
+  });
+
+  it("an encoder failure is a refusal, not a throw", async () => {
+    clean.fn = null;
+    compress.fn = async () => { throw new Error("Failed to load image for compression"); };
+    expect(await cleanProofPhoto(new File([jpeg(true)], "a.jpg", { type: "image/jpeg" }))).toBeNull();
   });
 });
 

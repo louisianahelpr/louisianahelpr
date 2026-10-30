@@ -24,7 +24,6 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -38,16 +37,18 @@ import {
   askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher,
 } from "@/lib/declutter/bunch";
-import { DeclutterNotice, TAX_STATEMENTS } from "./declutterUi";
+import { DeclutterNotice, TaxStatementsCheck } from "./declutterUi";
 import { AREA_ADDRESS_RE } from "./sellForm";
-import { PickupTimesEditor } from "./DeclutterPickupTimes";
-import { SellHandoverChoices } from "./SellHandoverChoices";
+import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
+import { handoverSummary, SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
-import { BunchChoicesCard, samePickupWindows, useBunchChoices } from "./BunchChoices";
+import { BunchChoicesCard, bunchDropsLine, samePickupWindows, useBunchChoices } from "./BunchChoices";
+import { LastSetupNote } from "./SellLastSetup";
+import { useSavedPickup } from "./useSavedPickup";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useBunchThumbs } from "./useBunchThumbs";
 
@@ -82,7 +83,8 @@ export default function BunchFlow() {
   const [rewriting, setRewriting] = useState<string | null>(null);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   const [ways, setWays] = useState<SellerHandover[]>(["porch"]);
-  const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
+  // One tick for the four statements covers the whole run (owner 2026-10-30); attestItem still records all four per item.
+  const [attested, setAttested] = useState(false);
   const [listing, setListing] = useState<{ done: number; total: number } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
@@ -140,6 +142,16 @@ export default function BunchFlow() {
   // same read and cache entry). Applied once, only to a box still blank. A failed read is extra help lost, not a
   // blocker: the boxes start blank, and the app's QueryCache reports the error.
   const lastSetup = useQuery({ queryKey: ["declutter", "last-setup", user?.id], queryFn: () => fetchLastSetup(user!.id), enabled: !!user, staleTime: 60_000 });
+  // Saved settings are the source once they exist (owner 2026-10-30, "I don't need to keep adding it every time"):
+  // they replace what the last listing filled in, never what the seller typed or a bunch that came back.
+  const savedSetup = useSavedPickup(user?.id, (p, lastAddress) => {
+    const mine = (address: string) => !address.trim() || address === lastAddress;
+    setPickupAddress((a) => (mine(a) ? p.address : a));
+    setAreaLabel((a) => (!a.trim() || a === lastSetup.data?.areaLabel ? p.areaLabel : a));
+    setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
+  });
+  const [whereOpen, setWhereOpen] = useState(false);
+  const [listOptionsOpen, setListOptionsOpen] = useState(false);
   const placeLoaded = useRef(false);
   useEffect(() => {
     const s = lastSetup.data;
@@ -265,7 +277,7 @@ export default function BunchFlow() {
     setProblem(null);
     const p = placeProblem
       ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
-      ?? (checks.some((c) => !c) ? "All four statements need a check before you can list these items." : null)
+      ?? (!attested ? "Tick the box under the four statements before you list these items." : null)
       ?? (ready.length === 0 ? "No item is ready to list yet." : null);
     if (p) {
       setProblem(p);
@@ -344,12 +356,20 @@ export default function BunchFlow() {
       </ConfirmSheet>
 
       <Section id="bunch-where" title="1. Where buyers pick up">
+        {savedSetup.pickup && !whereOpen && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address ? (
+          <div className="space-y-1" data-bunch-where-saved="">
+            <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[savedSetup.pickup.line, areaLabel.trim()].join(" · ")}</p>
+            <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
+            <LastSetupNote saved onChange={() => setWhereOpen(true)} />
+          </div>
+        ) : (<>
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
         <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
         <input id="bunch-address" className={input} maxLength={300} value={pickupAddress} autoComplete="street-address" placeholder="Street, city, ZIP"
           onChange={(e) => setPickupAddress(e.target.value)} onBlur={() => { if (pickupAddress.trim().length >= 5) void locate(); }} />
         <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
+        </>)}
       </Section>
 
       <Section id="bunch-photos" title="2. Add photos">
@@ -404,6 +424,13 @@ export default function BunchFlow() {
 
       {items.length > 0 && (
         <Section id="bunch-list" title={`4. List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}>
+          {savedSetup.hasSettings && !listOptionsOpen && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
+            <div className="space-y-1" data-bunch-list-saved="">
+              <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[handoverSummary(savedWays), windowsSummary(windows)].filter(Boolean).join(" · ")}</p>
+              {items.some((it) => !it.free) && <p className="text-ds-14 text-foreground" data-bunch-outcome="">{bunchDropsLine(choices.choices)}</p>}
+              <LastSetupNote saved onChange={() => setListOptionsOpen(true)} />
+            </div>
+          ) : (<>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>
           <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
           {savedWindows.isError ? (
@@ -416,15 +443,11 @@ export default function BunchFlow() {
           <BunchChoicesCard c={choices} anyPriced={items.some((it) => !it.free)} />
           <h3 className="pt-2 text-sm font-semibold">How buyers can get them</h3>
           <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
+          </>)}
           {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
           <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
-          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Each statement counts for every item you list now.</p>
-          {TAX_STATEMENTS.map((s, i) => (
-            <div key={s} className="flex items-start gap-3 text-sm">
-              <Checkbox id={`bunch-tax-${i}`} className="mt-0.5" checked={checks[i]} onCheckedChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v === true : x)))} />
-              <label htmlFor={`bunch-tax-${i}`}>{s}</label>
-            </div>
-          ))}
+          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item you list now.</p>
+          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} />
           {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>

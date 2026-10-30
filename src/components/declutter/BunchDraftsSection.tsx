@@ -8,16 +8,15 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { publishMany, type PublishOutcome } from "@/lib/declutter/moves";
 import { myItemsQuery } from "./myItemsQuery";
-import { TAX_STATEMENTS } from "./declutterUi";
+import { TaxStatementsCheck } from "./declutterUi";
 
 export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; feeDue: boolean; onBusy: (on: boolean) => void }) {
   const qc = useQueryClient();
   const mine = useQuery(myItemsQuery(userId));
-  const [checks, setChecks] = useState<boolean[]>(TAX_STATEMENTS.map(() => false));
+  const [attested, setAttested] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [results, setResults] = useState<{ title: string; outcome: PublishOutcome }[] | null>(null);
@@ -27,8 +26,8 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy }: { 
 
   async function listAll() {
     setProblem(null);
-    if (checks.some((c) => !c)) {
-      setProblem("All four statements need a check before you can list your drafts.");
+    if (!attested) {
+      setProblem("Tick the box under the four statements before you list your drafts.");
       return;
     }
     const titles = new Map(drafts.map((d) => [d.id, d.title]));
@@ -57,15 +56,10 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy }: { 
       {drafts.length > 0 && (
         <>
           <p className="text-xs text-muted-foreground">
-            You have {drafts.length} unfinished {feeDue ? "free " : ""}{drafts.length === 1 ? "listing" : "listings"}. List them together, or finish each one under Selling. Each statement counts for every draft you list now.
+            You have {drafts.length} unfinished {feeDue ? "free " : ""}{drafts.length === 1 ? "listing" : "listings"}. List them together, or finish each one under Selling. One tick counts for every draft you list now.
             {waiting > 0 && ` ${waiting} priced ${waiting === 1 ? "draft waits" : "drafts wait"} for the setup fee.`}
           </p>
-          {TAX_STATEMENTS.map((s, i) => (
-            <div key={s} className="flex items-start gap-3 text-sm">
-              <Checkbox id={`bunch-drafts-tax-${i}`} className="mt-0.5" checked={checks[i]} onCheckedChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v === true : x)))} />
-              <label htmlFor={`bunch-drafts-tax-${i}`}>{s}</label>
-            </div>
-          ))}
+          <TaxStatementsCheck id="bunch-drafts-tax" checked={attested} onChange={setAttested} />
           {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
           <Button type="button" className="rounded-full" disabled={busy} onClick={() => void listAll()}>
             {progress ? `Listing… (${progress.done} of ${progress.total})` : feeDue ? "List my free drafts" : "List all my drafts"}

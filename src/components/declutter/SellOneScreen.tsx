@@ -14,33 +14,23 @@ import { useState, type ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import type { PickupWindow } from "@/lib/declutter/api";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { StepHead } from "./DeclutterSellSteps";
-import { pickupWindowsProblem, sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
+import { pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
 import { AutoFreeChoice } from "./AutoFreeRow";
+import { autoFreeOutcomeLine } from "@/lib/declutter/autoFree";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel } from "./SellAiDraft";
 import { handoverSummary } from "./SellHandoverChoices";
 import { LastSetupNote } from "./SellLastSetup";
 import { DeclutterNotice } from "./declutterUi";
-import { formProblem } from "./sellForm";
+import { dropsOutcomeLine, formProblem } from "./sellForm";
 import { SellDropsCard, SellFreeToggle, SellTaxBox, SellWaysFields } from "./SellFormParts";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
-
-const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/** "Sat 9:00 AM–12:00 PM", or "3 pickup times" when the days differ. */
-function windowsSummary(windows: PickupWindow[]): string {
-  if (windows.length === 0) return "";
-  if (!sameHoursEveryDay(windows)) return `${windows.length} pickup times`;
-  const days = [...windows].sort((a, b) => a.weekday - b.weekday).map((w) => SHORT_DAY[w.weekday]).join(", ");
-  return `${days} ${timeLabel(windows[0].starts)}–${timeLabel(windows[0].ends)}`;
-}
 
 type Where = "photos" | SummaryField | "drops" | "ways" | "tax";
 
@@ -63,6 +53,8 @@ export function SellOneScreen() {
   // null: follow the last setup (folded when it was used, open when there was none).
   const [waysOpen, setWaysOpen] = useState<boolean | null>(null);
   const [tried, setTried] = useState(false);
+  // Saved settings fold to one line (owner 2026-10-30); Change opens them, and so does a problem in them.
+  const [priceOptionsOpen, setPriceOptionsOpen] = useState(false);
 
   if (!user) return null;
   if (underAge) {
@@ -75,7 +67,11 @@ export function SellOneScreen() {
     );
   }
 
-  const waysExpanded = waysOpen ?? !usedLastSetup;
+  // Saved settings fold only when nothing in them still needs an answer: a seller with no address yet is asked for it.
+  const waysFromSaved = (s.saved.hasSettings || s.saved.hasPlaces) && form.areaLabel.trim().length >= 2 && form.pickupAddress.trim().length >= 5 && !pickupWindowsProblem(windows);
+  const waysExpanded = waysOpen ?? !(usedLastSetup || waysFromSaved);
+  const priceOptionsFolded = s.saved.hasSettings && !priceOptionsOpen;
+  const dropsLine = dropsOutcomeLine(form);
   const bad = postProblem(s);
   /** The words for what blocks Post, shown in the row they belong to once Post was tapped. */
   const problemAt = (at: Where): ReactNode =>
@@ -84,6 +80,7 @@ export function SellOneScreen() {
     if (bad) {
       setTried(true);
       if (bad.at === "ways") setWaysOpen(true);
+      if (bad.at === "drops") setPriceOptionsOpen(true);
       if (bad.at === "title" || bad.at === "price" || bad.at === "drops") setOpen(bad.at === "drops" ? "price" : bad.at);
       requestAnimationFrame(() => document.querySelector(`[data-sell-row="${bad.at}"]`)?.scrollIntoView?.({ block: "center" }));
       return;
@@ -120,6 +117,14 @@ export function SellOneScreen() {
           problems={{ title: problemAt("title"), price: problemAt("price") }}
           priceExtras={<div className="space-y-3 pt-1">
             <SellFreeToggle s={s} />
+            {priceOptionsFolded ? (
+              <div className="space-y-1 rounded-[20px] border border-border bg-card p-4" data-saved-price-settings="">
+                <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">
+                  {[dropsLine, keepUpWanted ? KEEP_UP_TITLE : null].filter(Boolean).join(" · ")}
+                </p>
+                <LastSetupNote saved onChange={() => setPriceOptionsOpen(true)} />
+              </div>
+            ) : (<>
             {/* DeclutterOfferRules slot (builder 28) */}
             {/* The two switches sit together (owner 2026-10-30: "group all the toggles together"): Lower the price,
                 then Keep it up, both ON by default; "make it free after" (a choice, not a switch) comes after them. */}
@@ -135,6 +140,7 @@ export function SellOneScreen() {
             </div>
             {/* OWN-FREE: "If it doesn't sell, make it free after __ days", Never by default; saved at Post. */}
             {!form.free && <div className="rounded-[20px] border border-border bg-card p-4"><AutoFreeChoice days={autoFreeWanted} onChange={setAutoFreeWanted} /></div>}
+            </>)}
           </div>}
         />
 
@@ -147,7 +153,8 @@ export function SellOneScreen() {
               <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">
                 {[handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)].filter(Boolean).join(" · ")}
               </p>
-              <LastSetupNote onChange={() => setWaysOpen(true)} />
+              {s.saved.pickup && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{s.saved.pickup.line}</p>}
+              <LastSetupNote saved={waysFromSaved} onChange={() => setWaysOpen(true)} />
             </div>
           )}
           {problemAt("ways")}
@@ -155,6 +162,13 @@ export function SellOneScreen() {
 
         <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
 
+        {/* What will happen, in plain words, before Post (owner 2026-10-30). */}
+        {!form.free && dropsLine && (
+          <div className="space-y-0.5 text-ds-14 text-foreground" data-sell-outcome="">
+            <p className="font-semibold">{dropsLine}</p>
+            <p className="text-muted-foreground">{autoFreeOutcomeLine(autoFreeWanted)}</p>
+          </div>
+        )}
         {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving} onClick={post}>
           {s.publishing ? "Posting…" : "Post it"}

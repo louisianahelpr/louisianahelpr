@@ -85,7 +85,7 @@ vi.mock("@/lib/declutter/api", () => ({
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
-import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { TAX_TICK_LABEL } from "./declutterUi";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function open() {
@@ -175,9 +175,9 @@ describe("a resumed draft", () => {
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "How can buyers get it?" });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    const box = await screen.findByRole("checkbox", { name: TAX_ATTESTATION_SENTENCE });
+    const box = await screen.findByRole("checkbox", { name: TAX_TICK_LABEL });
     expect(box).toHaveAttribute("aria-checked", "false");
-    fireEvent.click(screen.getByText(TAX_ATTESTATION_SENTENCE));
+    fireEvent.click(screen.getByText(TAX_TICK_LABEL));
     expect(box).toHaveAttribute("aria-checked", "true");
     expect(document.querySelectorAll("#sell-tax")).toHaveLength(1);
   });

@@ -34,10 +34,10 @@
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
- * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && !(isSeller | {false && !(isSeller
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && ( | {false && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} />
- * @mutate src/components/declutter/DeclutterItemView.tsx | sellerDrops.data.drops_stopped) && ( | false) && (
- * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
+ * @mutate src/components/declutter/DeclutterItemView.tsx | const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null; | const drop = planned;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const planned = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const planned = { at: new Date(), lowestCents: it.current_price_cents - 200, pct: 5 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (buyable.length === 0 \|\| card.isLoading) return null; |   if (card.isLoading) return null;
@@ -556,6 +556,18 @@ describe("the photo-first Declutter item page", () => {
     open();
     await screen.findByText("Your listing is for sale");
     // Both reads (the drop rule and the seller's own stop) have landed before absence is judged.
+    await waitFor(() => expect(state.reads).toBe(2));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  it("seller: a lowest price at the price can't drop, so nothing is said about drops (owner 2026-10-30)", async () => {
+    state.item = { ...ITEM, seller_id: "u1", current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
+    state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 };
+    state.manage = { floor_price_cents: 3800, drops_stopped: false };
+    state.reads = 0;
+    open();
+    await screen.findByText("Your listing is for sale");
     await waitFor(() => expect(state.reads).toBe(2));
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(document.querySelector("[data-price-drop]")).toBeNull();

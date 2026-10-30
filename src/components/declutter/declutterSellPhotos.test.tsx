@@ -187,7 +187,7 @@ describe("photo-first selling, one screen", () => {
     // Owner 2026-10-30 (via the lead): drops are ON by default, with the lowest price filled in at half the asking
     // price so the listing is valid without typing (was OFF until turned on, owner 2026-10-28). Still the seller's.
     // @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: true, drops: false, dropPct: 5,
-    expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true");
     await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("20"));
     fireEvent.click(screen.getByRole("radio", { name: "10%" }));
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
@@ -216,8 +216,8 @@ describe("photo-first selling, one screen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     // On by default (owner 2026-10-30); the seller turns it off.
-    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true"));
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true"));
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
     expect(screen.getByText("Off. It stays at your price until you change it.")).toBeInTheDocument();
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
@@ -295,7 +295,7 @@ describe("photo-first selling, one screen", () => {
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
     expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you save$/);
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
     const words = document.body.textContent ?? "";
     expect(words.length).toBeGreaterThan(200);
     expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);

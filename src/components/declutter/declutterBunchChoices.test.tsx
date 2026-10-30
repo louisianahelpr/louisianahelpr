@@ -18,14 +18,17 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BunchChoices, BunchItem } from "@/lib/declutter/bunch";
 import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import type { MyPorchPlace } from "@/lib/declutter/porchPlaces";
 
 const state = vi.hoisted(() => ({
   saved: null as SellerDefaults | null,
   remembered: [] as SellerDefaults[],
   windows: [] as { weekday: number; starts_local: string; ends_local: string }[],
   windowWrites: 0,
-  listed: [] as { ways: string[]; choices: BunchChoices | undefined; items: BunchItem[] }[],
+  listed: [] as { ways: string[]; choices: BunchChoices | undefined; items: BunchItem[]; place: unknown }[],
   feeDue: null as number | null,
+  places: [] as MyPorchPlace[],
+
 }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -41,8 +44,10 @@ vi.mock("@/components/declutter/useBunchSaved", () => ({
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
+const geocodeCalls = vi.hoisted(() => ({ n: 0 }));
+vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => { geocodeCalls.n++; return { latitude: 30.4, longitude: -91.1 }; } }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => state.places }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({
   ...(await orig<object>()),
@@ -63,8 +68,8 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
       onProgress(1, 1, items);
       return { items, failed: [], unusable: [] };
     },
-    listBunch: async (_s: string, items: BunchItem[], _p: unknown, _pl: unknown, ways: string[], _op: unknown, _d: unknown, _st: unknown, choices?: BunchChoices) => {
-      state.listed.push({ ways, choices, items });
+    listBunch: async (_s: string, items: BunchItem[], _p: unknown, place: unknown, ways: string[], _op: unknown, _d: unknown, _st: unknown, choices?: BunchChoices) => {
+      state.listed.push({ ways, choices, items, place });
       return items.map((i) => ({ key: i.key, title: i.title, status: "live" as const, keepUpFailed: true }));
     },
   };
@@ -77,7 +82,7 @@ beforeAll(() => {
   URL.createObjectURL = () => `blob:test/${++n}`;
   URL.revokeObjectURL = () => {};
 });
-beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; });
+beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; state.places = []; geocodeCalls.n = 0; });
 afterEach(cleanup);
 
 async function open() {
@@ -86,7 +91,7 @@ async function open() {
   const files = ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
   fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
-  await screen.findByText(/Tick every way that works for you/);
+  await screen.findByRole("heading", { name: /^4\. List/ });
 }
 const switchOf = (name: RegExp) => screen.getByRole("switch", { name });
 const isOn = (el: HTMLElement) => el.getAttribute("aria-checked") === "true";
@@ -96,7 +101,7 @@ const KEEP = /Keep it up/;
 async function listIt() {
   fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
-  for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-tax-${i}`)!);
+  fireEvent.click(document.getElementById("bunch-tax")!);
   const list = await screen.findByRole("button", { name: "List 1 item" });
   await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(list);
@@ -119,6 +124,11 @@ describe("Sell a bunch: listing choices", () => {
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
     state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"] };
     await open();
+    // Saved settings are one line (owner 2026-10-30), saying the price choice; Change opens them.
+    const line = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect(line.textContent).toContain("Price drops: off.");
+    expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();
+    fireEvent.click(within(line).getByRole("button", { name: "Change" }));
     await waitFor(() => expect(isOn(switchOf(DROPS))).toBe(false));
     expect(isOn(switchOf(KEEP))).toBe(false);
     fireEvent.click(switchOf(DROPS));
@@ -127,6 +137,33 @@ describe("Sell a bunch: listing choices", () => {
     expect(state.listed[0].choices).toEqual({ keepUp: false, drops: true, dropPct: 15, floorPct: 70 });
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
+  });
+
+  it("a saved pickup place fills it, one line says which, exact point, and first-timers still get the boxes", async () => {
+    state.places = [
+      { id: "p2", position: 2, label: "Mom's house", address: "2 Oak St, Baton Rouge, LA", area: "Garden District", lat: 30.2, lng: -91.2, weekdays: [6] },
+      { id: "p1", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [0] },
+    ];
+    await open();
+    const where = await waitFor(() => { const el = document.querySelector("[data-bunch-where-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect(where.textContent).toContain("Pickup at Home, Mom's house. Buyers pick one.");
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
+    fireEvent.click(document.getElementById("bunch-tax")!);
+    const list = await screen.findByRole("button", { name: "List 1 item" });
+    await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(list);
+    await waitFor(() => expect(state.listed).toHaveLength(1));
+    // The place's own exact point, not the address looked up again (geocode mock answers 30.4, -91.1).
+    expect(state.listed[0].place).toMatchObject({ areaLabel: "Mid-City", pickupAddress: "1 Main St, Baton Rouge, LA", pickupLat: 30.45123, pickupLng: -91.15456 });
+    expect(geocodeCalls.n).toBe(0);
+  });
+
+  it("nothing saved: the area and address boxes show, with no saved-settings line", async () => {
+    await open();
+    expect(screen.getByLabelText("Pickup address")).toBeTruthy();
+    expect(screen.queryByText("Using your saved settings")).toBeNull();
+    expect(document.querySelector("[data-bunch-list-saved]")).toBeNull();
   });
 
   it("the Free tick takes the price box and hint away, says the rule, and the item is ready", async () => {

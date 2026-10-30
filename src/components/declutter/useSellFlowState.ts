@@ -52,6 +52,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
 import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
 import { useLastListingSetup } from "./SellLastSetup";
+import { useSavedPickup } from "./useSavedPickup";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
@@ -168,6 +169,13 @@ export function useSellFlowState(urlItemId: string | null) {
   const resumedEmpty = !!urlItemId && loadedId === urlItemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
   const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !urlItemId && held.length > 0, autoFillEmpty: resumedEmpty, onDraft: setCoverFirst });
   const usedLastSetup = useLastListingSetup(urlItemId ? undefined : user?.id, { setForm, setWays, setCoords });
+  // Saved settings are the source once they exist (owner 2026-10-30): they replace what the last listing filled in,
+  // never what the seller typed, and the point comes with them.
+  const saved = useSavedPickup(urlItemId ? undefined : user?.id, (p, lastAddress) => {
+    const mine = (address: string) => !address.trim() || address === lastAddress;
+    setForm((f) => (mine(f.pickupAddress) ? { ...f, areaLabel: p.areaLabel, pickupAddress: p.address } : f));
+    setCoords((c) => (!c || mine(c.address) ? { lat: p.lat, lng: p.lng, address: p.address } : c));
+  });
   const problem = useMemo(() => formProblem(form), [form]);
   const keepUp = useKeepUp(urlItemId);
   // A new listing's "Keep it up until it sells": there is no draft to save it on until Post. ON by default (owner
@@ -352,7 +360,7 @@ export function useSellFlowState(urlItemId: string | null) {
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
   return {
-    user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
+    saved, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish,

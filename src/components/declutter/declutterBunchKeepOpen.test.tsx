@@ -32,6 +32,7 @@ vi.mock("@/components/declutter/DeclutterPriceHint", () => ({ default: () => nul
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.4, longitude: -91.1 }) }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
@@ -63,7 +64,7 @@ async function reachListing() {
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
   fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
-  for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-tax-${i}`)!);
+  fireEvent.click(document.getElementById("bunch-tax")!);
   const list = await screen.findByRole("button", { name: "List 2 items" });
   await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
   return list;

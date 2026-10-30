@@ -8,9 +8,9 @@ export const AUTO_FREE_DAY_CHOICES = [7, 14, 21, 30] as const;
 
 export const AUTO_FREE_LABEL = "If it doesn't sell, make it free after";
 
-/** The chips: Never first (the default), then each day count. */
+/** The chips: Never first (the default), named so it can't be read as "never drop", then each day count. */
 export const AUTO_FREE_OPTIONS: { value: string; label: string }[] = [
-  { value: "never", label: "Never" },
+  { value: "never", label: "Never make it free" },
   ...AUTO_FREE_DAY_CHOICES.map((d) => ({ value: String(d), label: `${d} days` })),
 ];
 
@@ -25,8 +25,14 @@ export function autoFreeDaysFrom(value: string): number | null {
 
 /** What the choice does, in one line under the chips. */
 export function autoFreeExplainer(days: number | null): string {
-  if (days === null) return "It stays at your price until it sells or you change it.";
+  // About free only (owner 2026-10-30): it once said "It stays at your price" here, which a seller read as "no price drops".
+  if (days === null) return "It won't become free on its own. This has nothing to do with price drops.";
   return `If it hasn't sold by day ${days}, it becomes free and anyone nearby can claim it. Already past day ${days}? It becomes free tonight.`;
+}
+
+/** The line before Post: about free only, so it can't be read as "never drop". */
+export function autoFreeOutcomeLine(days: number | null): string {
+  return days === null ? "Make it free: never. It won't become free on its own." : `Make it free: after ${days} days, if it hasn't sold.`;
 }
 
 /** The toast after a change is saved. */

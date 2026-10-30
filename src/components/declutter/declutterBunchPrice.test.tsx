@@ -35,6 +35,7 @@ vi.mock("@/lib/declutter/photos", async (orig) => ({
   cleanListingPhoto: async (f: File) => f,
   blobToBase64: async () => "b64",
 }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({

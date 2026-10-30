@@ -98,6 +98,15 @@ export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { 
   return null;
 }
 
+/**
+ * The seller's own read (declutter_listing_manage_state) says the sweep cannot lower this listing: they stopped the
+ * drops, or its lowest price is already its price (the sweep needs current above the floor). Only the seller can read
+ * these; buyers' surfaces have drop_pct and last_price_drop_on alone.
+ */
+export function sellerStateStopsDrops(state: { floor_price_cents: number; drops_stopped: boolean }, currentCents: number): boolean {
+  return state.drops_stopped || state.floor_price_cents >= currentCents;
+}
+
 /** "this evening at 6:07 PM" / "tomorrow at 6:07 PM" / "Thursday at 5:07 PM", in Louisiana time. */
 export function dropWhenLabel(at: Date, now: Date = new Date()): string {
   const time = at.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });

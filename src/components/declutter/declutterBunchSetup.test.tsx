@@ -30,6 +30,7 @@ vi.mock("@/lib/geocode", () => ({
   geocodeAddress: async (a: string) => { state.geocodes.push(a); return { latitude: 1, longitude: 2 }; },
 }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => { await state.gate; return state.last; } }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));

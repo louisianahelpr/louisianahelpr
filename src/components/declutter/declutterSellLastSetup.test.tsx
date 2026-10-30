@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/SellLastSetup.tsx |     areaLabel: f.areaLabel.trim() ? f.areaLabel : s.areaLabel, |     areaLabel: s.areaLabel,
  * @mutate src/components/declutter/SellLastSetup.tsx |     ...(s.dropPct !== null && !f.drops ? { drops: true, dropPct: s.dropPct } : {}), |
  * @mutate src/components/declutter/SellLastSetup.tsx |     if (s.ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? s.ways : w)); |
- * @mutate src/components/declutter/SellOneScreen.tsx |               <LastSetupNote onChange={() => setWaysOpen(true)} /> | <span />
+ * @mutate src/components/declutter/SellOneScreen.tsx |               <LastSetupNote saved={waysFromSaved} onChange={() => setWaysOpen(true)} /> | <span />
  * The Keep it up card says one line for its current setting (lead 2026-10-30; describe block at the bottom).
  * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(false)}</span>
  * @mutate src/components/declutter/SellOneScreen.tsx | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span> | data-sell-lifetime="">{keepUpSettingLine(keepUpWanted)}</span><span className="block text-ds-13 text-muted-foreground">It renews every 30 days until someone buys it.</span>
@@ -33,8 +33,8 @@
  * The sell chooser's "Give it away free" (?free=1, owner 2026-10-30) starts a new listing as Free (describe block at the bottom).
  * @mutate src/components/declutter/useSellFlowState.ts | useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY)) | useState<FormState>(EMPTY)
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
@@ -56,7 +56,8 @@ const LAST: LastSetup = {
 const last = { value: LAST as LastSetup | null };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+const places = vi.hoisted(() => ({ value: [] as unknown[] }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => places.value, fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -131,6 +132,71 @@ async function addPhotoAndWait() {
   await waitFor(() => expect(document.querySelector('[data-sell-summary="done"]')).not.toBeNull());
 }
 
+/** Saved settings fold the price options to one line (owner 2026-10-30); Change opens them. */
+async function openSavedPrice() {
+  const line = await waitFor(() => { const el = document.querySelector("[data-saved-price-settings]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+  fireEvent.click(within(line).getByRole("button", { name: "Change" }));
+}
+
+describe("saved settings: one line, not the walk-through (owner 2026-10-30)", () => {
+  beforeEach(() => {
+    drafts.length = 0;
+    geocode.mockClear();
+    places.value = [];
+    last.value = LAST;
+    remembered.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+  });
+  afterEach(() => {
+    places.value = [];
+    last.value = LAST;
+    remembered.value = null;
+  });
+
+  it("folds the ways and price options to \"Using your saved settings\", says what will happen before Post, and keeps the tax box", async () => {
+    open();
+    await addPhotoAndWait();
+    const line = await waitFor(() => { const el = document.querySelector("[data-saved-price-settings]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect(line.textContent).toContain("Using your saved settings");
+    await waitFor(() => expect(document.querySelector("[data-ways-summary]")?.textContent).toContain("Using your saved settings"));
+    expect(screen.queryByRole("switch", { name: /Lower the price over time/ })).toBeNull();
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening, never below $23."));
+    expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Make it free: never.");
+    expect(document.getElementById("sell-tax")).not.toBeNull();
+    fireEvent.click(within(line).getByRole("button", { name: "Change" }));
+    expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toBeTruthy();
+  });
+
+  it("drops saved off: the line before Post says off", async () => {
+    remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    open();
+    await addPhotoAndWait();
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toMatch(/Price drops: off\. It stays at \$\d+/));
+  });
+
+  it("a saved place beats the last listing's address, says which, and its exact point is sent", async () => {
+    places.value = [{ id: "p1", position: 1, label: "Home", address: "9 Saved Pl, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [6] }];
+    open();
+    await addPhotoAndWait();
+    await waitFor(() => expect(document.querySelector("[data-saved-pickup]")?.textContent).toBe("Pickup at Home"));
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(drafts).toHaveLength(1));
+    expect(drafts[0]).toMatchObject({ areaLabel: "Mid-City", pickupAddress: "9 Saved Pl, Baton Rouge, LA", pickupLat: 30.45123, pickupLng: -91.15456 });
+    expect(geocode).not.toHaveBeenCalled();
+  });
+
+  it("nothing saved and no last listing: the full form, no saved-settings line", async () => {
+    remembered.value = null;
+    last.value = null;
+    open();
+    await addPhotoAndWait();
+    expect(screen.queryByText("Using your saved settings")).toBeNull();
+    await waitFor(() => expect(screen.getByLabelText("Pickup address")).toBeInTheDocument());
+    expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toBeTruthy();
+  });
+});
+
 describe("a new listing remembers the last listing's setup", () => {
   beforeEach(() => {
     drafts.length = 0;
@@ -145,7 +211,7 @@ describe("a new listing remembers the last listing's setup", () => {
     open();
     await addPhotoAndWait();
     // The drop step comes along as the seller set it last time; the lowest price is this item's own.
-    expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "10%" })).toHaveAttribute("aria-checked", "true");
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     // "How buyers get it" is ONE line when the last setup was used, with the note and its Change.
@@ -220,7 +286,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
   it("nothing saved yet: keep it up ON, drops ON at 5%, lowest price half the asking price, and Post remembers it", async () => {
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true"));
+    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "true"));
     expect(screen.getByRole("switch", { name: "Keep it up until it sells" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "5%" })).toHaveAttribute("aria-checked", "true");
     // The draft's price is $45: half, to a whole dollar.
@@ -253,6 +319,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
     remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"] };
     open();
     await addPhotoAndWait();
+    await openSavedPrice();
     await waitFor(() => expect(screen.getByRole("switch", { name: "Keep it up until it sells" })).toHaveAttribute("aria-checked", "false"));
     expect(screen.getByRole("radio", { name: "15%" })).toHaveAttribute("aria-checked", "true");
     await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("27"));
@@ -264,8 +331,9 @@ describe("a new listing starts from the seller's remembered choices", () => {
     remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "false"));
-    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    await openSavedPrice();
+    await waitFor(() => expect(screen.getByRole("switch", { name: /Lower the price over time/ })).toHaveAttribute("aria-checked", "false"));
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price over time/ }));
     await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("23"));
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
     await new Promise((r) => setTimeout(r, 0));
@@ -278,7 +346,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
     await waitFor(() => expect(screen.getByLabelText("Lowest you'll take")).toHaveValue("23"));
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "1" } });
-    const sw = () => screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ });
+    const sw = () => screen.getByRole("switch", { name: /Lower the price over time/ });
     await waitFor(() => expect(sw()).toHaveAttribute("aria-checked", "false"));
     expect(sw()).toBeDisabled();
     expect(screen.getByText(/nothing lower to drop to/)).toBeInTheDocument();

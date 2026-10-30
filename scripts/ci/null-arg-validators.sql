@@ -173,6 +173,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('admin_queue_still_pending',     'classify', 'labels an admin-queue ledger item still pending (close rule, Q355); NULL rule = cannot tell'),
   ('admin_alert_manual_close',      'classify', 'labels an admin alert title as closed only by a person (Q355 part 2); NULL title = not manual'),
   ('job_photos_shareable',          'classify', 'labels a job whose before/after photos Helpr may use in marketing: the poster and every booked Helpr left share_job_photos on (admin only; app access never depends on it; 20261021001940)'),
+  ('declutter_search_matches',      'classify', 'labels a Declutter item as matching a saved search''s words (DA-1, 20261030043900); NULL query = no search words, matches like an empty Browse search; no access decision'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('session_email_unconfirmed',     'noarg',    'reads the JWT only (Q807): TRUE refuses the write, so it fails safe'),

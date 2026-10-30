@@ -14949,6 +14949,11 @@ export type Database = {
         Returns: undefined
       }
       declutter_scrub_member: { Args: { p_user_id: string }; Returns: Json }
+      declutter_search_matches: {
+        Args: { p_category: string; p_description: string; p_query: string; p_title: string }
+        Returns: boolean
+      }
+      declutter_search_stem: { Args: { p_word: string }; Returns: string }
       declutter_seller_cancel_delivery: { Args: { p_order_id: string }; Returns: Json }
       declutter_seller_cancel_sale: { Args: { p_item_id: string }; Returns: number }
       declutter_seller_delivered: {

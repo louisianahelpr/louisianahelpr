@@ -17,6 +17,7 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
+import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
@@ -38,7 +39,7 @@ const PER_SECTION = 3;
 const MAX_ROWS = 20;
 
 type JobHit = { id: string; title: string; category: string | null; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
-type ItemHit = { id: string; title: string; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
+type ItemHit = { id: string; title: string; description: string | null; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
   return useQuery({
@@ -70,14 +71,20 @@ function useItemHits(q: string, on: boolean) {
     enabled: on && q.length > 0,
     staleTime: 30_000,
     queryFn: async () => {
+      // Every word, in the title, description or category, plurals folded: the one Declutter rule (DA-1,
+      // searchMatch.ts). The database filter is a little wider than the rule, so the rows are re-checked here;
+      // when every candidate came back the count is the re-checked count, else the database's.
       const res = await supabase
         .from("declutter_items")
-        .select("id,title,category,current_price_cents,price_cents,area_label", { count: "exact" })
+        .select("id,title,description,category,current_price_cents,price_cents,area_label", { count: "exact" })
         .in("status", ["live", "reserved"])
-        .ilike("title", likePattern(q))
+        .or(searchOrFilter(q) ?? "title.ilike.*")
         .order("live_at", { ascending: false })
         .limit(MAX_ROWS);
-      return { rows: (unwrap(res) ?? []) as ItemHit[], count: res.count ?? 0 };
+      const all = (unwrap(res) ?? []) as ItemHit[];
+      const rows = all.filter((it) => matchesSearch(q, it));
+      const total = res.count ?? 0;
+      return { rows, count: total <= all.length ? rows.length : total };
     },
   });
 }

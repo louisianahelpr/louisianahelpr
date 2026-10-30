@@ -27,9 +27,9 @@
  * declutterSellerDelivery, declutterHelprDelivery, declutterRefundRequests). This file pins the rule as ONE class,
  * so a restatement of any one function that drops its part fails here.
  *
- * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
- * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |       IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery')\n         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')\n         AND EXISTS | IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery')\n         AND EXISTS
- * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                       WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL AND (d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL) | WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |       IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')\n         AND EXISTS | IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND EXISTS
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                       WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL AND (d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL) | WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR (p_photo_path IS NOT NULL AND ( |   IF (p_photo_path IS NOT NULL AND (
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql | 'invalid_handoff' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;\n  IF d.status NOT IN ('booked', 'needs_time')\n     OR EXISTS (SELECT 1 FROM public.declutter_seller_deliveries x WHERE x.order_id = o.id AND x.delivered_at IS NOT NULL) THEN\n    RAISE EXCEPTION 'not_reschedulable' | 'invalid_handoff' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;\n  IF d.status NOT IN ('booked', 'needs_time')\n     THEN\n    RAISE EXCEPTION 'not_reschedulable'
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |             WHERE x.status = 'delivered' AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP | WHERE x.status IN ('picked_up', 'delivered') AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP
@@ -40,7 +40,7 @@
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id) | AND true
  * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql |    IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN | IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup')); |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'locker'));
+ * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship')); |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship', 'locker'));
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,6 +76,9 @@ const HANDOVERS: Record<string, { kind: "unattended" | "attended"; proof: string
   delivery: { kind: "unattended", proof: "the Helpr's door photo within 200 m ('delivered') before the 24-hour finish" },
   pickup_home: { kind: "attended", proof: "the buyer meets the seller; the buyer has 24 hours after the booked time to report" },
   meetup: { kind: "attended", proof: "the buyer meets the seller at a public spot; the buyer has 24 hours after the booked time to report" },
+  // Shipping S2 (Q2259): no automatic finish exists yet; the handover sweep skips it, no pickup slot can be booked,
+  // and "I got it" waits for the USPS delivered scan (declutter_confirm_handover). S7 adds delivered + 48 h.
+  ship: { kind: "unattended", proof: "the USPS delivered scan (shipments.tracking_status = 'delivered'), then the buyer's 48 hours" },
 };
 
 const OPEN_PROBLEM_O = "NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')";
@@ -102,7 +105,7 @@ describe("Declutter money waits for proof (anti-lying #3)", () => {
       expect(count(l, OPEN_PROBLEM_O), "open-problem check under the lock").toBe(1);
       expect(l.indexOf("declutter_lock_order(r.id)")).toBeLessThan(l.indexOf(OPEN_PROBLEM_O));
     }
-    const pickupLoop = autoLoops.find((l) => l.includes("o2.handover NOT IN ('delivery', 'seller_delivery')"))!;
+    const pickupLoop = autoLoops.find((l) => l.includes("o2.handover NOT IN ('delivery', 'seller_delivery', 'ship')"))!;
     const sdLoop = autoLoops.find((l) => l.includes("o2.handover = 'seller_delivery'"))!;
     expect(pickupLoop, "the pickup/porch/meetup loop").toBeTruthy();
     expect(sdLoop, "the seller-delivery loop").toBeTruthy();
@@ -113,7 +116,9 @@ describe("Declutter money waits for proof (anti-lying #3)", () => {
     expect(count(sdLoop, "(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)")).toBe(2);
     expect(sdLoop.indexOf("declutter_lock_order(r.id)")).toBeLessThan(sdLoop.lastIndexOf("(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)"));
     // The Helpr delivery is never finished by this sweep (it has its own, below).
-    expect(pickupLoop).toContain("o.handover NOT IN ('delivery', 'seller_delivery')");
+    expect(pickupLoop).toContain("o.handover NOT IN ('delivery', 'seller_delivery', 'ship')");
+    // A shipped order is never finished by this sweep either (the parcel's delivered scan + 48 h is S7's).
+    expect(count(sweep, "handover NOT IN ('delivery', 'seller_delivery', 'ship')")).toBe(4);
   });
 
   it("a seller delivery left at the door cannot be marked delivered without the door photo, nor switched after", () => {

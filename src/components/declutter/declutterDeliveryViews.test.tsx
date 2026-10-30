@@ -413,7 +413,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(screen.queryByLabelText(/Photo of the item/)).toBeNull();
     expect(screen.queryByLabelText(/The seller wasn't there/)).toBeNull();
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |               {toRoute}\n |               \n
-    expect(screen.getByRole("button", { name: "Take the photo at this stop on Your route" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Take the photo at this stop on your route" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back out" }));
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                   onClick={() => setAsk({ kind: "backOut" })}> |                   onClick={() => backOut.mutate()}>
     const sheet = await screen.findByRole("dialog");
@@ -441,7 +441,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     show(<DeliverView />);
     expect(await screen.findByText("Reported. Louisiana Helpr is deciding.")).toBeInTheDocument();
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "accepted" && !v.problem_open && ( |           {v.status === "accepted" && (
-    expect(screen.queryByRole("button", { name: "Take the photo at this stop on Your route" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Take the photo at this stop on your route" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Back out" })).toBeNull();
   });
 
@@ -475,7 +475,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(await screen.findByText("900 Far Rd")).toBeInTheDocument();
     expect(screen.queryByLabelText(/Photo at the drop-off address/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Left at the door" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Take the photo at this stop on Your route" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Take the photo at this stop on your route" })).toBeInTheDocument();
   });
 
   it("a finished delivery says whether it was paid", async () => {

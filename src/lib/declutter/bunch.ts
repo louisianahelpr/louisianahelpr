@@ -196,10 +196,20 @@ export function bunchItemProblem(it: BunchItem): string | null {
 
 /* ---- Listing them all ---------------------------------------------------- */
 
+/**
+ * What listing takes, honestly: each item waits for its photo check (AI_CHECK_GAP_MS) and uploads its photos.
+ * 50 items is over 12 minutes, which is why the screen says so before it starts.
+ */
+export const BUNCH_SECONDS_EACH = 15;
+export const bunchListingMinutes = (items: number) => Math.ceil((items * BUNCH_SECONDS_EACH) / 60);
+
 export type BunchOutcome =
   | { key: string; title: string; status: "live" | "pending_review" }
-  /** `draftId` set: the draft was made (find it under Selling) but a later step failed. */
-  | { key: string; title: string; error: unknown; draftId: string | null };
+  /**
+   * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
+   * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
+   */
+  | { key: string; title: string; error: unknown; draftId: string | null; stays?: boolean };
 
 export interface ListDeps {
   createDraft: typeof createDraft;
@@ -271,7 +281,7 @@ export async function listBunch(
       prepared.push({ key: it.key, title: it.title, id });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
-      out.set(it.key, { key: it.key, title: it.title, error, draftId: id });
+      out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
     }
     onProgress(i + 1, total);
   }

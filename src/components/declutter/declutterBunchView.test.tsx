@@ -58,7 +58,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
     }),
     listBunch: async (_s: string, items: BunchItem[]) => {
       calls.listed.push(items.map((i) => i.key));
-      return [{ key: "i1", title: "Oak chair", error: Object.assign(new Error("x"), { userMessage: "Refused for a test reason." }), draftId: null }];
+      return [{ key: "i1", title: "Oak chair", error: Object.assign(new Error("x"), { userMessage: "Refused for a test reason." }), draftId: null, stays: true }];
     },
   };
 });

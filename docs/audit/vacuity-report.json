@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-30T15:03:07.164Z",
-  "guards": 2773,
-  "registered": 2771,
+  "generated": "2026-10-30T17:27:11.733Z",
+  "guards": 2776,
+  "registered": 2774,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
@@ -241,6 +241,16 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/SignedInChrome.tsx",
+      "tests": [
+        "src/test/guestLoadsNoSignedInChrome.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx",
+        "src/components/DeferredToasters.tsx"
       ]
     },
     {

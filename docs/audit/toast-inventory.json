@@ -1,24 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1019,
-    "files": 272,
-    "rendering": 860,
-    "suppressedByPolicy": 159,
+    "calls": 1021,
+    "files": 273,
+    "rendering": 861,
+    "suppressedByPolicy": 160,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 716,
+      "toast.error": 717,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 162,
+      "toast.success": 163,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 457,
+      "literal": 459,
       "template": 104,
       "dynamic": 508,
       "jsx": 0
@@ -2034,6 +2034,26 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't resolve that flag — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminGrowthLinks.tsx",
+      "line": 46,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Link copied."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminGrowthLinks.tsx",
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy. Select the link and copy it."
       },
       "renders": true
     },
@@ -11378,7 +11398,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 254,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11388,7 +11408,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 314,
+      "line": 316,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11398,7 +11418,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 318,
+      "line": 320,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11408,7 +11428,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 338,
+      "line": 340,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11418,7 +11438,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 358,
+      "line": 360,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11428,7 +11448,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 368,
+      "line": 370,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11438,7 +11458,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 401,
+      "line": 418,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11448,7 +11468,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 406,
+      "line": 423,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11458,7 +11478,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 410,
+      "line": 427,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -11468,7 +11488,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 429,
+      "line": 446,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12665,7 +12685,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 381,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12675,7 +12695,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 392,
+      "line": 393,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12685,7 +12705,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 394,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12695,7 +12715,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 409,
+      "line": 410,
       "kind": "toast.error",
       "title": {
         "form": "literal",

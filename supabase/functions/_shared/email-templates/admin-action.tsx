@@ -120,6 +120,8 @@ export interface AdminActionEmailProps {
   callouts?: AdminActionCallout[]
   ctaUrl: string
   ctaLabel: string
+  /** A closing line after the paragraphs, e.g. "— Louisiana Helpr Team" on a support reply. */
+  signOff?: string
 }
 
 export const AdminActionEmail = ({
@@ -130,6 +132,7 @@ export const AdminActionEmail = ({
   callouts,
   ctaUrl,
   ctaLabel,
+  signOff,
 }: AdminActionEmailProps) => (
   <BaseLayout
     preheader={preheader}
@@ -160,6 +163,11 @@ export const AdminActionEmail = ({
     {(callouts ?? []).map((c, i) => (
       <Callout key={i} tone={c.tone} body={c.body} />
     ))}
+    {signOff ? (
+      <Text className="e-text" style={textStyle}>
+        {signOff}
+      </Text>
+    ) : null}
     {/* widthPx 240 matches the width the hand-rolled emailButton() used for all
         four of these, so the Outlook-only VML rectangle does not change size. */}
     <BrandButton href={ctaUrl} label={ctaLabel} widthPx={240} />

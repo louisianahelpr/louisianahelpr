@@ -20,13 +20,15 @@
  * @mutate supabase/functions/admin-support-reply/index.ts |         global: { headers: { Authorization: authHeader } }, |         global: { headers: {} },
  * @mutate supabase/functions/admin-support-reply/index.ts |       if (!threadMessageId) { |       if (true) {
  * @mutate supabase/functions/admin-support-reply/index.ts |         p_client_id: replyId, |         p_client_id: null,
+ * @mutate supabase/functions/admin-support-reply/index.ts |           from: FROM_SUPPORT, |
+ * @mutate supabase/functions/admin-support-reply/index.ts |             signOff: '— Louisiana Helpr Team', |
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
-import { queueEmail, queuedEmails, renderEmail, resetEmailMocks } from "./mocks/email";
+import { emailRenders, FROM_SUPPORT, queueEmail, queuedEmails, renderEmail, resetEmailMocks } from "./mocks/email";
 
 const ADMIN = { id: "admin-1", email: "owner@test.com", email_confirmed_at: "2026-01-01T00:00:00Z" };
 const TICKET = "11111111-2222-4333-8444-555555555555";
@@ -73,7 +75,7 @@ describe("admin-support-reply", () => {
     const notice = writesTo("notifications", "insert");
     expect(notice).toHaveLength(1);
     expect(notice[0].payload).toMatchObject({
-      user_id: MEMBER, title: "Helpr support replied", type: "info", link: "/support",
+      user_id: MEMBER, title: "Louisiana Helpr Team replied", type: "info", link: "/support",
       message: 'About "App freezes": Thanks Lucy.\nWe fixed it.',
     });
     expect(queuedEmails).toHaveLength(1);
@@ -310,6 +312,20 @@ describe("admin-support-reply", () => {
       const sends = (scenario.rpcCalls ?? []).filter((c) => c.name === "admin_send_team_message");
       expect((sends[0].args as { p_content: string }).p_content).toBe(long);
     });
+  });
+
+  // Owner 2026-10-29 (B61): a reply speaks for the team, never as one admin.
+  // In the app the team thread already shows "Louisiana Helpr Team" with the
+  // team avatar on the member's side (loadConversations) and the message notice
+  // is titled the same (notify_message_recipient); the email and the fallback
+  // notice now say so too.
+  it("the email comes From Louisiana Helpr Support and is signed by the Louisiana Helpr Team", async () => {
+    await call({ reportId: TICKET, message: "Hi" });
+    expect(queuedEmails[0].from).toBe(FROM_SUPPORT);
+    const props = (emailRenders[0] as { props: Record<string, unknown> }).props;
+    expect(props.title).toBe("Louisiana Helpr Team replied");
+    expect(props.signOff).toBe("— Louisiana Helpr Team");
+    expect(JSON.stringify(props)).not.toContain("owner@test.com");
   });
 
   it("an empty, over-long or ticketless request is refused before anything is read or written", async () => {

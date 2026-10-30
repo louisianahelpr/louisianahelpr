@@ -7,8 +7,9 @@ export function receiptInsertSql(
 export interface ProvenanceFindings {
   unrecorded: string[];
   staleAck: string[];
+  staleLostRun: string[];
   forged: { version: string; why: string }[];
-  expired: { version: string; run_id: string }[];
+  expired: { version: string; run_id: string; listedLoss?: true }[];
   judged: number;
 }
 export interface LedgerRow {
@@ -29,10 +30,11 @@ export function provenanceFindings(args: {
   runs: Map<string, { path: string; head_branch: string } | null>;
   expiredRun?: { minAgeDays: number };
   shaEvidence?: Map<string, ShaEvidence>;
+  lostRuns?: { version: string; run_id: string }[];
   now?: Date;
 }): ProvenanceFindings;
 export function expiredRunVerdict(
   receipt: LedgerRow,
   evidence: ShaEvidence | undefined,
-  opts: { now: Date; minAgeDays: number | undefined },
+  opts: { now: Date; minAgeDays: number | undefined; lostRuns?: { version: string; run_id: string }[] },
 ): string | null;

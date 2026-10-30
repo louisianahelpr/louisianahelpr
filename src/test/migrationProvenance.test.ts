@@ -10,6 +10,15 @@
 // @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.onMain) return | if (false) return
 // @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.fileAtSha) return | if (false) return
 // @mutate scripts/check-migration-provenance.mjs |     expiredRun: CONFIG.expiredRun, |     expiredRun: undefined,
+// @mutate scripts/lib/migrationProvenance.mjs |   const listedLoss = isListedLoss(receipt, lostRuns); |   const listedLoss = false;
+// @mutate scripts/lib/migrationProvenance.mjs |   const listedLoss = isListedLoss(receipt, lostRuns); |   const listedLoss = true;
+// @mutate scripts/lib/migrationProvenance.mjs | (lostRuns ?? []).some((p) => String(p.version) === String(receipt.version) && String(p.run_id) === String(receipt.run_id)) | (lostRuns ?? []).some((p) => String(p.version) === String(receipt.version))
+// @mutate scripts/lib/migrationProvenance.mjs | (lostRuns ?? []).some((p) => String(p.version) === String(receipt.version) && String(p.run_id) === String(receipt.run_id)) | (lostRuns ?? []).some((p) => String(p.run_id) === String(receipt.run_id))
+// @mutate scripts/lib/migrationProvenance.mjs | const staleLostRun = lostRuns.filter( | const staleLostRun = [].filter(
+// @mutate scripts/check-migration-provenance.mjs |     lostRuns: CONFIG.lostRuns.pairs, |     lostRuns: [],
+// @mutate scripts/check-migration-provenance.mjs | f.forged.length \|\| f.staleAck.length \|\| f.staleLostRun.length) return 1; | f.forged.length \|\| f.staleAck.length) return 1;
+// @mutate scripts/audit/migration-provenance.json |       { "version": "20261028160637", "run_id": "40738655133" } |       { "version": "20261028160637", "run_id": "40738655134" }
+// @mutate scripts/audit/migration-provenance.json |       { "version": "20261028160637", "run_id": "40738655133" } |       { "version": "20261028160637", "run_id": "40738655133" },\n      { "version": "20261030170443", "run_id": "41111832091" }
 // @mutate supabase/migrations/20260923103737_migration_deploy_ledger.sql | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -155,6 +164,160 @@ describe("a receipt whose GitHub run is gone (db-deploy red 2026-10-17)", () => 
     expect(script).toContain("expiredRun: CONFIG.expiredRun,");
     expect(script).toContain("compare/${sha}...main");
     expect(script).toContain("contents/supabase/migrations/${encodeURIComponent(file)}?ref=${sha}");
+  });
+});
+
+/**
+ * db-deploy run 41111832091 went red on 2026-10-30: the lead's own cleanup
+ * deleted the completed runs older than 2 days, receipts' runs among them, and
+ * the receipts were only 2 days old, so the age test called them forged until
+ * about 2026-11-11. The exact pairs are listed; a listed pair skips only that
+ * age test.
+ */
+describe("the receipts of the runs deleted on 2026-10-30 (db-deploy red, run 41111832091)", () => {
+  const cutoff = "20260923103737";
+  const now = new Date("2026-10-30T19:30:00Z");
+  const VERSION = "20261028160637";
+  const RUN = "40738655133";
+  const sha = "d48b6ac027d0208e472308f6e0dd565d7a1e8901";
+  const receipt = { version: VERSION, run_id: Number(RUN), head_sha: sha, recorded_at: "2026-10-28T16:30:00Z" };
+  const base = {
+    prodVersions: [cutoff, VERSION],
+    ledger: [receipt],
+    cutoff,
+    acknowledged: [] as { version: string }[],
+    runs: new Map<string, { path: string; head_branch: string } | null>([[RUN, null]]),
+    expiredRun: { minAgeDays: 14 },
+    shaEvidence: new Map([[VERSION, { onMain: true, fileAtSha: true }]]),
+    lostRuns: [{ version: VERSION, run_id: RUN }],
+    now,
+  };
+
+  it("a listed version + run id is judged by its sha evidence, not its age", () => {
+    const f = provenanceFindings(base);
+    expect(f.forged).toEqual([]);
+    expect(f.expired).toEqual([{ version: VERSION, run_id: RUN, listedLoss: true }]);
+    expect(f.staleLostRun).toEqual([]);
+  });
+
+  it("RED without the list (what run 41111832091 reported): the same receipt is forged", () => {
+    const f = provenanceFindings({ ...base, lostRuns: [] });
+    expect(f.expired).toEqual([]);
+    expect(f.forged.map((x) => x.version)).toEqual([VERSION]);
+    expect(f.forged[0].why).toMatch(/run 40738655133 does not exist in this repository \(the receipt is 2 day\(s\) old/);
+  });
+
+  it("RED: an unlisted missing run is still forged, even beside a listed one", () => {
+    const other = { version: "20261028170000", run_id: 40800000000, head_sha: sha, recorded_at: "2026-10-28T17:30:00Z" };
+    const f = provenanceFindings({
+      ...base,
+      prodVersions: [...base.prodVersions, other.version],
+      ledger: [receipt, other],
+      runs: new Map([[RUN, null], ["40800000000", null]]),
+      shaEvidence: new Map([[VERSION, { onMain: true, fileAtSha: true }], [other.version, { onMain: true, fileAtSha: true }]]),
+    });
+    expect(f.expired.map((x) => x.version)).toEqual([VERSION]);
+    expect(f.forged.map((x) => x.version)).toEqual([other.version]);
+    expect(f.forged[0].why).toMatch(/2 day\(s\) old/);
+  });
+
+  it("RED: a listed version whose receipt names a different run id is still forged", () => {
+    const f = provenanceFindings({
+      ...base,
+      ledger: [{ ...receipt, run_id: 40800000000 }],
+      runs: new Map([["40800000000", null]]),
+    });
+    expect(f.expired).toEqual([]);
+    expect(f.forged.map((x) => x.version)).toEqual([VERSION]);
+    expect(f.forged[0].why).toMatch(/run 40800000000 does not exist/);
+  });
+
+  it("RED: a listed pair whose run id belongs to another version is still forged", () => {
+    const f = provenanceFindings({ ...base, lostRuns: [{ version: "20261028155329", run_id: RUN }] });
+    expect(f.expired).toEqual([]);
+    expect(f.forged.map((x) => x.version)).toEqual([VERSION]);
+  });
+
+  it("RED: a listed pair with a bad sha is still forged (off main, without the file, or unread)", () => {
+    const off = provenanceFindings({ ...base, shaEvidence: new Map([[VERSION, { onMain: false, fileAtSha: true }]]) });
+    expect(off.forged[0].why).toMatch(/is not a commit on main/);
+    const nofile = provenanceFindings({ ...base, shaEvidence: new Map([[VERSION, { onMain: true, fileAtSha: false }]]) });
+    expect(nofile.forged[0].why).toMatch(/does not carry migration 20261028160637/);
+    const none = provenanceFindings({ ...base, shaEvidence: new Map() });
+    expect(none.forged[0].why).toMatch(/no commit evidence/);
+  });
+
+  it("a listed pair skips only the age test: no expired-run rule or no recorded_at still fails closed", () => {
+    const lostRuns = base.lostRuns;
+    const good = { onMain: true, fileAtSha: true };
+    expect(expiredRunVerdict(receipt, good, { now, minAgeDays: 14, lostRuns })).toBeNull();
+    expect(expiredRunVerdict(receipt, good, { now, minAgeDays: undefined, lostRuns })).toMatch(/no expired-run rule/);
+    expect(expiredRunVerdict({ ...receipt, recorded_at: undefined }, good, { now, minAgeDays: 14, lostRuns })).toMatch(/no recorded_at/);
+    // minAgeDays itself is untouched for everything else.
+    expect(expiredRunVerdict(receipt, good, { now, minAgeDays: 14 })).toMatch(/2 day\(s\) old/);
+  });
+
+  it("a live run is judged as a live run even when listed, and the list entry reads as stale", () => {
+    const f = provenanceFindings({ ...base, runs: new Map([[RUN, { path: ".github/workflows/test.yml", head_branch: "main" }]]) });
+    expect(f.forged.map((x) => x.version)).toEqual([VERSION]);
+    expect(f.expired).toEqual([]);
+    expect(f.staleLostRun).toEqual([`${VERSION} ${RUN}`]);
+  });
+
+  it("RED: a listed pair no receipt carries is stale (the list is exact, both ways)", () => {
+    const wrong = provenanceFindings({ ...base, lostRuns: [...base.lostRuns, { version: VERSION, run_id: "40800000000" }] });
+    expect(wrong.staleLostRun).toEqual([`${VERSION} 40800000000`]);
+    const absent = provenanceFindings({ ...base, lostRuns: [...base.lostRuns, { version: "20261028170000", run_id: RUN }] });
+    expect(absent.staleLostRun).toEqual([`20261028170000 ${RUN}`]);
+  });
+
+  // Exactly what was measured gone on 2026-10-30 (GET actions/runs/<id> 404 at
+  // about 19:14Z), by run id. 44 came from run 41111832091's log; the last 3
+  // (run 40564500215) were deleted after that run looked them up.
+  const LOST: Record<string, string[]> = {
+    "40564500215": ["20261027154114", "20261027155019", "20261027155507"],
+    "40574724847": ["20261026155251", "20261026155252", "20261027153244", "20261027153245", "20261027154326", "20261027163240", "20261027170717", "20261027171453", "20261027182550"],
+    "40582322410": ["20261027183058", "20261027194309", "20261027201034"],
+    "40588446067": ["20261027185146"],
+    "40597162474": ["20261027220459"],
+    "40606137788": ["20261027185147"],
+    "40609111505": ["20261027201848"],
+    "40610208907": ["20261027200455", "20261027223332"],
+    "40612975589": ["20261027165232", "20261027165903", "20261027172503", "20261027174633", "20261027194235", "20261027194426", "20261027200024", "20261027201327", "20261027203030", "20261027204745", "20261027205028", "20261027205327", "20261027213431"],
+    "40615032957": ["20261027204500", "20261027233614"],
+    "40623012003": ["20261027222743"],
+    "40624917778": ["20261027211754", "20261028003604", "20261028022715"],
+    "40630560064": ["20261028012406"],
+    "40639932058": ["20261028014848", "20261028014849"],
+    "40718824063": ["20261028151647"],
+    "40734689453": ["20261028151144"],
+    "40738655133": ["20261028155329", "20261028160637"],
+  };
+
+  it("the checked-in list is exactly the measured pairs, dated and explained, and each names a real migration", () => {
+    const cfg = JSON.parse(read("scripts/audit/migration-provenance.json"));
+    const got = (cfg.lostRuns.pairs as { version: string; run_id: string }[]).map((p) => `${p.version} ${p.run_id}`).sort();
+    const want = Object.entries(LOST).flatMap(([run, vs]) => vs.map((v) => `${v} ${run}`)).sort();
+    expect(want.length).toBeGreaterThan(40);
+    expect(got).toEqual(want);
+    expect(new Set(got).size).toBe(got.length);
+    expect(cfg.lostRuns.date).toBe("2026-10-30");
+    expect(cfg.lostRuns.reason).toMatch(/deleted/);
+    // The list never widens the general rule.
+    expect(cfg.expiredRun.minAgeDays).toBe(14);
+    const migrations = readdirSync(join(ROOT, "supabase", "migrations"));
+    const noFile = got.map((p) => p.slice(0, 14)).filter((v) => !migrations.some((f) => f.startsWith(`${v}_`)));
+    expect(noFile).toEqual([]);
+  });
+
+  it("the live check wires the list and fails on a stale entry", () => {
+    const script = read("scripts/check-migration-provenance.mjs");
+    expect(script).toContain("lostRuns: CONFIG.lostRuns.pairs,");
+    expect(script).toContain("f.staleLostRun.length");
+  });
+
+  it("the list file still re-runs db-deploy when edited", () => {
+    expect(read(".github/workflows/db-deploy.yml")).toContain('- "scripts/audit/migration-provenance.json"');
   });
 });
 

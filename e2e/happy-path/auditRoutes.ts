@@ -277,6 +277,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // user's own profile with no photo and no legacy bypass, so the gate renders.
   { name: "complete-profile-incomplete", url: "/complete-profile", rules: [incompleteOwnProfile()] },
   { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
+  // "Book me on Helpr" (B59): a Helpr's public booking page; an unknown id renders "This Helpr isn't available".
+  { name: "book-helpr-missing", url: "/book/10000000-0000-4000-8000-00000000dead" },
   // Declutter (hidden switch 'declutter', created OFF): while it is off for the
   // sweep account each renders the NotFound page; once testers include it, the
   // real screens. Either way the route is visited.
@@ -464,6 +466,8 @@ export const ADMIN_VIEWS = [
   // shops — Shops orders (M4, 20261019071055): problems, unsent refunds, held payouts, strikes,
   // and "Record a refund made in Stripe". A money queue, so the sweep renders it.
   "shops",
+  // growth — matchmaker "Post this job" links and who brings customers (B59).
+  "growth",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

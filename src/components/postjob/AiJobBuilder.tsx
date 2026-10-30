@@ -118,7 +118,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
             onClick={generate}
             disabled={loading}
             size="sm"
-            className="w-full rounded-ds-md"
+            className="w-full"
           >
             {loading ? (
               <>

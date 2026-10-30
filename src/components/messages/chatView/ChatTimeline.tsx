@@ -163,7 +163,7 @@ export function ChatTimeline({
               not yours.
             </p>
           </div>
-          <Button variant="outline" size="sm" className="rounded-ds-md" onClick={onRetryLoad}>
+          <Button variant="outline" size="sm" onClick={onRetryLoad}>
             <RotateCw className="w-3.5 h-3.5 mr-1.5" />
             Retry
           </Button>

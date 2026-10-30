@@ -168,7 +168,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <TabsTrigger
                 key={key}
                 value={key}
-                className="relative h-11 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
+                className="relative h-11 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-full text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
                 style={{
                   color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
                   // data-[state=active]:bg-background (parchment) causes the axe walk
@@ -190,7 +190,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                   <SharedLayoutPill
                     layoutId="legalDirectoryTabPill"
                     transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                    className="absolute inset-0 rounded-ds-md btn-grad-primary"
+                    className="absolute inset-0 rounded-full btn-grad-primary"
                     style={{
                       border: "1px solid hsl(var(--bark-border))",
                       boxShadow:

@@ -117,7 +117,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
         className={
           bare
             ? `${CHROME_ICON_LOOK} ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0`
-            : "group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
+            : "group glass-press h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
               "transition-all duration-200 hover:scale-105 active:scale-95 " +
               // CSS-driven hover (desktop only): lift the glow + recolor the icon
               // via the per-instance custom properties. Pressed buttons keep

@@ -125,12 +125,12 @@ const Unsubscribe = () => {
         {link && (
           <div className="space-y-3">
             {stage === "ask" && (
-              <Button variant="primary" type="button" size="lg" className="w-full rounded-ds-md" disabled={busy} onClick={() => choose("unsubscribe")}>
+              <Button variant="primary" type="button" size="lg" className="w-full" disabled={busy} onClick={() => choose("unsubscribe")}>
                 {busy ? "Saving…" : copy.confirm}
               </Button>
             )}
             {stage === "unsubscribed" && (
-              <Button variant="outline" type="button" size="lg" className="w-full rounded-ds-md" disabled={busy} onClick={() => choose("resubscribe")}>
+              <Button variant="outline" type="button" size="lg" className="w-full" disabled={busy} onClick={() => choose("resubscribe")}>
                 {busy ? "Saving…" : copy.undo}
               </Button>
             )}

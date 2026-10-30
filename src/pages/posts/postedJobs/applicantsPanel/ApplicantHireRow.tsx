@@ -35,7 +35,7 @@ export function ApplicantHireRow({
       <Button
         variant="primary"
         size="sm"
-        className="rounded-ds-md btn-press flex-1 sm:flex-none"
+        className="btn-press flex-1 sm:flex-none"
         // Never disabled for the Helpr's Stripe state:
         // a single job's Hire is an offer, and payout
         // setup + Stripe ID are asked at their Accept

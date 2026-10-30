@@ -48,7 +48,7 @@ export const JobDetailFooter = ({
           rememberPendingSave(job.id);
           navigate(signupUrlFor(`/jobs/${job.id}`));
         }}
-        className="shrink-0 w-11 h-11 sm:h-12 sm:w-12 rounded-ds-md inline-flex items-center justify-center btn-press"
+        className="shrink-0 w-11 h-11 sm:h-12 sm:w-12 rounded-full inline-flex items-center justify-center btn-press"
         style={{
           background: "hsl(var(--bark) / 0.08)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",
@@ -73,7 +73,7 @@ export const JobDetailFooter = ({
            variant — see the note on the authenticated commit below. The guest
            sign-up CTA is the same decision wearing a different verb, so it
            cannot wear a different paint. */
-        className="w-full rounded-ds-md h-11 sm:h-12 px-3 group"
+        className="w-full h-11 sm:h-12 px-3 group"
       >
         <span className="inline-flex items-center justify-center gap-2 min-w-0">
           <span className="truncate">{guestCtaLabel}</span>
@@ -199,7 +199,7 @@ export const JobDetailFooter = ({
           // CURRENT location — so it replaced the entry navigate() had just pushed and
           // dropped the visitor back on the guest feed.
           onClick={() => navigate("/profile")}
-          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          className="flex-1 min-w-0 rounded-full h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           style={{
             background: "hsl(var(--bark) / 0.08)",
             border: "0.5px solid hsl(var(--bark) / 0.2)",
@@ -250,7 +250,7 @@ export const JobDetailFooter = ({
              ONLY the geometry stays local: `h-11 sm:h-12` is shared with the
              three non-commit branches of this slot on purpose (see the
              credential-gate note above) and must not move. */
-          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group"
+          className="flex-1 min-w-0 h-11 sm:h-12 px-3 group"
         >
           <span className="inline-flex items-center justify-center gap-2 min-w-0">
             {/* Invisible leading spacer the same width as the trailing chevron,

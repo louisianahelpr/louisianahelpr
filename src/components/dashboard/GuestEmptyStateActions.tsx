@@ -77,7 +77,7 @@ export function GuestEmptyStateActions({
         variant="outline"
         size="sm"
         onClick={onNotify}
-        className="rounded-ds-md px-5 text-ds-16 font-semibold"
+        className="px-5 text-ds-16 font-semibold"
       >
         Notify me when work lands
       </Button>

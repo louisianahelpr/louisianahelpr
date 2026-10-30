@@ -287,7 +287,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               aria-pressed={active}
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className="relative h-11 rounded-ds-md text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"
+              className="relative h-11 rounded-full text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"
               style={{
                 color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
                 // The btn-grad-primary pill is an absolute child; the button's own
@@ -301,7 +301,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <SharedLayoutPill
                   layoutId="membershipBillingPill"
                   transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                  className="absolute inset-0 rounded-ds-md btn-grad-primary"
+                  className="absolute inset-0 rounded-full btn-grad-primary"
                   style={BILLING_PILL_STYLE}
                 />
               )}
@@ -314,7 +314,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           onClick={refreshSubscription}
           disabled={refreshing}
           aria-label="Refresh membership status"
-          className="shrink-0 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
+          className="shrink-0 h-11 rounded-full flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
           style={{ color: "hsl(var(--bark))" }}
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />

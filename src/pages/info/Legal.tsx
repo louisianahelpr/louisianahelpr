@@ -341,7 +341,7 @@ const Legal = () => {
           <TabsTrigger
             key={t}
             value={t}
-            className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
+            className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-full text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
             {/* The selected tab's lifted pill, drawn in place (owner, Q1719,
@@ -354,7 +354,7 @@ const Legal = () => {
             {isActive && (
               <span
                 aria-hidden="true"
-                className="absolute inset-0 rounded-ds-md btn-grad-primary"
+                className="absolute inset-0 rounded-full btn-grad-primary"
                 style={{
                   // Reference the shared primary-CTA surface (`.btn-grad-primary`,
                   // the same radial-gloss treatment the "Join free"/bark CTAs

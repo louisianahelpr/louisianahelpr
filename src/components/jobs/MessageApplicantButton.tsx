@@ -81,7 +81,7 @@ export function MessageApplicantButton({
       size="sm"
       aria-label={`Message ${helperName}`}
       onClick={open}
-      className={`rounded-ds-md px-3 ${className ?? ""}`}
+      className={`px-3 ${className ?? ""}`}
     >
       <MessageCircle aria-hidden />
       Message

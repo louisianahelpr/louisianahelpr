@@ -9,7 +9,7 @@
  * Three behaviours named, for one gesture. All three were real, and all three
  * were reproducible from source on the day this guard was written:
  *
- *   SQUARE   `<Button variant="ghost">` inherits `rounded-ds-md` from
+ *   SQUARE   `<Button variant="ghost">` inherited `rounded-ds-md` (now rounded-full) from
  *            `buttonVariants`, and `ghost` IS `.ctl-tint` — so ChatHeader's
  *            back chevron, DialogContent's ×, SheetContent's × and five others
  *            paint a rounded SQUARE of olivewood wash on hover.

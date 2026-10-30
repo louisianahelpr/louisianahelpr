@@ -206,7 +206,6 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
           <Button
             variant="primary"
             onClick={this.handleReset}
-            className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Try again
@@ -214,7 +213,6 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
           <Button
             variant="outline"
             onClick={this.props.onGoHome}
-            className="rounded-ds-md"
           >
             <Home className="h-4 w-4 mr-2" />
             Go Home

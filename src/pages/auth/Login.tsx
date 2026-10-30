@@ -393,7 +393,7 @@ const Login = () => {
               <Button
                 variant="primary"
                 type="submit"
-                className="w-full rounded-ds-md"
+                className="w-full"
                 size="lg"
                 disabled={mfaVerifying || mfaCode.length !== 6}
               >

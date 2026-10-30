@@ -66,7 +66,7 @@ export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
       <Button
         variant="outline"
         size="sm"
-        className="rounded-ds-md btn-press"
+        className="btn-press"
         onClick={onRetry}
       >
         Retry

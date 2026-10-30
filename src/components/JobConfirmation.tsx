@@ -448,7 +448,7 @@ export function JobConfirmation({
    *  The 44px tap-target floor is unchanged. */
   // MOVED BY AN ACCEPTED CHANGE (owner, 2026-10-21): both sides confirm the NEW slot, and every line names it.
   const newSlot = rescheduled ? slotLabel(dateNeeded, startTime) : "";
-  const confirmCtaClass = "w-full rounded-ds-md h-auto min-h-[44px] text-ds-14";
+  const confirmCtaClass = "w-full h-auto min-h-[44px] text-ds-14";
   const confirmCta = (isOwner || isHelper) && (
     !myConfirmed ? (
       <Button

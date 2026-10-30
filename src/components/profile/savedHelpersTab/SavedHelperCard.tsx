@@ -286,7 +286,7 @@ export function SavedHelperCard({
           // flex-1 on phones (a thumb-wide primary); from md the list is one
           // full-width column (VN-42), so the CTA sizes to its content
           // instead of stretching across the whole card.
-          className="flex-1 md:flex-none md:!px-4 rounded-ds-md !px-2.5"
+          className="flex-1 md:flex-none md:!px-4 !px-2.5"
         >
           <Send className="w-3.5 h-3.5 mr-1.5 hidden min-[360px]:inline-block" />
           Offer a job
@@ -317,7 +317,7 @@ export function SavedHelperCard({
             size="sm"
             variant="ghost"
             onClick={() => openNoteEditor(h.helper_id, hasNote ? h.private_note : null)}
-            className="rounded-ds-md shrink-0 !w-11 !px-0"
+            className="shrink-0 !w-11 !px-0"
             aria-label={hasNote ? "Edit private note" : "Add a private note"}
             title={hasNote ? "Edit private note" : "Add a private note"}
           >
@@ -328,7 +328,7 @@ export function SavedHelperCard({
           size="sm"
           variant="ghost"
           onClick={() => handleRemove(h.helper_id)}
-          className="rounded-ds-md shrink-0 !w-11 !px-0"
+          className="shrink-0 !w-11 !px-0"
           aria-label="Remove from saved"
         >
           {/* Olive, not rust: rust is for money only (audit #43, 2026-10-21). */}

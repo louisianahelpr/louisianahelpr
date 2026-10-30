@@ -279,7 +279,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="w-full h-9 rounded-ds-sm text-ds-13 font-semibold"
+            className="w-full h-9 text-ds-13 font-semibold"
           >
             {saving ? "Saving..." : "Save availability"}
           </Button>

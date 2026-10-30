@@ -81,7 +81,7 @@ const AdminTopBar = ({ titleRow }: {
             onClick={toggleSidebar}
             aria-expanded={state === "expanded"}
             aria-label={state === "expanded" ? "Close the admin menu" : "Open the admin menu"}
-            className="btn-press rounded-ds-md"
+            className="btn-press"
           >
             <Menu className="w-5 h-5" strokeWidth={2.25} />
           </Button>

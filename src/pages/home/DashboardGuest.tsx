@@ -173,7 +173,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         size="sm"
         variant="ghost"
         onClick={onLogin}
-        className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
+        className="text-ds-11 h-11 px-2 font-sans font-semibold"
         style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
       >
         Log in
@@ -181,7 +181,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
       <Button
         size="sm"
         onClick={onSignup}
-        className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press"
+        className="text-ds-11 h-11 px-3 font-sans font-semibold btn-press"
         style={{ color: "hsl(var(--parchment))" }}
       >
         Join free
@@ -564,7 +564,7 @@ const DashboardGuest = () => {
             title="You're offline."
             body="Open jobs will load here as soon as you're back online."
             action={
-              <Button variant="outline" size="sm" onClick={() => void refetch()} className="rounded-ds-md">
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>
                 Try again
               </Button>
             }

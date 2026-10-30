@@ -17,7 +17,7 @@ export function OwnProfileEditButton() {
       data-testid="own-profile-edit"
       aria-label="Edit profile"
       onClick={() => navigate(EDIT_PROFILE_PATH)}
-      className="rounded-ds-md min-w-11 px-2 sm:px-3 shrink-0 gap-1.5 font-bold"
+      className="min-w-11 px-2 sm:px-3 shrink-0 gap-1.5 font-bold"
       style={{ color: "hsl(var(--bark))" }}
     >
       <Pencil className="w-4 h-4" aria-hidden />

@@ -12,7 +12,7 @@ import { ExploreSwitcher } from "./ExploreSwitcher";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
-const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
+const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */

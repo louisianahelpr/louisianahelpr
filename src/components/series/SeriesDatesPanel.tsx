@@ -244,7 +244,7 @@ export function SeriesDatesPanel({
                     return `You have ${r.claimed.length} more date${r.claimed.length === 1 ? "" : "s"}.${lost ? ` ${lost} couldn't be added.` : ""}${step ? ` ${step}` : ""}`;
                   })
                 }
-                className="btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold disabled:opacity-40"
+                className="btn-grad-primary min-h-[44px] px-4 rounded-full text-ds-12 font-semibold disabled:opacity-40"
               >
                 Pick {pickedOpen.length || ""} date{pickedOpen.length === 1 ? "" : "s"}
               </button>

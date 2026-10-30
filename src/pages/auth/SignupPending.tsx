@@ -368,7 +368,7 @@ const SignupPending = () => {
               <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
                 Already confirmed your email? Log in to continue.
               </p>
-              <Button asChild variant="primary" size="sm" className="w-full rounded-ds-md">
+              <Button asChild variant="primary" size="sm" className="w-full">
                 <Link to="/login">Log in</Link>
               </Button>
             </div>

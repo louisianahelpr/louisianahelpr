@@ -530,7 +530,7 @@ export function ApplyBody({
           type="button"
           onClick={handleConfirm}
           disabled={applyLoading || underAge}
-          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group disabled:opacity-60"
+          className="flex-1 min-w-0 h-11 sm:h-12 px-4 group disabled:opacity-60"
         >
           <span>
             {applyLoading ? "Applying…" : !online ? "Try again" : applyLabel}

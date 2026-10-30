@@ -29,11 +29,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { blankComments } from "../helpers/blankNonCode";
 
-const SIWA = "../../../supabase/functions/_shared/appleSignIn";
 const PURGE = "../../../supabase/functions/_shared/accountPurge";
 type Key = { keyId: string; teamId: string; privateKey: string };
 type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
-const siwa = (await import(/* @vite-ignore */ SIWA)) as {
+// A literal path, so knip sees which exports this test reads.
+const siwa = (await import("../../../supabase/functions/_shared/appleSignIn")) as {
   APPLE_REVOKE_URL: string;
   APPLE_TOKEN_URL: string;
   revokeAppleSignIn: (admin: unknown, userId: string, key: Key | null, f: FetchLike) => Promise<{ status: string; detail?: string }>;

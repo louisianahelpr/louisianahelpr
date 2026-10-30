@@ -220,7 +220,7 @@ export async function fetchMyWanted(): Promise<WantedPost[]> {
 }
 
 /** The replies on one of your posts (declutter_my_wanted.replies); anything malformed is dropped. */
-export function parseReplies(raw: unknown): WantedReply[] {
+function parseReplies(raw: unknown): WantedReply[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((r): r is WantedReply =>
     !!r && typeof r === "object" && typeof (r as WantedReply).offer_id === "string" && typeof (r as WantedReply).item_id === "string"
@@ -231,7 +231,7 @@ export function parseReplies(raw: unknown): WantedReply[] {
 export const WANTED_PHOTO_MAX = 3;
 
 /** Where a Wanted photo lives: the poster's own folder for THIS post (declutter_add_wanted_photo checks each part). */
-export function wantedPhotoPath(userId: string, wantedId: string, nonce: string): string {
+function wantedPhotoPath(userId: string, wantedId: string, nonce: string): string {
   return `${userId}/wanted/${wantedId}/${nonce}.jpg`;
 }
 

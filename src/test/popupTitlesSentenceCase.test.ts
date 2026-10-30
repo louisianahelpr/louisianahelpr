@@ -138,8 +138,10 @@ describe("every pop-up title is sentence case", () => {
     // 181: + "Agree the handover" (the Declutter handover chat, #3730, DeclutterHandoverTalk).
     // 182: + "Edit listing" (Declutter Manage listing, audit 1028 D1-1, Q2475).
     // 184: +2 the paid-order chat (audit 1028 D2-1, DeclutterOrderTalk): "Message the ${other}" and "Order chat" while it loads.
-    // 182: -2 DB-5 (owner 2026-10-30: Buy now goes straight to checkout): the Buy now sheet and its two titles are gone.
-    expect(all.length).toBe(182);
+    // 186: +2 batch 1030e: "Take this listing down?" (the admin's report take-down, B77 DeclutterTakeDown) and
+    // "What are you looking for?" (the Wanted hub's quick post sheet, B82 DeclutterWantedViews).
+    // 184: -2 DB-5 (owner 2026-10-30: Buy now goes straight to checkout): the Buy now sheet and its two titles are gone.
+    expect(all.length).toBe(184);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

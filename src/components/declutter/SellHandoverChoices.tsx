@@ -32,7 +32,7 @@ export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: str
 export const SELLER_WAYS: SellerHandover[] = (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery");
 
 /** Said once under the ways, plainly, instead of a tick. */
-export const HELPR_DELIVERY_ALWAYS = "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.";
+const HELPR_DELIVERY_ALWAYS = "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.";
 
 /** The ways in a set, in the form's order, as words for the review step ("Porch pickup, Safe meeting spot"). */
 export function handoverSummary(ways: SellerHandover[]): string {

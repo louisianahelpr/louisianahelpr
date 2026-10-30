@@ -4,8 +4,9 @@
  * details, every field editable. The seller fixes the photo tool's grouping
  * here (owner's pop-up, 2026-10-29): tap photos to choose them, then move them
  * to another item or split them into a new one; merge the whole item into
- * another; or drop it. A possibly banned item is marked and cannot be listed;
- * an item short of photos says what's missing (bunchItemProblem).
+ * another; or drop it. A possibly banned item is marked, and can still be listed
+ * (the photo check decides); an item short of photos says what's missing
+ * (bunchItemProblem).
  */
 import { useState } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
@@ -60,7 +61,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
 
       {item.flagged && (
         <p className="rounded-xl border border-border bg-muted/40 p-3 text-ds-13 font-semibold text-foreground" data-bunch-flag="">
-          This may be an item you can't sell on Declutter, so it can't be listed from here. If the photos show the wrong thing, move them, then tap Write it again.
+          This item may not be allowed. You can still list it: it gets a closer check, and if that check flags it, someone from Louisiana Helpr looks at it before it goes up. If the photos show the wrong thing, move them, then tap Write it again.
         </p>
       )}
 
@@ -72,9 +73,9 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
             const on = live.includes(k);
             return (
               <li key={k} className="relative">
-                <button type="button" aria-pressed={on} onClick={() => toggle(k)}
-                  className={`block w-full overflow-hidden rounded-xl ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
-                  {url?.startsWith("blob:") && <img src={url} alt={`${name}, photo ${i + 1}`} className="aspect-square w-full object-cover bg-photo-empty" />}
+                <button type="button" aria-pressed={on} aria-label={`${name}, photo ${i + 1}`} onClick={() => toggle(k)}
+                  className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
+                  {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full object-cover" data-bunch-thumb="" />}
                   {on && (
                     <span className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-background text-foreground shadow" aria-hidden>
                       <Check className="h-4 w-4" />
@@ -145,7 +146,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
           value={item.description} onChange={(e) => onChange({ description: e.target.value })} />
       </div>
 
-      {problem && !item.flagged && <p className="text-ds-13 text-muted-foreground" data-bunch-problem="">{problem}</p>}
+      {problem && <p className="text-ds-13 text-muted-foreground" data-bunch-problem="">{problem}</p>}
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
         {others.length > 0 && (

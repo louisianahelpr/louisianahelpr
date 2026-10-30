@@ -112,6 +112,23 @@ export function stripJpegAppSegments(bytes: Uint8Array): Uint8Array | null {
   return null;
 }
 
+/** Longest side of a preview on Sell a bunch's cards: a 4-across grid at three device pixels per point. */
+const BUNCH_THUMB_SIZE = 320;
+
+/**
+ * A small copy for on-screen previews only, so up to 80 full-size photos are never decoded at once. It never leaves
+ * the device. When one can't be made (HEIC, no canvas) the original is shown instead.
+ */
+export async function bunchThumbnail(file: File): Promise<Blob> {
+  try {
+    return await compressImage(file, BUNCH_THUMB_SIZE, 0.6);
+  } catch (err) {
+    // Not silent, and not a failure to report on screen: the card shows the full-size photo instead.
+    console.warn("[declutter] no small preview for a photo", err);
+    return file;
+  }
+}
+
 /** A cleaned photo as bare base64 (no data: prefix), for the photo tool's request body. */
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -1,0 +1,67 @@
+/**
+ * Sell a bunch's previews: one small copy per photo, made one at a time so up to 80 photos never decode together,
+ * and released when the photo leaves the list or the page closes. The screen re-renders every few previews, not for
+ * each one. Until a photo's preview is ready its card shows an empty square.
+ */
+import { useEffect, useRef, useState } from "react";
+import type { BunchPhoto } from "@/lib/declutter/bunch";
+import { bunchThumbnail } from "@/lib/declutter/photos";
+
+const SHOW_EVERY = 4;
+
+export function useBunchThumbs(photos: BunchPhoto[]): Map<string, string> {
+  const [shown, setShown] = useState<Map<string, string>>(() => new Map());
+  const made = useRef(new Map<string, string>());
+  const wanted = useRef(new Set<string>());
+  const queue = useRef<BunchPhoto[]>([]);
+  const running = useRef(false);
+  const closed = useRef(false);
+
+  useEffect(() => {
+    closed.current = false;
+    const held = made.current;
+    return () => {
+      closed.current = true;
+      held.forEach((url) => URL.revokeObjectURL(url));
+      held.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    const now = new Set(photos.map((p) => p.key));
+    let removed = false;
+    for (const [key, url] of made.current) {
+      if (now.has(key)) continue;
+      URL.revokeObjectURL(url);
+      made.current.delete(key);
+      removed = true;
+    }
+    if (removed) setShown(new Map(made.current));
+    for (const p of photos) if (!wanted.current.has(p.key)) queue.current.push(p);
+    wanted.current = now;
+    if (running.current) return;
+    running.current = true;
+    void (async () => {
+      let sinceShown = 0;
+      while (queue.current.length > 0 && !closed.current) {
+        const p = queue.current.shift()!;
+        if (!wanted.current.has(p.key)) continue;
+        const url = URL.createObjectURL(await bunchThumbnail(p.file));
+        if (closed.current || !wanted.current.has(p.key)) {
+          URL.revokeObjectURL(url);
+          continue;
+        }
+        made.current.set(p.key, url);
+        sinceShown += 1;
+        if (sinceShown >= SHOW_EVERY) {
+          sinceShown = 0;
+          setShown(new Map(made.current));
+        }
+      }
+      running.current = false;
+      if (!closed.current && sinceShown > 0) setShown(new Map(made.current));
+    })();
+  }, [photos]);
+
+  return shown;
+}

@@ -40,7 +40,7 @@ const h = vi.hoisted(() => {
     const q: { table: string; ops: [string, unknown[]][] } = { table, ops: [] };
     queries.push(q);
     const b: Record<string, unknown> = {};
-    for (const m of ["select", "in", "order", "eq"]) {
+    for (const m of ["select", "in", "order", "eq", "limit"]) {
       b[m] = (...args: unknown[]) => {
         q.ops.push([m, args]);
         return b;
@@ -92,6 +92,7 @@ import {
   fetchMyPayouts,
   fetchOpenProblems,
   fetchOpenProblemsForAdmin,
+  fetchOrderProblem,
   leaveReview,
   porchNote,
   porchPhoto,
@@ -162,6 +163,35 @@ describe("reads", () => {
     expect(h.queries[0].ops).toContainEqual(["eq", ["status", "open"]]);
     h.queue.push(refused("permission denied"));
     await expect(fetchOpenProblems(["o1"])).rejects.toBeTruthy();
+  });
+
+  // Audit 1030 DB-1: the order card's problem read. select("*") was refused 42501 for every member on prod
+  // (authenticated's column grant has no other_side_* or decided_by), so it goes through the party-scoped read
+  // declutter_order_problem (20261030044444; PGlite proof src/test/pglite/declutterOrderProblemRead.pglite.mjs).
+  // @mutate src/lib/declutter/handover.ts |   const res = await supabase.rpc("declutter_order_problem", { p_order_id: orderId }); |   const res = { data: null, error: { code: "PGRST202", message: "x", hint: null } };
+  // @mutate src/lib/declutter/handover.ts | .select("id, reporter_side, reason, note, photo_paths, status, created_at") | .select("*")
+  // @mutate src/lib/declutter/handover.ts |   return (rpcData(res, (e) => rpcErrorMessage("declutter_order_problem", e)) ?? null) as unknown as OrderProblem \| null; |   return (res.data ?? null) as unknown as OrderProblem \| null;
+  it("fetchOrderProblem reads through declutter_order_problem, falls back to granted columns before deploy, and surfaces a refusal", async () => {
+    const p = { id: "p1", reporter_side: "buyer", reason: "damaged", note: "x", photo_paths: [], status: "open", other_side_note: "y", other_side_photo_paths: [] };
+    h.queue.push(ok(p));
+    expect(await fetchOrderProblem("o1")).toEqual(p);
+    expect(h.rpcs[0]).toEqual(["declutter_order_problem", { p_order_id: "o1" }]);
+    expect(h.queries).toHaveLength(0);
+
+    h.queue.push(ok(null));
+    expect(await fetchOrderProblem("o2")).toBeNull();
+
+    // Not deployed yet: the granted columns only, never "*" (which prod refuses).
+    h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_order_problem(p_order_id)", hint: null } });
+    h.queue.push(ok([{ id: "p2", status: "open" }]));
+    expect(await fetchOrderProblem("o3")).toEqual({ id: "p2", status: "open" });
+    expect(h.queries[0].table).toBe("declutter_problems");
+    const sel = String(h.queries[0].ops.find(([m]) => m === "select")?.[1][0]);
+    expect(sel).not.toMatch(/\*|other_side|decided_by|admin_note/);
+    expect(h.queries[0].ops).toContainEqual(["eq", ["order_id", "o3"]]);
+
+    h.queue.push(refused("problem_not_found"));
+    await expect(fetchOrderProblem("o4")).rejects.toBeTruthy();
   });
 
   it("fetchItemAddress returns the first row, or null when the caller may not see it", async () => {

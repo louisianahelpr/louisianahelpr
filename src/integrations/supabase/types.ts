@@ -14693,6 +14693,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_order_problem: { Args: { p_order_id: string }; Returns: Json }
       declutter_order_refunds_recorded_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_order_side: {
         Args: { p_buyer: string; p_seller: string; p_uid: string }

@@ -713,6 +713,11 @@ export const RPC_ERROR_COPY = {
     problem_side_is_yours: DC.problem_side_is_yours,
     too_many_problem_photos: DC.too_many_problem_photos,
   },
+  // Audit 1030 DB-1 (20261030044444): the order card's problem read (the two sides and admins).
+  declutter_order_problem: {
+    not_authenticated: DC.not_authenticated,
+    problem_not_found: DC.problem_not_found,
+  },
   // Board 141, Declutter side (20261026155251): a refund request after the handover.
   declutter_refund_request_view: {
     feature_disabled: DC.feature_disabled,

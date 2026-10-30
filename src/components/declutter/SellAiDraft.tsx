@@ -158,7 +158,7 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: A
       <div role="status" aria-live="polite" data-ai-draft="busy" className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4">
         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[hsl(var(--sage-ink))]" aria-hidden />
         <div className="min-w-0">
-          <p className="text-ds-15 font-semibold text-foreground">Claude is writing your listing…</p>
+          <p className="text-ds-15 font-semibold text-foreground">We're writing your listing…</p>
           <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition and a fair price. This takes a few seconds.</p>
         </div>
       </div>
@@ -170,7 +170,7 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: A
       <div role="status" aria-live="polite" data-ai-draft="done" className="space-y-3 rounded-[20px] border border-border bg-card p-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 shrink-0 text-[hsl(var(--sage-ink))]" aria-hidden />
-          <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">Claude wrote your listing</p>
+          <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">We wrote your listing. Check it before you post</p>
         </div>
         {d.photoTip && (
           <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-photo-tip="">
@@ -207,7 +207,7 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: A
   }
   return (
     <div data-ai-draft="idle" className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-border bg-card p-4">
-      <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground">Claude can write the name, details, category, size and condition from your photos.</p>
+      <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground">We can write the name, details, category, size and condition from your photos.</p>
       <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>
         <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />Write my listing
       </Button>

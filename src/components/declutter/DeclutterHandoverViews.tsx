@@ -73,7 +73,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
-import { onDay, PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
+import { onDay, PickupStatus, PorchOutPhoto, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
@@ -188,7 +188,9 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
       {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
       <OrderTalkButton orderId={order.orderId} side={order.side} />
-      {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
+      {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
+      {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} />}
+      {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
           orderId={order.orderId}
           handover={order.handover}
@@ -201,7 +203,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       )}
       {done ? (
         <>
-          {(order.handover === "delivery" || order.handover === "seller_delivery") && <p className="text-sm font-medium">Handed over.</p>}
+          {(order.handover === "delivery" || (order.handover === "seller_delivery" && !!view)) && <p className="text-sm font-medium">Handed over.</p>}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>

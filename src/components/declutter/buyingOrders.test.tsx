@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
  * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? "Free." : total != null |       money: total != null
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const body = !view \|\| open; |   const body = true;
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!view && (order.handover === "porch" \|\| order.handover === "pickup_home") && ( |       {(order.handover === "porch" \|\| order.handover === "pickup_home") && (
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!view && (order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && ( |       {(order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && (
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";

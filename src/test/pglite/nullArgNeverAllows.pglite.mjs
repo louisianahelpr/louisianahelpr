@@ -173,7 +173,12 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
   -- Board 141 (20261026155251): the sale-final / window checks read the handover time; the 'handed_over' step writes them.
   handed_over_at timestamptz, closed_at timestamptz, close_reason text,
   -- The Free section (20261027170717): the newest window / final checks read how the order was paid.
-  paid_with text);
+  paid_with text,
+  -- Shipping S2 (20261030000030): the class SQL's 'ship' step writes a shipped order; shipping_rate_buyable reads it.
+  fee_rule text, shipping_cents integer NOT NULL DEFAULT 0);
+-- Shipping S2 (20261030000030): the label claim shipping_rate_buyable reads, with the columns the 'ship' step writes.
+CREATE TABLE public.shipments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), declutter_order_id uuid, idempotency_key text,
+  label_mode text, service text, quoted_cents integer, ship_to jsonb, parcel jsonb, label_state text NOT NULL DEFAULT 'claimed');
 -- Board 141 (20261026155251): what declutter_payout_unsent / declutter_sale_decided / declutter_sale_final read, with
 -- the columns the class SQL's 'handed_over' fixture step writes.
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
@@ -294,7 +299,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Porch days (20261029161347): the one porch-weekday rule.
   "declutter_is_porch_day",
   // Audit 1a #10 (20261029222816): may the uploader delete this unattached handover photo.
-  "declutter_handover_photo_unattached"];
+  "declutter_handover_photo_unattached",
+  // Shipping S2 (20261030000030): may the label worker buy this rate.
+  "shipping_rate_buyable"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

@@ -24,6 +24,7 @@ const AdminNotifications = lazy(() => import("@/components/admin/AdminNotificati
 const AdminReports = lazy(() => import("@/components/admin/AdminReports"));
 const AdminSupport = lazy(() => import("@/components/admin/AdminSupport"));
 const AdminReferrals = lazy(() => import("@/components/admin/AdminReferrals"));
+const AdminGrowthLinks = lazy(() => import("@/components/admin/AdminGrowthLinks"));
 const AdminSubscriptions = lazy(() => import("@/components/admin/AdminSubscriptions"));
 const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDashboard"));
 const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
@@ -42,7 +43,7 @@ const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
 const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -499,6 +500,7 @@ const Admin = () => {
       case "reports": return <AdminReports />;
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;
+      case "growth": return <AdminGrowthLinks />;
       case "subscriptions": return <AdminSubscriptions />;
       case "fraud": return <AdminFraudDashboard />;
       case "audit": return <AdminAuditLog />;

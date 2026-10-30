@@ -16,6 +16,7 @@ import { checkDrift } from "@/lib/checkDrift";
 import { composeLocationString, parseLocationIntoFields } from "./postJobFormHelpers";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { recordBookingSourceFor } from "@/lib/bookMe";
+import { readMatchmakerLink } from "@/lib/matchmakerLink";
 
 /**
  * useJobFormEffects — owns the mount/reactive side effects that populate
@@ -383,6 +384,21 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setTitle(p.title);
     setDescription(p.description);
     // The setters are stable useState setters; the param is the trigger.
+  }, [searchParams]);
+
+  // Matchmaker link (B59, owner-approved growth item): `?mm=1&cat=...` from
+  // Admin -> Growth links fills a normal, editable job. Every value is
+  // re-checked by readMatchmakerLink; the poster still checks and pays here.
+  useEffect(() => {
+    const mm = readMatchmakerLink(searchParams);
+    if (!mm) return;
+    setCategory(mm.category);
+    setTitle(mm.title);
+    if (mm.description) setDescription(mm.description);
+    if (mm.town) setCity(mm.town);
+    if (mm.zip) setZipCode(mm.zip);
+    if (mm.price !== null) setBudget(String(mm.price));
+    // The setters are stable useState setters; the params are the trigger.
   }, [searchParams]);
 
   // Rentals S1 (Q39): an approved maintenance request (`?maintenance=<id>`,

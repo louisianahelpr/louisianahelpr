@@ -41,6 +41,7 @@ export function SellPhotos({
   onRemoveUploaded,
   onRemoveHeld,
   uploading,
+  heldFailed = false,
   aiPanel,
 }: {
   uploaded: DeclutterPhoto[];
@@ -50,6 +51,8 @@ export function SellPhotos({
   onRemoveUploaded: (photoId: string) => void;
   onRemoveHeld: (index: number) => void;
   uploading: number;
+  /** The held photos are ones that failed to upload at Post: each says so. */
+  heldFailed?: boolean;
   /** Claude's listing panel (SellAiDraftPanel), once there is a photo. */
   aiPanel: ReactNode;
 }) {
@@ -86,7 +89,11 @@ export function SellPhotos({
             {url.startsWith("blob:") && (
               <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
             )}
-            {uploaded.length === 0 && i === 0 && <CoverChip />}
+            {heldFailed ? (
+              <span data-photo-failed="" className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-background/95 px-2 py-0.5 text-ds-12 font-semibold text-destructive-ink">
+                Didn't upload
+              </span>
+            ) : uploaded.length === 0 && i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
           </li>
         ))}
@@ -94,7 +101,7 @@ export function SellPhotos({
       </ul>
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
-        {held.length > 0 ? " · these go up when you save" : ""}
+        {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
       </p>
       {aiPanel}
       <div className="rounded-[20px] border border-border bg-card p-4">

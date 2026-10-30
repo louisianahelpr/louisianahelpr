@@ -1,6 +1,6 @@
 /**
- * Declutter moving-out mode (docs/specs/declutter-moving-out.md): list a
- * whole home from room photos, then list the drafts together.
+ * Declutter moving sale (docs/specs/declutter-moving-out.md). The flow is Sell a bunch with an optional move-out date
+ * (lead 2026-10-30, owner's one flow): this module holds the sale's own calls and the many-drafts publish both use.
  *
  * Nothing here is the protection. Every write is a declutter_* RPC behind the
  * 'declutter' AND 'declutter_moving_out' switches; drafts are made through
@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheckWithRetry, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import { setupFeeRefusal } from "@/lib/declutter/setupFee";
@@ -19,27 +18,6 @@ import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 // The calendar helpers live in moveDates.ts (shared with the banner).
 export { daysBetween, formatMoveDate, louisianaToday };
 
-/** One item the photo tool found in a room (nothing is saved yet). */
-export interface RoomItem {
-  title: string;
-  description: string;
-  category: string;
-  deliverySize: DeliverySize;
-  conditionStars: number;
-  flagged: boolean;
-}
-
-/** A found item as the seller edits it before saving. */
-export interface MoveRow extends RoomItem {
-  key: string;
-  keep: boolean;
-  price: string;
-  floor: string;
-}
-
-/** The server's limits (declutter_create_move_drafts, declutter-ai-draft room mode). */
-export const MOVE_ROOM_PHOTOS_MAX = 4;
-export const MOVE_SAVE_BATCH = 15;
 const MOVE_DATE_MAX_DAYS = 180;
 /** declutter-ai-draft allows 6 calls a minute per member: one photo check every 10.5 s stays under it. */
 export const AI_CHECK_GAP_MS = 10_500;
@@ -62,71 +40,13 @@ export function moveDollarsToCents(v: string): number | null {
 }
 
 /** What is wrong with one kept row, in plain words, or null. Mirrors declutter_create_item. */
-export function moveRowProblem(row: Pick<MoveRow, "title" | "price" | "floor">): string | null {
+export function moveRowProblem(row: { title: string; price: string; floor: string }): string | null {
   if (row.title.trim().length < 3) return "Give each item a name of at least 3 characters.";
   const price = moveDollarsToCents(row.price);
   if (price === null || price < 100 || price > 100_000) return "Give each item a price between $1 and $1,000.";
   const floor = row.floor.trim() ? moveDollarsToCents(row.floor) : price;
   if (floor === null || floor < 100 || floor > price) return "Each lowest price must be at least $1 and no more than its price.";
   return null;
-}
-
-/** A found item ready for the seller's edits. No price is guessed (row 80 comes later). */
-export function toMoveRows(items: RoomItem[], keyPrefix: string): MoveRow[] {
-  return items.map((it, i) => ({ ...it, key: `${keyPrefix}-${i}`, keep: true, price: "", floor: "" }));
-}
-
-/** The server's item shape. A blank lowest price is the price (no evening drops). */
-export function toMovePayload(rows: MoveRow[]) {
-  return rows.filter((r) => r.keep).map((r) => {
-    const price = moveDollarsToCents(r.price)!;
-    return {
-      title: r.title.trim(),
-      description: r.description.trim(),
-      category: r.category,
-      condition_stars: r.conditionStars,
-      delivery_size: r.deliverySize,
-      price_cents: price,
-      floor_price_cents: r.floor.trim() ? moveDollarsToCents(r.floor)! : price,
-    };
-  });
-}
-
-export function chunk<T>(list: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
-  return out;
-}
-
-/* ------------------------------------------------------------------------ */
-
-/**
- * Ask the photo tool what is in a room. The photos are cleaned (no location
- * data) and sent once; they are never uploaded or kept. Saves nothing.
- */
-export async function scanRoom(files: File[]): Promise<RoomItem[]> {
-  if (files.length < 1 || files.length > MOVE_ROOM_PHOTOS_MAX) throw new Error("room_photos_invalid");
-  const photos: string[] = [];
-  for (const f of files) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75)));
-  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body: { mode: "room", photos } });
-  if (error) {
-    const ctx = (error as { context?: Response }).context;
-    const status = ctx && typeof ctx.status === "number" ? ctx.status : 0;
-    const body: { error?: unknown } | null = ctx && typeof ctx.json === "function"
-      ? await ctx.json().catch((parseErr: unknown) => {
-          // A body that is not JSON carries no code: fall through to ai_unavailable.
-          console.warn("[declutter] room scan error body was not JSON", parseErr);
-          return null;
-        })
-      : null;
-    if (status === 429) throw new Error("ai_rate_limited");
-    const code = typeof body?.error === "string" && /^[a-z_0-9]+$/.test(body.error) ? body.error : "";
-    throw new Error(code || "ai_unavailable");
-  }
-  const items = (data as { items?: unknown } | null)?.items;
-  // An answer without a list is a fault, never "nothing in this room".
-  if (!Array.isArray(items)) throw new Error("ai_unavailable");
-  return items as RoomItem[];
 }
 
 export interface PickupPlace {
@@ -143,18 +63,42 @@ function rpcFail(error: { message: string }, words: string | null): never {
   throw e;
 }
 
-/** Save up to 15 drafts in one all-or-nothing call; the ids come back. */
-export async function createMoveDrafts(moveOutOn: string, place: PickupPlace, rows: MoveRow[]): Promise<string[]> {
+/** One draft's fields, in the shape the server's call takes. */
+export interface MoveDraftFields {
+  title: string;
+  description: string;
+  category: string;
+  conditionStars: number;
+  deliverySize: DeliverySize;
+  priceCents: number;
+  floorPriceCents: number;
+}
+
+/**
+ * One item's draft, in the seller's moving sale: the server makes it through declutter_create_item (every listing rule)
+ * and stamps the date. It takes 1 to 15 items and caps open moving-sale drafts at 60; a bunch lists one item at a time.
+ */
+export async function createMoveDraft(moveOutOn: string, place: PickupPlace, f: MoveDraftFields): Promise<string> {
   const { data, error } = await supabase.rpc("declutter_create_move_drafts", {
     p_move_out_on: moveOutOn,
     p_area_label: place.areaLabel,
     p_pickup_address: place.pickupAddress,
     p_pickup_lat: place.pickupLat,
     p_pickup_lng: place.pickupLng,
-    p_items: toMovePayload(rows),
+    p_items: [{
+      title: f.title,
+      description: f.description,
+      category: f.category,
+      condition_stars: f.conditionStars,
+      delivery_size: f.deliverySize,
+      price_cents: f.priceCents,
+      floor_price_cents: f.floorPriceCents,
+    }],
   });
   if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
-  return (data ?? []) as string[];
+  const id = ((data ?? []) as string[])[0];
+  if (!id) throw new Error("invalid_items");
+  return id;
 }
 
 /** Move the date, or (null) end the moving sale. How many listings changed. */

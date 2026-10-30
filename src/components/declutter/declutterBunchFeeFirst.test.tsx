@@ -52,6 +52,7 @@ vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<obje
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   fetchMyItems: async () => h.mine,
+  fetchPhotos: async (ids: string[]) => ids.map((id) => ({ item_id: id })),
   fetchMyPickupWindows: async () => [],
 }));
 

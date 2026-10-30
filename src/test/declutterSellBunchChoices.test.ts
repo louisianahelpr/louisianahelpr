@@ -7,7 +7,7 @@
  * @mutate src/lib/declutter/bunch.ts |       if (!it.free) await deps.setDropPct(id, choice.dropPct); |       void choice.dropPct;
  * @mutate src/lib/declutter/bunch.ts |       if (choices.keepUp) { |       if (false) {
  * @mutate src/lib/declutter/bunch.ts |       await deps.setHandovers(id, it.free ? ["porch"] : ways); |       await deps.setHandovers(id, ways);
- * @mutate src/lib/declutter/bunch.ts |   return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" }) |   return moveRowProblem({ title: it.title, price: it.price, floor: "" })
+ * @mutate src/lib/declutter/bunch.ts |   const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" }) |   const row = moveRowProblem({ title: it.title, price: it.price, floor: "" })
  * @mutate src/lib/declutter/bunch.ts | floor: floorFromPct(dollars, choices.floorPct) | floor: dollars
  * @mutate src/lib/declutter/bunch.ts |           keepUpFailed = true; |           keepUpFailed = false;
  */
@@ -19,11 +19,12 @@ const ON: BunchChoices = { keepUp: true, drops: true, dropPct: 10, floorPct: 50 
 const OFF: BunchChoices = { keepUp: false, drops: false, dropPct: 10, floorPct: 50 };
 
 function item(extra: Partial<BunchItem>): BunchItem {
-  return { ...blankItem(["p1", "p2"]), title: "Oak chair", description: "Solid.", category: "furniture", price: "40", ...extra };
+  return { ...blankItem(["p1", "p2"]), title: "Oak chair", description: "Solid.", category: "furniture", price: "40", sizeUnknown: false, ...extra };
 }
 function deps(over: Partial<ListDeps> = {}): ListDeps {
   let n = 0;
   return {
+    createMoveDraft: vi.fn(async () => "moved"),
     createDraft: vi.fn(async () => `id${++n}`),
     updateDraft: vi.fn(async (id: string) => id),
     removePhoto: vi.fn(async () => {}),
@@ -42,7 +43,7 @@ const run = (items: BunchItem[], d: ListDeps, choices: BunchChoices, ways: ("por
   listBunch("seller", items, photos, place, ways, () => {}, d, undefined, choices);
 
 describe("while the setup fee is due", () => {
-  const ready = (over: Partial<BunchItem>): BunchItem => ({ ...blankItem(["a"]), title: "Rug", price: "20", ...over });
+  const ready = (over: Partial<BunchItem>): BunchItem => ({ ...blankItem(["a"]), title: "Rug", price: "20", sizeUnknown: false, ...over });
   it("only free items go; a priced one and an unready one do not, and with no fee due every ready item goes", () => {
     const free = ready({ key: "free", free: true, price: "" });
     const priced = ready({ key: "priced" });

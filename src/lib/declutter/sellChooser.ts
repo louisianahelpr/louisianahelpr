@@ -4,7 +4,7 @@
  * sheet, the section top bar and the Declutter screens can all import it without pulling one another's code.
  *
  * The chooser is a mode of /declutter/sell (same gate, same page); a deep link that already names what to sell
- * (?mode=bunch, ?item=<draft>, ?answer=<wanted>, ?free=1) never shows it.
+ * (?mode=bunch, ?mode=moving, ?item=<draft>, ?answer=<wanted>, ?free=1) never shows it.
  */
 
 /** The chooser itself: where every "Sell" button goes. */
@@ -20,8 +20,8 @@ export const SELL_BUNCH_PATH = "/declutter/sell?mode=bunch";
 const SELL_FREE_PARAM = "free";
 export const SELL_FREE_PATH = `/declutter/sell?${SELL_FREE_PARAM}=1`;
 
-/** Moving out sale (only while 'declutter_moving_out' is on for the viewer). */
-export const SELL_MOVE_PATH = "/declutter/move";
+/** Moving out sale: Sell a bunch with a move-out date (only while 'declutter_moving_out' is on for the viewer). */
+export const SELL_MOVE_PATH = "/declutter/sell?mode=moving";
 
 /** Looking for something: the Wanted tab with its "Post what you're looking for" form open. */
 export const WANTED_POST_PARAM = "post";
@@ -30,6 +30,12 @@ export const WANTED_POST_PATH = `/declutter?tab=wanted&${WANTED_POST_PARAM}=1`;
 /** True when the URL asks for the chooser. */
 export function wantsSellChooser(params: URLSearchParams): boolean {
   return params.get("mode") === "choose";
+}
+
+/** True when the URL asks for Sell a bunch, with or without the moving sale's date. */
+export function wantsBunch(params: URLSearchParams): boolean {
+  const mode = params.get("mode");
+  return mode === "bunch" || mode === "moving";
 }
 
 /** True when a NEW listing should start as Free (Give it away free). */

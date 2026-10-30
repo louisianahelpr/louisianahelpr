@@ -16,11 +16,11 @@
  *      four confirmations once, then each item's draft, photos and publish
  *      (the photo check and review queue still apply). One item failing never
  *      stops the rest; each failure is named with its reason.
- * Behind the 'declutter' switch only (DeclutterGate on the page); no move
- * date. Every write is an ordinary declutter_* call that refuses without it.
+ * ?mode=moving is this same page with an optional move-out date on top (lead 2026-10-30: one flow, the room scan and
+ * the Move page are retired): with a date, the drafts join the seller's moving sale.
+ * Behind the 'declutter' switch (DeclutterGate on the page). Every write is an ordinary declutter_* call that refuses without it.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,10 @@ import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bunchItemProblem, bunchListable, bunchListingMinutes, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, listBunch, mergeItems, movePhoto, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, unusablePhotosNote, watchBunchRun,
+  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, BUNCH_SECONDS_EACH, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchListingMinutes, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, listingProgressLine, makeCover, mergeItems, mergePriceClash, movePhoto, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, sortProgressLine, splitItem, startBunchRun, takePhotoOff, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
+import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
 import { DeclutterNotice, TaxStatementsCheck } from "./declutterUi";
 import { AREA_ADDRESS_RE } from "./sellForm";
 import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
@@ -46,6 +47,10 @@ import { handoverSummary, SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchPileCard } from "./DeclutterBunchPile";
+import { BunchBulk } from "./DeclutterBunchBulk";
+import { BunchMovingSale } from "./DeclutterBunchMovingSale";
+import { BunchResults } from "./DeclutterBunchResults";
+import { BunchRow } from "./DeclutterBunchRow";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
 import { useBunchSaved } from "./useBunchSaved";
@@ -68,7 +73,16 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 let photoSeq = 0;
 
-export default function BunchFlow() {
+/** The last change that can be taken back: what the list and photos were, and what to say about it. */
+interface BunchUndo {
+  said: string;
+  before: BunchItem[];
+  photos: BunchPhoto[];
+  /** A merge set aside a price the seller typed: offered here, as a choice. */
+  otherPrice?: { intoKey: string; price: string };
+}
+
+export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
@@ -80,6 +94,15 @@ export default function BunchFlow() {
   const [pickupAddress, setPickupAddress] = useState("");
   const place = useExactAddressPoint();
   const coords = place.point;
+  const [moveDate, setMoveDate] = useState("");
+  const movingOpen = useFeature("declutter_moving_out");
+  const today = louisianaToday();
+  const [undo, setUndo] = useState<BunchUndo | null>(null);
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set());
+  // Rows open by the seller's tap; one with something to read (a flag, a photo that failed, a merge suggestion) starts open.
+  const [openRows, setOpenRows] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+  const [found, setFound] = useState(0);
+  const runNames = useRef<string[]>([]);
   const [photos, setPhotos] = useState<BunchPhoto[]>([]);
   const [items, setItems] = useState<BunchItem[]>([]);
   const [sorting, setSorting] = useState<{ done: number; total: number; retrying?: boolean } | null>(null);
@@ -106,12 +129,13 @@ export default function BunchFlow() {
   useScreenAwake(!!sorting || !!listing || listingDrafts);
   const saved = useBunchSaved(
     user?.id,
-    { areaLabel, pickupAddress, coords, photos, items, sorting: !!sorting, finished: !!results && items.length === 0 },
+    { areaLabel, pickupAddress, coords, moveDate, photos, items, sorting: !!sorting, finished: !!results && items.length === 0 },
     setItems,
     (back) => {
       setAreaLabel(back.areaLabel);
       setPickupAddress(back.pickupAddress);
       place.setPoint(back.coords);
+      setMoveDate(back.moveDate);
       setPhotos(back.photos);
       setItems(back.items);
       setSortNote(unusablePhotosNote(back.unusable));
@@ -224,10 +248,14 @@ export default function BunchFlow() {
   /** Sort these photos. Each batch's items reach the list as it finishes; what can't be sorted comes back together, with why. */
   async function sortPhotos(batch: BunchPhoto[]) {
     setSorting({ done: 0, total: Math.ceil(batch.length / GROUP_BATCH) });
+    setFound(0);
     try {
       const at = await hintPoint();
       const res = await groupPhotos(batch, (done, total, made) => {
         setSorting({ done, total });
+        setFound((n) => n + made.length);
+        // Items just came in, so "before" would lose them.
+        if (made.length > 0) setUndo(null);
         setItems((its) => addSorted(its, made));
       }, (cleaned) => askGroup(cleaned, at), undefined, undefined, undefined, {
         onRetry: () => setSorting((s) => (s ? { ...s, retrying: true } : s)),
@@ -251,21 +279,71 @@ export default function BunchFlow() {
       return file ? [{ key: k, file }] : [];
     });
     setSortNote(null);
+    setUndo(null);
     setItems((its) => its.filter((it) => it.key !== key));
     await sortPhotos(batch);
   }
 
-  /** A change to the grouping. A draft it leaves with no item comes off the server, or it would stay under Selling. */
-  function regroup(change: (its: BunchItem[]) => BunchItem[]) {
+  /**
+   * A change that can be undone: the words say what happened, and Undo puts the list and photos back. A draft it leaves
+   * with no item comes off the server at once, or it would stay under Selling; Undo then makes a new one at listing.
+   */
+  function regroup(change: (its: BunchItem[]) => BunchItem[], said: string, otherPrice?: BunchUndo["otherPrice"]) {
     const next = change(items);
     setItems(next);
+    setUndo({ said, before: items, photos, otherPrice });
     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item);
+  }
+
+  function onUndo() {
+    if (!undo) return;
+    const gone = new Set(draftsLeftBehind(undo.before, items).map((d) => d.id));
+    setPhotos(undo.photos);
+    setItems(undo.before.map((it) => (it.draftId && gone.has(it.draftId) ? { ...it, draftId: undefined, uploaded: undefined } : it)));
+    setUndo(null);
+  }
+
+  function nameOf(key: string): string {
+    const i = items.findIndex((it) => it.key === key);
+    return i < 0 ? "that item" : bunchItemName(items[i], i);
+  }
+
+  /** Open a row and go to the field it needs. */
+  function jumpTo(key: string) {
+    const it = items.find((x) => x.key === key);
+    const need = it ? bunchItemNeed(it) : null;
+    setOpenRows((m) => new Map(m).set(key, true));
+    const id = need === "name" ? `title-${key}` : need === "size" ? `size-${key}` : need === "photos" ? `add-photo-${key}` : `price-${key}`;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id) ?? document.querySelector(`[data-bunch-row="${key}"]`);
+      (el as HTMLElement | null)?.focus();
+      el?.scrollIntoView?.({ block: "center" });
+    });
+  }
+
+  /** Photos added to one item, straight on, without the photo tool. One that can't be used is named and left out. */
+  async function onAddPhotos(key: string, list: FileList | null) {
+    const picked = Array.from(list ?? []);
+    if (picked.length === 0) return;
+    const room = BUNCH_MAX_PHOTOS - photos.length;
+    if (room <= 0) {
+      setSortNote(`That's the most for one go (${BUNCH_MAX_PHOTOS} photos). List these first, then start another.`);
+      return;
+    }
+    const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
+    const { photos: usable, unusable } = await keepCleanablePhotos(added, []);
+    setSortNote(unusablePhotosNote(unusable));
+    if (usable.length === 0) return;
+    setPhotos((ps) => [...ps, ...usable]);
+    setItems((its) => addPhotosToItem(its, key, usable.map((p) => p.key)));
   }
 
   async function takeDownDraft(id: string, item: BunchItem) {
     const name = item.title.trim() || "that item";
     try {
       const done = await removeBunchDraft(id);
+      // Undo must not bring back an item that is already up.
+      if (done === "already_listed") setUndo(null);
       if (done === "already_listed") setSortNote(`"${name}" was already listed, so it's still up. You can take it down under Selling.`);
     } catch (err) {
       // Not silent: the draft is still under Selling, and the seller is told, with the reason, where to take it down.
@@ -275,23 +353,62 @@ export default function BunchFlow() {
     }
   }
 
-  async function onRewrite(key: string) {
-    const it = items.find((x) => x.key === key);
-    if (!it) return;
+  /** The photo tool writes this item. `keepTyped`: it fills only what the seller hasn't touched (a split, on its own). */
+  async function writeItem(it: BunchItem, name: string, keepTyped: boolean) {
+    const key = it.key;
     setRewriting(key);
     setRewriteNote(null);
     try {
       const point = await hintPoint();
       const d = await withRetries(() => requestAiDraftFromPhotos(it.photoKeys.map((k) => files.get(k)!).filter(Boolean), point), { delays: [4_000] });
-      setItems((its) => its.map((x) => (x.key === key
-        ? { ...x, title: d.title, description: d.description, category: d.category, deliverySize: d.deliverySize, conditionStars: d.conditionStars, flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) }
-        : x)));
+      setItems((its) => its.map((x) => {
+        if (x.key !== key) return x;
+        const words = keepTyped && x.edited ? {} : { title: d.title, description: d.description };
+        return { ...x, ...words, category: d.category, deliverySize: d.deliverySize, sizeUnknown: false, conditionStars: d.conditionStars, flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) };
+      }));
     } catch (err) {
       // Not silent: the reason is shown on its card; the seller can try again or fill the item in themselves.
-      setRewriteNote({ key, text: `We couldn't write "${bunchItemName(it, items.indexOf(it))}": ${declutterErrorMessage(err)}` });
+      setRewriteNote({ key, text: `We couldn't write "${name}": ${declutterErrorMessage(err)}` });
     } finally {
       setRewriting(null);
     }
+  }
+
+  async function onRewrite(key: string) {
+    const it = items.find((x) => x.key === key);
+    if (it) await writeItem(it, bunchItemName(it, items.indexOf(it)), false);
+  }
+
+  /** The split-off item is a different thing: it gets its own words without another tap. */
+  function onSplit(key: string, photoKeys: string[]) {
+    const next = splitItem(items, key, photoKeys);
+    setItems(next);
+    setUndo(null);
+    const had = new Set(items.map((x) => x.key));
+    const made = next.find((x) => !had.has(x.key));
+    if (made) {
+      setOpenRows((m) => new Map(m).set(made.key, true));
+      void writeItem(made, `Item ${next.indexOf(made) + 1}`, true);
+    }
+  }
+
+  function onMerge(fromKey: string, intoKey: string) {
+    const other = mergePriceClash(items, fromKey, intoKey);
+    const said = `Merged ${nameOf(fromKey)} into ${nameOf(intoKey)}.`;
+    regroup((its) => mergeItems(its, fromKey, intoKey), said, other ? { intoKey, price: other } : undefined);
+  }
+
+  /** What the bulk row changes: the chosen items, or all of them when none is chosen. A not-sorted pile isn't an item yet. */
+  const sortedItems = items.filter((it) => !it.notSorted);
+  const bulkKeys = (): ReadonlySet<string> => {
+    const live = sortedItems.filter((it) => chosen.has(it.key)).map((it) => it.key);
+    return new Set(live.length > 0 ? live : sortedItems.map((it) => it.key));
+  };
+  const counted = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
+  function onBulkPercent(pct: number) {
+    const res = percentOffSuggested(items, bulkKeys(), pct);
+    const skipped = res.skipped > 0 ? ` ${res.skipped} with no suggestion ${res.skipped === 1 ? "was" : "were"} left alone.` : "";
+    regroup(() => res.items, `Took ${pct}% off ${counted(res.changed)}.${skipped}`);
   }
 
   /** Lists every ready item, or just `only`: the one whose photo is being tried again. */
@@ -300,13 +417,19 @@ export default function BunchFlow() {
     const toList = only ? [only] : ready;
     const p = placeProblem
       ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
+      ?? (moveDate ? moveDateProblem(moveDate, today) : null)
       ?? (!attested ? "Tick the box under the four statements before you list these items." : null)
       ?? (only ? bunchItemProblem(only) : null)
       ?? (toList.length === 0 ? "No item is ready to list yet." : null);
     if (p) {
       setProblem(p);
+      // Beside the thing it's about, so the seller isn't left hunting up the page.
+      const at = p === placeProblem ? (areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? "bunch-area" : "bunch-address") : !attested ? "bunch-tax" : moveDate && p === moveDateProblem(moveDate, today) ? "bunch-move-date" : null;
+      if (at) document.getElementById(at)?.focus();
       return;
     }
+    setUndo(null);
+    runNames.current = toList.map((it) => it.title);
     const total = toList.length * 2;
     setListing({ done: 0, total });
     const started = startBunchRun(user!.id, watcher, total, async (onProgress, onStep, onPhoto) => {
@@ -316,7 +439,7 @@ export default function BunchFlow() {
       return listBunch(
         user!.id, toList, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, onProgress, undefined, onStep, choices.choices, onPhoto,
+        savedWays, onProgress, undefined, onStep, { ...choices.choices, moveOutOn: moveDate || null }, onPhoto,
       );
     });
     if (!started) {
@@ -353,17 +476,28 @@ export default function BunchFlow() {
     saved.clearSaved();
   }
 
-  const others = (key: string) => items.flatMap((it, i) => (it.key === key || it.notSorted ? [] : [{ key: it.key, name: bunchItemName(it, i) }]));
-  const live = results?.filter((r) => "status" in r && r.status === "live").length ?? 0;
-  const review = results?.filter((r) => "status" in r && r.status === "pending_review").length ?? 0;
-  const keepUpFailed = results?.filter((r) => "keepUpFailed" in r && r.keepUpFailed).length ?? 0;
-  const failed = (results ?? []).filter((r): r is Extract<BunchOutcome, { error: unknown }> => "error" in r);
+  const others = (key: string) => {
+    const names = items.map((it, i) => bunchItemName(it, i));
+    return items.flatMap((it, i) => (it.key === key || it.notSorted ? [] : [{ key: it.key, name: names.filter((n) => n === names[i]).length > 1 ? `${names[i]} (${i + 1})` : names[i], photoKey: it.photoKeys[0] }]));
+  };
+  const needs = bunchNeedsLine(items);
+  const firstUnready = items.find((it) => bunchItemNeed(it));
+  const showMove = movingOpen && (moving || !!moveDate);
+  const pageTitle = moving ? "Moving out sale" : "Sell a bunch";
+  const toListing = () => {
+    const el = document.getElementById("bunch-list-step");
+    el?.focus();
+    el?.scrollIntoView?.({ block: "start" });
+  };
+  const startsOpen = (it: BunchItem) => it.flagged || !!it.failedPhoto || !!it.mergeHint;
+  const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? startsOpen(it);
 
   return (
-    <AppPage title="Sell a bunch" backTo="/declutter?view=selling">
+    <AppPage title={pageTitle} backTo="/declutter?view=selling">
       <p className="text-sm text-muted-foreground">
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
+      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); document.getElementById("bunch-files")?.focus(); }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} />
@@ -378,6 +512,8 @@ export default function BunchFlow() {
       <ConfirmSheet open={askingStartOver} title="Start over?" confirmLabel="Start over" onConfirm={startOver} onClose={() => setAskingStartOver(false)} testId="bunch-start-over">
         Your photos, item details and prices on this page are removed from this device. Listings you already posted stay up.
       </ConfirmSheet>
+
+      {showMove && <BunchMovingSale userId={user.id} date={moveDate} setDate={setMoveDate} today={today} />}
 
       {whereFolded ? null : (
       <Section id="bunch-where" title="1. Where buyers pick up">
@@ -407,22 +543,28 @@ export default function BunchFlow() {
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
         )}
-        {sorting && (
-          <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-            We're sorting your photos ({sorting.done} of {sorting.total} {sorting.total === 1 ? "batch" : "batches"} done). {sorting.retrying ? "The connection dropped, so we're trying again. " : ""}Keep this page open.
-          </p>
-        )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </Section>
 
       {items.length > 0 && (
         <Section id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
           <p className="text-xs text-muted-foreground">
-            Fix anything we got wrong. If two items are the same thing, merge them; if one holds two things, choose the photos and split them off.
+            Fix anything we got wrong. Tap an item to open it. If two items are the same thing, merge them; if one holds two things, split it.
           </p>
           {/* Nothing on a card can change while a run works on it: a draft dropped mid-run would be listed or lost. */}
           <fieldset disabled={!!listing || listingDrafts} className="contents">
-          <ul className="space-y-3">
+          {sortedItems.length > 1 && (
+            <BunchBulk
+              total={sortedItems.length}
+              chosen={sortedItems.filter((it) => chosen.has(it.key)).length}
+              onToggleAll={(on) => setChosen(new Set(on ? sortedItems.map((it) => it.key) : []))}
+              onSetPrice={(price) => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { price, free: false }), `Set the price on ${counted(keys.size)}.`); }}
+              onPercentOff={onBulkPercent}
+              onFree={() => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { free: true }), `Made ${counted(keys.size)} free.`); }}
+              onCondition={(conditionStars) => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { conditionStars }), `Set the condition on ${counted(keys.size)}.`); }}
+            />
+          )}
+          <ul className="space-y-2">
             {items.map((it, i) => it.notSorted ? (
               <BunchPileCard
                 key={it.key}
@@ -430,27 +572,43 @@ export default function BunchFlow() {
                 urls={thumbs}
                 busy={busy}
                 onSortAgain={() => void onSortAgain(it.key)}
-                onOneItem={() => setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined }))}
-                onDrop={() => regroup((its) => dropItem(its, it.key))}
+                onOneItem={() => { setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined })); }}
+                onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${it.photoKeys.length} ${it.photoKeys.length === 1 ? "photo" : "photos"}.`)}
               />
             ) : (
-              <BunchCard
+              <BunchRow
                 key={it.key}
                 item={it}
                 index={i}
-                others={others(it.key)}
-                urls={thumbs}
-                at={coords}
-                rewriting={rewriting === it.key}
-                rewriteNote={rewriteNote?.key === it.key ? rewriteNote.text : null}
-                onChange={(patch) => setItems((its) => editBunchItem(its, it.key, patch))}
-                onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its))}
-                onSplit={(keys) => setItems((its) => splitItem(its, it.key, keys))}
-                onMerge={(into) => regroup((its) => mergeItems(its, it.key, into))}
-                onDrop={() => regroup((its) => dropItem(its, it.key))}
-                onRewrite={() => void onRewrite(it.key)}
-                onRetryUpload={() => void onListAll(it)}
-              />
+                url={thumbs.get(it.photoKeys[0])}
+                open={isRowOpen(it)}
+                chosen={chosen.has(it.key)}
+                nextPriceId={items.slice(i + 1).find((x) => !x.free && !x.notSorted) ? `price-${items.slice(i + 1).find((x) => !x.free && !x.notSorted)!.key}` : null}
+                onToggleOpen={() => setOpenRows((m) => new Map(m).set(it.key, !isRowOpen(it)))}
+                onToggleChosen={(on) => setChosen((c) => { const n = new Set(c); if (on) n.add(it.key); else n.delete(it.key); return n; })}
+                onPrice={(price) => { setUndo(null); setItems((its) => editBunchItem(its, it.key, { price })); }}
+              >
+                <BunchCard
+                  item={it}
+                  index={i}
+                  others={others(it.key)}
+                  urls={thumbs}
+                  files={files}
+                  at={coords}
+                  rewriting={rewriting === it.key}
+                  rewriteNote={rewriteNote?.key === it.key ? rewriteNote.text : null}
+                  onChange={(patch) => { setUndo(null); setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, patch)); }}
+                  onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its), `Moved ${keys.length === 1 ? "a photo" : `${keys.length} photos`} to ${nameOf(to)}.`)}
+                  onSplit={(keys) => onSplit(it.key, keys)}
+                  onRemovePhoto={(k) => regroup((its) => takePhotoOff(its, it.key, k), it.photoKeys.length === 1 ? `Removed ${nameOf(it.key)}: that was its last photo.` : "Photo removed.")}
+                  onCover={(k) => setItems((its) => makeCover(its, it.key, k))}
+                  onAddPhotos={(list) => void onAddPhotos(it.key, list)}
+                  onMerge={(into) => onMerge(it.key, into)}
+                  onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${nameOf(it.key)}.`)}
+                  onRewrite={() => void onRewrite(it.key)}
+                  onRetryUpload={() => void onListAll(it)}
+                />
+              </BunchRow>
             ))}
           </ul>
           </fieldset>
@@ -458,6 +616,8 @@ export default function BunchFlow() {
       )}
 
       {items.length > 0 && (
+        <>
+        <span id="bunch-list-step" tabIndex={-1} className="block focus:outline-none" />
         <Section id="bunch-list" title={`${firstStep + 2}. List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}>
           {savedSetup.hasSettings && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
             <div className="space-y-1" data-bunch-list-saved="">
@@ -487,7 +647,7 @@ export default function BunchFlow() {
           {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           <Button type="button" disabled={blocked || ready.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
-            {listing ? `Listing… (${Math.min(listing.done, listing.total)} of ${listing.total} steps)` : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
+            {listing ? "Listing…" : `List ${ready.length} ${ready.length === 1 ? "item" : "items"}`}
           </Button>
           {listing && photoProgress && (
             <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-photo-progress="">
@@ -498,32 +658,43 @@ export default function BunchFlow() {
             Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing takes about {BUNCH_SECONDS_EACH} seconds each{ready.length > 1 ? `, so about ${bunchListingMinutes(ready.length)} ${bunchListingMinutes(ready.length) === 1 ? "minute" : "minutes"} for these` : ""}. Keep this page open and your phone unlocked until it's done.
           </p>
         </Section>
+        </>
       )}
 
-      {results && (
-        <Section id="bunch-done" title="What happened">
-          {live + review > 0 && (
-            <p className="text-sm" data-bunch-listed="">
-              {[live > 0 ? `${live} for sale` : null, review > 0 ? `${review} waiting for a review` : null].filter(Boolean).join(", ")}.{" "}
-              <Link className="underline" to="/declutter?view=selling">See your listings</Link>
+      {(sorting || listing || undo || items.length > 0) && (
+        <div className="sticky bottom-3 z-20 space-y-2 rounded-2xl border border-border bg-card p-3 shadow-md" data-bunch-bar="">
+          {sorting && (
+            <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-sorting="">
+              {sortProgressLine(sorting.done, sorting.total, found)} {sorting.retrying ? "The connection dropped, so we're trying again. " : ""}Keep this page open.
             </p>
           )}
-          {keepUpFailed > 0 && (
-            <p className="text-sm" data-bunch-keepup-failed="">
-              "Keep it up" didn't turn on for {keepUpFailed} {keepUpFailed === 1 ? "item" : "items"}. You can turn it on from Manage listing.
+          {listing && (
+            <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-progress="">
+              {listingProgressLine(listing.done, listing.total, runNames.current)} Keep this page open.
             </p>
           )}
-          {failed.length > 0 && (
-            <ul className="space-y-1 text-sm" data-bunch-failed="">
-              {failed.map((f) => (
-                <li key={f.key}>
-                  <span className="font-semibold">{f.title || "An item"}</span> wasn't listed: {declutterErrorMessage(f.error)}
-                  {f.stays ? " It's still above, to fix and list again." : " It's saved as a draft under Selling, to finish there."}
-                </li>
-              ))}
-            </ul>
+          {undo && !listing && (
+            <div className="flex flex-wrap items-center gap-2" role="status" data-bunch-undo="">
+              <p className="min-w-0 flex-1 text-sm">{undo.said}{undo.otherPrice ? " We kept its price." : ""}</p>
+              {undo.otherPrice && (
+                <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => { const { intoKey, price } = undo.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo, otherPrice: undefined }); }}>
+                  Use ${undo.otherPrice.price} instead
+                </Button>
+              )}
+              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUndo}>Undo</Button>
+            </div>
           )}
-        </Section>
+          {!listing && !sorting && items.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {needs && firstUnready ? (
+                <Button type="button" variant="link" size="sm" className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left underline" data-bunch-needs="" onClick={() => jumpTo(firstUnready.key)}>{needs}</Button>
+              ) : (
+                <span className="min-w-0 flex-1 text-sm text-muted-foreground">All {items.length === 1 ? "set" : `${items.length} set`}.</span>
+              )}
+              <Button type="button" size="sm" className="rounded-full" disabled={ready.length === 0} data-bunch-next="" onClick={toListing}>Next: list {ready.length} {ready.length === 1 ? "item" : "items"}</Button>
+            </div>
+          )}
+        </div>
       )}
     </AppPage>
   );

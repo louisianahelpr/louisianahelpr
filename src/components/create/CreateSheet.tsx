@@ -9,7 +9,7 @@ import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, SELL_MOVE_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -29,7 +29,7 @@ interface CreateAction {
  * - Jobs: Post a job. "Get quotes" is a choice inside the post-job form with
  *   no entry route yet, so it is not offered here until one exists.
  * - Declutter: Sell an item (the "What do you want to sell?" chooser, owner 2026-10-30); Moving out sale only while 'declutter_moving_out'
- *   is on for the viewer (/declutter/move is the 404 otherwise).
+ *   is on for the viewer (Sell a bunch with a move-out date).
  * - Shops: Open a shop, or, once the member has one, Add a product or service
  *   (both /shops/mine, whose items section adds them).
  * - Homes: List for rent (Owning's add property, the first step of a rent listing). "List for
@@ -44,7 +44,7 @@ function useCreateRows() {
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
-    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : [])],
+    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, ...(movingOut ? [{ label: "Moving out sale", path: SELL_MOVE_PATH }] : [])],
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
     homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };

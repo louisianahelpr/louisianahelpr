@@ -140,15 +140,6 @@ export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
   );
 }
 
-/** /declutter/move: the real header, no bones (as the sell form: its first rows come and go with the member). */
-export function DeclutterMoveSkeleton() {
-  return (
-    <AppPage title="Moving out" backTo="/declutter?view=selling">
-      <p role="status" className="sr-only">Loading your moving sale</p>
-    </AppPage>
-  );
-}
-
 /** /declutter/settings while the 'declutter' switch is read. */
 export function DeclutterSettingsSkeleton() {
   return (

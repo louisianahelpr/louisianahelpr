@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { FallbackImg } from "./FallbackImg";
 
 const REASON_WORDS: Record<ProblemReason, string> = {
   not_as_described: "It isn't as described",
@@ -35,7 +36,7 @@ function ProblemPhotos({ paths }: { paths: string[] }) {
   return (
     <div className="flex flex-wrap gap-2" data-problem-photos="">
       {(urls.data ?? []).map((u, i) => u
-        ? <a key={paths[i]} href={u} target="_blank" rel="noreferrer"><img src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></a>
+        ? <a key={paths[i]} href={u} target="_blank" rel="noreferrer"><FallbackImg src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></a>
         : null)}
     </div>
   );

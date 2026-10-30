@@ -8,6 +8,7 @@ import { useEffect, useId, useMemo } from "react";
 import { Camera, X } from "lucide-react";
 import { uploadProblemPhoto } from "@/lib/declutter/handover";
 import { PROBLEM_PHOTO_MAX } from "@/lib/declutter/problemPhotos";
+import { FallbackImg } from "./FallbackImg";
 
 /** Adds the chosen files to `current`, keeping at most PROBLEM_PHOTO_MAX and only images. */
 export function addProblemPhotos(current: File[], chosen: FileList | File[] | null): File[] {
@@ -35,7 +36,7 @@ export function ProblemPhotoPicker({ files, onChange, disabled = false }: { file
       <ul className="flex flex-wrap gap-2">
         {previews.map((src, i) => (
           <li key={src} className="relative h-20 w-20">
-            <img src={src} alt={`Photo ${i + 1}`} className="h-full w-full rounded-xl bg-photo-empty object-cover" />
+            <FallbackImg src={src} alt={`Photo ${i + 1}`} className="h-full w-full rounded-xl bg-photo-empty object-cover" />
             <button type="button" aria-label={`Remove photo ${i + 1}`} disabled={disabled}
               className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center"
               onClick={() => onChange(files.filter((_, j) => j !== i))}>

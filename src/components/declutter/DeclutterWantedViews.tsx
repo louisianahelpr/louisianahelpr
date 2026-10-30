@@ -89,21 +89,21 @@ function WantedFormFields({ form, setForm, problem, onSubmit, photos, where }: F
         <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike, 16 inch"
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="min-w-0 space-y-1">
-          <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>
-          <div className={`${input} flex items-center gap-1`}>
-            {/* Audit W8: the "$" turns rust only once a price is typed, so the grey 30 never reads as a set price. */}
-            <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
-            <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
-              inputMode="numeric" value={form.maxPrice} placeholder="30"
-              onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
-          </div>
-        </div>
-        <div className="min-w-0 space-y-1">
-          <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
-          <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
-            onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} />
+      {/* Its own row (tester 10-30): beside "Up to" at 375 its subs wrapped in a half-width column, and opening it left
+          an empty column under "Up to". */}
+      <div className="min-w-0 space-y-1" data-wanted-category-row="">
+        <label className="block text-ds-15 font-semibold" htmlFor="wanted-category">Category</label>
+        <TwoStepCategoryPicker id="wanted-category" value={form.category} placeholder="Pick one"
+          onChange={(category) => setForm((f) => ({ ...f, category }))} groups={CATEGORY_PICKER_GROUPS} />
+      </div>
+      <div className="min-w-0 space-y-1">
+        <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>
+        <div className={`${input} flex items-center gap-1`}>
+          {/* Audit W8: the "$" turns rust only once a price is typed, so the grey 30 never reads as a set price. */}
+          <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
+          <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
+            inputMode="numeric" value={form.maxPrice} placeholder="30"
+            onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
         </div>
       </div>
       <div className="space-y-1">

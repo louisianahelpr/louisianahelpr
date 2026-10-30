@@ -115,6 +115,11 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
           <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>Name</label>
           <input id={`title-${id}`} className={field} maxLength={80} value={item.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Oak rocking chair" />
         </div>
+        {/* Its own row at every width, so opening it never leaves an empty column under the field beside it. */}
+        <div className="min-w-0 sm:col-span-2" data-bunch-category-row="">
+          <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
+          <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} />
+        </div>
         <div className="min-w-0 space-y-2">
           {!item.free && (
             <div>
@@ -129,16 +134,12 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
           </label>
         </div>
         <div className="min-w-0">
-          <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
-          <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} />
-        </div>
-        <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>Condition</label>
           <select id={`cond-${id}`} className={field} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>
             {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{CONDITION_LABEL[s]}</option>)}
           </select>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 sm:col-span-2">
           <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>Size</label>
           <select id={`size-${id}`} className={field} value={item.deliverySize} onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
             {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}

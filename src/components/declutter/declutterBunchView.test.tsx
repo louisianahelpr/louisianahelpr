@@ -19,6 +19,9 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | alt="" loading="lazy" decoding="async" | alt=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : params.get("mode") === "bunch" ? ( |       ) : false ? (
+ * Tester 10-30: opening the category picker in half a row left an empty column under Price and pushed Condition down.
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2" data-bunch-category-row=""> | <div className="min-w-0" data-bunch-category-row="">
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | <div className="min-w-0 sm:col-span-2">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}> | <div className="min-w-0">\n          <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -112,6 +115,9 @@ describe("Sell a bunch", () => {
     await screen.findByRole("heading", { name: /^3\. Check each item/ });
     const cards = document.querySelectorAll("[data-bunch-item]");
     expect(cards).toHaveLength(2);
+    // Category on its own row and Size filling the last one: no half-empty row at sm and up, open or closed.
+    expect(cards[0].querySelector("[data-bunch-category-row]")!.className).toContain("sm:col-span-2");
+    expect(within(cards[0] as HTMLElement).getByLabelText("Size").parentElement!.className).toContain("sm:col-span-2");
     expect(cards[1].hasAttribute("data-flagged")).toBe(true);
     expect(within(cards[1] as HTMLElement).getByText(/You can still list it/)).toBeTruthy();
     // Nothing is ready until it has a price; a flag doesn't stop an item.

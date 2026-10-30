@@ -20,6 +20,8 @@ import { vi } from "vitest";
 
 /** Sender identity — one place, matching `_shared/resend.ts`'s contract. */
 export const FROM_DEFAULT = "Louisiana Helpr <hello@louisianahelpr.com>";
+/** Support replies (admin-support-reply): the team, never one admin. */
+export const FROM_SUPPORT = "Louisiana Helpr Support <noreply@louisianahelpr.com>";
 
 /** Every `renderEmail(...)` call, in order, with the element it was given. */
 export const emailRenders: unknown[] = [];

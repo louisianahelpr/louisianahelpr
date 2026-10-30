@@ -76,9 +76,11 @@ const READERS: Record<string, { rule: string; pin: RegExp }> = {
     rule: "marketing blast: unchanged reach, needs an explicit true",
     pin: /\.filter\(\(p\) => p\.email_promotions !== true \|\| p\.email_enabled === false\)/,
   },
-  "supabase/functions/send-notification-email/index.ts": {
+  // The type table send-notification-email reads (audit E2-12); the falsy-column
+  // skip itself is pinned in send-notification-email below the loop.
+  "supabase/functions/_shared/notificationTypes.ts": {
     rule: "the 'promotion' notification email: unchanged, a falsy column (NULL included) skips",
-    pin: /promotion:\s*\{\s*prefCol:\s*'email_promotions'[\s\S]*!\(prefs as any\)\[prefColumn\]/,
+    pin: /promotion:\s*\{\s*prefCol:\s*'email_promotions'/,
   },
   "supabase/functions/email-unsubscribe/index.ts": {
     rule: "unsubscribe writes false; resubscribe restores exactly true or the never-chosen NULL",
@@ -122,6 +124,9 @@ describe("Q2299: the sign-up box alone is enough for the welcome and come-back e
       .filter((f) => /email_promotions/.test(code(f)));
     expect(readers.length).toBeGreaterThan(3);
     expect(readers.sort()).toEqual(Object.keys(READERS).sort());
+    // send-notification-email reads the promotion column through the shared
+    // table, and a falsy value (NULL included) still skips the send.
+    expect(code("supabase/functions/send-notification-email/index.ts")).toMatch(/!\(prefs as any\)\[prefColumn\]/);
     for (const [file, { rule, pin }] of Object.entries(READERS)) {
       expect(code(file), `${file}: ${rule}`).toMatch(pin);
     }

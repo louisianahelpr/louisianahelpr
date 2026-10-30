@@ -182,7 +182,7 @@ describe("job_match respects the user's Job Matches preference", () => {
     expect(pushCol).toBe("job_matches");
 
     const email = readFileSync(
-      resolve(repoRoot, "supabase/functions/send-notification-email/index.ts"),
+      resolve(repoRoot, "supabase/functions/_shared/notificationTypes.ts"),
       "utf8",
     );
     expect(email).toMatch(/job_match:\s*\{\s*prefCol:\s*'email_job_matches'/);

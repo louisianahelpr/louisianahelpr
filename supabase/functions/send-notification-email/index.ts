@@ -11,76 +11,11 @@ import { getAppUrl } from '../_shared/appUrl.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { NOTIFICATION_TYPE_MAP, UNMAPPED_NOTIFICATION_ROUTE } from '../_shared/notificationTypes.ts'
 
-// Map notification "type" values to (a) the email pref column and (b) the
-// log category used for admin observability.
-// EVERY type in `notifications_type_check`, pointed at the email twin of the
-// column `notification_type_pref_map` gates PUSH with. Push and email must
-// agree, and until 2026-09-03 they did not:
-//
-//   * FOUR types had no entry at all — `job_updates`, `expired`, `system_alert`
-//     and `verified` — so they fell through to the
-//     `email_system_alerts` default below. "Your job expires soon" was gated
-//     by the platform-alerts switch for email and by job updates for push.
-//   * FOUR more pointed at a different column than push did: `application`
-//     (push job_applications / email new_offers), `job_update` and `job_match`
-//     (push job_updates / email work_status), and `payment` (push payments /
-//     email financial_alerts).
-//
-// That mattered little while `job_applications`, `job_updates`, `payments` and
-// `system_alerts` had no switch on the prefs screen. Now that they do (N-005),
-// a divergence here means a user flips a switch and only one of the two
-// channels obeys it. `src/test/notificationTypeRegistries.test.ts` diffs this
-// table against the DB map's seed rows and fails on any disagreement.
-//
-// No account's delivery changes by default: every email_* column involved
-// DEFAULTs true, so this only takes effect for someone who has actually set a
-// preference — which is the entire point.
-const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
-  // New granular categories (used by triggers)
-  new_offers:        { prefCol: 'email_new_offers',       category: 'new_offers' },
-  transit_updates:   { prefCol: 'email_transit_updates',  category: 'transit_updates' },
-  work_status:       { prefCol: 'email_work_status',      category: 'work_status' },
-  financial_alerts:  { prefCol: 'email_financial_alerts', category: 'financial_alerts' },
-  // Legacy
-  application:       { prefCol: 'email_job_applications', category: 'job_applications' },
-  job_update:        { prefCol: 'email_job_updates',      category: 'job_updates' },
-  job_updates:       { prefCol: 'email_job_updates',      category: 'job_updates' },
-  // Its own column since 2026-09-11 — job_match is the largest type in prod
-  // and users need to mute it without muting real updates on their own jobs.
-  job_match:         { prefCol: 'email_job_matches',      category: 'job_matches' },
-  expired:           { prefCol: 'email_job_updates',      category: 'job_updates' },
-  info:              { prefCol: 'email_work_status',      category: 'work_status' },
-  success:           { prefCol: 'email_work_status',      category: 'work_status' },
-  warning:           { prefCol: 'email_system_alerts',    category: 'system' },
-  system_alert:      { prefCol: 'email_system_alerts',    category: 'system' },
-  verified:          { prefCol: 'email_system_alerts',    category: 'system' },
-  // Operator mail. Same column `warning` resolved to — the point of the type
-  // is that user-facing rows stop SHARING that column, not that admins move.
-  admin_alert:       { prefCol: 'email_system_alerts',    category: 'system' },
-  message:           { prefCol: 'email_messages',         category: 'messages' },
-  payment:           { prefCol: 'email_payments',         category: 'payments' },
-  review:            { prefCol: 'email_reviews',          category: 'reviews' },
-  // `promotion` is NOT a notifications.type — no CHECK value spells it, and
-  // nothing inserts it. It is here for marketing mail that calls this function
-  // directly with its own type string, so the registry test asserts coverage
-  // of the CHECK set rather than equality with it.
-  promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
-  // Also NOT a notifications.type (Q2120): sweep_quote_alerts' reminders and
-  // "Quotes are closed" notice keep the in-app/push type `new_offers` and send
-  // their EMAIL as `quote_reminder`, so the member's own "Quote reminders"
-  // email switch decides it (owner 2026-10-21).
-  quote_reminder:    { prefCol: 'email_quote_reminders',  category: 'quote_reminders' },
-  // Declutter (20261028162048): each kind on its own email twin. Only pickup
-  // reminders and price drops send email today; the rest are push + bell.
-  declutter_listings:    { prefCol: 'email_declutter_listings',    category: 'declutter_listings' },
-  declutter_offers:      { prefCol: 'email_declutter_offers',      category: 'declutter_offers' },
-  declutter_sales:       { prefCol: 'email_declutter_sales',       category: 'declutter_sales' },
-  declutter_pickups:     { prefCol: 'email_declutter_pickups',     category: 'declutter_pickups' },
-  declutter_refunds:     { prefCol: 'email_declutter_refunds',     category: 'declutter_refunds' },
-  declutter_price_drops: { prefCol: 'email_declutter_price_drops', category: 'declutter_price_drops' },
-  declutter_wanted:      { prefCol: 'email_declutter_wanted',      category: 'declutter_wanted' },
-}
+// Type -> email switch and log category: ONE table shared with the push log
+// (_shared/notificationTypes.ts, audit E2-12).
+const TYPE_MAP = NOTIFICATION_TYPE_MAP
 
 /**
  * `lexilombas05@gmail.com` -> `lexi…@gmail.com`.
@@ -186,7 +121,7 @@ serve(async (req) => {
     // would have produced a broken "View Details" button anyway.
     const safeLink = link == null ? null : sanitizeSameOriginLink(link)
 
-    const mapping = TYPE_MAP[type] || { prefCol: 'email_system_alerts', category: 'system' }
+    const mapping = TYPE_MAP[type] || UNMAPPED_NOTIFICATION_ROUTE
     const prefColumn = mapping.prefCol
     const category = mapping.category
 

@@ -30,7 +30,7 @@ const A = {
   as_private: "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw",
   ua_public: "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4",
   ua_private: "q1dXpw3UpT5VOmu_cf_v6ih07Aems3njxI-JWgLcM94",
-  // The published RFC 8291 Appendix A test vector, not a secret; built from parts so the
+  // The published test vector from Appendix A of RFC 8291, not a secret; built from parts so the
   // generic-api-key scanner does not read "auth_secret: <value>" as a credential.
   auth_secret: ["BTBZMqHH6r4T", "ts7J_aSIgg"].join(""),
   salt: "DGv6ra1nlYgDCS1FRnbzlw",

@@ -42,6 +42,8 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
 import { BunchDraftsSection } from "./BunchDraftsSection";
+import { useBunchSaved } from "./useBunchSaved";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -55,7 +57,6 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 let photoSeq = 0;
-const NO_IDS: ReadonlySet<string> = new Set();
 
 export default function BunchFlow() {
   const { user } = useCurrentUser();
@@ -85,6 +86,21 @@ export default function BunchFlow() {
   const urls = useRef(new Map<string, string>());
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
   const files = useMemo(() => new Map(photos.map((p) => [p.key, p.file])), [photos]);
+  const [askingStartOver, setAskingStartOver] = useState(false);
+  const saved = useBunchSaved(
+    user?.id,
+    { areaLabel, pickupAddress, coords, photos, items, sorting: !!sorting, finished: !!results && items.length === 0 },
+    setItems,
+    (back) => {
+      setAreaLabel(back.areaLabel);
+      setPickupAddress(back.pickupAddress);
+      setCoords(back.coords);
+      for (const p of back.photos) urls.current.set(p.key, URL.createObjectURL(p.file));
+      setPhotos(back.photos);
+      setItems(back.items);
+    },
+  );
+  const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);
 
   const savedWindows = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
   const windowsLoaded = useRef(false);
@@ -135,7 +151,7 @@ export default function BunchFlow() {
       setSortNote(`That's the most for one go (${BUNCH_MAX_PHOTOS} photos). List these first, then start another.`);
       return;
     }
-    const added = picked.slice(0, room).map((file) => ({ key: `ph${++photoSeq}`, file }));
+    const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
     for (const p of added) urls.current.set(p.key, URL.createObjectURL(p.file));
     setPhotos((ps) => [...ps, ...added]);
     setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
@@ -188,7 +204,7 @@ export default function BunchFlow() {
       const out = await listBunch(
         user!.id, ready, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, (done, total) => setListing({ done, total }),
+        savedWays, (done, total) => setListing({ done, total }), undefined, saved.applyStep,
       );
       setResults(out);
       // Listed items and items whose draft now exists leave the list (a draft is finished under Selling);
@@ -205,6 +221,18 @@ export default function BunchFlow() {
     }
   }
 
+  function startOver() {
+    urls.current.forEach((u) => URL.revokeObjectURL(u));
+    urls.current.clear();
+    setPhotos([]);
+    setItems([]);
+    setResults(null);
+    setSortNote(null);
+    setProblem(null);
+    setAskingStartOver(false);
+    saved.clearSaved();
+  }
+
   const others = (key: string) => items.map((it, i) => ({ key: it.key, name: bunchItemName(it, i) })).filter((o) => o.key !== key);
   const live = results?.filter((r) => "status" in r && r.status === "live").length ?? 0;
   const review = results?.filter((r) => "status" in r && r.status === "pending_review").length ?? 0;
@@ -218,7 +246,18 @@ export default function BunchFlow() {
       </p>
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      {feeDue == null && <BunchDraftsSection userId={user.id} exclude={NO_IDS} busy={busy} onBusy={setListingDrafts} />}
+      {feeDue == null && <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} onBusy={setListingDrafts} />}
+
+      {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
+      {saved.restoredCount > 0 && items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-4 text-sm" role="status" data-bunch-restored="">
+          <p className="min-w-0 flex-1">We kept your work from last time: {saved.restoredCount} {saved.restoredCount === 1 ? "item" : "items"}, with their photos and prices.</p>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={() => setAskingStartOver(true)}>Start over</Button>
+        </div>
+      )}
+      <ConfirmSheet open={askingStartOver} title="Start over?" confirmLabel="Start over" onConfirm={startOver} onClose={() => setAskingStartOver(false)} testId="bunch-start-over">
+        Your photos, item details and prices on this page are removed from this device. Listings you already posted stay up.
+      </ConfirmSheet>
 
       <Section id="bunch-where" title="1. Where buyers pick up">
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>

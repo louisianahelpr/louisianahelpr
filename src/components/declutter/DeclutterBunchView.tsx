@@ -5,8 +5,9 @@
  * they review all at once before submission"). One page, in order:
  *   1. Where buyers pick up: the area buyers see and the private address,
  *      asked once for every item.
- *   2. Add photos: many at once. They stay on the device; the photo tool
- *      sorts them into items and writes each one (lib/declutter/bunch.ts).
+ *   2. Add photos: many at once. Smaller copies go to the photo tool, which
+ *      sorts them into items and writes each one (lib/declutter/bunch.ts);
+ *      nothing is saved until the seller lists.
  *   3. Check each item: every field editable; fix the grouping (move a photo,
  *      split, merge, drop: the owner's pop-up choice). A possibly banned item
  *      is marked and cannot be listed; an item short of photos says so.
@@ -28,6 +29,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { geocodeAddress } from "@/lib/geocode";
+import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type PickupWindow, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
@@ -89,6 +91,21 @@ export default function BunchFlow() {
     windowsLoaded.current = true;
     if (saved.length > 0) setWindows(saved.map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) })));
   }, [savedWindows.data, savedWindows.isSuccess]);
+
+  // The area and pickup address start from the seller's last listing (the single form's "Remember my setup": the
+  // same read and cache entry). Applied once, only to a box still blank. A failed read is extra help lost, not a
+  // blocker: the boxes start blank, and the app's QueryCache reports the error.
+  const lastSetup = useQuery({ queryKey: ["declutter", "last-setup", user?.id], queryFn: () => fetchLastSetup(user!.id), enabled: !!user, staleTime: 60_000 });
+  const placeLoaded = useRef(false);
+  useEffect(() => {
+    const s = lastSetup.data;
+    if (!s || placeLoaded.current) return;
+    placeLoaded.current = true;
+    setAreaLabel((a) => (a.trim() ? a : s.areaLabel));
+    if (!s.pickup) return;
+    setPickupAddress((a) => (a.trim() ? a : s.pickup!.address));
+    setCoords((c) => c ?? { ...s.pickup! });
+  }, [lastSetup.data]);
 
   if (!user) return null;
   if (underAge) {
@@ -222,7 +239,7 @@ export default function BunchFlow() {
 
       <Section id="bunch-photos" title="2. Add photos">
         <p className="text-xs text-muted-foreground">
-          Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Location data is removed before anything is sent, and nothing goes up until you list.
+          Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
         </p>
         <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" aria-label="Add photos" disabled={busy} onChange={(e) => void onPhotos(e.target.files)} />
         {busy ? (

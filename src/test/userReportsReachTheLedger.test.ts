@@ -204,9 +204,9 @@ describe("every user-reported problem reaches the ops alert ledger (Q64)", () =>
     expect(branch).toMatch(/user_report_is_open\(/);
   });
 
-  it("contact-support: a guest (no reports row) is recorded straight into the ledger as 'user-report'", () => {
+  it("contact-support: a message with no reports row (a fixture-address guest, or a failed insert) is recorded straight into the ledger as 'user-report'", () => {
     const src = blankComments(readFileSync(join(ROOT, "supabase/functions/contact-support/index.ts"), "utf8"));
-    const guard = src.indexOf("if (!reportLogged)");
+    const guard = src.indexOf("if (!reportLogged) {\n      const emailSubject");
     expect(guard, "no ledger record for a submission that has no reports row").toBeGreaterThan(-1);
     const block = src.slice(guard, guard + 900);
     expect(block).toMatch(/recordOpsAlertLedger\(/);

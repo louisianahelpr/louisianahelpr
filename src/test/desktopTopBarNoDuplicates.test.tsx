@@ -28,13 +28,13 @@ const labels = () => screen.queryAllByRole("button").map((b) => b.getAttribute("
 const draw = (el: JSX.Element) => render(<MemoryRouter>{el}</MemoryRouter>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
-  it("phone: a section shows the bell and the avatar; Home shows the logo, bell and avatar", () => {
+  it("phone: a section shows Help, the bell and the avatar; Home shows the logo, Help, bell and avatar", () => {
     draw(<AppTopBar title="Jobs" />);
-    expect(labels()).toEqual(["Notifications", "Profile"]);
+    expect(labels()).toEqual(["Help", "Notifications", "Profile"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    expect(labels()).toEqual(["Notifications", "Profile"]);
+    expect(labels()).toEqual(["Help", "Notifications", "Profile"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

@@ -7,9 +7,9 @@
  * check sits before anything is written. The app has words for the code.
  * Backend proof: src/test/pglite/declutterPorchPhotoNotBeforeTheDay.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |     IF v_day IS NULL OR (now() AT TIME ZONE 'America/Chicago')::date < v_day THEN |     IF false THEN
- * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |     IF v_day IS NULL OR (now() | IF (now()
- * @mutate supabase/migrations/20261029224749_declutter_porch_places.sql |   IF v_side = 'seller' THEN\n    SELECT COALESCE(b.pickup_day, | IF v_side = 'buyer' THEN\n    SELECT COALESCE(b.pickup_day,
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     IF v_day IS NULL OR (now() AT TIME ZONE 'America/Chicago')::date < v_day THEN |     IF false THEN
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     IF v_day IS NULL OR (now() | IF (now()
+ * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_side = 'seller' THEN\n    SELECT COALESCE(b.pickup_day, | IF v_side = 'buyer' THEN\n    SELECT COALESCE(b.pickup_day,
  * @mutate src/lib/declutter/errors.ts |   porch_day_not_yet: "Put it out on the day the buyer picked. You can post the porch photo from that day.",\n |
  */
 import { describe, expect, it } from "vitest";

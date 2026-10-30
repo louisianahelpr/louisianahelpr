@@ -21,7 +21,7 @@
 --      own); declutter_seller_porch_places (label, area, weekdays only, never an address, to a buyer with that
 --      seller's items in their cart); declutter_set_porch_place (the buyer's pick); declutter_order_place (either
 --      side of an order: the frozen place; the address only to the seller, or to the buyer once paid).
---   7. Restated, each from its NEWEST definition (newest-definition scan of every migration, 2026-10-29):
+--   7. Restated, each from its NEWEST definition (newest-definition scan of every migration, and each base's md5(prosrc) equal to prod, 2026-10-30):
 --      declutter_start_checkout and declutter_checkout_free (20261028235247): for porch (and, paid only, Helpr
 --      delivery) from a seller with places, the buyer's pick is required (porch_place_needed) and frozen;
 --      declutter_porch_days and declutter_book_porch_day (20261029161347); declutter_porch_photo (20261029201542);
@@ -29,6 +29,8 @@
 --      declutter_delivery_compute (20261017055505) and declutter_delivery_open_task (20261028200440): the Helpr
 --      picks up at the chosen / frozen place. helpr_tasks already freezes its own pickup, so the Helpr task
 --      readers need no change.
+--      declutter_return_dropped_off (20261030071818, Q2486): the return drop-off is measured from the order's pickup
+--      points too, so a drop-off at the frozen place passes and one at the old item address fails.
 --   NOT changed: declutter_seller_picked_up (pickup_home / meetup only: no place); declutter_seller_delivery_check
 --   (seller delivery still measures from the item address: filed LOW, Q?b46-sd).
 --
@@ -182,7 +184,7 @@ BEGIN
      OR p_area IS NULL OR char_length(btrim(p_area)) NOT BETWEEN 1 AND 80
      OR p_lat IS NULL OR p_lng IS NULL OR p_lat NOT BETWEEN -90 AND 90 OR p_lng NOT BETWEEN -180 AND 180 THEN
     RAISE EXCEPTION 'invalid_porch_place' USING ERRCODE = '22023',
-      HINT = 'Give the place a name and pick its address from the list.';
+      HINT = 'Give the place a name and its full address.';
   END IF;
   IF p_weekdays IS NULL OR EXISTS (SELECT 1 FROM unnest(p_weekdays) d WHERE d IS NULL OR d < 0 OR d > 6) THEN
     RAISE EXCEPTION 'invalid_porch_days' USING ERRCODE = '22023', HINT = 'Pick days from Sunday to Saturday.';
@@ -511,7 +513,7 @@ BEGIN
     RAISE EXCEPTION 'handover_not_offered' USING ERRCODE = '22023',
       HINT = 'The seller doesn''t offer that for one of these items. Choose another way to get it.';
   END IF;
-  -- D-NEW14 (owner-approved 2026-10-29, 20261029224749): a seller with saved porch places hands over at the ONE the
+  -- D-NEW14 (owner-approved 2026-10-29, 20261030164712): a seller with saved porch places hands over at the ONE the
   -- buyer picked (declutter_set_porch_place), for a porch pickup and for Helpr delivery alike. Read under a share
   -- lock so the seller cannot edit it mid-checkout; it is frozen on the order below. A seller with no places: as before.
   IF p_handover IN ('porch', 'delivery')
@@ -742,7 +744,7 @@ BEGIN
     RAISE EXCEPTION 'handover_not_offered' USING ERRCODE = '22023',
       HINT = 'The seller doesn''t offer that for one of these items. Choose another way to get it.';
   END IF;
-  -- D-NEW14 (20261029224749): a free porch pickup from a seller with saved places is at the place the buyer picked.
+  -- D-NEW14 (20261030164712): a free porch pickup from a seller with saved places is at the place the buyer picked.
   IF p_handover = 'porch'
      AND EXISTS (SELECT 1 FROM public.declutter_porch_places pl WHERE pl.seller_id = p_seller_id) THEN
     SELECT pl.* INTO v_place
@@ -998,7 +1000,7 @@ BEGIN
   IF p_lat IS NULL OR p_lng IS NULL OR p_lat NOT BETWEEN -90 AND 90 OR p_lng NOT BETWEEN -180 AND 180 THEN
     RAISE EXCEPTION 'location_required' USING ERRCODE = '22023';
   END IF;
-  -- Haversine, metres, to the NEAREST pickup point of the ORDER (D-NEW14, 20261029224749): the porch place frozen
+  -- Haversine, metres, to the NEAREST pickup point of the ORDER (D-NEW14, 20261030164712): the porch place frozen
   -- on it at checkout, else (an order with no place) every item's own point, as before (authz review 2.7).
   SELECT min(round(2 * 6371000 * asin(least(1, sqrt(
            power(sin(radians((p_lat - pt.lat) / 2)), 2)
@@ -1051,7 +1053,7 @@ BEGIN
   IF v_access IS NULL THEN
     RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
   END IF;
-  -- D-NEW14 (20261029224749): the paid buyer of an order with a frozen porch place gets THAT place only, never the
+  -- D-NEW14 (20261030164712): the paid buyer of an order with a frozen porch place gets THAT place only, never the
   -- item's own address or the seller's other places.
   IF v_access = 'paid_buyer' THEN
     SELECT pp.* INTO v_pp
@@ -1099,7 +1101,7 @@ BEGIN
     RAISE EXCEPTION 'delivery_address_needed' USING ERRCODE = '22023',
       HINT = 'Enter the address to deliver to.';
   END IF;
-  -- D-NEW14 (20261029224749): a seller with saved porch places is picked up from the place the buyer chose.
+  -- D-NEW14 (20261030164712): a seller with saved porch places is picked up from the place the buyer chose.
   IF EXISTS (SELECT 1 FROM public.declutter_porch_places pl WHERE pl.seller_id = p_seller) THEN
     SELECT pl.* INTO v_place
       FROM public.declutter_porch_place_choices ch
@@ -1194,7 +1196,7 @@ BEGIN
     JOIN public.declutter_items i ON i.id = c.item_id
     JOIN public.declutter_item_private p ON p.item_id = c.item_id
    WHERE c.order_id = NEW.id;
-  -- D-NEW14 (20261029224749): the Helpr picks up at the porch place frozen on the order, when it has one.
+  -- D-NEW14 (20261030164712): the Helpr picks up at the porch place frozen on the order, when it has one.
   SELECT * INTO v_pp FROM public.declutter_order_porch_places pp WHERE pp.order_id = NEW.id;
   IF v_pp.order_id IS NOT NULL THEN
     v_addr := v_pp.address;
@@ -1223,3 +1225,77 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- Restated from 20261030071818_declutter_returns (its newest definition, Q2486); only the distance now reads the
+-- order's pickup points.
+CREATE OR REPLACE FUNCTION public.declutter_return_dropped_off(p_request_id uuid, p_photo_path text, p_lat numeric,
+  p_lng numeric)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_order uuid;
+  o public.declutter_orders;
+  r public.declutter_refund_requests;
+  v_m integer;
+BEGIN
+  PERFORM public.require_feature('declutter_refund_requests');
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  SELECT x.order_id INTO v_order FROM public.declutter_refund_requests x WHERE x.id = p_request_id;
+  IF v_order IS NULL THEN
+    RAISE EXCEPTION 'refund_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  o := public.declutter_lock_order(v_order);
+  IF public.declutter_order_side(o.buyer_id, o.seller_id, v_uid) IS DISTINCT FROM 'buyer' THEN
+    RAISE EXCEPTION 'refund_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;
+  IF r.status <> 'returning' OR r.return_way IS DISTINCT FROM 'drop_off' THEN
+    RAISE EXCEPTION 'not_a_drop_off' USING ERRCODE = '55000';
+  END IF;
+  IF r.return_dropped_off_at IS NOT NULL THEN
+    RETURN jsonb_build_object('result', 'already_dropped_off');
+  END IF;
+  IF (now() AT TIME ZONE 'America/Chicago')::date < r.return_day THEN
+    RAISE EXCEPTION 'before_return_day' USING ERRCODE = '55000',
+      HINT = 'You can drop it off from the day the seller picked.';
+  END IF;
+  IF NOT public.declutter_return_photo_ok(o.id, v_uid, p_photo_path) THEN
+    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
+  END IF;
+  -- Live camera only (20261029002010): uploaded in the last 10 minutes, by the storage server's own clock.
+  IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN
+    RAISE EXCEPTION 'photo_too_old' USING ERRCODE = '22023',
+      HINT = 'Take a new photo now: a handover photo must be taken in the last 10 minutes.';
+  END IF;
+  -- At the address (20261028235709): within 200 m of the NEAREST pickup point of the ORDER (Q2486, D-NEW14): the porch
+  -- place frozen on it at checkout, else (an order with no place) every item's own point, as before.
+  IF p_lat IS NULL OR p_lng IS NULL OR p_lat NOT BETWEEN -90 AND 90 OR p_lng NOT BETWEEN -180 AND 180 THEN
+    RAISE EXCEPTION 'location_required' USING ERRCODE = '22023';
+  END IF;
+  SELECT min(round(2 * 6371000 * asin(least(1, sqrt(
+           power(sin(radians((p_lat - pt.lat) / 2)), 2)
+           + cos(radians(pt.lat)) * cos(radians(p_lat)) * power(sin(radians((p_lng - pt.lng) / 2)), 2)))))::integer)
+    INTO v_m
+    FROM public.declutter_order_pickup_points(o.id) pt;
+  IF v_m IS NULL OR v_m > 200 THEN
+    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.';
+  END IF;
+  UPDATE public.declutter_refund_requests SET return_photo_path = p_photo_path, return_dropped_off_at = now()
+   WHERE id = r.id;
+  PERFORM public.declutter_notify(o.seller_id, 'declutter_refunds', 'The buyer brought the item back',
+    'The buyer left the item at your pickup address and took a photo. Check it, then tap "I got it back" to send the refund.',
+    '/declutter?view=selling', v_uid);
+  RETURN jsonb_build_object('result', 'dropped_off', 'distance_m', v_m);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_return_dropped_off(uuid, text, numeric, numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_return_dropped_off(uuid, text, numeric, numeric) TO authenticated, service_role;

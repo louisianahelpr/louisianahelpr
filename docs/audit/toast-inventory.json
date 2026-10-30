@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1020,
-    "files": 273,
+    "files": 274,
     "rendering": 862,
     "suppressedByPolicy": 158,
     "byKind": {
@@ -4322,7 +4322,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 126,
+      "line": 124,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4332,7 +4332,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 130,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4342,17 +4342,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 229,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 299,
+      "line": 226,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4362,7 +4352,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 306,
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4372,7 +4362,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 406,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4382,7 +4372,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 418,
+      "line": 345,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4392,7 +4382,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 539,
+      "line": 469,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5773,6 +5763,16 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeliverVehicleForm.tsx",
+      "line": 39,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeliveryRaisePanel.tsx",
       "line": 41,
       "kind": "toast.success",
@@ -5804,7 +5804,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 43,
+      "line": 48,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5824,7 +5824,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 47,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

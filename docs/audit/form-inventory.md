@@ -101,7 +101,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterDeliveryViews.tsx` | checkbox/switch/radio×3 |  |  | What happened · Your vehicle · Your deliveries · Route · Deliveries near you |
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |
@@ -114,6 +113,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | 30 · Your cart |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×2 | radio, text |  | wanted-reply-item · wanted-reply-price · wanted-near-title |
 | `src/components/declutter/DeclutterWantedViews.tsx` | input×2, select×1, checkbox/switch/radio×2 | text | 60 | wanted-form-title · wanted-what · Kids bike, 16 inch · wanted-max · 30 · wanted-category · wanted-within · wanted-public |
+| `src/components/declutter/DeliverVehicleForm.tsx` | checkbox/switch/radio×3 |  |  | Your vehicle |
 | `src/components/declutter/DeliveryRaisePanel.tsx` | input×1 | text |  | Raise the pay |
 | `src/components/declutter/SellerDeliveryChoice.tsx` | input×1 | text | 300 | Delivery day · Delivery time · When the seller arrives |
 | `src/components/declutter/SellerDeliveryOrder.tsx` | input×1 | file |  | When the seller arrives · New delivery day · New delivery time |

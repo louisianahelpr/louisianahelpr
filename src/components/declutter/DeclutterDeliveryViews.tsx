@@ -40,8 +40,8 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
 import { DeliverExplainer } from "./DeclutterDeliverExplainer";
+import { VehicleForm } from "./DeliverVehicleForm";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import {
   acceptTask,
@@ -52,10 +52,8 @@ import {
   fetchTaskView,
   releaseTask,
   reportPickupNoShow,
-  saveVehicle,
   taskPhotoUrl,
   uploadTaskPhoto,
-  uploadVehiclePhoto,
   type MyTask,
   type OpenTask,
   type TaskSize,
@@ -200,77 +198,6 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: {
         Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours.
       </ConfirmSheet>
     </div>
-  );
-}
-
-/**
- * Row 41: "I have a car" (every delivery needs one, owner 2026-10-28, Q2452), "I have a truck"
- * (+ "I can bring a second person") with a vehicle photo. A truck is a car.
- */
-function VehicleForm({ userId }: { userId: string }) {
-  const qc = useQueryClient();
-  const vehicle = useQuery({ queryKey: ["helpr-tasks", "vehicle", userId], queryFn: () => fetchMyVehicle(userId) });
-  const [car, setCar] = useState<boolean | null>(null);
-  const [truck, setTruck] = useState<boolean | null>(null);
-  const [second, setSecond] = useState<boolean | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const hasTruck = truck ?? vehicle.data?.has_truck ?? false;
-  const hasCar = hasTruck || (car ?? vehicle.data?.has_car ?? false);
-  const twoPeople = hasTruck && (second ?? vehicle.data?.second_person ?? false);
-  const save = useMutation({
-    mutationFn: async () => {
-      const path = hasTruck ? (photo ? await uploadVehiclePhoto(userId, photo) : vehicle.data?.photo_path ?? null) : null;
-      await saveVehicle(hasCar, hasTruck, twoPeople, path);
-    },
-    onSuccess: () => {
-      setPhoto(null);
-      void qc.invalidateQueries({ queryKey: ["helpr-tasks"] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  if (vehicle.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your vehicle." body={declutterErrorMessage(vehicle.error)} onRetry={() => void vehicle.refetch()} />;
-  }
-  const photoId = `helpr-vehicle-photo-${userId}`;
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label="Your vehicle">
-      <h2 className="text-base font-semibold">Your vehicle</h2>
-      {/* Deep audit #38: say what THIS Helpr can take, never "need a truck" to someone whose truck is saved. */}
-      <p className="text-sm text-muted-foreground" data-vehicle-reach="">
-        {hasTruck && twoPeople
-          ? "With a truck and a second person you can take every size."
-          : hasTruck
-            ? "With a truck you can take small, medium and large items. Extra large items also need a second person."
-            : "You need a car to take deliveries. Large and extra large items need a truck."}
-      </p>
-      {/* The shared Checkbox (lead 2026-10-28: the raw box rendered as an empty square); the label is the 44px tap target. */}
-      <div className="flex items-center gap-3 min-h-11">
-        <Checkbox id={`helpr-car-${userId}`} checked={hasCar} disabled={hasTruck} onCheckedChange={(v) => { save.reset(); setCar(v === true); }} />
-        <label htmlFor={`helpr-car-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a car</label>
-      </div>
-      <div className="flex items-center gap-3 min-h-11">
-        <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} onCheckedChange={(v) => { save.reset(); setTruck(v === true); }} />
-        <label htmlFor={`helpr-truck-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a truck</label>
-      </div>
-      {hasTruck && (
-        <>
-          <div className="flex items-center gap-3 min-h-11">
-            <Checkbox id={`helpr-second-${userId}`} checked={twoPeople} onCheckedChange={(v) => { save.reset(); setSecond(v === true); }} />
-            <label htmlFor={`helpr-second-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I can bring a second person (for extra large items)</label>
-          </div>
-          <label htmlFor={photoId} className="block text-xs font-medium">
-            {vehicle.data?.photo_path ? "Truck photo saved. Add a new one to replace it." : "Photo of your truck"}
-          </label>
-          <PhotoPickButton id={photoId} picked={photo} onPick={setPhoto} />
-        </>
-      )}
-      <button type="button" className={primary}
-        disabled={save.isPending || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
-        {save.isPending ? "Saving…" : "Save"}
-      </button>
-      {/* Audit 1c D3-8: a plain success toast renders nothing (toastPolicy), so "Saved." never showed. */}
-      {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>}
-    </section>
   );
 }
 
@@ -528,6 +455,9 @@ export function DeliverView() {
   // Q2452: no car, no deliveries (the server lists, offers and lets take none); the same query VehicleForm reads.
   const vehicle = useQuery({ queryKey: ["helpr-tasks", "vehicle", userId], queryFn: () => fetchMyVehicle(userId), enabled: !!userId });
   const noCar = vehicle.isSuccess && !vehicle.data?.has_car;
+  // Where "Your vehicle" sits is decided once, from the first read, so saving the first car never moves (remounts) it.
+  const [vehicleFirst, setVehicleFirst] = useState<boolean | null>(null);
+  if (vehicleFirst === null && vehicle.isSuccess) setVehicleFirst(!vehicle.data?.has_car);
   // Q2453: tips on the Helpr's deliveries (a failed read only hides the tip line).
   const tips = useQuery({ queryKey: ["helpr-tasks", "tips", userId], queryFn: () => fetchTipsOnMyDeliveries(userId), enabled: !!userId });
   const open = useQuery({ queryKey: ["helpr-tasks", "open", where?.lat ?? null, where?.lng ?? null], queryFn: () => fetchOpenTasks(where), enabled: !!userId });
@@ -552,14 +482,36 @@ export function DeliverView() {
       </div>
     );
   }
+  // Audit DD D1 (lead 2026-10-30): a Helpr with no car starts at "Your vehicle" (step 1) under the full explainer; once a
+  // car is saved, the deliveries to take come first, Go online appears, and the explainer folds to its title.
+  const setUp = vehicle.isSuccess && !!vehicle.data?.has_car;
+  const openList = open.data ?? [];
   return (
     <div className="space-y-6">
-      {intro}
-      {/* Q2435: where open jobs and deliveries are waiting, by parish (counts only). */}
-      <BusyAreasCard userId={userId} deliveries={open.data ?? []} />
-      <GoOnlineCard userId={userId} where={where} />
+      {setUp ? <DeliverExplainer collapsed /> : intro}
+      {vehicleFirst === true && <VehicleForm userId={userId} />}
       {myList.some((t) => t.status === "accepted" || t.status === "picked_up") && <DeliveryRoute userId={userId} where={where} />}
-      <VehicleForm userId={userId} />
+      <section className="space-y-3" aria-label="Deliveries near you">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">Deliveries you can take</h2>
+          {setUp && (
+            <button type="button" className={btn} disabled={locate.isPending} onClick={() => locate.mutate()}>
+              {where ? "Update my location" : "Nearest first"}
+            </button>
+          )}
+        </div>
+        {noCar ? (
+          <p className="text-sm text-muted-foreground" role="status">Add your car under Your vehicle to take deliveries.</p>
+        ) : open.isError ? (
+          <ErrorState variant="inline" title="We couldn't load deliveries." body={declutterErrorMessage(open.error)} onRetry={() => void open.refetch()} />
+        ) : open.isLoading ? (
+          <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
+        ) : openList.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No deliveries to take right now. Large items only show once you add a truck.</p>
+        ) : (
+          <ul className="space-y-3">{openList.map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
+        )}
+      </section>
       <section className="space-y-3" aria-label="Your deliveries">
         <h2 className="text-base font-semibold">Your deliveries</h2>
         {mine.isError ? (
@@ -575,25 +527,10 @@ export function DeliverView() {
           </>
         )}
       </section>
-      <section className="space-y-3" aria-label="Deliveries near you">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">Deliveries you can take</h2>
-          <button type="button" className={btn} disabled={locate.isPending} onClick={() => locate.mutate()}>
-            {where ? "Update my location" : "Nearest first"}
-          </button>
-        </div>
-        {noCar ? (
-          <p className="text-sm text-muted-foreground" role="status">Add your car under Your vehicle to take deliveries.</p>
-        ) : open.isError ? (
-          <ErrorState variant="inline" title="We couldn't load deliveries." body={declutterErrorMessage(open.error)} onRetry={() => void open.refetch()} />
-        ) : open.isLoading ? (
-          <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
-        ) : (open.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No deliveries to take right now. Large items only show once you add a truck.</p>
-        ) : (
-          <ul className="space-y-3">{(open.data ?? []).map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
-        )}
-      </section>
+      {setUp && <GoOnlineCard userId={userId} where={where} />}
+      {/* Q2435, narrowed by audit DD D2: where open deliveries wait, by parish (counts only); shown only when one does. */}
+      {openList.length > 0 && <BusyAreasCard deliveries={openList} />}
+      {vehicleFirst === false && <VehicleForm userId={userId} />}
     </div>
   );
 }

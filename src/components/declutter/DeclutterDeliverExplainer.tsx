@@ -5,22 +5,39 @@
  * rounded down to the dollar), never typed in, and no platform fee number is shown (members see no fee numbers).
  * Tips: the Helpr receives the whole tip (deliveryTip.ts, Q2453).
  */
-import { Truck } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Truck } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { deliveryPriceCents, helprTakeHomeCents } from "@/lib/declutter/delivery";
 import { formatPrice } from "@/lib/declutter/distance";
 
 /** The example trip the card prices: 5 road miles. */
 export const EXAMPLE_MILES = 5;
 
-export function DeliverExplainer() {
+/**
+ * `collapsed` (audit DD D1): once the Helpr has a car saved, the card folds to its title, a button that opens it again.
+ */
+export function DeliverExplainer({ collapsed = false }: { collapsed?: boolean }) {
+  const [opened, setOpened] = useState<boolean | null>(null);
+  const open = opened ?? !collapsed;
+  const title = "Deliver Declutter items and get paid";
   const small = helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["small"]));
   const large = helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["large"]));
   return (
+    <Collapsible open={open} onOpenChange={setOpened} asChild>
     <section className="space-y-2 rounded-2xl border border-border/60 bg-card p-4" aria-labelledby="deliver-explainer-title" data-deliver-explainer="">
       <div className="flex items-start gap-2">
         <Truck className="mt-1 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
-        <h2 id="deliver-explainer-title" className="text-base font-semibold">Deliver Declutter items and get paid</h2>
+        <h2 id="deliver-explainer-title" className="min-w-0 flex-1 text-base font-semibold">
+          {collapsed ? (
+            <CollapsibleTrigger className="flex min-h-11 w-full items-center justify-between gap-2 text-left" data-deliver-explainer-toggle="">
+              {title}
+              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+            </CollapsibleTrigger>
+          ) : title}
+        </h2>
       </div>
+      <CollapsibleContent className="space-y-2">
       <p className="text-sm text-muted-foreground">
         When a neighbor buys an item on Declutter and picks Helpr delivery, a nearby driver brings it. You pick it up at
         the seller's, take a photo there, and leave it at the buyer's door with a photo. You need a car, and a truck for
@@ -31,6 +48,8 @@ export function DeliverExplainer() {
         <span className="font-semibold tabular-nums">{formatPrice(large)}</span> for a large item. Every delivery shows
         your pay before you take it, and tips are all yours.
       </p>
+      </CollapsibleContent>
     </section>
+    </Collapsible>
   );
 }

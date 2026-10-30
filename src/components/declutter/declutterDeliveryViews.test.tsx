@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | disabled={deliver.isPending \|\| !dropPhoto} | disabled={deliver.isPending}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
+ * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -283,7 +283,7 @@ describe("DeliverView (the Helpr's screen)", () => {
   });
 
   // Deep audit #38: a Helpr whose truck is saved is never told "Large items need a truck".
-  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         {hasTruck && twoPeople | {false && twoPeople
+  // @mutate src/components/declutter/DeliverVehicleForm.tsx |         {hasTruck && twoPeople | {false && twoPeople
   it("the vehicle line says what this Helpr can take", async () => {
     state.vehicle = { has_car: true, has_truck: true, second_person: true, photo_path: "u1/vehicle/truck.jpg" };
     const { unmount } = show(<DeliverView />);

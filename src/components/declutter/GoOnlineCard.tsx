@@ -12,6 +12,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOnlineStatus, isOnline, setOnline } from "@/lib/helprTasks/online";
 import { currentPosition } from "@/lib/declutter/position";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { Chip } from "./DeclutterFilterPanel";
 
 const HOURS = [2, 4, 8] as const;
@@ -30,13 +31,17 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
   // Deep audit #39: with no shared position and no area saved in the profile, the server refused
   // (location_needed) only AFTER the press. Now the card says so first, and the press asks for the
   // device's location once and sends it.
+  // Audit DD D3: with no saved point, the area comes from the profile's ZIP or parish through useDeclutterOrigin
+  // (deriveFallbackLocation, the chain the rest of Declutter uses), so a Helpr with a ZIP is not told "No area".
   const { profile } = useCurrentUser();
+  const { origin } = useDeclutterOrigin();
   const hasArea = profile?.latitude != null && profile?.longitude != null;
-  const needsLocation = !where && !hasArea;
+  const derived = !hasArea && origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
+  const needsLocation = !where && !hasArea && !derived;
   const flip = useMutation({
     mutationFn: async (on: boolean) => {
       if (!on) return setOnline(false, {});
-      const point = where ?? (hasArea ? null : await currentPosition());
+      const point = where ?? (hasArea ? null : derived ?? await currentPosition());
       return setOnline(true, { hours, radiusMiles: radius, where: point });
     },
     onSuccess: (_r, on) => {
@@ -89,6 +94,9 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
           ? "Near the location you shared on this screen."
           : needsLocation
             ? "No area in your profile yet, so going online asks for your location once."
+            : derived && origin.status === "ready" && origin.source === "zip" ? "Near your ZIP code's area."
+            : derived && origin.status === "ready" && origin.source === "parish" ? "Near your parish."
+            : derived ? "Near the location you shared."
             : "Near the area in your profile."}{" "}
         We don't track you in the background. It turns off by itself.
       </p>

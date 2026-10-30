@@ -21,7 +21,7 @@ import {
 // @mutate src/lib/busyAreas.ts |     .sort((a, b) => b.total - a.total \|\| a.parish.localeCompare(b.parish)); |
 // @mutate src/lib/busyAreas.ts |   return Math.round(5000 + 15000 * Math.sqrt(Math.min(total, maxTotal) / maxTotal)); |   return 5000;
 // @mutate src/components/BrowseMap.tsx |   useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435 |
-// @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       <BusyAreasCard userId={userId} deliveries={open.data ?? []} /> |
+// @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {openList.length > 0 && <BusyAreasCard deliveries={openList} />} |
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -66,6 +66,6 @@ describe("busy areas (Q2435)", () => {
   it("is drawn on the Jobs Browse map and on the Deliver page", () => {
     expect(code("src/components/BrowseMap.tsx")).toContain("useBusyAreaShading(mapRef, mapReady, visibleJobs);");
     expect(code("src/components/browseMap/useMapLayersSync.ts")).toContain("drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current)");
-    expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("<BusyAreasCard userId={userId} deliveries={open.data ?? []} />");
+    expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("{openList.length > 0 && <BusyAreasCard deliveries={openList} />}");
   });
 });

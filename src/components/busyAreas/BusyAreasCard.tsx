@@ -16,20 +16,19 @@ export const LOUISIANA_LAND: [[number, number], [number, number]] = [
   [29.0, -94.05], // SW: Sabine Pass
   [33.02, -88.8], // NE: the Arkansas line, the Pearl River
 ];
-import { useMapJobs } from "@/components/browseMap/useMapJobs";
 import { drawBusyAreas } from "./busyAreaOverlays";
 
 /**
  * Q2435 (owner-approved 2026-10-27): "Busy right now" on the Deliver page.
- * A small Louisiana map shading the parishes where open jobs and open
- * deliveries are waiting, and the same counts as a list (the list is the
- * accessible reading and the fallback when the map cannot load). Counts only,
- * by parish: jobs from get_open_jobs_for_map (the Browse map's own read), the
- * deliveries passed in from the page's own open-task read.
+ * A small Louisiana map shading the parishes where open deliveries are
+ * waiting, and the same counts as a list (the list is the accessible reading
+ * and the fallback when the map cannot load). Counts only, by parish, from the
+ * deliveries the page passes in. Audit DD D2 (lead 2026-10-30): it counts
+ * DELIVERIES only (it showed Jobs on the Deliver tab; open jobs have the Jobs
+ * Browse map), and each count prints once.
  */
-export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveries: ReadonlyArray<{ pickup_area?: string | null }> }) {
-  const { jobs, loadError } = useMapJobs(userId, undefined);
-  const summary = useMemo(() => busyAreas(jobs, deliveries), [jobs, deliveries]);
+export function BusyAreasCard({ deliveries }: { deliveries: ReadonlyArray<{ pickup_area?: string | null }> }) {
+  const summary = useMemo(() => busyAreas([], deliveries), [deliveries]);
   const top = summary.areas.slice(0, 6);
 
   const mapKitStatus = useMapKitJs();
@@ -88,27 +87,14 @@ export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveri
         // to Florida.
         <div ref={setEl} className="aspect-[4/3] max-h-72 w-full max-w-md overflow-hidden rounded-xl bg-muted" aria-hidden data-testid="busy-areas-map" />
       )}
-      {loadError ? (
-        <p className="text-sm text-muted-foreground">We couldn't load open jobs just now, so this shows deliveries only.</p>
-      ) : null}
       {top.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing is waiting right now. New jobs and deliveries show up here as they come in.</p>
+        <p className="text-sm text-muted-foreground">No deliveries are waiting right now.</p>
       ) : (
         <ul className="space-y-1.5" aria-label="Where work is waiting">
           {top.map((a) => (
-            <li key={a.parish} className="flex items-center justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate text-foreground">{busyAreaLabel(a)}</span>
-              <span className="shrink-0 tabular-nums font-semibold text-[hsl(var(--bark))]" aria-hidden>{a.total}</span>
-            </li>
+            <li key={a.parish} className="text-sm text-foreground">{busyAreaLabel(a)}</li>
           ))}
         </ul>
-      )}
-      {/* Lead 2026-10-28, option (c): the counts keep Q2435's jobs + deliveries mix and words; one plain line says
-          where each is, with the deliveries counted on their own (every open delivery the page read, placed or not). */}
-      {top.length > 0 && (
-        <p className="text-ds-13 text-muted-foreground" data-busy-where="">
-          {deliveries.length === 0 ? "No deliveries are waiting right now." : deliveries.length === 1 ? "1 delivery is waiting." : `${deliveries.length} deliveries are waiting.`} Open jobs are on the Jobs tab; deliveries you can take are below.
-        </p>
       )}
     </section>
   );

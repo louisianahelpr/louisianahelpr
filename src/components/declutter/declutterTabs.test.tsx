@@ -162,6 +162,9 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyItems: async () => state.mine,
   // Audit DC-9: unanswered questions on the seller's listings (only those asked for).
   fetchUnansweredQuestions: async (ids: string[]) => { state.questionReads++; return state.questions.filter((q) => ids.includes(q.item_id)); },
+  // The "Your listing is live" sheet (ListedWhatNext) reads the item back.
+  fetchItem: async (id: string) => state.mine.find((m) => (m as { id: string }).id === id) ?? null,
+  fetchItemDropState: async () => null,
   fetchPhotos: async () => [],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -201,12 +204,12 @@ function Where() {
   return null;
 }
 
-function at(path: string) {
+function at(path: string, routerState?: unknown) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[routerState ? { pathname: path.split("?")[0], search: `?${path.split("?")[1]}`, state: routerState } : path]}>
         <Routes>
           <Route path="/declutter" element={<><DeclutterPage /><Where /></>} />
         </Routes>
@@ -681,6 +684,15 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
     expect(tab(/^Selling/)).toHaveAttribute("aria-selected", "true");
     await vi.waitFor(() => expect(where).toBe("/declutter?tab=selling"));
+  });
+
+  // Audit posting 1030 #3: the address rewrite threw away the router state, so the sheet never opened after a real Post.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |     }, { replace: true, state: location.state }); |     }, { replace: true });
+  it("an old ?view= link keeps its router state through the rewrite, so \"Your listing is live\" stays open", async () => {
+    state.mine = [ITEM];
+    at("/declutter?view=selling", { justListed: { itemId: "i1", status: "live" } });
+    await vi.waitFor(() => expect(where).toBe("/declutter?tab=selling"));
+    expect(await screen.findByRole("heading", { name: "Your listing is live" })).toBeInTheDocument();
   });
 
   it("old link ?view=cart sent to a seller (the buyer paid) opens Selling, keeping its other params", async () => {

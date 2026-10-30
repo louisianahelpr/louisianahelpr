@@ -22,6 +22,8 @@
 -- that same position ('near', the same formula as src/lib/declutter/distance.ts), newest first on a tie as a stable sort
 -- of today's newest-first read gives. No position on file: newest. The client shows them ahead of the full list only
 -- when its own origin equals 'near', so the first cards are exactly the top of the final list and nothing reorders.
+-- THE ZIP: a member with only a ZIP on file holds every card on one more read (get_parish_for_zip; measured 2026-10-30:
+-- the photo started right after it). So the answer carries it ('zip_parish'), asked of the same function as the client.
 -- The caller's own listings are left out, as Browse and Free both drop them: they would use up the 24.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE; grants restated. Returns jsonb, so scripts/ci/null-arg-validators.sql (boolean
@@ -39,6 +41,7 @@ DECLARE
   v_switches jsonb;
   v_lat double precision;
   v_lng double precision;
+  v_zip text;
   v_rows jsonb[];
   v_items jsonb;
   v_ids uuid[];
@@ -50,9 +53,12 @@ BEGIN
   v_switches := public.feature_switches_for_me(COALESCE(p_switch_keys, '{}'::text[]));
 
   -- The profile's own position; both or neither, as deriveFallbackLocation reads it.
-  SELECT p.latitude::double precision, p.longitude::double precision INTO v_lat, v_lng
+  SELECT CASE WHEN p.longitude IS NOT NULL THEN p.latitude::double precision END,
+         CASE WHEN p.latitude IS NOT NULL THEN p.longitude::double precision END,
+         left(regexp_replace(COALESCE(p.zip_code, ''), '[^0-9]', '', 'g'), 5)
+    INTO v_lat, v_lng, v_zip
     FROM public.profiles p
-   WHERE p.user_id = v_me AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL;
+   WHERE p.user_id = v_me;
 
   SELECT array_agg(to_jsonb(t) ORDER BY t.miles NULLS LAST, t.live_at DESC) INTO v_rows
     FROM (
@@ -83,6 +89,8 @@ BEGIN
     'items', v_items,
     'more', COALESCE(cardinality(v_rows), 0) > v_cap,
     'near', CASE WHEN v_lat IS NOT NULL THEN jsonb_build_object('lat', v_lat, 'lng', v_lng) END,
+    'zip_parish', CASE WHEN v_lat IS NULL AND length(v_zip) = 5
+      THEN jsonb_build_object('zip', v_zip, 'parish', public.get_parish_for_zip(v_zip)) END,
     'photos', COALESCE((
       SELECT jsonb_agg(jsonb_build_object('id', p.id, 'item_id', p.item_id, 'storage_path', p.storage_path, 'position', p.position)
                        ORDER BY p.position)

@@ -68,6 +68,11 @@ function show(url = "/declutter") {
     </QueryClientProvider>,
   );
 }
+/** Long enough for the first answer to reach the screen: the two "wait" tests must see it arrive and be refused. */
+const settle = async () => {
+  // Several turns: React applies updates only as each act() ends, and each one starts the next read.
+  for (let i = 0; i < 6; i++) await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+};
 const titles = () => screen.queryAllByText(/^Thing \d+$/).map((e) => e.textContent);
 
 afterEach(() => {
@@ -99,7 +104,7 @@ describe("Browse's first cards when the list is longer than the first answer", (
   it("wait for the full list when the browser measures from somewhere else, since they might move", async () => {
     state.origin = { status: "ready", lat: 30.1, lng: -91.9, approximate: true };
     show();
-    await act(async () => { await Promise.resolve(); });
+    await settle();
     expect(titles()).toEqual([]);
     expect(screen.getByText("bones")).toBeTruthy();
     await act(async () => { state.finishFull(full); });
@@ -110,7 +115,7 @@ describe("Browse's first cards when the list is longer than the first answer", (
     state.origin = { status: "ready", ...HERE, approximate: false };
     for (const url of ["/declutter?q=thing", "/declutter?cat=furniture", "/declutter?mi=10", "/declutter?free=1"]) {
       show(url);
-      await act(async () => { await Promise.resolve(); });
+      await settle();
       expect(titles()).toEqual([]);
       expect(screen.getByText("bones")).toBeTruthy();
       cleanup();

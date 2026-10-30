@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { takeFirstScreenZipParish } from "@/lib/declutter/bootPrefetch";
 
 /**
  * Why this file returns a STATUS and not just a string.
@@ -54,6 +55,9 @@ export async function resolveParishByZip(
   const cleaned = (zip ?? "").replace(/\D/g, "").slice(0, 5);
   if (cleaned.length !== 5) return { status: "incomplete" };
   try {
+    // A cold /declutter already asked, in one read with its first screen (src/boot/declutterPrefetch.ts).
+    const fromBoot = await takeFirstScreenZipParish(cleaned);
+    if (fromBoot) return { status: "resolved", parish: fromBoot };
     const { data, error } = await supabase.rpc("get_parish_for_zip", { p_zip: cleaned });
     if (error) {
       report(error, { severity: "warning", tags: { source: "parishLookup.rpc" } });

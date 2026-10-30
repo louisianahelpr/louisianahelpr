@@ -36,6 +36,8 @@ const MUTANTS = {
   order: ["ORDER BY miles NULLS LAST, i.live_at DESC", "ORDER BY i.live_at DESC"],
   // The caller's own listings use up the cap.
   own: [" AND i.seller_id IS DISTINCT FROM v_me", ""],
+  // Someone with a position on file has no use for the ZIP's read.
+  zip: ["WHEN v_lat IS NULL AND length(v_zip) = 5", "WHEN length(v_zip) = 5"],
   grant: ["REVOKE ALL ON FUNCTION public.declutter_first_screen(text[]) FROM PUBLIC, anon;", ""],
 };
 let mig = readFileSync(MIG_DIR + THIS, "utf8");
@@ -94,11 +96,12 @@ await db.exec(`
   GRANT SELECT ON public.declutter_watchlist TO authenticated;
   ALTER TABLE public.declutter_watchlist ENABLE ROW LEVEL SECURITY;
   CREATE POLICY "declutter watchlist: member reads own" ON public.declutter_watchlist FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
-  CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, latitude numeric, longitude numeric);
+  CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, latitude numeric, longitude numeric, zip_code text);
   GRANT SELECT ON public.profiles TO authenticated;
   ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
   CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
-  INSERT INTO public.profiles VALUES ('${ME}', NULL, NULL), ('${NOWHERE}', NULL, NULL), ('${CROWD}', 30.45, -91.15);
+  INSERT INTO public.profiles VALUES ('${ME}', NULL, NULL, '70 501-x'), ('${NOWHERE}', NULL, NULL, NULL), ('${CROWD}', 30.45, -91.15, '70501');
+  CREATE FUNCTION public.get_parish_for_zip(p_zip text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT CASE p_zip WHEN '70501' THEN 'Lafayette' END $$;
   INSERT INTO public.switch_off VALUES ('${OFF}');
   INSERT INTO public.declutter_items (id, seller_id, status, title, floor_price_cents, is_seed, seller_hidden) VALUES
     ('${I(1)}', '${SELLER}', 'live', 'real item', 5000, false, false),
@@ -138,6 +141,8 @@ check(me.value?.switches?.declutter === true, "the switches come back");
 
 check(me.value?.more === false, "a list that fits says there is no more");
 check(me.value?.near === null, "no position on file, no 'near'");
+
+check(me.value?.zip_parish?.zip === "70501" && me.value?.zip_parish?.parish === "Lafayette", "a ZIP on file comes back with its parish");
 
 const off = await call(OFF);
 check(!off.error, `the switch off is an answer, not an error${off.error ? `: ${off.error}` : ""}`);
@@ -184,7 +189,9 @@ const browserTop = [...full].sort((x, y) => miles(x) - miles(y)).slice(0, 24).ma
 check(JSON.stringify(list.map((i) => i.id)) === JSON.stringify(browserTop), "the 24 are exactly the top of the browser's own closest-first list");
 const covered = new Set(list.map((i) => i.id));
 check((crowd.value?.photos ?? []).length > 0 && crowd.value.photos.every((p) => covered.has(p.item_id)), "photos only for those 24");
+check(crowd.value?.zip_parish === null, "a position on file needs no ZIP read");
 const newest = await call(NOWHERE);
+check(newest.value?.zip_parish === null, "no ZIP on file, no parish");
 const newestAt = (newest.value?.items ?? []).map((i) => new Date(i.live_at).getTime());
 check(newestAt.length === 24 && newestAt.every((t, i) => i === 0 || newestAt[i - 1] >= t), "no position: the newest 24, newest first");
 

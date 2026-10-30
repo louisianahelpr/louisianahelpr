@@ -35,6 +35,8 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
@@ -62,6 +64,13 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { ApplicantsPanel } from "@/pages/posts/postedJobs/ApplicantsPanel";
 import type { EnrichedApplication, Job } from "@/components/job-card/activityConstants";
+
+
+/** The applicant trust line (Q2478) reads through React Query; every render gets a fresh client (rpc stubbed above). */
+function QueryWrap({ children }: { children: ReactNode }) {
+  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 const ROOT = resolve(__dirname, "..", "..");
 const read = (f: string) => readFileSync(join(ROOT, f), "utf8");
@@ -141,6 +150,7 @@ describe("(b) the Applicants screen: Message on each live applicant opens their 
           distanceBandMap={empty}
         />
       </MemoryRouter>,
+      { wrapper: QueryWrap },
     );
     const region = screen.getByRole("region", { name: /Applicants for Rake the front yard/ });
     const buttons = within(region).getAllByRole("button", { name: /^Message / });

@@ -85,7 +85,7 @@ await db.exec(`
   INSERT INTO public.test_accounts VALUES ('${TEST_H}'), ('${TEST_C}');
 `);
 
-// Completed jobs. Real Helpr: 6 real jobs for 3 real customers (one repeat), on time; plus 3 test
+// Completed jobs (fixture as written 2026-10-29). Real Helpr: 6 real jobs for 3 real customers (one repeat), on time; plus 3 test
 // jobs and 3 jobs for a test customer (both must vanish). Test Helpr: 6 real-shaped jobs.
 let n = 10;
 const job = (cust, helper, { seed = false, status = "completed" } = {}) => {

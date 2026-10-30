@@ -1,4 +1,4 @@
-import { REPLY_BUCKET_COPY, trustLineParts, useMemberTrust, type MemberTrust, type ReplyBucket, type TrustInputs } from "@/lib/trustLine";
+import { REPLY_BUCKET_COPY, isNewMember, trustLineParts, useMemberTrust, type MemberTrust, type ReplyBucket, type TrustInputs } from "@/lib/trustLine";
 
 /**
  * Q2478 (owner 2a/2b, 2026-10-29): the trust record as plain text under a Helpr's four profile tiles, e.g.
@@ -6,10 +6,13 @@ import { REPLY_BUCKET_COPY, trustLineParts, useMemberTrust, type MemberTrust, ty
  * a few hours". Not a tile and not a button: a quiet line, so the four tiles stay exactly as they are.
  */
 export function TrustLine({ stats, reply, className = "" }: { stats: TrustInputs; reply: ReplyBucket | null; className?: string }) {
-  const parts = trustLineParts(stats);
+  // Under 3 jobs the profile shows no record line at all (lead decision, 2026-10-29): its rating tile already says
+  // "New", so a second "New" under the tiles says nothing. The reply speed still shows when the server has one.
+  const isNew = isNewMember(stats);
+  if (isNew && !reply) return null;
   return (
     <div data-trust-line className={`font-sans text-ds-13 leading-snug text-center ${className}`} style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-      <p>{parts.join(" · ")}</p>
+      {isNew ? null : <p>{trustLineParts(stats).join(" · ")}</p>}
       {reply ? <p data-reply-speed>{REPLY_BUCKET_COPY[reply]}</p> : null}
     </div>
   );

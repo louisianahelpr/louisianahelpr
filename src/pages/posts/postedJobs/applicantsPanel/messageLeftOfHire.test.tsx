@@ -35,6 +35,8 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 // Board 188's category counts are a react-query read behind a hidden switch; off here, as for most members.
@@ -57,6 +59,13 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { ApplicantsPanel } from "@/pages/posts/postedJobs/ApplicantsPanel";
 import type { EnrichedApplication, Job } from "@/components/job-card/activityConstants";
+
+
+/** The applicant trust line (Q2478) reads through React Query; every render gets a fresh client (rpc stubbed above). */
+function QueryWrap({ children }: { children: ReactNode }) {
+  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 const JOB = { id: "job-1", title: "Rake the front yard", status: "open", created_at: new Date().toISOString() } as unknown as Job;
 const app = (id: string, helper: string, name: string, status: string): EnrichedApplication =>
@@ -90,6 +99,7 @@ function renderPanel(applications: EnrichedApplication[]) {
         distanceBandMap={empty}
       />
     </MemoryRouter>,
+    { wrapper: QueryWrap },
   );
   return screen.getByRole("region", { name: /Applicants for Rake the front yard/ });
 }

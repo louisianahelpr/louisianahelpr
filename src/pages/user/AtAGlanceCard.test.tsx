@@ -53,6 +53,8 @@ type Over = {
   postedJobsCount?: number;
   workedJobsCount?: number;
   stats?: { completedJobs: number; avgRating: number; reviewCount: number };
+  onTimeArrivalRate?: number | null;
+  replyBucket?: "under_1h" | "few_hours" | "within_day" | null;
 };
 function renderCard(over: Over = {}) {
   return render(
@@ -64,9 +66,10 @@ function renderCard(over: Over = {}) {
       postedJobsCount={over.postedJobsCount ?? 4}
       workedJobsCount={over.workedJobsCount ?? 16}
       replyLatency={{ medianReplyMinutes: null, replySample: 0, measured: false }}
-      onTimeArrivalRate={null}
+      onTimeArrivalRate={over.onTimeArrivalRate ?? null}
       revisionFrequency={null}
       repeatHirePercent={null}
+      replyBucket={over.replyBucket ?? null}
       mutualJobsCount={over.mutualJobsCount ?? 3}
       showReviews={false}
       showPostedJobs={false}
@@ -210,3 +213,30 @@ describe("AtAGlanceCard — four tiles, most to least important", () => {
 // three-tiles-and-a-dead-column state the unconditional cell was written to
 // end, and it leaves the order assertion for a populated card green.
 // @mutate src/pages/user/AtAGlanceCard.tsx | { key: "together", icon: Users, value: String(mutualJobsCount), label: "Worked together" }, | ...(mutualJobsCount > 0 ? [{ key: "together", icon: Users, value: String(mutualJobsCount), label: "Worked together" }] : []),
+
+/**
+ * Q2478 trust line under the four tiles (owner 2a/2b). LEAD DECISION (2026-10-29): under 3 jobs the profile shows NO
+ * trust line, because its rating tile already says "New"; applicant cards still say "New" (src/test/trustLine.test.tsx).
+ * The reply speed is its own line and still shows when the server has a bucket.
+ *
+ * @mutate src/components/TrustLine.tsx |   if (isNew && !reply) return null; |   if (false) return null;
+ * @mutate src/components/TrustLine.tsx |       {isNew ? null : <p>{trustLineParts(stats).join(" · ")}</p>} |       <p>{trustLineParts(stats).join(" · ")}</p>
+ */
+describe("AtAGlanceCard — the trust line under the tiles", () => {
+  const line = () => document.querySelector("[data-trust-line]");
+  it("under 3 jobs done: no trust line at all, and no second New", () => {
+    for (const n of [0, 1, 2]) {
+      const { unmount } = renderCard({ workedJobsCount: n });
+      expect(line(), `${n} jobs`).toBeNull();
+      unmount();
+    }
+  });
+  it("under 3 jobs with a reply speed: only the reply line", () => {
+    renderCard({ workedJobsCount: 2, replyBucket: "few_hours" });
+    expect(line()?.textContent).toBe("Usually replies in a few hours");
+  });
+  it("from 3 jobs done: the record line", () => {
+    renderCard({ workedJobsCount: 16, onTimeArrivalRate: 91.7 });
+    expect(line()?.textContent).toBe("16 jobs done · 92% on time");
+  });
+});

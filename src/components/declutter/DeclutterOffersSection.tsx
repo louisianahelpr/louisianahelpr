@@ -191,7 +191,9 @@ function OfferRow({ o }: { o: MyOffer }) {
         title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">
         {o.my_side === "seller"
           ? `"${o.item_title}": this offer ends, and the buyer is told you said no.`
-          : `"${o.item_title}": this counter ends. Nothing is charged.`}
+          : wantedReply
+            ? `"${o.item_title}": this reply ends, and the seller is told you said no. Nothing is charged.`
+            : `"${o.item_title}": this counter ends. Nothing is charged.`}
       </ConfirmSheet>
     </li>
   );

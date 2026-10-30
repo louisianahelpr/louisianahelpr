@@ -32,6 +32,7 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && ( | o.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? "their price" : "their counter") | : "their counter")
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? `"${o.item_title}": this reply ends | : false\n            ? `"${o.item_title}": this reply ends
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
@@ -459,6 +460,28 @@ describe("Declutter slice 3 screens", () => {
     expect(within(plain).queryByText("Reply to your Wanted")).toBeNull();
     expect(within(plain).getByText("their counter")).toBeInTheDocument();
     expect(within(plain).getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
+  });
+
+  // B11's read of D4-3 (2026-10-30): the Say no sheet said "this counter ends" on a card that says "Reply to your Wanted".
+  it("Say no on a Wanted reply says the reply ends; an ordinary counter's sheet is unchanged", async () => {
+    const counter = { ...OFFER, offer_id: "o5", my_side: "buyer", awaiting: "buyer", counter_count: 1, floor_price_cents: null, item_title: "Lamp" };
+    state.offers = [{ ...counter, offer_id: "o4", item_title: "Blue enamel mug", amount_cents: 1200, from_wanted: true }, counter];
+    show(<OffersSection side="buyer" />);
+    const rows = await screen.findAllByRole("listitem");
+    const openSheet = async (title: string) => {
+      fireEvent.click(within(rows.find((r) => r.textContent?.includes(title))!).getByRole("button", { name: "Say no" }));
+      return waitFor(() => {
+        const sheet = document.querySelector<HTMLElement>('[data-confirm-sheet="decline-offer"]');
+        expect(sheet?.textContent).toContain(title);
+        return sheet!;
+      });
+    };
+    const reply = await openSheet("Blue enamel mug");
+    expect(reply.textContent).toContain("this reply ends, and the seller is told you said no. Nothing is charged.");
+    expect(reply.textContent).not.toContain("counter");
+    fireEvent.click(within(reply).getByRole("button", { name: "Not now" }));
+    const plain = await openSheet("Lamp");
+    expect(plain.textContent).toContain("this counter ends. Nothing is charged.");
   });
 
   // Audit 1d D4-9 (2026-10-29): "Say no" ended the offer at one tap with no "are you sure".

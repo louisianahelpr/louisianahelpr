@@ -122,6 +122,34 @@ describe("the take-home shown is the amount release-payout sends (owner 2026-10-
     }
   }
 
+  // Owner 2026-10-30: the giveaway pays exactly $50, setup fee owed or not; an owed fee is covered from the leftover.
+  // @mutate supabase/functions/release-payout/index.ts |         unroundedPayoutCents += onboardingFeeCents; |
+  // @mutate supabase/functions/release-payout/index.ts |         platformFeeCents -= onboardingFeeCents; |
+  for (const feeOwed of [false, true]) {
+    it(`the giveaway sends exactly $50 and shows $50${feeOwed ? ", setup fee owed" : ""}`, async () => {
+      seed(60, 0, feeOwed);
+      const job = scenario.reads.jobs!.rows![0] as Record<string, unknown>;
+      job.helper_fee_flat_cents = 700;
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe(5000);
+      // Marked paid exactly once, by the normal claim; never touched when already paid.
+      const claims = scenario.writes.filter((w) => w.table === "profiles" && w.op === "update");
+      expect(claims).toHaveLength(feeOwed ? 1 : 0);
+      if (feeOwed) expect((claims[0].payload as Record<string, unknown>).onboarding_fee_paid).toBe(true);
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect(settle?.payload).toEqual(expect.objectContaining({
+        amount_cents: 5000,
+        platform_fee_cents: feeOwed ? 800 : 1000,
+        metadata: expect.objectContaining({ onboarding_fee_cents: feeOwed ? 200 : 0, rounding_remainder_cents: 0 }),
+      }));
+      const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect(flip?.payload).toEqual(expect.objectContaining({ platform_fee_amount: 10 }));
+    });
+  }
+
   it("the $60 job pays $56 ($54 on a first payout), never $56.30", () => {
     expect(shownCents(60, 0, false)).toBe(5600);
     expect(shownCents(60, 0, true)).toBe(5400);

@@ -4,7 +4,7 @@ import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatPriceFloor } from "@/lib/format";
-import type { FlatFeeStamp } from "@/lib/helprFlatFee";
+import { type FlatFeeStamp, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 export type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
   budget: number;
@@ -53,16 +53,18 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
 }) {
   const { net } = useHelprTakeHome(job);
   if (!(net > 0)) return fallback ? <>{fallback}</> : null;
+  // Owner 2026-10-30: the giveaway shows its $50 with no words.
+  const fixedPay = isGiveawayFixedPayJob(job);
   if (bare) {
     return (
       <span data-job-price-take-home="" className={`font-display text-ds-28 font-bold leading-none tabular-nums text-[hsl(var(--accent-ink))] ${className}`}>
-        <span className="sr-only">You take home </span>${formatPriceFloor(net)}
+        {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)}
       </span>
     );
   }
   return (
     <span data-job-price-take-home="" className={className}>
-      You take home <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
+      {!fixedPay && "You take home "}<span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
       {after}
     </span>
   );

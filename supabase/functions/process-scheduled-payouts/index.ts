@@ -6,7 +6,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
+import { flatFeePercentOf, isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
@@ -1102,7 +1102,9 @@ serve(async (req) => {
       // branch below re-floors from the UNROUNDED cents, so the fee is taken
       // before the one floor, never between two (a $2.50 fee must not cost a
       // second dollar).
-      const unroundedPayoutCents = Math.round((perHelperBudget - helperCommission + urgentShare) * 100);
+      let unroundedPayoutCents = Math.round((perHelperBudget - helperCommission + urgentShare) * 100);
+      // What the ledger books as commission; the giveaway's claim below moves its setup fee out of it.
+      let ledgerCommissionCents = Math.round(helperCommission * 100);
       let helperPayout = roundPayoutDownCents(unroundedPayoutCents) / 100;
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
@@ -1540,6 +1542,12 @@ serve(async (req) => {
           continue;
         }
         if (claimed && claimed.length > 0) {
+          // Owner 2026-10-30: on the giveaway the fee comes out of Louisiana Helpr's
+          // $10, not the winner's $50: $8 commission + $2 setup fee, same transfer.
+          if (isGiveawayFixedPayJob(job)) {
+            unroundedPayoutCents += onboardingFeeCents;
+            ledgerCommissionCents -= onboardingFeeCents;
+          }
           if (roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents) <= 0) {
             // Claim succeeded but this payout is too small to cover the fee.
             // Roll the claim back and skip so the flag doesn't lie, and a
@@ -1728,7 +1736,7 @@ serve(async (req) => {
         jobId: job.id,
         helperId,
         amountCents: claimAmountCents,
-        platformFeeCents: Math.round(helperCommission * 100),
+        platformFeeCents: ledgerCommissionCents,
         stripeAccountId: helperProfile.stripe_account_id,
         initiatedBy: "system",
         // Q1520: what this payout withholds (onboarding fee, round-down remainder).
@@ -1879,7 +1887,7 @@ serve(async (req) => {
         const settled = await settleClaim(supabaseAdmin, claim.claimId, {
           stripeTransferId: transfer.id,
           amountCents: payoutCents,
-          platformFeeCents: Math.round(helperCommission * 100),
+          platformFeeCents: ledgerCommissionCents,
           stripeAccountId: helperProfile.stripe_account_id,
           metadata: {
             source: "scheduled_payout",
@@ -2045,7 +2053,8 @@ serve(async (req) => {
         // here. Leaving this comment as a marker for the prior pattern.
 
         const feeParts = [
-          owesOnboardingFee ? `one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted` : "",
+          // Not on the giveaway: its setup fee came out of Louisiana Helpr's share, not the winner's $50.
+          owesOnboardingFee && !isGiveawayFixedPayJob(job) ? `one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted` : "",
           helprFaultFeeCents > 0 ? `$${formatExactDollars(helprFaultFeeCents / 100)} owed from a job you were ruled at fault on deducted` : "",
         ].filter(Boolean);
         const feeNote = feeParts.length > 0 ? ` (${feeParts.join("; ")})` : "";

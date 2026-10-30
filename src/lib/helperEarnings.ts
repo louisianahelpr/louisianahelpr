@@ -47,7 +47,7 @@
 
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { netAfterFirstPayoutFee, sumAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 /**
  * The subset of a `jobs` row needed to compute helper take-home. Kept
@@ -193,7 +193,8 @@ export function helperTakeHomeDollars(
   const shares = helperShareCount(job);
   const budget = job.budget ?? 0;
   // Q1272 (3): the dispute split and Quick Release never take the setup fee.
-  const feeHere = job.status === "disputed" ? 0 : firstPayoutFeeDollars;
+  // Owner 2026-10-30: nor does the giveaway, which pays exactly its amount.
+  const feeHere = job.status === "disputed" || isGiveawayFixedPayJob(job) ? 0 : firstPayoutFeeDollars;
   return floorPayoutDollars(
     netAfterFirstPayoutFee(
       budget / shares -
@@ -232,7 +233,7 @@ export function sumHelperTakeHomeDollars(
 ): number {
   return sumAfterFirstPayoutFee(
     jobs.map((j) => helperTakeHomeDollars(j, feeFallbackPercent)),
-    firstPayoutFeeDollars,
+    jobs.some((j) => !isGiveawayFixedPayJob(j)) ? firstPayoutFeeDollars : 0,
   );
 }
 

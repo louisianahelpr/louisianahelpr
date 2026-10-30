@@ -16,6 +16,7 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 /**
  * The deal-room chat's pinned card (board 2; chat halves of 59, 61, 62, 63).
@@ -69,7 +70,8 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
   return (
     <div className="shrink-0 text-right" data-deal-take-home="">
       <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPriceFloor(net)}</p>
-      <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>
+      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. */}
+      {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}
     </div>
   );
 }

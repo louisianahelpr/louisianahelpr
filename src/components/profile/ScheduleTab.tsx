@@ -29,6 +29,7 @@ import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgres
 import { bucketPostedJob } from "@/components/job-card/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 // jobs.offered_to_helper_id is not client-selectable (20260915045110).
 type Job = ReadableJobRow;
@@ -164,8 +165,9 @@ const ScheduleCard = ({
     ? formatPrice(job.budget)
     : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent, isSettledForDisplay(job) ? 0 : firstPayoutFee));
   // Q1272 (2): says why the figure is lower while the one-time setup fee is still owed.
+  const fixedPay = isGiveawayFixedPayJob(job);
   const feeTakenHere = !isPosted && !isSettledForDisplay(job) && job.status !== "disputed" && firstPayoutFee > 0;
-  const amountTitle = isPosted ? "Your budget for this job" : `Your take-home${feeTakenHere ? ` after the one-time $${formatPrice(firstPayoutFee)} setup fee from your first payout` : ""}`;
+  const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined : `Your take-home${feeTakenHere ? ` after the one-time $${formatPrice(firstPayoutFee)} setup fee from your first payout` : ""}`;
 
   return (
     <JobCardShell

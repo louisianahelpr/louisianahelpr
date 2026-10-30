@@ -1407,6 +1407,7 @@ export const RPC_ERROR_COPY = {
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
   },
   declutter_save_porch_place: {
     account_restricted: DC.account_restricted,
@@ -1431,6 +1432,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
   },
   declutter_set_porch_place: {
     account_restricted: DC.account_restricted,

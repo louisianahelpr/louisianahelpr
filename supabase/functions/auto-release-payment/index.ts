@@ -7,7 +7,7 @@ import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCEN
 import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
+import { payoutPromiseWords } from "../_shared/payoutPromise.ts";
 import { APPROVAL_WINDOW_HOURS, hoursToMs, payoutDayLabel, standardPayoutAtIso } from "../_shared/escrowTiming.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -654,11 +654,12 @@ serve(async (req) => {
         });
       }
       if (job.helper_id && promiseHold.kind === "clear") {
+        const promised = await payoutPromiseWords(supabaseAdmin, job.helper_id, job, helperPayout);
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Job approved!",
-          message: `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`,
+          message: `"${job.title}" was approved. ${promised} will be sent to your account ${payDay}.`,
           // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
           // with no chip in the five-bucket strip (the bucket is `done`), and the
           // bucket is resolved live by Activity from the job id.

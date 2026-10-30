@@ -523,6 +523,40 @@ describe("auto-release-payment edge function", () => {
   // from the shared helpers rather than hard-coded, so a change to the ladder
   // or the rounding rule moves both sides at once.
   describe("payout preview parity with process-scheduled-payouts", () => {
+    // Lead 2026-10-30: a first payout loses the setup fee, so the promise must not read higher.
+    // @mutate supabase/functions/auto-release-payment/index.ts |         const promised = await payoutPromiseWords(supabaseAdmin, job.helper_id, job, helperPayout); |         const promised = `$${Math.floor(helperPayout)}`;
+    // @mutate supabase/functions/_shared/payoutPromise.ts |   if (isGiveawayFixedPayJob(job)) return figure(payoutCents); |
+    // @mutate supabase/functions/_shared/payoutPromise.ts |   if (profileErr) { |   if (false) {
+    function owesSetupFee() {
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ onboarding_fee_paid: false }] };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+    }
+
+    it("takes off a setup fee still owed, as the payout will", async () => {
+      seedDueJob(scenario, { helper_fee_percent: 12 });
+      seedHelperTier(scenario, null);
+      owesSetupFee();
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+      expect(previewedDollars()).toBe(Math.floor(payerWouldSend({ budget: 200, feePercent: 12 })) - 2);
+    });
+
+    it("keeps the giveaway at $50 even with the setup fee owed", async () => {
+      seedDueJob(scenario, { budget: 60, urgent_fee: 0, helper_fee_percent: 5, helper_fee_flat_cents: 700 });
+      owesSetupFee();
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+      expect(previewedDollars()).toBe(50);
+    });
+
+    it("names no figure when the setup fee cannot be read", async () => {
+      seedDueJob(scenario, { helper_fee_percent: 12 });
+      scenario.reads.profiles = { selectOverrides: [{ includes: "onboarding_fee_paid", result: { error: { message: "boom" } } }] };
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+      expect(String(helperNotification()?.message ?? "")).toMatch(/^".*" was approved\. Your payment will be sent to your account /);
+    });
+
     it("quotes the helper's live tier rate when the profile is readable", async () => {
       seedDueJob(scenario, { helper_fee_percent: 12 });
       seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());

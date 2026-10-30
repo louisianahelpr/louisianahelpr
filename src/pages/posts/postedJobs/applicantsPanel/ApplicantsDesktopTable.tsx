@@ -19,7 +19,7 @@ import { CompareCheck } from "./ApplicantCompare";
 import { ApplicantHireRow } from "./ApplicantHireRow";
 import { ApplicantPrivateNote } from "./ApplicantPrivateNote";
 import { ApplicantsCompareCard } from "./ApplicantsCompareCard";
-import { helperInitialsFrom, isImageAttachment } from "./applicantsPanelHelpers";
+import { ApplicantTrustLine, helperInitialsFrom, isImageAttachment } from "./applicantsPanelHelpers";
 
 /**
  * Board 170: on a wide screen the Applicants list is a table (Compare, Helpr,
@@ -176,6 +176,8 @@ export function ApplicantsDesktopTable({
                       )}
                       <ApplicantAvailableNow until={app.profiles?.available_until} />
                     </span>
+                    {/* Q2478: the trust line and reply speed, as on the phone's applicant card. */}
+                    <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
                     <ApplicantSuggestedTime app={app} jobStartTime={jobStartTime} />
                     {idOn && app.profiles && app.profiles.is_id_verified !== true && (
                       <span className="mt-0.5 block text-ds-11 text-muted-foreground" data-applicant-id-note="">

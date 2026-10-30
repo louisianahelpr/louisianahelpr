@@ -24,7 +24,7 @@ import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
-import { helperInitialsFrom, isImageAttachment, TopHelprChip } from "./applicantsPanel/applicantsPanelHelpers";
+import { ApplicantTrustLine, helperInitialsFrom, isImageAttachment, TopHelprChip } from "./applicantsPanel/applicantsPanelHelpers";
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
@@ -462,6 +462,7 @@ export function ApplicantsPanel({
                                 ))}
                               </p>
                             )}
+                            <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
                             {/* The bid pill and inline counter-offer form used
                                 to sit here, on accept_bids jobs only. Bidding
                                 was removed — zero production usage — so an
@@ -571,7 +572,6 @@ export function ApplicantsPanel({
                           <ApplicantStatusBadge app={app} />
                           </div>
                         </div>
-
 
                         {/* Row 3: attachments */}
                         {(app.attachment_urls || []).length > 0 && (

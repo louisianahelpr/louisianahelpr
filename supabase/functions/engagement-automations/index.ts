@@ -128,6 +128,11 @@ const DRIP_STEPS = {
  */
 const WELCOME_DRIP_MAX_DAYS = 14
 
+// The dead-lettered re-send (block 0 below) takes at most this many ids per
+// call: the 2026-10-27 loss was 26, and a bound keeps one call inside the
+// cron's 90-second HTTP limit.
+const RESEND_MAX_IDS = 40
+
 // ─── Main Handler ──────────────────────────────────────────────────
 
 /**
@@ -188,7 +193,13 @@ async function advanceCursor(
  */
 async function logSend(
   supabase: { from: (t: string) => any },
-  row: { message_id: string; template_name: string; recipient_email: string; status: string },
+  row: {
+    message_id: string
+    template_name: string
+    recipient_email: string
+    status: string
+    metadata?: Record<string, unknown>
+  },
   results: { errors: string[] },
 ): Promise<void> {
   const { error } = await supabase.from('email_send_log').insert(row)
@@ -388,6 +399,7 @@ serve(async (_req) => {
       element: (unsubscribeUrl: string) => unknown,
       subject: string,
       label: string,
+      metadata?: Record<string, unknown>,
     ): Promise<string | null> => {
       const unsubscribeUrl =
         (await buildUnsubscribeUrl(user.email)) ?? `${getAppUrl()}/profile?tab=notifications`
@@ -396,7 +408,13 @@ serve(async (_req) => {
 
       await logSend(
         supabase,
-        { message_id: messageId, template_name: label, recipient_email: user.email, status: 'pending' },
+        {
+          message_id: messageId,
+          template_name: label,
+          recipient_email: user.email,
+          status: 'pending',
+          ...(metadata ? { metadata } : {}),
+        },
         results,
       )
 
@@ -440,6 +458,165 @@ serve(async (_req) => {
         return enqueueErr.message
       }
       return null
+    }
+
+    // ─── 0. Re-send dead-lettered welcome-drip steps (one-off, Q2479) ──
+    //
+    // On 2026-10-27 26 welcome-drip emails sat behind a 181-email backlog,
+    // passed the 60-minute queue limit and were dead-lettered UNSENT, while
+    // this cron had already moved each member's drip_step past them. The queue
+    // copies were cleared on 2026-10-29, so the only way to send them again is
+    // to render them again, here, with the same template, subject, sender and
+    // the recipient's own signed unsubscribe link (the signing secret lives
+    // only in this runtime).
+    //
+    // A POST body `{ "resend_dead_lettered": ["<email_send_log.message_id>", ...] }`
+    // runs ONLY this block and returns. Each id must name a `dlq` row of a
+    // welcome-drip step; the step comes from that row, never from the request.
+    // Every gate the daily drip applies is applied again (hard suppression,
+    // Promotions/Email master off, sign-up opt-in, verified, not a seed,
+    // deleted or banned account, a come-back email in the last 20 hours, a
+    // drip email in the last 20 hours), and a recipient who already has ANY
+    // later row for that same step (the daily drip sent it, or this block
+    // already queued it) is skipped, so a second call sends nothing twice.
+    // drip_step is NOT touched (the member already moved on); last_drip_at is
+    // stamped so the daily drip keeps its one-email-a-day rule.
+    let resendIds: string[] | null = null
+    try {
+      const reqJson = await _req.json()
+      if (reqJson && Array.isArray(reqJson.resend_dead_lettered)) {
+        resendIds = reqJson.resend_dead_lettered.filter((v: unknown): v is string => typeof v === 'string')
+      }
+    } catch {
+      // The daily cron posts '{}' and a manual run may post nothing at all:
+      // an unreadable body is the ordinary daily run, not a re-send request.
+      resendIds = null
+    }
+
+    if (resendIds !== null) {
+      const resend = { queued: 0, skipped: {} as Record<string, number>, errors: [] as string[] }
+      const skip = (why: string) => {
+        resend.skipped[why] = (resend.skipped[why] ?? 0) + 1
+      }
+      const ids = [...new Set(resendIds)]
+      if (ids.length === 0 || ids.length > RESEND_MAX_IDS) {
+        return new Response(
+          JSON.stringify({ error: `resend_dead_lettered needs 1 to ${RESEND_MAX_IDS} message ids` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      const { data: deadRows, error: deadErr } = await supabase
+        .from('email_send_log')
+        .select('message_id, template_name, recipient_email, created_at')
+        .in('message_id', ids)
+        .eq('status', 'dlq')
+      if (deadErr) {
+        return new Response(
+          JSON.stringify({ error: 'Could not read the dead-lettered rows — nothing sent.', details: deadErr.message }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      const found = new Set<string>()
+      for (const dead of (deadRows ?? []) as Array<{
+        message_id: string
+        template_name: string
+        recipient_email: string | null
+        created_at: string
+      }>) {
+        if (found.has(dead.message_id)) continue
+        found.add(dead.message_id)
+
+        const stepMatch = /^welcome_drip_step_([123])$/.exec(dead.template_name ?? '')
+        if (!stepMatch) { skip('not_a_welcome_drip_step'); continue }
+        const stepNo = Number(stepMatch[1]) as 1 | 2 | 3
+        // Matched EXACTLY as logged: the daily drip logs `profiles.email` as
+        // stored, and a LIKE pattern would read the `_` in an address as a
+        // wildcard and could match someone else's.
+        const logged = dead.recipient_email ?? ''
+        const address = logged.trim().toLowerCase()
+        if (!address) { skip('no_address'); continue }
+
+        // Sent once already? Any later row for this step and address: the
+        // daily drip mailed it, or an earlier call of this block queued it.
+        const { data: laterRows, error: laterErr } = await supabase
+          .from('email_send_log')
+          .select('message_id')
+          .eq('template_name', dead.template_name)
+          .eq('recipient_email', logged)
+          .gt('created_at', dead.created_at)
+          .limit(1)
+        if (laterErr) { resend.errors.push(`later-send check for ${dead.message_id}: ${laterErr.message}`); continue }
+        if ((laterRows ?? []).length > 0) { skip('already_has_a_later_row'); continue }
+
+        const { data: people, error: personErr } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email, last_drip_at, email_verified, marketing_consent, is_seed, anonymized_at, ban_status')
+          .eq('email', logged)
+          .limit(2)
+        if (personErr) { resend.errors.push(`profile read for ${dead.message_id}: ${personErr.message}`); continue }
+        const matches = (people ?? []) as Array<{
+          user_id: string
+          full_name: string | null
+          email: string | null
+          last_drip_at: string | null
+          email_verified: boolean | null
+          marketing_consent: boolean | null
+          is_seed: boolean | null
+          anonymized_at: string | null
+          ban_status: string | null
+        }>
+        if (matches.length !== 1) { skip(matches.length === 0 ? 'no_account' : 'ambiguous_account'); continue }
+        const person = matches[0]
+        if (person.email !== logged) { skip('address_changed'); continue }
+        if (person.is_seed !== false) { skip('seed'); continue }
+        if (person.anonymized_at !== null) { skip('deleted'); continue }
+        if (person.ban_status !== 'active') { skip('banned'); continue }
+        if (person.email_verified !== true) { skip('unverified'); continue }
+        if (person.marketing_consent !== true) { skip('no_marketing_consent'); continue }
+        if (suppressedSet.has(address)) { skip('suppressed'); continue }
+        if (promoOptedOut.has(person.user_id)) { skip('opted_out'); continue }
+        if (comeBackRecently.has(person.user_id)) { skip('come_back_email_in_20h'); continue }
+        if (person.last_drip_at) {
+          const hoursSince = (now.getTime() - new Date(person.last_drip_at).getTime()) / (1000 * 60 * 60)
+          if (hoursSince < 20) { skip('drip_email_in_20h'); continue }
+        }
+
+        const step = DRIP_STEPS[stepNo]
+        const failure = await queueCommercial(
+          { user_id: person.user_id, email: person.email, full_name: person.full_name },
+          (unsubscribeUrl) =>
+            React.createElement(step.component, {
+              greetingName: person.full_name || '',
+              dashboardUrl: `${getAppUrl()}/home`,
+              unsubscribeUrl,
+            }),
+          step.subject,
+          dead.template_name,
+          { resend_of: dead.message_id },
+        )
+        if (failure) { resend.errors.push(`re-send of ${dead.message_id} not queued: ${failure}`); continue }
+        resend.queued++
+
+        const stamped = await advanceCursor(
+          supabase,
+          person.user_id,
+          { last_drip_at: now.toISOString() },
+          'drip re-send',
+          { errors: resend.errors },
+        )
+        if (!stamped) continue
+      }
+      for (const id of ids) if (!found.has(id)) skip('not_a_dead_lettered_row')
+
+      console.log('Dead-lettered welcome drip re-send:', resend)
+      return cronResult(
+        'engagement-automations',
+        resend,
+        { count: resend.errors.length, reasons: resend.errors },
+        corsHeaders,
+      )
     }
 
     // ─── 1. Welcome Drip Sequence (COMMERCIAL) ────────────────────

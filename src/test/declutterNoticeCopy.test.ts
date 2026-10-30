@@ -10,7 +10,7 @@
  * Reads the EFFECTIVE definitions (helpers/effectiveFunctionDefs). Backend proof:
  * src/test/pglite/declutterNoticeCopy.pglite.mjs (BEFORE on prod's bodies, 3x replay, 6 planted defects RED).
  */
-// @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, p_link, p_message)), p_link); |           public.declutter_notice_names_item(p_user, p_other, p_link, p_message), p_link);
+// @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_notice_names_item(p_user, p_other, v_link, p_message), v_link);
 // @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=selling', o.buyer_id); | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=offers', o.buyer_id);
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
@@ -64,7 +64,7 @@ describe("Declutter notice copy", () => {
   });
 
   it("every Declutter notice reads prices the app's way", () => {
-    expect(code("declutter_notify_strict")).toMatch(/public\.declutter_price_words\((?:public\.declutter_notice_names_item\(p_user, p_other, p_link, p_message\)|p_message)\)/);
+    expect(code("declutter_notify_strict")).toMatch(/public\.declutter_price_words\((?:public\.declutter_notice_names_item\(p_user, p_other, [pv]_link, p_message\)|p_message)\)/); // v_link: DC-17 (20261030133115)
     expect(code("declutter_price_words")).toContain("regexp_replace");
     // A function that writes its own Declutter notice row does not go through the writer.
     const direct = [...DEFS.keys()].filter((fn) => {

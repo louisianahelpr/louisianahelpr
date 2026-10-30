@@ -25,7 +25,7 @@
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="text-page-title">{title}</h1>
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
- * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
+ * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

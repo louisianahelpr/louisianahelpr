@@ -1,10 +1,10 @@
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SavedOnlyState, type SavedRead } from "./SavedOnlyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -429,8 +429,7 @@ export function BrowseTasksFeed({
         return (
       // The shared Browse empty state (owner, 2026-10-19: Homes' style, in the same place as every section's).
       <div className="px-0 lg:px-4 pt-1 lg:pt-3 flex-1 min-h-0 flex">
-        <EmptyState
-          variant="bare"
+        <BrowseEmptyState
           icon={Search}
           title={
             filters.hasFilters

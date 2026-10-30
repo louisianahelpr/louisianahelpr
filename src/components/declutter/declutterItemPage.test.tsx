@@ -383,6 +383,38 @@ describe("the photo-first Declutter item page", () => {
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
   });
+  // Audit 1030 DB-14: at 375 the in-page Buy now sat in the strip behind the dock, and the observer counted that strip
+  // as on screen, so the bar never came and Buy now stayed hidden. The strip the dock covers is cut off the observed
+  // screen, and a group only partly clear of it still gets the bar (local repro 375x900: before no bar, after bar
+  // 827-900 with the dock hidden; ~/.lh-shots/b96/db14).
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
+  it("DB-14: the strip behind the dock does not count as on screen, and buttons only partly clear of it still get the bar", async () => {
+    const dock = document.createElement("div");
+    dock.className = "mobile-nav-frame";
+    dock.getBoundingClientRect = () => ({ top: window.innerHeight - 64, bottom: window.innerHeight, height: 64, left: 0, right: 375, width: 375, x: 0, y: window.innerHeight - 64, toJSON: () => ({}) });
+    document.body.appendChild(dock);
+    const seen: { rootMargin?: string }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private cb: (e: { isIntersecting: boolean; intersectionRatio: number }[]) => void, opts: { rootMargin?: string }) { seen.push(opts ?? {}); }
+        // Half of the button group shows above the dock: intersecting, but not clear of it.
+        observe() { this.cb([{ isIntersecting: true, intersectionRatio: 0.5 }]); }
+        disconnect() {}
+      },
+    );
+    try {
+      open();
+      await screen.findAllByRole("button", { name: "Buy now · $42.70 total" });
+      await waitFor(() => expect(document.body.querySelector("[data-declutter-buybar]")).not.toBeNull());
+      await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
+      expect(seen.at(-1)?.rootMargin).toBe("0px 0px -64px 0px");
+    } finally {
+      dock.remove();
+    }
+  });
+
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
     const row = (n: number, extra: object) => ({ ...ITEM, id: `0f0e0d0c-0b0a-4908-8706-0504030201${String(n).padStart(2, "0")}`, title: `Thing ${n}`, ...extra });
     state.more = [row(1, {}), row(2, {})];

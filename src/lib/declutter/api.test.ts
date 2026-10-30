@@ -22,6 +22,7 @@
  * @mutate src/lib/declutter/api.ts |   if (upErr) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
+ * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/api.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
  * @mutate src/lib/declutter/api.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false };
  * @mutate src/lib/declutter/api.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
@@ -832,6 +833,16 @@ describe("the AI helpers", () => {
     const e = await rejection(call("i1"));
     expect(e.message).toBe("ai_photos_required");
     expect(declutterErrorMessage(e)).toBe(DECLUTTER_CLIENT_ERROR_COPY.ai_photos_required);
+  });
+
+  it.each([
+    ["our own limit's words", { error: "Too many requests. Please try again later." }],
+    ["the model's limit, sent as ai_unavailable", { error: "ai_unavailable" }],
+  ])("a 429 is the rate limit, whatever the body says: %s", async (_label, body) => {
+    h.queue.push(failing({ status: 429, json: async () => body }));
+    const e = await rejection(requestAiDraft("i1"));
+    expect(e.message).toBe("ai_rate_limited");
+    expect(declutterErrorMessage(e)).toBe(DECLUTTER_CLIENT_ERROR_COPY.ai_rate_limited);
   });
 
   it("an error body that is not JSON warns and becomes ai_unavailable", async () => {

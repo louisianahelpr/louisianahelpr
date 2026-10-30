@@ -22,7 +22,7 @@
 // @mutate supabase/functions/engagement-automations/index.ts | if (person.marketing_consent !== true) { skip('no_marketing_consent'); continue } | if (person.marketing_consent === null) { skip('no_marketing_consent'); continue }
 // @mutate supabase/functions/engagement-automations/index.ts | if (person.is_seed !== false) { skip('seed'); continue } | if (person.is_seed === null) { skip('seed'); continue }
 // @mutate supabase/functions/engagement-automations/index.ts | if (suppressedSet.has(address)) { skip('suppressed'); continue } | if (false && suppressedSet.has(address)) { skip('suppressed'); continue }
-// @mutate supabase/functions/engagement-automations/index.ts |           { last_drip_at: now.toISOString() }, |           { drip_step: stepNo, last_drip_at: now.toISOString() },
+// @mutate supabase/functions/engagement-automations/index.ts |           { last_drip_at: now.toISOString() },\n          'drip re-send', |           { drip_step: stepNo, last_drip_at: now.toISOString() },\n          'drip re-send',
 // @mutate supabase/functions/engagement-automations/index.ts |           { resend_of: dead.message_id }, |           undefined,
 // @mutate supabase/functions/engagement-automations/index.ts |     if (resendIds !== null) { |     if (false) {
 import { describe, it, expect, beforeEach } from "vitest";

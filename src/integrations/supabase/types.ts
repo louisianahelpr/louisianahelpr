@@ -14825,6 +14825,7 @@ export type Database = {
         Returns: number
       }
       declutter_seller_sold_count: { Args: { p_seller_id: string }; Returns: number }
+      declutter_notice_link: { Args: { p_link: string }; Returns: string }
       declutter_notice_type: {
         Args: { p_link: string; p_title: string; p_type: string }
         Returns: string

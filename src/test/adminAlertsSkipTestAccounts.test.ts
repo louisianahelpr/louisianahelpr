@@ -45,6 +45,7 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   declutter_problem_add_side: "caller",
   declutter_refund_request_to_admin: "explicit",
   declutter_report_problem: "caller",
+  declutter_withdraw_problem: "caller",
   detect_stuck_payments: "link",
   enforce_retained_payment_ban: "gap",
   facilitator_threshold_check: "gap",

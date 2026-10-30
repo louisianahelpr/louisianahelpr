@@ -6,7 +6,8 @@
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications"\n |             to="/profile"\n
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       if (!done) {\n        toast.error("We couldn't save your listing defaults yet. Try again in a little while.");\n        return;\n      }\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | disabled={save.isPending \|\| noWay \|\| same(draft, base)} | disabled={save.isPending \|\| same(draft, base)}
@@ -90,7 +91,14 @@ describe("Declutter settings", () => {
     expect(screen.getByRole("region", { name: "Pickup times" })).toBeInTheDocument();
     expect(await screen.findByRole("region", { name: "Your delivery" })).toBeInTheDocument();
     expect(await screen.findByRole("region", { name: "Bundle discount" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Declutter notifications/ })).toHaveAttribute("href", "/profile?tab=notifications");
+    expect(screen.getByRole("link", { name: /Declutter notifications/ })).toHaveAttribute("href", "/profile?tab=notifications&show=declutter");
+  });
+
+  it("the I'll deliver tile points down this page, not to the page it is already on", async () => {
+    open();
+    const tile = (await screen.findByRole("checkbox", { name: "I'll deliver" })).closest("label")!;
+    expect(tile.textContent).toContain('under "I can deliver" below.');
+    expect(tile.textContent).not.toContain("in Declutter settings");
   });
 
   it("no saved row: shows the app's defaults; Save stays off until something changes, then saves exactly the choices", async () => {

@@ -67,8 +67,8 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
     </label>
     {form.free && (
       <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
-        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up at
-        your door or from your porch, and nothing is charged.
+        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
+        from your porch, and nothing is charged.
       </p>
     )}
   </>);

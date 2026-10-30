@@ -36,28 +36,31 @@ export function ListedWhatNext() {
   const it = item.data;
   if (!listed || !it) return null;
   const live = listed.status === "live";
+  // A giveaway reads as one (audit posting 1030 #12): claimed, never bought.
+  const free = it.current_price_cents === 0;
+  const askOrGet = free ? "Someone asks a question or claims it" : "Buyers ask questions or buy";
   const drop = live ? nextPriceDrop(it) : null;
   const shareable = live && it.status === "live";
   const steps: WhatNextStep[] = live
     ? [
-        { key: "listed", label: <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
+        { key: "listed", label: free ? "Listed for free" : <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
         ...(drop
           ? [{ key: "drop", label: `Price can drop ${dropWhenLabel(drop.at)}`, detail: <>As low as <Money cents={drop.lowestCents} />, then {drop.pct}% less each evening (rounded down to a whole dollar), never below your lowest price</>, state: "now" as const }]
           : []),
-        { key: "buyers", label: "Buyers ask questions or buy", detail: "We'll tell you each time", state: drop ? "later" : "now" },
-        { key: "sold", label: "When it sells", detail: "We show you how to hand it off", state: "later" },
+        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: drop ? "later" : "now" },
+        { key: "sold", label: free ? "When it's claimed" : "When it sells", detail: "We show you how to hand it off", state: "later" },
       ]
     : [
         { key: "sent", label: "Sent for a review", detail: "Today", state: "done" },
-        { key: "review", label: "Someone from Louisiana Helpr checks it", detail: "We'll let you know when it's up for sale", state: "now" },
-        { key: "buyers", label: "Buyers ask questions or buy", detail: "We'll tell you each time", state: "later" },
+        { key: "review", label: "Someone from Louisiana Helpr checks it", detail: free ? "We'll let you know when it's up" : "We'll let you know when it's up for sale", state: "now" },
+        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: "later" },
       ];
   return (
     <WhatNextSheet
       open
       onClose={close}
-      title={live ? "Your listing is live" : "Sent for a review"}
-      lead={<><strong>{it.title}</strong>{live ? " is up for sale now." : " goes up once it's checked."}</>}
+      title={live ? (free ? "Your free listing is live" : "Your listing is live") : "Sent for a review"}
+      lead={<><strong>{it.title}</strong>{live ? (free ? " is listed for free now." : " is up for sale now.") : " goes up once it's checked."}</>}
       steps={steps}
       primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
       // Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review.

@@ -16,6 +16,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
  * Buy now asks in an in-app sheet, never window.confirm (lead 2026-10-28), and says "Reserved for you, not paid yet".
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setReserve("reserved"); |       setReserve(null);
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx |               <SheetPrimaryAction onClick={onReserve} disabled={pending}>Reserve it</SheetPrimaryAction> |               <SheetPrimaryAction onClick={onClose} disabled={pending}>Reserve it</SheetPrimaryAction>
@@ -70,6 +71,8 @@ const state = {
   previewCalls: 0,
   /** Q2462: who "Message the seller" opened a handover chat with (declutter_open_handover_talk). */
   talksOpened: [] as string[],
+  /** D4-9: the answers respondOffer was called with. */
+  responded: [] as string[],
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
@@ -105,7 +108,7 @@ vi.mock("@/lib/declutter/api", () => ({
     state.sent.push({ itemId, cents });
     return "o1";
   },
-  respondOffer: async () => "declined",
+  respondOffer: async (_id: string, action: string) => { state.responded.push(action); return "declined"; },
   buyNow: async () => {
     state.bought++;
     return "l1";
@@ -170,6 +173,7 @@ const OFFER = {
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
     state.underAge = false;
+    state.responded = [];
     state.setupFeeCents = 0;
     state.setupFeeKnown = true;
     state.card = null;
@@ -368,6 +372,26 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText(/Waiting for the seller/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
+  });
+
+  // Audit 1d D4-9 (2026-10-29): "Say no" ended the offer at one tap with no "are you sure".
+  it("Say no asks first; nothing is sent until the member confirms, and Not now sends nothing", async () => {
+    state.offers = [OFFER];
+    show(<OffersSection side="seller" />);
+    const declineSheet = () => document.querySelector<HTMLElement>('[data-confirm-sheet="decline-offer"]');
+    fireEvent.click(await screen.findByRole("button", { name: "Say no" }));
+    await waitFor(() => expect(declineSheet()).not.toBeNull());
+    const sheet = declineSheet()!;
+    expect(sheet.textContent).toContain("Say no to $25?");
+    expect(sheet.textContent).toContain("the buyer is told you said no");
+    expect(state.responded).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(declineSheet()).toBeNull());
+    expect(state.responded).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Say no" }));
+    await waitFor(() => expect(declineSheet()).not.toBeNull());
+    fireEvent.click(within(declineSheet()!).getByRole("button", { name: "Say no" }));
+    await waitFor(() => expect(state.responded).toEqual(["decline"]));
   });
 
   // Audit 1a #7 (prod 2026-10-29): a $30 listing with no lowest price stores $30 there, so a $20 offer AND the seller's

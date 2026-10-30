@@ -61,7 +61,7 @@ import { CartHold } from "./DeclutterReserveSheet";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
-import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { OfferConfirmSheets } from "./DeclutterOfferConfirms";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
@@ -104,9 +104,11 @@ function OfferRow({ o }: { o: MyOffer }) {
   const counterCents = dollarsInputToCents(counter);
   // Accept asks in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
   const [accepting, setAccepting] = useState(false);
+  // Audit 1d D4-9: "Say no" asks first too; it ends the offer for good.
+  const [declining, setDeclining] = useState(false);
   const act = useMutation({
     mutationFn: (v: { action: "accept" | "decline" | "counter" | "withdraw"; cents?: number }) => respondOffer(o.offer_id, v.action, v.cents ?? null),
-    onSettled: () => setAccepting(false),
+    onSettled: () => { setAccepting(false); setDeclining(false); },
     onSuccess: (res) => {
       setCountering(false);
       setCounter("");
@@ -187,7 +189,7 @@ function OfferRow({ o }: { o: MyOffer }) {
           <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
             Answer with a price
           </button>
-          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
+          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={act.isPending} onClick={() => setDeclining(true)}>
             Say no
           </button>
         </div>
@@ -225,13 +227,8 @@ function OfferRow({ o }: { o: MyOffer }) {
           Take back my offer
         </button>
       )}
-      <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
-        title={o.my_side === "seller" ? `Sell it for ${formatPrice(o.amount_cents)}?` : `Buy it for ${formatPrice(o.amount_cents)}?`}
-        confirmLabel="Accept" testId="accept-offer">
-        {o.my_side === "seller"
-          ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
-          : `"${o.item_title}": you'll have 48 hours to check out and pay. Nothing is charged until you do.`}
-      </ConfirmSheet>
+      <OfferConfirmSheets o={o} accepting={accepting} declining={declining} pending={act.isPending} answer={(action) => act.mutate({ action })}
+        closeAccept={() => setAccepting(false)} closeDecline={() => setDeclining(false)} />
     </li>
   );
 }

@@ -19,7 +19,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { WantedNearSection } from "./DeclutterWantedReplies";
-import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
+import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
 import {
   WANTED_RADIUS_CHOICES,
@@ -53,7 +54,11 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
       );
       onPosted();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    // D4-14: offline mid-post says so; the form keeps what was typed (it clears only on success).
+    onError: (err) => {
+      const msg = declutterErrorMessage(err);
+      toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);
+    },
   });
   const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
   return (

@@ -51,7 +51,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
   return (
     <li className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-bunch-item="" data-flagged={item.flagged ? "" : undefined}>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="min-w-0 truncate text-ds-15 font-semibold" title={name}>{name}</h3>
+        <h3 className="min-w-0 break-words text-ds-15 font-semibold">{name}</h3>
         <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
           {rewriting ? "Writing…" : "Write it again"}
@@ -113,7 +113,7 @@ export function BunchCard({ item, index, others, urls, at, rewriting, onChange, 
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>Price ($)</label>
-          <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="40" />
+          <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" />
         </div>
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>

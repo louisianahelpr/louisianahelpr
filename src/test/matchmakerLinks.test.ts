@@ -10,7 +10,7 @@
  * @mutate src/lib/matchmakerLink.ts |   if (!isCategory(category)) return null; |   if (!category) return null;
  * @mutate src/lib/matchmakerLink.ts |   if (!Number.isFinite(n) \|\| !Number.isInteger(n) \|\| n < 1 \|\| n > MAX_JOB_BUDGET_DOLLARS) return null; |   if (!Number.isFinite(n)) return null;
  * @mutate src/pages/post-job/useJobFormEffects.ts |     const mm = readMatchmakerLink(searchParams); |     const mm = null as ReturnType<typeof readMatchmakerLink>;
- * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM] as const; | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM] as const;
+ * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, "haulAway", MOVING_DAY_PARAM] as const;
  * @mutate api/share.ts |   if (route.kind === "matchmaker") { |   if (false) {
  * @mutate src/pages/admin/Admin.tsx |       case "growth": return <AdminGrowthLinks />; |
  */

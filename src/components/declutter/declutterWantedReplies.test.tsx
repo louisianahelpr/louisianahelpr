@@ -64,7 +64,7 @@ describe("board 117: Wanted near you and I have this", () => {
     expect(within(sheet).getByText(/You keep the whole/).textContent).toBe("You keep the whole $30. If Lexi accepts, Lexi pays and you're paid after the handover.");
     expect(sheet.textContent).not.toMatch(/\b(he|she|his|her)\b/);
     fireEvent.change(price, { target: { value: "31" } });
-    expect(within(sheet).getByRole("alert").textContent).toContain("At most $30");
+    expect(within(sheet).getByRole("alert").textContent).toContain("Up to $30, the lower of their Wanted price and your listing's price.");
     expect(within(sheet).getByRole("button", { name: "Send" })).toBeDisabled();
     fireEvent.change(price, { target: { value: "25" } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Send to Lexi · $25" }));

@@ -51,7 +51,7 @@ const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
 
 /** What sellers near the poster see (shown under the form, in place of the old switch). */
-export const WANTED_SELLERS_SEE = "Sellers near you see your first name, what you want and your max price, never your address.";
+const WANTED_SELLERS_SEE = "Sellers near you see your first name, what you want and your max price, never your address.";
 
 type FieldsProps = {
   form: WantedForm;

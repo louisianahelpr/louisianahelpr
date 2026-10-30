@@ -593,6 +593,9 @@ export const RPC_ERROR_COPY = {
     order_not_paid: DC.order_not_paid,
     problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,
+    // A meetup or door pickup: "I got it" waits for a booked time and the hour before it (20261030061753, audit 1030 DB-3).
+    got_it_too_early: DC.got_it_too_early,
+    not_booked_yet: "No time is booked yet. Book a time, then tap \"I got it\" when you have the item.",
   },
   declutter_item_address: {
     feature_disabled: DC.feature_disabled,

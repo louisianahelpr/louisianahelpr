@@ -151,7 +151,7 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
  * `oneScreen` (audit DC-1): a NEW listing is one screen (SellOneScreen), so Claude's rows are below the panel, not
  * on "the next steps"; a saved draft's step form keeps the step words.
  */
-export const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
+const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
 export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: AiState; onRun: () => void; oneScreen?: boolean }) {
   if (state.status === "busy") {
     return (

@@ -57,7 +57,7 @@ import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
 
 /** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
-export function addressNote(free: boolean, isSeller: boolean): string {
+function addressNote(free: boolean, isSeller: boolean): string {
   if (isSeller) return free ? "Buyers see your exact address only once they choose a pickup." : "Buyers see your exact address only after they pay.";
   return free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay.";
 }

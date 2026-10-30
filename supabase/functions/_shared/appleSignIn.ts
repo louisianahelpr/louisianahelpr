@@ -31,7 +31,7 @@ const APPLE_AUDIENCE = "https://appleid.apple.com";
  * A request naming any other client is refused, so the store cannot be pointed
  * at someone else's Apple app.
  */
-export const APPLE_CLIENT_IDS = ["com.Helpr", "com.Helpr.signin"] as const;
+const APPLE_CLIENT_IDS = ["com.Helpr", "com.Helpr.signin"] as const;
 export type AppleClientId = typeof APPLE_CLIENT_IDS[number];
 
 export function isAppleClientId(v: unknown): v is AppleClientId {
@@ -53,7 +53,7 @@ export function appleSignInKeyFromEnv(get: (name: string) => string | undefined)
 }
 
 /** Apple's client_secret: an ES256 JWT, sub = the client id, five minutes. */
-export async function appleClientSecret(key: AppleSignInKey, clientId: AppleClientId): Promise<string> {
+async function appleClientSecret(key: AppleSignInKey, clientId: AppleClientId): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return await signEs256Jwt({
     keyId: key.keyId,

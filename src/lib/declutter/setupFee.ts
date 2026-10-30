@@ -21,8 +21,11 @@ export function setupFeeRefusal(err: unknown): boolean {
   return typeof raw === "string" && /(^|[^a-z_])setup_fee_required_to_list($|[^a-z_])/.test(raw);
 }
 
-/** Open the one-time fee page; it brings the member back to their Declutter listings. */
-async function payAccountSetupFee(): Promise<void> {
+/**
+ * Open the one-time fee page; it brings the member back to their Declutter listings.
+ * "already_paid": the server says nothing is owed (a profile read can lag the webhook), so the caller re-reads it.
+ */
+export async function payAccountSetupFee(): Promise<"already_paid" | "opened" | "failed"> {
   try {
     const { data, error } = await supabase.functions.invoke("pay-onboarding-fee", {
       body: { native: isNativePlatform, return_to: "declutter_selling" },
@@ -30,13 +33,15 @@ async function payAccountSetupFee(): Promise<void> {
     if (error) throw await functionInvokeError(error);
     if (data?.alreadyPaid) {
       toast.success("Your setup fee is already paid. Publish your listing again.");
-      return;
+      return "already_paid";
     }
     if (typeof data?.url !== "string") throw new Error("The payment page did not open. Try again.");
     await openExternalUrl(data.url);
+    return "opened";
   } catch (err) {
     report(err, { tags: { source: "declutter.payAccountSetupFee" } });
     toast.error(userFacingError(err, "We couldn't open the payment page. Try again."));
+    return "failed";
   }
 }
 

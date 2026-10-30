@@ -94,7 +94,7 @@ export function SellPhotos({
       </ul>
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
-        {held.length > 0 ? " · these go up when you save on step 4" : ""}
+        {held.length > 0 ? " · these go up when you save" : ""}
       </p>
       {aiPanel}
       <div className="rounded-[20px] border border-border bg-card p-4">

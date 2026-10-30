@@ -53,6 +53,7 @@ const state = {
   cart: [] as unknown[],
   bookings: [] as unknown[],
   questions: [] as { id: string; item_id: string; question: string; created_at: string }[],
+  questionReads: 0,
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
@@ -156,7 +157,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
   // Audit DC-9: unanswered questions on the seller's listings (only those asked for).
-  fetchUnansweredQuestions: async (ids: string[]) => state.questions.filter((q) => ids.includes(q.item_id)),
+  fetchUnansweredQuestions: async (ids: string[]) => { state.questionReads++; return state.questions.filter((q) => ids.includes(q.item_id)); },
   fetchPhotos: async () => [],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -272,6 +273,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.cart = [];
     state.bookings = [];
     state.questions = [];
+    state.questionReads = 0;
     where = "";
   });
 
@@ -551,6 +553,27 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     // Buying: a cart line to check out, a counter to answer and a purchase to pick up. Selling: an offer and a sale to hand over.
     expect(tab(/^Buying/)).toHaveAccessibleName(/3/);
     expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
+  });
+
+  // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
+  // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "selling", label: "Selling", count: todo ? todo.selling + questions.count : undefined }, |         { value: "selling", label: "Selling", count: todo?.selling },
+  // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
+  it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
+    everything();
+    state.questions = [{ id: "q1", item_id: "i1", question: "Is it sturdy?", created_at: "2026-10-29" }];
+    const first = at("/declutter");
+    await screen.findByRole("tablist", { name: "Declutter view" });
+    // An offer, a sale to hand over and a question.
+    expect(tab(/^Selling/)).toHaveAccessibleName(/3/);
+    expect(state.questionReads).toBe(1);
+    first.unmount();
+    // Nothing on sale: no question read at all.
+    state.questionReads = 0;
+    state.mine = [{ ...ITEM, status: "draft" }];
+    at("/declutter");
+    await screen.findByRole("tablist", { name: "Declutter view" });
+    expect(state.questionReads).toBe(0);
   });
 
   it("no badge when nothing needs the member", async () => {

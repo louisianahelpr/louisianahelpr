@@ -275,6 +275,16 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     helpr_pickup_photo_path: null, helpr_delivered_at: null, helpr_dropoff_photo_path: null, helpr_dropoff_distance_m: null, ...over,
   });
 
+  // DB-8 (audit 2026-10-30): on a seller-delivered order the photo in the seller's column is the one at the buyer's door.
+  // @mutate src/components/admin/settings/DeclutterProblemCase.tsx | const outLabel = c?.seller_delivery_status ? | const outLabel = false ?
+  it("DB-8: a seller-delivered order's door photo is named as the delivery, not a porch set-out", async () => {
+    state.kase = kase({ handover: "seller_delivery", seller_delivery_status: "booked", seller_delivered_at: "2026-10-16T15:20:00Z" });
+    state.rows = [row("not_as_described", "buyer", [], detail({ picked_up_photo_path: null, picked_up_at: null }))];
+    show();
+    expect(await screen.findByAltText("Seller delivered it (photo at the buyer's address)")).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o1/out.jpg");
+    expect(screen.queryByAltText("Seller set it out")).toBeNull();
+  });
+
   it("draws the order's steps from its own rows: porch, day picked, on the porch, picked up", async () => {
     state.kase = kase();
     state.rows = [row("not_as_described", "buyer", [], detail({ set_out_photo_path: null, set_out_at: null, picked_up_photo_path: null, picked_up_at: null }))];

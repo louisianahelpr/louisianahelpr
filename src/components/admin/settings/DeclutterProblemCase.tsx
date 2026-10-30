@@ -42,7 +42,9 @@ const metres = (m: number | null | undefined, from: string) => (m != null ? `${m
 function sideShots(d: AdminProblemDetail, c: ProblemCase | null): { seller: Shot[]; buyer: Shot[] } {
   const seller: Shot[] = [];
   const buyer: Shot[] = [];
-  if (d.set_out_photo_path) seller.push({ key: "out", path: d.set_out_photo_path, label: "Seller set it out", at: when(d.set_out_at), place: null, helpr: false });
+  // DB-8: a seller-delivered order keeps the seller's photo at the buyer's door in the same column, so say which it is.
+  const outLabel = c?.seller_delivery_status ? "Seller delivered it (photo at the buyer's address)" : "Seller set it out";
+  if (d.set_out_photo_path) seller.push({ key: "out", path: d.set_out_photo_path, label: outLabel, at: when(d.set_out_at), place: null, helpr: false });
   if (c?.helpr_pickup_photo_path) {
     seller.push({ key: "hp", path: c.helpr_pickup_photo_path, label: "Helpr picked it up", at: when(c.helpr_picked_up_at), place: null, helpr: true });
   }

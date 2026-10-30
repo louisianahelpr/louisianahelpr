@@ -915,6 +915,9 @@ export const RPC_ERROR_COPY = {
     talk_not_found: DC.talk_not_found,
   },
   // The paid-order chat (20261030004216, D2-1). No switch gate: a paid sale carries on with Declutter off.
+  declutter_my_order_talks: {
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_order_talk_view: {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,

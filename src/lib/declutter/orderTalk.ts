@@ -40,3 +40,24 @@ export async function sendOrderMessage(orderId: string, body: string): Promise<s
   return rpcData(await supabase.rpc("declutter_send_order_message", { p_order_id: orderId, p_body: body }),
     (e) => rpcErrorMessage("declutter_send_order_message", e)) as string;
 }
+
+/** One row of Messages -> Declutter: one of the caller's own order chats (never a person's id or name, never words). */
+export interface OrderTalkListRow {
+  order_id: string;
+  side: "buyer" | "seller";
+  /** The order's first item, or null if it was removed. */
+  title: string | null;
+  last_at: string;
+  /** True when the caller sent the last message. */
+  last_mine: boolean;
+  open: boolean;
+}
+
+/** Shared by the Declutter chip's list and the hook that decides whether that chip shows (one request). */
+export const MY_ORDER_TALKS_KEY = ["declutter", "my-order-talks"] as const;
+
+/** The caller's order chats, newest first (declutter_my_order_talks, at most 50). No switch gate (row 62). */
+export async function fetchMyOrderTalks(): Promise<OrderTalkListRow[]> {
+  return (rpcData(await supabase.rpc("declutter_my_order_talks"),
+    (e) => rpcErrorMessage("declutter_my_order_talks", e)) ?? []) as unknown as OrderTalkListRow[];
+}

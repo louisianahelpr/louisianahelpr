@@ -18,7 +18,7 @@
  *
  * @mutate src/components/messages/messageSections.ts |     return s === "support" \|\| s === section; |     return true;
  * @mutate src/components/messages/messageSections.ts |   if (jobThreads > 0) keep.add("jobs"); |   void 0;
- * @mutate src/pages/messages/useMessageSections.tsx |     (k) => live[k] \|\| conversations.some((c) => threadSection(c) === k), |     (k) => k !== undefined,
+ * @mutate src/pages/messages/useMessageSections.tsx |     (k) => live[k] \|\| conversations.some((c) => threadSection(c) === k) \|\| (k === "declutter" && hasOrderTalks), |     (k) => k !== undefined,
  * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
  * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
@@ -35,19 +35,31 @@
  * @mutate src/index.css | html.web-desktop .chip-row {\n  flex-wrap: wrap !important; | html.web-desktop .chip-row {\n  flex-wrap: nowrap !important;
  * @mutate src/pages/messages/useMessageSections.tsx |   const chipTabs = tabs.length > 1 ? tabs : []; |   const chipTabs = tabs;
  * @mutate src/lib/inboxDefault.ts |   all: "Any status", |   all: "All",
+ * D2-1 (audit 1028 part 2): the Declutter tab lists the member's order chats, and keeps its chip with Declutter off.
+ * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows; |     void DeclutterOrderTalkRows;
+ * @mutate src/pages/messages/useMessageSections.tsx |   const hasOrderTalks = (orderTalks.data?.length ?? 0) > 0; |   const hasOrderTalks = false;
+ * @mutate src/components/messages/SectionInboxEmpty.tsx |   return empty.Lead ? <empty.Lead empty={box} /> : box; |   return box;
+ * @mutate src/components/messages/ConversationList.tsx | <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />} | <div className="space-y-2">{null}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sofa } from "lucide-react";
 import type { Conversation } from "@/components/messages/types";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// D2-1: the member's Declutter order chats (the list itself: declutterOrderTalkInbox.test.tsx). None unless a test sets some.
+const orderTalks: { rows: unknown[] } = { rows: [] };
+vi.mock("@/lib/declutter/orderTalk", () => ({ MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"], fetchMyOrderTalks: async () => orderTalks.rows }));
+vi.mock("@/components/messages/DeclutterOrderTalkInbox", () => ({
+  DeclutterOrderTalkRows: ({ empty }: { empty: ReactNode }) => <><p>ORDER CHATS</p>{empty}</>,
+}));
 vi.mock("@/lib/pinnedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
 vi.mock("@/lib/archivedConversations", async (io) =>
@@ -77,6 +89,7 @@ import { useMessageSections } from "@/pages/messages/useMessageSections";
 import { INBOX_TAB_LABEL } from "@/lib/inboxDefault";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { ConversationRow } from "@/components/messages/ConversationRow";
+import { DeclutterOrderTalkRows } from "@/components/messages/DeclutterOrderTalkInbox";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
 // need the app's providers, and this file tests the list, not the bar.
 vi.mock("@/components/sections/AppTopBar", () => ({
@@ -157,7 +170,7 @@ describe("the rule: one inbox, filtered by chips", () => {
 
 const wrap = (entry: string) =>
   function Wrapper({ children }: { children: ReactNode }) {
-    return <MemoryRouter initialEntries={[entry]}>{children}</MemoryRouter>;
+    return <QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={[entry]}>{children}</MemoryRouter></QueryClientProvider>;
   };
 
 describe("the hook", () => {
@@ -256,7 +269,7 @@ describe("the chip row fits", () => {
   it("the fade shows only while chips continue past the right edge", () => {
     fake();
     Object.assign(box, { scrollWidth: 502, clientWidth: 335, scrollLeft: 0 });
-    render(<MemoryRouter><Strip /></MemoryRouter>);
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><Strip /></MemoryRouter></QueryClientProvider>);
     const row = screen.getByTestId("messages-filter-chips");
     expect(row).toHaveAttribute("data-more");
     box.scrollLeft = 167; // swiped to the end: the last chip is in full view, unfaded
@@ -264,7 +277,7 @@ describe("the chip row fits", () => {
     expect(row).not.toHaveAttribute("data-more");
     cleanup();
     Object.assign(box, { scrollWidth: 327, clientWidth: 327, scrollLeft: 0 }); // every chip fits
-    render(<MemoryRouter><Strip /></MemoryRouter>);
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><Strip /></MemoryRouter></QueryClientProvider>);
     expect(screen.getByTestId("messages-filter-chips")).not.toHaveAttribute("data-more");
   });
 
@@ -331,5 +344,49 @@ describe("the screen", () => {
     expect(src).toMatch(/conversations=\{inbox\.conversations\}/);
     expect(src).toMatch(/allConversations=\{inbox\.allConversations\}/);
     expect(src).toMatch(/sectionTabs=\{inbox\.strip\}/);
+  });
+
+  // D2-1 (audit 1028 part 2): the Declutter tab lists the member's order chats.
+  const DECLUTTER_EMPTY = { icon: Sofa, title: "No Declutter messages yet", body: "b", Lead: DeclutterOrderTalkRows };
+  it("D2-1: a Declutter tab with no threads hands its empty state to the order-chat list", () => {
+    renderList(DECLUTTER_EMPTY);
+    expect(screen.getByText("ORDER CHATS")).toBeInTheDocument();
+    expect(screen.getByText("No Declutter messages yet")).toBeInTheDocument();
+  });
+
+  it("D2-1: with threads, the order chats sit above them", () => {
+    render(
+      <MemoryRouter>
+        <ConversationList conversations={[TEAM]} loading={false} loadError={false} retryInbox={vi.fn()} userId="me"
+          loadConversations={vi.fn(async () => {})} openConvo={vi.fn()} setDeleteConvoConfirm={vi.fn()} onBatchArchive={vi.fn()}
+          sectionEmpty={DECLUTTER_EMPTY} />
+      </MemoryRouter>,
+    );
+    const lead = screen.getByText("ORDER CHATS");
+    // The thread rows are virtualized (drawn into the box after the list); the order chats are that container's first child.
+    const box = lead.parentElement!;
+    expect(box.firstElementChild, "the order chats come first").toBe(lead);
+    expect(box.childElementCount, "and the threads follow in the same list").toBeGreaterThan(1);
+  });
+});
+
+describe("D2-1: the Declutter chip and its order chats", () => {
+  afterEach(() => { orderTalks.rows = []; });
+
+  it("with Declutter switched off, a member with an order chat keeps the Declutter chip (row 62), and its tab carries the list", async () => {
+    orderTalks.rows = [{ order_id: "o1" }];
+    const { result } = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=declutter") });
+    await waitFor(() => expect(result.current.section).toBe("declutter"));
+    expect(result.current.sectionEmpty?.Lead).toBe(DeclutterOrderTalkRows);
+    render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Declutter" })).toBeInTheDocument();
+  });
+
+  it("with no order chat and Declutter off there is still no chip; Shops never gets the list", async () => {
+    const off = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=declutter") });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(off.result.current.section).toBe("all");
+    const shops = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=shops") });
+    expect(shops.result.current.sectionEmpty?.Lead).toBeUndefined();
   });
 });

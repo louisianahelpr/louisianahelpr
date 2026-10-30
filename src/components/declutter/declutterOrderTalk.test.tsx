@@ -36,6 +36,7 @@ const state = {
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/lib/declutter/orderTalk", () => ({
+  MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],
   fetchOrderTalk: async (id: string) => ({
     order_id: id,
     side: state.side,

@@ -16,3 +16,6 @@ export function photosWord(n: number): string {
 
 /** How many photos the AI reads for one listing. */
 export const AI_DRAFT_PHOTOS = 4;
+
+/** The copy a one-item listing or an edit uploads: larger than a bunch's, since one goes up at a time. */
+export const FULL_LISTING_COPY = { size: 1920, quality: 0.82 } as const;

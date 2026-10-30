@@ -128,7 +128,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).
   "src/components/declutter/DeclutterSellPhotos.tsx": { bucket: "job-photos" },
-  // Sell a bunch (owner 2026-10-29): the photos go up as listing photos through addPhoto (src/lib/declutter/bunch.ts listBunch).
+  // Sell a bunch (owner 2026-10-29): the photos go up as listing photos through addPhotoSteadily (src/lib/declutter/bunch.ts listBunch).
   "src/components/declutter/DeclutterBunchPhotos.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterBunchView.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },

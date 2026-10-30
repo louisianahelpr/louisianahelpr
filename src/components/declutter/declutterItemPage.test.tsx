@@ -42,11 +42,12 @@
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (buyable.length === 0 \|\| card.isLoading) return null; |   if (card.isLoading) return null;
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const isSeller = ownListing && !preview; |   const isSeller = ownListing;
+ * Tester 5, 10-30: pressing Buy now in the preview showed nothing, because toast.info renders nothing in the app.
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const noteOwnListing = () => setPreviewPressed(true); |   const noteOwnListing = () => toast.info(PREVIEW_ACTION_NOTE);
  * @mutate src/components/declutter/DeclutterItemView.tsx |               onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); noteOwnListing(); }} |               onClickCapture={() => noteOwnListing()}
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { toast } from "sonner";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -585,7 +586,6 @@ describe("the photo-first Declutter item page", () => {
     state.reads = 0;
     state.manageReads = 0;
     state.buys = 0;
-    const note = vi.spyOn(toast, "info").mockImplementation(() => "");
     const first = open("?preview=buyer");
     await screen.findByText("This is what buyers see");
     // The buyer's words and the buyer's actions.
@@ -601,8 +601,8 @@ describe("the photo-first Declutter item page", () => {
     // Pressing Buy only says whose listing it is: nothing reaches the checkout.
     fireEvent.click(buy);
     expect(state.buys).toBe(0);
-    expect(note).toHaveBeenCalledWith(expect.stringMatching(/^This is your listing\./));
-    note.mockRestore();
+    // On the page itself: toast.info renders nothing in the app (toastPolicy), so a spy on it proved nothing.
+    expect((await screen.findByText(/^This is your listing\./)).closest("[data-preview-note]")).toBeTruthy();
     // Not the seller: the same link is the ordinary page.
     first.unmount();
     state.item = { ...ITEM, seller_id: "someone-else", current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };

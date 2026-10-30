@@ -516,29 +516,6 @@ async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
  * attach is refused the object is deleted again, best effort, and the
  * refusal is thrown.
  */
-export async function addPhoto(sellerId: string, itemId: string, file: File): Promise<string> {
-  const cleaned = await cleanListingPhoto(file);
-  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
-  const path = listingPhotoPath(sellerId, itemId, nonce);
-  const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
-  const { error: upErr } = await bucket.upload(path, cleaned, {
-    contentType: "image/jpeg",
-    upsert: false,
-    // A fresh random name per upload: the object never changes (Q655).
-    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
-  });
-  if (upErr) throw new Error("photo_not_uploaded");
-  const { data, error } = await supabase.rpc("declutter_add_item_photo", { p_item_id: itemId, p_storage_path: path });
-  if (error) {
-    const { error: rmErr } = await bucket.remove([path]);
-    if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message);
-    const words = rpcErrorMessage("declutter_add_item_photo", error);
-    throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
-  }
-  return data as string;
-}
-
 /**
  * What Sell a bunch lists with: the listing's copy, a little smaller than the single form's, because many go up one
  * after another on whatever signal the seller has.
@@ -547,11 +524,13 @@ const BUNCH_UPLOAD_SIZE = 1600;
 const BUNCH_UPLOAD_QUALITY = 0.78;
 
 /**
- * addPhoto for a weak connection: the photo is made ready once, then each step is tried again by itself with backoff,
- * and never stores or attaches it twice (lib/declutter/steadyUpload.ts). Throws once it is out of tries.
+ * Every listing photo goes up here, on any connection: the photo is made ready once, then each step is tried again by
+ * itself with backoff, and never stores or attaches it twice (lib/declutter/steadyUpload.ts). Throws once it is out of
+ * tries. The copy is Sell a bunch's unless the caller asks for the one-item form's (FULL_LISTING_COPY).
  */
-export async function addPhotoSteadily(sellerId: string, itemId: string, file: File, hooks: UploadHooks = {}): Promise<string> {
-  const cleaned = await cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY);
+export async function addPhotoSteadily(sellerId: string, itemId: string, file: File, options: UploadHooks & { size?: number; quality?: number } = {}): Promise<string> {
+  const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, ...hooks } = options;
+  const cleaned = await cleanListingPhoto(file, size, quality);
   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
   const path = listingPhotoPath(sellerId, itemId, nonce);

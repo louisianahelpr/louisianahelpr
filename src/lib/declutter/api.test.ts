@@ -94,8 +94,8 @@ vi.mock("@/lib/declutter/photos", async (importOriginal) => ({
   cleanListingPhoto: h.clean,
 }));
 
+import { FULL_LISTING_COPY } from "./photoRules";
 import {
-  addPhoto,
   addPhotoSteadily,
   answerQuestion,
   askQuestion,
@@ -695,9 +695,10 @@ describe("addPhotoSteadily", () => {
   });
 });
 
-describe("addPhoto", () => {
+describe("addPhotoSteadily, the one-item form's copy", () => {
   const file = new File(["raw"], "raw.png", { type: "image/png" });
   const cleaned = new File(["clean"], "clean.jpg", { type: "image/jpeg" });
+  const addPhoto = (seller: string, item: string, f: File) => addPhotoSteadily(seller, item, f, { ...FULL_LISTING_COPY, pause: async () => {}, whenBack: async () => {}, awayCount: () => 0 });
 
   beforeEach(() => {
     vi.stubGlobal("crypto", { randomUUID: () => "uuid-1" });
@@ -708,7 +709,7 @@ describe("addPhoto", () => {
     h.queue.push({ data: null, error: null }); // upload
     h.queue.push(ok("photo-id")); // attach
     await expect(addPhoto("seller-1", "item-1", file)).resolves.toBe("photo-id");
-    expect(h.clean).toHaveBeenCalledWith(file);
+    expect(h.clean).toHaveBeenCalledWith(file, 1920, 0.82);
     const path = "seller-1/declutter/item-1/uuid-1.jpg";
     expect(h.store).toEqual([
       ["upload", "job-photos", path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" }],

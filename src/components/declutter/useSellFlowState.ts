@@ -18,7 +18,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 import {
-  addPhoto,
+  addPhotoSteadily,
   attestItem,
   createDraft,
   fetchItem,
@@ -54,6 +54,7 @@ import { MAX_PHOTOS } from "./DeclutterSellPhotos";
 import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
 import { useLastListingSetup } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
+import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
@@ -322,7 +323,7 @@ export function useSellFlowState(urlItemId: string | null) {
     setUploading(list.length);
     for (const f of list) {
       try {
-        await addPhoto(user!.id, id, f);
+        await addPhotoSteadily(user!.id, id, f, FULL_LISTING_COPY);
         added += 1;
       } catch (err) {
         toast.error(declutterErrorMessage(err));
@@ -347,7 +348,7 @@ export function useSellFlowState(urlItemId: string | null) {
     for (const [i, f] of list.entries()) {
       setPostStep(`Uploading photo ${i + 1} of ${list.length}`);
       try {
-        await addPhoto(user!.id, id, f);
+        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
         up.add(f);
       } catch (err) {
         // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.

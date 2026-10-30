@@ -135,6 +135,7 @@ const EXPECTED_CALLERS = [
   // and it gets the real answer through the pg_trigger_depth() > 0 arm.
   "helpr_task_offer_online",
   "helpr_task_pickup_windows", // 20261028232930: the Helpr's Accept picker; passes the caller (v_uid) as one side
+  "helpr_task_same_pickup_slot", // 20261030152601: the same filter on the Accept card; passes the caller (v_uid) as one side
   // Delivery tips (Q2453, 20261028014848): v_uid := auth.uid() (the delivery's buyer) is one argument,
   // the delivery's Helpr (t.helpr_id) the other.
   "helpr_task_tip_start",

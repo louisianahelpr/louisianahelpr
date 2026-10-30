@@ -11,7 +11,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchItemPickupWindows, fetchOrderPickupWindows } from "@/lib/declutter/handover";
-import { fetchTaskPickupWindows } from "@/lib/helprTasks/api";
+import { fetchSamePickupSlot, fetchTaskPickupWindows } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
@@ -90,10 +90,22 @@ function localInputToIso(v: string): string | null {
 export function TaskPickupTime({ taskId, by, value, onPick, enabled = true }: { taskId: string; by: string; value: string | null; onPick: (iso: string | null) => void; enabled?: boolean }) {
   const [free, setFree] = useState("");
   const id = `helpr-slot-${taskId}`;
+  // Audit 1c D3-2: already going to this seller? Offer that time first, so it is one visit. A failed read only hides the offer.
+  const same = useQuery({ queryKey: ["helpr-tasks", "same-pickup-slot", taskId], queryFn: () => fetchSamePickupSlot(taskId), enabled });
   return (
-    <PickupSlotPicker taskId={taskId} value={value} onPick={onPick} enabled={enabled} fallback={<>
-      <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {by})</label>
-      <DateTimeField id={id} label="Pickup time" value={free} onChange={(v) => { setFree(v); onPick(localInputToIso(v)); }} />
-    </>} />
+    <div className="space-y-2">
+      {same.data && (
+        <div className="space-y-1" data-testid="helpr-same-pickup-slot">
+          <p className="text-ds-13 font-semibold">You're already picking up from this seller</p>
+          <Chip on={value === same.data} onClick={() => onPick(same.data)}>
+            Same time: {new Date(same.data).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          </Chip>
+        </div>
+      )}
+      <PickupSlotPicker taskId={taskId} value={value} onPick={onPick} enabled={enabled} fallback={<>
+        <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {by})</label>
+        <DateTimeField id={id} label="Pickup time" value={free} onChange={(v) => { setFree(v); onPick(localInputToIso(v)); }} />
+      </>} />
+    </div>
   );
 }

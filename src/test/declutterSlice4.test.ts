@@ -10,10 +10,10 @@
  * src/test/pglite/declutterSlice4.pglite.mjs. Concurrency (typed code vs "I got it"
  * vs auto-pay vs problem vs no-show; two real sessions; the typed code is gone since 20261018183715): scripts/declutter/race-handover.mjs.
  *
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
  * @mutate supabase/migrations/20261021023158_declutter_porch_note.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF v_side <> 'buyer' THEN | IF false THEN
+ * @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
+ * @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF v_side <> 'buyer' THEN | IF false THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
@@ -127,7 +127,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(DEFS.get("declutter_my_handover")?.file).toBe("20261021023158_declutter_porch_note.sql");
     // #7 (20261028202844) restated it verbatim but the seller-delivery day check; still no code (checked below).
     // Shipping S2 (20261030000030) restated it verbatim but the shipped-order delivered-scan check; still no code.
-    expect(DEFS.get("declutter_confirm_handover")?.file).toBe("20261030000030_shipping_s2_ship_handover.sql");
+    // Audit 1030 DB-3 (20261030061753) restated it verbatim but the meetup hour check; still no code.
+    expect(DEFS.get("declutter_confirm_handover")?.file).toBe("20261030061753_declutter_meetup_got_it_waits.sql");
     const h = flat(body("declutter_my_handover"));
     expect(h).not.toMatch(/'qr'|lhdeclutter:|'code'/);
     const c = flat(body("declutter_confirm_handover"));

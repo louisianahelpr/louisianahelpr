@@ -23,6 +23,9 @@
  */
 import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { report } from "@/lib/errorLogger";
+import { isNetworkFailure } from "@/lib/networkFailure";
+import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
 import { addPhoto, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -35,6 +38,8 @@ export const GROUP_BATCH = 8;
 export const BUNCH_MAX_PHOTOS = 80;
 /** The grouping call sorts up to 8 photos and writes several listings, so it gets longer than one item's minute. */
 const GROUP_TIMEOUT_MS = 100_000;
+/** The waits before a batch's further tries. A phone that drops one request usually sends the next. */
+export const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
 
 export interface BunchPhoto {
   key: string;
@@ -62,6 +67,12 @@ export interface BunchItem {
   draftId?: string;
   /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
   uploaded?: Record<string, string>;
+  /** Photos waiting to be sorted, kept together with why: not an item yet, so it can't be listed. The screen offers Sort again. */
+  notSorted?: boolean;
+  /** Why they aren't sorted, in the seller's words. */
+  sortReason?: string;
+  /** The item this may be the same thing as, when the check across two batches couldn't run. The screen offers to merge. */
+  mergeHint?: string;
 }
 
 /** What the server's 'group' mode answers for one batch (indexes into the photos sent). */
@@ -74,7 +85,7 @@ let seq = 0;
 /** Unique across reloads: a bunch brought back from the device still holds the keys it was given. */
 const nextKey = (p: string) => `${p}${Date.now().toString(36)}_${++seq}`;
 
-/** An item with only photos: the tool did not place them, or its call failed. The seller names it. */
+/** An item with only photos and no words yet (split off, or the seller said these are one thing). */
 export function blankItem(photoKeys: string[]): BunchItem {
   return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" };
 }
@@ -92,7 +103,24 @@ export function rewrittenPrice(it: Pick<BunchItem, "price" | "aiPrice">, dollars
   return { price: next, aiPrice: next };
 }
 
-/** One batch's answer as items (each unplaced photo becomes its own item, so none is lost). */
+/** Photos that aren't sorted yet, together, with why. Never one item per photo: a few photos of one thing are not a few things. */
+export function notSortedPile(photoKeys: string[], sortReason: string): BunchItem {
+  return { ...blankItem(photoKeys), notSorted: true, sortReason };
+}
+
+export const PILE_NOT_PLACED = "We couldn't tell which item these belong to.";
+export const PILE_PAGE_CLOSED = "The page closed before these were sorted.";
+
+/** The screen's list with a batch's items added: everything not sorted is one pile, first, where the seller sees it. */
+export function addSorted(items: BunchItem[], made: BunchItem[]): BunchItem[] {
+  const all = [...items, ...made];
+  const piles = all.filter((it) => it.notSorted);
+  const rest = all.filter((it) => !it.notSorted);
+  if (piles.length === 0) return rest;
+  return [{ ...piles[piles.length - 1], key: piles[0].key, photoKeys: piles.flatMap((it) => it.photoKeys) }, ...rest];
+}
+
+/** One batch's answer as items. Photos it did not place stay together as not sorted, so none is lost or listed unwritten. */
 export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): BunchItem[] {
   const keyOf = (i: number) => batch[i]?.key;
   const out: BunchItem[] = [];
@@ -109,9 +137,8 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
     const price = suggestedPrice(it.priceDollars);
     out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false, price, aiPrice: price || undefined });
   }
-  batch.forEach((p, i) => {
-    if (!placed.has(i)) out.push(blankItem([p.key]));
-  });
+  const unplaced = batch.filter((_, i) => !placed.has(i)).map((p) => p.key);
+  if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED));
   return out;
 }
 
@@ -133,7 +160,7 @@ export async function askGroup(cleaned: File[], at: AiHintPoint = null): Promise
 
 export interface GroupResult {
   items: BunchItem[];
-  /** Batches whose call failed: their photos are still there, as items without words, and this says why. */
+  /** Batches whose call still failed after its retries: their photos are together as not sorted, and this says why. */
   failed: { photos: number; error: unknown }[];
   /** Photos that couldn't be cleaned, so can't be sent or listed. They are in no item; the screen names them. */
   unusable: { key: string; name: string; error: unknown }[];
@@ -148,13 +175,49 @@ export function unusablePhotosNote(unusable: GroupResult["unusable"]): string | 
   return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
 }
 
+/** Long enough to tell two items apart: "oak", "the" and "with" say nothing about whether they're the same thing. */
+const titleWords = (title: string) => new Set(title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !["with", "from", "that", "this", "used", "item", "size"].includes(w)));
+
+/** Worth asking whether two items are one: named alike. Each ask is a photo-tool call, so most boundaries never spend one. */
+export function mightBeSameThing(a: BunchItem, b: BunchItem): boolean {
+  if (a.notSorted || b.notSorted || !a.title.trim() || !b.title.trim()) return false;
+  const words = titleWords(a.title);
+  return [...titleWords(b.title)].some((w) => words.has(w));
+}
+
+/** `from`'s photos joined onto the item `intoKey`, whose words stay. If the seller dropped that item meanwhile, `from` stays itself. */
+export function joinSorted(items: BunchItem[], intoKey: string, from: BunchItem): BunchItem[] {
+  if (!items.some((it) => it.key === intoKey)) return [...items, from];
+  return items.map((it) => (it.key === intoKey ? { ...it, photoKeys: [...it.photoKeys, ...from.photoKeys], flagged: it.flagged || from.flagged } : it));
+}
+
+/** What a sort also takes, besides its calls; every one has a real default. */
+export interface SortExtras {
+  whenBack?: () => Promise<void>;
+  awayCount?: () => number;
+  /** A try failed and another is coming: the screen says so. */
+  onRetry?: () => void;
+  /** A batch's first item was the same thing as the last batch's last: its photos joined that item. */
+  onJoined?: (intoKey: string, from: BunchItem) => void;
+}
+
+/** Too much to send in one go on this connection, or the server said so: half as many may go through. A limit or a busy tool answers the same. */
+const sizeMayBeWhy = (error: unknown) =>
+  isNetworkFailure(error) || ["ai_timed_out", "group_photos_invalid"].includes(String((error as { message?: unknown } | null)?.message ?? ""));
+
 /**
- * Sort every photo into items, GROUP_BATCH at a time, in the order picked (the
- * same thing's photos are usually taken together). Calls are spaced to stay
- * under the photo tool's per-minute limit. A failed batch keeps its photos.
- * `onProgress` also gets the items each batch made, so they can show at once.
- * Each photo is cleaned on its own: one that can't be is named in `unusable`,
- * and the others in its batch still go.
+ * Sort every photo into items, GROUP_BATCH at a time, in the order picked (the same thing's photos are usually taken
+ * together). Calls are spaced to stay under the photo tool's per-minute limit. A failed batch is tried again with
+ * backoff, and never while the page is away; then in two halves when its size may be why. Photos that still fail stay
+ * together, not sorted, with the reason. Once a whole batch has failed on the connection, the next batches get one try
+ * each, so a seller with no signal isn't kept waiting for every one in turn; the first that succeeds ends that.
+ *
+ * An item whose photos fall across two batches comes back as two items. Where the last batch's last item and this
+ * batch's first are named alike, a few of their photos go to the same tool together (no change on the server): one item
+ * back means one thing, and they join. If that call fails, the later item carries a merge suggestion instead.
+ *
+ * `onProgress` also gets the items each batch made, so they can show at once. Each photo is cleaned on its own: one
+ * that can't be is named in `unusable`, and the others in its batch still go.
  */
 export async function groupPhotos(
   photos: BunchPhoto[],
@@ -163,13 +226,33 @@ export async function groupPhotos(
   wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   clock: () => number = () => Date.now(),
   clean: (file: File) => Promise<File> = cleanForGroup,
+  extras: SortExtras = {},
 ): Promise<GroupResult> {
+  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined } = extras;
   const batches: BunchPhoto[][] = [];
   for (let i = 0; i < photos.length; i += GROUP_BATCH) batches.push(photos.slice(i, i + GROUP_BATCH));
   const items: BunchItem[] = [];
   const failed: GroupResult["failed"] = [];
   const unusable: GroupResult["unusable"] = [];
   let last = -Infinity;
+  let connectionDown = false;
+  const spacedAsk = async (cleaned: File[]) => {
+    const gap = last + AI_CHECK_GAP_MS - clock();
+    if (gap > 0) await wait(gap);
+    last = clock();
+    return ask(cleaned);
+  };
+  const sendPart = async (part: BunchPhoto[], cleaned: File[], delays: readonly number[]): Promise<BunchItem[]> =>
+    itemsFromAnswer(await withRetries(() => spacedAsk(cleaned), { delays, pause: wait, whenBack, awayCount, onRetry: () => onRetry?.() }), part);
+  /** The pile for photos out of tries, with why. Also recorded where we can read it: a dropped request reaches no server log. */
+  const giveUp = (part: BunchPhoto[], cleaned: File[], error: unknown): BunchItem[] => {
+    failed.push({ photos: part.length, error });
+    report(error, { severity: "warning", tags: { source: "declutter.bunch.sort" }, context: { photos: part.length, bytes: cleaned.reduce((n, f) => n + f.size, 0), hidden: typeof document !== "undefined" && document.visibilityState === "hidden" } });
+    const count = part.length === 1 ? "this photo" : `these ${part.length} photos`;
+    return [notSortedPile(part.map((p) => p.key), `We couldn't sort ${count} yet: ${declutterErrorMessage(error)}`)];
+  };
+  // The previous batch's small copies, for the check across a boundary.
+  let lastCleaned = new Map<string, File>();
   for (const [i, batch] of batches.entries()) {
     const good: BunchPhoto[] = [];
     const cleaned: File[] = [];
@@ -184,16 +267,55 @@ export async function groupPhotos(
     }
     let made: BunchItem[] = [];
     if (good.length > 0) {
-      const gap = last + AI_CHECK_GAP_MS - clock();
-      if (gap > 0) await wait(gap);
-      last = clock();
       try {
-        made = itemsFromAnswer(await ask(cleaned), good);
+        made = await sendPart(good, cleaned, connectionDown ? [] : SORT_RETRY_DELAYS_MS);
+        connectionDown = false;
       } catch (error) {
-        // Not swallowed: the screen says how many photos were not sorted and why; they stay as items to name.
-        failed.push({ photos: good.length, error });
-        made = good.map((p) => blankItem([p.key]));
+        if (!connectionDown && good.length >= 2 && sizeMayBeWhy(error)) {
+          const half = Math.ceil(good.length / 2);
+          let anyWent = false;
+          for (const [from, to] of [[0, half], [half, good.length]]) {
+            const part = good.slice(from, to);
+            const partCleaned = cleaned.slice(from, to);
+            try {
+              made.push(...await sendPart(part, partCleaned, SORT_RETRY_DELAYS_MS.slice(0, 1)));
+              anyWent = true;
+            } catch (partError) {
+              // Not swallowed: giveUp keeps these photos with the reason, and records it.
+              made.push(...giveUp(part, partCleaned, partError));
+            }
+          }
+          connectionDown = !anyWent && isNetworkFailure(error);
+        } else {
+          // Not swallowed: giveUp keeps these photos with the reason, and records it.
+          made = giveUp(good, cleaned, error);
+          connectionDown = isNetworkFailure(error);
+        }
       }
+      // The check across the boundary with the last batch.
+      const beforeAt = items.map((it) => !it.notSorted).lastIndexOf(true);
+      const before = beforeAt >= 0 ? items[beforeAt] : null;
+      const first = made.find((it) => !it.notSorted);
+      if (before && first && !connectionDown && mightBeSameThing(before, first) && before.photoKeys.length + first.photoKeys.length <= DECLUTTER_MAX_PHOTOS) {
+        const copies = new Map([...lastCleaned, ...good.map((p, n) => [p.key, cleaned[n]] as const)]);
+        const sent = [...before.photoKeys.slice(-2), ...first.photoKeys.slice(0, 2)].flatMap((k) => {
+          const copy = copies.get(k);
+          return copy ? [copy] : [];
+        });
+        try {
+          const answer = await spacedAsk(sent);
+          if (answer.items?.length === 1 && new Set(answer.items[0].photos).size === sent.length) {
+            items[beforeAt] = joinSorted([before], before.key, first)[0];
+            made = made.filter((it) => it !== first);
+            onJoined?.(before.key, first);
+          }
+        } catch (error) {
+          // Not silent: the check is extra help, and the seller gets the suggestion on the card instead of the join.
+          console.warn("[declutter] could not check two items across a batch", error);
+          made = made.map((it) => (it === first ? { ...it, mergeHint: before.key } : it));
+        }
+      }
+      lastCleaned = new Map(good.map((p, n) => [p.key, cleaned[n]]));
     }
     items.push(...made);
     onProgress(i + 1, batches.length, made);
@@ -314,6 +436,7 @@ export function photosInItems(photos: BunchPhoto[], items: BunchItem[]): BunchPh
  * live at once; admin only on reports or a failed automatic check).
  */
 export function bunchItemProblem(it: BunchItem): string | null {
+  if (it.notSorted) return "These photos aren't sorted yet.";
   if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`;
   if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return `Use at most ${photosWord(DECLUTTER_MAX_PHOTOS)}: split this item or move some photos.`;
   return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })

@@ -25,8 +25,8 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     if (shopsOn) setOpen(true); |     setOpen(true);
  * @mutate src/components/declutter/HelprListExplainSheet.tsx | navigate(sellForMePostJobPath()); | navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellChooserEntry movingOutOn={movingOutOn} />\n | \n
- * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(kept?.title \|\| p.title); |     setTitle(kept?.title \|\| p.title);
+ * @mutate src/components/declutter/SellOneScreen.tsx |           {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />}\n | \n
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
  * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Help me list my things to sell"; | const SELL_FOR_ME_TITLE = "Help me list my things to sell, please";
  * Audit 10-30 #14: a reload keeps what was typed; the template only fills an empty start.

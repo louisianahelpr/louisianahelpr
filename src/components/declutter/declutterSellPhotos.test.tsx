@@ -6,7 +6,7 @@
  * The API is stubbed: this checks the order of calls, not the backend.
  *
  * @mutate src/components/declutter/useSellFlowState.ts |       await uploadHeld(id, waiting); |       void waiting;
- * @mutate src/components/declutter/useSellFlowState.ts |     if (!itemId) {\n      setHeld((h) => [...h, ...list]);\n      return;\n    } |     if (!itemId) return;
+ * @mutate src/components/declutter/useSellFlowState.ts |       setHeld((h) => [...h, ...good]);\n |       void good;\n
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |   const count = uploaded.length + held.length; |   const count = uploaded.length;
  * @mutate src/components/declutter/SellOneScreen.tsx |           <SellPhotos\n |           <span hidden />{false && <SellPhotos\n
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx |             ) : uploaded.length === 0 && i === 0 && <CoverChip />} |             ) : <CoverChip />}
@@ -403,7 +403,7 @@ describe("photo-first selling, one screen", () => {
     addPhotos("a.jpg", "b.jpg", "c.jpg");
     await screen.findByText("We picked the best photo for the cover.");
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull());
+    expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Make photo 3 the cover" }));
     fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
     await waitFor(() => expect(aiCalls).toHaveLength(2));
@@ -514,7 +514,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit DC-2: each blocker is said IN its own row; by the button only a short pointer.
-  // @mutate src/components/declutter/SellSummaryCard.tsx |       {open && children}\n      {problem} |       {open && children}
+  // @mutate src/components/declutter/SellSummaryCard.tsx |       {open && !instead && children}\n      {problem} |       {open && !instead && children}
   // @mutate src/components/declutter/SellOneScreen.tsx |           {problemAt("settings")}\n |           \n
   it("what blocks Post is said in the row that needs it, not only by the button (DC-2)", async () => {
     open();
@@ -577,8 +577,8 @@ describe("photo-first selling, one screen", () => {
 
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the
   // next steps" (there are no steps). The class: nothing on the one screen talks about steps.
-  // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} />
-  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {held.length > 0 ? " · these go up when you save" : ""} | {held.length > 0 ? " · these go up when you save on step 4" : ""}
+  // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} free={form.free} />
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx | {held.length > 0 && !heldFailed ? " · these go up when you post" : ""} | {held.length > 0 && !heldFailed ? " · these go up when you post on step 4" : ""}
   it("the one screen never talks about steps (DC-1)", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -603,8 +603,8 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-28: "claude did not help with the listing so idk how to get it to do the listing for me".
   // @mutate src/components/declutter/useSellFlowState.ts | autoStart: !urlItemId && held.length > 0 | autoStart: false
   // @mutate src/components/declutter/useSellFlowState.ts | : held.length > 0 ? withCoverFile(held, (f) => requestAiDraftFromPhotos(f, hintAt)) : null), | : null),
-  // @mutate src/components/declutter/SellAiDraft.tsx | : mergeAiDraft(f, atStart, d))); | : f));
-  // @mutate src/components/declutter/SellAiDraft.tsx |     price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? pick("price", String(d.priceDollars)) : current.price, |     price: current.price,
+  // @mutate src/components/declutter/SellAiDraft.tsx |         setForm(() => merged.form); |         void merged;
+  // @mutate src/components/declutter/SellAiDraft.tsx |     price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? String(d.priceDollars) : current.price, |     price: current.price,
   // @mutate src/components/declutter/SellAiDraft.tsx |           <AiPriceLine draft={d} /> |
   it("a NEW listing: Claude writes it by itself once the first photos are added, fills the rows, and can write it again", async () => {
     aiAnswer.hold = true;
@@ -688,7 +688,7 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-28: "pick up at my door. remove that. they need the option to click which they will do, porch pick up,
   // they deliver, safe meeting spot. whatever other options we have".
   // @mutate src/components/declutter/useSellFlowState.ts |       await setHandovers(id, savedWays); |       void savedWays;
-  // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0) return |   if (false) return
+  // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push( |   if (false) out.push(
   // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
   // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);
   // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>} |

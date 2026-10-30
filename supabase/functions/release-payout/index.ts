@@ -38,7 +38,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
+import { flatFeePercentOf, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -905,9 +905,9 @@ serve(async (req) => {
   // fee is taken before the one floor, never between two (a $2.50 fee must
   // not cost a second dollar). Either way the figure reaching Stripe is a
   // whole dollar.
-  const unroundedPayoutCents = Math.round(payoutDollars * 100);
+  let unroundedPayoutCents = Math.round(payoutDollars * 100);
   let payoutCents = roundPayoutDownCents(unroundedPayoutCents);
-  const platformFeeCents = Math.round(platformFeeDollars * 100);
+  let platformFeeCents = Math.round(platformFeeDollars * 100);
 
   // One-time $2 platform onboarding fee: charged at first action (post
   // or payout). If they haven't paid it yet, deduct from this payout.
@@ -939,6 +939,12 @@ serve(async (req) => {
     }
 
     if (claimed && claimed.length > 0) {
+      // Owner 2026-10-30: on the giveaway the fee comes out of Louisiana Helpr's
+      // $10, not the winner's $50: $8 commission + $2 setup fee, same transfer.
+      if (isGiveawayFixedPayJob(job)) {
+        unroundedPayoutCents += onboardingFeeCents;
+        platformFeeCents -= onboardingFeeCents;
+      }
       if (roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents) <= 0) {
         // Edge case: claim succeeded but payout is too small to cover.
         // Roll back the claim and refuse so admin can reconcile manually.

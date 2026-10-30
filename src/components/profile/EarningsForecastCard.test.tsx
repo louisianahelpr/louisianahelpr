@@ -74,6 +74,21 @@ describe("EarningsForecastCard", () => {
     expect(screen.getByText(/Earned so far · \$90/)).toBeInTheDocument();
   });
 
+  // Owner 2026-10-30: the giveaway's payout takes no setup fee, so the card reads its $50 whole.
+  // @mutate src/components/profile/EarningsForecastCard.tsx |         if (!settled && !isGiveawayFixedPayJob(row)) feeCanComeOff = true; |         if (!settled) feeCanComeOff = true;
+  it("the giveaway alone: $50, the setup fee does not come off", async () => {
+    feeMock.dollars = 2;
+    mockQueryResult.data = [{ budget: 60, helpers_needed: 1, is_group_job: false, helper_fee_percent: 5, helper_fee_flat_cents: 700, urgent_fee: 0, status: "completed", payment_status: "payout_pending" }];
+    const { wrapper: Wrapper } = makeWrapper();
+    render(
+      <Wrapper>
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(screen.getByText("$50")).toBeInTheDocument());
+    expect(screen.queryByText("$48")).toBeNull();
+  });
+
   it("Q1272 (5): an unpaid completed job's earned part loses the fee once", async () => {
     feeMock.dollars = 2;
     const row = { budget: 100, helpers_needed: null, is_group_job: false, helper_fee_percent: 10, urgent_fee: null };

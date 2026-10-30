@@ -7,7 +7,7 @@
  */
 
 /** Days live, unsold, before the nudge. */
-const PRICE_NUDGE_DAYS = 14;
+export const PRICE_NUDGE_DAYS = 14;
 /** The suggested cut: about 15% off. */
 const PRICE_NUDGE_PCT = 15;
 /** The lowest price Declutter takes ($1). */

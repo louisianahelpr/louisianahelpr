@@ -39,8 +39,10 @@ describe("Declutter sheets and focus (D4-5)", () => {
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
     });
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await waitFor(() => expect(document.activeElement).toBe(opener));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.activeElement).toBe(opener);
+    });
   });
 
   it("no Declutter sheet cancels the opening focus and leaves it behind", () => {

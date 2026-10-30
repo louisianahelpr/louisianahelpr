@@ -11,7 +11,8 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | link: "/profile?tab=gift_card&show=received" | link: "/profile?tab=gift_card"
  * @mutate src/pages/profile/giftCards/useShowReceivedGifts.ts |     if (!wanted \|\| !ready \|\| done.current) return; |     if (!ready \|\| done.current) return;
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

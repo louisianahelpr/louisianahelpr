@@ -310,6 +310,9 @@ export interface OrderProblem {
   other_side_note?: string | null;
   other_side_photo_paths?: string[];
   other_side_at?: string | null;
+  /** DB-12 (20261030080104): what Louisiana Helpr decided, and when; null while open, absent before it reaches prod. */
+  decision?: "refund_buyer" | "refund_part" | "pay_seller" | "delivery_damage" | null;
+  decided_at?: string | null;
 }
 
 /**

@@ -17,7 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sofa } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -267,7 +267,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
     );
   } else {
     const list = (
-      <div className="min-w-0 space-y-4">
+      <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}>
         {/* No chip row under "Search items" (owner 2026-10-21): category, porch pickup and price drops live only in
             the filter sheet. Guard: src/test/browseCategoryGroups.test.tsx. */}
         {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
@@ -283,8 +283,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (
           // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
-          <EmptyState
-            variant="bare"
+          <BrowseEmptyState
             icon={Sofa}
             title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet

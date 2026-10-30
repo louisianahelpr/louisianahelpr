@@ -53,7 +53,7 @@ export function SectionScreen({
         )}
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav">
           {!section && <AppTopBar title={title} />}
-          <div className="flex flex-col gap-4 pt-1 pb-6">
+          <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             {children}
           </div>
         </div>

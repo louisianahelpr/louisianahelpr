@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Gift } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { fetchLiveItems, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
@@ -50,7 +50,7 @@ export function FreeView({ userId }: { userId: string }) {
   if (items.isLoading || photos.isLoading || watching.isLoading || origin.status === "pending") return <DeclutterBrowseBones />;
   if (phase === "offline-empty") return <OfflineEmptyState body="Free items will show here once you're back online." onRetry={() => void items.refetch()} />;
   if (rows.length === 0) {
-    return <EmptyState variant="bare" icon={Gift} title="Nothing free right now." body="Check back soon, or give something away yourself." />;
+    return <BrowseEmptyState icon={Gift} title="Nothing free right now." body="Check back soon, or give something away yourself." />;
   }
   const approximate = origin.status === "ready" && origin.approximate;
   return (

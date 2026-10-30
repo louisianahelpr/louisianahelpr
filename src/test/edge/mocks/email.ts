@@ -112,5 +112,18 @@ export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => (
 /** The per-send ceiling process-email-queue sizes its visibility timeout from (real value in _shared/resend.ts). */
 export const SEND_TIMEOUT_MS = 10_000;
 
-/** process-email-queue derives a missing text part from the HTML; the double strips tags. */
-export const htmlToPlainText = (html: string): string => html.replace(/<[^>]+>/g, "").trim();
+/**
+ * process-email-queue derives a missing text part from the HTML; the double strips tags.
+ * The strip repeats until nothing changes, like the real one in _shared/resend.ts: one pass
+ * can join the text either side of a removed tag into a new tag (CodeQL
+ * js/incomplete-multi-character-sanitization).
+ */
+export const htmlToPlainText = (html: string): string => {
+  let text = html;
+  let prev: string;
+  do {
+    prev = text;
+    text = text.replace(/<[^>]*>/g, "");
+  } while (text !== prev);
+  return text.trim();
+};

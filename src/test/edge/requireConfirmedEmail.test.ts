@@ -55,6 +55,8 @@ const GATED = [
   "declutter-card",
   "declutter-checkout",
   "shop-checkout",
+  // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.
+  "ship-rates",
   "sms-provider-check",
   "calculate-tax",
   "cash-out-credits",

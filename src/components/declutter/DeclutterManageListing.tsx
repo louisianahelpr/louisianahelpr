@@ -30,6 +30,7 @@ import {
   SheetSecondaryAction,
 } from "@/components/ui/sheet";
 import { dropPctOf } from "@/lib/declutter/priceDrop";
+import { suggestedDropCents } from "@/lib/declutter/priceNudge";
 import {
   fetchItemDropState,
   fetchManageState,
@@ -85,12 +86,15 @@ export function ManageListingSheet({
   open,
   onOpenChange,
   startOn = "menu",
+  suggestDrop = false,
 }: {
   item: DeclutterItem;
   coverUrl: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   startOn?: View;
+  /** CMP-5: opened from the "drop the price?" nudge: Change price starts at the suggested price (the seller saves it). */
+  suggestDrop?: boolean;
 }) {
   const [view, setView] = useState<View>(startOn);
   const close = () => onOpenChange(false);
@@ -210,6 +214,7 @@ export function ManageListingSheet({
           <PriceEditor
             item={item}
             floorCents={manage.floor_price_cents}
+            initialCents={suggestDrop ? suggestedDropCents(item.current_price_cents, manage.floor_price_cents) : null}
             relist={paused && startOn === "price"}
             onBack={() => (startOn === "price" ? close() : setView("menu"))}
             onSaved={() => (startOn === "price" ? close() : setView("menu"))}
@@ -275,14 +280,16 @@ function PriceEditor({
   onBack,
   onSaved,
   relist = false,
+  initialCents = null,
 }: {
   item: DeclutterItem;
   floorCents: number;
   relist?: boolean;
+  initialCents?: number | null;
   onBack: () => void;
   onSaved: () => void;
 }) {
-  const [price, setPrice] = useState(centsToDollars(item.current_price_cents));
+  const [price, setPrice] = useState(centsToDollars(initialCents ?? item.current_price_cents));
   const [floor, setFloor] = useState(centsToDollars(floorCents));
   const [touched, setTouched] = useState(false);
   const priceCents = dollarsToCents(price);

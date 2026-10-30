@@ -46,7 +46,8 @@ import {
 import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
-import { CATEGORY_LABEL, CATEGORY_PICKER_GROUPS, DeclutterNotice } from "./declutterUi";
+import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";

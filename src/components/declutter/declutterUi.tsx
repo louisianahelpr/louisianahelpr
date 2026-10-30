@@ -54,7 +54,7 @@ export const SIZE_LABEL: Record<DeliverySize, string> = {
 };
 
 // The one category-name map (src/lib/declutter/categoryIcons.ts), re-exported for the screens that import it here.
-export { CATEGORY_GROUPS, CATEGORY_LABEL, CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
+export { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 
 export const CONDITION_LABEL: Record<number, string> = {
   5: "Like new",

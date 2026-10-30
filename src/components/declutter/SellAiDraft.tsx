@@ -74,7 +74,7 @@ const aiFieldsOf = (f: AiFields): AiFields => ({ title: f.title, description: f.
 /**
  * Photo coach (owner 2026-10-29): a NEW listing's held photos with Claude's pick for the cover moved
  * first. Matched by the File itself (the one Claude was sent), so photos added or removed while it was
- * writing never move the wrong one; the seller can still reorder or remove them.
+ * writing never move the wrong one; the seller can make another the cover, or undo it.
  */
 export function coverFirst(held: File[], cover: File | undefined): File[] {
   if (!cover || held[0] === cover || !held.includes(cover)) return held;
@@ -196,14 +196,14 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
  * on "the next steps"; a saved draft's step form keeps the step words.
  */
 const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
-export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: AiState; onRun: () => void; oneScreen?: boolean }) {
+export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false }: { state: AiState; onRun: () => void; oneScreen?: boolean; free?: boolean }) {
   if (state.status === "busy") {
     return (
       <div role="status" aria-live="polite" data-ai-draft="busy" className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4">
         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[hsl(var(--sage-ink))]" aria-hidden />
         <div className="min-w-0">
           <p className="text-ds-15 font-semibold text-foreground">We're writing your listing…</p>
-          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition and a fair price. This takes a few seconds.</p>
+          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition{free ? "" : " and a fair price"}. This takes a few seconds.</p>
         </div>
       </div>
     );
@@ -221,14 +221,15 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: A
             <span className="font-semibold">One more photo would help:</span> {d.photoTip}
           </p>
         )}
-        <div className="space-y-1">
+        {/* On the one screen the rows below hold all of this; said twice, it pushed them off the first screen (audit posting 1030 #17). */}
+        {!oneScreen && <div className="space-y-1">
           <p className="text-ds-17 font-bold text-foreground [overflow-wrap:anywhere]" data-ai-title="">{d.title}</p>
           <p className="text-ds-13 text-muted-foreground">
             {[CATEGORY_LABEL[d.category] ?? d.category, CONDITION_LABEL[d.conditionStars], SIZE_LABEL[d.deliverySize]].filter(Boolean).join(" · ")}
           </p>
           {d.description && <p className="line-clamp-3 text-ds-14 text-foreground [overflow-wrap:anywhere]">{d.description}</p>}
-          <AiPriceLine draft={d} />
-        </div>
+          {!free && <AiPriceLine draft={d} />}
+        </div>}
         {d.flagged && (
           <p className="text-ds-13 font-semibold text-foreground">
             This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up.

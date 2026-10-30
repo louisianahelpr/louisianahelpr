@@ -98,7 +98,31 @@ export function useSellFlowState(urlItemId: string | null) {
   const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
-  const setCoverFirst = useCallback((d: { coverFile?: File }) => setHeld((h) => coverFirst(h, d.coverFile)), []);
+  // The AI's cover pick moves a photo first and says so, with Undo; once the seller has chosen, it never moves it again
+  // (audit posting 1030 #9).
+  const heldNow = useRef(held);
+  heldNow.current = held;
+  const [coverUndo, setCoverUndo] = useState<File | null>(null);
+  const coverChosen = useRef(false);
+  const setCoverFirst = useCallback((d: { coverFile?: File }) => {
+    if (coverChosen.current) return;
+    const was = heldNow.current;
+    const next = coverFirst(was, d.coverFile);
+    if (next === was) return;
+    setCoverUndo(was[0] ?? null);
+    setHeld(next);
+  }, []);
+  const makeCover = useCallback((i: number) => {
+    coverChosen.current = true;
+    setCoverUndo(null);
+    setHeld((h) => coverFirst(h, h[i]));
+  }, []);
+  const undoCover = () => {
+    coverChosen.current = true;
+    const back = coverUndo;
+    setCoverUndo(null);
+    if (back) setHeld((h) => coverFirst(h, back));
+  };
   // Where the price hint looks (W12): the pickup address once found, else the
   // saved listing's area, else what we already know about the member.
   // Never asks for location.
@@ -464,7 +488,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, coverUndo, undoCover,
   };
 }
 

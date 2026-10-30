@@ -23,6 +23,10 @@ export interface Prefs {
   email_job_applications: boolean;
   email_job_updates: boolean;
   email_messages: boolean;
+  /** Messages audit M6 (20261030141139): new-message bell and push show the
+      first words (true, default) or only "Sent you a message." (false).
+      Emails never carry the words. */
+  message_preview: boolean;
   email_payments: boolean;
   email_reviews: boolean;
   /** Three-valued since 20261021135832 (Q2299): null = never chosen (the

@@ -925,8 +925,8 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     await waitFor(() => expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker" }]));
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
-    await waitFor(() => expect(document.querySelector("[data-sd-deliver-to]")).toBeNull());
-    expect(document.querySelector("[data-sd-address-needed]")).not.toBeNull();
+    await waitFor(() => expect(document.querySelector("[data-sd-address-needed]")).not.toBeNull());
+    expect(document.querySelector("[data-sd-deliver-to]")).toBeNull();
     expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
     expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
     state.deliveryOn = false;

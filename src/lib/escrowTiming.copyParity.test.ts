@@ -126,10 +126,9 @@ function scanHardcodedHours(): Hit[] {
  *             source instead.
  */
 const EXPECTED: Array<{ file: string; kind: "escrow" | "dispute" | "remind"; count: number }> = [
-  { file: "src/components/DisputeDialog.tsx", kind: "dispute", count: 2 },
-  // The poster's dispute copy moved into its own step component when the card
-  // was split onto the shared JobStepCard shell (2026-09-11).
-  { file: "src/pages/posts/postedJobCard/steps/DisputedStep.tsx", kind: "dispute", count: 1 },
+  // Q2362 (b90-dispute-held, 2026-10-30): DisputeDialog keeps one 72h literal and the poster's DisputedStep none
+  // (its countdown line was rewritten when an expired dispute became held for support instead of auto-paid).
+  { file: "src/components/DisputeDialog.tsx", kind: "dispute", count: 1 },
   // The Help Center's remaining literal is the 72h DISPUTE window, not the
   // escrow clock. Its escrow answer used to be here under kind "escrow" with
   // the numbers 24/24 hand-typed; it now interpolates APPROVAL_WINDOW_HOURS

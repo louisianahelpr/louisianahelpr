@@ -12,7 +12,7 @@
  * @mutate supabase/functions/delete-own-account/index.ts |     if (!debt.ok) { |     if (false) {
  * @mutate supabase/functions/_shared/accountPurge.ts | export const FEE_DEBT_RULING_FILTER = "card_fee_cents.is.null,card_fee_remaining_cents.gt.0"; | export const FEE_DEBT_RULING_FILTER = "card_fee_remaining_cents.gt.0";
  * @mutate supabase/functions/_shared/accountPurge.ts |     .gt("remaining_cents", 0) |     .gte("remaining_cents", 0)
- * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId) |     .eq("buyer_id", userId)
+ * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId)\n    .gt("remaining_cents", 0) |     .eq("buyer_id", userId)\n    .gt("remaining_cents", 0)
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("helper_id", userId)\n    .or(FEE_DEBT_RULING_FILTER) |     .or(FEE_DEBT_RULING_FILTER)
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (ruling.error && !tableAbsent(ruling.error)) { |   if (false) {
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (seller.error && !tableAbsent(seller.error)) { |   if (false) {

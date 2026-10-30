@@ -622,7 +622,7 @@ async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string):
  * card fee after a refund). Both come out of the member's next payout.
  */
 export const FEE_DEBT_BLOCKS_DELETION_MESSAGE =
-  "You still owe a card fee from a refunded job or Declutter sale. It comes out of your next payout. You can delete your account once it is paid off; if no payout is coming, contact support to settle it.";
+  "You still owe money from a refunded job or Declutter sale. It comes out of your next payout. You can delete your account once it is paid off; if no payout is coming, contact support to settle it.";
 
 /**
  * A Helpr-at-fault ruling the member still owes on: a card fee left to pay

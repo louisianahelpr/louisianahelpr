@@ -12,7 +12,7 @@
  *
  * @mutate src/pages/info/legal/PrivacySection.tsx | push-notification delivery (APNs). | push-notification delivery (APNs / FCM).
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
- * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Anthropic (Claude)</strong> | <strong className="text-foreground">An AI model</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Anthropic</strong> | <strong className="text-foreground">An AI model</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Cloudflare (Turnstile)</strong> | <strong className="text-foreground">A bot check</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Twilio</strong> | <strong className="text-foreground">Our texting provider</strong>
  *

@@ -111,7 +111,7 @@ describe("a resumed draft", () => {
     // re-rendered (four renders, then the effect). On a loaded CI runner that chain outran findBy's 1 s default
     // (measured: 2 of 2 red under load, 6 of 6 green idle), so wait on the trigger itself, with room.
     await waitFor(() => expect(api.requestAiDraft).toHaveBeenCalledTimes(1), { timeout: 5_000 });
-    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
     expect(api.requestAiDraft).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     // The seller's own title stays; the empty details and the "Other" category are Claude's.
@@ -128,7 +128,7 @@ describe("a resumed draft", () => {
     open();
     // Same trigger wait as above (CI load).
     await waitFor(() => expect(api.requestAiDraft).toHaveBeenCalledTimes(1), { timeout: 5_000 });
-    await screen.findByText("Claude wrote your listing");
+    await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
     expect(screen.getByRole("radio", { name: "Kitchen" })).toHaveAttribute("aria-checked", "true");

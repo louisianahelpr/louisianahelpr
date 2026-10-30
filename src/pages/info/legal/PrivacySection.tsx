@@ -162,7 +162,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">Apple</strong> — push-notification delivery (APNs).</li>
               <li><strong className="text-foreground">Apple Maps (MapKit JS)</strong> — address search and maps: the address text you type and the location you share.</li>
               <li><strong className="text-foreground">OpenStreetMap (Nominatim)</strong> — turning an address or your current location into map coordinates.</li>
-              <li><strong className="text-foreground">Anthropic (Claude)</strong> — the job details you give the AI job builder, to draft your post, and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing, and a buyer's question about a Declutter listing with that listing's photos and words, to suggest the seller's answer.</li>
+              <li><strong className="text-foreground">Anthropic</strong> — the job details you give the AI job builder, to draft your post, and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing, and a buyer's question about a Declutter listing with that listing's photos and words, to suggest the seller's answer.</li>
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
               <li><strong className="text-foreground">Twilio</strong> — text-message delivery, only if you turn on text alerts: your mobile number and the alert text.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>

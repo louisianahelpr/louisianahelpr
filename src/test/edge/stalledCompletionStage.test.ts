@@ -219,8 +219,9 @@ describe("the copy", () => {
     // The owner's rule is that money never moves automatically here, so the
     // disabled control has to say so — an unexplained dead button reads as
     // "something has gone wrong with my payment". This is the ONE sentence the
-    // card shows, so it is where the escrow promise has to be.
-    expect(STALLED_APPROVE_DISABLED_REASON).toMatch(/escrow/i);
+    // card shows, so it is where the promise has to be, in words members read (never "escrow", noticesSayNoEscrow).
+    expect(STALLED_APPROVE_DISABLED_REASON).toMatch(/payment stays on hold/i);
+    expect(STALLED_APPROVE_DISABLED_REASON).not.toMatch(/escrow/i);
   });
 
   it("the visible line is ONE sentence — owner, 2026-09-19: 'trim to one sentence'", () => {

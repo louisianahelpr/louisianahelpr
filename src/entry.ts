@@ -20,6 +20,7 @@
 import "./index.css";
 import { hasToken, preloadEntryRoute } from "./boot/routePreload";
 import { startGuestJobsPrefetch } from "./boot/guestJobsPrefetch";
+import { startDeclutterPrefetch } from "./boot/declutterPrefetch";
 import { startEntryAuthRefresh } from "./boot/entryAuthRefresh";
 
 // Q1170: a returning web visitor's expired token is refreshed beside the
@@ -38,6 +39,8 @@ void import("./main");
 preloadEntryRoute(window.location.pathname);
 // Q206: the guest /browse job list, beside the app download (see the module).
 startGuestJobsPrefetch(window.location.pathname);
+// A member's /declutter items and photos, the same way (see the module).
+startDeclutterPrefetch(window.location.pathname);
 
 // Then, once THIS page has loaded, warm the pages a visitor most likely opens
 // next (guest: browse / login / signup; signed in: the dock tabs + post-job),

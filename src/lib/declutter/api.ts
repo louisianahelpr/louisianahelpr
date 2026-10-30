@@ -15,6 +15,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
+import { takeDeclutterItemsPrefetch, takeDeclutterPhotosPrefetch } from "@/lib/declutter/bootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -152,6 +153,9 @@ async function readItems(run: (columns: string) => PromiseLike<ItemRead>): Promi
 
 /** Live (and reserved) listings the switch lets this member read; RLS decides. */
 export async function fetchLiveItems(): Promise<DeclutterItem[]> {
+  // Started at boot on a cold /declutter (src/boot/declutterPrefetch.ts); taken once. Failed or old: ask as before.
+  const prefetched = await takeDeclutterItemsPrefetch();
+  if (prefetched) return prefetched as DeclutterItem[];
   const rows = await readItems((cols) =>
     supabase
       .from("declutter_items")
@@ -318,6 +322,8 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
 
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {
   if (itemIds.length === 0) return [];
+  const prefetched = await takeDeclutterPhotosPrefetch(itemIds);
+  if (prefetched) return prefetched as DeclutterPhoto[];
   const rows = unwrap(
     await supabase
       .from("declutter_item_photos")

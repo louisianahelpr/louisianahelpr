@@ -76,6 +76,7 @@ import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
+import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -366,7 +367,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?"}
         confirmLabel={asking?.status === "draft" ? "Delete" : "Take down"} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>
-        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : "Buyers can't see it any more. Nothing is charged, and you can relist it from your selling history."}
+        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : TAKE_DOWN_WORDS}
       </ConfirmSheet>
       {managing && (
         <ManageListingSheet

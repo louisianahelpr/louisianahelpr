@@ -73,7 +73,7 @@ vi.mock("@/components/DateTimeField", () => ({
     <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 // Anti-lying #1 (20261028235709): every handover photo carries the device's position (the server checks the place).
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.45, lng: -91.15 }) }));

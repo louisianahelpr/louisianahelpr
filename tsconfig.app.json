@@ -35,6 +35,8 @@
     "src",
     "e2e/liveSession.ts",
     "e2e/a11y-prod/sectionTabScreens.ts",
+    "e2e/a11y-prod/abortProdWrites.ts",
+    "e2e/a11y-prod/readOnlyRpcs.ts",
     "e2e/readRpc.ts",
     "e2e/listedPayment.ts",
     "e2e/adminRpcClassification.ts",

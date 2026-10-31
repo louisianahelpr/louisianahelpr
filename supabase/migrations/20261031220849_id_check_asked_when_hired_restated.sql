@@ -668,6 +668,8 @@ UPDATE public.profiles p
  WHERE p.idv_status = 'not_started'
    AND p.idv_attempt_count >= 3
    AND p.is_seed IS NOT TRUE
+   -- An enrolled test account is never touched (review finding (4), 10-31), even one not marked is_seed.
+   AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id)
    AND p.idv_attempted_at < timestamptz '2026-10-27 16:59:00+00'
    AND EXISTS (SELECT 1 FROM public.helper_verifications h
                 WHERE h.user_id = p.user_id AND h.field = 'idv_status'

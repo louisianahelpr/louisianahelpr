@@ -220,9 +220,12 @@ export default function DeclutterMap({
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(selected.item.current_price_cents)}</span>
                 <span className="block truncate text-ds-15 font-semibold text-foreground" title={selected.item.title}>{selected.item.title}</span>
-                <span className="block truncate text-ds-12 text-muted-foreground" title={[selected.item.area_label, milesLabel(selected.miles, approximate)].filter(Boolean).join(" · ")}>
-                  {[selected.item.area_label, milesLabel(selected.miles, approximate)].filter(Boolean).join(" · ")}
-                </span>
+                {/* NIGHT-BUYINGrealma-2: "Mid-City, Baton Rouge · 2 ..." cut the miles, the one number that matters on a map.
+                    The place may be cut; the miles have their own line and never are. */}
+                {selected.item.area_label && <span className="block truncate text-ds-12 text-muted-foreground" title={selected.item.area_label}>{selected.item.area_label}</span>}
+                {milesLabel(selected.miles, approximate) && (
+                  <span className="block whitespace-nowrap text-ds-12 font-medium text-foreground" data-map-preview-miles="">{milesLabel(selected.miles, approximate)}</span>
+                )}
               </span>
             </Link>
             <button

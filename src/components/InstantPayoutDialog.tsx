@@ -102,7 +102,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
         <DialogBody>
-          <p>In your debit card in ~30 minutes.</p>
+          <p>Goes to your debit card in about 30 minutes.</p>
         </DialogBody>
         {loading ? (
           <div className="py-8 flex justify-center">
@@ -161,7 +161,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             >
               <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
+                Prefer to wait? Standard payouts are{" "}
                 <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and land {STANDARD_PAYOUT_WINDOW}.
               </p>
             </div>

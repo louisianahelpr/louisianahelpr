@@ -301,7 +301,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
             : <BookingPanel order={order} booking={booking}
                 noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm orderId={order.orderId} side={order.side} stage="waiting" /> : null} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
-          {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
+          {/* NIGHT-BUYINGopenpr-7: the door tips are for a pickup still to come; a held order (a problem open, or the
+              seller's 24 hours after a no-show report) says what happens instead. */}
+          {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}

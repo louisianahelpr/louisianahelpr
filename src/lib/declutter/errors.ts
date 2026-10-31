@@ -168,6 +168,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_show_reported: "The buyer says you didn't show. Answer that report on this order.",
   no_show_not_reported: "The buyer hasn't reported anything on this order.",
   no_show_answer_late: "The 24 hours to answer are over.",
+  no_return_needed: "The buyer says they never got it, so there is nothing to bring back.",
+  drop_off_not_offered: "Your address stays private on this sale, so you pick it up from the buyer.",
   too_early: "You can report a no-show 15 minutes after the booked time, or for a porch pickup day, once that day is over.",
   // 141d (20261026155251): a handed-over sale is final once its 24-hour window is over.
   sale_final: "The time to report a problem is over, so this sale is final.",

@@ -49,6 +49,8 @@ interface RefundRequest {
   return_deadline?: string | null;
   /** A collect, while returning: the address the buyer typed (and its point, for directions). */
   return_address?: string | null;
+  /** BUY-23: where a drop-off goes, for the buyer, while it is open (20261031010243). */
+  drop_off_address?: string | null;
   return_lat?: number | null;
   return_lng?: number | null;
 }
@@ -57,6 +59,8 @@ export interface RefundRequestView {
   order_id: string;
   side: "buyer" | "seller";
   handed_over: boolean;
+  /** BUY-23: "the buyer brings it back" exists only where the seller offered pickup. Absent before 20261031010243. */
+  can_drop_off?: boolean;
   /** 24 hours after the handover. */
   window_ends_at: string | null;
   can_ask: boolean;

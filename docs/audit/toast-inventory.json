@@ -3,18 +3,18 @@
   "summary": {
     "calls": 1056,
     "files": 287,
-    "rendering": 886,
-    "suppressedByPolicy": 170,
+    "rendering": 887,
+    "suppressedByPolicy": 169,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 73,
+      "toast": 74,
       "toast.error": 740,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 174,
+      "toast.success": 173,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -5555,11 +5555,11 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 267,
-      "kind": "toast.success",
+      "line": 272,
+      "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "r.result === \"returning\" ? \"Agreed. Tap I got it back once you have the item.\" : r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
+        "text": "r.result === \"returning\" ? \"Agreed. Tap I got it back once you have the item.\" : r.result === \"refunded\" ? \"Refund sent. The buyer is told.\" : r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
         "branches": [
           {
             "form": "literal",
@@ -5567,25 +5567,35 @@
           },
           {
             "form": "dynamic",
-            "text": "r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
+            "text": "r.result === \"refunded\" ? \"Refund sent. The buyer is told.\" : r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
             "branches": [
               {
                 "form": "literal",
-                "text": "Offer sent."
+                "text": "Refund sent. The buyer is told."
               },
               {
-                "form": "literal",
-                "text": "Answer sent."
+                "form": "dynamic",
+                "text": "r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "Offer sent."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "Answer sent."
+                  }
+                ]
               }
             ]
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 270,
+      "line": 276,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5595,7 +5605,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 277,
+      "line": 283,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5605,7 +5615,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
-      "line": 278,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5615,7 +5625,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundReturn.tsx",
-      "line": 109,
+      "line": 111,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5625,7 +5635,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundReturn.tsx",
-      "line": 110,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5635,7 +5645,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundReturn.tsx",
-      "line": 121,
+      "line": 123,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5655,7 +5665,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterRefundReturn.tsx",
-      "line": 127,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

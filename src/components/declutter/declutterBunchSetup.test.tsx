@@ -16,7 +16,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
 
-const state = vi.hoisted(() => ({ last: null as LastSetup | null, gate: null as Promise<void> | null, geocodes: [] as string[] }));
+const state = vi.hoisted(() => ({ last: null as LastSetup | null, gate: null as Promise<void> | null, geocodes: [] as string[], places: [] as unknown[] }));
 
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -31,7 +31,7 @@ vi.mock("@/lib/addressLookup", () => ({
   lookUpAddress: async (a: string) => { state.geocodes.push(a); return { status: "exact", lat: 1, lng: 2 }; },
 }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => state.places }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => { await state.gate; return state.last; } }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));
@@ -84,6 +84,29 @@ describe("Sell a bunch: where buyers pick up starts from the last listing", () =
     renderFlow();
     await settle();
     expect(box("Pickup address").value).toBe("");
+  });
+});
+
+/**
+ * Q2492: Sell a bunch (and moving out, which is Sell a bunch) says which address wins once a seller has saved places.
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |         <PlacesComeFirstLine />\n |
+ */
+describe("Sell a bunch: which address wins", () => {
+  it("saved places: says a buyer choosing porch or Helpr delivery gets that address", async () => {
+    state.last = null;
+    state.places = [{ id: "p1", label: "Home", address: "12 Oak St, Baton Rouge", area: "Mid City", lat: 30.4, lng: -91.1, weekdays: [6] }];
+    renderFlow();
+    expect((await waitFor(() => { const n = document.querySelector("[data-saved-places-first]"); if (!n) throw new Error("not yet"); return n; })).textContent)
+      .toContain("not the one below");
+    state.places = [];
+  });
+  it("no saved places: no line", async () => {
+    state.last = null;
+    state.places = [];
+    renderFlow();
+    await screen.findByLabelText("Pickup address");
+    await settle();
+    expect(document.querySelector("[data-saved-places-first]")).toBeNull();
   });
 });
 

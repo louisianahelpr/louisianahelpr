@@ -83,6 +83,8 @@ export async function fetchMyPayouts(userId: string): Promise<MyPayout[]> {
   // soldstates-4: attempts is readable once 20261031184338 is live; before that the column read is refused (42501,
   // permission denied for the column), so the payouts are read as before, without the try count.
   if (res.error && res.error.code === "42501" && /attempts|permission denied/i.test(res.error.message ?? "")) {
+    // Not silent: the card loses only the try count; said here, as fetchMyQuestionIds does for its refusal.
+    console.warn("[declutter] payout try count not readable yet; reading payouts without it", res.error);
     const rows = unwrap(await supabase.from("declutter_payouts").select(cols).eq("seller_id", userId));
     return (rows ?? []) as MyPayout[];
   }

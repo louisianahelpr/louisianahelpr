@@ -12,7 +12,8 @@
  * stops after its last try (the NEWEST declutter_payouts_due: attempts < 12, read below) and nothing restarts it but
  * Support; the seller reads attempts through the column grant 20261031184338 (proof:
  * src/test/pglite/declutterPayoutAttemptsReadable.pglite.mjs).
- * @mutate src/lib/declutter/payoutWords.ts |   if (p.status === "failed" && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP; |
+ * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP; |
+ * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && | if (p.status === "failed" &&
  * @mutate src/lib/declutter/payoutWords.ts | export const PAYOUT_TRIES = 12; | export const PAYOUT_TRIES = 13;
  * @mutate src/lib/declutter/payoutWords.ts |   if (p.status === "failed" && p.attempts === undefined) return PAYOUT_FAILED_UNKNOWN; |
  * @mutate src/lib/declutter/handover.ts |   const res = await supabase.from("declutter_payouts").select(`${cols}, attempts`).eq("seller_id", userId); |   const res = await supabase.from("declutter_payouts").select(cols).eq("seller_id", userId);
@@ -67,6 +68,16 @@ describe("soldstates-4: a failed payout says whether we are still trying", () =>
     // Never a promise to pay: the last try can be a refunded or disputed charge (declutter-money pageIfLastTry).
     expect(tries(PAYOUT_TRIES)).not.toMatch(/we'll send it|we will pay|you'll get/i);
     expect(tries(PAYOUT_TRIES + 3)).toMatch(/stopped trying/);
+  });
+
+  // Lead 10-31 (B18's money finding): a rebook or a held row's release sets a row back to pending without resetting its
+  // tries, and the run takes only attempts < 12, so a pending row at 12 is never paid on its own: Support, not "we send it".
+  it("a pending row at the last try or past it says Support, never that we send it", () => {
+    const pending = (attempts: number) => payoutStatusWords(row({ status: "pending", items_cents: 4000, attempts }));
+    expect(pending(PAYOUT_TRIES)).toMatch(/stopped trying\. Message Support/);
+    expect(pending(PAYOUT_TRIES + 1)).not.toMatch(/^We send it/);
+    expect(pending(PAYOUT_TRIES - 1)).toMatch(/^We send it once the sale is final/);
+    expect(pending(0)).toMatch(/^We send it once the sale is final/);
   });
 
   it("try count unknown (the grant not live yet): the old words, which promise no retry", () => {

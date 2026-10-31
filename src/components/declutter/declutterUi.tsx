@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
+import { DeclutterGuestGate } from "./DeclutterGuest";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
 
@@ -163,6 +164,9 @@ export function DeclutterGate({ children, skeleton, agreedSales }: { children: R
     queryFn: fetchHasAgreedSales,
   });
   if (enabled) return <>{children}</>;
+  if (!isReady) return <>{skeleton}</>;
+  // BUY-16: a guest reads Declutter while it is open to everyone; otherwise the login wall, as before.
+  if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>;
   if (!settled) return <>{skeleton}</>;
   if (agreedSales && user) {
     if (agreed.isLoading) return <>{skeleton}</>;

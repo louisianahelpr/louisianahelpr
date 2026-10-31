@@ -49,6 +49,7 @@ import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
+import { DeclutterGuestJoin } from "./DeclutterGuest";
 import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
@@ -153,11 +154,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const sellerState = isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" ? sellerDrops.data : null;
   const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
   const actions = (<>
-    {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
+    {canAct && user && <DeclutterBundleRow item={it} viewerId={user.id} />}
 
     {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
     {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+    {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
+    {canAct && !user && <DeclutterGuestJoin free={free} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 
@@ -179,7 +182,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           >
             <Share2 className="w-5 h-5" aria-hidden />
           </button>
-          {canAct && (
+          {canAct && user && (
             <button
               type="button"
               aria-pressed={isWatching}
@@ -261,7 +264,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           )}
 
-          {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses
@@ -277,7 +280,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           ) : actions}
 
-          {!free && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
+          {!free && user && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
 
           <section className="space-y-1" aria-labelledby="declutter-details">
             <h2 id="declutter-details" className="text-base font-semibold">Details</h2>
@@ -294,7 +297,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
-            {way !== "none" && forSale && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
+            {way !== "none" && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already
@@ -302,15 +305,15 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
           </section>
 
-          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user && !preview} free={free} />
+          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} free={free} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}
         </div>
       </div>
-      {!isSeller && (
+      {!isSeller && user && (
         <div className="mt-8">
-          <DeclutterItemRows item={it} viewerId={user?.id ?? null} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
+          <DeclutterItemRows item={it} viewerId={user.id} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
         </div>
       )}
     </AppPage>

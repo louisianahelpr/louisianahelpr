@@ -88,20 +88,28 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   const deliverOff = base.handovers.includes("seller_delivery") && !draft.handovers.includes("seller_delivery");
   const save = useMutation({
     mutationFn: async () => {
+      // Lead review 2026-10-31: the stop runs FIRST and also takes I'll deliver off the saved default in the same
+      // transaction (declutter_stop_my_seller_delivery), so a failed save after it can never leave the default off
+      // while live listings still offer delivery. If the stop fails, nothing is saved and the error is shown.
+      const stopped = deliverOff ? await stopMySellerDelivery() : null;
       const done = await saveSellerDefaults(userId, draft);
-      return { done, stopped: done && deliverOff ? await stopMySellerDelivery() : null };
+      return { done, stopped };
     },
     onSuccess: ({ done, stopped }) => {
+      if (stopped) void qc.invalidateQueries({ queryKey: ["declutter"] });
       if (!done) {
         toast.error("We couldn't save your listing defaults yet. Try again in a little while.");
         return;
       }
       toast(stopped ? `Listing defaults saved. ${stopped === 1 ? "1 listing no longer offers" : `${stopped} listings no longer offer`} your delivery.` : "Listing defaults saved.");
-      if (stopped) void qc.invalidateQueries({ queryKey: ["declutter"] });
       qc.setQueryData(["declutter", "seller-defaults", userId], draft);
       setEdits({});
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => {
+      // The stop may have gone through before a failed save: re-read the listings and the saved default.
+      if (deliverOff) void qc.invalidateQueries({ queryKey: ["declutter"] });
+      toast.error(declutterErrorMessage(err));
+    },
   });
   useLeaveWarning(unsaved && !save.isPending);
   return (

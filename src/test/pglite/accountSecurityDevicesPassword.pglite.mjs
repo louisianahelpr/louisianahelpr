@@ -12,7 +12,7 @@
  *    never touches another member's session (returns false, row still there);
  *  - verify_my_password: right password true, wrong false, no password (Apple/Google) false,
  *    over the rate limit raises too_many_attempts;
- *  - switch off refuses all three; signed out refuses; EXECUTE for authenticated only.
+ *  - signed out refuses; EXECUTE for authenticated only (no switch: on for everyone).
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -61,7 +61,6 @@ const check = (name, ok, got) => { n++; if (!ok) fails++; console.log(`${ok ? "P
 const as = (uid, sid, feature = "on") => db.exec(`SET test.uid = '${uid ?? ""}'; SET test.sid = '${sid ?? ""}'; SET test.feature = '${feature}'`);
 const raises = async (sql, re) => { try { await db.query(sql); return false; } catch (e) { return re.test(String(e.message)); } };
 
-check("the switch row exists at testers", (await db.query(`SELECT audience FROM public.feature_switches WHERE key = 'account_security'`)).rows[0]?.audience === "testers");
 
 await as(ME, S_THIS);
 const mine = (await db.query(`SELECT session_id, is_current FROM public.my_auth_sessions()`)).rows;
@@ -69,6 +68,9 @@ check("my sessions: mine only, the expired one left out, this one marked", mine.
 
 check("revoke another member's session: false, and it is still there", (await db.query(`SELECT public.revoke_my_session('${S_THEIRS}') AS ok`)).rows[0].ok === false && (await db.query(`SELECT count(*)::int AS c FROM auth.sessions WHERE id = '${S_THEIRS}'`)).rows[0].c === 1);
 check("revoke THIS session: refused (Log out does that)", await raises(`SELECT public.revoke_my_session('${S_THIS}')`, /this_session/));
+await as(ME, null);
+check("revoke with no session id in the token: refused (cannot tell which one is this)", await raises(`SELECT public.revoke_my_session('${S_OLD}')`, /session_unknown/));
+await as(ME, S_THIS);
 check("revoke my phone: true, its row and refresh tokens gone, the other member's token kept",
   (await db.query(`SELECT public.revoke_my_session('${S_PHONE}') AS ok`)).rows[0].ok === true &&
   (await db.query(`SELECT count(*)::int AS c FROM auth.sessions WHERE id = '${S_PHONE}'`)).rows[0].c === 0 &&
@@ -81,13 +83,13 @@ check("verify: a wrong password is false", (await verify("Wrong-Horse-9!")) === 
 check("verify: another member's password is false for me", (await verify("Theirs-Pass-9!")) === false);
 await verify("x"); await verify("y");
 check("verify: the 6th try in 15 minutes is refused (too_many_attempts)", await raises(`SELECT public.verify_my_password('Correct-Horse-9!')`, /too_many_attempts/));
+// The day bucket: a fresh 15-minute window does not reopen past 20 tries in a day.
+await db.exec(`UPDATE public.hits SET at = now() - interval '1 hour' WHERE bucket = 'verify_my_password'`);
+await db.exec(`INSERT INTO public.hits (bucket, subject) SELECT 'verify_my_password_day', '${ME}' FROM generate_series(1, 20)`);
+check("verify: past 20 tries in a day, still refused after the 15-minute window resets", await raises(`SELECT public.verify_my_password('Correct-Horse-9!')`, /too_many_attempts/));
 await as(SOCIAL, U(31));
 check("verify: an Apple/Google-only account (no password) is false", (await verify("anything")) === false);
 
-await as(ME, S_THIS, "off");
-for (const q of ["SELECT * FROM public.my_auth_sessions()", `SELECT public.revoke_my_session('${S_OLD}')`, "SELECT public.verify_my_password('x')"]) {
-  check(`switch off refuses: ${q.slice(7, 40)}`, await raises(q, /feature_disabled/));
-}
 await as(null, null);
 check("signed out refuses", await raises("SELECT * FROM public.my_auth_sessions()", /not_authenticated/));
 for (const fn of ["my_auth_sessions", "revoke_my_session", "verify_my_password"]) {

@@ -9,6 +9,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { signOutOtherDevices } from "@/lib/authSignOut";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { parseUserAgent } from "@/components/profile/securitySessions";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 
 export interface AuthSessionRow {
   session_id: string;
@@ -36,14 +38,21 @@ export function lastActiveLabel(iso: string, now = Date.now()): string {
  * other row has its own Sign out (revoke_my_session: that device can no longer refresh), and
  * "Sign out everywhere else" signs out all of them but this one (signOut scope "others").
  */
-export function SignedInDevicesCard() {
-  const qc = useQueryClient();
-  const [busy, setBusy] = useState<string | null>(null);
-  const sessions = useQuery({
+/** The caller's signed-in devices (my_auth_sessions). SecurityTab reads it too, to land in one wave (Q169). */
+export function useAuthSessions() {
+  return useQuery({
     queryKey: AUTH_SESSIONS_KEY,
     staleTime: 30_000,
     queryFn: async () => (unwrap(await supabase.rpc("my_auth_sessions")) ?? []) as AuthSessionRow[],
   });
+}
+
+export function SignedInDevicesCard() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<string | null>(null);
+  const sessions = useAuthSessions();
+  // Q571: a read paused offline is not "no devices".
+  const offline = useFeedPhase({ status: sessions.status, fetchStatus: sessions.fetchStatus }) === "offline-empty";
   const rows = [...(sessions.data ?? [])].sort((a, b) => Number(b.is_current) - Number(a.is_current));
   const others = rows.filter((r) => !r.is_current);
 
@@ -68,10 +77,12 @@ export function SignedInDevicesCard() {
     <section data-signed-in-devices="" aria-labelledby="signed-in-on" className="space-y-2">
       <h2 id="signed-in-on" className="px-1 text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Signed in on</h2>
       <div className="liquid-glass overflow-hidden">
-        {sessions.isLoading ? (
+        {offline ? (
+          <p className="px-4 py-3 text-ds-13 text-muted-foreground">{"You're offline. Your devices will load when you're back online."}</p>
+        ) : sessions.isLoading ? (
           <div className="p-4 space-y-2"><Skeleton className="h-10 rounded-ds-md" /><Skeleton className="h-10 rounded-ds-md" /></div>
         ) : sessions.isError ? (
-          <p className="px-4 py-3 text-ds-13 text-muted-foreground">Couldn't load your devices. Try again later.</p>
+          <div className="p-3"><ErrorState variant="inline" title="We couldn't load your devices." onRetry={() => void sessions.refetch()} /></div>
         ) : (
           rows.map((r, i) => {
             const { label, icon } = parseUserAgent(r.user_agent);

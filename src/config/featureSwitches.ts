@@ -137,11 +137,6 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025190000; auth-email-hook decides it per account. No
   // screen: SERVER_ONLY below.
   "scanner_safe_confirm_links",
-  // Board 175 (owner 2026-10-25): You › Security's Change password (current
-  // password first) and one-device sign-out. Created 'testers' by
-  // 20261026021601; my_auth_sessions, revoke_my_session and verify_my_password
-  // refuse without it (require_feature).
-  "account_security",
 ] as const;
 
 /**

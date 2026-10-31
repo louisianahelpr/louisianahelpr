@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +13,7 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Mail, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
+import { Mail, LogOut, Fingerprint } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   APP_LOCK_GRACE_OPTIONS,
@@ -35,14 +34,12 @@ import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactor
 import { SignInMethodsCard } from "@/components/profile/SignInMethodsCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { parseUserAgent, useSecuritySessions } from "@/components/profile/securitySessions";
 import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
-import { useFeature } from "@/hooks/useFeature";
 import { ChangePasswordDialog } from "@/components/profile/security/ChangePasswordDialog";
-import { SignedInDevicesCard } from "@/components/profile/security/SignedInDevicesCard";
+import { SignedInDevicesCard, useAuthSessions } from "@/components/profile/security/SignedInDevicesCard";
 
 /**
  * Short display labels for the "Lock again" segmented control, keyed by the
@@ -73,16 +70,15 @@ interface SecurityTabProps {
 }
 
 export function SecurityTab({ email, onBack }: SecurityTabProps) {
-  const { sessionGroups, sessionsLoading, sessionsFetchFailed, sessionsOffline } = useSecuritySessions();
   const { isLoading: factorLoading } = useVerifiedFactor();
-  const securityReady = useArrivalGate(!sessionsLoading, !factorLoading);
+  const { isLoading: devicesLoading } = useAuthSessions();
+  const securityReady = useArrivalGate(!devicesLoading, !factorLoading);
 
   // Global sign-out confirmation. Routed through SignOutConfirmDialog (BrandConfirmDialog)
   // rather than window.confirm() — native dialogs are off-brand and
   // unreliable inside the Capacitor iOS WebView (the same reason the
   // change-email dialog below replaced prompt()).
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
-  const securityV2 = useFeature("account_security"); // Board 175: Change password + one-device sign-out.
   const [changePwOpen, setChangePwOpen] = useState(false);
 
   // Supabase doesn't expose a per-session revoke without an admin
@@ -354,8 +350,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       </div>
 
-      <PasswordResetCard email={email} onChange={securityV2 ? () => setChangePwOpen(true) : undefined} />
-      {securityV2 && <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />}
+      <PasswordResetCard email={email} onChange={() => setChangePwOpen(true)} />
+      <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />
 
       <TwoFactorCard />
 
@@ -463,122 +459,12 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       )}
 
-      {securityV2 ? <SignedInDevicesCard /> : (
-      <div className="rounded-2xl liquid-glass p-card space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Monitor className="w-4 h-4 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Active sessions
-            </h2>
-            <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Recent sign-ins, grouped by device.
-            </p>
-          </div>
-        </div>
-
-        {sessionsLoading ? (
-          <div className="space-y-2">
-            {[1, 2].map((i) => (
-              <Skeleton key={i} className="h-12 rounded-ds-md" />
-            ))}
-          </div>
-        ) : sessionGroups.length === 0 ? (
-          <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {sessionsOffline
-              ? "You're offline. Recent sign-ins will load when you're back online."
-              : sessionsFetchFailed
-                ? "Couldn't load session history — try again?"
-                : "No recent sessions on record yet."}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {sessionGroups.map((group) => {
-              const IconCmp =
-                group.icon === "phone" ? Smartphone :
-                group.icon === "tablet" ? Tablet : Monitor;
-              const lastSeen = new Date(group.lastSeenAt);
-              const minsAgo = Math.floor((Date.now() - lastSeen.getTime()) / 60_000);
-              const when =
-                minsAgo < 2 ? "just now" :
-                minsAgo < 60 ? `${minsAgo}m ago` :
-                minsAgo < 60 * 24 ? `${Math.floor(minsAgo / 60)}h ago` :
-                minsAgo < 60 * 24 * 7 ? `${Math.floor(minsAgo / (60 * 24))}d ago` :
-                lastSeen.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-              return (
-                <div
-                  key={group.fingerprint}
-                  className="flex items-center gap-3 rounded-ds-md p-2.5"
-                  style={{
-                    background: "hsl(var(--ivory-sand) / 0.55)",
-                    border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-                  }}
-                >
-                  <span
-                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-                    style={{
-                      background: group.label === parseUserAgent(navigator.userAgent).label ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
-                      color: "hsl(var(--bark))",
-                    }}
-                  >
-                    <IconCmp className="w-4 h-4" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-ds-13 font-semibold text-foreground leading-tight flex items-center gap-2 flex-wrap"
-                    >
-                      <span className="truncate">{group.label}</span>
-                      {/* "This device" matches the DEVICE actually holding the
-                          screen — the group whose UA label equals this
-                          browser's own — not `idx === 0`. The old index test
-                          badged whichever device signed in most recently, so
-                          reading this list on your iPhone could label
-                          "Mac · Chrome" as this device: exactly the wrong
-                          signal on the screen people read to spot intrusions.
-                          Falls back to nothing when no group matches (e.g. the
-                          current session predates login_history). */}
-                      {group.label === parseUserAgent(navigator.userAgent).label && (
-                        <span
-                          className="text-ds-10 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                          style={{
-                            background: "hsl(var(--bark) / 0.12)",
-                            color: "hsl(var(--bark))",
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          This device
-                        </span>
-                      )}
-                    </p>
-                    <p
-                      className="text-ds-11 font-sans mt-0.5"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      Last seen {when}
-                      {group.ipAddress && <span className="ml-1.5">· {group.ipAddress}</span>}
-                      {group.count > 1 && <span className="ml-1.5">· {group.count} sign-ins</span>}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {sessionGroups.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSignOutDialogOpen(true)}
-            className="w-full"
-          >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
-          </Button>
-        )}
-      </div>
-      )}
+      {/* Board 175: one row per real signed-in device, each with its own Sign out
+          (SignedInDevicesCard), then "Sign out everywhere", this device included. */}
+      <SignedInDevicesCard />
+      <Button variant="outline" size="sm" onClick={() => setSignOutDialogOpen(true)} className="w-full">
+        <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
+      </Button>
 
       </>
       )}

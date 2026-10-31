@@ -1,5 +1,5 @@
 /**
- * BOARD 175, You › Security's gaps (owner 2026-10-25: "build the gaps"), behind 'account_security':
+ * BOARD 175, You › Security's gaps (owner 2026-10-25: "build the gaps"), on for everyone:
  *  - SIGNED IN ON: one row per real signed-in device (my_auth_sessions), this device first and
  *    marked, a Sign out on every OTHER row (revoke_my_session), and "Sign out everywhere else";
  *  - Change password in the app: current password checked on the server (verify_my_password,
@@ -9,7 +9,7 @@
  * @mutate src/components/profile/security/SignedInDevicesCard.tsx |                 {!r.is_current && ( |                 {true && (
  * @mutate src/components/profile/security/SignedInDevicesCard.tsx |   const rows = [...(sessions.data ?? [])].sort((a, b) => Number(b.is_current) - Number(a.is_current)); |   const rows = [...(sessions.data ?? [])];
  * @mutate src/components/profile/security/SignedInDevicesCard.tsx |       {others.length > 0 && ( |       {false && (
- * @mutate src/components/profile/SecurityTab.tsx |       {securityV2 ? <SignedInDevicesCard /> : ( |       {false ? <SignedInDevicesCard /> : (
+ * @mutate src/components/profile/SecurityTab.tsx |       <SignedInDevicesCard /> |       {null}
  * @mutate src/components/profile/security/ChangePasswordDialog.tsx |       if (check.data !== true) return setError(changePasswordError("wrong_current")); |       if (false) return setError(changePasswordError("wrong_current"));
  * @mutate src/components/profile/security/ChangePasswordDialog.tsx |     const problem = passwordProblem(next); |     const problem = null;
  */
@@ -78,21 +78,22 @@ describe("board 175: change password", () => {
     expect(src).toContain("PASSWORD_RULES.map(");
   });
 
-  it("SecurityTab shows both only behind the switch, keeping Reset by email", () => {
+  it("SecurityTab shows both for everyone, keeping Reset by email and Sign out everywhere", () => {
     const tab = read("components/profile/SecurityTab.tsx");
-    expect(tab).toContain('const securityV2 = useFeature("account_security");');
-    expect(tab).toContain("onChange={securityV2 ? () => setChangePwOpen(true) : undefined}");
-    expect(tab).toMatch(/\{securityV2 \? <SignedInDevicesCard \/> : \(/);
+    expect(tab).not.toMatch(/useFeature\(/);
+    expect(tab).toContain("<PasswordResetCard email={email} onChange={() => setChangePwOpen(true)} />");
+    expect(tab).toContain("<SignedInDevicesCard />");
+    expect(tab).toMatch(/onClick=\{\(\) => setSignOutDialogOpen\(true\)\}/);
     expect(read("components/profile/PasswordResetCard.tsx")).toContain('aria-label="Email me a password reset link"');
   });
 
-  it("the server: own rows only, never this session, the switch first, signed-in members only", () => {
+  it("the server: own rows only, never this session, signed-in members only", () => {
     const sql = blankSqlComments(readFileSync(resolve(__dirname, "../..", MIG), "utf8"));
     expect(sql).toContain("WHERE s.user_id = v_uid");
     expect(sql).toContain("DELETE FROM auth.sessions s WHERE s.id = p_session_id AND s.user_id = v_uid;");
     expect(sql).toContain("RAISE EXCEPTION 'this_session'");
     expect(sql).toContain("RETURN v_hash = extensions.crypt(p_password, v_hash);");
-    expect(sql.match(/PERFORM public\.require_feature\('account_security'\);/g)?.length).toBe(3);
+    expect(sql.match(/RAISE EXCEPTION 'not_authenticated'/g)?.length).toBe(3);
     for (const fn of ["my_auth_sessions()", "revoke_my_session(uuid)", "verify_my_password(text)"]) {
       expect(sql).toContain(`REVOKE ALL ON FUNCTION public.${fn} FROM PUBLIC, anon;`);
       expect(sql).toContain(`GRANT EXECUTE ON FUNCTION public.${fn} TO authenticated, service_role;`);

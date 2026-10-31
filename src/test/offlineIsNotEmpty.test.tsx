@@ -14,7 +14,7 @@
  *   StrSettings     the "connect a calendar" empty card
  *   PetProfiles     a blank page (no skeleton, no list, no empty state)
  *   GiftCard        "Gift cards you send will appear here." (both lists)
- *   SecurityTab     "No recent sessions on record yet."
+ *   SecurityTab     "No recent sessions on record yet." (since board 175: SignedInDevicesCard)
  *   AdminAnalytics  $0.00 money tiles and "No subscribers yet"
  *   useInstantQuery every admin list with `fallback: []` (payouts "Nothing to
  *                   send", fraud "looking good!")
@@ -95,7 +95,8 @@ describe("offline with nothing loaded is never an empty state (Q571)", () => {
     expect(code("src/pages/user/useUserProfileData.ts")).toMatch(/offlineEmpty = useFeedPhase\(/);
     expect(code("src/pages/user/UserProfile.tsx")).toMatch(/if \(offlineEmpty\) \{[\s\S]{0,400}<OfflineEmptyState/);
     expect(code("src/pages/user/UserProfile.tsx")).toMatch(/blockStatus === "pending"/);
-    expect(code("src/components/profile/SecurityTab.tsx")).toMatch(/sessionsOffline\s*\?\s*"You're offline\./);
+    // Board 175 moved the devices list into SignedInDevicesCard; its offline line rides there.
+    expect(code("src/components/profile/security/SignedInDevicesCard.tsx")).toMatch(/offline \? \(\s*<p[^>]*>\{"You're offline\./);
   });
 
   it("a real query paused offline reads offline-empty, never ready or loading", async () => {

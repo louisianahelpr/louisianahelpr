@@ -53,16 +53,11 @@ const getUser = vi.fn(async () => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: () => ({
-      select: () => ({
-        order: () => ({
-          limit: async () => ({
-            data: [{ id: "s-1", created_at: new Date().toISOString(), ip_address: "10.0.0.1", user_agent: "Mozilla/5.0 (iPhone)" }],
-            error: null,
-          }),
-        }),
-      }),
-    }),
+    // Board 175: the devices list is my_auth_sessions (one RPC, not a second auth read).
+    rpc: async (name: string) =>
+      name === "my_auth_sessions"
+        ? { data: [{ session_id: "s-1", user_agent: "Mozilla/5.0 (iPhone)", signed_in_at: new Date().toISOString(), last_active_at: new Date().toISOString(), is_current: true }], error: null }
+        : { data: null, error: null },
     auth: {
       // As auth-js 2.117.2: both wrappers are a network getUser() each.
       getUser: () => getUser(),
@@ -131,7 +126,7 @@ describe("the Security tab costs one auth /user round trip (Q1648)", () => {
     await waitFor(() => expect(container.querySelectorAll(".animate-pulse, [data-skeleton]").length).toBe(0));
     // Inventory floor: the real tab, every card painted (not a placeholder).
     const headings = screen.getAllByRole("heading").map((h) => h.textContent);
-    expect(headings).toEqual(expect.arrayContaining(["Email address", "Sign-in methods", "Active sessions"]));
+    expect(headings).toEqual(expect.arrayContaining(["Email address", "Sign-in methods", "Signed in on"]));
     expect(headings.length).toBeGreaterThan(4);
     // Two-step reads the verified factor from the same User (an "On" state, not "Turn on").
     expect(screen.getByRole("button", { name: /turn off/i })).toBeTruthy();

@@ -40,7 +40,7 @@
 // @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/pages/home/DashboardGuest.tsx | footer={feedSettled} | footer={true}
 // @mutate src/components/marketing/PublicLayout.tsx | {footer && <Footer landing={landing} />} | <Footer landing={landing} />
-// @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!sessionsLoading, !factorLoading) | useArrivalGate(true, true)
+// @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!devicesLoading, !factorLoading) | useArrivalGate(true, true)
 // @mutate src/components/SaveHelperButton.tsx | variant === "icon" ? "h-10 w-10 shrink-0 " : "" | ""
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
 // @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
@@ -247,7 +247,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
 
   it("the security tab waits for its sessions AND two-step reads, then lands once", () => {
     const src = read("components/profile/SecurityTab.tsx");
-    expect(src).toMatch(/const securityReady = useArrivalGate\(!sessionsLoading, !factorLoading\);/);
+    expect(src).toMatch(/const securityReady = useArrivalGate\(!devicesLoading, !factorLoading\);/);
     expect(src).toMatch(/\{!securityReady \? \(\s*<ProfileTabBodyReserve tab="security" \/>/);
   });
 

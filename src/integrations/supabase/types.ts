@@ -2121,6 +2121,7 @@ export type Database = {
           description: string
           handovers: string[] | null
           drop_pct: number
+          drops_stopped: boolean
           ends_at: string | null
           id: string
           is_seed: boolean
@@ -2156,6 +2157,7 @@ export type Database = {
           description?: string
           handovers?: string[] | null
           drop_pct?: number
+          drops_stopped?: boolean
           ends_at?: string | null
           id?: string
           is_seed?: boolean
@@ -2191,6 +2193,7 @@ export type Database = {
           description?: string
           handovers?: string[] | null
           drop_pct?: number
+          drops_stopped?: boolean
           ends_at?: string | null
           id?: string
           is_seed?: boolean

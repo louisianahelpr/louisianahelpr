@@ -327,6 +327,9 @@ const TS_MONEY_TOUCHES: string[] = [
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
   // Q1929: the buyer's raise panel row TYPE names each raise's card fee (shown, never written).
   "src/lib/declutter/deliveryRaise.ts: card_fee_cents: number;",
+  // BUY-2: the buyer's no-Helpr choice row TYPE names the card fee declutter_no_helpr_choice reports (read only, never written;
+  // members see only "You get $X back", membersSeeNoFeeWords).
+  "src/lib/declutter/noHelpr.ts: card_fee_cents: number;",
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
@@ -568,6 +571,16 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_withdraw_problem: "20261031103443_declutter_taken_back_notice_opens_the_tab.sql aaa47fe596998b22",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
       declutter_answer_no_show: "20261031004529_declutter_handover_both_confirm.sql 1def49eaa52f1de0",
+      // BUY-2 (20261031133938, owner 10-31; money verdict owed): the buyer's cancel after no Helpr took the delivery. Its
+      // only refund is declutter_close_paid_order(o.id, 'buyer_cancelled'), already pinned (keep_card_fee: the buyer bears
+      // the card fee, as the owner chose); it refuses once a pickup is booked or a problem is open, and a replay answers already.
+      declutter_cancel_after_no_helpr: "20261031133938_declutter_no_helpr_buyer_refund.sql e0426fab9dcc27c5",
+      // BUY-2 (20261031133938): STABLE read for the buyer's own order; shows keep_card_fee's sum (paid minus the card fee,
+      // at least 1 cent back) and the delivery coming back. Writes nothing.
+      declutter_no_helpr_choice: "20261031133938_declutter_no_helpr_buyer_refund.sql 7fc7a17d711295b0",
+      // soldstates-5 (20261031134217, owner 10-31; verdict owed): the Helpr's answer to the seller's "The Helpr didn't
+      // come". Names declutter_refunds only as its notice kind; opens a problem (which holds the money) and records no refund.
+      declutter_helpr_answer_no_show: "20261031134217_helpr_delivery_seller_reports_no_show.sql 7964c7f0efa841f1",
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.
       declutter_handover_sweep: "20261031004529_declutter_handover_both_confirm.sql dae7800e184e4611",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's

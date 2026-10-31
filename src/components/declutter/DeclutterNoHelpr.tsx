@@ -46,7 +46,7 @@ export function NoHelprChoice({ orderId }: { orderId: string }) {
       </button>
       <ConfirmSheet open={asking} title="Cancel this sale?" confirmLabel="Cancel the sale" cancelLabel="Keep it" pending={cancel.isPending}
         onConfirm={() => cancel.mutate()} onClose={() => setAsking(false)} testId="no-helpr-cancel">
-        You get {formatPrice(c.refund_cents)} back. The card fee, {formatPrice(c.card_fee_cents)}, isn't refunded: you pay it, because you chose to cancel.
+        You get {formatPrice(c.refund_cents)} back.
         {" "}The item goes back on sale.
       </ConfirmSheet>
     </div>

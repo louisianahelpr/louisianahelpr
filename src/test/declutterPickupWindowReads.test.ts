@@ -8,8 +8,8 @@
  * defects: a paused item, a hidden seller, an unpaid buyer, any Helpr, an open task, a stranger, no switch gate,
  * a wrong deadline, anon granted).
  */
-// @mutate supabase/migrations/20261028195840_declutter_pickup_window_reads.sql | (o.buyer_id = v_uid AND o.status = 'paid') | (o.buyer_id = v_uid)
-// @mutate supabase/migrations/20261028195840_declutter_pickup_window_reads.sql | AND t.source_id = o.id AND t.helpr_id = v_uid | AND t.source_id = o.id
+// @mutate supabase/migrations/20261031145652_declutter_place_hours.sql | (o.buyer_id = v_uid AND o.status = 'paid') | (o.buyer_id = v_uid)
+// @mutate supabase/migrations/20261031145652_declutter_place_hours.sql | AND t.source_id = o.id AND t.helpr_id = v_uid | AND t.source_id = o.id
 // @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql | i.status IN ('live', 'reserved') AND NOT i.seller_hidden | i.status IN ('live', 'reserved', 'paused')
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

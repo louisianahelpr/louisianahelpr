@@ -6,7 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { rpcData } from "@/lib/declutter/api";
+import { rpcData, type PickupWindow } from "@/lib/declutter/api";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** Not on the server yet (PGRST202): the place UI stays hidden and the item address applies, as before. */
@@ -26,10 +26,16 @@ export type MyPorchPlace = {
   lat: number;
   lng: number;
   weekdays: number[];
+  /** The place's own days and hours (20261031145652, LEAD-PLACE-TIMES); null before that is on the server, or when the
+   * seller has no hours anywhere. Places saved before got the seller's usual times copied on. */
+  windows?: PickupWindow[] | null;
 };
 
 /** What a buyer sees before paying: never an address or a point. */
-export type SellerPorchPlace = { id: string; label: string; area: string; weekdays: number[]; chosen: boolean };
+export type SellerPorchPlace = { id: string; label: string; area: string; weekdays: number[]; chosen: boolean; windows?: PickupWindow[] | null };
+
+/** A place as the item page and the posting summary show it (LEAD-POST-PLACES): no address. */
+export type PickupPlaceHours = { label: string; area: string; weekdays: number[]; windows?: PickupWindow[] | null };
 
 /** The place frozen on an order; address and point are null for a buyer who has not paid. */
 export type OrderPorchPlace = {
@@ -56,8 +62,10 @@ export async function saveMyPorchPlace(place: {
   lat: number;
   lng: number;
   weekdays: number[];
+  /** The place's days and hours; the server takes the days from them. */
+  windows?: PickupWindow[];
 }): Promise<string> {
-  const r = await supabase.rpc("declutter_save_porch_place", {
+  const args = {
     // A new place has no id yet: the RPC takes NULL for "add".
     p_place_id: place.id as string,
     p_label: place.label,
@@ -66,8 +74,13 @@ export async function saveMyPorchPlace(place: {
     p_lat: place.lat,
     p_lng: place.lng,
     p_weekdays: place.weekdays,
-  });
-  return rpcData(r, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+  };
+  const first = await supabase.rpc("declutter_save_porch_place", place.windows ? { ...args, p_windows: place.windows } : args);
+  // Before 20261031145652 is on the server the 8-argument call has no match (PGRST202): save the days alone, as before.
+  if (first.error?.code === "PGRST202" && place.windows) {
+    return rpcData(await supabase.rpc("declutter_save_porch_place", args), (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+  }
+  return rpcData(first, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
 }
 
 export async function deleteMyPorchPlace(id: string): Promise<string> {
@@ -93,4 +106,11 @@ export async function fetchOrderPorchPlace(orderId: string): Promise<OrderPorchP
   if (r.error && isMissingRpcNamed(r.error, "declutter_order_place")) return PORCH_PLACES_NOT_DEPLOYED;
   const rows = (rpcData(r, (e) => rpcErrorMessage("declutter_order_place", e)) ?? []) as OrderPorchPlace[];
   return rows[0] ?? null;
+}
+
+/** The seller's places for an item page (label, area, days, hours; no address). Empty when the seller has none. */
+export async function fetchItemPickupPlaces(itemId: string): Promise<PickupPlaceHours[] | typeof PORCH_PLACES_NOT_DEPLOYED> {
+  const r = await supabase.rpc("declutter_item_pickup_places", { p_item_id: itemId });
+  if (r.error && isMissingRpcNamed(r.error, "declutter_item_pickup_places")) return PORCH_PLACES_NOT_DEPLOYED;
+  return (rpcData(r, (e) => rpcErrorMessage("declutter_item_pickup_places", e)) ?? []) as PickupPlaceHours[];
 }

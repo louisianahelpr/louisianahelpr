@@ -22,6 +22,9 @@
  * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."} | {"Buyers pick one of these times. They apply to all your listings."}
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx | export const PLACE_CARD_EDGE = "dark:!border-border"; | export const PLACE_CARD_EDGE = "";
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" /> |             Edit
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |   "inline-flex min-h-11 min-w-11 items-center | "inline-flex items-center
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |       <div className="flex items-start gap-2"> |       <div className="space-y-2">
  * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "border-[hsl(var(--bark))] dark:!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
  * @mutate src/components/declutter/DeclutterHomeView.tsx | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
@@ -124,6 +127,28 @@ describe("the seller's pickup places", () => {
     expect(await screen.findByText("Place 4")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add a pickup place" })).toBeNull();
     expect(await fetchMyPorchPlaces()).toHaveLength(5); // inventory floor: the fixture really holds the cap
+  });
+
+  it("Edit and Remove are icon buttons on the right, level with the name, 44 px (LEAD-PLACE-ICONS)", async () => {
+    answers({ declutter_my_porch_places: [HOME, place(1)] });
+    wrap(<SellPorchPlaces />);
+    const edits = [await screen.findByRole("button", { name: "Edit Home" }), screen.getByRole("button", { name: "Edit Place 1" })];
+    expect(edits).toHaveLength(2); // inventory floor: one row per saved place
+    for (const name of ["Home", "Place 1"]) {
+      for (const verb of ["Edit", "Remove"]) {
+        const b = screen.getByRole("button", { name: `${verb} ${name}` });
+        expect(b.textContent).toBe(""); // icon only, no word
+        expect(b.querySelector("svg")).not.toBeNull();
+        expect(b.className).toMatch(/\bmin-h-11\b/);
+        expect(b.className).toMatch(/\bmin-w-11\b/);
+        // Same row as the name, after it (the right side), top-aligned.
+        const row = b.closest("[data-place-actions]")!.parentElement!;
+        expect(row.className).toMatch(/\bflex\b/);
+        expect(row.className).toMatch(/\bitems-start\b/);
+        expect(row.firstElementChild!.textContent).toContain(name);
+        expect(row.lastElementChild).toBe(b.closest("[data-place-actions]"));
+      }
+    }
   });
 
   it("removing asks first, then deletes that place", async () => {

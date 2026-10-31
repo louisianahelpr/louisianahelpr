@@ -8,6 +8,7 @@
 import { type ReactNode, useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
@@ -135,6 +136,9 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   );
 }
 
+const PLACE_ICON_BUTTON =
+  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }) {
   const qc = useQueryClient();
   const [asking, setAsking] = useState(false);
@@ -148,14 +152,21 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
   });
   return (
     <li className={`space-y-2 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place="">
-      <div className="min-w-0">
-        <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{place.label}</p>
-        <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{place.address}</p>
-        <p className="text-ds-13 text-muted-foreground" data-place-hours-line="">{placeHoursLine(place.windows, place.weekdays)}</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onEdit} aria-label={`Edit ${place.label}`}>Edit</Button>
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>Remove</Button>
+      {/* LEAD-PLACE-ICONS (owner 2026-10-31): Edit and Remove are icon buttons on the right, level with the name. */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{place.label}</p>
+          <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{place.address}</p>
+          <p className="text-ds-13 text-muted-foreground" data-place-hours-line="">{placeHoursLine(place.windows, place.weekdays)}</p>
+        </div>
+        <div className="-mr-2 -mt-2.5 flex shrink-0" data-place-actions="">
+          <button type="button" className={PLACE_ICON_BUTTON} onClick={onEdit} aria-label={`Edit ${place.label}`}>
+            <Pencil className="h-[18px] w-[18px]" aria-hidden="true" />
+          </button>
+          <button type="button" className={`${PLACE_ICON_BUTTON} hover:text-destructive-ink`} onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>
+            <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
+          </button>
+        </div>
       </div>
       <ConfirmSheet open={asking} onClose={() => setAsking(false)} title={`Remove ${place.label}?`}
         confirmLabel={remove.isPending ? "Removing…" : "Remove place"} cancelLabel="Keep it" pending={remove.isPending}

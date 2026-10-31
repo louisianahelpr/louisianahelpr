@@ -1395,15 +1395,19 @@ describe("D2-2: an open problem shows on both cards", () => {
     }
   });
 
+  // @mutate src/components/declutter/DeclutterProblemOpen.tsx | {side === "seller" ? reported : `${reported} Nobody | {side === "seller" ? `${reported} Your money is held until they decide.` : `${reported} Nobody
   it("the seller: the reason and who reported it, and the money is held, not 'once the sale is final'", async () => {
     state.problems = [damaged];
     state.bookings = [slot(-120)];
     state.handover = { side: "seller" };
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
-    expect(screen.getByText(/Damaged, reported by the buyer\. Your money is held until they decide\./)).toBeInTheDocument();
+    // NIGHT-BUYINGopenpr-8: the money is said held ONCE, by the money line with its amount; the note says only what
+    // was reported and by whom (it said "Your money is held until they decide." too).
+    expect(screen.getByText("Damaged, reported by the buyer.")).toBeInTheDocument();
     expect((await screen.findByText(/is held while Louisiana Helpr looks at the problem/)).textContent)
       .toBe("Your $40 is held while Louisiana Helpr looks at the problem.");
+    expect(document.body.textContent?.match(/\bheld\b/gi) ?? []).toHaveLength(1);
     expect(screen.queryByText(/once the sale is final/)).toBeNull();
     // NIGHT-BUYINGopenpr-4: nor "You're paid 24 hours after the handover" under it, while the money is held.
     expect(screen.queryByText(/You're paid 24 hours after the handover/)).toBeNull();

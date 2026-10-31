@@ -103,7 +103,7 @@ BEGIN
   PERFORM public.declutter_notify(t.helpr_id, 'declutter_pickups', 'The seller says you didn''t come',
     format('About "%s". Answer within 24 hours in Deliver, with a photo if you have one. If you don''t, you get a strike and the delivery goes to another Helpr.',
            t.title),
-    '/declutter?view=deliver', o.seller_id);
+    '/declutter?tab=deliver', o.seller_id);
   PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'The seller says the Helpr didn''t come',
     format('About %s. Your money stays held while the Helpr answers. We''ll tell you what happens next.',
            public.declutter_order_items_named(o.id)),

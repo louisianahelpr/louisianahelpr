@@ -4,10 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { mutationErrorMessage } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createSavedSearch, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
+import { createSavedSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 
 export const SAVED_SEARCHES_KEY = ["saved-searches"] as const;
 
@@ -58,7 +57,7 @@ export function SaveSearchSheet({
       setSaving(false);
       report(err, { tags: { source: "SaveSearchSheet.save" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't save your search. Please try again."));
+      toast.error(savedSearchSaveError(err, "We couldn't save your search. Please try again."));
       return;
     }
     setSaving(false);

@@ -50,6 +50,8 @@ export interface MKMap {
    *  whatever callout is open — real MapKit JS API, just not previously
    *  declared here. */
   selectedAnnotations?: MKAnnotation[];
+  /** Insets the map's controls (logo and Legal included) and every region it frames (`mapkit.Padding`). */
+  padding?: unknown;
   /** Assigned by us so MapKit can build a branded bubble for each cluster. */
   annotationForCluster?: (cluster: MKAnnotation) => MKAnnotation | undefined;
   addAnnotations: (a: MKAnnotation[]) => void;
@@ -87,6 +89,7 @@ export interface MapKitRuntime {
     options?: Record<string, unknown>,
   ) => MKOverlay;
   Style: new (options: Record<string, unknown>) => unknown;
+  Padding?: new (top: number, right: number, bottom: number, left: number) => unknown;
   Map_ColorSchemes?: never;
   FeatureVisibility?: { Hidden?: unknown; Visible?: unknown };
 }

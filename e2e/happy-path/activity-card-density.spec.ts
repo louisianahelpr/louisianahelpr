@@ -81,6 +81,14 @@ function jobsRule(rows: Row[]): MockRule {
     handle: (url) => {
       if (url.searchParams.has("offered_to_helper_id")) return { status: 200, body: [] };
       const idFilter = url.searchParams.get("id") ?? "";
+      // The job page reads ONE job by id two ways: its own maybeSingle read (one OBJECT, as PostgREST answers
+      // `Accept: vnd.pgrst.object`) and the Posted card's flows read (`.limit(1)`, a list: usePosterPageFlows).
+      // A rule cannot see the Accept header, so `limit` tells them apart.
+      if (idFilter.startsWith("eq.")) {
+        const hit = rows.filter((r) => String(r.id) === idFilter.slice(3));
+        if (url.searchParams.has("limit")) return { status: 200, body: hit };
+        return hit.length === 1 ? { status: 200, body: hit[0] } : { status: 406, body: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned", details: `The result contains ${hit.length} rows`, hint: null } };
+      }
       if (idFilter.startsWith("in.")) {
         const wanted = new Set(
           idFilter.slice(3).replace(/^\(|\)$/g, "").split(",").map((v) => v.replace(/^"|"$/g, "")),
@@ -225,53 +233,45 @@ async function openMore(page: Page) {
 }
 
 /**
- * Open ONE posted card's live controls in place.
+ * Open ONE posted job's page, where its live controls are now.
  *
- * Since boards 14/21 (train26, 2026-10-20) a Posted or Working card is a FACE
- * (MineJobFace): photo, title, date, one status line, the money and ONE button.
- * Tapping the face goes to the job page (/jobs/:id); the in-place controls
- * (tracker, step row, More) open from the face's button when it is the
- * fallback "Manage job", and from the app's own deep link
- * `?highlight=<id>&manage=1` (JobListPage -> useManageDeepLink), which is what
- * a notification uses. JobCardShell's sr-only "Expand job details" toggle is
- * gone from these cards (`expandable={false}`), so this used to wait for it and
- * fail (PR #3463's smoke run).
- *
- * The deep link is used here because on several of these fixtures the face's
- * button is the card's REAL next step (Confirm arrival, Approve and release),
- * not "Manage job". The open card is proved by its Close control, which only
- * an open face renders (MineOpenMeta), never by the gesture.
+ * Owner decision (2026-10-31, one screen): "Manage job" folded into the job page, and the Posted list's deep link
+ * `?highlight=<id>&manage=1` now redirects to /jobs/<id> (ec662e446e). So the tracker, Message, the step row and
+ * its More (No-Show, SOS, Edit) are read on the job page: the page's own buttons ([data-poster-actions], Message as
+ * the main button when nothing is due) and "More options", which opens the Posted card's own PostedJobActions in
+ * place ([data-poster-more], posterPageActions.tsx / usePosterPageFlows.tsx).
  */
-async function expandCard(page: Page, jobId: string) {
-  await page.goto(`/jobs?tab=posted&filter=all&highlight=${encodeURIComponent(jobId)}&manage=1`);
+async function openJobPage(page: Page, jobId: string) {
+  await page.goto(`/jobs/${encodeURIComponent(jobId)}`);
   await page.waitForSelector("h1");
   await settle(page);
   await dismissNudge(page);
-  await expect(page.locator("[data-mine-close]"), `card ${jobId} did not open`).toHaveCount(1);
+  await expect(page.locator("[data-poster-actions]"), `job page ${jobId} drew no poster actions`).toHaveCount(1);
+}
+
+/** The job page's "More options": the Posted card's own step controls, drawn in place under the buttons. */
+async function openMoreOptions(page: Page) {
+  await page.getByRole("button", { name: "More options" }).click();
+  const panel = page.locator("[data-poster-more]");
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
+/** "More options", then the step row's own More (when the row has one): every move the card offers is then on screen. */
+async function openEveryMove(page: Page) {
+  const panel = await openMoreOptions(page);
+  const overflow = panel.locator("[data-job-step-overflow]");
+  if (await overflow.count()) {
+    await overflow.first().click();
+    await expect(page.locator("[data-job-step-overflow-panel]")).toBeVisible();
+  }
+  return panel;
 }
 
 /** Shut the open card with its own Close (MineOpenMeta); the face comes back. */
 async function closeCard(page: Page) {
   await page.locator("[data-mine-close]").first().click();
   await expect(page.locator("[data-mine-close]")).toHaveCount(0);
-}
-
-/**
- * Open one posted card by id, read something out of it, then close it again.
- *
- * Only ONE card can be open at a time — `expandedJobId` in Activity holds a
- * single id — so a test that needs to compare a detail across two cards has to
- * visit them one at a time rather than expanding both and querying the page.
- */
-async function withCardExpanded<T>(
-  page: Page,
-  jobId: string,
-  read: () => Promise<T>,
-): Promise<T> {
-  await expandCard(page, jobId);
-  const value = await read();
-  await closeCard(page);
-  return value;
 }
 
 /** The seeded in-progress job's id: inProgressJobStarting keeps it. */
@@ -439,21 +439,18 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(1)])],
     });
-    await expandCard(page, IN_PROGRESS_ID);
-    // The card is identified by its live tracker, not by a status band: the
-    // per-card stripe was removed once the filter tabs took over saying what
-    // state a job is in. See ActivityBucket in activityFilters.ts. The tracker is
-    // THE one JobProgress (owner, 2026-10-21: "we need 1 tracker").
-    await expect(page.locator("[data-job-progress]")).toHaveCount(1);
-    // Nothing to confirm yet, so Message is the row's PRIMARY (owner rule 2026-10-21: never a greyed future
-    // step); everything else lives in More (owner, 2026-10-08) when there is anything else.
-    const row = page.locator("[data-job-step-row]").first();
-    await expect(row.locator("[data-job-step-primary]").getByRole("button", { name: /^Message\b/ })).toHaveCount(1);
-    // Before the start there is no other move at all (no More, so No-Show cannot hide in it either).
-    await expect(page.locator("[data-job-step-overflow]")).toHaveCount(0);
+    await openJobPage(page, IN_PROGRESS_ID);
+    // The job page's tracker is THE one JobProgress (owner, 2026-10-21: "we need 1 tracker").
+    await expect(page.locator("[data-job-progress]").first()).toBeVisible();
+    // Nothing to confirm yet, so Message is the page's MAIN button (never a greyed future step).
+    await expect(page.locator("[data-poster-actions]").getByRole("button", { name: /^Message\b/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Message\b/ })).toHaveCount(1);
+    // Every move the card offers, opened (More options, then the step row's own More): no No-Show before the start.
+    const moves = await openEveryMove(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
     // Share is NOT among the moves: a job that already has a helpr has nothing to advertise.
-    await expect(page.getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
+    await expect(moves.getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
+    await expect(page.locator("[data-job-step-overflow-panel]").getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/actions-2up-no-noshow-375.png` });
     await page.keyboard.press("Escape");
   });
@@ -466,8 +463,8 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await expandCard(page, IN_PROGRESS_ID);
-    await openMore(page);
+    await openJobPage(page, IN_PROGRESS_ID);
+    await openEveryMove(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-with-noshow-375.png`, fullPage: true });
 
@@ -570,7 +567,7 @@ test.describe("My Posts — card density + header", () => {
       // from now: a start already past with no arrival is a No-show on the tracker (owner 2026-10-22), not "Arr.".
       rules: [jobsRule([{ ...inProgressJobStarting(0), ...startInLouisiana(90),helper_confirmed_at: new Date(Date.now() - 86_400_000).toISOString(), helper_dayof_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), poster_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), helper_on_the_way_at: new Date().toISOString() }])],
     });
-    await expandCard(page, IN_PROGRESS_ID);
+    await openJobPage(page, IN_PROGRESS_ID);
 
     // ONE tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps 2026-10-22): chat, the job page and both
     // cards draw JobProgress, Posted · Offered · Hired · Confirmed · On the way · Arrived · Working · Done, in
@@ -635,17 +632,12 @@ test.describe("My Posts — card density + header", () => {
         { ...base, id: "job-msg-done", title: "Tracker colour B", helper_completed_at: new Date().toISOString() },
       ])],
     });
-    await page.goto("/jobs?tab=posted&filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-    await dismissNudge(page);
-
-    // One card at a time. Posted cards open collapsed and `expandedJobId` holds
-    // a single id, so the two rows cannot be on screen together any more — the
-    // colours are sampled in turn instead. The contract is unchanged: the same
-    // control, on a job whose helpr has finished and on one whose has not, is
-    // the same colour.
-    const readMessageColour = async () => {
+    // One job page at a time (owner 2026-10-31: Manage job is the job page now). The contract is unchanged: the
+    // card's own Message control, under More options, is the same colour on a job whose helpr has finished and on
+    // one whose has not.
+    const readMessageColour = async (jobId: string) => {
+      await openJobPage(page, jobId);
+      await openMoreOptions(page);
       const panel = await openMore(page);
       const btn = panel.getByRole("button", { name: "Message Helpr" });
       await expect(btn).toHaveCount(1);
@@ -653,12 +645,13 @@ test.describe("My Posts — card density + header", () => {
       await page.keyboard.press("Escape");
       return colour;
     };
-    const colourA = await withCardExpanded(page, "job-msg-plain", readMessageColour);
-    const colourB = await withCardExpanded(page, "job-msg-done", readMessageColour);
+    const colourA = await readMessageColour("job-msg-plain");
+    const colourB = await readMessageColour("job-msg-done");
     expect(colourA, `Message renders ${colourA} vs ${colourB}`).toBe(colourB);
 
-    // Re-open the first card for the order assertions below.
-    await expandCard(page, "job-msg-plain");
+    // The first job's page again for the order assertions below.
+    await openJobPage(page, "job-msg-plain");
+    await openMoreOptions(page);
 
     // The first card's row: Message and More. SOS sat first until
     // 2026-10-01, when the owner moved it (with Report a Problem / Dispute)
@@ -701,10 +694,10 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await expandCard(page, IN_PROGRESS_ID);
+    await openJobPage(page, IN_PROGRESS_ID);
 
-    // Message is the row's primary while nothing is confirmable (owner rule 2026-10-21).
-    await page.locator("[data-job-step-primary]").getByRole("button", { name: /^Message\b/ }).first().click();
+    // Message is the job page's main button while nothing is confirmable (owner rule 2026-10-21).
+    await page.getByRole("button", { name: /^Message\b/ }).first().click();
     await page.waitForURL(/\/messages\?/);
     const url = new URL(page.url());
     // Landing on the bare list — the old behaviour — leaves both params null.
@@ -730,15 +723,13 @@ test.describe("My Posts — card density + header", () => {
     // Only the open job: the default seed includes an overdue
     // revision_requested card that does not render Edit (only "open" cards do).
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
-    await expandCard(page, String(SEED_JOBS[0].id));
+    const openId = String(SEED_JOBS[0].id);
+    await openJobPage(page, openId);
 
-    // Edit — the one of the four that opens something we can assert on.
-    // The row is below the fold on a 375pt card, and this page is a fixed
-    // 100dvh shell, so bring it into view rather than expecting it to be there.
-    // Edit lives in More (owner, 2026-10-08); the More tap must not toggle either.
-    const panel = await openMore(page);
-    const edit = panel.locator("button").filter({ hasText: /^Edit$/ }).first();
-    await expect(edit).toBeAttached();
+    // Edit — the one that opens something we can assert on. On the job page (owner 2026-10-31: Manage job is the
+    // job page) it is the page's own "Edit job", which runs the Posted card's own edit flow (usePosterPageFlows).
+    const edit = page.locator("[data-poster-actions]").getByRole("button", { name: "Edit job" });
+    await expect(edit).toBeEnabled();
     await edit.click();
 
     // The action happened...
@@ -776,8 +767,9 @@ test.describe("My Posts — card density + header", () => {
       await discard.first().click({ timeout: 1500 }).catch(() => {});
     }
     await expect(modal).toHaveCount(0);
-    // Still open: the open face's Close is still there (MineOpenMeta).
-    await expect(page.locator("[data-mine-close]")).toHaveCount(1);
+    // The page underneath did not move or fold: same job page, its actions still there.
+    await expect(page).toHaveURL(new RegExp(`/jobs/${openId}$`));
+    await expect(page.locator("[data-poster-actions]")).toHaveCount(1);
   });
 
   test("the card face is a link to its job page, and no card carries the retired sr-only toggle", async ({ page, context, baseURL }) => {

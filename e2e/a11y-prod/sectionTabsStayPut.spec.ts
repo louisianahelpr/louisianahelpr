@@ -19,7 +19,9 @@
 // Read-only against prod: the poster account is signed in and looked at.
 
 import { test, expect, type Browser, type Page } from "../prodTest";
-import { AUTH_STORAGE_KEY, getSession, sessionAvailable, type Session } from "../journeys/fixtures";
+import { AUTH_STORAGE_KEY, SUPABASE_URL, getSession, sessionAvailable, type Session } from "../journeys/fixtures";
+import { OUTPUT_DIR } from "../happy-path/sweepCore";
+import { abortProdWrites } from "./abortProdWrites";
 import { SECTION_TAB_SCREENS } from "./sectionTabScreens";
 
 const VIEWPORTS = [
@@ -29,6 +31,8 @@ const VIEWPORTS = [
 
 async function open(browser: Browser, session: Session, viewport: { width: number; height: number }, path: string): Promise<Page> {
   const ctx = await browser.newContext({ serviceWorkers: "block", viewport });
+  // Read-only by construction: every request that could write prod is aborted and logged.
+  await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR);
   await ctx.addInitScript(({ key, val }) => {
     try { window.localStorage.setItem(key, val); } catch { /* storage blocked: the screen renders signed out and the tablist wait below fails loudly */ }
   }, { key: AUTH_STORAGE_KEY, val: JSON.stringify(session) });

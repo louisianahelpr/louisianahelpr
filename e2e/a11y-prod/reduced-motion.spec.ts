@@ -40,8 +40,9 @@
 
 import { test, expect, type Browser, type BrowserContext, type Page } from "../prodTest";
 import { ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";
-import { inScope } from "../happy-path/sweepCore";
+import { OUTPUT_DIR, inScope } from "../happy-path/sweepCore";
 import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, sessionAvailable, type Session } from "../journeys/fixtures";
+import { abortProdWrites } from "./abortProdWrites";
 
 /** A finite animation shorter than this is "~0" (the catch-all sets 0.01ms). */
 const MAX_MS = 20;
@@ -66,6 +67,8 @@ async function motionContext(
   reducedMotion: "reduce" | "no-preference",
 ): Promise<BrowserContext> {
   const ctx = await browser.newContext({ serviceWorkers: "block", viewport, reducedMotion });
+  // Read-only by construction: every request that could write prod is aborted and logged.
+  await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR);
   await ctx.addInitScript(
     ({ key, val }) => {
       try {

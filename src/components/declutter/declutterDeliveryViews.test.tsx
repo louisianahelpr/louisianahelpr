@@ -4,13 +4,13 @@
  * The shared task module's calls are stubbed; the backend proof is
  * src/test/pglite/declutterDelivery.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); |   const canConfirm = v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null);
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); | v.status === "picked_up");
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && buyerMayConfirm(v)\n | \n  const canConfirm = buyerMayConfirm(v)\n
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | (v.status === "picked_up" && (collecting \|\| stillInHandLine(who, v.picked_up_at) !== null))); | v.status === "picked_up");
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Tapping I got it finishes the sale: the Helpr and the seller are paid. | Tapping I got it pays the Helpr.
  * BUY-45: a failed or cancelled delivery says which, never only "This delivery was closed."
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "failed") { |   } else if (v.status === "failed_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "cancelled") { |   } else if (v.status === "cancelled_never") {
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && !v.stuck_stage && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
@@ -51,6 +51,8 @@ vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
 }));
 // Q2435: the Busy right now card reads the Browse map's jobs and loads MapKit; not what this file tests.
 vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => null }));
+// BUY-36: the corrected-address field loads MapKit (mapkit-token); its search is not under test here.
+vi.mock("@/components/postjob/AddressAutocomplete", () => ({ AddressAutocomplete: () => null }));
 const position = { off: false };
 vi.mock("@/lib/declutter/position", () => ({
   currentPosition: async () => {
@@ -552,7 +554,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, role: "helpr", status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", problem_open: false };
     show(<DeliverView />);
     fireEvent.click(await screen.findByRole("button", { name: "I can't deliver this" }));
-    const sheet = await screen.findByTestId("delivery-cant-finish");
+    const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-cant-finish"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     fireEvent.click(within(sheet).getByRole("radio", { name: "My vehicle, or I can't finish" }));
     expect(within(sheet).getByText(/You aren't paid, and it's a delivery strike\./)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
@@ -572,7 +574,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, role: "pickup_contact", status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returned", stuck_fault: "helpr", return_answer_by: "2026-10-31T12:00:00Z", problem_open: false };
     const seller = show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
     fireEvent.click(await screen.findByRole("button", { name: "I have it back" }));
-    const sheet = await screen.findByTestId("delivery-return-back");
+    const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-return-back"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     fireEvent.click(within(sheet).getByRole("button", { name: "I have it back" }));
     await waitFor(() => expect(state.calls).toContainEqual(["return_answer", "t1", true, ""]));
     seller.unmount();
@@ -586,7 +588,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returning", stuck_fault: "helpr", stuck_return_by: "2026-11-01T12:00:00Z", problem_open: false };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Refund me in full" }));
-    const sheet = await screen.findByTestId("delivery-cant-finish-choice");
+    const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-cant-finish-choice"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     expect(within(sheet).getByText(/All of your money comes back, delivery included/)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Refund me" }));
     await waitFor(() => expect(state.calls).toContainEqual(["buyer_choose", "t1", "refund", ""]));

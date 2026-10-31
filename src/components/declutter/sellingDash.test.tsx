@@ -364,6 +364,31 @@ describe("Selling tab: Taken down, with Relist", () => {
     expect(chip.textContent).toBe(`Listed · ${rows}`);
   });
 
+  // NIGHT-SELL-Sellinglist-4 (night audit 2026-10-30, list-375-01-top.png): at 375 one listing's title was cut on one
+  // line while View, See what buyers see and Manage wrapped to two rows. The title takes two lines, the row opens
+  // the item (a draft's opens Finish listing), and View is a button only from sm up.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}> | <p className="truncate text-ds-15 font-semibold" title={item.title}>
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | className="hidden sm:inline-flex" data-listing-view="" | data-listing-view=""
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
+  it("a listing row: the title takes two lines, the row opens the item, View is off on phones (Sellinglist-4)", async () => {
+    state.mine = [ITEM, { ...ITEM, id: "d1", status: "draft", title: "Half-done lamp" }];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Half-done lamp");
+    const rows = Array.from(container.querySelectorAll("[data-listing-row]"));
+    expect(rows).toHaveLength(2);
+    for (const r of rows) {
+      const title = r.querySelector("[data-listing-open] p") as HTMLElement;
+      expect(title.className).toContain("line-clamp-2");
+      expect(title.className).not.toContain("truncate");
+    }
+    const open = (title: string) => (screen.getByText(title).closest("[data-listing-open]") as HTMLAnchorElement).getAttribute("href");
+    expect(open("Oak rocking chair")).toBe(`/declutter/item/${ITEM.id}`);
+    expect(open("Half-done lamp")).toBe("/declutter/sell?item=d1");
+    const view = container.querySelector("[data-listing-view]") as HTMLElement;
+    expect(view.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "sm:inline-flex"]));
+    expect(view.className.split(/\s+/)).not.toContain("inline-flex");
+  });
+
   it("no 'Taken down' chip or group while nothing is taken down", async () => {
     state.mine = [ITEM];
     const { container } = at("/declutter?tab=selling");

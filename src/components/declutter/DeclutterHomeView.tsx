@@ -297,10 +297,17 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              {/* NIGHT-SELL-Sellinglist-4 (night audit 2026-10-30, list-375-01-top.png): at 375 the title was cut on one line
+                  while three buttons wrapped to two rows. The title takes two lines, and the row itself opens the item
+                  (a draft's opens Finish listing), so View is only a button from sm up. */}
+              <Link
+                to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                data-listing-open=""
+              >
                 <ListingThumb path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-ds-15 font-semibold" title={item.title}>{item.title}</p>
+                  <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
                   <p
                     data-listing-status={item.status}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
@@ -309,7 +316,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   </p>
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
-              </div>
+              </Link>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
@@ -320,7 +327,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>
                 ) : (
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex" data-listing-view="">
                     <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
                   </Button>
                 )}

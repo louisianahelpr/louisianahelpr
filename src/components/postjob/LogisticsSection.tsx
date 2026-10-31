@@ -15,7 +15,7 @@ import { jobStartTimeLabel, todayYmd } from "@/lib/jobDate";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { dayStrip, TIME_CHIPS, timeChipOf } from "@/components/postjob/whenChoices";
-import type { SavedAddress } from "@/pages/post-job/useSavedJobAddress";
+import { samePlace as sameAddress, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { formatPriceExact } from "@/lib/format";
 import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
 
@@ -125,13 +125,11 @@ interface LogisticsSectionProps {
   /** Board 45's saved address (the poster's last full job address), or null
    *  when there is none; the WHERE radio only shows when there is one. */
   savedAddress?: SavedAddress | null;
+  /** GROW-4: the poster's other places (earlier jobs), newest first; each is one more WHERE card. */
+  otherSavedAddresses?: SavedAddress[];
 }
 
-/** Same address, ignoring case, spacing and a ZIP+4 tail. */
-function sameAddress(a: { streetAddress: string; city: string; zipCode: string }, b: SavedAddress): boolean {
-  const n = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
-  return n(a.streetAddress) === n(b.streetAddress) && n(a.city) === n(b.city) && a.zipCode.replace(/\D/g, "").slice(0, 5) === b.zipCode.replace(/\D/g, "").slice(0, 5);
-}
+const NO_OTHER_PLACES: SavedAddress[] = [];
 
 // Categories where it's common for posters to provide their own paint /
 // parts / supplies. The "Materials" toggle only renders for these — for
@@ -185,6 +183,7 @@ export function LogisticsSection({
   materialsNote,
   setMaterialsNote,
   savedAddress = null,
+  otherSavedAddresses = NO_OTHER_PLACES,
 }: LogisticsSectionProps) {
   const materialsToggleRelevant =
     !!category && MATERIALS_RELEVANT_CATEGORIES.has(category);
@@ -240,16 +239,20 @@ export function LogisticsSection({
     }
     // Once, when the saved address first arrives; never again over the poster's own typing.
   }, [savedAddress]);
-  const onSaved = !!savedAddress && !whereElse && sameAddress({ streetAddress, city, zipCode }, savedAddress);
+  // GROW-4: the newest place first, then the poster's other places (a rebook for another property is one tap).
+  const places = savedAddress ? [savedAddress, ...otherSavedAddresses] : NO_OTHER_PLACES;
+  const placeIndex = whereElse ? -1 : places.findIndex((p) => sameAddress({ streetAddress, city, zipCode }, p));
+  const onSaved = placeIndex >= 0;
   const chooseWhere = (v: string) => {
     if (!savedAddress) return;
-    if (v === "saved") {
+    const picked = v === "saved" ? savedAddress : /^saved-\d+$/.test(v) ? places[Number(v.slice(6))] : undefined;
+    if (picked) {
       setWhereElse(false);
-      applySaved(savedAddress);
+      applySaved(picked);
       return;
     }
     setWhereElse(true);
-    if (sameAddress({ streetAddress, city, zipCode }, savedAddress)) {
+    if (places.some((p) => sameAddress({ streetAddress, city, zipCode }, p))) {
       setStreetAddress("");
       setZipCode("");
       setCity("");
@@ -506,9 +509,10 @@ export function LogisticsSection({
             label="Where"
             options={[
               { value: "saved", label: savedAddress.streetAddress, sub: `${savedAddress.city} · from your last job` },
+              ...otherSavedAddresses.map((p, i) => ({ value: `saved-${i + 1}`, label: p.streetAddress, sub: `${p.city} · from an earlier job` })),
               { value: "else", label: "Somewhere else", sub: "Add an address" },
             ]}
-            value={onSaved ? "saved" : "else"}
+            value={placeIndex === 0 ? "saved" : placeIndex > 0 ? `saved-${placeIndex}` : "else"}
             onChange={(v) => chooseWhere(v)}
           />
         )}

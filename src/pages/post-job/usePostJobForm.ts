@@ -89,7 +89,7 @@ export function usePostJobForm() {
   const giftCardId = searchParams.get("gift_card");
   const giftCard = usePostJobGiftCard(giftCardId);
   // Board 45's WHERE radio: the poster's last full job address, or null.
-  const savedAddress = useSavedJobAddress();
+  const { savedAddress, otherSavedAddresses } = useSavedJobAddress();
 
   // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.
   //
@@ -639,6 +639,7 @@ export function usePostJobForm() {
     zipCode,
     setZipCode,
     savedAddress,
+    otherSavedAddresses,
     // Resolved from the zip by useJobFormEffects. Exposed because the checkout
     // summary quotes the parish's real sales-tax rate from `parish_tax_rates`
     // (it used to be passed as a hardcoded `null` and the rate was invented).

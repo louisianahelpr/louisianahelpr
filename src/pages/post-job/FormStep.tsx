@@ -386,6 +386,7 @@ export function FormStep({ form }: FormStepProps) {
             materialsNote={form.materialsNote}
             setMaterialsNote={form.setMaterialsNote}
             savedAddress={form.savedAddress}
+            otherSavedAddresses={form.otherSavedAddresses}
           />
         </div>
 

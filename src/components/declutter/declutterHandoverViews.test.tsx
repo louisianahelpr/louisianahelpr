@@ -522,11 +522,16 @@ describe("Declutter slice 4: paid-order cards", () => {
     const boxes = (el: Element): Element[] => (getComputedStyle(el).display === "contents" ? [...el.children].flatMap(boxes) : [el]);
     let checked = 0;
     // 5 minutes in: "I got it" / "Picked up" then "Report a problem"; 16 minutes in, "They didn't show" joins them.
-    for (const [side, minsIn] of [["buyer", 5], ["buyer", 16], ["seller", 5], ["seller", 16]] as const) {
+    // LEAD-VACUOUS2: once the seller has said "Picked up" the buyer has no "They didn't show", so "I got it" sits right
+    // above "Report a problem": the one state where "I got it"'s own block is what keeps them apart.
+    const sellerSaid = { seller_confirmed_at: new Date().toISOString() };
+    for (const [side, minsIn, handover] of [["buyer", 5, null], ["buyer", 16, null], ["buyer", 16, sellerSaid], ["seller", 5, null], ["seller", 16, null]] as const) {
       state.bookings = [slot(minsIn)];
+      state.handover = handover;
       const { unmount } = show([line({ my_side: side })]);
       await screen.findByRole("button", { name: side === "buyer" ? "I got it" : "Picked up" });
-      if (minsIn > 15) await screen.findByRole("button", { name: "They didn't show" });
+      if (minsIn > 15) await screen.findByRole("button", { name: handover ? "Report a problem" : "They didn't show" });
+      if (handover) expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
       const body = document.querySelector("[data-order-body]")!;
       const kids = [...body.children].flatMap(boxes);
       kids.forEach((el, i) => {

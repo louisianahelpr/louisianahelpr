@@ -10,6 +10,8 @@
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '24 hours', updated_at = now() | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '72 hours', updated_at = now()
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql |           PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,\n            'The seller said | PERFORM public.helpr_task_log(t.id, 'helpr_no_show', t.helpr_id,\n            'The seller said
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql | VALUES (o.id, v_uid, 'helpr', 'no_show', btrim(p_note), | VALUES (o.id, v_uid, 'seller', 'no_show', btrim(p_note),
+ * LEAD-BUY44 (20261031140431): the seller is told Delivered. Behaviour: src/test/pglite/helprDeliverySellerToldDelivered.pglite.mjs.
+ * @mutate supabase/migrations/20261031140431_helpr_delivery_seller_told_delivered.sql |     PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Delivered',
  */
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
@@ -51,5 +53,13 @@ describe("soldstates-5: the seller's 'The Helpr didn't come'", () => {
   it("the Helpr's answer is the Helpr's problem, so the admin can't 'Pay the seller' for an item that never left", () => {
     expect(flat("declutter_helpr_answer_no_show")).toContain("VALUES (o.id, v_uid, 'helpr', 'no_show', btrim(p_note),");
     expect(flat("declutter_admin_decide_problem")).toContain("IF p_decision = 'pay_seller' AND p.reporter_side = 'helpr' THEN");
+  });
+});
+
+describe("LEAD-BUY44: the seller hears a Helpr delivery was delivered", () => {
+  it("the 'delivered' step tells the seller, naming the item, opening Selling", () => {
+    expect(newestFunction("declutter_delivery_on_task_event").file).toContain("20261031140431");
+    expect(flat("declutter_delivery_on_task_event")).toContain(
+      "PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', format('The Helpr left %s at the buyer''s address.");
   });
 });

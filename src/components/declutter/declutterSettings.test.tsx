@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       if (!done) {\n        toast.error("We couldn't save your listing defaults yet. Try again in a little while.");\n        return;\n      }\n |
- * @mutate src/components/declutter/DeclutterListingDefaults.tsx | disabled={save.isPending \|\| noWay \|\| same(draft, base)} | disabled={save.isPending \|\| same(draft, base)}
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx | disabled={save.isPending \|\| noWay \|\| !unsaved} | disabled={save.isPending \|\| !unsaved}
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | return [...new Set([...FLOOR_CHOICES, current])].sort | return [...FLOOR_CHOICES].sort
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       qc.setQueryData(["declutter", "seller-defaults", userId], draft);\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" \|\| sellerDeliveryOpen); | const shown = SELLER_WAYS;

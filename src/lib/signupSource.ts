@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { safeStorage } from "@/lib/safeStorage";
 import { signupLeadSource } from "@/lib/signupLead";
 
@@ -78,7 +79,7 @@ export async function reportSignupSource(userId: string): Promise<void> {
       p_campaign: touch.campaign ?? undefined,
     });
     if (error) {
-      if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });
+      if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });
       return;
     }
     safeStorage.setItem(SENT_KEY, userId);

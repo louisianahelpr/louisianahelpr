@@ -10,8 +10,8 @@
  * @mutate src/lib/signupSource.ts | /\d{7,}/.test(word.replace(/\D/g, "")) | /\d{7,}/.test(word)
  * @mutate src/lib/signupSource.ts | rawTag && clean(rawTag) === null ? null : | false ? null :
  * @mutate src/lib/signupSource.ts |   if (safeStorage.getItem(SENT_KEY) === userId) return; |
- * @mutate src/lib/signupSource.ts |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });\n      return; |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });
- * @mutate src/lib/signupSource.ts |       if (error.code !== "PGRST202") report | if (false) report
+ * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });\n      return; |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });
+ * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report | if (false) report
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

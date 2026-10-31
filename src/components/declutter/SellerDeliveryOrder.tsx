@@ -153,7 +153,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           </div>
         </div>
       )}
-      {can.markDelivered && (
+      {can.markDelivered && !noShowWaiting && (
         <div className="space-y-2">
           <label htmlFor={fileId} className="block text-xs font-medium">
             {b.handoff === "leave" ? "Photo of the items at the buyer's door (needed, taken there)" : "Photo of the handover (optional, taken at the buyer's address)"}
@@ -167,7 +167,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
       <div className="flex flex-wrap gap-2">
         {can.gotIt && !problemOpen && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {can.askNewTime && !noShowWaiting && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
-        {can.notDelivered && (
+        {can.notDelivered && !noShowWaiting && (
           <button type="button" className={btn} disabled={busy}
             onClick={() => setAsk("notDelivered")}>
             It wasn't delivered

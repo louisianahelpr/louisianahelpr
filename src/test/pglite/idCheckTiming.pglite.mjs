@@ -190,6 +190,26 @@ if (await fn("poster_cancel_job")) {
   ok("a verified Helpr keeps the fee", Number(v.cancellation_fee) === 25, JSON.stringify(v));
   const o = (await one(`SELECT public.poster_cancel_job('${JOB_OTW}') r`)).r;
   ok("a Helpr already on the way keeps the fee", Number(o.cancellation_fee) === 25, JSON.stringify(o));
+  // A crew: per member. Unverified and not on the way costs nothing; verified, or already on the way, keeps the ladder.
+  await as(null);
+  const JOB_CREW = id(16);
+  const OTW_MEMBER = id(9);
+  await db.exec(`
+    INSERT INTO public.profiles (user_id, idv_status) VALUES ('${OTW_MEMBER}', 'not_started');
+    INSERT INTO public.jobs (id, title, budget, date_needed, start_time, customer_id, status, payment_status, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed)
+      VALUES ('${JOB_CREW}', 'Crew', 300, (now() + interval '5 hours')::date, (now() + interval '5 hours')::time, '${POSTER}', 'accepted', 'escrow', 5, 70, true, 3);
+    INSERT INTO public.group_job_helpers (job_id, helper_id, joined_at, share_cents, helper_confirmed_at, helper_on_the_way_at) VALUES
+      ('${JOB_CREW}', '${PLAIN}', now(), 10000, now(), NULL),
+      ('${JOB_CREW}', '${VERIFIED}', now(), 10000, now(), NULL),
+      ('${JOB_CREW}', '${OTW_MEMBER}', now(), 10000, now(), now());`);
+  await as(POSTER);
+  const crew = (await one(`SELECT public.poster_cancel_job('${JOB_CREW}') r`)).r;
+  const share = async (u) => one(`SELECT committed, share_amount, fee_percent FROM public.crew_cancellation_fee_shares WHERE job_id='${JOB_CREW}' AND helper_id='${u}'`);
+  const plainShare = await share(PLAIN);
+  ok("crew: the unverified member not on the way gets no fee", plainShare.committed === false && Number(plainShare.share_amount) === 0, JSON.stringify(plainShare));
+  ok("crew: a verified member keeps the ladder", Number((await share(VERIFIED)).share_amount) === 25);
+  ok("crew: an unverified member already on the way keeps the ladder", Number((await share(OTW_MEMBER)).share_amount) === 25);
+  ok("crew: the poster's fee is exactly the two who keep it", Number(crew.cancellation_fee) === 50, JSON.stringify(crew));
   await as(null);
 } else ok("poster_cancel_job exists", false);
 

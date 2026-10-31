@@ -46,6 +46,67 @@ function seedFreshHelper() {
   };
 }
 
+// Owner 2026-10-30: the 16 members Stripe verified and a reset wiped. Asking Stripe restores them, with no new
+// session (never billed twice), only for THIS member's own session.
+// @mutate supabase/functions/stripe-idv-start/index.ts | if (stored.status === "verified" && stored.metadata?.user_id === user.id) { | if (stored.status === "verified") {
+// @mutate supabase/functions/stripe-idv-start/index.ts | if (profile?.idv_session_id && profile.idv_status === "not_started") { | if (false) {
+describe("stripe-idv-start restores a check Stripe already verified", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  const seedReset = () => {
+    scenario.authUser = USER;
+    scenario.reads.profiles = { rows: [{ idv_status: "not_started", idv_session_id: "vs_old", full_name: "Dana R" }] };
+    scenario.rpc.is_identity_verified = false;
+    scenario.writeSelectRows.profiles = [{ user_id: USER.id }];
+    scenario.rpc.claim_idv_attempt = { claimed: false, reason: "attempt_cap" };
+  };
+  const restores = () =>
+    scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" && (w.payload as Record<string, unknown>).idv_status === "verified");
+
+  it("verified at Stripe for this member: recorded, no new session, no attempt spent", async () => {
+    seedReset();
+    stripeMock.identity.verificationSessions.retrieve.mockResolvedValue({ id: "vs_old", status: "verified", metadata: { user_id: USER.id } });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).alreadyVerified).toBe(true);
+    expect(restores()).toHaveLength(1);
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
+    expect((scenario.rpcCalls ?? []).filter((c) => c.name === "claim_idv_attempt")).toHaveLength(0);
+  });
+
+  it("verified for ANOTHER member's id: nothing is restored", async () => {
+    seedReset();
+    stripeMock.identity.verificationSessions.retrieve.mockResolvedValue({ id: "vs_old", status: "verified", metadata: { user_id: "someone-else" } });
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+    expect(restores()).toHaveLength(0);
+  });
+
+  it("not verified at Stripe: nothing is restored", async () => {
+    seedReset();
+    stripeMock.identity.verificationSessions.retrieve.mockResolvedValue({ id: "vs_old", status: "canceled", metadata: { user_id: USER.id } });
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+    expect(restores()).toHaveLength(0);
+  });
+
+  it("Stripe unreadable: 503, nothing restored, no new session", async () => {
+    seedReset();
+    stripeMock.identity.verificationSessions.retrieve.mockRejectedValue(Object.assign(new Error("boom"), { statusCode: 500 }));
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+    expect(res.status).toBe(503);
+    expect(restores()).toHaveLength(0);
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
+  });
+});
+
 describe("stripe-idv-start cost guard", () => {
   beforeEach(() => {
     resetEnv();

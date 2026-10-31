@@ -3,7 +3,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
-import { loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { CONNECT_HOLD_SPLIT_ERROR } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../_shared/refundRequestHold.ts";
@@ -568,6 +568,25 @@ serve(async (req) => {
                   if (heldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
                 }
                 stuck = stuck.filter((row) => !heldIds.has(row.id as string));
+                // A split waiting on the Helpr's ID (owner 2026-10-30) records the same error with no
+                // payout_holds row: nothing moved, so set aside while the ID is still outstanding. Asked
+                // per Helpr, FAIL CLOSED: an unreadable answer exempts nothing. Verified since: it pages, as a lifted hold does.
+                const idWaiting = new Map<string, boolean>();
+                const idHeldIds = new Set<string>();
+                for (const row of holdCandidates) {
+                  if (!stuck.includes(row)) continue;
+                  const helper = helperByJob.get(row.job_id as string) as string;
+                  if (!idWaiting.has(helper)) {
+                    const idHold = await checkIdentityHold(supabase, helper);
+                    if (idHold.kind === "error") defects.record(`stuck split ID check read: ${idHold.message}`);
+                    idWaiting.set(helper, idHold.kind === "waits");
+                  }
+                  if (idWaiting.get(helper)) idHeldIds.add(row.id as string);
+                }
+                for (const row of stuck) {
+                  if (idHeldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+                }
+                stuck = stuck.filter((row) => !idHeldIds.has(row.id as string));
               }
             }
 

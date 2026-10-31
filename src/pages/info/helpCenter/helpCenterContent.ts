@@ -109,6 +109,8 @@ export const TOPICS: { label: string; desc: string }[] = [
 interface FaqItem {
   q: string;
   a: string;
+  /** The answer while the ID check switch is on for this member (owner 2026-10-30): `a` stays what they read until then. */
+  aWhenIdCheckOn?: string;
 }
 
 export interface FaqSection {
@@ -129,7 +131,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // that after writing a job post is the worst moment to learn it. There is no
         // approval from our team any more (Q193: every signup is
         // auto-approved), so the answer no longer promises one.
-        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy or take a delivery.",
+        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early.",
+        aWhenIdCheckOn: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy, claim a free item or take a delivery.",
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",

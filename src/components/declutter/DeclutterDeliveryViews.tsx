@@ -12,6 +12,7 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
+import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
@@ -150,7 +151,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else if (v.status === "picked_up") {
     // Audit 1c #1: without the seller's "Handed over" the seller reads it as the Helpr's word.
     line = side === "buyer"
-      ? `${who} has your item and is on the way.`
+      ? stillInHandLine(who, v.picked_up_at) ?? `${who} has your item and is on the way.`
       : v.handed_over_at
         ? `${who} picked it up. You're paid when the buyer has it.`
         : `${who} says it was picked up. You're paid when the buyer has it. If you didn't hand it over, report a problem.`;

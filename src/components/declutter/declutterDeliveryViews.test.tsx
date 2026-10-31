@@ -7,6 +7,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
+ * @mutate src/lib/declutter/stillInHand.ts | Date.now() - new Date(pickedUpAt).getTime() < STILL_IN_HAND_MS | Date.now() > 0
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -454,6 +455,18 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Handed over" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["handed_over", "t1"]));
+  });
+
+  it("BUY-37: on the way until 24 hours after pickup, then it says plainly that it isn't marked delivered", async () => {
+    const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+    state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(23), helpr_first_name: "Hank" };
+    const { unmount } = show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("Hank has your item and is on the way.")).toBeInTheDocument();
+    unmount();
+    state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(25), helpr_first_name: "Hank" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText(/Hank picked it up .* and hasn't marked it delivered\. If you have it, tap "I got it"\. If not, report a problem\./)).toBeInTheDocument();
+    expect(screen.queryByText(/is on the way/)).toBeNull();
   });
 
   it("audit 1c #1: a pickup the seller never confirmed reads \"says it was picked up\" to the seller", async () => {

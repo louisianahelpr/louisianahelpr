@@ -103,6 +103,30 @@ serve(async (req) => {
       });
     }
 
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    // Made once, and only when needed. A test account's alerts are seed alerts
+    // (review of 9c498193ff #4): the digest, never the owner's phone.
+    let client: { stripe: Stripe; seed: boolean } | null = null;
+    const stripeFor = async () => {
+      if (!client) {
+        const mode = await stripeModeForParties(supabaseAdmin, [user.id]);
+        client = { stripe: new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" }), seed: mode === "test" };
+      }
+      return client;
+    };
+
+    // Jobs audit 54a: a fee from an attempt that ended without a payout goes back
+    // BEFORE the balance is read, so this quote and any new attempt are worked out
+    // on the Helpr's real balance. If it cannot go back yet, nothing new starts.
+    // A repeat is safe (fixed key per attempt). settle catches per row and fails
+    // closed on an unreadable row, so nothing here turns into a fresh fee.
+    // Review of 9c498193ff #1: BEFORE the hold and membership gates. The money is
+    // the Helpr's own and goes back into their balance; a gate that refuses a new
+    // cash-out (memberships off: everyone) must not keep it. The answer is given
+    // after the gates, so a held or switched-off account still reads why.
+    const unsettled = await settleUnreturnedInstantFees(stripeFor, supabaseAdmin, user.id, profile.stripe_account_id);
+
     // Payout hold (Q764), for BOTH quote and execute. The balance is already
     // in this person's Connect account; an instant payout sends it on to their
     // bank, where it can no longer be reversed. While an admin holds their
@@ -175,18 +199,7 @@ serve(async (req) => {
       );
     }
 
-    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
-    // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    // Jobs audit 54a: a fee from an attempt that ended without a payout goes back
-    // BEFORE the balance is read, so this quote and any new attempt are worked out
-    // on the Helpr's real balance. If it cannot go back yet, nothing new starts.
-    // A repeat is safe (fixed key per attempt). settle catches per row and fails
-    // closed on an unreadable row, so nothing here turns into a fresh fee.
-    const unsettled = await settleUnreturnedInstantFees(stripe, supabaseAdmin, user.id, profile.stripe_account_id);
+    const { stripe, seed } = await stripeFor();
     if (unsettled.kind === "owed") return feeStillOwedResponse();
 
     // Check instant-available balance on the connected account
@@ -365,6 +378,7 @@ serve(async (req) => {
           // ME-015: same write-only marker as the transfer-failure branch below,
           // which alerts; this one only logged.
           await postSlackOpsAlert({
+            seed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Instant-payout fee NOT collected",
@@ -452,6 +466,7 @@ serve(async (req) => {
           // forever. Surface it so someone can either collect it or fix the
           // Connect setup that caused it.
           await postSlackOpsAlert({
+            seed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Instant-payout fee NOT collected",
@@ -522,6 +537,7 @@ serve(async (req) => {
             `While it stays 'pending', helper ${user.id} cannot start another instant payout.`,
         );
         await postSlackOpsAlert({
+          seed,
           kind: "payout_failed",
           severity: "critical",
           title: "Instant payout sent but the record was not completed",
@@ -588,6 +604,7 @@ serve(async (req) => {
             `Helper ${user.id} is locked out of instant payouts while it stays 'pending'.`,
         );
         await postSlackOpsAlert({
+          seed,
           kind: "payout_failed",
           severity: "critical",
           title: "Instant payout failed AND its record could not be marked failed",
@@ -621,6 +638,7 @@ serve(async (req) => {
           const returnMsg = returnErr instanceof Error ? returnErr.message : String(returnErr);
           console.error(`[instant-payout] fee return failed for ${record.id}: ${returnMsg}`);
           await postSlackOpsAlert({
+            seed,
             kind: "money_at_risk",
             severity: "critical",
             title: "Instant-payout fee taken but the payout failed",

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { SellerHandedOver } from "./SellerHandedOver";
+import { HelprNoShowAnswer, HelprNoShowReportButton } from "./DeclutterNoHelpr";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
@@ -209,6 +210,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
         </button>
       )}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
+      {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
+      {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
       {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
@@ -399,6 +402,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               </div>
             </>
           )}
+          {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} />}
           {v.status === "picked_up" && toRoute}
           <TaskPhotos view={v} />
         </>

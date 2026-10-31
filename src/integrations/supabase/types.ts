@@ -5117,6 +5117,10 @@ export type Database = {
           pickup_slot_start: string | null
           raised_cents: number
           releases: number
+          seller_no_show_answer_by: string | null
+          seller_no_show_answered_at: string | null
+          seller_no_show_reported_at: string | null
+          seller_no_show_settled_at: string | null
           size: string
           source_id: string
           source_kind: string
@@ -5162,6 +5166,10 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          seller_no_show_answer_by?: string | null
+          seller_no_show_answered_at?: string | null
+          seller_no_show_reported_at?: string | null
+          seller_no_show_settled_at?: string | null
           size: string
           source_id: string
           source_kind: string
@@ -5207,6 +5215,10 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          seller_no_show_answer_by?: string | null
+          seller_no_show_answered_at?: string | null
+          seller_no_show_reported_at?: string | null
+          seller_no_show_settled_at?: string | null
           size?: string
           source_id?: string
           source_kind?: string
@@ -14669,6 +14681,7 @@ export type Database = {
       declutter_pick_free_request: { Args: { p_request_id: string }; Returns: string }
       declutter_my_free_pause: { Args: never; Returns: string }
       declutter_open_to_guests: { Args: never; Returns: boolean }
+      declutter_cancel_after_no_helpr: { Args: { p_order_id: string }; Returns: Json }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string
@@ -15389,6 +15402,13 @@ export type Database = {
         }[]
       }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
+      declutter_report_helpr_no_show: { Args: { p_order_id: string }; Returns: Json }
+      declutter_helpr_answer_no_show: {
+        Args: { p_note: string; p_photo_path?: string; p_task_id: string }
+        Returns: string
+      }
+      declutter_no_helpr_choice: { Args: { p_order_id: string }; Returns: Json }
+      declutter_no_helpr_refusal: { Args: { p_order_id: string }; Returns: string }
       declutter_report_no_show: { Args: { p_order_id: string }; Returns: Json }
       declutter_held_address_closed: { Args: { p_order_id: string }; Returns: boolean }
       declutter_start_no_show_answer: { Args: { p_order_id: string }; Returns: Json }
@@ -16979,6 +16999,7 @@ export type Database = {
       helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
+      helpr_task_no_show_report: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
       helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }

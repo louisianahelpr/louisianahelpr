@@ -1,4 +1,5 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -130,7 +131,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // writing a job post is the worst moment to learn it. There is no
         // approval from our team any more (Q193: every signup is
         // auto-approved), so the answer no longer promises one.
-        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early.",
+        // AUD31-57: the ID check is the `identity_check` switch (off since owner
+        // 2026-10-23), so the answer reads it like the Terms do; HelpCenter
+        // subscribes (useIdentityCheckOnStore) so the getter is re-read.
+        get a() {
+          return identityCheckOn()
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early."
+            : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
+        },
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
@@ -58,9 +59,6 @@ export const DENSE_TAB_COUNT = 5;
  */
 export const DENSER_TAB_COUNT = 6;
 
-/** The row's last 28px fade out while there is more to scroll to (SectionTabs' `more`). */
-const TABS_END_FADE = "linear-gradient(to right, #000 calc(100% - 28px), transparent)";
-
 export function SectionTabs<T extends string>({
   label,
   tabs,
@@ -68,6 +66,7 @@ export function SectionTabs<T extends string>({
   onChange,
   end,
   browseCount,
+  onlySelected = false,
 }: {
   label: string;
   tabs: readonly SectionTabDef<T>[];
@@ -77,6 +76,8 @@ export function SectionTabs<T extends string>({
   end?: ReactNode;
   /** How many results Browse lists, shown quietly beside its label (owner 2026-10-28: "move the 1 next to browse"). */
   browseCount?: number;
+  /** A phone's open search takes the row: only the selected tab stays, whole, as Posted / Working's lit chip does (audit F20). */
+  onlySelected?: boolean;
 }) {
   const { t: tr } = useLanguage();
   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
@@ -84,14 +85,23 @@ export function SectionTabs<T extends string>({
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  // A row that still does not fit (Declutter's six tabs and its gear at 375: measured 342px of tabs in 287px, 2026-10-30)
-  // scrolls sideways; a fade at the right edge says there is more, until the end is reached, never a word cut flat.
+  // A row that still does not fit (Declutter's six tabs with search, filters and gear beside them; owner 10-30: "Wanted"
+  // was clipped) scrolls sideways. A tab the row's edge would cut waits unpainted until it is whole, so no word is ever
+  // cut, and a chevron says there is more and brings the next tab in. The selected tab is never hidden.
   const listRef = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const update = () => setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
+    const update = () => {
+      setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
+      const box = list.getBoundingClientRect();
+      for (const tab of Array.from(list.children)) {
+        const t = tab.getBoundingClientRect();
+        const cut = t.width > 0 && (t.left < box.left - 1 || t.right > box.right + 1);
+        tab.toggleAttribute("data-tab-cut", cut && tab.getAttribute("aria-selected") !== "true");
+      }
+    };
     update();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
     ro?.observe(list);
@@ -101,7 +111,15 @@ export function SectionTabs<T extends string>({
       ro?.disconnect();
       list.removeEventListener("scroll", update);
     };
-  }, [options.length]);
+  }, [options.length, value, onlySelected]);
+  /** The first tab the end of the row hides comes in whole. */
+  const showNext = () => {
+    const list = listRef.current;
+    if (!list) return;
+    const edge = list.getBoundingClientRect().right;
+    const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > edge + 1);
+    if (next) list.scrollLeft += next.getBoundingClientRect().right - edge;
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     const at = options.findIndex((o) => o.value === value);
@@ -112,6 +130,7 @@ export function SectionTabs<T extends string>({
     if (next < 0) return;
     e.preventDefault();
     if (options[next].value !== value) { hapticLight(); onChange(options[next].value); }
+    refs.current[next]?.removeAttribute("data-tab-cut");
     refs.current[next]?.focus();
   };
   return (
@@ -131,10 +150,10 @@ export function SectionTabs<T extends string>({
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
-        style={more ? { maskImage: TABS_END_FADE, WebkitMaskImage: TABS_END_FADE } : undefined}
-        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto overflow-y-hidden no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
+        className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;
+          if (onlySelected && !active) return null;
           return (
             <button
               key={o.value}
@@ -146,7 +165,7 @@ export function SectionTabs<T extends string>({
               data-section-tab={o.value}
               onClick={() => { if (!active) { hapticLight(); onChange(o.value); } }}
               className={cn(
-                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold",
+                "data-[tab-cut]:invisible section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] rounded-sm",
                 active ? "text-foreground section-tab-selected" : "text-muted-foreground",
               )}
@@ -162,6 +181,12 @@ export function SectionTabs<T extends string>({
           );
         })}
       </div>
+      {more && !onlySelected && (
+        <button type="button" aria-label="More tabs" data-tabs-more-button="" onClick={showNext}
+          className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </button>
+      )}
       {end}
     </div>
   );

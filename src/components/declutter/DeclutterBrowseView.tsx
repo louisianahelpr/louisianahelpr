@@ -32,6 +32,7 @@ import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParam
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
@@ -40,7 +41,7 @@ import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapTo
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
-import { DeclutterBrowseBar, DeclutterFilterSheet } from "./DeclutterBrowseBar";
+import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFirstRowCount } from "./DeclutterSkeletons";
@@ -55,7 +56,8 @@ const DeclutterMap = lazy(() => import("./DeclutterMap"));
 export interface DeclutterBrowseHeader {
   end?: ReactNode;
   count?: number;
-  below?: ReactNode;
+  /** A phone's open search takes the row, so only the selected tab stays beside it. */
+  onlySelected?: boolean;
 }
 
 /** Persisted like Jobs' "helpr.jobsMapVisible", default ON (the split view is the desktop layout). */
@@ -235,6 +237,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   const itemsPhase = useFeedPhase(items);
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip };
 
+  const [searchOpen, setSearchOpen] = useState(false);
   const header: DeclutterBrowseHeader = desktop
     ? {
         count: listLoading || preview || items.isError ? undefined : rows.length,
@@ -247,8 +250,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
         ),
       }
     : {
-        below: (
-          <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} filtersOpen={filtersOpen} onFilters={() => setFiltersOpen(true)} filtersButtonRef={filtersButtonRef} />
+        onlySelected: searchOpen,
+        // Phone: search + filters end the tabs row, before the gear, as Jobs' (Dashboard's phoneBrowseEnd; owner 10-30).
+        end: (
+          <div data-browse-phone-controls="" className={`flex items-center gap-0 -ml-1 self-center ${searchOpen ? "min-w-0 flex-1" : "shrink-0"}`}>
+            <InlineListSearch value={query} onChange={setQuery} label="Search items" onOpenChange={setSearchOpen} fill />
+            {searchOpen && <SearchTriggerSlot width="40px" />}
+            <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />
+          </div>
         ),
       };
 

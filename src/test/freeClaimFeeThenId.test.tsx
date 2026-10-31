@@ -4,8 +4,8 @@
  * complete it the giver can pick someone else. Behaviour of the server is proven by
  * src/test/pglite/freeClaimFeeThenId.pglite.mjs (the migration 3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |   PERFORM public.declutter_free_claim_gate(v_uid);\n  IF p_handover = 'porch' AND EXISTS ( |   IF p_handover = 'porch' AND EXISTS (
- * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |  WHERE q.item_id = NEW.id AND q.status = 'not_picked' |  WHERE q.item_id = NEW.id AND q.status = 'never'
+ * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   PERFORM public.declutter_free_claim_gate(v_uid);\n  IF p_handover = 'porch' AND EXISTS ( |   IF p_handover = 'porch' AND EXISTS (
+ * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |  WHERE q.item_id = NEW.id AND q.status = 'not_picked' |  WHERE q.item_id = NEW.id AND q.status = 'never'
  * @mutate src/lib/declutter/api.ts |   else if (freeClaimFeeRefusal(err)) openFreeClaimFirstTime(); |
  * @mutate src/components/identity/FreeClaimFirstTime.tsx |             A claim shares a real person's address, so we check ID once to keep members safe. |             Verify your ID.
  * @mutate src/components/identity/IdentityCheckSheet.tsx |     <FreeClaimFirstTime />\n |
@@ -20,10 +20,11 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 
 const invoke = vi.hoisted(() => vi.fn());
+const rpcAnswer = vi.hoisted(() => ({ value: { data: [{ onboarding_fee_cents: 200 }] as unknown, error: null as { message: string; code?: string } | null } }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke: (...a: unknown[]) => invoke(...a) },
-    rpc: async () => ({ data: [{ onboarding_fee_cents: 200 }], error: null }),
+    rpc: async () => rpcAnswer.value,
   },
 }));
 const feeCents = vi.hoisted(() => ({ value: 200 as number | null }));
@@ -33,7 +34,8 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), succe
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { FreeClaimFirstTime } from "@/components/identity/FreeClaimFirstTime";
-import { closeFreeClaimFirstTime, freeClaimFeeRefusal, freeClaimGateRefusal, openFreeClaimFirstTime } from "@/lib/declutter/setupFee";
+import { closeFreeClaimFirstTime, freeClaimFeeRefusal, freeClaimGateRefusal, isFreeClaimFirstTimeOpen, openFreeClaimFirstTime } from "@/lib/declutter/setupFee";
+import { checkoutFree } from "@/lib/declutter/api";
 import { identityRefusal } from "@/lib/identityCheck";
 import { DECLUTTER_ERROR_COPY } from "@/lib/declutter/errors";
 
@@ -103,6 +105,16 @@ describe("a first free claim", () => {
     const sheet = blankComments(read("src/components/identity/IdentityCheckSheet.tsx"));
     expect(sheet).toMatch(/you only do it once/);
     expect(sheet).not.toMatch(/Once, and never again/);
+  });
+
+  it("the free checkout's fee refusal opens the one short screen (api.ts reads it for every Declutter RPC)", async () => {
+    rpcAnswer.value = { data: null, error: { message: "setup_fee_required_to_claim", code: "42501" } };
+    try {
+      await expect(checkoutFree("s1", "porch")).rejects.toBeTruthy();
+      expect(isFreeClaimFirstTimeOpen()).toBe(true);
+    } finally {
+      rpcAnswer.value = { data: [{ onboarding_fee_cents: 200 }], error: null };
+    }
   });
 
   it("the two refusals are told apart, and each is read by name", () => {

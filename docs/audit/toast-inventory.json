@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
-    "files": 287,
-    "rendering": 883,
-    "suppressedByPolicy": 168,
+    "calls": 1053,
+    "files": 288,
+    "rendering": 884,
+    "suppressedByPolicy": 169,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 737,
+      "toast.error": 738,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 172,
+      "toast.success": 173,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 455,
       "template": 100,
-      "dynamic": 546,
+      "dynamic": 548,
       "jsx": 0
     }
   },
@@ -4838,7 +4838,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 236,
+      "line": 237,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4858,7 +4858,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 239,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4868,7 +4868,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 244,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4878,7 +4878,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 259,
+      "line": 260,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4888,7 +4888,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 262,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5778,6 +5778,36 @@
         "text": "Link copied. Paste it in your local groups."
       },
       "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterStillAvailable.tsx",
+      "line": 36,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "gone ? \"Thanks. It's off Declutter now.\" : \"Thanks. We'll check again in 2 weeks.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Thanks. It's off Declutter now."
+          },
+          {
+            "form": "literal",
+            "text": "Thanks. We'll check again in 2 weeks."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterStillAvailable.tsx",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterTakenDown.tsx",

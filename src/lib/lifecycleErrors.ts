@@ -1491,6 +1491,13 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
   },
   // A2-5 (20261028192719): "Mark sold elsewhere" keeps the listing as history.
+  declutter_free_still_available: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_mark_sold_elsewhere: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

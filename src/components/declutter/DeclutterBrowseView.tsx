@@ -12,7 +12,7 @@
  * 2026-10-19); a saved search (Q2275) opens Browse with its filters in the URL.
  */
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sofa } from "lucide-react";
@@ -48,6 +48,7 @@ import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFir
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
+import { toastWatching } from "./DeclutterWatching";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -216,9 +217,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
   const qc = useQueryClient();
   const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId ?? ""), enabled: member });
+  const navigate = useNavigate();
   const toggleWatch = useMutation({
     mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
+    onSuccess: (_r, { on }) => {
+      // SS-5: a new heart says where to find the item again.
+      if (on) toastWatching(navigate);
+      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
+    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const mapShown = desktop ? mapVisible : member && phoneView === "map";

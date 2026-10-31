@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1050,
-    "files": 291,
-    "rendering": 969,
+    "calls": 1051,
+    "files": 292,
+    "rendering": 970,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 163,
+      "toast": 164,
       "toast.error": 734,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 454,
+      "literal": 455,
       "template": 96,
       "dynamic": 550,
       "jsx": 0
@@ -4434,7 +4434,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 222,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4913,7 +4913,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 129,
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6041,6 +6041,16 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWatching.tsx",
+      "line": 30,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Saved. Find it under Buying, in Watching."
       },
       "renders": true
     },

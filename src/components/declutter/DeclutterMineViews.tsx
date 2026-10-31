@@ -48,6 +48,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
+import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
@@ -110,6 +111,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}
       {/* The Free change (Q2487): the free items this member asked for, until the giver picks. */}
       <MyFreeAsks />
+      {/* SS-5: the items the member hearted, so they can be found again. */}
+      <WatchingList />
     </div>
   );
 }

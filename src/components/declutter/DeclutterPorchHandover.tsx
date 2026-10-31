@@ -26,6 +26,7 @@ import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
+import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -124,14 +125,14 @@ export function PickupStatus({
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
       <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
-      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
+      <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
     </div>
   );
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, free, done, problemOpen, itemsCents, totalCents, after }: {
-  side: "buyer" | "seller"; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents, after }: {
+  side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
 }) {
   const money = free ? null
     : side === "buyer"
@@ -140,9 +141,10 @@ function MoneyNote({ side, free, done, problemOpen, itemsCents, totalCents, afte
         ? null
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
-        // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
-        // after the handover, with no refund request open; 20261026155251). It holds for every handover kind.
-        : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
+        // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
+        // 10-30 rule and the server it describes (sellerPayoutRule): "I got it" pays 24 hours later; the seller's own
+        // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
+        : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong>. {sellerPayoutRule(kind)}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).
   const goodNews = side === "seller" && !problemOpen;
@@ -181,7 +183,7 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
       <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
-      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
+      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
     </div>
   );
 }

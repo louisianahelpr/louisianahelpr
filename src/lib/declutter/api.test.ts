@@ -84,6 +84,8 @@ const h = vi.hoisted(() => {
         return Promise.resolve(next());
       },
     },
+    // LEAD-RESUME-REPOSTS: who is signed in, read locally (no queue entry).
+    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: "me" } } }, error: null }) },
   };
   return { queue, queries, rpcs, store, invokes, supabase, clean: vi.fn() };
 });
@@ -96,6 +98,7 @@ vi.mock("@/lib/declutter/photos", async (importOriginal) => ({
 
 import { FULL_LISTING_COPY } from "./photoRules";
 import {
+  AlreadyPosted,
   addPhotoSteadily,
   answerQuestion,
   askQuestion,
@@ -634,8 +637,12 @@ describe("RPC writes", () => {
 // LEAD-POST-SLOW (a), review of 62f90f3368 (4): a first Post whose answer was lost already made the draft with the
 // app's id. The second Post reuses that draft (saving its fields again), never a second draft that would upload the
 // photos twice; an id taken by anything else still gets a fresh draft.
-// @mutate src/lib/declutter/api.ts |     if (res.error && /item_id_taken/.test(res.error.message ?? "") && (await isMyDraft(withId))) { |     if (false) {
-// @mutate src/lib/declutter/api.ts |   return !r.error && (r.data as { status?: string } \| null)?.status === "draft"; |   return !r.error;
+// @mutate src/lib/declutter/api.ts |     if (mine === "draft") { |     if (false) {
+// @mutate src/lib/declutter/api.ts |   if (row.status === "draft") return "draft"; |   if (row.status === "draft") return null;
+// LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates c87b7de4 / 019dd0b3): Post again with an id that is already the
+// seller's POSTED item makes no second copy; it says "Already posted" (AlreadyPosted, with the id to open).
+// @mutate src/lib/declutter/api.ts |     if (mine) throw new AlreadyPosted(withId); |     void mine;
+// @mutate src/lib/declutter/api.ts |   return me && row.seller_id === me ? row.status : null; |   return null;
 describe("createDraft with the app's own id", () => {
   const taken = { data: null, error: { code: "22023", message: "item_id_taken" } };
   it("makes the draft with that id", async () => {
@@ -649,8 +656,19 @@ describe("createDraft with the app's own id", () => {
     expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id", "declutter_update_draft"]);
     expect(h.rpcs[1]).toEqual(["declutter_update_draft", { p_item_id: "app-id", ...DRAFT_ARGS }]);
   });
-  it("the id is taken by a row the caller can't read as a draft (or the read fails): a fresh draft", async () => {
-    for (const read of [ok(null), ok({ id: "app-id", status: "live" }), { data: null, error: { code: "500", message: "boom" } }]) {
+  it("LEAD-RESUME-REPOSTS: post, then Post again with the same id: no second copy, 'Already posted' with its id", async () => {
+    for (const status of ["live", "pending_review", "reserved", "paused"]) {
+      h.rpcs.length = 0;
+      h.queue.push(taken, ok({ id: "app-id", status, seller_id: "me" }));
+      const err = await createDraft(FIELDS, "app-id").catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(AlreadyPosted);
+      expect((err as AlreadyPosted).itemId).toBe("app-id");
+      expect((err as AlreadyPosted).userMessage).toBe("Already posted. It's under Selling.");
+      expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id"]);
+    }
+  });
+  it("the id is taken by a row that isn't the caller's (or the read fails): a fresh draft", async () => {
+    for (const read of [ok(null), ok({ id: "app-id", status: "live", seller_id: "someone-else" }), { data: null, error: { code: "500", message: "boom" } }]) {
       h.rpcs.length = 0;
       h.queue.push(taken, read, ok("fresh"));
       await expect(createDraft(FIELDS, "app-id")).resolves.toBe("fresh");

@@ -78,6 +78,8 @@ const DELIVERY_STEPS = ["Booked", "Picked up", "Delivered"] as const;
 const DELIVERY_STEP: Partial<Record<TaskView["status"], number>> = { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 };
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+/** AUD31-27: the Louisiana day a finished delivery ended, "Thu, Oct 29". */
+const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** A private task photo through a short-lived signed URL. */
@@ -391,6 +393,8 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up."
                 : "Delivered. Your pay is on its way."
             : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
+          {/* AUD31-27: every finished row says the day it ended (when the server sends it). */}
+          {t.ended_at && <span className="text-muted-foreground" data-task-ended=""> {ENDED_DAY.format(new Date(t.ended_at))}</span>}
         </p>
       )}
       {/* Deep audit #40: after the drop-off photo the card said nothing until the buyer confirmed. */}

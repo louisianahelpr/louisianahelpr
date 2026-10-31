@@ -89,6 +89,8 @@ export interface MyTask {
   take_home_cents: number;
   pickup_slot_start: string | null;
   payout_status: "pending" | "succeeded" | "failed" | "nothing_due" | null;
+  /** AUD31-27 (20261031202929): when a finished task ended; null while it is under way. Absent before that migration. */
+  ended_at?: string | null;
 }
 
 export interface MyVehicle {

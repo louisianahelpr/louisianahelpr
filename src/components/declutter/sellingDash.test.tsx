@@ -348,6 +348,22 @@ describe("Selling tab: Taken down, with Relist", () => {
     for (const s of statuses) expect(await screen.findByText(`Item ${s}`)).toBeInTheDocument();
   });
 
+  // NIGHT-SELL-Sellinglist-2 (audit 10-31): "Listed · 7" opened 9 rows. The chip counted only on-sale statuses while
+  // Your listings shows every row but the history ones (sold, completed and rejected too). The chip now counts the
+  // rows it opens, from the one shared set.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => !PAST_LISTING.has(i.status)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length
+  it("the Listed chip counts exactly the rows under Your listings (Sellinglist-2)", async () => {
+    const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "sold", "completed", "withdrawn", "sold_elsewhere"] as const;
+    state.mine = statuses.map((s, n) => ({ ...ITEM, id: `c${n}`, status: s, title: `Row ${s}` }));
+    const { container } = at("/declutter?tab=selling");
+    const listings = await screen.findByRole("region", { name: "Your listings" });
+    await within(listings).findByText("Row completed");
+    const rows = listings.querySelectorAll("[data-selling-list] > li").length;
+    expect(rows).toBeGreaterThan(5);
+    const chip = container.querySelector('[data-status-box="listings"]') as HTMLElement;
+    expect(chip.textContent).toBe(`Listed · ${rows}`);
+  });
+
   it("no 'Taken down' chip or group while nothing is taken down", async () => {
     state.mine = [ITEM];
     const { container } = at("/declutter?tab=selling");
@@ -360,7 +376,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // history, reads "Sold elsewhere.", has no Relist (it was sold), and is off the live listings.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | i.status === "withdrawn")
   // @mutate src/components/declutter/DeclutterTakenDown.tsx |             {item.status === "withdrawn" && ( |             {true && (
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
+  // @mutate src/components/declutter/myItemsQuery.ts | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
   it("a listing sold elsewhere is in Selling history, reads Sold elsewhere, has no Relist, and is off Your listings (A2-5)", async () => {
     const SOLD = { ...ITEM, id: "i8", status: "sold_elsewhere", title: "Brass lamp", current_price_cents: 2000 };
     state.mine = [ITEM, SOLD];

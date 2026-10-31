@@ -74,7 +74,7 @@ import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
-import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
+import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
@@ -152,9 +152,6 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   );
 }
 
-/** Listings that are history, not for sale: taken down, or sold elsewhere (A2-5). They live in Selling history. */
-const PAST: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_elsewhere"]);
-
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -162,7 +159,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const mine = useQuery(myItemsQuery(userId));
   useMyItemsFollowNotices(userId);
   // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
-  const mineIds = (mine.data ?? []).filter((i) => !PAST.has(i.status)).map((i) => i.id);
+  const mineIds = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).map((i) => i.id);
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
@@ -260,7 +257,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const list = (mine.data ?? []).filter((i) => !PAST.has(i.status));
+  const list = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   if (list.length === 0) {
     return (
       <section className="space-y-2" aria-label="Your listings">

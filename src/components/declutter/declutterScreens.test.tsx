@@ -343,7 +343,7 @@ describe("Declutter screens", () => {
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
-  // @mutate src/components/declutter/DeclutterItemView.tsx |             {way !== "none" && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |             {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />} |
   it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
@@ -378,13 +378,16 @@ describe("Declutter screens", () => {
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2> | Pickup</h2>
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label} | Pickup in {it.area_label}
   // @mutate src/components/declutter/DeclutterItemView.tsx | label={way === "meetup" ? "Meeting times" : "Pickup times"} | label="Pickup times"
+  // @mutate src/components/declutter/DeclutterItemView.tsx |   const porchOnly = way === "porch" && !(ways.data ?? []).includes("meetup"); |   const porchOnly = false;
   it("DB-4: the item page says pickup only when the seller offers one", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
     const cases: [string[] | null, string, string, string | null][] = [
       [["seller_delivery", "delivery"], "Delivery", "Comes from Mid-City, Baton Rouge", null],
       [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meeting times: Mon–Fri 5–8 PM"],
-      [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
+      // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them.
+      [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", null],
+      [["porch", "meetup"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
       [null, "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
     ];
     for (const [ways, heading, area, times] of cases) {

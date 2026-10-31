@@ -522,7 +522,9 @@ void hydrateStorage();
   initNative();
 
   // Shake-to-report: navigate to support pre-tagged as a bug report.
-  // Works on iOS/Android via DeviceMotion; silent no-op when unsupported.
+  // The app only, and only once the member turns it on in Account and
+  // security (LEAD-SHAKE-PROMPT): a no-op on the website, never asks there,
+  // and never fires over unsaved input (src/lib/shakeToReport.ts).
   // `?topic=report` is what actually pre-tags it — /support reads it and
   // opens with "Report Issue" already selected. (`?from=shake` alone never
   // did: the route used to redirect to the /help FAQ, which ignored it, so

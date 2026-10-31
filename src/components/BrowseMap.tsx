@@ -45,7 +45,8 @@ import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
 import { useSelectedCrewSpots } from "./browseMap/useSelectedCrewSpots";
 import { useMapJobs } from "./browseMap/useMapJobs";
 import JobCard from "./dashboard/JobCard";
-import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
+import { pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
+import { ClusterList, clusterBubble } from "./browseMap/ClusterList";
 import {
   buildMapJobFilter,
   isAnyFilterActive,
@@ -224,6 +225,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
    * this state drives. MapKit still owns pin SELECTION — we just draw the card.
    */
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  /** The jobs of a cluster no zoom can split, listed (NIGHT-JOBSMA5-1); null = no list open. */
+  const [clusterJobIds, setClusterJobIds] = useState<string[] | null>(null);
+  const closeClusterList = useCallback(() => setClusterJobIds(null), []);
   const selectedJob = useMemo(
     () => visibleJobs.find((j) => j.id === selectedJobId) ?? null,
     [visibleJobs, selectedJobId],
@@ -282,41 +286,12 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         showsUserLocationControl: false,
         isRotationEnabled: false,
       });
-      // Branded cluster bubble. MapKit clusters any annotations sharing a
-      // `clusteringIdentifier` and asks this callback for the stand-in
-      // annotation — the native replacement for react-leaflet-cluster's
-      // `iconCreateFunction`.
+      // Branded cluster bubble (MapKit asks this callback for the stand-in of annotations sharing a clusteringIdentifier).
+      // Tap OR keyboard-activate it: zoom into the jobs it stands for (Leaflet's zoom-to-bounds), or, when their rounded
+      // points coincide and no zoom can split them, list them (NIGHT-JOBSMA5-1, ClusterList.tsx).
       map.annotationForCluster = (cluster) => {
         const members = cluster.memberAnnotations ?? [];
-        const count = members.length;
-        return new mk.Annotation(
-          cluster.coordinate,
-          () =>
-            // Tap OR keyboard-activate a cluster → zoom into the jobs it
-            // stands for, matching Leaflet's zoom-to-bounds-on-cluster-click.
-            // The handler moved into `clusterElement` so pointer and Enter/
-            // Space go through one path and the bubble carries a real
-            // accessible name ("6 jobs in this area — zoom in to see them")
-            // instead of a bare, unnamed "6".
-            clusterElement(count, () => {
-              const coords = members.map((m) => m.coordinate);
-              if (!coords.length) return;
-              const lats = coords.map((c) => c.latitude);
-              const lngs = coords.map((c) => c.longitude);
-              map.setRegionAnimated(
-                regionFromBounds(
-                  mk,
-                  [
-                    [Math.min(...lats), Math.min(...lngs)],
-                    [Math.max(...lats), Math.max(...lngs)],
-                  ],
-                  1.4,
-                ),
-                true,
-              );
-            }),
-          { calloutEnabled: false },
-        );
+        return new mk.Annotation(cluster.coordinate, () => clusterBubble(mk, map, members, (ids) => { setSelectedJobId(null); setClusterJobIds(ids); }), { calloutEnabled: false });
       };
       mapRef.current = map;
       setMapReady(true);
@@ -1049,6 +1024,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           caret. The card renders hidden until the first measurement so it
           never flashes at 0,0. Still the SAME `<JobCard bare>` the feed
           renders — untouched. */}
+      {!mapKitUnusable && clusterJobIds && (
+        <ClusterList jobs={visibleJobs.filter((j) => clusterJobIds.includes(j.id))} onClose={closeClusterList} onOpen={(id) => { setClusterJobIds(null); onJobAction?.(id); }} />
+      )}
       {!mapKitUnusable && selectedJob && (
         <div
           className="absolute z-[420] pointer-events-none"

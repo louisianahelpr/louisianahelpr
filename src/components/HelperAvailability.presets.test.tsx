@@ -20,7 +20,7 @@ vi.mock("@/integrations/supabase/client", () => {
   chain.order = () => Promise.resolve({ data: [], error: null });
   return { supabase: { from: () => chain } };
 });
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { HelperAvailability } from "./HelperAvailability";
 

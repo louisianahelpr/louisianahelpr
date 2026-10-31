@@ -79,7 +79,7 @@ vi.mock("@/integrations/supabase/client", () => {
   return { supabase: { from: vi.fn((t: string) => build(t)), auth: { getUser: vi.fn() } } };
 });
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/adminAudit", () => ({ logAdminAction: vi.fn() }));
 vi.mock("@/lib/biometricGate", () => ({ requireBiometric: vi.fn(async () => true) }));

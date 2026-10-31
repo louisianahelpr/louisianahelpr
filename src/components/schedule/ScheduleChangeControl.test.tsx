@@ -30,7 +30,7 @@ vi.mock("@/integrations/supabase/client", () => {
   c.maybeSingle = () => Promise.resolve({ data: row.value, error: null });
   return { supabase: { from: () => c, rpc } };
 });
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 import { toast } from "sonner";
 
 import { ScheduleChangeControl } from "./ScheduleChangeControl";

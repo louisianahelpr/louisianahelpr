@@ -87,7 +87,7 @@ vi.mock("@/components/job-card/JobCountdown", () => ({
 }));
 vi.mock("@/components/job-card/DeadlineCountdown", () => ({ default: () => <div data-testid="answer-clock" /> }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), hapticWarning: vi.fn(), hapticSuccess: vi.fn() }));
 vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));

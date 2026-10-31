@@ -105,6 +105,20 @@ export function browseStateFromParams(p: URLSearchParams): BrowseState {
 }
 
 /**
+ * BUY-53: a saved search opens Browse with `new=<when the member last looked>` (resultsPath). An item that went live
+ * after it is one of the search's "N new" and wears the New tag. No param, or a bad one, marks nothing.
+ */
+export function newSinceFromParams(p: URLSearchParams): number | null {
+  const at = Date.parse(p.get("new") ?? "");
+  return Number.isFinite(at) ? at : null;
+}
+
+export function isNewSince(item: { live_at: string | null }, since: number | null): boolean {
+  if (since === null || !item.live_at) return false;
+  return Date.parse(item.live_at) > since;
+}
+
+/**
  * Audit item 4 / BUY-35: Back from an item lost the search, because Browse read the URL once and never wrote it (Jobs
  * keeps its search in the URL, useDashboardFilters). A copy of `current` with Browse's state in it; a default is left
  * out, and every other param (tab, card and so on) is kept.

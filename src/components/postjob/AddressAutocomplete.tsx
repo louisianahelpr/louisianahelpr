@@ -46,6 +46,8 @@ interface AddressAutocompleteProps {
   plainWithoutMapKit?: boolean;
   /** After the box loses focus. */
   onBlurred?: () => void;
+  /** The open list scrolls itself clear of the bottom nav, for a box low on a page. */
+  keepListInView?: boolean;
 }
 
 /**
@@ -101,12 +103,14 @@ export function AddressAutocomplete({
   placeholder,
   plainWithoutMapKit = false,
   onBlurred,
+  keepListInView = false,
 }: AddressAutocompleteProps) {
   const mapKitStatus = useMapKitJs();
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<MapKitSuggestion[]>([]);
   const searchRef = useRef<MapKitSearch | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   // Sync local query when parent value changes (draft restore, etc.).
   useEffect(() => {
@@ -171,6 +175,11 @@ export function AddressAutocomplete({
     () => open && suggestions.length > 0,
     [open, suggestions.length],
   );
+
+  useEffect(() => {
+    // Optional-called: jsdom has no scrollIntoView.
+    if (keepListInView && showList) listRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [keepListInView, showList, suggestions.length]);
 
   // Take a tapped suggestion → run search() to resolve the full
   // placemark (autocomplete gives display strings; search() gives
@@ -263,7 +272,8 @@ export function AddressAutocomplete({
       {showList && (
         <ul
           {...listboxProps}
-          className="absolute z-30 left-0 right-0 mt-1 rounded-ds-md border border-border bg-card shadow-lg overflow-hidden"
+          ref={listRef}
+          className={`absolute z-30 left-0 right-0 mt-1 rounded-ds-md border border-border bg-card shadow-lg overflow-hidden ${keepListInView ? "scroll-mb-safe-nav" : ""}`}
         >
           {suggestions.map((s, i) => (
             <li key={`${s.displayLines.join("|")}-${i}`}>

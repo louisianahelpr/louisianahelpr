@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -87,19 +87,32 @@ export function SectionTabs<T extends string>({
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   // A row that still does not fit (Declutter's six tabs with search, filters and gear beside them; owner 10-30: "Wanted"
   // was clipped) scrolls sideways. A tab the row's edge would cut waits unpainted until it is whole, so no word is ever
-  // cut, and a chevron says there is more and brings the next tab in. The selected tab is never hidden.
+  // cut, and a chevron says there is more and brings the next tab in. The row keeps the selected tab whole by itself (on
+  // load, on a new tab, when a search opens or closes, when the chevron narrows the track) until the member moves the
+  // row; from then the selected tab follows the same rule as the others, whole or not painted (tester T10, 10-30:
+  // "Wantec" on load, a lone "e" after a chevron).
   const listRef = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
-  useEffect(() => {
+  const memberMoved = useRef(false);
+  useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    memberMoved.current = false;
     const update = () => {
+      const selected = list.querySelector('[role="tab"][aria-selected="true"]');
+      if (selected && !memberMoved.current) {
+        const box = list.getBoundingClientRect();
+        const t = selected.getBoundingClientRect();
+        if (t.right > box.right) list.scrollLeft += t.right - box.right;
+        else if (t.left < box.left) list.scrollLeft -= box.left - t.left;
+      }
       setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
       const box = list.getBoundingClientRect();
       for (const tab of Array.from(list.children)) {
         const t = tab.getBoundingClientRect();
         const cut = t.width > 0 && (t.left < box.left - 1 || t.right > box.right + 1);
-        tab.toggleAttribute("data-tab-cut", cut && tab.getAttribute("aria-selected") !== "true");
+        // Wider than the row itself (nothing can make it whole), the selected tab still shows until the member moves on.
+        tab.toggleAttribute("data-tab-cut", cut && (tab !== selected || memberMoved.current));
       }
     };
     update();
@@ -116,6 +129,7 @@ export function SectionTabs<T extends string>({
   const showNext = () => {
     const list = listRef.current;
     if (!list) return;
+    memberMoved.current = true;
     const edge = list.getBoundingClientRect().right;
     const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > edge + 1);
     if (next) list.scrollLeft += next.getBoundingClientRect().right - edge;
@@ -150,6 +164,7 @@ export function SectionTabs<T extends string>({
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
+        onPointerDown={() => { memberMoved.current = true; }} onWheel={() => { memberMoved.current = true; }}
         className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;

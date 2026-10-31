@@ -10,7 +10,7 @@
  * open the tab that now holds them. Hidden unless the 'declutter' switch is on
  * for the member (DeclutterGate).
  */
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -471,25 +471,6 @@ const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: own
 const MINE_TABS_FREE = [...MINE_TABS, "free"] as const;
 const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted", "free"] as const;
 
-/**
- * Five tabs do not fit one line at 375 (Browse's count and two badges): the row scrolls sideways (SectionTabs'
- * overflow-x-auto), so the selected tab is scrolled into the row's view whenever it changes, never left off-screen.
- */
-function useSelectedTabInView(view: string) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const list = ref.current?.querySelector<HTMLElement>('[role="tablist"]');
-    const tab = list?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
-    if (!list || !tab) return;
-    const l = list.getBoundingClientRect();
-    const t = tab.getBoundingClientRect();
-    // 28: clear of the row's end, so the tab is whole (SectionTabs hides one it would cut).
-    if (t.right > l.right - 28) list.scrollLeft += t.right - l.right + 28;
-    else if (t.left < l.left) list.scrollLeft -= l.left - t.left;
-  }, [view]);
-  return ref;
-}
-
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const [params, setParams] = useSearchParams();
@@ -522,7 +503,6 @@ export default function DeclutterHome() {
   const subView: "deliver" | "wanted" | null = asked === "deliver" ? "deliver" : asked === "wanted" && wantedOn ? "wanted" : null;
   const fromView: DeclutterTab | null = legacy ? oldDeclutterView(legacy, todo) : asked === "buying" || asked === "selling" ? asked : null;
   const view: DeclutterTab = subView ?? fromView ?? sectionTab;
-  const tabRowRef = useSelectedTabInView(tabsReady ? view : "");
   // An old ?view= link is rewritten to ?tab= once the badges' reads are in
   // (they decide which side an offers/cart link meant), keeping its other params and its router state
   // (audit posting 1030 #3: dropping it closed "Your listing is live" before it opened).
@@ -541,7 +521,6 @@ export default function DeclutterHome() {
   // Browse adds its search and filters at the row's end, and on desktop its count and map: Jobs' layout (owner 10-30,
   // DeclutterBrowseView).
   const tabsFor = (browse?: DeclutterBrowseHeader) => (
-    <div ref={tabRowRef} className="contents">
     <SectionTabs
       label="Declutter view"
       browseCount={browse?.count}
@@ -567,7 +546,6 @@ export default function DeclutterHome() {
         { value: "free", label: "Free" },
       ]}
     />
-    </div>
   );
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;

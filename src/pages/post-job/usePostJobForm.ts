@@ -586,6 +586,7 @@ export function usePostJobForm() {
     formPage,
     setFormPage,
     // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).
+    isRepost: !!searchParams.get("rebook"),
     prefillOpensDetails: prefillOpensDetails(searchParams),
     // D4-7: the haul-away's items once its pre-fill loaded; Details says it is the haul-away.
     haulAwayItemIds,

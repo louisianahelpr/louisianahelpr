@@ -346,6 +346,10 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.party = true;
     const { unmount } = renderPage();
     expect(screen.getByText("Not paid yet. Helprs can't see this job until it's paid.")).toBeTruthy();
+    // JOBS-9: not "Waiting for Helprs to apply", and the button goes somewhere, not to a list without this job.
+    expect(screen.queryByText("Waiting for Helprs to apply")).toBeNull();
+    expect(screen.getByRole("button", { name: "Post this job again" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
     unmount();
     // payout_pending was this "unverified" example until F32 gave it its line (posterMoneyAfterRelease.test.tsx);
     // a state the card has no verified sentence for still prints nothing.

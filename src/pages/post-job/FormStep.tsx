@@ -263,6 +263,12 @@ export function FormStep({ form }: FormStepProps) {
         {/* PAGE 2: DETAILS, screen 4 of 7 (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
           <PostJobStepHeader screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." canPick={canPickStep} onPick={pickStep} />
+          {/* JOBS-10: a copy was silent, and it leaves these out (useJobFormEffects' rebook load). */}
+          {form.isRepost && (
+            <p data-testid="repost-line" className="rounded-[20px] liquid-glass p-card text-sm">
+              We copied your last job. Add your photos again, and check the crew size, start time and repeat days.
+            </p>
+          )}
           {form.haulAwayItemIds && form.haulAwayItemIds.length > 0 && (
             <p data-testid="haul-away-line" className="rounded-[20px] liquid-glass p-card text-sm">
               Haul-away for {form.haulAwayItemIds.length} {form.haulAwayItemIds.length === 1 ? "item" : "items"} from your Declutter listings. Check the details, then set the pay.

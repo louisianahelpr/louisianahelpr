@@ -122,6 +122,8 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     return <ErrorState variant="inline" title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} />;
   }
   const can = sellerDeliveryActions(b);
+  // AUD31-2: late = the buyer may say it wasn't delivered (past not_delivered_from, never marked delivered).
+  const late = can.notDelivered && !noShowWaiting;
   const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || handoff.isPending || answer.isPending;
   const fileId = `sd-photo-${orderId}`;
   return (
@@ -166,15 +168,13 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           </button>
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
-        {can.gotIt && !problemOpen && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
+      <div className="flex flex-wrap gap-2" data-seller-delivery-actions="">
+        {/* AUD31-2: past its window and never marked delivered, the delivery is late: "It wasn't delivered" leads (the
+            main button) and "Ask for a new time" follows; "I got it" stays, after them, as an ordinary button. */}
+        {late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>}
+        {can.gotIt && !problemOpen && !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {can.askNewTime && !noShowWaiting && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
-        {can.notDelivered && !noShowWaiting && (
-          <button type="button" className={btn} disabled={busy}
-            onClick={() => setAsk("notDelivered")}>
-            It wasn't delivered
-          </button>
-        )}
+        {can.gotIt && !problemOpen && late && <button type="button" className={btn} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {!problemOpen && <button type="button" className={btn} onClick={onProblem}>Report a problem</button>}
       </div>
       {ask && (

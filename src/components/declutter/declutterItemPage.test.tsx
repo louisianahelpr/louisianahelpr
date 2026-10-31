@@ -643,7 +643,7 @@ describe("the photo-first Declutter item page", () => {
     // On the page itself: toast.info renders nothing in the app (toastPolicy), so a spy on it proved nothing.
     expect((await screen.findByText(/^This is your listing\./)).closest("[data-preview-note]")).toBeTruthy();
     // LEAD-PREVIEW-ASK (owner 2026-10-31): the Ask box shows, greyed out, saying how it works; nothing can be sent.
-    // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} /> | canAsk={canAct && !preview} free={free} />
+    // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={ | canAsk={canAct && !preview} free={free} onMakeOffer={
     const askBox = (await screen.findByText("Buyers ask here. You'll get a notice and answer from this page.")).closest("[data-preview-ask]")!;
     expect(askBox).toBeTruthy();
     expect(askBox.querySelector("input")).toBeDisabled();

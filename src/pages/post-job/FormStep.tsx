@@ -3,6 +3,8 @@ import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { PriceGuidanceCard } from "@/components/postjob/PriceGuidance";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
+import { SellForMeBlanks } from "@/components/postjob/SellForMeBlanks";
+import { isSellForMeJob } from "@/lib/declutter/sellForMe";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 // formatPriceExact, not formatPrice: this button quotes the CHARGE. See the
@@ -274,6 +276,8 @@ export function FormStep({ form }: FormStepProps) {
               Haul-away for {form.haulAwayItemIds.length} {form.haulAwayItemIds.length === 1 ? "item" : "items"} from your Declutter listings. Check the details, then set the pay.
             </p>
           )}
+          {/* POST-H15: the Helpr-list-it job's three blanks, each its own field (they write into the description). */}
+          {isSellForMeJob(form.category) && <SellForMeBlanks description={form.description} setDescription={form.setDescription} />}
           <DetailsSection
             stepNumber={1}
             title={form.title}

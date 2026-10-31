@@ -506,7 +506,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     // BUY-35: the shared pick-one list, and one letter isn't a report.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | disabled={send.isPending \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !note.trim()} onClick={() => send.mutate()}>Send
+    // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !note.trim()} onClick={() => send.mutate()}>Send
     fireEvent.click(screen.getByRole("radio", { name: "I didn't get it" }));
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "x" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
@@ -519,7 +519,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Audit 1b D2-7: up to 3 photos on the problem form, uploaded on Send into the problem folder and sent with the
   // report; hidden until the server takes them after the handover (problemPhotosWaitForServer.test.ts).
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : [] | []
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : [] | []
   it("D2-7: the problem form's photos are uploaded and sent with the report once the server takes them; hidden before", async () => {
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:p", revokeObjectURL: () => undefined }));
     state.features = ["declutter_refund_requests"];
@@ -1111,7 +1111,7 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
 // time with nothing handed over, the buyer can say they didn't get it, never "damaged"; from the "I got it" sheet (the
 // item in front of them) never "I didn't get it"; the seller never gets the buyer's reasons.
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | stage={atHandover ? "handover" : "waiting"} | stage="waiting"
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const reasons = PROBLEM_REASONS[side][stage]; |   const reasons = PROBLEM_REASONS.buyer.delivery;
+// @mutate src/components/declutter/DeclutterProblemForm.tsx |   const reasons = PROBLEM_REASONS[side][stage]; |   const reasons = PROBLEM_REASONS.buyer.delivery;
 // @mutate src/components/declutter/problemReasons.ts |     waiting: [["not_received", "I didn't get it"], ["safety", "I felt unsafe"], ["other", "Something else"]], |     waiting: [["not_received", "I didn't get it"], ["damaged", "It's damaged"], ["safety", "I felt unsafe"], ["other", "Something else"]],
 describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
   beforeEach(() => {

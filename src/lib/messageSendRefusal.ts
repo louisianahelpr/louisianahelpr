@@ -57,12 +57,12 @@ const RULES: { kind: SendRefusalKind; match: (msg: string) => boolean; retryable
   },
 ];
 
-/** The bubble's "Not Sent" line for a classified refusal. */
+/** The bubble's "Not sent" line for a classified refusal, in sentence case like "Not sent — tap to retry" (AUD31-42). */
 export const REFUSAL_BUBBLE_LABEL: Record<SendRefusalKind, string> = {
-  rate_limited: "Not Sent — Hourly Limit. Tap to Retry Later",
-  blocked: "Not Sent — Can't Message This Person",
-  account_restricted: "Not Sent — Account Restricted",
-  email_unconfirmed: "Not Sent — Confirm Your Email",
+  rate_limited: "Not sent — hourly limit. Tap to retry later",
+  blocked: "Not sent — can't message this person",
+  account_restricted: "Not sent — account restricted",
+  email_unconfirmed: "Not sent — confirm your email",
 };
 
 export function classifySendRefusal(error: { code?: string; message?: string } | null | undefined): SendRefusal | null {

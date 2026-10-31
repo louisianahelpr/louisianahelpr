@@ -301,6 +301,23 @@ serve(async (req) => {
       defects.record(`expire_unanswered_offers threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
+    // JOBS-19: a date or time request nobody answered in time: marked expired, and whoever asked is told.
+    let scheduleChangesExpired = 0;
+    try {
+      const { data: scRpc, error: scRpcErr } = await sweepRpc(() => supabase.rpc("expire_unanswered_schedule_changes"));
+      if (scRpcErr) {
+        if (scRpcErr.code !== "PGRST202") {
+          console.error("expire_unanswered_schedule_changes error:", scRpcErr);
+          defects.record(`expire_unanswered_schedule_changes: ${scRpcErr.message}`);
+        }
+      } else {
+        scheduleChangesExpired = (scRpc as number) || 0;
+      }
+    } catch (e) {
+      console.error("Schedule change expiry call failed:", e);
+      defects.record(`expire_unanswered_schedule_changes threw: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
     const { data: expiredByTime, error: expTimeErr } = await supabase
       .from("jobs")
@@ -493,6 +510,7 @@ serve(async (req) => {
         cancelledCount,
         unansweredExpired,
         directOfferExpired,
+        scheduleChangesExpired,
       },
       defects.defects,
       corsHeaders,

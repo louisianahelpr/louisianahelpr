@@ -10992,6 +10992,8 @@ export type Database = {
           notify_email: boolean
           notify_enabled: boolean
           parish: string | null
+          origin_lat: number | null
+          origin_lng: number | null
           query: string | null
           radius_miles: number | null
           section: string
@@ -11011,6 +11013,8 @@ export type Database = {
           notify_email?: boolean
           notify_enabled?: boolean
           parish?: string | null
+          origin_lat?: number | null
+          origin_lng?: number | null
           query?: string | null
           radius_miles?: number | null
           section?: string
@@ -11030,6 +11034,8 @@ export type Database = {
           notify_email?: boolean
           notify_enabled?: boolean
           parish?: string | null
+          origin_lat?: number | null
+          origin_lng?: number | null
           query?: string | null
           radius_miles?: number | null
           section?: string
@@ -16122,6 +16128,7 @@ export type Database = {
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }
+      expire_unanswered_schedule_changes: { Args: never; Returns: number }
       export_my_data: { Args: { p_user_id: string }; Returns: Json }
       extend_boosts_with_no_applications: {
         Args: never

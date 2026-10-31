@@ -15,8 +15,9 @@
  * The Declutter API module and the account hooks are stubbed (what each STATE renders), as in declutterTabs.test.tsx.
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
- * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} tabs={tabsFor(view | title="Declutter" globalSearch={view === "deliver"} tabs={tabsFor(view
- * @mutate src/components/declutter/DeclutterHomeView.tsx | tabsFor(view === "buying" \|\| view === "selling" ? undefined | tabsFor(view === "buying" ? undefined
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} tabs={tabsFor({ | title="Declutter" globalSearch={view === "deliver"} tabs={tabsFor({
+ * LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the icon is on Buying and Selling too, matching Jobs.
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}> | tabs={tabsFor(view === "buying" \|\| view === "selling" ? undefined : { end: <ExploreSearchEntry variant="icon" /> })}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | { end: <ExploreSearchEntry /> }
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | undefined
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} | <SectionScreen section="declutter" title="Declutter"
@@ -224,9 +225,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   });
 
   // LEAD-DECL-SEARCHBAR (owner 2026-10-31): the field (the mock's button) is on no tab; the search is the icon link
-  // right before the gear on Deliver, Wanted and Free, and not on a member's own Buying / Selling lists.
+  // right before the gear. LEAD-SEARCH-ALL-TABS (owner 2026-10-31): on every tab, Buying and Selling included.
   it.each([
-    ["buying", false], ["selling", false], ["deliver", true], ["wanted", true], ["free", true],
+    ["buying", true], ["selling", true], ["deliver", true], ["wanted", true], ["free", true],
   ] as const)("the %s tab: no search bar, and the search icon by the gear: %s", async (tab, icon) => {
     const view = at(`/declutter?tab=${tab}`);
     const gear = await screen.findByTestId("section-settings");

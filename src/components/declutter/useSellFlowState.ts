@@ -408,12 +408,12 @@ export function useSellFlowState(urlItemId: string | null) {
     }
   }
 
-  /** A setting that never blocks Post: if it fails it is said, with where to set it, and Post goes on. */
+  /** A setting that never blocks Post: if it fails it is said, with where to set it (the toast adds the full stop), and Post goes on. */
   async function notBlocking(run: () => Promise<unknown>, where: string): Promise<void> {
     try {
       await run();
     } catch (err) {
-      toast.error(`${declutterErrorMessage(err)} ${where}`);
+      toast.error(`${declutterErrorMessage(err)} ${where}.`);
     }
   }
 
@@ -447,10 +447,10 @@ export function useSellFlowState(urlItemId: string | null) {
         await Promise.all([
           // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
           // fails it is said, and the seller can turn it on in Manage listing.
-          !urlItemId && keepUpWanted ? notBlocking(() => setKeepUp(id, true), 'You can turn on "Keep it up" from Manage listing.') : null,
+          !urlItemId && keepUpWanted ? notBlocking(() => setKeepUp(id, true), 'You can turn on "Keep it up" from Manage listing') : null,
           // The same for "make it free after __ days": a free listing has nothing to choose.
           !urlItemId && autoFreeWanted !== null && !form.free
-            ? notBlocking(() => setAutoFreeDays(id, autoFreeWanted), "You can choose when it becomes free from Manage listing.")
+            ? notBlocking(() => setAutoFreeDays(id, autoFreeWanted), "You can choose when it becomes free from Manage listing")
             : null,
           // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
           urlItemId ? setPickupWindows(windows) : null,

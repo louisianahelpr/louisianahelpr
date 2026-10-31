@@ -6580,7 +6580,7 @@
       "kind": "toast.error",
       "title": {
         "form": "template",
-        "text": "${declutterErrorMessage(err)} ${where}"
+        "text": "${declutterErrorMessage(err)} ${where}."
       },
       "renders": true
     },

@@ -8,8 +8,10 @@
  * without a notice turns this red. (Shops refunds and delivery raises key their debts by other columns.)
  * Backend proof: src/test/pglite/declutterRefundDebtNotice.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF false THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
- * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF true THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+ * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF false THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+ * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF true THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+ * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql | public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | NULL::text, to_char(v_fee / 100.0
+ * BUY-30 (20261031105148): the notice names the item; proof src/test/pglite/declutterRefundDebtNoticeNamesItem.pglite.mjs (3x; skip red).
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -39,7 +41,8 @@ describe("audit 1b #6: a refund that leaves the seller owing money tells them", 
   it("record_refund tells the seller only when it recorded a new debt, in words that name no fee", () => {
     const b = flat(DEFS.get("declutter_record_refund")?.stmt ?? "");
     expect(b).toMatch(/ON CONFLICT \(refund_id\) DO NOTHING; IF FOUND THEN PERFORM public\.declutter_notify\(v_seller, 'declutter_refunds', 'You owe from a refund',/);
-    const words = "'This refund leaves you owing $%s. It comes out of your next Declutter sale''s payout.'";
+    // BUY-30 (20261031105148): the notice names the item.
+    const words = "'This refund on %s leaves you owing $%s. It comes out of your next Declutter sale''s payout.', public.declutter_order_items_named(p_order_id),";
     expect(b).toContain(words);
     expect(words).not.toMatch(/fee/i);
   });

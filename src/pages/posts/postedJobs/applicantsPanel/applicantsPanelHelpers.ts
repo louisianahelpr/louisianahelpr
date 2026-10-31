@@ -17,4 +17,4 @@ export function isImageAttachment(url: string): boolean {
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
 }
 export { TopHelprChip } from "@/components/profile/TopHelprChip";
-export { ApplicantTrustLine } from "@/components/TrustLine";
+export { ApplicantNewTag, ApplicantTrustLine } from "@/components/TrustLine";

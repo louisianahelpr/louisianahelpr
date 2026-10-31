@@ -83,7 +83,7 @@ export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now.";
 // small lie: it tells the next reader there is a card grid to maintain, and it
 // invites "fixing" a colour nobody renders. The `label` keys must still be
 // byte-identical to the FAQ_SECTIONS `topic` values below — see the lookup note
-// on "Payments & Escrow".
+// on "Payments & how your money is held".
 export const TOPICS: { label: string; desc: string }[] = [
   { label: "Getting Started", desc: "New to Helpr? Start here." },
   { label: "Posting a Job", desc: "Write a great post and get results." },
@@ -94,7 +94,7 @@ export const TOPICS: { label: string; desc: string }[] = [
     // this said "Payments & How Funds Work" against a topic of "Payments &
     // Escrow" and silently resolved to undefined — the section rendered with
     // no description at all, with nothing to indicate a miss.
-    label: "Payments & Escrow",
+    label: "Payments & how your money is held",
     desc: "How money is held, released, and paid.",
   },
   { label: "Trust & Safety", desc: "Verification, disputes, and reporting." },
@@ -216,16 +216,19 @@ export const FAQ_SECTIONS: FaqSection[] = [
     ],
   },
   {
-    topic: "Payments & Escrow",
+    // JOBS-28 (lead 10-31): no "Escrow" in member copy. Was "Payments & Escrow" /
+    // "What is Helpr Escrow?"; the old #faq-payments-escrow anchor still opens this
+    // topic (LEGACY_TOPIC_ANCHORS in HelpCenter.tsx).
+    topic: "Payments & how your money is held",
     items: [
       {
-        q: "What is Helpr Escrow?",
+        q: "How does Louisiana Helpr hold my payment?",
         // WAS: "When a poster accepts your application, their payment is held
         // securely…". FALSE, and about the single most important fact on the
         // page. Since card_hold_at_post (Q2399) a card is held or saved at posting and charged
         // at the Helpr's accept (src/lib/cardHoldCapture.ts); a bank payment or gift is paid at
         // posting (JOBS-15). Either way nobody starts work on an unfunded job.
-        a: `A card is held or saved when the job is posted and charged when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Helpr holds that money (via Stripe) until the job is done, and you're paid ${STANDARD_PAYOUT_PHRASE}. Neither side can touch it mid-job.`,
+        a: `A card is held or saved when the job is posted and charged when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Louisiana Helpr holds that money (via Stripe) until the job is done, and you're paid ${STANDARD_PAYOUT_PHRASE}. Neither side can touch it mid-job.`,
       },
       {
         q: "What fees does Helpr charge?",

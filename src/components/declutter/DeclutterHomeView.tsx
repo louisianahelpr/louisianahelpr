@@ -116,7 +116,9 @@ function ListingsSkeleton() {
  */
 const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   draft: "Not listed yet. Finish it to sell it.",
-  pending_review: "Waiting for a review. We'll send you a notice.",
+  // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner), and an edit's check takes seconds;
+  // "Waiting for a review" read as a person and a long wait. True for both: a check, and a notice when it is done.
+  pending_review: "Being checked. We'll send you a notice when it's done.",
   paused: "Paused. Hidden from buyers.",
   rejected: "Not approved. Open it to see why.",
 };

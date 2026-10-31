@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/SellOneScreen.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Waiting for a review. We'll send you a notice.", |   pending_review: "pending_review",
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Being checked. We'll send you a notice when it's done.", |   pending_review: "Waiting for a review. We'll send you a notice.",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
  * @mutate src/components/declutter/declutterUi.tsx | <Checkbox id={id} className="mt-0.5" checked={checked} onCheckedChange={(v) => onChange(v === true)} />; | <input type="checkbox" id={id} className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />;
@@ -263,7 +263,7 @@ describe("Declutter screens", () => {
     state.mine = [ITEM, { ...ITEM, id: "i2", status: "draft", title: "Lamp" }];
     at("/declutter?view=mine", <DeclutterPage />);
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
-    expect(await screen.findByText(/^Waiting for a review\./)).toBeInTheDocument();
+    expect(await screen.findByText("Being checked. We'll send you a notice when it's done.")).toBeInTheDocument();
     expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
     // D4-12: every Selling row's actions name their item, so a list of rows is not "View, Manage, View, Manage".
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"

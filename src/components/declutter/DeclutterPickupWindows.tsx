@@ -31,12 +31,17 @@ export function ItemPickupTimes({ itemId, label = "Pickup times" }: { itemId: st
  * An order (the buyer booking) or an OPEN delivery task (the Helpr accepting it: helpr_task_pickup_windows,
  * 20261028232930, the same chips and the same rule).
  */
-export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true }: {
+export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, noTimes = null }: {
   orderId?: string;
   taskId?: string;
   value: string | null;
   onPick: (iso: string | null) => void;
   fallback: ReactNode;
+  /**
+   * Shown under "No pickup times are open" (LEAD-PLACE-TIMES: a porch buyer who cannot book at all can still report
+   * it, D2-9's one exception, as the porch-day card's noDays did).
+   */
+  noTimes?: ReactNode;
   /** Audit 1c D3-8: false once the task is taken, so no read asks for a task that is no longer open (task_not_found). */
   enabled?: boolean;
 }) {
@@ -53,9 +58,9 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   if (q.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
   if (q.data === null) return <>{fallback}</>;
   if (days.length === 0) {
-    return <p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">{taskId
+    return <div className="space-y-2"><p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">{taskId
       ? "None of the seller's pickup times are open before this delivery's deadline."
-      : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>;
+      : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>{noTimes}</div>;
   }
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
   return (

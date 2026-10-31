@@ -1150,11 +1150,11 @@ describe("#2: the buyer books from the seller's pickup times", () => {
 
 // Owner 2026-10-29 (audit 1028 D2-9): nobody cancels a paid order, and "Report a problem" is not offered while the
 // order waits for pickup. Its button shows once the booked pickup is over (the "They didn't show" moment: 15 minutes
-// after a booked time, the end of a porch day). The one exception: the seller has no pickup days left, so the buyer
-// cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
+// after a booked time, the end of a porch day). The one exception: the place has no pickup times left (LEAD-PLACE-TIMES; was: no pickup days
+// left), so the buyer cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} /> |  if (!o) setAtHandover(false); }} />
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
-// @mutate src/components/declutter/DeclutterPorchDay.tsx |               {side === "buyer" && !booked && noDays} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm | noTimes={false ? <ProblemForm
 describe("D2-9: no Report a problem while the order waits for pickup", () => {
   const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const now = new Date();
@@ -1200,11 +1200,15 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
     expect(hidden).toBeGreaterThan(9);
   });
 
-  it("the seller has no pickup days left: the buyer, who cannot book, can still report it", async () => {
-    state.porchDays = [];
+  // LEAD-PLACE-TIMES: a new porch order books a TIME, so "none left" is the time picker's "No pickup times are open"
+  // (the place has no hours before the deadline); the buyer, who cannot book, can still report it there.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} | noTimes={null}
+  // @mutate src/components/declutter/DeclutterPickupWindows.tsx | : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>{noTimes}</div>; | : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p></div>;
+  it("no pickup times left at the place: the porch buyer, who cannot book, can still report it", async () => {
+    state.windows = { windows: [], latestPickupAt: new Date(Date.now() + 60_000).toISOString() };
     state.bookings = [];
     show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText(/no pickup days left/)).toBeInTheDocument();
+    expect(await screen.findByText(/No pickup times are open before the pickup deadline/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
     expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
   });

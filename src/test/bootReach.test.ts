@@ -21,7 +21,10 @@
  * @mutate scripts/perf/bootReach.mjs |   return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse)); |   return new Set([...reach].filter((f) => f.startsWith(src) && f !== browse));
  * @mutate scripts/perf/bootReach.mjs |   return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse)); |   return new Set([...reach].filter((f) => SHARED_DIR_RE.test(f) && !others.has(f) && f !== browse));
  * @mutate vite.config.ts | name: "browse-first-screen", | name: "browse-first-screen-off",
- * @mutate vite.config.ts | const browseOnly = guestBrowseOnlyModules(process.cwd()); | const browseOnly = new Set<string>();
+ * @mutate vite.config.ts | const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd()); | const { homeShared: browseOnly, browseOnly: browseHomeShared } = guestBrowseSplit(process.cwd());
+ * @mutate vite.config.ts | name: "browse-home-shared", | name: "browse-home-shared-off",
+ * @mutate scripts/perf/bootReach.mjs |     browseOnly: new Set([...all].filter((f) => !home.has(f))), |     browseOnly: all,
+ * @mutate vite.config.ts | test: /[\\/]src[\\/](lib[\\/]parishCentroids\|hooks[\\/]useUserLocation)\.ts$/, | test: /[\\/]src[\\/](lib[\\/]parishCentroids\|hooks[\\/](useDashboardFilters\|useUserLocation))\.ts$/,
  *
  * LEAD-POSTS-BOOT-SHRINK (10-31): code only guest /browse reaches (guestBrowseOnlyModules) has its own
  * `browse-first-screen` chunk; the built-bundle half is check-deferred-vendors.mjs ("only guest /browse reaches").
@@ -29,7 +32,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { firstScreenRoots, guestBrowseOnlyModules, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -164,11 +167,40 @@ describe("guest /browse-only code is split off every other route's boot (LEAD-PO
   it("vite.config.ts gives them their own group above app-shared, without dragging their deps", () => {
     const g = cfg.match(/name:\s*"browse-first-screen"[\s\S]*?\n\s*\},/)?.[0] ?? "";
     expect(g).not.toBe("");
-    expect(cfg).toMatch(/const browseOnly = guestBrowseOnlyModules\(process\.cwd\(\)\)/);
+    expect(cfg).toMatch(/const \{ browseOnly, homeShared: browseHomeShared \} = guestBrowseSplit\(process\.cwd\(\)\)/);
     expect(g).toMatch(/browseOnly\.has\(/);
     expect(g).toMatch(/includeDependenciesRecursively:\s*false/);
     const appShared = Number(cfg.match(/name:\s*"app-shared"[\s\S]*?priority:\s*(\d+)/)?.[1]);
     expect(Number(g.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(appShared);
+  });
+});
+
+describe("signed-in Home never downloads guest /browse's own chunk (10-31: /home 466 KB gz vs 441)", () => {
+  const { browseOnly, homeShared } = guestBrowseSplit(ROOT);
+  const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+
+  it("splits the guest /browse code by Home's reach, exactly", () => {
+    const all = guestBrowseOnlyModules(ROOT);
+    const home = staticReach(ROOT, homeFirstScreenRoots(ROOT));
+    expect(browseOnly.size).toBeGreaterThan(30);
+    expect(homeShared.size).toBeGreaterThan(10);
+    expect(browseOnly.size + homeShared.size).toBe(all.size);
+    for (const f of browseOnly) expect(home.has(f), f).toBe(false);
+    for (const f of homeShared) expect(home.has(f), f).toBe(true);
+    expect(homeShared.has(abs("src/components/dashboard/JobPrice.tsx"))).toBe(true);
+    expect(browseOnly.has(abs("src/hooks/useDashboardFilters.ts"))).toBe(true);
+  });
+
+  it("vite.config.ts gives Home's part its own group, and no fixed group puts a /browse-only module beside Home's code", () => {
+    const g = cfg.match(/name:\s*"browse-home-shared"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(g).toMatch(/browseHomeShared\.has\(/);
+    expect(g).toMatch(/includeDependenciesRecursively:\s*false/);
+    // parish-data rides with Home (its location); the job-list filter hook in it pulled browse-first-screen onto /home.
+    const parish = cfg.match(/name:\s*"parish-data"[\s\S]*?test:\s*(\/[^\n]*\/),/)?.[1] ?? "";
+    expect(parish).not.toBe("");
+    const re = new RegExp(parish.slice(1, parish.lastIndexOf("/")));
+    expect(re.test(abs("src/hooks/useUserLocation.ts"))).toBe(true);
+    for (const f of browseOnly) expect(re.test(f), `${f} rides in parish-data, which /home fetches`).toBe(false);
   });
 });
 

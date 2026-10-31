@@ -82,7 +82,7 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid
 CREATE TABLE public.saved_searches (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, name text NOT NULL,
   section text NOT NULL DEFAULT 'declutter', created_at timestamptz NOT NULL DEFAULT now(), notify_enabled boolean NOT NULL DEFAULT true,
   notify_email boolean NOT NULL DEFAULT true, category text, max_budget numeric, min_budget numeric, query text,
-  radius_miles numeric, last_notified_at timestamptz, last_emailed_at timestamptz);
+  radius_miles numeric, last_notified_at timestamptz, last_emailed_at timestamptz, origin_lat numeric, origin_lng numeric);
 CREATE TABLE public.saved_search_item_queue (item_id uuid PRIMARY KEY REFERENCES public.declutter_items(id) ON DELETE CASCADE,
   queued_at timestamptz NOT NULL DEFAULT now(), attempts integer NOT NULL DEFAULT 0, retry_after timestamptz);
 `);

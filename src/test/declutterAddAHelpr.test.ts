@@ -51,7 +51,7 @@
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |       IF rf.reason = 'seller_no_show' AND j.committed AND NOT p_include_committed THEN |       IF false THEN
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           .select("seller_fault_refund_id") |           .select("id")
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request)} /></Suspense>} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} /></Suspense>} |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

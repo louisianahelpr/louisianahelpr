@@ -309,7 +309,8 @@ export default function QuoteRequestPage() {
   const { id = "" } = useParams<{ id: string }>();
   return (
     <QuotesGate title={TITLE} backTo={QUOTE_HOMES.myRequests} label="Loading the request">
-      <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests}>
+      {/* wrapTitle: "Quotes for your job" was cut to "Quotes for you..." at 375 (AUD31-64). */}
+      <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests} wrapTitle>
         <RequestView id={id} />
       </AppPage>
     </QuotesGate>

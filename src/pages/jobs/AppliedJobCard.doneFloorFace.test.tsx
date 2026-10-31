@@ -43,8 +43,12 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: nul
 import { AppliedJobCard } from "./AppliedJobCard";
 import { useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
 
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+// A job dated today with a literal start runs on a pinned clock (jobDayFixtureTimezone); re-pinned after each test.
+pinJobClock();
+
+afterEach(() => { cleanup(); vi.useRealTimers(); pinJobClock(); });
 
 function card(arrivedMinutesAgo: number, toggle = vi.fn()) {
   const arrived = new Date(Date.now() - arrivedMinutesAgo * 60_000).toISOString();

@@ -16,7 +16,7 @@ const src = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "u
 
 describe("a closed job's row names the job", () => {
   it("title first, then the date and what happened", () => {
-    render(<ClosedJobRow label={{ title: "Yard cleanup", date_needed: "2026-11-02" }} status="Offer expired" />);
+    render(<ClosedJobRow label={{ title: "Yard cleanup", date_needed: "2020-11-02" }} status="Offer expired" />);
     expect(screen.getByText("Yard cleanup")).toBeInTheDocument();
     expect(screen.getByText(/Offer expired$/).textContent).toMatch(/Nov.*· Offer expired/);
     expect(screen.queryByText(/details aren.t available/)).not.toBeInTheDocument();

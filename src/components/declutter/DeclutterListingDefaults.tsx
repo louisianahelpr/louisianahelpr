@@ -5,7 +5,7 @@
  * choices we simply failed to read.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -79,6 +79,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   const change = (patch: Partial<SellerDefaults>) => setEdits((e) => ({ ...e, ...patch }));
   const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   const noWay = !draft.handovers.some((w) => shown.includes(w));
+  const unsaved = !same(draft, base);
   const save = useMutation({
     mutationFn: () => saveSellerDefaults(userId, draft),
     onSuccess: (done) => {
@@ -92,6 +93,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  useLeaveWarning(unsaved && !save.isPending);
   return (
     <div className="space-y-5 rounded-[20px] border border-border bg-card p-4" data-listing-defaults="">
       <p className="text-ds-13 text-muted-foreground">
@@ -104,11 +106,34 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" size="sm" disabled={save.isPending || noWay || same(draft, base)} onClick={() => save.mutate()}>
+        <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>
           {save.isPending ? "Saving…" : "Save"}
         </Button>
         {noWay && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-no-way="">Tick at least one way buyers can get it.</p>}
+        {unsaved && !noWay && !save.isPending && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-unsaved="">Not saved yet. Tap Save to keep these.</p>}
       </div>
     </div>
   );
+}
+
+/**
+ * NIGHT-SET-Declutterse-8 (settings audit 10-30): edits used to vanish without a word on leaving. A closing tab gets
+ * the browser's own "leave this page?"; leaving inside the app (this router cannot hold a navigation) says the
+ * changes were not saved. Saved or untouched, nothing is said.
+ */
+function useLeaveWarning(unsaved: boolean) {
+  const pending = useRef(unsaved);
+  pending.current = unsaved;
+  useEffect(() => {
+    if (!unsaved) return;
+    const warnNow = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnNow);
+    return () => window.removeEventListener("beforeunload", warnNow);
+  }, [unsaved]);
+  useEffect(() => () => {
+    if (pending.current) toast("Your changes to listing defaults weren't saved.");
+  }, []);
 }

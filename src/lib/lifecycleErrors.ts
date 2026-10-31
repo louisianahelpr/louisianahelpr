@@ -1236,6 +1236,19 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
+  // LEAD-POST-SLOW (a), 20261031160546: the same rules with the id the app picked at the first photo. item_id_taken
+  // never reaches the seller: createDraft falls back to declutter_create_item (a fresh id) and re-uploads the photos.
+  declutter_create_item_with_id: {
+    account_restricted: DC.account_restricted,
+    area_looks_like_address: DC.area_looks_like_address,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_location: DC.invalid_location,
+    item_id_taken: "Something went wrong saving your listing. Tap Post it again.",
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_create_move_drafts: {
     account_restricted: DC.account_restricted,
     area_looks_like_address: DC.area_looks_like_address,

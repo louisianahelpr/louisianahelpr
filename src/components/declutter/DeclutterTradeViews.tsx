@@ -144,8 +144,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
   // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
-  // refuses checkout and a delivery price without it, porch_place_needed).
-  const needsPlace = chosen === "porch" || delivering;
+  // refuses checkout and a delivery price without it, porch_place_needed). LEAD-PLACE-TIMES (20261031164337): a door
+  // pickup is at the chosen place too.
+  const needsPlace = chosen === "porch" || chosen === "pickup_home" || delivering;
   const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents, needsPlace);
   const placeReady = !needsPlace || porchPlaces.ready;
   // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that

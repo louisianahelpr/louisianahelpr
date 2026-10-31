@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && ( | ready: !q.isLoading && (
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | ready: (!q.isLoading \|\| waitedOut) && (places.length > 0 ? places.some((p) => p.chosen) : !refused) | ready: !q.isLoading \|\| waitedOut
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (needsPlace) void porchPlaces.reread(err);\n |
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       if (chosen === "porch") void porchPlaces.reread(err);\n |
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |       if (atPlace) void porchPlaces.reread(err);\n |
  * @mutate src/components/declutter/SellFormParts.tsx |     {hasPlaces && <SavedPlacesComeFirst free={form.free} />}\n |
  * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces\n          ? (form.free | {false\n          ? (form.free
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     await qc.cancelQueries({ queryKey: key, exact: true });\n |
@@ -418,7 +418,7 @@ describe("the buyer's pick", () => {
   it("every refused checkout goes through the new read", () => {
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/if \(needsPlace\) void porchPlaces\.reread\(err\);/);
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/toast\.error\(declutterErrorMessage\(err\)\); void porchPlaces\.reread\(err\);/);
-    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/if \(chosen === "porch"\) void porchPlaces\.reread\(err\);/);
+    expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/if \(atPlace\) void porchPlaces\.reread\(err\);/);
     for (const f of ["DeclutterTradeViews.tsx", "DeclutterFreeClaim.tsx"]) expect(SRC(f)).not.toMatch(/porchPlaces\.query\.refetch/);
   });
 

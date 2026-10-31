@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Tapping I got it finishes the sale: the Helpr and the seller are paid. | Tapping I got it pays the Helpr.
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
- * @mutate src/lib/declutter/stillInHand.ts | Date.now() - new Date(pickedUpAt).getTime() < STILL_IN_HAND_MS | Date.now() > 0
+ * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

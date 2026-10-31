@@ -933,7 +933,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending={pickedUp.isPending} | who={who} pending={pickedUp.isPending}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && <p | {order.side === "seller" && payout && <p
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${free ? "." : "; they're paid 24 hours later."} | you have it${"; they're paid 24 hours later."}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (free && at === 0) return |   if (false && at === 0) return
 describe("#6: a free claim never reads like a paid order", () => {
   // No leading \b: textContent runs the step labels together ("DonePaid").

@@ -701,7 +701,7 @@ export interface ListDeps {
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
-  publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
+  publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
 const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
@@ -967,9 +967,10 @@ export async function listBunch(
     onProgress(i + 1, total);
   }
   if (prepared.length > 0) {
-    const results = await deps.publishMany(prepared.map((p) => p.id), (done) => {
+    // LEAD-BUNCH-34-SLOW: listed a few at once, so they finish in any order; each one's own step is saved as it goes.
+    const results = await deps.publishMany(prepared.map((p) => p.id), (done, _total, index) => {
       onProgress(items.length + done, total);
-      const p = prepared[done - 1];
+      const p = prepared[index];
       if (p) onStep(p.key, null);
     });
     results.forEach((r, i) => {

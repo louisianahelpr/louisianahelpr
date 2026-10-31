@@ -26,6 +26,13 @@ export interface BunchSnapshot {
 
 const BUNCH_NOT_SAVED = "We couldn't save your work on this device, so keep this page open until you've listed your items.";
 
+/** Which photos go on the device. Mid-sort no item holds them yet, so all of them: a crash must not lose a seller's photos. Otherwise only those an item holds, so a dropped item's photo never comes back. */
+export function photosToSave(s: Pick<BunchSnapshot, "photos" | "items" | "sorting">): BunchPhoto[] {
+  if (s.sorting) return s.photos;
+  const held = new Set(s.items.flatMap((it) => it.photoKeys));
+  return s.photos.filter((p) => held.has(p.key));
+}
+
 /** Items and their photos, as saved; the photos no item holds come back together as not sorted, so none is lost. */
 function restoredItems(items: BunchItem[], photos: BunchPhoto[]): BunchItem[] {
   const present = new Set(photos.map((p) => p.key));
@@ -52,8 +59,7 @@ export function useBunchSaved(
     watch: [areaLabel, pickupAddress, coords, photos, items, sorting, finished],
     plan: (s) => {
       if (s.finished || (s.items.length === 0 && !s.sorting && !s.areaLabel.trim() && !s.pickupAddress.trim())) return null;
-      const held = new Set(s.items.flatMap((it) => it.photoKeys));
-      const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key));
+      const keep = photosToSave(s);
       return { photos: keep, meta: { areaLabel: s.areaLabel, pickupAddress: s.pickupAddress, coords: s.coords, moveDate: s.moveDate, items: s.items } };
     },
     restore: async (found, stale) => {

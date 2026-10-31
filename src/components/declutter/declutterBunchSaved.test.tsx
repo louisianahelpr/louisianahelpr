@@ -4,7 +4,8 @@
  *
  * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("beforeunload", warnNow); |     void warnNow;
  * @mutate src/components/declutter/useDeviceSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
- * @mutate src/components/declutter/useBunchSaved.ts |       const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key)); |       const keep = s.photos;
+ * @mutate src/components/declutter/useBunchSaved.ts |   if (s.sorting) return s.photos;\n | \n
+ * @mutate src/components/declutter/useBunchSaved.ts |   return s.photos.filter((p) => held.has(p.key));\n}\n\n/** Items and | \n  return s.photos;\n}\n\n/** Items and
  * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
@@ -15,7 +16,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { BunchItem } from "@/lib/declutter/bunch";
+import type { BunchItem, BunchPhoto } from "@/lib/declutter/bunch";
 
 const { ListingPhotoError } = await vi.hoisted(async () => await import("@/lib/declutter/errors"));
 const h = vi.hoisted(() => ({
@@ -75,6 +76,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 
 import BunchFlow from "./DeclutterBunchView";
 import { clearSavedBunch, loadSavedBunch } from "@/lib/declutter/bunchSaved";
+import { photosToSave } from "./useBunchSaved";
 
 const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 function renderFlow() {
@@ -106,6 +108,21 @@ beforeEach(() => {
   h.statuses = new Map();
 });
 afterEach(cleanup);
+
+describe("which photos a saved bunch keeps", () => {
+  const photo = (key: string) => ({ key }) as unknown as BunchPhoto;
+  const item = (photoKeys: string[]) => ({ photoKeys }) as unknown as BunchItem;
+  const keys = (s: Parameters<typeof photosToSave>[0]) => photosToSave(s).map((p) => p.key);
+
+  it("mid-sort, no item holds a photo yet: every one is kept, so a crash loses none of the seller's photos", () => {
+    expect(keys({ photos: [photo("a"), photo("b")], items: [], sorting: true })).toEqual(["a", "b"]);
+    expect(keys({ photos: [photo("a"), photo("b")], items: [item(["a"])], sorting: true })).toEqual(["a", "b"]);
+  });
+
+  it("sorted: each photo an item holds is kept, and one no item holds is not", () => {
+    expect(keys({ photos: [photo("a"), photo("b"), photo("gone")], items: [item(["a"]), item(["b"])], sorting: false })).toEqual(["a", "b"]);
+  });
+});
 
 describe("Sell a bunch survives leaving", () => {
   it("photos, the written words, prices and the address come back after the page goes away", async () => {

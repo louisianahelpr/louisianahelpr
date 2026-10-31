@@ -371,6 +371,10 @@ DECLARE
   v_hours jsonb;
   v_local timestamp := p_start AT TIME ZONE 'America/Chicago';
 BEGIN
+  -- Q140: a NULL argument never says yes (a NULL order would fall through to the seller's usual times).
+  IF p_order_id IS NULL OR p_seller IS NULL OR p_start IS NULL THEN
+    RETURN false;
+  END IF;
   SELECT op.windows INTO v_hours FROM public.declutter_order_porch_places op WHERE op.order_id = p_order_id;
   IF v_hours IS NULL THEN
     RETURN public.declutter_slot_in_windows(p_seller, p_start);

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 import { describe, it, expect, vi } from "vitest";
 import type { ReactNode } from "react";
 import { render, screen, renderHook, waitFor } from "@testing-library/react";
@@ -97,7 +100,7 @@ vi.mock("@/hooks/useHelprActivity", () => ({ useHelprActivity: () => ({ activity
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 
 describe("Browse feed: a failed jobs query shows the error state", () => {
-  it("loadError with no jobs renders ErrorState, not 'Nothing today'", () => {
+  const renderFeed = (opts: { loadError?: boolean; offline?: boolean; profileName?: string }) => {
     const filters = {
       filteredJobs: [],
       nearbyJobs: [],
@@ -108,6 +111,9 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
       locationFilter: "all",
       boostedOnly: false,
       mapFilter: "all",
+      searchQuery: "",
+      activeFilterCount: 0,
+      nearbyApplied: false,
       clearFilters: vi.fn(),
       setLocationFilter: vi.fn(),
     };
@@ -120,7 +126,8 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
           filters={filters as never}
           user={{ id: "user-1" } as never}
           allJobs={[]}
-          loadError
+          loadError={!!opts.loadError}
+          offline={!!opts.offline}
           refresh={noop}
           recommendedJobs={[]}
           recommendedLoading={false}
@@ -144,9 +151,44 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.queryByText("We couldn't load jobs.")).not.toBeNull();
+  };
+
+  it("loadError with no jobs renders ErrorState, not 'Nothing today'", () => {
+    renderFeed({ loadError: true });
+    expect(screen.queryByText("Can't load jobs right now.")).not.toBeNull();
     expect(retry()).not.toBeNull();
-    expect(screen.queryByText(/Nothing today/)).toBeNull();
+    expect(screen.queryByText(/Nothing today|No jobs near you/)).toBeNull();
+  });
+
+  // Owner 10-31 (screenshot of /jobs at 1920): offline, Browse read "Browse 0" and "Nothing today, Admin.".
+  it("offline with no jobs in hand says so, with Try again, never the empty state", () => {
+    renderFeed({ offline: true });
+    expect(screen.queryByText("Can't load jobs right now.")).not.toBeNull();
+    expect(screen.queryByText("You're offline. Jobs will load when you're back online.")).not.toBeNull();
+    expect(retry()).not.toBeNull();
+    expect(screen.queryByText(/Nothing today|No jobs near you/)).toBeNull();
+  });
+
+  it("a real empty board has a plain title with no name and no em dash", () => {
+    renderFeed({});
+    expect(screen.queryByText("No jobs near you right now.")).not.toBeNull();
+    expect(screen.queryByText("New jobs show up here as people post them.")).not.toBeNull();
+    expect(document.body.textContent).not.toMatch(/Nothing today|neighbor\.|\u2014/);
+  });
+
+  // The host and the map, read from source (each needs the real query/map runtime to render): offline with nothing
+  // in hand hides the header's "0", sends the feed its offline state, and the map says the same, not "Empty map".
+  it("Browse's header count, feed and map all treat offline-with-nothing as can't-load (owner 10-31)", () => {
+    const read = (f: string) => blankComments(readFileSync(resolve(__dirname, "../..", f), "utf8"));
+    const dash = read("src/pages/home/Dashboard.tsx");
+    expect(dash).toMatch(/const feedOfflineEmpty = feedPhase === "offline-empty";/);
+    expect(dash).toMatch(/const feedShowingLoadError = \(Boolean\(loadError\) \|\| feedOfflineEmpty\) && allJobs\.length === 0;/);
+    expect(dash).toMatch(/count: wantsQuotes \|\| feedShowingLoadError \? undefined : headerCount/);
+    expect(dash).toMatch(/offline=\{feedOfflineEmpty\}/);
+    const data = read("src/hooks/useDashboardData.ts");
+    expect(data).toMatch(/feedPhase: feedPhaseOf\(\{ status: jobsStatus, fetchStatus: jobsFetchStatus \}, online\)/);
+    const map = read("src/components/BrowseMap.tsx");
+    expect(map).toMatch(/if \(\(loadError \|\| !online\) && visibleJobs\.length === 0\) \{/);
   });
 });
 
@@ -154,4 +196,9 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
 // query to ErrorState; removing it puts the outage back ("Nothing new yet." for
 // a poster with 313 unread) — a silent empty state over a server error.
 // @mutate src/components/messages/ConversationList.tsx | {!loading && loadError && conversations.length === 0 ? ( | {!loading && false && conversations.length === 0 ? (
-// @mutate src/components/dashboard/BrowseTasksFeed.tsx | {loadError && allJobs.length === 0 ? ( | {false && allJobs.length === 0 ? (
+// @mutate src/components/dashboard/BrowseTasksFeed.tsx | {(loadError \|\| offline) && allJobs.length === 0 ? ( | {false && allJobs.length === 0 ? (
+// @mutate src/components/dashboard/BrowseTasksFeed.tsx | {(loadError \|\| offline) && allJobs.length === 0 ? ( | {loadError && allJobs.length === 0 ? (
+// @mutate src/pages/home/Dashboard.tsx | count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount | count: wantsQuotes ? undefined : headerCount
+// @mutate src/pages/home/Dashboard.tsx |                     offline={feedOfflineEmpty} |
+// @mutate src/components/BrowseMap.tsx |   if ((loadError \|\| !online) && visibleJobs.length === 0) { |   if (loadError && visibleJobs.length === 0) {
+// @mutate src/components/dashboard/BrowseTasksFeed.tsx |               : "No jobs near you right now." |               : "Nothing today, neighbor."

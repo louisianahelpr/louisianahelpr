@@ -47,6 +47,8 @@ interface BrowseTasksFeedProps {
   allJobs: EnrichedJob[];
   /** True once the open-jobs fetch has failed. */
   loadError: boolean;
+  /** Offline (or the read paused) with no page in hand (feedPhase "offline-empty"): never the empty state. */
+  offline?: boolean;
   /** Retries the feed fetch (ErrorState's retry handler). */
   refresh: () => void;
   recommendedJobs: EnrichedJob[];
@@ -116,6 +118,7 @@ export function BrowseTasksFeed({
   user,
   allJobs,
   loadError,
+  offline = false,
   refresh,
   recommendedJobs,
   recommendedLoading,
@@ -159,10 +162,6 @@ export function BrowseTasksFeed({
   const { activity: helprActivity } = useHelprActivity(
     (myProfile as { parish?: string | null } | null)?.parish ?? null,
   );
-  const emptyStateGreeting = (() => {
-    const first = (myProfile?.full_name ?? "").trim().split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, "");
-    return first || "neighbor";
-  })();
   // Lift the viewer's cached coords out of filters.userLoc — or fall back
   // to the module-level cache populated by any prior useUserLocation()
   // call elsewhere (the BrowseMap, the "nearby" filter, JobTracking) so
@@ -402,11 +401,12 @@ export function BrowseTasksFeed({
           Activity layout. No nested glass box: the panel IS the Browse
           Tasks surface, so the home page reads as two clean cards (title
           card + panel) like every other tab. */}
-      {loadError && allJobs.length === 0 ? (
+      {(loadError || offline) && allJobs.length === 0 ? (
+      // Owner 10-31: a failed or offline read is never "Nothing today" or "0". Jobs already loaded stay on screen.
       <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <ErrorState
-          title="We couldn't load jobs."
-          body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
+          title="Can't load jobs right now."
+          body={offline ? "You're offline. Jobs will load when you're back online." : "Pull down to refresh, or tap Try again."}
           onRetry={refresh}
         />
       </div>
@@ -434,12 +434,12 @@ export function BrowseTasksFeed({
           title={
             filters.hasFilters
               ? filtered.title
-              : `Nothing today, ${emptyStateGreeting}.`
+              : "No jobs near you right now."
           }
           body={
             filters.hasFilters
               ? filters.boostedOnly
-                ? "No boosted jobs right now — try clearing the filter to see all open work."
+                ? "No boosted jobs right now. Clear the filter to see all open work."
                 : filtered.body
               // Supply-side proof when we have an honest number for it. An
               // empty feed reads as "this marketplace is dead"; the parish
@@ -448,8 +448,8 @@ export function BrowseTasksFeed({
               // stays identical on both screens — and it simply falls back to
               // the original copy when the hook withholds a thin count.
               : helprActivity
-                ? `${helprActivity.count} Helprs have worked jobs in ${helprActivity.parish} — the work just hasn't landed yet today. Fresh jobs post throughout the day.`
-                : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
+                ? `${helprActivity.count} Helprs have worked jobs in ${helprActivity.parish}. New jobs show up here as people post them.`
+                : "New jobs show up here as people post them."
           }
           action={
             // Filtered: offer a way out. Otherwise — for both signed-in

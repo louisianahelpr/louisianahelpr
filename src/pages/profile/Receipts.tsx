@@ -161,7 +161,8 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
   if (spend.data) {
     const { jobs, refunds, tips, gifts, blockFees } = spend.data;
     for (const r of spentRows(jobs, refunds, gifts, tips, blockFees)) {
-      if (r.cents <= 0) continue;
+      // AUD31-55 (lead decision 10-31): a job refunded in full stays, "Refunded in full", at its $0 net.
+      if (r.cents <= 0 && !r.refundedInFull) continue;
       receipts.push({
         key: r.job ? `job-${r.job.id}` : `tip-${r.tip?.id}`,
         title: r.job ? r.job.title ?? "Job" : "Tip",

@@ -200,7 +200,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$30\.00\s*across 1 job(?!s)/));
   });
 
-  it("only real charges count: closed unpaid $0, full refund out, partial refund = kept, chargeback $0, gift part out, rows show the charge", async () => {
+  it("only real charges count: closed unpaid $0, full refund listed at $0 (AUD31-55), partial refund = kept, chargeback $0, gift part out, rows show the charge", async () => {
     rows = [
       { id: "c1", title: "Real paid job", budget: 40, customer_fee_amount: 4.8, poster_completed_at: "2026-09-01T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
       { id: "c2", title: "Closed no payment", budget: 50, payment_status: "cancelled", stripe_payment_intent_id: null, poster_completed_at: "2026-09-02T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
@@ -212,13 +212,15 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     refundRows = [{ job_id: "c3", amount_cents: 2500 }, { job_id: "c4", amount_cents: 1500 }];
     giftRows = [{ job_id: "c6", amount: 20 }];
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*across 3 jobs/));
-    expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Gift helped", "Partly refunded", "Real paid job"]);
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*across 4 jobs/));
+    expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Gift helped", "Partly refunded", "Fully refunded", "Real paid job"]);
+    // AUD31-55 (lead decision 10-31): a job refunded in full stays, at $0 net; the total ($99.80) is the sum of the rows.
+    expect(text()).toMatch(/Fully refunded\s*Sep 3 · Refunded in full\s*\$0\.00/);
     expect(text()).toMatch(/Real paid job\s*Sep 1\s*\$44\.80/);
     // AUD31-55: a partial refund says what came back.
     expect(text()).toMatch(/Partly refunded\s*Sep 4 · \$15\.00 refunded\s*\$45\.00/);
     expect(text()).toMatch(/Gift helped\s*Sep 6\s*\$10\.00/);
-    expect(text()).not.toMatch(/Closed no payment|Fully refunded|Charged back/);
+    expect(text()).not.toMatch(/Closed no payment|Charged back/);
   });
 
   it("same figures: lifetime, week, month and year totals and counts", async () => {

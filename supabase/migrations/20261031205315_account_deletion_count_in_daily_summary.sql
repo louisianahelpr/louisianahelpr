@@ -207,3 +207,14 @@ BEGIN
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.retract_new_member_notice_for_test_account() FROM PUBLIC, anon, authenticated;
+
+-- Q807: every public table carries the unconfirmed-email statement gate (db-smoke's class check
+-- scripts/ci/unconfirmed-email-gate.sql). account_deletion_log is written only by the BEFORE DELETE
+-- trigger above, which swallows every error, so the gate can never block a delete.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

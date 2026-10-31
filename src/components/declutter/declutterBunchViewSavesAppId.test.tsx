@@ -4,8 +4,8 @@
  * under one id and the draft is made under another). Here the real screen sorts two items; the stager is faked so
  * each id it gives is known; listing must send each item with the FIRST id given for it, and no item is given two.
  *
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (given.size > 0) setItems( |     if (false) setItems(
- * @mutate src/components/declutter/DeclutterBunchView.tsx | given.has(it.key) ? { ...it, appId: given.get(it.key) } : it | given.has(it.key) ? { ...it } : it
+ * @mutate src/components/declutter/useBunchStager.ts |     if (given.size > 0) setItems( |     if (false) setItems(
+ * @mutate src/components/declutter/useBunchStager.ts | given.has(it.key) ? { ...it, appId: given.get(it.key) } : it | given.has(it.key) ? { ...it } : it
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

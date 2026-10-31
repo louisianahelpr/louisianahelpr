@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useFeature } from "@/hooks/useFeature";
 import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { SELLER_DEFAULTS, fetchSellerDefaults, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import { stopMySellerDelivery } from "@/lib/declutter/stopSellerDelivery";
 import { AutoFreeChoice } from "./AutoFreeRow";
 import { BundleDiscountCard } from "./BundleDiscountCard";
 import { SellerDeliveryDetails } from "./SellerDeliverySettings";
@@ -82,14 +83,21 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   const noWay = !draft.handovers.some((w) => shown.includes(w));
   const unsaved = !same(draft, base);
+  // LEAD-DELIVER-OFF-ALL (owner 2026-10-31): unticking "I'll deliver" here also stops delivery on the listings already
+  // up (orders already placed keep theirs). Ticking it again changes only what new listings start with.
+  const deliverOff = base.handovers.includes("seller_delivery") && !draft.handovers.includes("seller_delivery");
   const save = useMutation({
-    mutationFn: () => saveSellerDefaults(userId, draft),
-    onSuccess: (done) => {
+    mutationFn: async () => {
+      const done = await saveSellerDefaults(userId, draft);
+      return { done, stopped: done && deliverOff ? await stopMySellerDelivery() : null };
+    },
+    onSuccess: ({ done, stopped }) => {
       if (!done) {
         toast.error("We couldn't save your listing defaults yet. Try again in a little while.");
         return;
       }
-      toast("Listing defaults saved.");
+      toast(stopped ? `Listing defaults saved. ${stopped === 1 ? "1 listing no longer offers" : `${stopped} listings no longer offer`} your delivery.` : "Listing defaults saved.");
+      if (stopped) void qc.invalidateQueries({ queryKey: ["declutter"] });
       qc.setQueryData(["declutter", "seller-defaults", userId], draft);
       setEdits({});
     },
@@ -111,6 +119,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />
         {/* LEAD-DELIVER-TWICE: the delivery price and times open under the ticked "I'll deliver" (their own Save). */}
         {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />}
+        {deliverOff && <p role="note" className="text-ds-13 text-foreground" data-deliver-off-all="">Off. Your listings stop offering delivery; orders already placed are kept.</p>}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>

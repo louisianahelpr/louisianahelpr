@@ -121,6 +121,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // Audit 1030 DB-4: the Pickup block says pickup only when the seller offers one (ItemPickupWays reads the same key).
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId), enabled: validId });
   const way = noDeliveryWay(ways.data);
+  const porchOnly = way === "porch" && !(ways.data ?? []).includes("meetup");
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
@@ -299,7 +300,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
-            {way !== "none" && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
+            {/* BUY-18: a porch-only item is picked up on a DAY (the porch day, picked after paying from the seller's
+                porch days, which a buyer cannot read here), so the seller's hours are not its pickup times. */}
+            {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already

@@ -21,6 +21,7 @@ import {
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { FieldError } from "@/components/ui/FieldError";
+import { PhotoProofAddFace } from "./PhotoProofAddFace";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -368,13 +369,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
-                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                    <span
-                      className="font-sans font-semibold mt-1 text-ds-10"
-                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
-                    >
-                      Add photo
-                    </span>
+                    <PhotoProofAddFace />
                   </button>
                 ) : (
                   <label
@@ -384,13 +379,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
-                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                    <span
-                      className="font-sans font-semibold mt-1 text-ds-10"
-                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
-                    >
-                      Add photo
-                    </span>
+                    <PhotoProofAddFace />
                     <input type="file" accept="image/*" multiple className="sr-only" onChange={handleSelect} />
                   </label>
                 )

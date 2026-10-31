@@ -30,7 +30,7 @@ import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
 import { HelperCollapsedStrip, helperCardLine } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
-import { ClosedJobRow } from "./appliedJobCard/ClosedJobRow";
+import { ClosedJobCard } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
@@ -114,15 +114,7 @@ function AppliedJobCardInner({
     // policy hides it from a rejected applicant, so `app.job` comes back null. The bucket counts (activityFilters)
     // still tally this application under Done — a silent `null` here is what made the Done badge read 3 over a list
     // of 2 cards. Render the same minimal "Not selected" card, minus the job details we can no longer read.
-    return (
-      <div ref={cardRef}>
-        <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
-          <div className="px-4 py-3 space-y-1">
-            <ClosedJobRow label={app.closed_job_label} status={closedCardLabel(app)} />
-          </div>
-        </JobCardShell>
-      </div>
-    );
+    return <ClosedJobCard cardRef={cardRef} label={app.closed_job_label} status={closedCardLabel(app)} />;
   }
   const {
     status,

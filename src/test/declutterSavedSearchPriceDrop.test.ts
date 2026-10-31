@@ -1,6 +1,6 @@
 /**
  * BUY-52 (buying audit 10-30 #52): a price drop into a saved search's budget never alerted; the alert ran only when a
- * listing went live. 20261031220326: a live listing whose price goes DOWN goes back on the alert queue (keeping its
+ * listing went live. 20261031220326 (alert) and 20261031224850 (count): a live listing whose price goes DOWN goes back on the alert queue (keeping its
  * match rows), and a re-run of deliver_saved_search_item_alerts skips only the searches already told, so the search
  * the drop brought into budget is reached and nobody is told twice. The count half: each drop is written down
  * (declutter_item_price_drops), saved_search_new_counts counts a listing that dropped from over the search's top price
@@ -10,11 +10,11 @@
  * MUTANTs fail, among them five nightly drops telling a search more than once). Reads the NEWEST function definitions (effectiveDefs) and the trigger as the migration makes it.
  *
  * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |   WHEN (NEW.status = 'live' AND OLD.status = 'live' AND NEW.current_price_cents < OLD.current_price_cents) |   WHEN (NEW.status = 'live' AND OLD.status IS DISTINCT FROM 'live')
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |   INSERT INTO public.saved_search_item_queue (item_id) VALUES (NEW.id)\n  ON CONFLICT (item_id) DO UPDATE SET attempts = 0, retry_after = NULL, queued_at = now();\n  RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop() |   RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop()
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   INSERT INTO public.saved_search_item_queue (item_id) VALUES (NEW.id)\n  ON CONFLICT (item_id) DO UPDATE SET attempts = 0, retry_after = NULL, queued_at = now();\n  RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop() |   RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop()
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql | AND m.search_id = s.id AND NOT m.held)) | AND m.search_id = s.id AND m.held))
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |                 OR i.id IN (SELECT public.declutter_dropped_into_budget(COALESCE(s.last_seen_at, s.created_at), s.max_budget))) |                 OR false)
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |      AND d.from_cents > p_max_budget * 100 |      AND d.from_cents > 0
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |   INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n | 
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |                 OR i.id IN (SELECT public.declutter_dropped_into_budget(COALESCE(s.last_seen_at, s.created_at), s.max_budget))) |                 OR false)
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |      AND d.from_cents > p_max_budget * 100 |      AND d.from_cents > 0
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n | 
  * @mutate src/lib/declutter/browseFilters.ts |   if (item.id !== undefined && dropped?.has(item.id)) return true; |   if (item.id !== undefined && dropped?.has(item.id)) return false;
  * @mutate src/lib/declutter/browseFilters.ts |   return Number.isFinite(Date.parse(since)) && maxDollars !== null ? { since, maxDollars } : null; |   return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | isNewSince(item, newSince, droppedIn.data) | isNewSince(item, newSince, undefined)
@@ -39,6 +39,7 @@ const MIG = join(REPO, "supabase", "migrations");
 const DEFS = effectiveDefs(MIG);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "").replace(/\s+/g, " ");
 const migration = blankSqlComments(readFileSync(join(MIG, "20261031220326_saved_search_price_drop_alerts.sql"), "utf8")).replace(/\s+/g, " ");
+const counts = blankSqlComments(readFileSync(join(MIG, "20261031224850_saved_search_price_drop_counts.sql"), "utf8")).replace(/\s+/g, " ");
 
 describe("a price drop into a saved search's budget alerts it (BUY-52)", () => {
   it("the inventory read something", () => {
@@ -66,8 +67,8 @@ describe("a price drop into a saved search's budget alerts it (BUY-52)", () => {
     expect(helper).toMatch(/AND i\.current_price_cents <= p_max_budget \* 100/);
     expect(helper).toMatch(/WHERE p_max_budget IS NOT NULL/);
     expect(body("saved_search_on_item_price_drop")).toMatch(/INSERT INTO public\.declutter_item_price_drops \(item_id, from_cents, to_cents\) VALUES \(NEW\.id, OLD\.current_price_cents, NEW\.current_price_cents\)/);
-    expect(migration).toMatch(/REVOKE ALL ON TABLE public\.declutter_item_price_drops FROM PUBLIC, anon, authenticated/);
-    expect(migration).toMatch(/REVOKE ALL ON FUNCTION public\.declutter_dropped_into_budget\(timestamptz, numeric\) FROM PUBLIC, anon/);
+    expect(counts).toMatch(/REVOKE ALL ON TABLE public\.declutter_item_price_drops FROM PUBLIC, anon, authenticated/);
+    expect(counts).toMatch(/REVOKE ALL ON FUNCTION public\.declutter_dropped_into_budget\(timestamptz, numeric\) FROM PUBLIC, anon/);
   });
 
   it("Browse marks the same listings New", async () => {

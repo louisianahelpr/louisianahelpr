@@ -12,9 +12,9 @@
 --     see the stop rule from here, so it may alert on such a listing, which Browse then leaves out. Judged fine: the
 --     stop is private and never shown.
 --
--- RESTATED FROM: both functions in 20261031220326_saved_search_price_drop_alerts.sql (BUY-52, the commit below this one
--- on the same branch; it restates origin/main's newest CREATEs, 20261031091529 and 20261031023451, checked with git grep
--- on origin/main 2026-10-31). They land together: restating main's copies here would undo BUY-52. One block added in
+-- RESTATED FROM (newest CREATEs, checked 2026-10-31 17:49 CT): deliver_saved_search_item_alerts from
+-- 20261031220326_saved_search_price_drop_alerts.sql (BUY-52's alert half, in PR #3906, going live ahead of this; it
+-- restates main's 20261031091529), and saved_search_new_counts from origin/main's 20261031023451. One block added in
 -- each (marked BUY-13); nothing else changed. No money moves.
 -- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS; the CHECK is dropped and added again; CREATE OR REPLACE.
 -- Proof: src/test/pglite/savedSearchKeepsDeclutterFilters.pglite.mjs (applied 3x; NEW_MIGRATION=skip is red).
@@ -243,9 +243,7 @@ AS $function$
         SELECT count(*)::integer
           FROM public.declutter_items i
          WHERE i.status = 'live'
-           -- BUY-52: new since the last look, or dropped into this search's budget since then.
-           AND (i.live_at > COALESCE(s.last_seen_at, s.created_at)
-                OR i.id IN (SELECT public.declutter_dropped_into_budget(COALESCE(s.last_seen_at, s.created_at), s.max_budget)))
+           AND i.live_at > COALESCE(s.last_seen_at, s.created_at)
            AND i.seller_id <> s.user_id
            -- The declutter_items SELECT policy (20261020033623), for the caller:
            AND (SELECT public.feature_enabled_for('declutter'))

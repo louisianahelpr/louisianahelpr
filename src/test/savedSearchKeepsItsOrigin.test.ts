@@ -2,7 +2,7 @@
  * BUY-49: a Declutter distance alert measured from the profile, while Browse measures from the device or ZIP. Behaviour
  * of the sender: src/test/pglite/savedSearchKeepsItsOrigin.pglite.mjs.
  *
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |                OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL\n                    AND public.miles_between(COALESCE(s.origin_lat, p.latitude), | OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL\n                    AND public.miles_between(p.latitude,
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |                OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL\n                    AND public.miles_between(COALESCE(s.origin_lat, p.latitude), | OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL\n                    AND public.miles_between(p.latitude,
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | radiusMiles: from ? maxMiles : null, origin: from ?? null, extras | radiusMiles: from ? maxMiles : null, extras
  * @mutate src/lib/savedSearches.ts |   const origin = d.origin && d.radiusMiles ? |   const origin = false ?
  */

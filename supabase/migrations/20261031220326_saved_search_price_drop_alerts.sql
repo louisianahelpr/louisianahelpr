@@ -10,35 +10,15 @@
 --     HELD row; it now skips only the searches already TOLD (held = false). A search with no row is matched by the
 --     same filters as ever, so it is reached only when the listing now matches it (the price is the one thing that
 --     changed). A held search is still told at the end of its hour, as BUY-50 made it.
---   * declutter_item_price_drops: every such drop is written down (when, from what price, to what). It is what the
---     count reads: the alert's match rows exist only for searches with alerts on.
---   * saved_search_new_counts: a Declutter search's "N new" also counts a listing whose price dropped from OVER that
---     search's top price since the member last looked (it now matches, so it is in budget). Counted once, however many
---     drops: the count is of listings.
---   * declutter_dropped_into_budget(since, top): the ids the count's drop rule takes, for a member, so Browse opened from
---     the search marks the same listings New (resultsPath's `new=` and `max=`). Ids only: no past prices leave the
---     database.
+-- Not in this file: the "N new" count (saved_search_new_counts counts by live_at), left for its own change.
 --
--- RESTATED FROM: deliver_saved_search_item_alerts in 20261031091529_declutter_saved_search_held_matches.sql and
--- saved_search_new_counts in 20261031023451_saved_search_keeps_its_origin.sql (origin/main's newest CREATEs,
--- checked with git grep on origin/main 2026-10-31 17:12 CT); one clause changed in each (marked BUY-52). Who is
--- matched, the seed rules, the lock order, the hourly and daily throttles and the grants are unchanged. No money moves.
--- REPLAY-SAFE: IF NOT EXISTS; CREATE OR REPLACE; DROP TRIGGER IF EXISTS before CREATE TRIGGER.
+-- RESTATED FROM: deliver_saved_search_item_alerts in 20261031091529_declutter_saved_search_held_matches.sql
+-- (origin/main's newest CREATE, 2026-10-31); one clause changed (marked BUY-52). Who is matched, the seed rules, the
+-- lock order, the hourly and daily throttles and the grants are unchanged. No money moves.
+-- REPLAY-SAFE: CREATE OR REPLACE; DROP TRIGGER IF EXISTS before CREATE TRIGGER.
 -- Proof: src/test/pglite/declutterSavedSearchPriceDrop.pglite.mjs (applied 3x; NEW_MIGRATION=skip is red).
 
--- 1. A live listing's price went down: write it down, and run its alert again.
-CREATE TABLE IF NOT EXISTS public.declutter_item_price_drops (
-  item_id uuid NOT NULL REFERENCES public.declutter_items(id) ON DELETE CASCADE,
-  at timestamptz NOT NULL DEFAULT now(),
-  from_cents integer NOT NULL,
-  to_cents integer NOT NULL
-);
-CREATE INDEX IF NOT EXISTS declutter_item_price_drops_item_at ON public.declutter_item_price_drops (item_id, at);
--- Read only through the two functions below (definer); no member reads the rows.
-ALTER TABLE public.declutter_item_price_drops ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.declutter_item_price_drops FROM PUBLIC, anon, authenticated;
-GRANT ALL ON TABLE public.declutter_item_price_drops TO service_role;
-
+-- 1. A live listing's price went down: run its alert again.
 CREATE OR REPLACE FUNCTION public.saved_search_on_item_price_drop()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -46,8 +26,6 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
-  INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)
-  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);
   INSERT INTO public.saved_search_item_queue (item_id) VALUES (NEW.id)
   ON CONFLICT (item_id) DO UPDATE SET attempts = 0, retry_after = NULL, queued_at = now();
   RETURN NULL;
@@ -234,92 +212,3 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.deliver_saved_search_item_alerts(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.deliver_saved_search_item_alerts(uuid) TO service_role;
-
--- 3. The listings whose price dropped from over `p_max_budget` (dollars, a search's top price) since `p_since`.
---    No top price: none (a drop never brings a listing into a budget it has no top to). Only live listings; who may see
---    one is the caller's own saved_search_new_counts / Browse filter, which still applies every other rule.
-CREATE OR REPLACE FUNCTION public.declutter_dropped_into_budget(p_since timestamptz, p_max_budget numeric)
- RETURNS SETOF uuid
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  SELECT DISTINCT d.item_id
-    FROM public.declutter_item_price_drops d
-    JOIN public.declutter_items i ON i.id = d.item_id AND i.status = 'live'
-   WHERE p_max_budget IS NOT NULL
-     AND p_since IS NOT NULL
-     AND d.at > p_since
-     AND d.from_cents > p_max_budget * 100
-     AND i.current_price_cents <= p_max_budget * 100;
-$function$;
-REVOKE ALL ON FUNCTION public.declutter_dropped_into_budget(timestamptz, numeric) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.declutter_dropped_into_budget(timestamptz, numeric) TO authenticated, service_role;
-
--- 4. "N new": also the listings that dropped into the search's budget since the last look.
-CREATE OR REPLACE FUNCTION public.saved_search_new_counts()
- RETURNS TABLE(search_id uuid, new_count integer)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  SELECT
-    s.id,
-    CASE s.section
-      WHEN 'jobs' THEN (
-        SELECT count(*)::integer
-          FROM public.open_jobs_browse j
-         WHERE j.created_at > COALESCE(s.last_seen_at, s.created_at)
-           AND j.customer_id IS DISTINCT FROM s.user_id
-           AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
-                            WHERE (b.blocker_id = s.user_id AND b.blocked_id = j.customer_id)
-                               OR (b.blocker_id = j.customer_id AND b.blocked_id = s.user_id))
-           AND public.saved_search_category_matches(s.category, j.category)
-           AND (s.parish IS NULL OR s.parish = j.parish)
-           AND (s.max_budget IS NULL OR j.budget <= s.max_budget)
-           AND (s.min_budget IS NULL OR j.budget >= s.min_budget)
-           AND (s.query IS NULL OR btrim(s.query) = ''
-                OR strpos(lower(j.title), lower(btrim(s.query))) > 0
-                OR strpos(lower(COALESCE(j.description, '')), lower(btrim(s.query))) > 0)
-           AND (s.location_keyword IS NULL OR s.location_keyword ~ '^nearby:'
-                OR strpos(lower(COALESCE(j.location, '')), lower(s.location_keyword)) > 0)
-           AND (s.radius_miles IS NULL
-                OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL
-                    AND j.latitude IS NOT NULL AND j.longitude IS NOT NULL
-                    AND public.miles_between(p.latitude, p.longitude, j.latitude, j.longitude) <= s.radius_miles)
-                OR ((p.latitude IS NULL OR p.longitude IS NULL OR j.latitude IS NULL OR j.longitude IS NULL)
-                    AND p.parish IS NOT NULL AND j.parish IS NOT NULL AND p.parish = j.parish))
-      )
-      WHEN 'declutter' THEN (
-        SELECT count(*)::integer
-          FROM public.declutter_items i
-         WHERE i.status = 'live'
-           -- BUY-52: new since the last look, or dropped into this search's budget since then.
-           AND (i.live_at > COALESCE(s.last_seen_at, s.created_at)
-                OR i.id IN (SELECT public.declutter_dropped_into_budget(COALESCE(s.last_seen_at, s.created_at), s.max_budget)))
-           AND i.seller_id <> s.user_id
-           -- The declutter_items SELECT policy (20261020033623), for the caller:
-           AND (SELECT public.feature_enabled_for('declutter'))
-           AND NOT public.declutter_seller_hidden(i.seller_id)
-           AND (NOT i.is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))
-           AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
-                            WHERE (b.blocker_id = s.user_id AND b.blocked_id = i.seller_id)
-                               OR (b.blocker_id = i.seller_id AND b.blocked_id = s.user_id))
-           AND (s.category IS NULL OR s.category = i.category)
-           AND (s.max_budget IS NULL OR i.current_price_cents <= s.max_budget * 100)
-           AND (s.min_budget IS NULL OR i.current_price_cents >= s.min_budget * 100)
-           -- Declutter Browse's rule (DA-1): every word, in the title, description or category, plurals folded.
-           AND public.declutter_search_matches(s.query, i.title, i.description, i.category)
-           AND (s.radius_miles IS NULL
-                OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL
-                    AND public.miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), i.area_lat::numeric, i.area_lng::numeric) <= s.radius_miles))
-      )
-      ELSE 0
-    END
-  FROM public.saved_searches s
-  LEFT JOIN public.profiles p ON p.user_id = s.user_id
-  WHERE s.user_id = (SELECT auth.uid());
-$function$;
-
-REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.saved_search_new_counts() TO authenticated;

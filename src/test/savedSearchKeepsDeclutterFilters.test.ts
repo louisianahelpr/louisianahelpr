@@ -8,7 +8,7 @@
  * MUTANTs fail). This guard reads the NEWEST function definitions (effectiveDefs).
  *
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND (NOT s.free_only OR v_item.current_price_cents = 0)\n |
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |            AND (NOT s.porch_only OR i.porch_ok)\n |
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |            AND (NOT s.porch_only OR i.porch_ok)\n |
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |   AND (section = 'declutter' OR (NOT free_only | AND (true OR (NOT free_only
  * @mutate src/lib/savedSearches.ts |     if (e.freeOnly) p.set("free", "1"); |     if (e.freeOnly) p.set("free", "0");
  * @mutate src/lib/savedSearches.ts |     if (e.conditions.length > 0) p.set("cond", e.conditions.join(",")); |     if (e.conditions.length > 0) p.set("stars", e.conditions.join(","));
@@ -66,7 +66,7 @@ describe("a saved Declutter search keeps Free, porch, drops and condition (BUY-1
       expect(fn).toContain(`AND (NOT s.drops_only OR (${it}.sale_mode = 'offers' AND NOT ${it}.drops_stopped AND COALESCE(${it}.drop_pct, 5) > 0))`);
       expect(fn).toContain(`AND (cardinality(s.conditions) = 0 OR ${it}.condition_stars = ANY (s.conditions))`);
     }
-    // BUY-52's clauses are kept (this restates its copies, which land with it).
+    // BUY-52 is kept: the alert from 20261031220326, the count from 20261031224850 (the newest, after this file).
     expect(deliver).toContain("AND m.search_id = s.id AND NOT m.held))");
     expect(count).toContain("OR i.id IN (SELECT public.declutter_dropped_into_budget(");
   });

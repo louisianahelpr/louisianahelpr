@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261031220326_saved_search_price_drop_alerts (BUY-52): a live Declutter listing whose price drops
+ * PGlite proof for BUY-52: 20261031220326_saved_search_price_drop_alerts (the alert half, PR #3906) and
+ * 20261031224850_saved_search_price_drop_counts (the count half), with 20261031222115 (BUY-13) between them as on the
+ * branch: a live Declutter listing whose price drops
  * into a saved search's budget alerts that search; a member already told of the listing is not told again; a price
  * rise, or a change on a listing that is not live, queues nothing. A drop every night still tells each search once. The
  * "N new" count (saved_search_new_counts) counts a listing that dropped into the search's budget since the last look,
  * once however many drops, also for a search with alerts off; declutter_dropped_into_budget gives Browse the same ids.
  *
  *   node src/test/pglite/declutterSavedSearchPriceDrop.pglite.mjs                    # applied 3x: all PASS
- *   NEW_MIGRATION=skip node src/test/pglite/declutterSavedSearchPriceDrop.pglite.mjs # RED: no alert on a drop
+ *   NEW_MIGRATION=skip node src/test/pglite/declutterSavedSearchPriceDrop.pglite.mjs # RED: 224850 skipped, no drop counts
  *   MUTANT=<name> node src/test/pglite/declutterSavedSearchPriceDrop.pglite.mjs      # a planted defect: must FAIL
  *
  * Stubbed, said so: declutter_notify records the bell row; net.http_post records the email body; the search match,
@@ -22,22 +24,23 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const BEFORE = ["20261031023451_saved_search_keeps_its_origin.sql", "20261031091529_declutter_saved_search_held_matches.sql"];
-const THIS = "20261031220326_saved_search_price_drop_alerts.sql";
+const ALERT = "20261031220326_saved_search_price_drop_alerts.sql", B13 = "20261031222115_saved_search_keeps_declutter_filters.sql";
+const THIS = "20261031224850_saved_search_price_drop_counts.sql";
 const MUTANT = process.env.MUTANT ?? "";
 const MUTANTS = {
   // A re-run reaches only searches with a held row again (the old rule): the newly-in-budget search is skipped.
-  heldOnly: ["AND (NOT v_rerun OR NOT EXISTS (SELECT 1 FROM public.saved_search_item_matches m\n                                       WHERE m.item_id = v_item.id AND m.search_id = s.id AND NOT m.held))",
+  heldOnly: [B13, "AND (NOT v_rerun OR NOT EXISTS (SELECT 1 FROM public.saved_search_item_matches m\n                                       WHERE m.item_id = v_item.id AND m.search_id = s.id AND NOT m.held))",
     "AND (NOT v_rerun OR EXISTS (SELECT 1 FROM public.saved_search_item_matches m\n                                       WHERE m.item_id = v_item.id AND m.search_id = s.id AND m.held))"],
   // A re-run reaches every matching search: a member already told hears of it twice.
-  everyone: ["AND (NOT v_rerun OR NOT EXISTS", "AND (true OR NOT EXISTS"],
+  everyone: [B13, "AND (NOT v_rerun OR NOT EXISTS", "AND (true OR NOT EXISTS"],
   // The drop trigger also fires on a rise.
-  onRise: ["AND NEW.current_price_cents < OLD.current_price_cents)", "AND NEW.current_price_cents <> OLD.current_price_cents)"],
+  onRise: [ALERT, "AND NEW.current_price_cents < OLD.current_price_cents)", "AND NEW.current_price_cents <> OLD.current_price_cents)"],
   // The count goes back to live_at only: a drop into budget is never "new".
-  countLiveOnly: ["OR i.id IN (SELECT public.declutter_dropped_into_budget(", "OR false AND i.id IN (SELECT public.declutter_dropped_into_budget("],
+  countLiveOnly: [THIS, "OR i.id IN (SELECT public.declutter_dropped_into_budget(", "OR false AND i.id IN (SELECT public.declutter_dropped_into_budget("],
   // Any drop since the last look counts, even one from a price already in budget.
-  anyDrop: ["AND d.from_cents > p_max_budget * 100", "AND d.from_cents > 0"],
+  anyDrop: [THIS, "AND d.from_cents > p_max_budget * 100", "AND d.from_cents > 0"],
   // The drop is not written down.
-  noLog: ["  INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n", ""],
+  noLog: [THIS, "  INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n", ""],
 };
 const skip = process.env.NEW_MIGRATION === "skip";
 
@@ -77,7 +80,8 @@ CREATE FUNCTION public.declutter_notify(p_user uuid, p_kind text, p_title text, 
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL, title text NOT NULL,
   description text NOT NULL DEFAULT '', category text NOT NULL DEFAULT 'kitchen', status text NOT NULL DEFAULT 'draft',
   current_price_cents integer NOT NULL, area_lat numeric NOT NULL DEFAULT 30.0, area_lng numeric NOT NULL DEFAULT -92.0,
-  is_seed boolean NOT NULL DEFAULT false, live_at timestamptz);
+  is_seed boolean NOT NULL DEFAULT false, live_at timestamptz, porch_ok boolean NOT NULL DEFAULT true,
+  condition_stars smallint NOT NULL DEFAULT 4, sale_mode text NOT NULL DEFAULT 'fixed', drops_stopped boolean NOT NULL DEFAULT false, drop_pct integer);
 CREATE TABLE public.saved_searches (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, name text NOT NULL,
   section text NOT NULL DEFAULT 'declutter', created_at timestamptz NOT NULL DEFAULT now(), notify_enabled boolean NOT NULL DEFAULT true,
   notify_email boolean NOT NULL DEFAULT true, category text, max_budget numeric, min_budget numeric, query text,
@@ -96,15 +100,20 @@ CREATE TRIGGER saved_search_on_item_live AFTER UPDATE OF status ON public.declut
 CREATE TRIGGER saved_search_on_item_insert_live AFTER INSERT ON public.declutter_items FOR EACH ROW
   WHEN (NEW.status = 'live') EXECUTE FUNCTION public.saved_search_on_item_live();
 `);
-if (!skip) {
-  let mig = readFileSync(MIG_DIR + THIS, "utf8");
-  if (MUTANT) {
+{
+  const files = skip ? [ALERT, B13] : [ALERT, B13, THIS];
+  const read = (name) => {
+    let sql = readFileSync(MIG_DIR + name, "utf8");
     const m = MUTANTS[MUTANT];
-    if (!m || !mig.includes(m[0])) throw new Error(`mutant ${MUTANT} did not apply`);
-    mig = mig.replace(m[0], m[1]);
-  }
+    if (MUTANT && m && m[0] === name) {
+      if (!sql.includes(m[1])) throw new Error(`mutant ${MUTANT} did not apply`);
+      sql = sql.replace(m[1], m[2]);
+    }
+    return sql;
+  };
+  if (MUTANT && !MUTANTS[MUTANT]) throw new Error(`no mutant ${MUTANT}`);
   for (let k = 1; k <= 3; k++) {
-    try { await db.exec(mig); check(true, `the migration applies (run ${k})`); } catch (e) { check(false, `the migration applies (run ${k}): ${e.message}`); }
+    try { for (const name of files) await db.exec(read(name)); check(true, `the migrations apply (run ${k})`); } catch (e) { check(false, `the migrations apply (run ${k}): ${e.message}`); }
   }
 }
 
@@ -182,7 +191,7 @@ await drop(4000);
 check(await newCount(DEE) === 1, `[fix] another drop: still 1 new, never 2 (${await newCount(DEE)})`);
 check(await newCount(ERIN) === 0, `Erin has no top price: a drop is not new (${await newCount(ERIN)})`);
 // She looks (PGlite's clock can give two statements the same instant, so the earlier drops are moved a minute back).
-await q(`UPDATE public.declutter_item_price_drops SET at = at - interval '1 minute'`);
+await q(`UPDATE public.declutter_item_price_drops SET at = at - interval '1 minute'`).catch((e) => console.log("  (" + e.message + ")"));
 await q(`UPDATE public.saved_searches SET last_seen_at = now() - interval '30 seconds' WHERE user_id = $1`, [DEE]);
 check(await newCount(DEE) === 0, `after she looks: 0 new (${await newCount(DEE)})`);
 await drop(3500);

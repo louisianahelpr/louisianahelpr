@@ -23,7 +23,7 @@ export function BunchListStep({ step, items, readyCount, heldForFee, savedSetup,
   savedWindows: UseQueryResult<unknown[]>;
   savedWays: SellerHandover[];
   windows: PickupWindow[];
-  setWindows: (w: PickupWindow[]) => void;
+  setWindows: Dispatch<SetStateAction<PickupWindow[]>>;
   choices: ReturnType<typeof useBunchChoices>;
   ways: SellerHandover[];
   setWays: Dispatch<SetStateAction<SellerHandover[]>>;

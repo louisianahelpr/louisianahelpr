@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {side === "buyer" ? "Message the seller" : "Message the buyer"} | {"Message the seller"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {m.mine ? "You" : `The ${other}`} | {m.mine ? `The ${other}` : "You"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     mutationFn: () => sendOrderMessage(orderId, draft.trim()), |     mutationFn: () => sendOrderMessage(orderId, draft),
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => toast.error(declutterErrorMessage(err)), |     onError: () => toast.error("Something went wrong."),
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |           {open && (\n            <SheetPrimaryAction |           {(\n            <SheetPrimaryAction
  */

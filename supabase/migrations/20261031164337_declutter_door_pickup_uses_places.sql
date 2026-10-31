@@ -5,7 +5,8 @@
 --
 -- Layers changed: declutter_start_checkout and declutter_checkout_free, each restated VERBATIM from its newest CREATE
 -- (20261030164712_declutter_porch_places.sql; measured on origin/main 2026-10-31 with git show over every migration),
--- with ONE change each: the D-NEW14 place read also runs for 'pickup_home'. A seller with saved places then hands a
+-- with ONE change each: the D-NEW14 place read also runs for 'pickup_home'. (Plus, after review, the open-order reuse
+-- key of declutter_start_checkout includes the place's hours.) A seller with saved places then hands a
 -- door pickup over at the place the buyer chose; it is frozen on the order (declutter_order_porch_places, whose
 -- 20261031145652 trigger freezes the place's hours too), so declutter_item_address gives the paid buyer that place,
 -- and declutter_order_pickup_windows / declutter_book_pickup use its hours. A seller with no places: as before.
@@ -86,7 +87,9 @@ BEGIN
            WHERE x.order_id = o.id AND x.status = 'held' AND x.held_until > now()) AS held_slot,
          (SELECT x.dropoff_address FROM public.declutter_seller_deliveries x WHERE x.order_id = o.id) AS sd_dropoff,
          (SELECT m.spot_id FROM public.declutter_order_meetups m WHERE m.order_id = o.id) AS meetup_spot,
+         -- Review 2026-10-31 (low): and the place's hours (20261031145652), so edited hours never reuse a stale order.
          (SELECT pp.place_id::text || '|' || pp.address || '|' || pp.lat || '|' || pp.lng || '|' || pp.weekdays::text
+                 || '|' || coalesce(pp.windows::text, '')
             FROM public.declutter_order_porch_places pp WHERE pp.order_id = o.id) AS porch_key,
          ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.order_id = o.id AND c.status = 'in_cart' ORDER BY c.id) AS lines
     INTO v_existing
@@ -243,7 +246,8 @@ BEGIN
           OR (v_existing.held_slot = p_slot_start AND v_existing.sd_dropoff IS NOT DISTINCT FROM v_sd_dropoff))
      -- D-NEW14: and the same porch place, as it is now (an edited or changed place opens a new order).
      AND v_existing.porch_key IS NOT DISTINCT FROM
-         (v_place.id::text || '|' || v_place.address || '|' || v_place.lat || '|' || v_place.lng || '|' || v_place.weekdays::text)
+         (v_place.id::text || '|' || v_place.address || '|' || v_place.lat || '|' || v_place.lng || '|' || v_place.weekdays::text
+          || '|' || coalesce(v_place.windows::text, ''))
      -- Q2425: and the same meeting spot.
      AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN
     -- lh-money-escrow review #1: an order handed back with NO page yet (the

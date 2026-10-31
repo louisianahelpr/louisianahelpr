@@ -1044,6 +1044,7 @@ describe("Declutter slice 3 screens", () => {
   // Audit 2026-10-30 DB-9: the server keeps the last drop-off per buyer and seller (the Helpr delivery box writes the
   // same row). The box opened empty with Pay on and the order went to an address the buyer never saw here.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | && !!handoff && sdChecked !== null; | && !!handoff;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       {!held && !opening && payWaitsOn && ( |       {false && (
   // @mutate src/components/declutter/SellerDeliveryChoice.tsx |       {state === "pick" && shownDay && checked !== null && ( |       {state === "pick" && shownDay && (
   // @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onSuccess: (o, typed) => { onSlot(null); setDay(null); onOffer(o); onChecked(typed); }, |     onSuccess: (o) => { onSlot(null); setDay(null); onOffer(o); },
   it("DB-9: a stored drop-off is never used silently: the buyer types and checks the full address here, sees it, and only then can pay", async () => {
@@ -1062,6 +1063,8 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/Mid-City/)).toBeNull();
     expect(document.querySelector("[data-sd-address-needed]")).toHaveTextContent("Type the full address and tap Check");
     expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    // BUY-8: a grey Pay says why, right above it.
+    expect(document.querySelector("[data-pay-waits-on]")).toHaveTextContent("Finish the delivery choices above to pay.");
     fireEvent.change(input, { target: { value: "12 Oak St, Baton Rouge" } });
     fireEvent.click(screen.getByRole("button", { name: "Check" }));
     // The full address, written out, before the times.
@@ -1070,6 +1073,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
     fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
     expect(screen.getByRole("button", { name: /^Pay / })).toBeEnabled();
+    expect(document.querySelector("[data-pay-waits-on]")).toBeNull();
     // Editing the address takes the check back: the times go and Pay is off until it is checked again.
     fireEvent.change(input, { target: { value: "14 Oak St, Baton Rouge" } });
     expect(document.querySelector("[data-sd-deliver-to]")).toBeNull();

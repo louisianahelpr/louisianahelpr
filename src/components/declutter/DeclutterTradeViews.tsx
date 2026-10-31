@@ -178,6 +178,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + setupFeeCents;
   const includesServiceFee = payCents > listedCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
+  // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
+  // past the bill. The first thing it waits on, in the buyer's words, right above it.
+  const payWaitsOn =
+    needsPlace && !placeReady && porchPlaces.places.length > 0 ? "Choose a pickup place above to pay."
+      : delivering && !liveQuote ? "Get the delivery price above to pay."
+        : sellerDelivering && sdState === "pick" && !sdReady ? "Finish the delivery choices above to pay."
+          : !meetupReady ? "Choose a meeting spot above to pay."
+            : null;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
@@ -280,8 +288,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
             : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
       </p>
+      {!held && !opening && payWaitsOn && (
+        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground" data-pay-waits-on="">{payWaitsOn}</p>
+      )}
       <button
         type="button"
+        aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
         disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady}
         onClick={async () => {

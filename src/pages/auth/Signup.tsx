@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { rememberReferralFromUrl } from "@/lib/pendingReferral";
+import { useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,8 +17,8 @@ import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
-import { rememberJobIntent, rememberSignupRedirect, postAuthDestination, notifySignupSubtitle } from "@/lib/jobIntent";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { notifySignupSubtitle } from "@/lib/jobIntent";
+import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -46,36 +45,8 @@ const Signup = () => {
   const navigate = useNavigate();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/signup"]);
-  const { user, isReady } = useAuthReady();
   const [searchParams] = useSearchParams();
-  // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup
-  // wall. `?redirect=<path>` — the fuller form of the same idea: the exact
-  // in-app route they were trying to reach (e.g. `/jobs/<id>`). Persist both
-  // immediately, because signup does not end here: it ends at /signup-pending
-  // and then in the visitor's email client, and neither router state nor a
-  // query param survives that round-trip. See lib/jobIntent.
-  //
-  // SECURITY: `redirect` is attacker-controllable. `rememberSignupRedirect`
-  // drops anything that isn't a same-origin path, so a crafted
-  // `/signup?redirect=https://evil.com` stores nothing and the flow falls back
-  // to its normal landing.
-  const pendingJobId = searchParams.get("job");
-  const pendingRedirect = searchParams.get("redirect");
-  // NOTE ON ORDER: this effect is declared BEFORE the already-authenticated
-  // bounce below on purpose. Both fire on the mount commit, in declaration
-  // order, and the bounce reads the value this one writes.
-  useEffect(() => {
-    if (pendingJobId) rememberJobIntent(pendingJobId);
-    rememberSignupRedirect(pendingRedirect); rememberReferralFromUrl(window.location.search); // ?ref= survives an Apple/Google sign-up
-  }, [pendingJobId, pendingRedirect]);
-  // An already-authenticated visitor is bounced into the app (after isReady, never on the null snapshot).
-  useEffect(() => {
-    if (isReady && user) navigate(postAuthDestination(), { replace: true });
-  }, [isReady, user, navigate]);
-  // Funnel event: user landed on signup page (top of activation funnel)
-  useEffect(() => {
-    track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
-  }, []);
+  useSignupEntry(searchParams, navigate); // ?job= / ?redirect= / ?ref= kept, signed-in bounce, funnel start
   // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.
   const [step, setStep] = useState(() => {
     if (!import.meta.env.DEV) return 1;

@@ -41,7 +41,9 @@ export function BunchBulk({ total, chosen, onToggleAll, onSetPrice, onPercentOff
       </div>
       <div className="flex flex-wrap gap-2">
         {pill("price", "Set price")}
-        {pill("percent", "% off suggested")}
+        {/* LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): "% off suggested" read like a daily price drop. It sets each price
+            once, below what we suggested; drops are their own choice under List. */}
+        {pill("percent", "Price below our suggestion")}
         <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => { setAction(null); onFree(); }}>Make free</Button>
         {pill("condition", "Set condition")}
       </div>
@@ -54,11 +56,14 @@ export function BunchBulk({ total, chosen, onToggleAll, onSetPrice, onPercentOff
         </form>
       )}
       {action === "percent" && (
-        <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (pctOk) { onPercentOff(pct); setAction(null); } }}>
-          <label className="block text-ds-13 font-medium">Percent off
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (pctOk) { onPercentOff(pct); setAction(null); } }}>
+          <label className="block text-ds-13 font-medium">Percent below
             <input className={`${field} block`} inputMode="numeric" enterKeyHint="done" aria-label="Percent off our suggested prices" value={value} onChange={(e) => setValue(e.target.value)} />
           </label>
           <Button type="submit" size="sm" className="rounded-full" disabled={!pctOk}>Apply</Button>
+          <p className="basis-full text-ds-13 text-muted-foreground" data-bunch-pct-note="">
+            Sets each price once, this much below the price we suggested. It doesn't lower them again later; price drops are a separate choice under List.
+          </p>
         </form>
       )}
       {action === "condition" && (

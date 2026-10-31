@@ -110,15 +110,17 @@ async function listIt() {
 }
 
 describe("Sell a bunch: listing choices", () => {
-  it("nothing saved: both switches start ON, and they reach the listing and are remembered", async () => {
+  // LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): price drops start OFF until the seller turns them on.
+  // @mutate src/components/declutter/BunchChoices.tsx | keepUp: SELLER_DEFAULTS.keepUp, drops: false, | keepUp: SELLER_DEFAULTS.keepUp, drops: SELLER_DEFAULTS.drops,
+  it("nothing saved: drops start OFF and Keep it up ON, and they reach the listing and are remembered", async () => {
     await open();
-    await waitFor(() => expect(isOn(switchOf(DROPS))).toBe(true));
-    expect(isOn(switchOf(KEEP))).toBe(true);
+    await waitFor(() => expect(isOn(switchOf(KEEP))).toBe(true));
+    expect(isOn(switchOf(DROPS))).toBe(false);
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, moveOutOn: null });
+    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: false, dropPct: 5, floorPct: 50, moveOutOn: null });
     await waitFor(() => expect(state.remembered).toHaveLength(1));
-    expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: true, handovers: ["porch"] });
+    expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: false, handovers: ["porch"] });
     expect(await screen.findByText(/didn't turn on for 1 item/)).toBeTruthy();
   });
 
@@ -131,6 +133,12 @@ describe("Sell a bunch: listing choices", () => {
     expect(within(line).getByRole("link", { name: "Settings" })).toBeTruthy();
     expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();
     expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
+    // LEAD-BUNCH-PCT-LABEL: the drops choice is findable from that line ("Change"), for this bunch.
+    // @mutate src/components/declutter/DeclutterBunchListStep.tsx | {changingDrops && <BunchDropsSwitch c={choices} />} | {null}
+    fireEvent.click(within(line).getByRole("button", { name: "Change" }));
+    fireEvent.click(switchOf(DROPS));
+    expect(line.textContent).toContain("Price drops: on, 15% each evening");
+    fireEvent.click(switchOf(DROPS));
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
     expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, moveOutOn: null });

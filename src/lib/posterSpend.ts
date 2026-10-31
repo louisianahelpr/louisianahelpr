@@ -33,8 +33,10 @@ import { cardCostFeeCents } from "@/lib/refundAmount";
  *    void-cancelled-payments, process-scheduled-payouts, and checked against
  *    Stripe by money-reconciliation). A job's refunds are its rows whose
  *    PaymentIntent is the job's (or unrecorded); a tip's are the rows on the
- *    tip's PaymentIntent. Kept = charged − refunded. A full refund drops the
- *    job out; a partial one shows what was kept.
+ *    tip's PaymentIntent. Kept = charged − refunded. A partial refund shows what
+ *    was kept; a full refund (a ledgered refund of the whole charge) STAYS as a
+ *    $0 row marked refundedInFull (AUD31-55, lead decision 2026-10-31: "Refunded
+ *    in full", $0 net, the total counts net so list and total agree).
  *  - A CANCELLED job: the same rule, charged − refunded. Both cancel doors
  *    refund the capture less what is kept and write a payment_refunds row:
  *    create-payment's cancel_escrow (less the non-refundable service fee) and
@@ -164,12 +166,15 @@ export interface SpentRow<J> {
   refundedCents: number;
   /** True when an admin refund (admin_refund_general) is among them. */
   adminRefunded: boolean;
+  /** AUD31-55: the job's own charge came back in full (a ledgered refund, nothing kept): the row stays at its net. */
+  refundedInFull: boolean;
 }
 
 /**
  * The jobs the poster really paid for, each with the cents they kept paying
  * (charge + tips), in the input order, then any orphan tips. Rows that cost
- * nothing are left out, so the Spent list and the Spent total (the sum of these
+ * nothing are left out, except a job whose charge was refunded in full (AUD31-55:
+ * it stays, at $0), so the Spent list and the Spent total (the sum of these
  * rows) can never disagree.
  */
 export function spentRows<J extends PosterSpendJob>(
@@ -215,10 +220,16 @@ export function spentRows<J extends PosterSpendJob>(
   const rows: SpentRow<J>[] = [];
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
-    const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents;
-    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, tipGivenCents: tipGivenByJob.get(job.id) ?? 0, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
+    const refundedCents = refundedByJob.get(job.id) ?? 0;
+    const kept = posterSpentCents(job, refundedCents, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0);
+    const c = kept + tipCents;
+    // AUD31-55: charged (a PaymentIntent under a collected or cancelled status) and the refunds ledgered against it
+    // took back the whole charge. A chargeback, a voided hold or a 'refunded' status with no refund row is not this.
+    const refundedInFull = kept === 0 && refundedCents > 0 && !!job.stripe_payment_intent_id &&
+      ((CHARGED_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "") || job.payment_status === "cancelled");
+    if (c > 0 || refundedInFull) rows.push({ job, tip: null, cents: c, tipCents, tipGivenCents: tipGivenByJob.get(job.id) ?? 0, refundedCents, adminRefunded: adminRefundedJobs.has(job.id), refundedInFull });
   }
-  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, tipGivenCents: o.given, refundedCents: 0, adminRefunded: false });
+  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, tipGivenCents: o.given, refundedCents: 0, adminRefunded: false, refundedInFull: false });
   return rows;
 }
 
@@ -304,7 +315,11 @@ export function heldRows<J extends PosterSpendJob & { status: string }>(rows: re
   return out;
 }
 
-/** AUD31-55: a row whose job's own charge was partly refunded says how much came back (" · $25.00 refunded"). */
-export function refundedReceiptNote(r: Pick<SpentRow<unknown>, "job" | "refundedCents">): string {
+/**
+ * AUD31-55: a row whose job's own charge was partly refunded says how much came back (" · $25.00 refunded"); one
+ * refunded in full says so (" · Refunded in full", its figure is the $0 net).
+ */
+export function refundedReceiptNote(r: Pick<SpentRow<unknown>, "job" | "refundedCents"> & { refundedInFull?: boolean }): string {
+  if (r.job && r.refundedInFull) return " · Refunded in full";
   return r.job && r.refundedCents > 0 ? ` · $${(r.refundedCents / 100).toFixed(2)} refunded` : "";
 }

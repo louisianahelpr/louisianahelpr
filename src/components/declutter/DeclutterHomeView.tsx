@@ -327,14 +327,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>
-                ) : (
-                  <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex" data-listing-view="">
-                    <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
-                  </Button>
-                )}
-                {item.status === "live" && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
+                ) : null}
+                {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
+                {item.status !== "draft" && (
+                  <Button asChild variant="outline" size="sm" data-listing-preview="">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`Preview ${item.title}`}>Preview</Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
@@ -403,9 +400,9 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   return (
     <div className="space-y-6">
       <ListedWhatNext />
-      {/* Audit posting 1030 #11: on a phone this tab had no way to sell. The photo screen directly, and one small line
-          to the other ways. The header has its own add action on desktop. */}
-      <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its
+          own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
+      <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
         <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
         <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
       </div>

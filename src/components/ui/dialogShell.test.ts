@@ -1083,6 +1083,9 @@ describe("Popup grammar — footer", () => {
       "Skip for now",
       // Board 180's tip step: declining a tip, nothing is cancelled.
       "No tip",
+      // NIGHT-JOBSRE4-4 (InstantPayoutDialog, 5f41d36b92): inside the quote-failed message, "Try again" reloads the
+      // cash-out quote; an action, not a dismissal (the footer's dismiss still says Cancel or Close).
+      "Try again",
       // Board 156's safety sheet: closing it says the person is safe; nothing
       // is cancelled (Builder 5, 2026-10-21).
       "I'm safe now",

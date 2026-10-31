@@ -9,7 +9,7 @@ import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
 import { isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH } from "@/lib/declutter/sellForMe";
-import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
+import { tipsNotReadyLine, useHelprTakesTips, useTipWaitsOnId } from "@/hooks/useHelprTakesTips";
 
 /**
  * POSTER STEP 4 — done.
@@ -36,11 +36,12 @@ import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
  */
 function CrewTipRow({ member: m, onTip }: { member: { id: string; name: string; tipped: boolean }; onTip: () => void }) {
   const takesTips = useHelprTakesTips(m.id, !m.tipped);
+  const waitsOnId = useTipWaitsOnId(m.id, !m.tipped);
   if (!m.tipped && takesTips === false) {
     return (
       <li className="space-y-0.5">
         <span className="block text-ds-13 text-foreground truncate">{m.name}</span>
-        <p className="text-ds-12 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(m.name)}</p>
+        <p className="text-ds-12 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(m.name, waitsOnId)}</p>
       </li>
     );
   }
@@ -112,6 +113,7 @@ export function CompletedStep({
   // fact the hire row's Select reads, so the Tip is never offered and refused.
   const tipOpen = !crew && !hasTipped;
   const takesTips = useHelprTakesTips(job.helper_id, tipOpen);
+  const waitsOnId = useTipWaitsOnId(job.helper_id, tipOpen);
   const offerTip = tipOpen && takesTips !== false;
 
   // Approving completion leaves the job at 'payout_pending' until the transfer
@@ -148,7 +150,7 @@ export function CompletedStep({
         ) : undefined
       }
       ask={tipOpen && takesTips === false ? (
-        <p className="text-ds-13 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName)}</p>
+        <p className="text-ds-13 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName, waitsOnId)}</p>
       ) : crewTips.length > 0 ? (
         <ul className="space-y-1.5" aria-label="Tip your crew" data-crew-tips>
           {crewTips.map((m) => (

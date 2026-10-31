@@ -19,7 +19,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: { onboarding_fee_paid: h.paid } }) }));
 vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckOnStore: () => h.on }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 

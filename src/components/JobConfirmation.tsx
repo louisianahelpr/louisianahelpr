@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import { recordConfirmInActivityCache } from "@/lib/confirmActivityCache";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
@@ -281,11 +282,12 @@ export function JobConfirmation({
     // advanced past Accepted. Both sides then believed a step had completed that had not. (CLAUDE.md: "a null error
     // does NOT mean the write happened".)
     let confirmFailed = false;
+    const confirmedAt = new Date().toISOString();
     try {
       unwrapMutation(
         await supabase
           .from("jobs")
-          .update({ [field]: new Date().toISOString() } as never)
+          .update({ [field]: confirmedAt } as never)
           .eq("id", jobId)
           .select("id"),
         {
@@ -305,7 +307,9 @@ export function JobConfirmation({
     }
     if (!confirmFailed) {
       hapticSuccess();
-      setLocalConfirmedAt(new Date().toISOString());
+      setLocalConfirmedAt(confirmedAt);
+      // Home's Next up, the nav badge and Jobs > Posted/Working drop the step at once (LEAD-NEEDSYOU-MISSING).
+      recordConfirmInActivityCache(jobId, field, confirmedAt);
       onConfirm?.();
       if (!isOwner) void offerIdentityCheckAfterConfirm(); // confirm, THEN Stripe Identity, then On the way
       // Notify the other party

@@ -35,7 +35,13 @@
  * @mutate supabase/functions/_shared/cardHoldPlan.ts |     card: { ...(threeDS?.card ?? {}), capture_method: "manual", setup_future_usage: "off_session" }, |     card: { ...(threeDS?.card ?? {}), setup_future_usage: "off_session" },
  * @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (!Number.isFinite(start) \|\| start - nowMs <= HOLD_AT_POST_WITHIN_MS) return { kind: "hold_now" }; |   return { kind: "hold_now" };
  * @mutate supabase/functions/_shared/cardHold.ts |   if (capturedPi) { |   if (false) {
- * @mutate supabase/functions/_shared/cardHold.ts |       else if (now.status === "requires_capture") return notDefinite(why, true); |       else if (false) return notDefinite(why, true);
+ * @mutate supabase/functions/_shared/cardHold.ts |         if (!refused) return notDefinite(why, true); |         if (false) return notDefinite(why, true);
+ * @mutate supabase/functions/_shared/cardHold.ts |         const refused = captureRefusal(e); |         const refused = null as string \| null;
+ * @mutate supabase/functions/_shared/cardHold.ts |       const partial = amountCents < Number(hold.amount_cents); |       const partial = false;
+ * @mutate supabase/functions/_shared/cardHoldPlan.ts |       line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: amountCents }], |       line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: amountCents + 200 }],
+ * @mutate supabase/functions/_shared/cardHold.ts |   if (from === "authorized" && failCode !== "hold_expired") { |   if (false) {
+ * @mutate supabase/functions/_shared/cardHold.ts |   return invalid && isDefinitiveStripeRefusal(e) ? `${CAPTURE_REFUSED} |   return invalid ? `${CAPTURE_REFUSED}
+ * @mutate supabase/functions/_shared/cardHoldCopy.ts |     including: `, including the one-time ${fee} setup fee`, |     including: "",
  * @mutate supabase/functions/_shared/cardHold.ts |       amountCents = Number(hold.amount_cents) - (feeCents > 0 && !fee.claimed ? feeCents : 0); |       amountCents = Number(hold.amount_cents);
  * @mutate supabase/functions/_shared/cardHold.ts |     if (!claimed \|\| claimed.length === 0) return { ok: false, reason: "retry", detail: "another capture of this hold is in progress" }; |     if (false) return { ok: false, reason: "retry", detail: "another capture of this hold is in progress" };
  * @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (!(amountCents < THREE_D_SECURE_MIN_CENTS)) return { ok: false, why: "large" }; |   if (false) return { ok: false, why: "large" };
@@ -324,7 +330,13 @@ describe("card hold at posting (Q2399)", () => {
       seedHire({ hold: { amount_cents: 4400, onboarding_fee_cents: 200 }, feeClaimed: false });
       stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
       await capture();
-      expect(stripeMock.paymentIntents.capture).toHaveBeenLastCalledWith("pi_hold", { amount_to_capture: 4200 }, expect.anything());
+      // Under the hold: the line items travel with it, or Stripe refuses (job 02a6e1b5).
+      expect(stripeMock.paymentIntents.capture).toHaveBeenLastCalledWith("pi_hold", {
+        amount_to_capture: 4200,
+        amount_details: { enforce_arithmetic_validation: false, line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: 4200 }] },
+      }, { idempotencyKey: "card-hold-capture-pi_hold-a0-partial", apiVersion: "2026-01-28.clover" });
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "escrow")?.payload).not.toHaveProperty("onboarding_fee_amount");
 
       resetStripeMock(); resetSupabaseMock(); resetSharedMocks(); setEnv(ENV);
       seedHire({ hold: { amount_cents: 4400, onboarding_fee_cents: 200 }, feeClaimed: true });
@@ -334,6 +346,87 @@ describe("card hold at posting (Q2399)", () => {
       expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "escrow")?.payload)
         .toMatchObject({ onboarding_fee_amount: 2 });
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    // Stripe's real refusal, measured on Stripe test (job 02a6e1b5, 2026-10-30).
+    const mismatch = () => Object.assign(new Error("The total value of `amount_details` (4200) does not match the amount to capture (4000)."), { type: "StripeInvalidRequestError", statusCode: 400 });
+
+    it("a retried capture (the amount already decided) asks Stripe for the same capture under the same key; the fee is never claimed", async () => {
+      seedHire({ hold: { amount_cents: 4200, onboarding_fee_cents: 200, capture_amount_cents: 4000 } });
+      stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+      const { payload } = await capture();
+      expect(payload.state).toBe("accepted");
+      const [, params, opts] = stripeMock.paymentIntents.capture.mock.calls[0];
+      expect(params.amount_to_capture).toBe(4000);
+      expect(params.amount_details.line_items[0].unit_cost).toBe(4000);
+      expect(opts.idempotencyKey).toBe("card-hold-capture-pi_hold-a0-partial");
+      expect(updates("profiles")).toHaveLength(0);
+    });
+
+    it("a capture Stripe refuses ends clearly: recorded on the hold, logged, the hold released, both sides told, never a retry", async () => {
+      seedHire({ hold: { amount_cents: 4200, onboarding_fee_cents: 200, capture_amount_cents: 4000 } });
+      stripeMock.paymentIntents.capture.mockRejectedValue(mismatch());
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture" });
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+      const { res, payload } = await capture();
+      expect(res.status, "a real answer, not 'Couldn't reach the payment processor'").toBe(409);
+      expect(payload.code).toBe("payment_pending");
+      const failed = updates("job_card_holds").find((w) => (w.payload as Record<string, unknown>).state === "failed")?.payload as Record<string, unknown>;
+      expect(failed).toMatchObject({ state: "failed", failure_code: "capture_refused", attempts: 1, capturing_from: null, capture_amount_cents: null });
+      expect(String(failed.failure_message)).toMatch(/does not match the amount to capture/);
+      expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledWith("pi_hold", {}, { idempotencyKey: "card-hold-drop-pi_hold" });
+      expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "failed")?.payload).toEqual({ payment_status: "failed", stripe_session_id: null });
+      const page = (slackAlerts as Array<{ title: string; severity?: string; fields?: Record<string, string> }>).find((a) => /refused a card hold's capture/.test(a.title));
+      expect(page?.severity).toBe("critical");
+      expect(page?.fields).toMatchObject({ job_id: JOB, code: "capture_refused", amount_cents: "4000", hold_cents: "4200" });
+      const n = notices();
+      expect(n.find((x) => x.user_id === POSTER.id)?.title).toBe(CARD_HOLD_COPY.captureRefusedTitle);
+      expect(n.find((x) => x.user_id === POSTER.id)?.message).toBe(CARD_HOLD_COPY.captureRefused("Mow the yard"));
+      expect(n.find((x) => x.user_id === HELPR.id)?.title).toBe(CARD_HOLD_COPY.helprWaitingTitle);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("a refused capture gives back the fee THIS capture claimed, so it is still owed and never paid twice", async () => {
+      seedHire({ hold: { amount_cents: 4200, onboarding_fee_cents: 200 }, feeClaimed: true });
+      stripeMock.paymentIntents.capture.mockRejectedValue(Object.assign(new Error("Your card was declined."), { type: "StripeCardError", code: "card_declined", statusCode: 402 }));
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture" });
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+      await capture();
+      expect(updates("profiles").map((w) => (w.payload as Record<string, unknown>).onboarding_fee_paid)).toEqual([true, false]);
+      expect(updates("job_card_holds").find((w) => (w.payload as Record<string, unknown>).state === "failed")?.payload).toMatchObject({ failure_code: "capture_refused_card_card_declined" });
+      expect((slackAlerts as Array<{ title: string; severity?: string }>).find((a) => /refused a card hold's capture/.test(a.title))?.severity).toBe("warning");
+    });
+
+    it("a seed job's refused capture stays out of the owner's alerts (seed flag on the alert)", async () => {
+      seedHire({ job: { is_seed: true }, hold: { amount_cents: 4200, onboarding_fee_cents: 200, capture_amount_cents: 4000 } });
+      stripeMock.paymentIntents.capture.mockRejectedValue(mismatch());
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture" });
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+      await capture();
+      expect((slackAlerts as Array<{ title: string; seed?: boolean }>).find((a) => /refused a card hold's capture/.test(a.title))?.seed).toBe(true);
+    });
+
+    it.each([
+      ["a rate limit", { type: "StripeRateLimitError", statusCode: 429 }],
+      ["a 5xx", { type: "StripeAPIError", statusCode: 500 }],
+      ["a key still in use", { type: "StripeIdempotencyError", statusCode: 409, code: "idempotency_key_in_use" }],
+      ["a 409 invalid request", { type: "StripeInvalidRequestError", statusCode: 409 }],
+    ])("%s is NOT a refusal: the hold stays usable, nobody told", async (_label, shape) => {
+      seedHire();
+      stripeMock.paymentIntents.capture.mockRejectedValue(Object.assign(new Error("not an answer"), shape));
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture" });
+      const { res } = await capture();
+      expect(res.status).toBe(503);
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+      expect(notices()).toHaveLength(0);
+      expect(updates("job_card_holds").slice(-1)[0]?.payload).toMatchObject({ state: "authorized" });
+    });
+
+    it("the hold notice explains the $2: paid once, and what the second hire charges", () => {
+      expect(CARD_HOLD_COPY.held(4200, 200)).toBe("Your card is on hold for $42, including the one-time $2 setup fee. You're only charged when you hire someone, and you pay the $2 once: if it's already paid by then, you're charged $40.");
+      expect(CARD_HOLD_COPY.scheduled(4200, 200)).toBe("Your card is saved. We'll hold $42 about 4 days before the job, including the one-time $2 setup fee. You're only charged when you hire someone, and you pay the $2 once: if it's already paid by then, you're charged $40.");
+      expect(CARD_HOLD_COPY.held(4200)).toBe("Your card is on hold for $42. You're only charged when you hire someone.");
+      expect(CARD_HOLD_COPY.scheduled(4200)).toBe("Your card is saved. We'll hold $42 about 4 days before the job, and you're only charged when you hire someone.");
     });
 
     it("a saved card (no hold yet) under $300 is charged off-session at the hire", async () => {
@@ -464,7 +557,7 @@ describe("card hold at posting (Q2399)", () => {
 
     it("requires_capture: the job is 'held' with one authorized hold row, the poster is told the held amount, the setup fee waits for the capture", async () => {
       scenario.reads.jobs = { rows: [{ id: JOB, budget: 40, category: "yard_work", customer_fee_amount: 0, poster_fee_flat_cents: null, title: "Mow the yard", customer_id: POSTER.id, helper_id: null, helper_confirmed_at: null }] };
-      scenario.reads.job_card_holds = { rows: [holdRow({ notified_state: null, amount_cents: 4200 })] };
+      scenario.reads.job_card_holds = { rows: [holdRow({ notified_state: null, amount_cents: 4200, onboarding_fee_cents: 200 })] };
       scenario.writeSelectRows = { jobs: [{ id: JOB, customer_id: POSTER.id, title: "Mow the yard", helper_id: null, helper_confirmed_at: null }] };
       const captureBefore = Math.floor(Date.now() / 1000) + 6 * 86_400;
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
@@ -479,7 +572,7 @@ describe("card hold at posting (Q2399)", () => {
       const row = scenario.writes.find((w) => w.table === "job_card_holds" && (w.payload as Record<string, unknown>)?.state === "authorized")?.payload as Record<string, unknown>;
       expect(row).toMatchObject({ job_id: JOB, state: "authorized", amount_cents: 4200, onboarding_fee_cents: 200, payment_intent_id: "pi_hold", stripe_mode: "test" });
       expect(row.capture_before).toBe(new Date(captureBefore * 1000).toISOString());
-      expect(notices().find((x) => x.user_id === POSTER.id)?.message).toBe(CARD_HOLD_COPY.held(4200));
+      expect(notices().find((x) => x.user_id === POSTER.id)?.message).toBe(CARD_HOLD_COPY.held(4200, 200));
       // the setup fee is NOT settled on a hold (it is collected at the capture)
       expect(updates("profiles").some((w) => (w.payload as Record<string, unknown>).onboarding_fee_paid === true)).toBe(false);
     });

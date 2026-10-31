@@ -116,7 +116,7 @@ export async function settleCardHoldCheckout(
     }, { onConflict: "job_id" });
     if (holdErr) throw new Error(`card-hold setup: hold row for job ${jobId} not written: ${holdErr.message}`);
     const hold = await readHold(supabase, jobId);
-    await notifyPosterOnce(supabase, target[0], hold ?? { notified_state: null, amount_cents: amountCents }, "scheduled");
+    await notifyPosterOnce(supabase, target[0], hold ?? { notified_state: null, amount_cents: amountCents, onboarding_fee_cents: onboardingCents }, "scheduled");
     await fanOut(supabase, jobId, logStep);
     logStep("Card saved for a later hold", { jobId, placeAt });
     return true;
@@ -241,7 +241,7 @@ export async function settleCardHoldCheckout(
   if (holdErr) throw new Error(`card-hold: hold row for job ${jobId} (PI ${pi.id}) not written: ${holdErr.message}`);
   const job = moved[0] as { id: string; customer_id: string | null; title: string | null; helper_id: string | null; helper_confirmed_at: string | null };
   const hold = await readHold(supabase, jobId);
-  await notifyPosterOnce(supabase, job, hold ?? { notified_state: null, amount_cents: pi.amount }, "authorized");
+  await notifyPosterOnce(supabase, job, hold ?? { notified_state: null, amount_cents: pi.amount, onboarding_fee_cents: onboardingCents }, "authorized");
   // A poster paying again while an offer is out (the hold had failed): every
   // Helpr that offer names can accept now: the Hire's Helpr, a direct offer's,
   // a crew's unconfirmed members (lh-silent-failure review #11).

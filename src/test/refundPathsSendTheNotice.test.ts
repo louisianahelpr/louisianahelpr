@@ -76,6 +76,8 @@ const RELEASE_EXEMPT: Record<string, string> = {
     "cancelDeadBankPayment (lane-b-money-1): cancels the PaymentIntent of a bank debit that already FAILED (live status requires_payment_method, Checkout Session complete); no money was taken or held, so there is no refund to announce, and the poster was already told the payment failed by this handler",
   "supabase/functions/_shared/cardHold.ts":
     "Q2399 card hold at post: every site here acts on an AUTHORIZATION that was never charged. The capture at the hire (amount_to_capture) charges the hold; the part it leaves is the $2 setup fee another job already collected, which was only ever authorized. failHold drops a hold that failed or needs the poster (the poster is told to pay again, notifyPosterOnce 'failed' / 'needs_action'); releaseCardHold cancels the hold of a job that closed unhired and tells the poster 'Your card was not charged' (notifyPosterOnce 'released'). No money was taken, so there is no refund to announce",
+  "supabase/functions/_shared/cardHoldPlan.ts":
+    "partialCaptureParams: the capture of a hold without the $2 setup fee, sent by _shared/cardHold.ts. The part it leaves was only ever authorized, so no money comes back and there is no refund to announce; the hold notice already says the $2 is paid once and what the hire then charges",
   "supabase/functions/card-hold-sweep/index.ts":
     "Q2399: cancels authorizations that were never charged and are not the job's money: a hold superseded because the poster paid another way, the old authorization a renewal replaced, and one Stripe placed that no row recorded. Nothing was taken, so there is nothing to refund or announce",
   "supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts":
@@ -163,8 +165,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
       expect(fn).toMatch(/await tellPosterMoneyBack\([^]*?key: `refund:\$\{refund\.id\}`, kind: "refund"/);
     }
     // 12 since Q2399 card hold (2026-10-25): 3 in _shared/cardHold.ts, 3 in card-hold-sweep, 1 in cardHoldCheckout
-    // (each releases an authorization that was never charged: RELEASE_EXEMPT).
-    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(12); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
+    // (each releases an authorization that was never charged: RELEASE_EXEMPT). 14 since 2026-10-30: 2 in
+    // cardHoldPlan partialCaptureParams (its return type and its value), the capture without the setup fee.
+    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(14); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);
     expect(new Set(refundSites.map((s) => s.file)).size).toBeGreaterThan(5);

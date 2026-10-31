@@ -227,7 +227,9 @@ export async function handleChargeRefundUpdated(
   if (settledAsRefunded && chargeId) {
     try {
       const charge = await stripe.charges.retrieve(chargeId);
-      stillFull = Number(charge.amount_refunded ?? 0) >= Number(charge.amount ?? 0);
+      // Against what was captured: a hold captured without its $2 setup fee keeps the authorized amount in charge.amount.
+      const captured = Number(charge.amount_captured ?? 0);
+      stillFull = Number(charge.amount_refunded ?? 0) >= (captured > 0 ? captured : Number(charge.amount ?? 0));
     } catch (e) {
       throw new Error(`Could not read charge ${chargeId} after refund ${refund.id} turned ${refund.status}: ${caughtMessage(e)}`);
     }

@@ -22,7 +22,7 @@
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql |          response_deadline = v_deadline | response_deadline = p_deadline
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | now() + interval '55 minutes'),\n    v_cutoff); | now() + interval '55 minutes')\n    );
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | CREATE TRIGGER zzzz_offer_deadline_follows_start | CREATE TRIGGER zzzz_offer_deadline_follows_start_off
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); | v_cap_ended := false;
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql | v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); | v_cap_ended := false;
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |       NEW.response_deadline := LEAST(public.job_offer_cutoff(NEW.date_needed, NEW.start_time), now() + interval '48 hours'); |       NEW.response_deadline := LEAST(NEW.response_deadline, public.job_offer_cutoff(NEW.date_needed, NEW.start_time));
  * @mutate src/lib/offerDeadline.ts | const cappedByStart = !!cutoff && cutoff.getTime() < chosen; | const cappedByStart = false;
  * @mutate src/lib/offerDeadline.ts | export const OFFER_MIN_LEAD_MINUTES = 15; | export const OFFER_MIN_LEAD_MINUTES = 5;

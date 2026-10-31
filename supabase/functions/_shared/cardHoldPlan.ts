@@ -30,6 +30,38 @@ export const RENEW_WITHIN_MS = 12 * HOUR_MS;
  * code pins 2025-08-27.basil. Sent on the hold checkout's create call only.
  */
 export const CARD_HOLD_CHECKOUT_API_VERSION = "2025-09-30.clover";
+/**
+ * A capture for LESS than a Checkout hold sends amount_details (below), whose
+ * enforce_arithmetic_validation exists from this API version (Stripe changelog
+ * 2026-01-28.clover). Sent on that one capture call only.
+ */
+export const CARD_HOLD_PARTIAL_CAPTURE_API_VERSION = "2026-01-28.clover";
+
+/**
+ * The capture when the $2 setup fee rides inside the hold but is not being
+ * collected (claimed by another job or a payout). Checkout writes its line items
+ * onto the PaymentIntent, and Stripe refuses a capture they do not add up to:
+ * "The total value of amount_details (4200) does not match the amount to capture
+ * (4000)" (measured on Stripe test, job 02a6e1b5, 2026-10-30). Stripe's rule
+ * (Payment line items, "Update amount details during capture"): send updated line
+ * items equal to the capture. A partial capture releases the rest; nothing is
+ * refunded, so no second fee and no refund to reconcile.
+ * Validation stays off for this call: on a taxed job Checkout's tax may also be on
+ * the PaymentIntent, and a line that does not add up only keeps the line data from
+ * the card networks; it must never stop a hire.
+ */
+export function partialCaptureParams(amountCents: number): {
+  amount_to_capture: number;
+  amount_details: { enforce_arithmetic_validation: false; line_items: Array<{ product_name: string; quantity: number; unit_cost: number }> };
+} {
+  return {
+    amount_to_capture: amountCents,
+    amount_details: {
+      enforce_arithmetic_validation: false,
+      line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: amountCents }],
+    },
+  };
+}
 
 export type HoldPlan = { kind: "hold_now" } | { kind: "schedule"; placeAt: Date };
 

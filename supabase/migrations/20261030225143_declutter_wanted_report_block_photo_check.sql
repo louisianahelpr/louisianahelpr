@@ -86,6 +86,9 @@ BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   SELECT * INTO w FROM public.declutter_wanted WHERE id = p_wanted_id;
   IF NOT FOUND OR NOT w.public OR w.removed_at IS NOT NULL OR w.user_id = v_uid
      OR (w.is_seed IS TRUE AND (SELECT public.seed_hidden_from_caller())) THEN

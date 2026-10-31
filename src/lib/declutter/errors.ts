@@ -228,6 +228,10 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   wanted_not_found: "That wanted post isn't available.",
   // Audit 10-30 #8: a block from a Wanted post never cancels a job (declutter_block_wanted_poster).
   wanted_block_shared_job: "You have a job with this person, so nothing changed. To block them, open that job. You'll see any fee first.",
+  own_post: "This is your own post, so you can't act on it here.",
+  report_not_allowed: "You can't report this post.",
+  report_not_for_post: "That report isn't about this post.",
+  report_target_not_found: "We couldn't find that post. It may have been removed.",
   // Wanted photos (20261030064727).
   wanted_not_open: "That wanted post is closed. Post a new one to add photos.",
   wanted_too_many_photos: "A wanted post can have up to 3 photos.",

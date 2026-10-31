@@ -190,6 +190,16 @@ await safe("blockSignedOutRefused", () => fails(null, `select declutter_block_wa
 await safe("blockUnknownPostRefused", () => fails(S, `select declutter_block_wanted_poster('${OPENJOB}')`, "wanted_not_found"));
 await safe("blockPrivatePostRefused", async () => fails(S, `select declutter_block_wanted_poster('${await post(P, { public: false })}')`, "wanted_not_found"));
 await safe("blockSeedPostRefused", async () => fails(S, `select declutter_block_wanted_poster('${await post(P, { is_seed: true })}')`, "wanted_not_found"));
+await safe("blockBannedCallerRefusedBeforeTheLookup", async () => {
+  const before = await one(`select count(*)::int n from user_blocks`);
+  await db.exec(`insert into bad values ('${S}')`);
+  try {
+    const real = await fails(S, `select declutter_block_wanted_poster('${await post(P)}')`, "account_restricted");
+    const unknown = await fails(S, `select declutter_block_wanted_poster('${OPENJOB}')`, "account_restricted");
+    const after = await one(`select count(*)::int n from user_blocks`);
+    return real === "ok" && unknown === "ok" && after.n === before.n ? "ok" : { real, unknown, before, after };
+  } finally { await db.exec(`delete from bad where user_id = '${S}'`); }
+});
 await safe("blockSwitchOffRefused", async () => {
   await db.exec(`insert into off_keys values ('declutter_wanted')`);
   const f = await fails(S, `select declutter_block_wanted_poster('${wantedA}')`, "feature_disabled");

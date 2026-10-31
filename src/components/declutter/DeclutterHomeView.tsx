@@ -35,8 +35,6 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
-import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
-import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { ChevronRight, Settings, Tags } from "lucide-react";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
@@ -74,7 +72,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
-import { FallbackImg } from "./FallbackImg";
+import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
 
@@ -146,16 +144,6 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   return (
     <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]" data-listing-price="">
       {itemPriceLabel(cents)}
-    </span>
-  );
-}
-
-/** The Browse card's picture, small: the cover photo, or the category icon on its tint (never a blank box). */
-function ListingThumb({ path, category }: { path: string | undefined; category: string }) {
-  return (
-    <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-photo-empty" data-listing-thumb="">
-      <PhotoPlaceholder icon={categoryIcon(category)} seed={category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" />
-      {path && <FallbackImg src={photoPublicUrl(path)} alt="" loading="lazy" className="relative h-full w-full object-cover" />}
     </span>
   );
 }

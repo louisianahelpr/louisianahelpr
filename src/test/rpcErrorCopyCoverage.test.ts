@@ -176,6 +176,13 @@ const UNREACHABLE: Allowlist = {
     not_authorized: { reason: `${LADDER_AFTER_CANCEL} The loop calls it only when customer_id = auth.uid().` },
     job_not_cancelled: { reason: `${LADDER_AFTER_CANCEL} It skips a row the UPDATE did not change.` },
   },
+  // Calls block_user_and_settle, so it inherits these. Any settlement raises wanted_block_shared_job and rolls back.
+  declutter_block_wanted_poster: {
+    invalid_target: { reason: "the poster is never the caller (wanted_not_found first) and always a real id" },
+    job_not_found: { reason: LADDER_AFTER_CANCEL },
+    not_authorized: { reason: `${LADDER_AFTER_CANCEL} The loop calls it only when customer_id = auth.uid().` },
+    job_not_cancelled: { reason: `${LADDER_AFTER_CANCEL} It skips a row the UPDATE did not change.` },
+  },
   poster_cancel_job: {
     job_not_cancelled: { reason: LADDER_AFTER_CANCEL },
   },

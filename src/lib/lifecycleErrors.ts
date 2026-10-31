@@ -1073,6 +1073,7 @@ export const RPC_ERROR_COPY = {
     wanted_not_found: DC.wanted_not_found,
   },
   declutter_block_wanted_poster: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     wanted_not_found: DC.wanted_not_found,

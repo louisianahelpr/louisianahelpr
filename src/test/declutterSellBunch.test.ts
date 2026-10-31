@@ -234,7 +234,7 @@ describe("listBunch", () => {
     // server decide its status); an unready one never reaches the server.
     expect(deps.publishMany).toHaveBeenCalledWith(["id1", "id3", "id4"], expect.any(Function));
     expect(deps.createDraft).toHaveBeenCalledTimes(5);
-    expect(deps.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000, areaLabel: "Mid-City" }));
+    expect(deps.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000, areaLabel: "Mid-City" }), expect.any(String));
   });
 
   // Audit finding 2: a run cut off part way (crash, reload) resumes; nothing is made or uploaded twice.
@@ -325,7 +325,7 @@ describe("listBunch", () => {
     };
     const steps: [string, unknown][] = [];
     await listBunch("seller", [item("x", ["a"])], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
-    expect(steps).toEqual([["x", { draftId: "d9" }], ["x", { failedPhoto: "a" }]]);
+    expect(steps).toEqual([["x", { appId: expect.any(String) }], ["x", { draftId: "d9" }], ["x", { failedPhoto: "a" }]]);
     expect(deps.updateDraft).not.toHaveBeenCalled();
   });
 });

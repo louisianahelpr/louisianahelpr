@@ -421,6 +421,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       // an item that failed getting ready stays with its photos, to fix and try again.
       const gone = new Set(result.out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
       setItems((its) => its.filter((it) => !gone.has(it.key)));
+      // LEAD-RESUME-REPOSTS: the moment the post leaves nothing on the list, the kept work goes, so it is never offered back.
+      if (items.every((it) => gone.has(it.key))) saved.clearSaved();
     } else {
       // Not silent: the address, pickup-times or listing refusal is shown beside the button (role="alert"),
       // and the items stay on screen to try again.

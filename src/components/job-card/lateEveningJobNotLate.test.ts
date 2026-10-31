@@ -7,7 +7,6 @@
  *
  * @mutate src/components/job-card/activityFilters.ts |   if (!start) return true; |   return true;
  * @mutate src/components/job-card/activityFilters.ts | start.getTime() + LATE_AFTER_START_HOURS * 3_600_000; | start.getTime();
- * @mutate src/components/job-card/activityFilters.ts |   const start = j.start_time && /^\d{1,2}:\d{2}/.test(j.start_time) ? jobStartDateTime(j.date_needed, j.start_time) : null; |   const start = jobStartDateTime(j.date_needed, j.start_time);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobIsOverdue, LATE_AFTER_START_HOURS } from "./activityFilters";

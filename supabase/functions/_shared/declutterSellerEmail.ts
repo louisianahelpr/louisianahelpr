@@ -35,7 +35,7 @@ type Log = (step: string, detail?: Record<string, unknown>) => void;
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 /** The member's first name for the greeting ("Hey Sam,"); "" gives "Hey there,". */
-export const firstName = (fullName: string | null | undefined): string => (fullName ?? "").trim().split(/\s+/)[0] ?? "";
+const firstName = (fullName: string | null | undefined): string => (fullName ?? "").trim().split(/\s+/)[0] ?? "";
 
 /**
  * Both parts of a Declutter money email, from the branded notice email: brand header, "Hey <name>,", the words, a

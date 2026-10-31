@@ -272,6 +272,29 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0; |   const soldFirst = false;
+  it("AUD31-4: a sale to hand over sits above the offers and the listings; with none, the sold group stays below", async () => {
+    state.mine = [ITEM];
+    state.cart = [{ line_id: "l-o1", item_id: "i-o1", item_title: "Sale o1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
+      checkout_by: "2026-10-27T12:00:00Z", order_id: "o1", order_status: "paid", handover: "seller_delivery", premium_cents: 0, total_cents: 3000 }];
+    const first = at("/declutter?tab=selling");
+    // The sale cards are mocked to one marked row each (PaidOrdersSection above).
+    const sold = await waitFor(() => {
+      const el = first.container.querySelector("[data-paid-order='o1']");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    const offers = await screen.findByRole("region", { name: "Offers on your items" });
+    expect(sold.compareDocumentPosition(offers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    first.unmount();
+    state.cart = [];
+    at("/declutter?tab=selling");
+    const sold2 = await screen.findByRole("region", { name: /^Sold: pickup and payout/ });
+    const offers2 = screen.getByRole("region", { name: "Offers on your items" });
+    expect(sold2.compareDocumentPosition(offers2) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it("'More ways to sell' is one row to the sell chooser, never a pill", async () => {
     at("/declutter?tab=selling");
     const more = await screen.findByRole("region", { name: "More ways to sell" });

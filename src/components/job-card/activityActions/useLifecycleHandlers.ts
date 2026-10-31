@@ -336,7 +336,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId).select("id"),
           {
             action: "confirm the Helpr is working",
-            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Pull to refresh.",
+            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Refresh the page.",
             context: { jobId },
           },
         );

@@ -36,7 +36,9 @@ export function DeclutterMilesFrom({ ask }: { ask: OriginAsk }) {
       {ask.asking ? (
         <p className="text-ds-13 text-muted-foreground" role="status">Finding you…</p>
       ) : offerAsk(ask) ? (
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={ask.askDevice}>
+        // BUY-21 (Declutter buying audit 10-30): a text button, not a big outlined one, so the line and the button share
+        // one row at 375 instead of wrapping into two above the cards. Still 44 px tall to tap.
+        <Button type="button" variant="link" size="sm" className="shrink-0 px-1 text-ds-13 font-semibold" onClick={ask.askDevice}>
           {ask.asked ? "Try my location again" : "Use my location"}
         </Button>
       ) : null}

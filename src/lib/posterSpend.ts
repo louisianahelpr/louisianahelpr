@@ -213,6 +213,22 @@ export function spentRows<J extends PosterSpendJob>(
   return rows;
 }
 
+/**
+ * AUD31-55: the words after a Spent / Receipts row's date, one rule for both lists. A cancelled job says so; a job
+ * with money back says how much came back (" · $25.00 refunded"), so the amount shown is not read as the price; a
+ * tip is named with its card fee, since the row's tip cents are what the card paid (tip + card fee,
+ * tipChargeBreakdown), not the tip the Helpr got.
+ */
+export function spentRowNote(
+  r: Pick<SpentRow<{ status?: string | null }>, "job" | "tipCents" | "refundedCents">,
+  money: (cents: number) => string,
+): string {
+  if (!r.job) return "";
+  return (r.job.status === "cancelled" ? " · Cancelled" : "")
+    + (r.refundedCents > 0 ? ` · ${money(r.refundedCents)} refunded` : "")
+    + (r.tipCents > 0 ? ` · includes ${money(r.tipCents)} tip and card fee` : "");
+}
+
 /** The Spent total: the sum of spentRows(), in cents. */
 export const spentTotalCents = (rows: readonly { cents: number }[]) => rows.reduce((s, r) => s + r.cents, 0);
 

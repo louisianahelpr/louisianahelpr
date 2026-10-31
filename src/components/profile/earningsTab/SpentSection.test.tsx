@@ -147,7 +147,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$95\.60\s*across 2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled open", "In progress"]);
     expect(text()).toMatch(/In progress\s*Sep 29\s*\$89\.60/);
-    expect(text()).toMatch(/Cancelled open\s*Sep 30 · Cancelled\s*\$6\.00/);
+    expect(text()).toMatch(/Cancelled open\s*Sep 30 · Cancelled · \$50\.00 refunded\s*\$6\.00/);
     expect(text()).not.toMatch(/Open unfunded/);
   });
 
@@ -168,8 +168,8 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     // The $8 tip charged $8.55 (tip + card fee, tipChargeBreakdown).
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$63\.55\s*across 2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled late", "Tipped job"]);
-    expect(text()).toMatch(/Cancelled late\s*Oct 2 · Cancelled\s*\$15\.00/);
-    expect(text()).toMatch(/Tipped job\s*Sep 1 · includes \$8\.55 tip\s*\$48\.55/);
+    expect(text()).toMatch(/Cancelled late\s*Oct 2 · Cancelled · \$45\.00 refunded\s*\$15\.00/);
+    expect(text()).toMatch(/Tipped job\s*Sep 1 · includes \$8\.55 tip and card fee\s*\$48\.55/);
     expect(text()).not.toMatch(/Cancelled free/);
     // The cancellation is dated when it was cancelled: inside this week's range.
     await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This week" })); });
@@ -211,7 +211,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*across 3 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Gift helped", "Partly refunded", "Real paid job"]);
     expect(text()).toMatch(/Real paid job\s*Sep 1\s*\$44\.80/);
-    expect(text()).toMatch(/Partly refunded\s*Sep 4\s*\$45\.00/);
+    expect(text()).toMatch(/Partly refunded\s*Sep 4 · \$15\.00 refunded\s*\$45\.00/);
     expect(text()).toMatch(/Gift helped\s*Sep 6\s*\$10\.00/);
     expect(text()).not.toMatch(/Closed no payment|Fully refunded|Charged back/);
   });

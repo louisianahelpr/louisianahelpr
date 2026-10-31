@@ -240,6 +240,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:review_credential#1": "own credential reviewed",
   "sql:bill_helpr_fault_card_fee#1": "own card fee billed after a Helpr-at-fault refund (the recipient's own debt; the poster is never named, and the ruling copies the job's is_seed)",
   "sql:sweep_expired_auto_bans#1": "own restriction lifted",
+  "sql:sweep_job_post_drafts#1": "own job draft reminder: about the member's own saved post, names no other person, and is_seed, test and banned members are never reminded",
   "sql:apply_consequence_ladder#1": "own warning",
   "sql:auto_restrict_repeat_violators#2": "own account suspended (30 days)",
   "sql:auto_restrict_repeat_violators#4": "own account suspended (7 days)",
@@ -386,6 +387,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
     // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
     // Rentals S1 (2026-10-15): rentals_notify mails beside its own notifications row, judged with the actor (20261017205605).
     // Q2429 (2026-10-27): declutter_price_drop_alert mails each watcher beside its own notifications row.
+    // OPS-3 (2026-10-30): sweep_job_post_drafts mails beside its own row; seed and test members are skipped before either.
     // Q2432 (2026-10-27): declutter_pickup_remind mails beside its own row, written through declutter_notify (the other side as the seed actor).
     expect(emailers).toEqual([
       "declutter_pickup_remind",
@@ -402,6 +404,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "send_application_roundups",
       "send_backout_email",
       "send_job_match_roundups",
+      "sweep_job_post_drafts",
       "sweep_unanswered_applications",
     ]);
     // D4-11 (2026-10-30): declutter_wanted_email only posts; its two callers write the row first and apply the boundary.

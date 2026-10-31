@@ -5,11 +5,12 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | const listLoading = (items.isLoading && !preview) \|\| photos.isLoading | const listLoading = items.isLoading \|\| photos.isLoading
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const preview =\n    !items.data && !!capped && origin.status !== "pending" &&\n    previewIsTopOfList(capped.near, from, query.trim() === "" && filters.sort === "closest" && activeFilterCount(filters, maxMiles) === 0); |   const preview = !items.data && !!capped;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |     queryFn: () => fetchPhotos(others.map((i) => i.id)),\n    enabled: others.length > 0,\n    placeholderData: keepPreviousData, |     queryFn: () => fetchPhotos(others.map((i) => i.id)),\n    enabled: others.length > 0,
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |       if (next.toString() !== params.toString()) setParams(next, { replace: true, preventScrollReset: true }); |
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {rows.length > 0 && !preview && ( |         {rows.length > 0 && (
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const HERE = { lat: 30.45, lng: -91.15 };
@@ -52,6 +53,11 @@ import { DeclutterBrowse } from "./DeclutterBrowseView";
 
 const capped = Array.from({ length: 24 }, (_, n) => item(n));
 const full = Array.from({ length: 40 }, (_, n) => item(n));
+
+function BackButton() {
+  const go = useNavigate();
+  return <button type="button" onClick={() => go(-1)}>back</button>;
+}
 
 function show(url = "/declutter") {
   (window as unknown as Record<string, unknown>).__lhDeclutterPrefetch = {
@@ -109,6 +115,30 @@ describe("Browse's first cards when the list is longer than the first answer", (
     expect(screen.getByText("bones")).toBeTruthy();
     await act(async () => { state.finishFull(full); });
     await waitFor(() => expect(titles()).toHaveLength(40));
+  });
+
+  // Audit item 4 / BUY-35: Back from an item lost the search.
+  it("the search stays in the URL with no new history entry, so Back from an item finds it", async () => {
+    let path = "";
+    const Where = () => { path = useLocation().pathname + useLocation().search; return null; };
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/declutter?tab=browse"]}>
+          <Where />
+          <Routes>
+            <Route path="/declutter" element={<><Link to="/item">to item</Link><DeclutterBrowse userId="me" tabs={(b) => <>{b.end}{b.below}</>} /></>} />
+            <Route path="/item" element={<BackButton />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByPlaceholderText("Search items"), { target: { value: "oak chair" } });
+    await waitFor(() => expect(path).toBe("/declutter?tab=browse&q=oak+chair"));
+    fireEvent.click(screen.getByRole("link", { name: "to item" }));
+    fireEvent.click(await screen.findByRole("button", { name: "back" }));
+    expect(((await screen.findByPlaceholderText("Search items")) as HTMLInputElement).value).toBe("oak chair");
+    expect(path).toBe("/declutter?tab=browse&q=oak+chair");
   });
 
   it("wait for the full list on a search, a filter or a distance: an answer of 24 can't serve them", async () => {

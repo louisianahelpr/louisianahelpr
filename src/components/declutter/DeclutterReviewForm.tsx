@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Star } from "lucide-react";
+import { StarRow } from "@/components/reviewPanel/StarRow";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
@@ -127,21 +127,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
             <p className="text-ds-20 font-bold leading-snug [overflow-wrap:anywhere]">
               How was {side === "buyer" ? "buying from" : "selling to"} {who}?
             </p>
-            <div role="radiogroup" aria-label="Stars" className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  role="radio"
-                  aria-checked={stars === n}
-                  aria-label={`${n} star${n === 1 ? "" : "s"}`}
-                  className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => setStars(n)}
-                >
-                  <Star className={`h-8 w-8 ${n <= stars ? "fill-primary text-primary" : "text-muted-foreground"}`} aria-hidden />
-                </button>
-              ))}
-            </div>
+            <StarRow value={stars} onChange={setStars} label="Stars" />
           </div>
           {/* Board 163: quick tags, this side's fixed list; selected ones wear the primary olive. */}
           <div role="group" aria-label="Quick tags" className="flex flex-wrap justify-center gap-2 pt-4" data-review-tags="">

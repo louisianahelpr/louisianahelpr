@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchSellerItems, photoPublicUrl } from "@/lib/declutter/api";
+import { fetchSellerMovingSale } from "@/lib/declutter/movingSale";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
@@ -26,19 +27,24 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
   const on = useFeature("declutter");
   const [all, setAll] = useState(false);
   const items = useQuery({ queryKey: ["declutter", "seller-items", sellerId], queryFn: () => fetchSellerItems(sellerId, NO_ITEM), enabled: on });
-  const ids = (items.data ?? []).map((i) => i.id);
+  // Audit BUY-33: the moving sale above already lists its items (MovingSaleBanner's own read, same key).
+  const moving = useFeature("declutter_moving_out");
+  const sale = useQuery({ queryKey: ["declutter", "moving-sale", sellerId], queryFn: () => fetchSellerMovingSale(sellerId), enabled: on && moving });
+  const inSale = new Set((sale.data?.items ?? []).map((i) => i.id));
+  const rest = (items.data ?? []).filter((i) => !inSale.has(i.id));
+  const ids = rest.map((i) => i.id);
   const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: on && ids.length > 0 });
-  if (!on || !items.data || items.data.length === 0 || photos.isLoading) return null;
+  if (!on || !items.data || rest.length === 0 || photos.isLoading) return null;
   const cover = new Map<string, string>();
   for (const p of photos.data ?? []) if (!cover.has(p.item_id)) cover.set(p.item_id, p.storage_path);
-  const shown = all ? items.data : items.data.slice(0, SELLING_NOW_FIRST);
+  const shown = all ? rest : rest.slice(0, SELLING_NOW_FIRST);
   return (
     <section aria-labelledby="selling-now-title" data-testid="selling-now" className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h2 id="selling-now-title" className="font-sans uppercase tracking-wider text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
-          Selling now · {items.data.length}
+          Selling now · {rest.length}
         </h2>
-        {items.data.length > SELLING_NOW_FIRST && (
+        {rest.length > SELLING_NOW_FIRST && (
           <button type="button" className="min-h-11 px-1 text-ds-13 font-semibold" onClick={() => setAll((v) => !v)}>
             {all ? "Show fewer" : "See all"}
           </button>

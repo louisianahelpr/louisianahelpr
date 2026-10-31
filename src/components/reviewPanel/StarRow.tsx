@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Star } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { STAR_ON } from "@/lib/starColor";
@@ -9,6 +9,7 @@ import { STAR_ON } from "@/lib/starColor";
  * (HELPR-DESIGN-SPEC §1.1: rust is for prices, payouts and held money only).
  * `label` names the radiogroup for assistive tech; the visible question is the
  * card's own heading (ReviewQuestionCard).
+ * Audit BUY-34: a radio group moves with the arrow keys and is one Tab stop.
  */
 export const StarRow = ({
   value,
@@ -20,11 +21,24 @@ export const StarRow = ({
   label: string;
 }) => {
   const [hover, setHover] = useState(0);
+  const row = useRef<HTMLDivElement>(null);
+  const pick = (s: number) => {
+    onChange(s);
+    row.current?.querySelectorAll<HTMLElement>('[role="radio"]')[s - 1]?.focus();
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    pick(((value || (step > 0 ? 0 : 1)) + step + 4) % 5 + 1);
+  };
   return (
     <div
+      ref={row}
       className="flex justify-center gap-1"
       role="radiogroup"
       aria-label={label}
+      onKeyDown={onKeyDown}
     >
       {[1, 2, 3, 4, 5].map((s) => {
         const lit = s <= (hover || value);
@@ -34,6 +48,7 @@ export const StarRow = ({
             type="button"
             role="radio"
             aria-checked={s === value}
+            tabIndex={s === (value || 1) ? 0 : -1}
             onClick={() => { hapticLight(); onChange(s); }}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}

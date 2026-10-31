@@ -194,7 +194,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
             </span>
-            <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">
+            <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
               {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
                 : h === "seller_delivery" ? (sdState === "no_times"
                   ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
@@ -238,26 +238,29 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           )}
         </div>
       )}
-      <dl className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
-        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd></div>
+      {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
+      <div className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
+      <dl className="space-y-1.5">
+        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(itemsTotalCents)}</dd></div>
         {discountCents > 0 && (
-          <div className="flex justify-between gap-3" data-bundle-discount=""><dt>Bundle discount</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">−{formatPrice(discountCents)}</dd></div>
+          <div className="flex justify-between gap-3" data-bundle-discount=""><dt>Bundle discount</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">−{formatPrice(discountCents)}</dd></div>
         )}
         {delivering && liveQuote && (
-          <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
+          <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
         {sdRate !== null && (
-          <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
+          <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
         )}
         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
           <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
-          <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">
+          <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--accent-ink))]">
             {formatPrice(payCents)}
             {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
             {delivering && !liveQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ delivery</span>}
             {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
           </dd>
         </div>
+      </dl>
         {setupFeeCents > 0 && (
           <p className="text-ds-12 text-muted-foreground" data-checkout-setup-fee="">Includes the one-time {formatPrice(setupFeeCents)} account setup fee.</p>
         )}
@@ -265,7 +268,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           <p className="text-ds-12 text-muted-foreground" data-service-fee-words="">Includes a small Louisiana Helpr service fee.</p>
         )}
         {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}
-      </dl>
+      </div>
       {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the
           seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
@@ -387,7 +390,7 @@ export function CartView() {
                     ) : (
                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
                     )}
-                    <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(l.price_cents)}</span>
+                    <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(l.price_cents)}</span>
                     <RemoveFromCart line={l} />
                   </li>
                 ))}

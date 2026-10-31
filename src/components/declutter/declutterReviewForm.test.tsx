@@ -7,7 +7,7 @@
  *
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days."; | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 7 days.";
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | How was {side === "buyer" ? "buying from" : "selling to"} {who}? | How was {side === "buyer" ? "buying from" : "selling to"} them?
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | ${n <= stars ? "fill-primary text-primary" : "text-muted-foreground"} | ${n <= stars ? "fill-accent text-accent" : "text-muted-foreground"}
+ * @mutate src/lib/starColor.ts | export const STAR_ON = "hsl(var(--primary))"; | export const STAR_ON = "hsl(var(--accent))";
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | leaveReview(orderId, args.stars, args.comment, args.tags) | leaveReview(orderId, 5, args.comment, args.tags)
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |       if ((err as { message?: unknown })?.message === "already_reviewed") { |       if (false) {
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | {REVIEW_TAGS[side].map(([tag, label]) => { | {REVIEW_TAGS.buyer.map(([tag, label]) => {
@@ -92,7 +92,7 @@ describe("board 163: reviews after a sale", () => {
     const send = within(sheet).getByRole("button", { name: "Send review" });
     expect(send).toBeDisabled();
     fireEvent.click(within(sheet).getByRole("radio", { name: "4 stars" }));
-    const lit = sheet.querySelectorAll("svg.fill-primary");
+    const lit = sheet.querySelectorAll('svg[style*="--primary"]');
     expect(lit.length).toBe(4);
     for (const s of lit) expect(s.getAttribute("class")).not.toMatch(/accent|amber|sienna/);
     fireEvent.change(within(sheet).getByLabelText(/A few words/), { target: { value: "  Easy pickup.  " } });

@@ -38,6 +38,12 @@ export function movingSaleWhen(startsOn: string | null, moveOutOn: string, count
   return `${short(startsOn)} – ${short(moveOutOn)} · ${items}`;
 }
 
+/** Is this item in a moving sale? Signed-in members only: guests have no grant on the column (measured on prod 10-30). */
+export async function fetchItemInMovingSale(itemId: string): Promise<boolean> {
+  const row = unwrap(await supabase.from("declutter_items").select("in_moving_sale").eq("id", itemId).maybeSingle()) as { in_moving_sale: boolean } | null;
+  return row?.in_moving_sale ?? false;
+}
+
 const MOVING_SALE_READ_LIMIT = 100;
 
 export interface SellerMovingSale {

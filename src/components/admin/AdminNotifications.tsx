@@ -292,9 +292,10 @@ const AdminNotifications = () => {
                   htmlFor="all-push"
                   className="text-ds-13 font-medium text-foreground cursor-pointer"
                 >
-                  All In-App
+                  All push
                 </Label>
-                <p className="text-ds-11 text-muted-foreground">Mutes every push below. Your per-category choices are kept.</p>
+                {/* AUD31-47: the switch is ON while push is sent, so the line says what Off does. */}
+                <p className="text-ds-11 text-muted-foreground">Off mutes every push below. Your per-category choices are kept.</p>
               </div>
             </div>
             {/* id + htmlFor, matching the per-category switches below. These two
@@ -311,9 +312,9 @@ const AdminNotifications = () => {
                   htmlFor="all-email"
                   className="text-ds-13 font-medium text-foreground cursor-pointer"
                 >
-                  All Email
+                  All email
                 </Label>
-                <p className="text-ds-11 text-muted-foreground">Mutes every email below. Your per-category choices are kept.</p>
+                <p className="text-ds-11 text-muted-foreground">Off mutes every email below. Your per-category choices are kept.</p>
               </div>
             </div>
             <Switch id="all-email" checked={allEmailOn} onCheckedChange={toggleAllEmail} />

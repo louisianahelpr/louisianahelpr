@@ -23,7 +23,7 @@
  */
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |               ELSE (p_cents / 100) * 100 END; |               ELSE p_cents END;
 // @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
-// @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   CHECK (amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) AND amount_cents >= 0); |   CHECK (amount_cents = pay_cents - fee_cents AND amount_cents >= 0);
+// @mutate supabase/migrations/20261031220617_helpr_setup_fee_from_payout_restated.sql |   CHECK (amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - setup_fee_cents AND amount_cents >= 0); |   CHECK (amount_cents = pay_cents - fee_cents - setup_fee_cents AND amount_cents >= 0);
 // @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
 // @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
 // @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, (v_amount / 100)::text) END, | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, to_char(v_amount / 100.0, 'FM999990.00')) END,
@@ -79,7 +79,9 @@ describe("Helpr delivery payouts are whole dollars, rounded down (owner 2026-10-
   it("the payout row's CHECK stores only the rounded amount", () => {
     const def = newestCheckBody("helpr_task_payouts_amount");
     expect(def, "no live CHECK helpr_task_payouts_amount").not.toBeNull();
-    expect(flat(def!.body)).toBe(`amount_cents = public.${TWIN}(pay_cents - fee_cents) AND amount_cents >= 0`);
+    // Owner 2026-10-30 (Builder 49's 20261031014752, rebuilt as 20261031220617): the one-time setup fee, named in its own
+    // column, is the only thing that may lower it.
+    expect(flat(def!.body)).toBe(`amount_cents = public.${TWIN}(pay_cents - fee_cents) - setup_fee_cents AND amount_cents >= 0`);
   });
 
   it("helpr_task_confirm writes the rounded amount, and the notice says whole dollars", () => {

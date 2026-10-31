@@ -43,7 +43,7 @@ function WantedPostSafety({ post, onBlocked }: { post: WantedNear; onBlocked?: (
   const block = useMutation({
     mutationFn: () => blockWantedPoster(post.id),
     onSuccess: () => {
-      toast.success("Blocked. You won't see each other's Wanted posts.");
+      toast("Blocked. You won't see each other's Wanted posts.");
       setBlocking(false);
       onBlocked?.();
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -90,7 +90,7 @@ function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: W
   const send = useMutation({
     mutationFn: () => replyToWanted(post!.id, itemId!, cents!),
     onSuccess: () => {
-      toast.success(`Sent. ${who === "them" ? "They have" : `${who} has`} 48 hours to accept.`);
+      toast(`Sent. ${who === "them" ? "They have" : `${who} has`} 48 hours to accept.`);
       clearPick();
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onClose();
@@ -214,7 +214,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
       setStartItemId(answerItem);
       setReplying(fromAlert.data);
     } else if (fromAlert.data?.replied) {
-      toast.success("You already answered this post.");
+      toast("You already answered this post.");
     } else {
       toast.error(fromAlert.isError ? declutterErrorMessage(fromAlert.error) : "That post has closed, or your listing is no longer close enough to answer it.");
     }

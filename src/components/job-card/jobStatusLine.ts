@@ -281,6 +281,8 @@ export type PosterWait =
   | "overdue_no_show"
   | "overdue_unfinished"
   | "started_no_checkin"
+  | "crew_underway"
+  | "crew_overdue"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -363,6 +365,11 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      job in_progress at its start, whether or not the Helpr set out or arrived; the card read "Eli is at the job",
      the job page "Work is underway". The eyebrow says the start passed; what to do (wait, message, or report a no-show) is the poster's call. */
   started_no_checkin: { detail: "Your Helpr hasn't checked in", eyebrow: "Start time passed", tone: "you" },
+  /* A CREW HAS NO ONE HELPR (JOBS-4). helper_id is null on a crew and the arrival stamps live per member in
+     group_job_helpers, so every line above read "Your Helpr never arrived — No-Show?" over a roster of confirmed
+     people, and report_helper_no_show always refuses it (no_helper_assigned). The roster on the card says who is where. */
+  crew_underway: { detail: "Waiting on your crew to finish", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
+  crew_overdue: { detail: "Your crew hasn't finished yet", eyebrow: "Past the day", tone: "them" },
   /* THE OLD `DisputeOpenBadge`, VERBATIM — the words, the tone and the
      consequence line are unchanged, because this strip IS that badge
      generalised (owner: "similar to how dispute open displays"). The eyebrow
@@ -566,6 +573,10 @@ export function derivePosterWait(
       if (submissionAwaitingPoster(job)) return "approve";
       if (job.status === "revision_requested") {
         return workIsBackWithHelper(job) ? "revision_out" : "revision_fixed";
+      }
+      // A crew has no one Helpr to confirm, chase or report (JOBS-4): none of the single-Helpr lines below is true of it.
+      if (job.is_group_job && (job.status === "in_progress" || jobIsOverdue(job))) {
+        return jobIsOverdue(job) ? "crew_overdue" : "crew_underway";
       }
       /* THE LADDER, ASKED ONCE, AND ASKED BEFORE THE CALENDAR.
          It owns "what confirmation is owed right now", including the

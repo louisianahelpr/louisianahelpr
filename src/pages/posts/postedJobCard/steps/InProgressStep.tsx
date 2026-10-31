@@ -127,6 +127,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
   // 12h may be standing at the real door of a wrong pin — the server refuses a
   // no-show then (helper_near_miss_pending), so don't offer it.
   const showNoShow =
+    !job.is_group_job && // report_helper_no_show refuses a crew: no one helper_id (JOBS-4).
     job.status === "in_progress" &&
     !job.poster_completed_at &&
     !job.helper_arrived_at &&

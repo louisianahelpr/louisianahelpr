@@ -1,5 +1,5 @@
 /**
- * F11 (app audit 2026-10-28, part 4 half 2): the day-of "Commit to this job?" sheet had a "Cancel"
+ * F11 (app audit 2026-10-28, part 4 half 2): the day-of confirm sheet ("Confirm you'll be there" since LEAD-CONFIRM-WORDS) had a "Cancel"
  * button beside an underlined "Cancel job" link (two cancels that do very different things), a Title
  * Case "Yes, I Confirm", and "Scheduled for" with the date only, no time.
  *
@@ -7,7 +7,8 @@
  * "Yes, I Confirm", and "Scheduled for Thursday, October 22, 2037".
  *
  * @mutate src/components/JobConfirmation.tsx | onClick={() => setShowConfirmDialog(false)}>Not now</DialogSecondaryAction> | onClick={() => setShowConfirmDialog(false)}>Cancel</DialogSecondaryAction>
- * @mutate src/components/JobConfirmation.tsx | {confirming ? "Confirming…" : "Yes, I confirm"} | {confirming ? "Confirming…" : "Yes, I Confirm"}
+ * @mutate src/components/JobConfirmation.tsx | : isOwner ? "Yes, it's still on" : "Yes, I'll be there"} | : isOwner ? "Yes, I confirm" : "Yes, I confirm"}
+ * @mutate src/components/JobConfirmation.tsx | <DialogHero title={isOwner ? "Confirm the job is still on" : "Confirm you'll be there"} /> | <DialogHero title="Commit to this job?" />
  * @mutate src/components/JobConfirmation.tsx |     scheduledStart ? ` at ${ |     false ? ` at ${
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -45,10 +46,11 @@ describe("F11: the day-of confirm sheet", () => {
     expect(names).toContain("Not now");
   });
 
-  it("the confirm button is sentence case", () => {
+  it("plain words for the Helpr, no 'commit' anywhere (owner 2026-10-31, LEAD-CONFIRM-WORDS)", () => {
     const sheet = openSheet("09:00");
-    expect(within(sheet).getByRole("button", { name: "Yes, I confirm" })).toBeTruthy();
-    expect(within(sheet).queryByRole("button", { name: "Yes, I Confirm" })).toBeNull();
+    expect(within(sheet).getByText("Confirm you'll be there")).toBeTruthy();
+    expect(within(sheet).getByRole("button", { name: "Yes, I'll be there" })).toBeTruthy();
+    expect(sheet.textContent ?? "").not.toMatch(/commit/i);
   });
 
   it("Scheduled for shows the start time with the date (Louisiana time)", () => {

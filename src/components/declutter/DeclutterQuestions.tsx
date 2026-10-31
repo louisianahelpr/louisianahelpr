@@ -13,9 +13,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
-import { answerQuestion, askQuestion, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
+import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 
@@ -47,18 +48,21 @@ function QuestionCard({
   q,
   sellerName,
   onAnswer,
+  mine,
 }: {
   q: DeclutterQuestion;
   sellerName: string | null;
   onAnswer: (() => void) | null;
+  /** AUD31-15: the viewer asked it (declutter_my_question_ids); only the asker is ever told. */
+  mine: boolean;
 }) {
   const asked = askedWhen(q.created_at);
   return (
-    <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="">
+    <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="" data-mine={mine ? "" : undefined}>
       <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p>
       {q.answer ? (
         <>
-          <p className="text-ds-13 text-muted-foreground">Asked by a neighbor · {asked}</p>
+          <p className="text-ds-13 text-muted-foreground">{mine ? "Your question" : "Asked by a neighbor"} · {asked}</p>
           <p className="mt-1 border-l-2 border-[hsl(var(--primary)/0.4)] pl-3 text-ds-15 [overflow-wrap:anywhere]" data-answer="">
             {q.answer}
             {sellerName ? <span className="text-muted-foreground"> — {sellerName}</span> : null}
@@ -66,7 +70,7 @@ function QuestionCard({
         </>
       ) : (
         <p className="text-ds-13 text-muted-foreground">
-          Asked {asked} · {onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
+          {mine ? "Your question · asked" : "Asked"} {asked} · {onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
         </p>
       )}
       {!q.answer && onAnswer && (
@@ -174,6 +178,11 @@ export function DeclutterQuestions({
   const [question, setQuestion] = useState("");
   const [answering, setAnswering] = useState<DeclutterQuestion | null>(null);
   const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId) });
+  // AUD31-15: the viewer's own questions say "Your question". Same key prefix, so asking one refreshes it too. The
+  // seller never asks on their own listing and a guest asks nothing, so neither reads it; a failed read only leaves the
+  // label off.
+  const { user } = useAuthReady();
+  const myIds = useQuery({ queryKey: ["declutter", "questions", itemId, "mine"], queryFn: () => fetchMyQuestionIds(itemId), enabled: !!user && !isSeller });
   // Audit 1028 part 2, D2-13: a refusal (a phone number or email in the question, say) shows under the box, not in a
   // toast that sat on top of the box and the Ask button for 20+ seconds at 375. Typing again clears it.
   const ask = useMutation({
@@ -208,7 +217,7 @@ export function DeclutterQuestions({
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
-            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} />
+            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} />
           ))}
         </ul>
       )}

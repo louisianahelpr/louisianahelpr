@@ -38,6 +38,7 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import { backgroundImport } from "@/lib/chunkReload";
 import { formatPriceExact } from "@/lib/format";
 import { releaseActionLabel } from "@/lib/releaseCopy";
+import { STANDARD_PAYOUT_PHRASE } from "../../../supabase/functions/_shared/escrowTiming";
 import { endSentence } from "@/lib/utils";
 
 // Rentals: the tenant's "Was it fixed?" answer, for a job posted from a repair
@@ -324,7 +325,7 @@ export function CompletionChoiceSheet({
               <p className="rounded-ds-md p-3.5 font-sans text-ds-13 leading-snug text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
                 When you approve,{" "}
                 {jobPrice ? <>the <strong className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(jobPrice)}</strong> job price is</> : "your payment is"}{" "}
-                released to {endSentence(groupJob ? "your Helprs" : helperName)} If something isn't right, tap "Something's not right" and the money stays held.
+                released to {endSentence(groupJob ? "your Helprs" : helperName)} Their pay goes out {STANDARD_PAYOUT_PHRASE}. If something isn't right, tap "Something's not right" and the money stays held.
               </p>
               {/* Full width on the phone (board 65): the shell's commit button sizes to its label. */}
               <div className="flex flex-col [&>button]:w-full">

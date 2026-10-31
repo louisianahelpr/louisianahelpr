@@ -9,7 +9,11 @@
  * JOBS-15: the apply sheet and Help described "released when marked complete" and "pays at that moment".
  * JOBS3-47: "until you hire someone" while "Hire" and "Send offer" charge nothing: the charge is at the Helpr's accept.
  * JOBS3-50 / JOBS-28: member-visible "escrow".
+ * JOBS2-36: the approve sheet said "released to Hallie" with no word of the wait.
+ * JOBS-27: "that share is refunded", though the card-fee part is kept (GroupJobHelpers).
  *
+ * @mutate src/pages/posts/CompletionChoiceSheet.tsx |  Their pay goes out {STANDARD_PAYOUT_PHRASE}. |
+ * @mutate src/components/GroupJobHelpers.tsx | open. Most of that share comes back to you after the job.` | open. That share is refunded to you after the job.`
  * @mutate src/components/DisputeDialog.tsx | If nobody settles it by the deadline, Helpr support decides, and the payment stays on hold until then. | If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.
  * @mutate src/components/job-card/ActivityDialogs.tsx | Take them off your job. Its start time has passed, so to hire someone else, change the date right away. Otherwise it's cancelled and refunded | Reopen your job so you can pick another applicant
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}. | Held securely, released when the job is marked complete.
@@ -35,6 +39,7 @@ const GONE: Array<[string, RegExp]> = [
   ["src/components/richMessageInput/ViolationDialog.tsx", /escrow/],
   ["src/components/BlockUserDialog.tsx", /Any escrow held/],
   ["supabase/functions/charge-recurring-visits/index.ts", /booked and held in escrow/],
+  ["src/components/GroupJobHelpers.tsx", /share is refunded/],
 ];
 
 describe("Jobs audit money and dispute words", () => {
@@ -43,6 +48,9 @@ describe("Jobs audit money and dispute words", () => {
   });
   it.each(GONE)("%s no longer says the untrue thing", (file, untrue) => {
     expect(code(file)).not.toMatch(untrue);
+  });
+  it("the approve sheet says when the pay goes out (JOBS2-36)", () => {
+    expect(code("src/pages/posts/CompletionChoiceSheet.tsx")).toContain("Their pay goes out {STANDARD_PAYOUT_PHRASE}.");
   });
   it("the dispute dialog says who decides, on both sides", () => {
     const dialog = code("src/components/DisputeDialog.tsx");

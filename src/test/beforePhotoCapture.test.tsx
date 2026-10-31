@@ -94,7 +94,7 @@ import type { ReactElement } from "react";
 // F21 (audit 2026-10-28): the photo primary is sentence case ("Take before photo", was "Take Before photo").
 // @mutate src/components/job-card/photoPrimaryLabel.ts |   return `Take ${label.charAt(0).toLowerCase()}${label.slice(1)}`; |   return `Take ${label}`;
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({

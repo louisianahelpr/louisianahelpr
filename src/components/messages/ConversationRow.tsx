@@ -350,7 +350,7 @@ const ConversationRowBase = ({
                 `min-w-0` is kept so `truncate` still works if the row is ever
                 narrower than the basis itself.
 
-                AUD31-40 (audit 10-31): 88px still cut "Former member" to
+                AUD31-40 (audit 10-31): 88px still cut the deleted-person label to
                 "Former memb…" at 375 (and "Former mem…" in the 1440 inbox pane)
                 beside a "Completed" chip. The basis is now 7.5rem (120px, about
                 14 characters at ds-15), so a two-word name keeps its last

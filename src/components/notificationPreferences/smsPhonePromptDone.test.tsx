@@ -20,7 +20,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unkno
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, ready: true }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 
 import { SmsPhonePrompt, SMS_PROMPT_ALL_SET_MS } from "./SmsPhonePrompt";
 

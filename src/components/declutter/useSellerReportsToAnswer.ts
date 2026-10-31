@@ -7,7 +7,7 @@ import { useOpenProblems } from "./useOpenProblems";
  * NIGHT-BUYINGopenpr-3: an open problem the seller did not report and has not answered yet. The sale card's
  * "Add your side" (DeclutterProblemSides) is then the seller's move, as problemAwaitsBuyer is the buyer's.
  */
-export function problemAwaitsSeller(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
+function problemAwaitsSeller(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note;
 }
 

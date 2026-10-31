@@ -66,7 +66,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 767,
+      "line": 770,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -79,7 +79,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 781,
+      "line": 784,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4318,7 +4318,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 372,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11179,7 +11179,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 312,
+      "line": 314,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11189,7 +11189,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 590,
+      "line": 593,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

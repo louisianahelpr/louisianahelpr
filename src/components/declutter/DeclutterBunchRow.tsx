@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
 import { CATEGORY_LABEL, CONDITION_LABEL } from "./declutterUi";
 import { bunchItemName } from "./DeclutterBunchCard";
+import { FallbackImg } from "./FallbackImg";
 
 export function BunchRow({ item, index, url, open, chosen, nextPriceId, onToggleOpen, onToggleChosen, onPrice, children }: {
   item: BunchItem;
@@ -39,7 +40,7 @@ export function BunchRow({ item, index, url, open, chosen, nextPriceId, onToggle
         <button type="button" onClick={onToggleOpen} aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
           className="flex min-h-14 min-w-0 flex-1 items-center gap-2 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-            {url?.startsWith("blob:") && <img src={url} alt="" loading="lazy" decoding="async" className="h-14 w-14 bg-photo-empty object-cover" data-bunch-row-thumb="" />}
+            {url?.startsWith("blob:") && <FallbackImg src={url} alt="" loading="lazy" decoding="async" className="h-14 w-14 object-cover" data-bunch-row-thumb="" />}
           </span>
           <span className="min-w-0 flex-1">
             <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span>

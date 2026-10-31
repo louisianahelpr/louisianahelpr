@@ -27,6 +27,13 @@ const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
+/**
+ * "the seller" at the start of a sentence. Audit BUY-32: the panels were handed an already capitalised `who`, so the
+ * middle of a sentence read "Bring the item back to The seller's pickup address". `who` stays as it reads mid-sentence;
+ * only a sentence's first word goes through this.
+ */
+export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The seller's pick, kept in the answer form until "Send answer". */
@@ -64,7 +71,7 @@ export function DeclutterReturnWayPicker({ id, who, value, onChange }: {
         label="How does it come back?"
         required
         options={[
-          { value: "drop_off", label: `${who} brings it back`, sub: "To your pickup address, on the day you pick or after, with a photo taken there." },
+          { value: "drop_off", label: `${cap(who)} brings it back`, sub: "To your pickup address, on the day you pick or after, with a photo taken there." },
           { value: "collect", label: "I'll pick it up", sub: `You go to the address ${who} gives you, at the time you pick.` },
         ]}
         value={value.way}
@@ -106,7 +113,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
       const path = await uploadReturnPhoto(user.id, v.order_id, file);
       return returnDroppedOff(r.id, path, where);
     },
-    onSuccess: () => { toast.success(`Dropped off. ${who} is told.`); refresh(); },
+    onSuccess: () => { toast.success(`Dropped off. ${cap(who)} is told.`); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const addr = useMutation({
@@ -119,8 +126,8 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
     },
     onSuccess: ({ approximate }) => {
       toast.success(approximate
-        ? `Saved. ${who} is told where to pick it up. Their map may only show the area, but they'll read the address you typed.`
-        : `Saved. ${who} is told where to pick it up.`);
+        ? `Saved. ${cap(who)} is told where to pick it up. Their map may only show the area, but they'll read the address you typed.`
+        : `Saved. ${cap(who)} is told where to pick it up.`);
       setAddress("");
       refresh();
     },
@@ -147,7 +154,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
   const addrId = `dcl-return-addr-${v.order_id}`;
   return (
     <div className="space-y-2" data-return-collect="">
-      <p className="text-sm">{who} will come for it{r.return_at ? ` ${at(r.return_at)}` : ""}.</p>
+      <p className="text-sm">{cap(who)} will come for it{r.return_at ? ` ${at(r.return_at)}` : ""}.</p>
       {r.return_address ? (
         <p className="text-sm">Pickup address: <span className="font-medium">{r.return_address}</span></p>
       ) : (
@@ -169,8 +176,8 @@ export function DeclutterReturnSellerInfo({ v, who }: { v: RefundRequestView; wh
   if (!r || r.status !== "returning" || !r.return_way) return null;
   if (r.return_way === "drop_off") {
     return r.return_dropped_off_at
-      ? <p className="text-sm" data-return-dropped="">{who} dropped it off at your pickup address {at(r.return_dropped_off_at)}, with a photo.</p>
-      : <p className="text-sm" data-return-drop-off="">{who} brings it to your pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}.</p>;
+      ? <p className="text-sm" data-return-dropped="">{cap(who)} dropped it off at your pickup address {at(r.return_dropped_off_at)}, with a photo.</p>
+      : <p className="text-sm" data-return-drop-off="">{cap(who)} brings it to your pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}.</p>;
   }
   return (
     <div className="space-y-1" data-return-collect="">

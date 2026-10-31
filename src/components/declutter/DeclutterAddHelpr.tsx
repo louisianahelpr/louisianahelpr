@@ -18,7 +18,11 @@ import { ErrorState } from "@/components/ui/ErrorState";
 
 const btn = "inline-flex min-h-11 items-center rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
-export function AddHelprPanel({ orderId }: { orderId: string }) {
+export function AddHelprPanel({ orderId, bookedOnly = false }: {
+  orderId: string;
+  /** BUY-31: the item is going back or on hold, so no new offer; a Helpr already booked still shows. */
+  bookedOnly?: boolean;
+}) {
   const on = useFeature("declutter_add_helpr");
   // Under 18 cannot post a job (Q1586(c)): the choices grey out and say why.
   const { underAge, explain, gatedProps } = useAgeGate();
@@ -38,10 +42,10 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
   const booked = info.data.jobs.filter(isBookedSetupJob);
   // Only the choices these items can need (audit #27: "Put it together" on a mug); none and nothing booked = no panel.
   const kinds = setupKindsFor(info.data.item_details, info.data.handover);
-  if (kinds.length === 0 && booked.length === 0) return null;
+  if (booked.length === 0 && (bookedOnly || kinds.length === 0)) return null;
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" aria-label="Add a Helpr">
-      <p className="text-sm font-semibold">{kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"}</p>
+      {!bookedOnly && <p className="text-sm font-semibold">{kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"}</p>}
       {booked.length > 0 && (
         <ul className="space-y-1 text-sm">
           {booked.map((j) => (
@@ -52,7 +56,7 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
           ))}
         </ul>
       )}
-      {kinds.length > 0 && (
+      {kinds.length > 0 && !bookedOnly && (
         <>
         <p className="text-sm text-muted-foreground">
           {kinds.includes("move")

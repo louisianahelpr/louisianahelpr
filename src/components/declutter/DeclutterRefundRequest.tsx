@@ -33,6 +33,7 @@ import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
 import {
+  cap,
   DeclutterReturnBuyer,
   DeclutterReturnPhotoPick,
   DeclutterReturnSellerInfo,
@@ -61,9 +62,6 @@ export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
  * gap is said in plain words, with no figure, wherever the full-refund amount is shown to the buyer.
  */
 const FULL_REFUND_WHY = "That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.";
-
-/** "the seller" at the start of a sentence. */
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -222,7 +220,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
             {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
             {r.return_way ? "" : ` Give the item back; message ${who} from your order.`} Your refund is sent as soon as {who} confirms they have it.
           </p>
-          <DeclutterReturnBuyer v={v} who={cap(who)} />
+          <DeclutterReturnBuyer v={v} who={who} />
           {(r.return_deadline ?? r.return_by) && <p className="text-ds-12 text-muted-foreground">If {who} hasn't confirmed by {at(r.return_deadline ?? r.return_by ?? "")}, Louisiana Helpr decides.</p>}
         </div>
       );
@@ -284,7 +282,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     return (
       <div className="space-y-2" data-refund-returning="">
         <p className="text-sm">You agreed to a full refund. Once {who} gives the item back, tap I got it back and the refund is sent.</p>
-        <DeclutterReturnSellerInfo v={v} who={cap(who)} />
+        <DeclutterReturnSellerInfo v={v} who={who} />
         {r.return_way && <DeclutterReturnPhotoPick orderId={v.order_id} file={backPhoto} onFile={setBackPhoto} />}
         <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button>
         {/* Money review 2026-10-27: sending the refund can't be undone, so the tap asks once. Deep audit 2026-10-28 #59:
@@ -333,7 +331,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
         value={choice}
         onChange={(c, via) => { if (via === "click") hapticLight(); setChoice(c as Answer); }}
       />
-      {choice === "full" && <DeclutterReturnWayPicker id={id} who={cap(who)} value={pick} onChange={setPick} />}
+      {choice === "full" && <DeclutterReturnWayPicker id={id} who={who} value={pick} onChange={setPick} />}
       {choice === "part" && (
         <div>
           <label htmlFor={`${id}-amount`} className="block text-xs font-medium">How much back? (less than {refundDollars(v.items_cents)})</label>

@@ -82,6 +82,14 @@ function rpcData<T>(result: { data: T; error: { message: string } | null }, word
   return result.data;
 }
 
+/**
+ * Audit BUY-31: the item is on its way back, or Louisiana Helpr is deciding. Until that ends the order card doesn't
+ * ask for a review or offer help moving the item.
+ */
+export function refundHoldsTheItem(status: string | null | undefined): boolean {
+  return status === "returning" || status === "to_admin";
+}
+
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {
   return rpcData(
     await supabase.rpc("declutter_refund_request_view", { p_order_id: orderId }),

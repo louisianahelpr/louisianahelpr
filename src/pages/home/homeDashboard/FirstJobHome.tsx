@@ -126,24 +126,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
     <div className="flex flex-col gap-section" data-testid="first-job-home">
       <section aria-label="Get your first job" className="liquid-glass p-card flex flex-col gap-1">
         <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Get your first job</h2>
-        <ul className="flex flex-col">
-          {steps.map((s) => (
-            <li key={s.key}>
-              <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
-                <span
-                  className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
-                  aria-hidden
-                >
-                  {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                </span>
-                <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
-                  {s.label}
-                  <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ChecklistSteps steps={steps} />
         {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
       </section>
 
@@ -198,5 +181,30 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
         </p>
       </section>
     </div>
+  );
+}
+
+/** One checklist row per step: a tick when done, the label, and the whole row goes to where the step is done. Shared by
+ *  the first-job card and the poster's first-job card (UX-5) so the two look alike. */
+export function ChecklistSteps({ steps }: { steps: { key: string; label: string; done: boolean; go: () => void }[] }) {
+  return (
+    <ul className="flex flex-col">
+      {steps.map((s) => (
+        <li key={s.key}>
+          <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
+            <span
+              className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
+              aria-hidden
+            >
+              {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+            </span>
+            <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
+              {s.label}
+              <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

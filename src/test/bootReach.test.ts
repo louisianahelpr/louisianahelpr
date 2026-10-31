@@ -18,11 +18,18 @@
  * @mutate vite.config.ts | name: "declutter-first-screen", | name: "signed-in-shared",
  * @mutate scripts/perf/bootReach.mjs | const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f))); | const declutterOnly = new Set();
  * @mutate src/pages/auth/signup/useCityZipMismatch.ts | void import("@/lib/cityZipMismatch").then( | void Promise.resolve(staticHint).then(
+ * @mutate scripts/perf/bootReach.mjs |   return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse)); |   return new Set([...reach].filter((f) => f.startsWith(src) && f !== browse));
+ * @mutate scripts/perf/bootReach.mjs |   return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse)); |   return new Set([...reach].filter((f) => SHARED_DIR_RE.test(f) && !others.has(f) && f !== browse));
+ * @mutate vite.config.ts | name: "browse-first-screen", | name: "browse-first-screen-off",
+ * @mutate vite.config.ts | const browseOnly = guestBrowseOnlyModules(process.cwd()); | const browseOnly = new Set<string>();
+ *
+ * LEAD-POSTS-BOOT-SHRINK (10-31): code only guest /browse reaches (guestBrowseOnlyModules) has its own
+ * `browse-first-screen` chunk; the built-bundle half is check-deferred-vendors.mjs ("only guest /browse reaches").
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { firstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { firstScreenRoots, guestBrowseOnlyModules, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -135,3 +142,33 @@ describe("vite.config.ts wires the group", () => {
     expect(group).toMatch(/includeDependenciesRecursively:\s*false/);
   });
 });
+
+describe("guest /browse-only code is split off every other route's boot (LEAD-POSTS-BOOT-SHRINK)", () => {
+  const browseOnly = guestBrowseOnlyModules(ROOT);
+  const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+
+  it("holds the map, browse and job-card code, and none of it is reached by another first screen or the boot", () => {
+    expect(browseOnly.size).toBeGreaterThan(40); // 84 on 2026-10-31
+    for (const rel of ["src/hooks/useMapKitJs.ts", "src/lib/savedSearches.ts", "src/hooks/useDashboardJobsCount.ts", "src/lib/jobDisplayPay.ts", "src/components/dashboard/JobPrice.tsx"]) {
+      expect(browseOnly.has(abs(rel)), rel).toBe(true);
+    }
+    const others = staticReach(ROOT, [
+      ...publicRoots(ROOT).filter((r) => !r.endsWith("src/pages/home/DashboardGuest.tsx")),
+      abs("src/App.tsx"),
+    ]);
+    expect(others.size).toBeGreaterThan(100);
+    for (const f of browseOnly) expect(others.has(f), f).toBe(false);
+    expect(browseOnly.has(abs("src/pages/home/DashboardGuest.tsx"))).toBe(false);
+  });
+
+  it("vite.config.ts gives them their own group above app-shared, without dragging their deps", () => {
+    const g = cfg.match(/name:\s*"browse-first-screen"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(g).not.toBe("");
+    expect(cfg).toMatch(/const browseOnly = guestBrowseOnlyModules\(process\.cwd\(\)\)/);
+    expect(g).toMatch(/browseOnly\.has\(/);
+    expect(g).toMatch(/includeDependenciesRecursively:\s*false/);
+    const appShared = Number(cfg.match(/name:\s*"app-shared"[\s\S]*?priority:\s*(\d+)/)?.[1]);
+    expect(Number(g.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(appShared);
+  });
+});
+

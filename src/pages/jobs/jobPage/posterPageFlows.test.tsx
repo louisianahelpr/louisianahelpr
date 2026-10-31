@@ -24,7 +24,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const calls = vi.hoisted(() => ({ from: [] as Array<{ table: string; select?: string; eq: Array<[string, unknown]> }>, invoke: [] as unknown[][] }));
 const JOB = vi.hoisted(() => ({
   id: "job-1", title: "Fence", budget: 100, status: "in_progress", payment_status: "escrow",
-  customer_id: "poster-1", helper_id: "helper-1", is_group_job: false, date_needed: "2030-01-10", start_time: "09:00",
+  customer_id: "poster-1", helper_id: "helper-1", is_group_job: false, date_needed: "2033-01-10", start_time: "09:00",
   helper_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_arrival_at: "2026-10-28T12:30:00Z",
   helper_arrived_at: "2026-10-28T12:30:00Z", helper_completed_at: "2026-10-28T15:00:00Z", poster_completed_at: null,
   proof_before_urls: [], proof_after_urls: [], onboarding_fee_amount: 2, urgent_fee: null,

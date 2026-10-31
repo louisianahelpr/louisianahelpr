@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-31T07:29Z",
+  "measured_at": "2026-10-31T07:40Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 3802,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41180737656",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41181441759",
         "runTruncated": false
       },
       {
@@ -158,14 +158,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -187,14 +179,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -582,19 +566,19 @@
         "issue": null
       },
       {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
         "source_kind": "sentry",
         "source": "sentry:assets/ProtectedRoute",
         "status": "open",
         "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
+        "issue": null
+      },
+      {
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -654,19 +638,19 @@
         "issue": null
       },
       {
-        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
         "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
         "issue": null
       },
       {
@@ -686,17 +670,17 @@
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -750,19 +734,19 @@
         "issue": null
       },
       {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
         "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
         "issue": null
       },
       {
@@ -915,14 +899,6 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/rentals · error screen shown: we couldn't load this.",
-        "issue": null
-      },
-      {
-        "fingerprint": "14d37f3c6713de2e1f7512e6609c2dd9",
-        "source_kind": "workflow",
-        "source": "analytics-freshness",
-        "status": "open",
-        "title": "analytics: job_completed stopped recording (real users acted, zero events)",
         "issue": null
       },
       {
@@ -1156,7 +1132,6 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f2afa1349a3a": "Q2301",
     "ledger f3c752b3230f": "Q1596",
     "ledger fba95b3590a6": "Q2538",

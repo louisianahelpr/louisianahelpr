@@ -42,6 +42,8 @@ const state = { feature: true, featureSettled: true };
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
+// The item page's pickup places (b9 place times): none here; their own tests are itemHandoverTimes / SellPorchPlaces'.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchItemPickupPlaces: async () => [], fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),

@@ -89,7 +89,15 @@ describe("every refusal a messages INSERT trigger raises is classified for the c
     expect(c?.kind).toBe("rate_limited");
     expect(c?.retryable).toBe(true);
     expect(c?.toast).toMatch(/hourly message limit/i);
-    expect(REFUSAL_BUBBLE_LABEL.rate_limited).toMatch(/Hourly Limit/);
+    expect(REFUSAL_BUBBLE_LABEL.rate_limited).toMatch(/hourly limit/);
+    // AUD31-42: the refusal lines were Title Case ("Not Sent — Account Restricted") beside "Not sent — tap to retry".
+    // @mutate src/lib/messageSendRefusal.ts |   account_restricted: "Not sent — account restricted", |   account_restricted: "Not Sent — Account Restricted",
+    for (const label of Object.values(REFUSAL_BUBBLE_LABEL)) {
+      expect(label.startsWith("Not sent — "), label).toBe(true);
+      // Sentence case: only a sentence's first word may start with a capital.
+      const tail = label.slice("Not sent — ".length).split(". ").map((sentence, i) => (i === 0 ? sentence : sentence.split(" ").slice(1).join(" ")));
+      expect(tail.join(" "), label).toBe(tail.join(" ").toLowerCase());
+    }
     for (const r of raised) {
       const k = classifySendRefusal({ message: r.text });
       if (k && k.kind !== "rate_limited") expect(k.retryable, r.text).toBe(false);

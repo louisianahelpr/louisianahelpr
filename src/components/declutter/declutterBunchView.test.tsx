@@ -37,6 +37,7 @@ const calls = { listed: [] as string[][] };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -147,7 +148,6 @@ describe("Sell a bunch", () => {
     fireEvent.change(within(cards[1] as HTMLElement).getByLabelText("Price ($)"), { target: { value: "40" } });
     expect(screen.getByRole("heading", { name: "3. Check each item (2 of 2 ready)" })).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
     fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
     const list = await screen.findByRole("button", { name: "List 2 items" });
     await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));

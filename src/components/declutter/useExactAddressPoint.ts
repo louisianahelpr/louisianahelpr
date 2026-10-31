@@ -43,6 +43,12 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
     throw new Error(found.status === "unavailable" ? "address_lookup_unavailable" : notFoundCode);
   }, [point, notFoundCode]);
 
+  /** A pick from the address list that Apple placed at the house: the point comes with it, so no lookup is made. */
+  const takePicked = useCallback((p: AddressPoint) => {
+    setPoint(p);
+    setInexact(null);
+  }, []);
+
   /** "I'm at this address": stores where the member is, once it is plausibly near the area we found. */
   const shareMyLocation = useCallback(async (): Promise<AddressPoint> => {
     if (!inexact) throw new Error(notFoundCode);
@@ -64,5 +70,5 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
     }
   }, [inexact, notFoundCode]);
 
-  return { point, setPoint, inexact, locating, locate, shareMyLocation };
+  return { point, setPoint, takePicked, inexact, locating, locate, shareMyLocation };
 }

@@ -12,15 +12,19 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { geocodeAddress } from "@/lib/geocode";
 import {
   deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
   saveMyPorchPlace, type MyPorchPlace,
 } from "@/lib/declutter/porchPlaces";
+import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { DayChip, shortDays } from "./DeclutterPickupTimes";
+import { SellerAddressField } from "./SellerAddressField";
+import { NO_CITY_IN_ADDRESS } from "./sellForm";
+import { useExactAddressPoint } from "./useExactAddressPoint";
 
-type Draft = { id: string | null; label: string; address: string; area: string; weekdays: number[] };
+/** `saved`: a saved place's own point. Kept while its address is unchanged, so editing its days moves nothing buyers rely on. */
+type Draft = { id: string | null; label: string; address: string; area: string; weekdays: number[]; saved?: { address: string; lat: number; lng: number } };
 
 const EMPTY: Draft = { id: null, label: "", address: "", area: "", weekdays: [] };
 const WEEK = [0, 1, 2, 3, 4, 5, 6];
@@ -57,19 +61,30 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   const uid = useId();
   const [d, setD] = useState(initial);
   const set = (patch: Partial<Draft>) => setD((x) => ({ ...x, ...patch }));
+  const place = useExactAddressPoint();
+  const [problem, setProblem] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: async () => {
-      const g = await geocodeAddress(d.address);
-      if (!g) throw new Error("invalid_location");
-      return saveMyPorchPlace({ ...d, label: d.label.trim(), address: d.address.trim(), area: d.area.trim(), lat: g.latitude, lng: g.longitude });
+      const address = d.address.trim();
+      // A place whose address didn't change keeps its point and area. Anything else needs an exact point: a pick from
+      // the list, an exact lookup, or "I'm at this address". A town or street match stops at the note under the box.
+      const point = d.saved && d.saved.address.trim() === address ? d.saved : await place.locate(address);
+      if (!d.area.trim()) throw new Error("no_city_in_address");
+      return saveMyPorchPlace({ id: d.id, label: d.label.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, weekdays: d.weekdays });
     },
+    onMutate: () => setProblem(null),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: MY_PORCH_PLACES_KEY });
       onDone();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => {
+      const code = err instanceof Error ? err.message : "";
+      // The note under the address says what to do, with "I'm at this address".
+      if (code === "address_not_exact") return;
+      setProblem(code === "no_city_in_address" ? NO_CITY_IN_ADDRESS : declutterErrorMessage(err));
+    },
   });
-  const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && d.area.trim().length > 0 && d.weekdays.length > 0;
+  const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && d.weekdays.length > 0;
   const toggle = (day: number) => set({ weekdays: d.weekdays.includes(day) ? d.weekdays.filter((x) => x !== day) : [...d.weekdays, day].sort((a, b) => a - b) });
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
@@ -79,12 +94,10 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       </div>
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">Address</label>
-        <Input id={`${uid}-address`} maxLength={300} value={d.address} onChange={(e) => set({ address: e.target.value })} placeholder="Street, city, ZIP" autoComplete="street-address" />
+        <SellerAddressField id={`${uid}-address`} ariaLabel="Address" value={d.address} place={place}
+          onChange={(address, area) => { set({ address, area: d.saved && d.saved.address.trim() === address.trim() ? initial.area : area }); setProblem(null); }} />
+        <AddressNeedsExactSpot typedAddress={d.address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
         <p className="text-ds-13 text-muted-foreground">{free ? "Private. Only the person who picks this place sees it." : "Private. Only the buyer who pays and picks this place sees it."}</p>
-      </div>
-      <div className="space-y-1.5">
-        <label htmlFor={`${uid}-area`} className="block text-ds-14 font-semibold text-foreground">Area buyers see</label>
-        <Input id={`${uid}-area`} maxLength={80} value={d.area} onChange={(e) => set({ area: e.target.value })} placeholder="e.g. Mid-City, Baton Rouge" />
       </div>
       <div className="space-y-1.5" role="group" aria-label="Days at this place">
         <p className="text-ds-14 font-semibold text-foreground">Days at this place</p>
@@ -92,6 +105,7 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
           {WEEK.map((day) => <DayChip key={day} day={day} on={d.weekdays.includes(day)} disabled={save.isPending} onToggle={() => toggle(day)} />)}
         </div>
       </div>
+      {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
           {save.isPending ? "Saving…" : "Save place"}
@@ -176,7 +190,7 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
       {places.length > 0 && (
         <ul className="grid gap-2 lg:grid-cols-2">
-          {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, weekdays: p.weekdays })} />)}
+          {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, weekdays: p.weekdays, saved: { address: p.address, lat: p.lat, lng: p.lng } })} />)}
         </ul>
       )}
       {draft

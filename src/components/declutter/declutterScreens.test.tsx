@@ -46,6 +46,7 @@ const state = {
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
@@ -606,7 +607,7 @@ describe("Sell form checks mirror the server", () => {
     expect(formProblem({ ...ok, dropPct: 7 })).toMatch(/how much the price drops/);
     expect(formProblem({ ...ok, drops: false, floor: "" })).toBeNull();
     expect(formProblem({ ...ok, drops: false, floor: "50" })).toBeNull();
-    expect(formProblem({ ...ok, areaLabel: "1234 Example St" })).toMatch(/not a street address/);
+    expect(formProblem({ ...ok, areaLabel: "1234 Example St" })).toMatch(/couldn't tell the city/);
     expect(formProblem({ ...ok, areaLabel: "70005 Metairie" })).toBeNull();
     expect(formProblem({ ...ok, title: "ab" })).toMatch(/name/);
   });

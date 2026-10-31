@@ -32,6 +32,7 @@ const state = vi.hoisted(() => ({
   here: { lat: 30.5001, lng: -92.1001 } as unknown,
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
@@ -149,7 +150,7 @@ describe("one-time setup before posting", () => {
     expect(state.savedPlaces).toHaveLength(0);
   });
 
-  it("an address with no match is asked again and nothing about it is saved; no town asks for the area", async () => {
+  it("an address with no match is asked again and nothing about it is saved; no city in it says so, with no box to fill", async () => {
     Object.assign(state, { row: ROW, windows: [WINDOW], lookup: { status: "not_found" } });
     open();
     fireEvent.change(await screen.findByLabelText("Pickup address"), { target: { value: "nowhere at all" } });
@@ -158,10 +159,13 @@ describe("one-time setup before posting", () => {
     expect(state.savedPlaces).toHaveLength(0);
     state.lookup = { status: "exact", lat: 30.1, lng: -91.1 };
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    fireEvent.change(await screen.findByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
+    await screen.findByText(/couldn't tell the city/);
+    expect(screen.queryByLabelText("Area buyers see")).toBeNull();
+    expect(state.savedPlaces).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByText("the posting form");
-    expect(state.savedPlaces[0]).toMatchObject({ area: "Mid-City", lat: 30.1 });
+    expect(state.savedPlaces[0]).toMatchObject({ area: "Baton Rouge", lat: 30.1 });
   });
 
   it("settings saved but the address has no exact point: only the address is asked (the lead's exact-point rule)", async () => {

@@ -173,6 +173,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
    * address) or from the in-app browser in the app.
    */
   const [resume, setResume] = useState<AfterCardAction | null>(() => afterCardFromState(location.state));
+  // NIGHT-BUYING0-3: back with a card for an offer, the typed amount waits unsent; this line says so.
+  const [cardSaved, setCardSaved] = useState(false);
+  // NIGHT-BUYING0-1: back from the card page the member lands at the top of the item, with "Checking for your
+  // card…" (and later the card step or the offer box) below a phone's screen. Bring the panel into view.
+  const showPanel = () => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  useEffect(() => { if (resume) showPanel(); }, [resume]);
   // The saved card is written by Stripe's webhook, which can land a moment
   // after the member is back: while resuming, read again every CARD_POLL_MS.
   const card = useQuery({
@@ -205,6 +211,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     onSuccess: () => {
       setOpen(false);
       setAmount("");
+      setCardSaved(false);
       setSentCents(cents);
       invalidateTrades(qc);
     },
@@ -278,7 +285,13 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     if (!resume || !hasCard) return;
     setResume(null);
     setNeedCard(null);
-    if (item.status === "live" && !underAge) run(resume);
+    if (item.status === "live" && !underAge) {
+      if (resume === "offer") {
+        setCardSaved(true);
+        showPanel();
+      }
+      run(resume);
+    }
   }, [resume, hasCard]);
   // No card after CARD_WAIT_MS (they closed Stripe's page, or it failed):
   // stop waiting and show the card step again for the same action.
@@ -287,6 +300,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     const t = window.setTimeout(() => {
       setResume(null);
       setNeedCard(resume);
+      showPanel();
     }, CARD_WAIT_MS);
     return () => window.clearTimeout(t);
   }, [resume]);
@@ -370,6 +384,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
             sendOffer();
           }}
         >
+          {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">Card saved. Now send your offer.</p>}
           <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
           <div className="flex gap-2">
             <input

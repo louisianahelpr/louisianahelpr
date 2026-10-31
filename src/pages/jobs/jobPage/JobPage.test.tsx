@@ -505,6 +505,35 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
   });
 });
 
+describe("job page, the poster sees who they hired (AUD31-80)", () => {
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status) && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>} |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status) && | {isPoster && job.helper_id && !job.is_group_job &&
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" />
+  const hired = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
+
+  it("a hired job shows the Helpr's own person card, linked to their profile, beside Message <name>", async () => {
+    state.job = hired();
+    state.party = true;
+    renderPage();
+    const card = await screen.findByRole("link", { name: /^See the Helpr, Rhonda/ });
+    expect(card.getAttribute("href")).toBe(`/user/${POSTER}`);
+    expect(screen.getByRole("region", { name: "Your Helpr" }).contains(card)).toBe(true);
+    expect(screen.getByRole("button", { name: "Message Rhonda" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Posted by" })).toBeNull();
+  });
+
+  it("no card while the job is still open (nobody hired), nor for the Helpr's own view", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "open" });
+    state.party = true;
+    const open = renderPage();
+    expect(screen.queryByRole("region", { name: "Your Helpr" })).toBeNull();
+    open.unmount();
+    state.job = row({ customer_id: POSTER, helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
+    renderPage();
+    expect(screen.queryByRole("region", { name: "Your Helpr" })).toBeNull();
+  });
+});
+
 describe("job page, the hired Helpr", () => {
   it("sees the tracker with their next step and opens the job in Working; no address note", () => {
     state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z", poster_confirmed_arrival_at: "2026-10-21T12:00:00Z" });

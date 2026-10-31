@@ -113,7 +113,7 @@ export function PickupStatus({
   if (h.isError) return null;
   // The one Declutter order tracker (OrderSteps), from the real rows: the booking, the porch photo, the pickup.
   const facts: OrderFacts = {
-    handover, side, free: false, booked: !!slot,
+    handover, side, free, booked: !!slot,
     out: !!h.data?.set_out_at,
     pickedUp: !!(h.data?.picked_up_at || h.data?.confirmed_at),
     done: h.data?.status === "handed_over",

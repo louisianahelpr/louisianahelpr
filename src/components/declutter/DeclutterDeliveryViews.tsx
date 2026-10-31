@@ -33,6 +33,7 @@ import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { DeliveryTipPanel } from "./DeliveryTipPanel";
+import { ProblemForm } from "./DeclutterProblemForm";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { TaskPickupTime } from "./DeclutterPickupWindows";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -110,12 +111,25 @@ function TaskPhotos({ view }: { view: TaskView }) {
 }
 
 /**
+ * BUY-22 (buying audit 10-30), the D2-9 rule for a Helpr delivery: pickups hold "Report a problem" back until the
+ * booked pickup is over (pickupTimeOver, 15 minutes past it), and a Helpr delivery offered it while nobody had even
+ * taken the job. Now the button shows once the Helpr has the item (picked up, delivered or confirmed), or 15 minutes
+ * after the Helpr's booked pickup time (a Helpr who never came). Still finding a Helpr, unfilled or closed: none (no
+ * Helpr is what DeclutterNoHelpr answers). The sheet itself can still be opened from the order's other buttons.
+ */
+export function deliveryProblemTimeCame(v: Pick<TaskView, "status" | "pickup_slot_start">, now = Date.now()): boolean {
+  if (v.status === "picked_up" || v.status === "delivered" || v.status === "confirmed") return true;
+  return v.status === "accepted" && !!v.pickup_slot_start && now >= new Date(v.pickup_slot_start).getTime() + 15 * 60_000;
+}
+
+/**
  * What the buyer or the seller reads about a paid delivery order. `tipOnly`: the handed-over
  * order card (after "I got it" the order is handed_over and the card no longer shows this
  * panel) shows just the buyer's tip, so the Helpr can still be tipped (audit 2026-10-28 A3-1).
  */
 /** `askGot` (D3-7): opened from the card's "I got it", so the confirm sheet opens once the task says it can. */
-export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, askGot: askOnOpen = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean; askGot?: boolean }) {
+/** `problemForm`: the order card's "Report a problem" lives here, so it can wait for the task (deliveryProblemTimeCame). */
+export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, askGot: askOnOpen = false, problemForm = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean; askGot?: boolean; problemForm?: boolean }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
   // A2-7: the buyer's raise read starts NOW, beside the task read, not once the task has loaded and the panel mounts.
@@ -218,6 +232,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
       {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
       {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} pickupAt={v.pickup_slot_start} />}
+      {problemForm && <ProblemForm orderId={orderId} side={side} stage="delivery" trigger={deliveryProblemTimeCame(v)} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
         Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours.

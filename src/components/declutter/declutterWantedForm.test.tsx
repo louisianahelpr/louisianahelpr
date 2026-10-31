@@ -7,7 +7,7 @@
  * Board 116's fields are kept to what declutter_create_wanted stores: what, category, highest price ("Up to", in
  * money ink), distance.
  *
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |           <BarkPillButton type="button" onClick={() => setPosting(true)}>Post what you're looking for</BarkPillButton> |           <BarkPillButton type="button" onClick={() => setPosting(false)}>Post what you're looking for</BarkPillButton>
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | onClick={() => setPosting(true)}>Post what you're looking for</Button> | onClick={() => setPosting(false)}>Post what you're looking for</Button>
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>{WANTED_SELLERS_SEE}</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold outline-none

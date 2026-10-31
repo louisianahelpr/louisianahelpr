@@ -35,7 +35,6 @@ const helper: SavedHelper = {
   saved_at: "2026-08-01T12:00:00Z",
   completed_jobs_together: 3,
   last_job_at: "2026-08-20T12:00:00Z",
-  avg_rating: 4.8,
   private_note: "Great with painting, prefers Tuesdays",
 };
 

@@ -57,21 +57,21 @@ describe("Sell a bunch: the batch's choices reach each item", () => {
   it("drops on: the lowest price is the seller's share of the price, and the step is saved", async () => {
     const d = deps();
     await run([item({ price: "$1,000" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100_000, floorPriceCents: 50_000 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100_000, floorPriceCents: 50_000 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 10);
   });
 
   it("drops off: the lowest price is the price, and the step is 0", async () => {
     const d = deps();
     await run([item({})], d, OFF);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
   });
 
   it("a $1 item has nothing lower to drop to: it lists with no drops", async () => {
     const d = deps();
     const out = await run([item({ price: "1" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100, floorPriceCents: 100 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100, floorPriceCents: 100 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
     expect(out[0]).toMatchObject({ status: "live" });
   });
@@ -96,7 +96,7 @@ describe("Sell a bunch: the batch's choices reach each item", () => {
   it("a free item: price and lowest price 0, porch pickup only, no drop step, still lists", async () => {
     const d = deps();
     const out = await run([item({ free: true, price: "" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 0, floorPriceCents: 0 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 0, floorPriceCents: 0 }), expect.any(String));
     expect(d.setHandovers).toHaveBeenCalledWith("id1", ["porch"]);
     expect(d.setDropPct).not.toHaveBeenCalled();
     expect(out[0]).toMatchObject({ status: "live" });

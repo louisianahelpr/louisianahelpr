@@ -1,5 +1,8 @@
 /**
  * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
+ * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("pagehide", now); |     void now;
+ * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") flush(); |       void 0;
+ * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: kept, moving: kept && | return { bunch: false, moving: kept &&
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *
@@ -21,6 +24,8 @@ import type { BunchItem, BunchPhoto } from "@/lib/declutter/bunch";
 
 const { ListingPhotoError } = await vi.hoisted(async () => await import("@/lib/declutter/errors"));
 const h = vi.hoisted(() => ({ refuseBlobs: false,
+  /** The sort never answers: the seller is still mid-sort when the page goes. */
+  hang: false,
   withdrawn: [] as string[],
   statuses: new Map<string, string>(),
   disk: new Map<string, unknown>(),
@@ -67,6 +72,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
   return {
     ...real,
     groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
+      if (h.hang) await new Promise(() => {});
       const items = [
         { key: "i1", photoKeys: [photos[0].key], title: "Oak chair", description: "Solid oak.", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false, price: "" } as BunchItem,
         { key: "i2", photoKeys: [photos[1].key], title: "Floor lamp", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" } as BunchItem,
@@ -78,6 +84,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 });
 
 import BunchFlow from "./DeclutterBunchView";
+import SellChooser from "./DeclutterSellChooser";
 import { clearSavedBunch, loadSavedBunch } from "@/lib/declutter/bunchSaved";
 import { photosToSave } from "./useBunchSaved";
 
@@ -106,6 +113,7 @@ beforeAll(() => {
 beforeEach(() => {
   h.disk.clear();
   h.failWrites = false;
+  h.hang = false;
   h.user = "u1";
   h.withdrawn = [];
   h.statuses = new Map();
@@ -167,6 +175,73 @@ describe("Sell a bunch survives leaving", () => {
     expect((within(back[0] as HTMLElement).getByLabelText("Price ($)") as HTMLInputElement).value).toBe("40");
     expect((screen.getByLabelText("Pickup address") as HTMLInputElement).value).toBe("1 Main St, Baton Rouge");
     await waitFor(() => expect(back[0].querySelectorAll("[data-bunch-thumb]")).toHaveLength(1));
+  });
+
+  // LEAD-BUNCH-DRAFT-KEEP (owner 10-31): 3 photos in, then shake-to-report loaded another page; back, all work was gone.
+  async function pickThreeMidSort() {
+    h.hang = true;
+    await new Promise((r) => setTimeout(r, 0));
+    const files = ["a", "b", "c"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  async function threeComeBack() {
+    h.hang = false;
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "3 photos not sorted yet" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sort again" })).toBeTruthy();
+  }
+
+  it("3 photos mid-sort, the screen goes (unmount) before the save delay: coming back brings all 3 back", async () => {
+    const first = renderFlow();
+    await pickThreeMidSort();
+    first.unmount();
+    await waitFor(() => expect(photoEntries()).toHaveLength(3));
+    await threeComeBack();
+  });
+
+  it("3 photos mid-sort, a full page load (pagehide, no React cleanup): saved at once, before the save delay", async () => {
+    const first = renderFlow();
+    await pickThreeMidSort();
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => expect(photoEntries()).toHaveLength(3), { timeout: 150 });
+    expect(savedMeta()?.photos).toHaveLength(3);
+    first.unmount();
+    await threeComeBack();
+  });
+
+  it("the app goes to the background mid-sort (hidden): saved at once", async () => {
+    const first = renderFlow();
+    await pickThreeMidSort();
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    try {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await waitFor(() => expect(photoEntries()).toHaveLength(3), { timeout: 150 });
+    } finally {
+      Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+    }
+    first.unmount();
+  });
+
+  it("the Sell chooser offers Continue where you left off for this member's kept work, and only theirs", async () => {
+    const chooser = () => render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><SellChooser /></MemoryRouter></QueryClientProvider>);
+    const view = chooser();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("Continue where you left off")).toBeNull();
+    view.unmount();
+    h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: [{ key: "a", name: "a.jpg", type: "image/jpeg" }] });
+    const again = chooser();
+    expect((await screen.findByText("Continue where you left off")).closest("a")).toHaveAttribute("href", "/declutter/sell?mode=bunch");
+    again.unmount();
+    h.disk.set(META, { ...(h.disk.get(META) as object), moveDate: "2026-11-20" });
+    const moving = chooser();
+    expect((await screen.findByText("Continue where you left off")).closest("a")).toHaveAttribute("href", "/declutter/sell?mode=moving");
+    moving.unmount();
+    h.disk.set("lh-sell-one-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
+    h.disk.set(META, { ...(h.disk.get(META) as object), userId: "someone-else" });
+    chooser();
+    expect((await screen.findByText("Continue your listing")).closest("a")).toHaveAttribute("href", "/declutter/sell");
+    expect(screen.queryByText("Continue where you left off")).toBeNull();
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {

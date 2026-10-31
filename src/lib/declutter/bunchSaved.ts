@@ -84,3 +84,46 @@ export const clearSavedBunch = () => clearQuietly(bunchStore.clearNow);
 /** One item's listing (useSellSaved): the small record is that hook's own; here only so sign-out can clear it. */
 export const SELL_ONE_KEY = "lh-sell-one-v1";
 export const clearSavedSellOne = () => clearQuietly(deviceStore(SELL_ONE_KEY).clearNow);
+
+/**
+ * LEAD-BUNCH-DRAFT-KEEP (owner 10-31): whether this member has selling work kept on this device, read from the small
+ * records only (no photos), for the Sell chooser's "Continue where you left off". A save keeps a record only while
+ * there is work, so a record of theirs under 7 days old is work. Unreadable storage: nothing to offer.
+ */
+export async function savedSellWork(
+  userId: string,
+  now = Date.now(),
+  /** The server's status of each id (fetchItemStatuses), loaded only when there are ids to ask about. */
+  itemStatuses: (ids: string[]) => Promise<Map<string, string>> = async (ids) => (await import("@/lib/declutter/api")).fetchItemStatuses(ids),
+): Promise<{ bunch: boolean; moving: boolean; one: boolean }> {
+  const mine = (s: SavedPhotos | undefined): boolean => !!s && s.userId === userId && now - s.savedAt <= MAX_AGE_MS;
+  try {
+    const [bunch, one] = await Promise.all([get<SavedBunch>("lh-bunch-v1"), get<SavedPhotos>(SELL_ONE_KEY)]);
+    const kept = mine(bunch) && !(await allPosted(bunch!, itemStatuses));
+    return { bunch: kept, moving: kept && !!bunch?.moveDate, one: mine(one) };
+  } catch (err) {
+    console.warn("[declutter] could not read saved selling work", err);
+    return { bunch: false, moving: false, one: false };
+  }
+}
+
+/**
+ * LEAD-RESUME-REPOSTS (owner 2026-10-31): kept Sell a bunch work whose every item the server already has as posted (its
+ * draft or app id, any status but draft) is not work: "Continue where you left off" offered such items, and posting
+ * them made duplicates. Kept work with no items (photos mid-sort, an address) is still work. A failed read: offered,
+ * and the page drops what is posted when it opens (useBunchSaved).
+ */
+async function allPosted(saved: SavedBunch, itemStatuses: (ids: string[]) => Promise<Map<string, string>>): Promise<boolean> {
+  const items = saved.items ?? [];
+  if (items.length === 0) return false;
+  const idsOf = (it: BunchItem) => [it.draftId, it.appId].filter((x): x is string => !!x);
+  if (items.some((it) => idsOf(it).length === 0)) return false;
+  let statuses: Map<string, string>;
+  try {
+    statuses = await itemStatuses([...new Set(items.flatMap(idsOf))]);
+  } catch (err) {
+    console.warn("[declutter] could not check kept selling work against the server", err);
+    return false;
+  }
+  return items.every((it) => idsOf(it).some((id) => statuses.has(id) && statuses.get(id) !== "draft"));
+}

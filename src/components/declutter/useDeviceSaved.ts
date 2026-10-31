@@ -108,6 +108,20 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
   }, [...watch, flush]);
   // Leaving the screen saves what the delay had not reached yet.
   useEffect(() => flush, [flush]);
+  // LEAD-BUNCH-DRAFT-KEEP (owner 10-31): a full page load (shake-to-report sets window.location) or the app going to
+  // the background runs no React cleanup and can stop the delay's timer, so the page going away saves at once.
+  useEffect(() => {
+    const now = () => flush();
+    const hidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", now);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("pagehide", now);
+      document.removeEventListener("visibilitychange", hidden);
+    };
+  }, [flush]);
 
   // A closing tab: the browser's own "leave this page?". Saved work comes back; a run in progress stops, so it warns.
   useEffect(() => {

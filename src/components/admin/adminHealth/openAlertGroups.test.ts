@@ -1,5 +1,5 @@
 /**
- * NOID-24 M7 (admin audit E4, 10-30): the Health page's Open Alerts were one flat list of up to 50 rows by last seen,
+ * NOID-24 M7 (admin audit E4, 2026-10-30): the Health page's Open Alerts were one flat list of up to 50 rows by last seen,
  * so a critical item sat among ~80 errors (and could fall past the 50th), and the admin home's "Open errors" counted
  * CI rows. Lead instruction (b108 handoff): don't count CI rows (source nightly-red) in the home's open errors; never
  * close or delete ledger rows.

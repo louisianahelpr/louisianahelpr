@@ -50,7 +50,7 @@ export function VehicleForm({ userId }: { userId: string }) {
         {hasTruck && twoPeople
           ? "With a truck and a second person you can take every size."
           : hasTruck
-            ? "With a truck you can take small, medium and large items. Extra large items also need a second person."
+            ? "With a truck you can take small and large items. Extra large items also need a second person."
             : "You need a car to take deliveries. Large and extra large items need a truck."}
       </p>
       {/* The shared Checkbox (lead 2026-10-28: the raw box rendered as an empty square); the label is the 44px tap target. */}

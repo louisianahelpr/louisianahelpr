@@ -81,8 +81,9 @@ export function filterWords(s: { section: string; category: string | null; min_b
 }
 
 /** A saved row's line under its name: `Email · within 25 mi · under $100`. */
-export function rowSummary(s: SavedSearch): string {
-  const channel = !s.notify_enabled ? "Alerts off" : s.notify_email ? "Email" : "App only";
+export function rowSummary(s: SavedSearch, paused = false): string {
+  // "Pause all alerts" stops every search's alerts, so a row never claims a channel then.
+  const channel = paused ? "Paused" : !s.notify_enabled ? "Alerts off" : s.notify_email ? "Email" : "App only";
   // The name already says the category when it was named after it.
   const named = !s.query?.trim() && !!s.category;
   return [channel, ...filterWords(s, !named)].join(" · ");

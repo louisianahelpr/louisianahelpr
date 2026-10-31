@@ -155,6 +155,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   // DA-11: the amount typed before the trip to Stripe's page comes back with the member (router state, like the action).
   const [amount, setAmount] = useState(() => offerAmountFromState(location.state) ?? "");
   const [open, setOpen] = useState(() => !!offerAmountFromState(location.state));
+  // Make an offer opens the box ready to type: one tap, not two (audit BUY-19).
+  const offerBox = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (open) offerBox.current?.focus(); }, [open]);
   const panel = useRef<HTMLElement>(null);
   const buttons = useRef<HTMLDivElement>(null);
   // Phone (owner, 2026-10-19): while the in-page buttons are scrolled out of
@@ -362,6 +365,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           <div className="flex gap-2">
             <input
               id="declutter-offer"
+              ref={offerBox}
               inputMode="decimal"
               className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               value={amount}

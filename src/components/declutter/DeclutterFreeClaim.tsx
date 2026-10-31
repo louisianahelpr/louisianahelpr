@@ -271,7 +271,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       {chosen === "porch" && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
         onRetry={() => void porchPlaces.reread()} />}
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
-        {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
+        {confirm.isPending ? "Confirming…" : chosen === "porch" ? "Confirm and pick a day" : "Confirm and pick a time"}
       </Button>
       <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>
     </div>

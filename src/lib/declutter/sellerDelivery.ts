@@ -330,9 +330,9 @@ export async function quoteSellerDelivery(sellerId: string, address?: string): P
           return null;
         })
       : null;
-    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "delivery_check_unavailable");
   }
   const offer = (body as { offer?: SellerDeliveryOffer } | null)?.offer;
-  if (!offer || typeof offer.available !== "boolean" || !Array.isArray(offer.slots)) throw new Error("payment_unavailable");
+  if (!offer || typeof offer.available !== "boolean" || !Array.isArray(offer.slots)) throw new Error("delivery_check_unavailable");
   return offer;
 }

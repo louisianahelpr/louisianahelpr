@@ -29,6 +29,7 @@ import { acceptRefundWithReturn } from "@/lib/declutter/refundReturns";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
+import { ProblemPhotos } from "./DeclutterProblemSides";
 import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
@@ -315,6 +316,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
       <p className="text-sm">
         <span className="font-medium">{REFUND_REASON_WORDS[r.reason]}.</span> {cap(who)} says: "{r.note}"
       </p>
+      <ProblemPhotos paths={r.photo_paths ?? []} />
       {/* D2-15: the app's one "pick one" list, not browser radios. */}
       <RadioCardList
         label="Your answer"

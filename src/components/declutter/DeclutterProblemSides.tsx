@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FallbackImg } from "./FallbackImg";
+import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 const REASON_WORDS: Record<ProblemReason, string> = {
@@ -31,7 +32,7 @@ const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
-function ProblemPhotos({ paths }: { paths: string[] }) {
+export function ProblemPhotos({ paths }: { paths: string[] }) {
   const urls = useQuery({
     queryKey: ["declutter", "problem-photos", paths],
     queryFn: async () => Promise.all(paths.map((p) => handoverPhotoUrl(p))),
@@ -72,11 +73,14 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
   const problem = useQuery({ queryKey: ["declutter", "problem", orderId], queryFn: () => fetchOrderProblem(orderId) });
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const send = useMutation({
-    mutationFn: (p: OrderProblem) => addProblemSide(p.id, note.trim()),
+    // Sent again, the server replaces the earlier words and photos: with no new photo the ones already sent stay.
+    mutationFn: async (p: OrderProblem) => addProblemSide(p.id, note.trim(), photos.length ? await uploadProblemPhotos(orderId, photos) : (p.other_side_photo_paths ?? [])),
     onSuccess: () => {
       toast.success("Sent. Louisiana Helpr reads both sides before it decides.");
       setOpen(false);
+      setPhotos([]);
       void qc.invalidateQueries({ queryKey: ["declutter", "problem", orderId] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -127,6 +131,8 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
         <div className="space-y-2">
           <label htmlFor={`dcl-side-${orderId}`} className="block text-xs font-medium">Your side, for Louisiana Helpr</label>
           <textarea id={`dcl-side-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />
+          {(p.other_side_photo_paths ?? []).length > 0 && <p className="text-ds-12 text-muted-foreground">New photos replace the ones you sent.</p>}
           <div className="flex gap-2">
             <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</button>
             <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>

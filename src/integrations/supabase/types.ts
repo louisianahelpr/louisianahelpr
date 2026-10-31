@@ -17008,7 +17008,6 @@ export type Database = {
       helpr_task_seller_return_answer: { Args: { p_back: boolean; p_note: string; p_task_id: string }; Returns: Json }
       declutter_admin_decide_stuck_delivery: { Args: { p_fault: string; p_note: string; p_problem_id: string }; Returns: Json }
       declutter_delivery_return_finish: { Args: { p_task: string }; Returns: Json }
-      declutter_delivery_still_in_hand: { Args: { p_order_id: string; p_task: string }; Returns: Json }
       helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }

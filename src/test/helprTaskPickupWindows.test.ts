@@ -8,9 +8,11 @@
  * the Declutter switch and helpr_task_assert_helpr; and its deadline is both bounds helpr_task_accept checks.
  * Backend proof: src/test/pglite/helprTaskPickupWindows.pglite.mjs (3x; RED without it and on 4 planted defects).
  */
-// @mutate supabase/migrations/20261028232930_helpr_task_pickup_windows.sql |      AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)\n |
-// @mutate supabase/migrations/20261028232930_helpr_task_pickup_windows.sql | LEAST(t.latest_pickup_at, o.paid_at + interval '7 days') | t.latest_pickup_at
-// @mutate supabase/migrations/20261028232930_helpr_task_pickup_windows.sql |   v_uid := public.helpr_task_assert_helpr();\n |   v_uid := (SELECT auth.uid());\n
+// @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |      AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)\n |
+// @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql | LEAST(t.latest_pickup_at, o.paid_at + interval '7 days') | t.latest_pickup_at
+// @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |   v_uid := public.helpr_task_assert_helpr();\n  -- helpr_tasks_open_near's own filter |   v_uid := (SELECT auth.uid());\n  -- helpr_tasks_open_near's own filter
+// @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |      AND NOT public.helpr_task_source_held(x.source_kind, x.source_id); |      AND true;
+// @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql | e.task_id = x.id AND e.actor_id = v_uid | e.task_id = x.id AND e.actor_id IS NULL
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

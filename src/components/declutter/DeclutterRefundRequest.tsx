@@ -143,6 +143,9 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
   // Audit 2026-10-30 DB-11: "Take it back" ended the request in one tap. It asks first, in Declutter's one confirm
   // style, and says what follows: declutter_ask_refund refuses a second request on the same sale (measured live).
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  // BUY-10 (buying audit 10-30 #10): taking a part refund, or turning it down for Louisiana Helpr to decide, was one
+  // tap and final. Each asks first and says what ends.
+  const [answering, setAnswering] = useState<null | "take" | "ask">(null);
   const r = v.request;
   if (!r) {
     if (!v.can_ask) return null;
@@ -206,11 +209,25 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <div className="space-y-2" data-refund-offer="">
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={primary} disabled={offer.isPending} onClick={() => offer.mutate(true)}>
+            <button type="button" className={primary} disabled={offer.isPending} onClick={() => setAnswering("take")}>
               Take {refundDollars(r.offer_cents ?? 0)}
             </button>
-            <button type="button" className={btn} disabled={offer.isPending} onClick={() => offer.mutate(false)}>Ask Louisiana Helpr to decide</button>
+            <button type="button" className={btn} disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</button>
           </div>
+          <ConfirmSheet
+            open={answering !== null}
+            pending={offer.isPending}
+            title={answering === "ask" ? "Ask Louisiana Helpr to decide?" : `Take ${refundDollars(r.offer_cents ?? 0)} back?`}
+            confirmLabel={answering === "ask" ? "Ask Louisiana Helpr" : `Take ${refundDollars(r.offer_cents ?? 0)}`}
+            cancelLabel="Not now"
+            onConfirm={() => offer.mutate(answering === "take", { onSettled: () => setAnswering(null) })}
+            onClose={() => setAnswering(null)}
+            testId="refund-offer-answer"
+          >
+            {answering === "ask"
+              ? `${cap(who)}'s offer of ${refundDollars(r.offer_cents ?? 0)} ends, and Louisiana Helpr decides what, if anything, comes back to you.`
+              : `${refundDollars(r.offer_cents ?? 0)} comes back to your card and you keep the item. This ends your refund request.`}
+          </ConfirmSheet>
           {r.offer_answer_by && <p className="text-ds-12 text-muted-foreground">Answer by {at(r.offer_answer_by)}, or Louisiana Helpr decides.</p>}
         </div>
       );

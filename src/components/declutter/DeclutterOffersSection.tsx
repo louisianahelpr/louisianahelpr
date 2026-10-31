@@ -53,9 +53,11 @@ function OfferRow({ o }: { o: MyOffer }) {
   const [accepting, setAccepting] = useState(false);
   // Audit 1d D4-9: "Say no" asks first too; it ends the offer for good.
   const [declining, setDeclining] = useState(false);
+  // BUY-10 (buying audit 10-30 #10): "Take back my offer" ended it in one tap; it asks first, like Say no.
+  const [withdrawing, setWithdrawing] = useState(false);
   const act = useMutation({
     mutationFn: (v: { action: "accept" | "decline" | "counter" | "withdraw"; cents?: number }) => respondOffer(o.offer_id, v.action, v.cents ?? null),
-    onSettled: () => { setAccepting(false); setDeclining(false); },
+    onSettled: () => { setAccepting(false); setDeclining(false); setWithdrawing(false); },
     onSuccess: (res) => {
       setCountering(false);
       setCounter("");
@@ -176,7 +178,7 @@ function OfferRow({ o }: { o: MyOffer }) {
         </form>
       )}
       {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
-        <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
+        <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
           Take back my offer
         </button>
       )}
@@ -188,6 +190,10 @@ function OfferRow({ o }: { o: MyOffer }) {
         {o.my_side === "seller"
           ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
           : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
+      </ConfirmSheet>
+      <ConfirmSheet open={withdrawing} pending={act.isPending} onConfirm={() => act.mutate({ action: "withdraw" })} onClose={() => setWithdrawing(false)}
+        title="Take back your offer?" confirmLabel="Take it back" cancelLabel="Keep my offer" testId="withdraw-offer">
+        {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`}
       </ConfirmSheet>
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}
         title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">

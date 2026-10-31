@@ -26,6 +26,10 @@ describe("a pickup place's days and hours in words", () => {
   });
   it("an older server with days only: the days", () => {
     expect(placeHoursLine(null, [6, 0])).toBe("Sun, Sat");
+    // Review 2026-10-31: a row with no days and no hours reads as nothing; it never throws and blanks the item page.
+    // @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (!Array.isArray(days)) return ""; |
+    expect(placeHoursLine(null, undefined)).toBe("");
+    expect(placeHoursLine(undefined, null)).toBe("");
   });
 });
 

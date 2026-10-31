@@ -33,7 +33,9 @@ const h = vi.hoisted(() => ({
   here: { lat: 30.4601, lng: -91.1601 },
   desktop: false,
 }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
+// The usual pickup times (fetchMyPickupWindows): none, so a new place starts at Sat 9-12 (LEAD-PLACE-TIMES).
+const noUsualTimes = { select: () => noUsualTimes, eq: () => noUsualTimes, order: () => Promise.resolve({ data: [], error: null }) };
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc, from: () => noUsualTimes } }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<object>()), track: vi.fn() }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => h.here }));
@@ -75,7 +77,7 @@ async function newPlace() {
   open();
   fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
-  fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
+  // LEAD-PLACE-TIMES: the hours editor already holds Sat 9-12 (no usual times), so Saturday is not tapped.
 }
 const addressBox = () => screen.getByLabelText("Address") as HTMLInputElement;
 const type = (v: string) => fireEvent.change(addressBox(), { target: { value: v } });

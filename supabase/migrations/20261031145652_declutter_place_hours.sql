@@ -279,6 +279,10 @@ BEGIN
   IF v_seller IS NULL OR (v_seller <> v_uid AND public.are_users_blocked(v_seller, v_uid)) THEN
     RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';
   END IF;
+  -- An out seller's places are never shown to anyone else (as declutter_seller_porch_places).
+  IF v_seller <> v_uid AND public.declutter_seller_out(v_seller) THEN
+    RETURN;
+  END IF;
   RETURN QUERY
     SELECT pl.label, pl.area, pl.weekdays,
            coalesce(pl.windows, public.declutter_place_windows_fill(NULL, pl.seller_id, pl.weekdays))
@@ -469,3 +473,77 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_book_pickup(uuid, timestamptz) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_book_pickup(uuid, timestamptz) TO authenticated, service_role;
+
+-- 8. The Helpr delivery path reads the frozen place hours too (review 2026-10-31). Restated from their newest CREATEs:
+-- declutter_delivery_slot_ok (20261017055505, the second CREATE in that file; helpr_task_source_slot_ok calls it) and
+-- helpr_task_pickup_windows (20261031082821). Only the hours they read change: the order's frozen place hours, else
+-- the seller's usual times, as before.
+CREATE OR REPLACE FUNCTION public.declutter_delivery_slot_ok(p_order_id uuid, p_start timestamptz)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT EXISTS (SELECT 1 FROM public.declutter_orders o
+                  WHERE o.id = p_order_id AND o.status = 'paid' AND o.handover = 'delivery'
+                    AND p_start > now() AND p_start + interval '30 minutes' <= o.paid_at + interval '7 days'
+                    AND public.declutter_order_slot_in_windows(o.id, o.seller_id, p_start));
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_slot_ok(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_slot_ok(uuid, timestamptz) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.helpr_task_pickup_windows(p_task_id uuid)
+RETURNS TABLE(weekday smallint, starts time, ends time, latest_pickup_at timestamptz)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid;
+  t public.helpr_tasks;
+  o public.declutter_orders;
+  v_hours jsonb;
+BEGIN
+  PERFORM public.helpr_task_source_require_feature('declutter_delivery');
+  v_uid := public.helpr_task_assert_helpr();
+  -- helpr_tasks_open_near's own filter, for this one task.
+  SELECT * INTO t FROM public.helpr_tasks x
+   WHERE x.id = p_task_id AND x.source_kind = 'declutter_delivery'
+     AND x.status = 'open' AND x.open_until > now()
+     AND v_uid IS DISTINCT FROM x.customer_id AND v_uid IS DISTINCT FROM x.pickup_contact_id
+     AND public.helpr_task_vehicle_fits(v_uid, x.size)
+     AND NOT public.are_users_blocked(v_uid, x.customer_id)
+     AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)
+     AND public.helpr_task_same_stripe_mode(v_uid, x.customer_id)
+     -- BUY-41 (new): as helpr_tasks_open_near.
+     AND NOT EXISTS (SELECT 1 FROM public.helpr_task_events e
+                      WHERE e.task_id = x.id AND e.actor_id = v_uid AND e.task_event IN ('released', 'helpr_no_show'))
+     AND NOT public.helpr_task_source_held(x.source_kind, x.source_id);
+  IF t.id IS NULL THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO o FROM public.declutter_orders WHERE id = t.source_id;
+  IF o.id IS NULL THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  -- LEAD-PLACE-TIMES: the hours frozen on the order at the place the buyer picked, else the usual times.
+  SELECT hp.windows INTO v_hours FROM public.declutter_order_porch_places hp WHERE hp.order_id = o.id;
+  IF v_hours IS NOT NULL THEN
+    RETURN QUERY
+      SELECT (e ->> 'weekday')::smallint, (e ->> 'starts')::time, (e ->> 'ends')::time,
+             LEAST(t.latest_pickup_at, o.paid_at + interval '7 days')
+        FROM jsonb_array_elements(v_hours) e
+       ORDER BY 1, 2;
+    RETURN;
+  END IF;
+  RETURN QUERY
+    SELECT w.weekday, w.starts_local, w.ends_local, LEAST(t.latest_pickup_at, o.paid_at + interval '7 days')
+      FROM public.declutter_pickup_windows w
+     WHERE w.seller_id = o.seller_id
+     ORDER BY w.weekday, w.starts_local;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.helpr_task_pickup_windows(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.helpr_task_pickup_windows(uuid) TO authenticated, service_role;

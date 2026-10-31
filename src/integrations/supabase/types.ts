@@ -2532,6 +2532,7 @@ export type Database = {
           place_id: string | null
           seller_id: string | null
           weekdays: number[]
+          windows: Json | null
         }
         Insert: {
           address?: string | null
@@ -2544,6 +2545,7 @@ export type Database = {
           place_id?: string | null
           seller_id?: string | null
           weekdays: number[]
+          windows?: Json | null
         }
         Update: {
           address?: string | null
@@ -2556,6 +2558,7 @@ export type Database = {
           place_id?: string | null
           seller_id?: string | null
           weekdays?: number[]
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -2863,6 +2866,7 @@ export type Database = {
           seller_id: string
           updated_at: string
           weekdays: number[]
+          windows: Json | null
         }
         Insert: {
           address: string
@@ -2876,6 +2880,7 @@ export type Database = {
           seller_id: string
           updated_at?: string
           weekdays: number[]
+          windows?: Json | null
         }
         Update: {
           address?: string
@@ -2889,6 +2894,7 @@ export type Database = {
           seller_id?: string
           updated_at?: string
           weekdays?: number[]
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -14437,6 +14443,10 @@ export type Database = {
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
+      declutter_order_slot_in_windows: {
+        Args: { p_order_id: string; p_seller: string; p_start: string }
+        Returns: boolean
+      }
       declutter_pair_needs_talk: {
         Args: { p_buyer: string; p_seller: string }
         Returns: boolean
@@ -14447,6 +14457,14 @@ export type Database = {
       }
       declutter_pair_talking: {
         Args: { p_buyer: string; p_seller: string }
+        Returns: boolean
+      }
+      declutter_place_windows_fill: {
+        Args: { p_days: number[]; p_seller: string; p_windows: Json }
+        Returns: Json
+      }
+      declutter_place_windows_valid: {
+        Args: { p_windows: Json }
         Returns: boolean
       }
       declutter_public_photo_path: {

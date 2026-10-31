@@ -1,4 +1,5 @@
 import type { OAuthRedirectError } from "@/lib/oauthRedirectError";
+import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 
 /**
  * The one notice line above the Login form, and the Q446 account choice.
@@ -48,10 +49,12 @@ export function loginNotice(o: {
 export function declutterGatedNotice(redirect: string | null | undefined): string | null {
   if (!redirect) return null;
   const url = new URL(redirect, "https://x.invalid");
-  if (url.pathname !== "/declutter" && !url.pathname.startsWith("/declutter/")) return null;
+  // The first path segment, so "/declutter" and everything under it match, and "/declutterx" does not.
+  if (url.pathname.split("/")[1] !== "declutter") return null;
   const back = "Create an account, or log in and we'll take you straight back to it.";
   if (url.pathname.startsWith("/declutter/item/")) return `That's an item for sale on Declutter, neighbors selling what they don't need. ${back}`;
-  if (url.pathname.startsWith("/declutter/sell")) return `Selling on Declutter needs an account. ${back}`;
+  // Every Sell address (the one-item form, a bunch, the chooser) starts with the one-item form's path.
+  if (url.pathname.startsWith(SELL_ONE_PATH)) return `Selling on Declutter needs an account. ${back}`;
   const tab = url.searchParams.get("tab");
   if (tab === "buying") return `Your Declutter orders need an account. ${back}`;
   if (tab === "selling") return `Your Declutter listings need an account. ${back}`;

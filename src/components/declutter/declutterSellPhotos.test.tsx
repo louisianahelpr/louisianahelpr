@@ -568,7 +568,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   it("price drops off in settings: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
-    savedRow.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    savedRow.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
@@ -776,7 +776,7 @@ describe("photo-first selling, one screen", () => {
   // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>} |
   it("the ways come from the seller's settings, and the choices never offer door pickup or a Helpr delivery tick", async () => {
     vi.mocked(api.setHandovers).mockClear();
-    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery"] };
+    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery"], acceptsOffers: true };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");
@@ -788,7 +788,7 @@ describe("photo-first selling, one screen", () => {
     expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Choose a way buyers can get it in Settings.");
     expect(calls).toEqual([]);
     cleanup();
-    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["meetup"] };
+    savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["meetup"], acceptsOffers: true };
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     addPhotos("a.jpg");

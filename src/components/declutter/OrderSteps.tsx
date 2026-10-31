@@ -70,7 +70,7 @@ const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = 
  * time, as "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753). One rule for
  * the card's action and the button under Details.
  */
-export const GOT_IT_OPENS_MINUTES_BEFORE = 60;
+const GOT_IT_OPENS_MINUTES_BEFORE = 60;
 export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
   if (!slotStart) return false;
   const t = new Date(slotStart).getTime();

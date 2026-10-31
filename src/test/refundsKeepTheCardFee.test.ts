@@ -508,7 +508,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     functions: {
       // A2-14 (20261028223738): only the "Louisiana Helpr decided" notices added; the refund it records is unchanged.
       // 20261028232338: only the buyer's "Enjoy your item" is not sent on this path; the refund it records is unchanged.
-      declutter_admin_decide_delivery_damage: "20261028232338_declutter_damage_no_enjoy_notice.sql 1fb157e202779ff4",
+      // 20261031184929 (AUD31-34): only the Helpr's and the buyer's notice words name the item; the refund is unchanged.
+      declutter_admin_decide_delivery_damage: "20261031184929_declutter_damage_notices_name_the_item.sql b531d4e77fa8cfe0",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.

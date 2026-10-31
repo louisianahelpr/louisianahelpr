@@ -20,7 +20,6 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 /** The recipient of each ?view=cart notice in each function's newest definition. */
 const CART_SENDERS: Record<string, string> = {
   declutter_add_handover: "r.buyer_id",
-  declutter_admin_decide_delivery_damage: "o.buyer_id",
   declutter_admin_decide_problem: "o.buyer_id",
   declutter_answer_refund: "o.buyer_id",
   declutter_checkout_free: "v_uid",

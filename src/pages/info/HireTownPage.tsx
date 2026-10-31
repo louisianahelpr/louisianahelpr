@@ -10,6 +10,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
@@ -29,6 +30,9 @@ export default function HireTownPage() {
 function TownPage({ service, town }: { service: TownPageService; town: TownPageTown }) {
   usePageMeta(townPageMeta(service, town));
   const { user } = useCurrentUser();
+  // Under 18 (Q1586(c)): the link greys out and says why instead of opening the form. It stays a real link, so
+  // search engines and signed-out visitors still follow it.
+  const { underAge, explain, gatedProps } = useAgeGate();
   const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`;
   const ink = { color: "hsl(var(--ink-deep))" };
   return (
@@ -39,14 +43,24 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
             Need {service.phrase} in {town.name}? Post the job on Louisiana Helpr and a local Helpr can take it.
           </p>
           <Button asChild size="wrap" className="rounded-full">
-            <Link to={post}>Post a job</Link>
+            <Link
+              to={post}
+              onClick={(e) => {
+                if (!underAge) return;
+                e.preventDefault();
+                explain("post");
+              }}
+              {...gatedProps("post")}
+            >
+              Post a job
+            </Link>
           </Button>
         </section>
         <section aria-labelledby="town-how" className="space-y-3">
           <h2 id="town-how" className="text-ds-17 font-semibold" style={ink}>How it works</h2>
           <ol className="space-y-3">
             {STEPS.map((s) => (
-              <li key={s.title} className="rounded-2xl liquid-glass p-4">
+              <li key={s.title} className="rounded-2xl liquid-glass p-card">
                 <p className="font-semibold" style={ink}>{s.title}</p>
                 <p className="text-ds-15 text-muted-foreground">{s.body}</p>
               </li>

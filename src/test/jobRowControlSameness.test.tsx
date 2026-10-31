@@ -387,7 +387,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
   // ── /posts, poster ────────────────────────────────────────────────────
   {
     name: "Posts · Open — Share · Boost · Edit · Cancel",
-    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />),
+    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null, date_needed: "2099-01-01" }))} />),
     minControls: 4,
   },
   {

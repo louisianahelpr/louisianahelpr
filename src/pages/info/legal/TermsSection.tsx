@@ -129,7 +129,7 @@ export const TermsContent = () => {
         title="Payment hold & charge timing"
         body={
           <>
-            <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until the person who posted the job approves the work.</p>
+            <p><strong className="text-foreground">Held, then charged:</strong> A card is held or saved when the job is posted and charged through Stripe when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Louisiana Helpr holds that money until the person who posted the job approves the work.</p>
             <p><strong className="text-foreground">No release without approval:</strong> Payment is never released on a timer. If the person who posted has not approved the work or asked for a change within {APPROVAL_WINDOW_HOURS} hours of the Helpr marking it done, Helpr support steps in to resolve it, and the payment stays held until then. Once the job is approved, the Helpr's payout is sent {STANDARD_PAYOUT_PHRASE}.</p>
             <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>

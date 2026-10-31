@@ -15,3 +15,4 @@ export function signedInSplit(root: string): {
   deep: Set<string>;
   declutterOnly: Set<string>;
 };
+export function guestBrowseOnlyModules(root: string): Set<string>;

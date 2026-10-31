@@ -8,11 +8,11 @@
  * Reads the NEWEST definitions (effectiveDefs replays every migration, any dollar-quote tag).
  * Backend proof: src/test/pglite/declutterSavedSearchHeldMatches.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql |   IF v_retry IS NOT NULL THEN |   IF false THEN
- * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | AND (NOT v_rerun OR EXISTS | AND (true OR EXISTS
+ * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |   IF v_retry IS NOT NULL THEN |   IF false THEN
+ * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | AND (NOT v_rerun OR NOT EXISTS | AND (true OR NOT EXISTS
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql |   DELETE FROM public.saved_search_item_matches WHERE item_id = NEW.id;\n |
- * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), | miles_between(p.latitude, p.longitude,
- * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END | ''
+ * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), | miles_between(p.latitude, p.longitude,
+ * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END | ''
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";
@@ -41,7 +41,9 @@ describe("A saved-search match inside the hour is held, not dropped (BUY-50)", (
 
   it("a re-run reaches only the searches still owed the listing; told rows are marked; the others held are said", () => {
     const fn = body("deliver_saved_search_item_alerts");
-    expect(fn).toMatch(/AND \(NOT v_rerun OR EXISTS \(SELECT 1 FROM public\.saved_search_item_matches m WHERE m\.item_id = v_item\.id AND m\.search_id = s\.id AND m\.held\)\)/);
+    // BUY-52 (20261031220326): a re-run skips only the searches already told; one with no row is reached when it now
+    // matches (a price drop into its budget). The held ones are still reached, as BUY-50 made them.
+    expect(fn).toMatch(/AND \(NOT v_rerun OR NOT EXISTS \(SELECT 1 FROM public\.saved_search_item_matches m WHERE m\.item_id = v_item\.id AND m\.search_id = s\.id AND NOT m\.held\)\)/);
     expect(fn).toMatch(/SELECT v_item\.id, x, false, now\(\) FROM unnest\(r\.all_ids\) x ON CONFLICT \(item_id, search_id\) DO UPDATE SET held = false/);
     expect(fn).toMatch(/CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END/);
     // The same words go to the bell and the email.

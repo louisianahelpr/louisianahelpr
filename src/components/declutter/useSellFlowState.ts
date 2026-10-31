@@ -231,7 +231,7 @@ export function useSellFlowState(urlItemId: string | null) {
   // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
   // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
-  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
+  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
@@ -408,6 +408,15 @@ export function useSellFlowState(urlItemId: string | null) {
     }
   }
 
+  /** A setting that never blocks Post: if it fails it is said, with where to set it, and Post goes on. */
+  async function notBlocking(run: () => Promise<unknown>, where: string): Promise<void> {
+    try {
+      await run();
+    } catch (err) {
+      toast.error(`${declutterErrorMessage(err)} ${where}`);
+    }
+  }
+
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
     if (!attested) {
@@ -438,16 +447,10 @@ export function useSellFlowState(urlItemId: string | null) {
         await Promise.all([
           // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
           // fails it is said, and the seller can turn it on in Manage listing.
-          !urlItemId && keepUpWanted
-            ? setKeepUp(id, true).catch((err: unknown) => {
-                toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
-              })
-            : null,
+          !urlItemId && keepUpWanted ? notBlocking(() => setKeepUp(id, true), 'You can turn on "Keep it up" from Manage listing.') : null,
           // The same for "make it free after __ days": a free listing has nothing to choose.
           !urlItemId && autoFreeWanted !== null && !form.free
-            ? setAutoFreeDays(id, autoFreeWanted).catch((err: unknown) => {
-                toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
-              })
+            ? notBlocking(() => setAutoFreeDays(id, autoFreeWanted), "You can choose when it becomes free from Manage listing.")
             : null,
           // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
           urlItemId ? setPickupWindows(windows) : null,

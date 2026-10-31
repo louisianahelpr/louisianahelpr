@@ -19,16 +19,24 @@ import type { FormState } from "./sellForm";
 
 export function useSellerDefaultsPrefill(
   userId: string | undefined,
-  { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted }: {
+  { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, keptFor }: {
     form: FormState;
     setForm: (u: (f: FormState) => FormState) => void;
     ways: SellerHandover[];
     setWays: (u: (w: SellerHandover[]) => SellerHandover[]) => void;
     setKeepUpWanted: (on: boolean) => void;
     setAutoFreeWanted: (days: number | null) => void;
+    /**
+     * LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31, prod c87b7de4): a listing brought back from this device is not
+     * prefilled again, but the choices made in Settings still win over what was kept: the kept form held price drops
+     * ON from before the seller turned them off in Settings, so the listing went up with drop_pct 5 and the live sheet
+     * promised drops. The seller's id for a kept new listing, else undefined.
+     */
+    keptFor?: string;
   },
 ) {
-  const saved = useQuery({ queryKey: ["declutter", "seller-defaults", userId], queryFn: () => fetchSellerDefaults(userId!), enabled: !!userId });
+  const readFor = userId ?? keptFor;
+  const saved = useQuery({ queryKey: ["declutter", "seller-defaults", readFor], queryFn: () => fetchSellerDefaults(readFor!), enabled: !!readFor });
   // The same read (and cache entry) as useLastListingSetup, to know when it has settled.
   const last = useQuery({ queryKey: ["declutter", "last-setup", userId], queryFn: () => fetchLastSetup(userId!), enabled: !!userId, staleTime: 60_000 });
   const applied = useRef(false);
@@ -52,6 +60,20 @@ export function useSellerDefaultsPrefill(
       setForm((f) => ({ ...f, drops: SELLER_DEFAULTS.drops }));
     }
   }, [userId, saved.isFetched, saved.isError, saved.data, last.isFetched, last.isError, setForm, setWays, setKeepUpWanted, setAutoFreeWanted]);
+
+  // A kept listing: the saved row's drop choices, keep-up and free-after replace the kept ones, once, after the restore.
+  const keptApplied = useRef(false);
+  useEffect(() => {
+    if (!keptFor || userId || keptApplied.current || !(saved.isFetched || saved.isError)) return;
+    keptApplied.current = true;
+    const row = saved.data ?? null;
+    if (!row) return;
+    applied.current = true;
+    floorPct.current = row.floorPct;
+    setKeepUpWanted(row.keepUp);
+    setAutoFreeWanted(row.freeAfterDays);
+    setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct }));
+  }, [keptFor, userId, saved.isFetched, saved.isError, saved.data, setForm, setKeepUpWanted, setAutoFreeWanted]);
 
   // The lowest price is the saved share of the asking price: a new listing has no box for it (owner 2026-10-30); one
   // listing's is changed in Manage after it's posted.

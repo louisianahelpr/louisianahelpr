@@ -22,7 +22,17 @@ import { HeldForReview, type HeldRow } from "./HeldForReview";
 const rpcMock = vi.fn();
 const invokeMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { rpc: (...a: unknown[]) => rpcMock(...a), functions: { invoke: (...a: unknown[]) => invokeMock(...a) } },
+  supabase: {
+    rpc: (...a: unknown[]) => rpcMock(...a),
+    functions: { invoke: (...a: unknown[]) => invokeMock(...a) },
+    from: (table: string) => ({
+      select: () => ({
+        in: async (_c: string, ids: string[]) => (table === "profiles"
+          ? { data: ids.filter((id) => id === "u1").map((user_id) => ({ user_id, full_name: "Dana Rivers" })), error: null }
+          : { data: null, error: { message: "unexpected table" } }),
+      }),
+    }),
+  },
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
@@ -53,6 +63,21 @@ describe("Held for review (admin money page)", () => {
     expect(screen.getByText("declutter_order_x")).toBeTruthy();
     expect(screen.getByTestId("held-siblings").textContent).toMatch(/tr_sibling1/);
     expect(screen.getAllByTestId("held-row")).toHaveLength(1);
+  });
+
+  // AUD31-43: amount "38.5" with no $, payee a bare user id, reason the raw "<category>: ..." code, and the two
+  // action buttons on one row that does not wrap (cut at 375).
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx | const money = (cents: number) => `$${formatPriceExact(cents / 100)}`; | const money = (cents: number) => formatPriceExact(cents / 100);
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx | {heldReasonWords(r.reason)} | {r.reason}
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx | names?.[r.payee_id] ?? "name not loaded" | "name not loaded"
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |             <div className="mt-1 flex flex-wrap gap-2"> |             <div className="mt-1 flex gap-2">
+  it("reads as money and words: $ amounts, the payee's name, the reason in words, and buttons that wrap", async () => {
+    mount();
+    expect(await screen.findByText("Declutter seller payout · $38.50")).toBeTruthy();
+    expect(await screen.findByText(/Payee Dana Rivers \(u1\)/)).toBeTruthy();
+    expect(screen.getByText("Stripe rejected the payee's payout account. Detail: transfers inactive, rejected.fraud")).toBeTruthy();
+    expect(screen.getByTestId("held-siblings").textContent).toMatch(/tr_sibling1 \(\$20\)/);
+    expect((screen.getByText("Release to automatic").closest("div") as HTMLElement).className).toMatch(/\bflex-wrap\b/);
   });
 
   it("Release ALWAYS needs the 'no transfer outside the app' confirmation and sends it", async () => {

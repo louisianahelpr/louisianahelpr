@@ -6,6 +6,9 @@
  *
  *   node src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs                     # GREEN (the migration 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs  # RED (the card at the first listing)
+ *   FOLLOWUP=skip node src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs       # RED (20261031225132 left out: a row a
+ *                                                                                 # send was tried for, reset to 0 tries,
+ *                                                                                 # gets the fee under the same Stripe key)
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR). The migration runs verbatim against
  * stubs of what it reads, on top of the REAL older bodies of the two functions it restates, cut from their migrations.
@@ -24,6 +27,8 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const url = (p) => new URL(`../../../supabase/migrations/${p}`, import.meta.url).pathname;
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? url("20261031214749_seller_setup_fee_from_payout_restated.sql"), "utf8");
+// Review finding (2), 10-31: never on a row a send was tried for, even after a reset of its tries.
+const FOLLOWUP = readFileSync(url("20261031225132_setup_fee_never_after_a_send.sql"), "utf8");
 
 /** The newest CREATE of a function in one older migration, verbatim. */
 function cutFn(file, name) {
@@ -37,7 +42,7 @@ function cutFn(file, name) {
 }
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED, REBOOK, REBOOK2] = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(id);
+const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED, REBOOK, REBOOK2, RESET, MARKED, OLDTRY] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(id);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -67,8 +72,12 @@ CREATE TABLE public.declutter_order_deliveries (order_id uuid, task_id uuid);
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL UNIQUE, seller_id uuid, items_cents int NOT NULL,
   delivery_cents int NOT NULL DEFAULT 0, refunded_cents int NOT NULL DEFAULT 0, debt_cents int NOT NULL, amount_cents int NOT NULL, status text NOT NULL,
   attempts int NOT NULL DEFAULT 0, next_attempt_at timestamptz, stripe_transfer_id text,
+  last_error text, executed_at timestamptz, review_held_at timestamptz,
   CONSTRAINT declutter_payouts_amount CHECK (amount_cents = items_cents + delivery_cents - refunded_cents - debt_cents AND amount_cents >= 0),
   CONSTRAINT declutter_payouts_nothing_due CHECK ((status = 'nothing_due') = (amount_cents = 0)));
+-- 20261031225132 also marks delivery payouts: only the columns it reads (helprSetupFeeFromPayout proves that side).
+CREATE TABLE public.helpr_task_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), attempts int NOT NULL DEFAULT 0, last_error text,
+  executed_at timestamptz, review_held_at timestamptz, stripe_transfer_id text);
 CREATE FUNCTION public.declutter_notify(uuid, text, text, text, text, uuid DEFAULT NULL) RETURNS void LANGUAGE sql AS
   $$ INSERT INTO public.notifications (user_id, title, message) VALUES ($1, $3, $4) $$;
 CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
@@ -110,11 +119,13 @@ await db.exec(`CREATE TRIGGER trg_declutter_items_setup_fee_before_list BEFORE I
 await db.exec(`
 INSERT INTO public.profiles (user_id, stripe_account_id, onboarding_fee_paid, is_seed) VALUES
  ('${BUYER}','a',true,false), ('${SELLER}','a',false,false), ('${PAID}','a',true,false), ('${ADMIN}','a',false,false), ('${TESTER}','a',false,true),
- ('${SMALL}','a',false,false), ('${TRIED}','a',false,false), ('${REBOOK}','a',false,false), ('${REBOOK2}','a',false,false);
+ ('${SMALL}','a',false,false), ('${TRIED}','a',false,false), ('${REBOOK}','a',false,false), ('${REBOOK2}','a',false,false),
+ ('${RESET}','a',false,false), ('${MARKED}','a',false,false), ('${OLDTRY}','a',false,false);
 INSERT INTO public.user_roles VALUES ('${ADMIN}','admin');
 INSERT INTO public.test_accounts VALUES ('${TESTER}');`);
 
 const skip = process.env.NEW_MIGRATION === "skip";
+const skipFollowup = skip || process.env.FOLLOWUP === "skip";
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
   console.log("migration applied 3x");
@@ -138,6 +149,21 @@ const flag = async (u) => (await one(`SELECT onboarding_fee_paid f FROM public.p
 const row = (pid) => one(`SELECT * FROM public.declutter_payouts WHERE id='${pid}'`);
 const notices = async (u, like) => (await one(`SELECT count(*)::int c FROM public.notifications WHERE user_id='${u}' AND (title LIKE '${like}' OR message LIKE '${like}')`)).c;
 const list = (seller, cents = 1000) => `INSERT INTO public.declutter_items (seller_id, status, current_price_cents) VALUES ('${seller}','live',${cents})`;
+
+// A row from before 20261031225132 whose send failed once and whose tries were then put back to 0: the backfill
+// (last_error) must mark it.
+let oldTry = null;
+try {
+  oldTry = await sale(OLDTRY, 1000);
+  await db.exec(`UPDATE public.declutter_payouts SET attempts = 0, last_error = 'stripe timeout' WHERE id='${oldTry.id}'`);
+} catch (e) {
+  console.log(`FAIL the pre-follow-up row could not be made: ${e.message}`);
+  failed++;
+}
+if (!skipFollowup) {
+  for (let i = 0; i < 3; i++) await db.exec(FOLLOWUP);
+  console.log("20261031225132 applied 3x");
+} else console.log("FOLLOWUP=skip: 20261031225132 left out");
 
 // ── OFF: exactly as today ──────────────────────────────────────────────────
 await as(SELLER);
@@ -195,7 +221,8 @@ ok("a sent row is never lowered", (await take(sent.id)) === 1000);
 
 // A refund after the fee was claimed, before the send (a run that took the fee, then stopped short of markSending).
 const rebook = (order, cents) => one(`SELECT public.declutter_rebook_payout('${order}', ${cents}) r`);
-const payoutRow = (pid) => one(`SELECT amount_cents, debt_cents, setup_fee_cents, refunded_cents, status FROM public.declutter_payouts WHERE id='${pid}'`);
+// SELECT *: under NEW_MIGRATION=skip there is no setup_fee_cents, and the checks below must report FAIL, not crash.
+const payoutRow = async (pid) => (await one(`SELECT * FROM public.declutter_payouts WHERE id='${pid}'`)) ?? {};
 const part = await sale(REBOOK, 1000);
 const taken = await take(part.id);
 ok("the fee is claimed", taken === 800 && (await flag(REBOOK)) === true, String(taken));
@@ -224,6 +251,24 @@ const restarted = await one(`SELECT attempts, next_attempt_at IS NOT NULL AS due
 ok("a rebooked payout still starts a fresh run of tries (main's newest body kept)", restarted.attempts === 0 && restarted.due === true, JSON.stringify(restarted));
 
 const acl = async (sig) => (await one(`SELECT has_function_privilege('authenticated', '${sig}', 'EXECUTE') a`)).a;
+// Review finding (2), 10-31: a rebook or an admin release puts attempts back to 0 (20261031200034). A row a send was
+// tried for must still keep its amount, or the resend would carry a new amount under the same Stripe key.
+const reset = await sale(RESET, 1000);
+await db.exec(`UPDATE public.declutter_payouts SET attempts = 2, status = 'failed' WHERE id='${reset.id}'`);
+await db.exec(`UPDATE public.declutter_payouts SET attempts = 0, status = 'pending' WHERE id='${reset.id}'`);
+ok("a row a send was tried for, its tries put back to 0, keeps its amount", (await take(reset.id)) === 1000 && (await flag(RESET)) === false);
+ok("and the account still owes the fee for its next sale", (await take((await sale(RESET, 1000)).id)) === 800 && (await flag(RESET)) === true);
+const marked = await sale(MARKED, 1000);
+await db.exec(`INSERT INTO public.payout_send_marks VALUES ('declutter', '${marked.id}')`);
+ok("a row with a send mark (payout_mark_sending) and 0 tries keeps its amount", (await take(marked.id)) === 1000 && (await flag(MARKED)) === false);
+ok("a row from before this, a failed send and its tries reset, is backfilled and keeps its amount",
+  !!oldTry && (await take(oldTry.id)) === 1000 && (await flag(OLDTRY)) === false);
+if (!skipFollowup) {
+  await db.exec(`UPDATE public.declutter_payouts SET send_tried = false WHERE id='${reset.id}'`);
+  ok("nothing can set the marker back to false", (await payoutRow(reset.id)).send_tried === true);
+  ok("members cannot run the marker trigger function", (await acl("public.payout_send_tried_sticky()")) === false);
+}
+
 if (!skip) {
   ok("members cannot take the fee", (await acl("public.declutter_payout_take_setup_fee(uuid)")) === false);
   ok("members cannot read the amount helper", (await acl("public.declutter_setup_fee_from_payout_cents(uuid)")) === false);

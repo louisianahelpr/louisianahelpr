@@ -140,6 +140,14 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const reports = useSellerReportsToAnswer();
   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size;
   const waitingLabel = useWaitingChipLabel();
+  // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
+  // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
+  const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0;
+  const sold = show("sold") && <>
+    {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
+    <SellerPayoutPrompt />
+    <PaidOrders side="seller" />
+  </>;
   return (
     <div className="space-y-6">
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
@@ -156,15 +164,14 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
+      {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
-      {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
-      {show("sold") && <SellerPayoutPrompt />}
-      {show("sold") && <PaidOrders side="seller" />}
+      {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
       {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
       {only === null && settings}

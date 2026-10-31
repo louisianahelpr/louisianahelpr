@@ -342,12 +342,12 @@ export const TermsContent = () => {
         title="Pickup and handover"
         body={
           <>
-            <p>Every pickup and delivery happens within 7 days of paying. Before you pay you see only the seller&apos;s area and the distance; right after you pay you get the exact address.</p>
+            <p>Every pickup and delivery happens within 7 days of paying. Before you pay you see only the seller&apos;s area and the distance; right after you pay you get the exact address. If the pickup time passes and 7 days go by with nothing said, the address closes; your messages stay open.</p>
             <p><strong className="text-foreground">Pickup:</strong> you book a 30-minute slot in the seller&apos;s pickup times. Each of you may move it once.</p>
             <p><strong className="text-foreground">Porch pickup:</strong> the seller sets the item out, posts a photo and may add a short note on where it is. You collect it and tap &ldquo;I got it&rdquo;, or take a photo and tap &ldquo;Picked up&rdquo;. If you haven&apos;t collected it by the time the seller said it stays out, the seller may bring it in, and it counts as you not showing up.</p>
-            <p><strong className="text-foreground">At the door:</strong> you tap &ldquo;I got it&rdquo;, or the seller taps &ldquo;Picked up&rdquo;. A seller&apos;s &ldquo;Picked up&rdquo; becomes final 24 hours later unless you report a problem.</p>
-            <p>If nobody confirms, the handover counts as done 24 hours after the booked time unless a problem was reported (for porch pickup, only if the seller posted the set-out photo).</p>
-            <p><strong className="text-foreground">Someone didn&apos;t show:</strong> 15 minutes after the booked time the waiting side can say so. A buyer who misses a pickup may rebook once; a second miss cancels the sale.</p>
+            <p><strong className="text-foreground">At the door:</strong> you tap &ldquo;I got it&rdquo;, or the seller taps &ldquo;Picked up&rdquo;. After a seller&apos;s &ldquo;Picked up&rdquo; we ask you to confirm; if you don&apos;t answer, the seller is paid about 48 hours later unless you report a problem.</p>
+            <p>If nobody confirms a pickup at the door or a meeting spot, the money stays held until one of you does. We remind you both, and after 60 days Louisiana Helpr decides. A porch pickup counts as done 24 hours after the pickup time if the seller posted the set-out photo, unless a problem was reported.</p>
+            <p><strong className="text-foreground">Someone didn&apos;t show:</strong> 15 minutes after the booked time the waiting side can say so. If the buyer says the seller didn&apos;t show, or that a seller delivery didn&apos;t come, the seller has 24 hours to answer: with no answer the buyer is refunded and the seller gets a strike; with an answer the money stays held and Louisiana Helpr decides, and nobody gets a strike until then. A buyer who misses a pickup may rebook once; a second miss cancels the sale.</p>
             <p><strong className="text-foreground">Report a problem:</strong> either of you can report a problem until the sale is final. The money stays held while Louisiana Helpr looks at both sides&apos; photos and messages and decides.</p>
           </>
         }

@@ -271,8 +271,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {delivering
           ? "It's paid to the seller once the delivery is done."
           : sellerDelivering
-            ? "It's paid to the seller when you have your items, or 24 hours after they mark it delivered unless you report a problem."
-            : "It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem."}
+            ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
+            : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
       </p>
       <button
         type="button"

@@ -284,7 +284,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
-  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} free={free} />} | canAsk={canAct && !preview} />}
+  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} />} | canAsk={canAct && !preview} preview={preview} />}
   it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     const free = open();

@@ -25,7 +25,7 @@ export function AutoFreeChoice({ days, onChange }: { days: number | null; onChan
       <div className="flex items-center justify-between gap-3" data-auto-free-row="">
         <label htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{AUTO_FREE_LABEL}</label>
         <select id={id} value={autoFreeValue(days)} onChange={(e) => onChange(autoFreeDaysFrom(e.target.value))}
-          className="h-11 w-auto max-w-[55%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          className="h-11 w-auto max-w-[65%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {AUTO_FREE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>

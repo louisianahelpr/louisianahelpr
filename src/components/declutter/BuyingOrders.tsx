@@ -82,7 +82,7 @@ export function buyerOrderFacts(
  * NIGHT-BUYINGopenpr-2: an open problem the buyer did not report and has not answered yet. The order card's "Add your
  * side" (DeclutterProblemSides) is then the buyer's move. Null (still loading or no problem): not theirs.
  */
-export function problemAwaitsBuyer(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
+function problemAwaitsBuyer(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
   return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note;
 }
 

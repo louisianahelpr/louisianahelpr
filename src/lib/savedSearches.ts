@@ -55,12 +55,12 @@ export interface DeclutterExtras {
   conditions: number[];
 }
 
-export const NO_EXTRAS: DeclutterExtras = { freeOnly: false, porchOnly: false, dropsOnly: false, conditions: [] };
+const NO_EXTRAS: DeclutterExtras = { freeOnly: false, porchOnly: false, dropsOnly: false, conditions: [] };
 
 const sortedStars = (c: readonly number[] | null | undefined) => [...new Set(c ?? [])].filter((n) => Number.isInteger(n) && n >= 1 && n <= 5).sort((a, b) => a - b);
 
 /** A row's extras (a row from before 20261031222115 has none). */
-export function rowExtras(s: Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions">): DeclutterExtras {
+function rowExtras(s: Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions">): DeclutterExtras {
   return { freeOnly: !!s.free_only, porchOnly: !!s.porch_only, dropsOnly: !!s.drops_only, conditions: sortedStars(s.conditions) };
 }
 

@@ -11,8 +11,8 @@
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |            AND v_s->>'seller' = v_seller\n |
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql | (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) <= 50 | (v_s->>'lat')::numeric, (v_s->>'lng')::numeric) = 0
 // @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |         'seller', t.pickup_contact_id)); |         'nobody', t.pickup_contact_id));
-// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |      AND x.pickup_contact_id = t.pickup_contact_id\n |
-// @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |      AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)\n |
+// @mutate supabase/migrations/20261031085000_helpr_same_pickup_slot_hides_backed_out.sql |      AND x.pickup_contact_id = t.pickup_contact_id\n |
+// @mutate supabase/migrations/20261031085000_helpr_same_pickup_slot_hides_backed_out.sql |      AND NOT public.are_users_blocked(v_uid, x.pickup_contact_id)\n |
 // @mutate src/components/declutter/DeclutterPickupWindows.tsx |       {same.data && ( |       {false && (
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -5170,7 +5170,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 66,
+      "line": 88,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5180,7 +5180,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 67,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5190,7 +5190,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 75,
+      "line": 97,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5240,7 +5240,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 84,
+      "line": 106,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

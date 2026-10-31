@@ -22,6 +22,7 @@ if (process.argv.includes("--no-claim")) {
   if (!MIGRATION.includes(CLAIM)) throw new Error("claim not found");
   MIGRATION = MIGRATION.replace(CLAIM, "SELECT q.job_id, q.requested_by FROM public.job_schedule_change_requests q WHERE q.expires_at <= now()");
 }
+if (process.env.NEW_MIGRATION === "skip") MIGRATION = "SELECT 1"; // RED: the function doesn't exist, so the first call fails
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const P = U(1), H = U(2), J1 = U(101), J2 = U(102), J3 = U(103), J4 = U(104);
 const db = new PGlite();

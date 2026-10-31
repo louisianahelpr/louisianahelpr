@@ -88,7 +88,7 @@ describe("CancellationDialog shows amounts, never fees", () => {
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);
     expect(screen.queryByText("For Marie's time")).not.toBeInTheDocument();
     // JOBS-14 (owner 10-30): poster_cancel_job files the strike only inside 24 hours, as for Helprs.
-    expect(screen.getByText(/No charge for your Helpr's time.*No strike\./)).toBeInTheDocument();
+    expect(screen.getByText(/No charge for your Helpr's time\. The start is more than 24 hours away, so this isn't a strike\./)).toBeInTheDocument();
     expect(screen.queryByText(/Strike recorded/)).not.toBeInTheDocument();
     expect(screen.getByText(/These consequences don't apply to this cancel/)).toBeInTheDocument();
     expect(screen.queryByText(/Free cancellation/)).not.toBeInTheDocument();

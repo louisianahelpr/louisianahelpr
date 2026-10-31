@@ -1,5 +1,5 @@
 import { jobStartDateTime } from "@/lib/dateUtils";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { CANCEL_OVER_24H_NOT_A_STRIKE, RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -11,7 +11,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function helperCancelCallout(dateNeeded: string | null | undefined, startTime: string | null | undefined, nowMs = Date.now()): string {
   const start = jobStartDateTime(dateNeeded, startTime);
   if (start && start.getTime() - nowMs >= DAY_MS) {
-    return "The start is more than 24 hours away, so this isn't a strike. Inside 24 hours, cancelling counts as one.";
+    return CANCEL_OVER_24H_NOT_A_STRIKE;
   }
   return `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`;
 }

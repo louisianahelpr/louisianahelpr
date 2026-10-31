@@ -37,6 +37,8 @@
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN |     IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF public.has_role(auth.uid(), 'admin') OR COALESCE(( |     IF public.has_role(auth.uid(), 'admin') OR public.identity_check_exempt(auth.uid()) OR COALESCE((
  * @mutate src/lib/declutter/api.ts |   else if (setupFeeRefusal(err)) promptAccountSetupFee(); |
+ * @mutate src/lib/declutter/setupFee.ts | "declutter_free_claim" = "declutter_selling") | "declutter_free_claim" = "declutter_free_claim")
+ * @mutate src/components/declutter/BunchFeeGate.tsx | const outcome = await payAccountSetupFee(); | const outcome = await payAccountSetupFee("declutter_free_claim");
  * @mutate src/lib/declutter/setupFee.ts |   return typeof raw === "string" && /(^\|[^a-z_])setup_fee_required_to_list($\|[^a-z_])/.test(raw); |   return false;
  */
 import { describe, expect, it } from "vitest";
@@ -160,7 +162,14 @@ describe("Q2352 the setup fee is charged once per account", () => {
     expect(setupFeeRefusal(new Error("setup_fee_required_to_list"))).toBe(true);
     expect(setupFeeRefusal(new Error("identity_required_to_list"))).toBe(false);
     expect(code("src/lib/declutter/api.ts")).toContain("else if (setupFeeRefusal(err)) promptAccountSetupFee();");
-    expect(code("src/lib/declutter/setupFee.ts")).toContain('supabase.functions.invoke("pay-onboarding-fee", { body: { native: isNativePlatform, return_to: "declutter_selling" }, });');
+    // The return is now a parameter (a first free claim lands on Buying, owner 2026-10-30); the first listing's two callers
+    // pass nothing, so they still come back to their listings, and the edge still reads that value.
+    const fee = code("src/lib/declutter/setupFee.ts");
+    expect(fee).toContain('payAccountSetupFee(returnTo: "declutter_selling" | "declutter_free_claim" = "declutter_selling")');
+    expect(fee).toContain('supabase.functions.invoke("pay-onboarding-fee", { body: { native: isNativePlatform, return_to: returnTo }, });');
+    expect(fee).toContain("onClick: () => void payAccountSetupFee() }");
+    expect(code("src/components/declutter/BunchFeeGate.tsx")).toContain("const outcome = await payAccountSetupFee();");
+    expect(code("supabase/functions/pay-onboarding-fee/index.ts")).toContain('const toDeclutter = (rawBody as { return_to?: unknown })?.return_to === "declutter_selling";');
   });
 
   it("the edge charges the fee on its own line and settles a fee owed back", () => {

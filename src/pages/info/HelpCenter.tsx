@@ -7,6 +7,7 @@ import FaqRow from "@/components/marketing/FaqRow";
 // Help Center and the policy pages cannot drift into two support cards.
 import { PolicyFooter } from "@/pages/info/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
@@ -189,6 +190,8 @@ const HelpCenter = () => {
 
   // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
   usePageMeta(PUBLIC_PAGE_META["/help"]);
+  // An answer that names the ID check reads the identity_check switch (helpCenterContent's getter); re-render when it changes.
+  useIdentityCheckOnStore();
 
   return (
     // Shared shell (PublicHeaderPage) — same component Legal, Jobs and

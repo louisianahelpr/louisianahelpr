@@ -80,6 +80,7 @@ const EXPECTED_CALLERS = [
   "declutter_delivery_tip_open",
   // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
   "declutter_free_requests_for_item",
+  "declutter_item_pickup_places",
   "declutter_lock_buyable_item",
   // The paid-order chat (20261030004216, D2-1): the caller must be the order's buyer or seller (declutter_order_side), and
   // each passes the order's own pair (o.buyer_id, o.seller_id), so the caller is always one party.

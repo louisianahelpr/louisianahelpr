@@ -97,10 +97,12 @@ describe("the seller's pickup places", () => {
     expect(save).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: " Camp " } });
     fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
-    fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
+    // LEAD-PLACE-TIMES: a new place starts from the usual pickup times (none read here: Sat 9-12), set with the hours editor.
+    expect(screen.getByRole("group", { name: "Days and hours at this place" })).toBeInTheDocument();
     fireEvent.click(save);
     await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_save_porch_place", expect.objectContaining({
       p_place_id: null, p_label: "Camp", p_address: "99 Camp Road, New Orleans", p_area: "New Orleans", p_lat: 29.95, p_lng: -90.07, p_weekdays: [6],
+      p_windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }],
     })));
   });
 
@@ -111,7 +113,6 @@ describe("the seller's pickup places", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
     fireEvent.change(screen.getByLabelText("Address"), { target: { value: "nowhere at all" } });
-    fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
     fireEvent.click(screen.getByRole("button", { name: "Save place" }));
     await waitFor(() => expect(h.lookup).toHaveBeenCalled());
     expect(h.rpc).not.toHaveBeenCalledWith("declutter_save_porch_place", expect.anything());
@@ -433,7 +434,7 @@ describe("a place's days and the usual pickup times say which is which", () => {
   it("with places: porch uses the place's days, the times are for the other ways", async () => {
     answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
     const { container } = wrap(<SellWaysFields s={flow} />);
-    await waitFor(() => expect(container.querySelector("[data-place-days-rule]")?.textContent).toBe("Porch pickup uses each place's days, not your usual pickup times."));
+    await waitFor(() => expect(container.querySelector("[data-place-days-rule]")?.textContent).toBe("Buyers come on each place's own days and hours."));
     expect(container.textContent).toContain("Safe meeting spots and Helpr delivery pickups use these times.");
     expect(container.textContent).not.toContain("Buyers pick one of these times.");
   });

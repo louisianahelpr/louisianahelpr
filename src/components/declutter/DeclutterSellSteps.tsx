@@ -7,11 +7,11 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
 
 /** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
-export function StepHead({ title, sub }: { title: string; sub: string }) {
+export function StepHead({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="space-y-1">
       <h2 id="sell-step" className="font-display font-moment text-ds-32 font-semibold leading-tight text-foreground">{title}</h2>
-      <p className="text-ds-14 text-muted-foreground">{sub}</p>
+      {sub && <p className="text-ds-14 text-muted-foreground">{sub}</p>}
     </div>
   );
 }

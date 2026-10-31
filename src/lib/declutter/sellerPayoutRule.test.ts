@@ -14,7 +14,8 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | left it at the buyer's address. ${sellerPayoutRule("delivery")} | left it at the buyer's address. You're paid when the buyer confirms, or after 24 hours.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { join } from "node:path";
 import { sellerPayoutRule, type SellerPayoutKind } from "./sellerPayoutRule";
 import { blankComments } from "@/test/helpers/blankNonCode";

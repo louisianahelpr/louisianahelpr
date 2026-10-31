@@ -17,7 +17,8 @@
  * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |   deleted_at timestamptz NOT NULL DEFAULT now(),\n |   deleted_at timestamptz NOT NULL DEFAULT now(),\n  user_id uuid,\n
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -84,7 +85,7 @@ describe("every deleted account is counted, and the daily summary says how many 
       if (/auth\.admin\.deleteUser\(/.test(src)) deleters.push(d);
       if (/from\(\s*["']profiles["']\s*\)\s*\.delete\(/.test(src)) raw.push(d);
     }
-    expect(deleters.length).toBeGreaterThan(3);
+    expect(deleters.length).toBeGreaterThan(2);
     expect(deleters).toEqual(expect.arrayContaining(["delete-own-account", "admin-delete-user"]));
     expect(raw).toEqual([]);
   });

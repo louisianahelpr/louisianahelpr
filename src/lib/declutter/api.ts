@@ -693,6 +693,21 @@ export async function stageListingPhoto(sellerId: string, itemId: string, cleane
   }
 }
 
+/**
+ * LEAD-BUNCH-34-SLOW: Sell a bunch's early upload of one sorted item's photo, at the copy Sell a bunch lists with, into
+ * the folder of the id that item will be created with (declutter_create_item_with_id), so List only attaches it. Null
+ * when it can't go now: listing then cleans and uploads it as before.
+ */
+export async function stageBunchPhoto(sellerId: string, itemId: string, file: File): Promise<string | null> {
+  try {
+    return await stageListingPhoto(sellerId, itemId, await cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY));
+  } catch (err) {
+    // Not silent: the photo goes up at listing instead (addPhotoSteadily), and says why if it can't.
+    console.warn("[declutter] early bunch photo upload failed; it goes up at listing", err);
+    return null;
+  }
+}
+
 /** Early uploads Post did not use (the photo was removed first): best effort, as removeObjects. */
 export async function dropStagedPhotos(paths: string[]): Promise<void> {
   await removeObjects(paths);

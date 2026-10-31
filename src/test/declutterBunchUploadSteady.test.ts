@@ -9,6 +9,7 @@
  * @mutate src/lib/declutter/steadyUpload.ts |   await withRetries(() => steps.store(stored++ > 0), retry); |   await withRetries(() => steps.store(false), retry);
  * @mutate src/lib/declutter/steadyUpload.ts | const worthIt = (error: unknown) => !(error instanceof PhotoUploadRefused) && worthTryingAgain(error); | const worthIt = (error: unknown) => worthTryingAgain(error) \|\| error instanceof PhotoUploadRefused;
  * @mutate src/lib/declutter/bunch.ts |           onStep(it.key, { failedPhoto: k }); |           void k;
+ * @mutate src/lib/declutter/bunch.ts |             if (!uploadedPath && !endTurn) endTurn = await uploadTurn(); |             void uploadTurn;
  * @mutate src/lib/declutter/bunch.ts |         onPhoto?.({ ...progress, retrying: false }); |         void progress;
  * @mutate src/lib/declutter/bunch.ts |         onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) }); |         onStep(it.key, { uploaded: { ...uploaded } });
  */

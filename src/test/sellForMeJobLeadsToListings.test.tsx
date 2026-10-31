@@ -7,13 +7,15 @@
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |         isSellForMeJob(job.category) ? ( |         false ? (
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |             onClick={() => navigate(SELL_FOR_ME_LISTINGS_PATH)} |             onClick={() => navigate("/declutter")}
  * @mutate src/lib/declutter/sellForMe.ts |   return category === SELL_FOR_ME_JOB_CATEGORY; |   return category === "cleaning";
+ * Photo hand-off: the job tells the Helpr to send phone photos in the job chat (chat takes photos).
+ * @mutate src/lib/declutter/sellForMe.ts |   SELL_FOR_ME_PHOTO_LINE,\n |
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import { buildSellForMePrefill, isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH } from "@/lib/declutter/sellForMe";
+import { buildSellForMePrefill, isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH, SELL_FOR_ME_PHOTO_LINE } from "@/lib/declutter/sellForMe";
 import { openMore } from "./helpers/openMore";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
@@ -96,6 +98,13 @@ describe("POST-H3: a finished list-it-for-me job leads to the poster's listings"
     expect(isSellForMeJob(buildSellForMePrefill().category)).toBe(true);
     for (const c of ["cleaning", "moving", null, undefined, ""]) expect(isSellForMeJob(c), String(c)).toBe(false);
     expect(SELL_FOR_ME_LISTINGS_PATH).toBe("/declutter?tab=selling");
+  });
+
+  it("the job tells the Helpr how the photos reach the seller: the job chat", () => {
+    const d = buildSellForMePrefill().description;
+    expect(d).toContain(SELL_FOR_ME_PHOTO_LINE);
+    expect(SELL_FOR_ME_PHOTO_LINE).toMatch(/job chat/);
+    expect(d.length).toBeLessThan(1000);
   });
 
   it("its finished card offers Your listings, which opens Declutter's Selling tab", async () => {

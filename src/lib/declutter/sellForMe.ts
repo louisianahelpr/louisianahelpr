@@ -50,6 +50,12 @@ const SELL_FOR_ME_TITLE = "Help me list my things to sell";
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =
   "You help take the photos and write the listings; I post them from my account.";
 
+/**
+ * POST-H3 photo hand-off: a Helpr who shoots on their own phone sends the photos in the job's chat (it takes
+ * photos: MessageBubble / ChatView attachments); the seller saves them and picks them when posting. No new path.
+ */
+export const SELL_FOR_ME_PHOTO_LINE = "Photos you take on your phone: send them to me in our job chat.";
+
 /** The description template the poster fills in (under the 1000-character cap). */
 const SELL_FOR_ME_DESCRIPTION = [
   "I'd like help selling things I no longer need on Declutter.",
@@ -58,6 +64,7 @@ const SELL_FOR_ME_DESCRIPTION = [
   "Rough size (small things, furniture or a mix): ",
   "Also handle pickups with buyers (yes or no): ",
   "",
+  SELL_FOR_ME_PHOTO_LINE,
   SELL_FOR_ME_NO_ACCOUNT_LINE,
 ].join("\n");
 

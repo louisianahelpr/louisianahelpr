@@ -367,6 +367,7 @@ describe("Selling tab: Taken down, with Relist", () => {
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |         <EndedSaleRows lines={ended} />\n |
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |   if (items.length === 0 && ended.length === 0) return null; |   if (items.length === 0) return null;
  * @mutate src/components/declutter/DeclutterEndedSales.tsx |   if (l.order_status === "refunded") { |   if (false) {
+ * @mutate src/components/declutter/DeclutterEndedSales.tsx | : "Cancelled after the buyer paid. They were refunded, and your item is back on sale."; | : "Cancelled. The buyer missed the pickup.";
  */
 describe("Selling history: sales that ended without a handover (A2-20)", () => {
   beforeEach(() => {
@@ -392,10 +393,11 @@ describe("Selling history: sales that ended without a handover (A2-20)", () => {
     const WORDS: Record<string, string> = {
       "Ran out": "The buyer didn't check out in 48 hours. Nothing was charged.",
       "Called off": "You called off the sale. Nothing was charged.",
-      "No-show": "Cancelled. The buyer missed the pickup.",
-      "Seller cancelled": "You cancelled this sale after the buyer paid. They were refunded.",
-      "Free no-show": "Cancelled. The buyer missed the pickup.",
-      "Free cancelled": "You cancelled this free pickup.",
+      // BUY-46: no cause the status can't prove ('missed' is every no-fault close, no Helpr in time included).
+      "No-show": "Cancelled after the buyer paid. They were refunded, and your item is back on sale.",
+      "Seller cancelled": "Cancelled on your side after the buyer paid. They were refunded.",
+      "Free no-show": "Cancelled after it was claimed. Your item is back up.",
+      "Free cancelled": "Cancelled on your side after it was claimed.",
       "Free ran out": "The buyer didn't pick a pickup in 48 hours.",
     };
     const { container } = at("/declutter?tab=selling");

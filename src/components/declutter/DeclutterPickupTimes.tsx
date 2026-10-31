@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { WEEKDAYS } from "./declutterUi";
 
 /** declutter_set_pickup_windows takes at most this many windows. */
@@ -222,7 +223,8 @@ export function PickupTimesCard({ userId }: { userId: string }) {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (saved.isError) return null;
+  // NIGHT-SET-Declutterse-1: a failed read says so, with Try again, as Pickup places and Listing defaults do.
+  if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your pickup times." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
   const toggle = () => {
     if (!open) {
       const rows = saved.data ?? [];

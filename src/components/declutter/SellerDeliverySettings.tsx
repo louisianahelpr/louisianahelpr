@@ -31,6 +31,8 @@ import {
   type MySellerDelivery,
 } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
 const KEY = ["declutter", "my-seller-delivery"] as const;
@@ -58,7 +60,9 @@ export function SellerDeliveryCard() {
   const on = useFeature("declutter_seller_delivery");
   const mine = useMySellerDelivery(on);
   const [open, setOpen] = useState(false);
-  if (!on || mine.isError) return null;
+  if (!on) return null;
+  // NIGHT-SET-Declutterse-1: a failed read says so, with Try again.
+  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your delivery setting." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   return (
     <section className="rounded-2xl border border-border bg-card" aria-label="Your delivery" data-seller-delivery-card="">
       <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open}

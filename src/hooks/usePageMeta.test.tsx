@@ -102,13 +102,13 @@ describe("usePageMeta", () => {
     ).toBe("New Orleans");
   });
 
-  it("resets document.title to 'Helpr' on unmount", () => {
+  it("resets document.title to 'Louisiana Helpr' on unmount", () => {
     const { unmount } = renderHook(() =>
       usePageMeta({ title: "Custom Page Title", description: "D" }),
     );
     expect(document.title).toBe("Custom Page Title");
     unmount();
-    expect(document.title).toBe("Helpr");
+    expect(document.title).toBe("Louisiana Helpr");
   });
 
   // ── og:url ────────────────────────────────────────────────────────────────

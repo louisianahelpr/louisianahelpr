@@ -64,7 +64,7 @@ export const usePageMeta = (meta: PageMeta) => {
     }
 
     return () => {
-      document.title = "Helpr";
+      document.title = "Louisiana Helpr";
       if (robotsEl && robotsEl.parentNode) robotsEl.parentNode.removeChild(robotsEl);
     };
   }, [meta.title, meta.description, meta.keywords, meta.canonical, meta.ogTitle, meta.ogDescription, meta.ogUrl, meta.geoRegion, meta.geoPlacename, meta.robots]);

@@ -139,6 +139,7 @@ describe("the handover chat", () => {
     expect(screen.getByText(/This chat has ended\./)).toBeInTheDocument();
     expect(screen.queryByLabelText("Message")).toBeNull();
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    // The footer Close and the sheet's X (every sheet has an X since LEAD-SHEET-X-ONLY, owner 10-31).
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
   });
 });

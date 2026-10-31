@@ -19,7 +19,7 @@ import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
 import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
-import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
+import { tipsNotReadyLine, useHelprTakesTips, useTipWaitsOnId } from "@/hooks/useHelprTakesTips";
 
 interface TipDialogProps {
   jobId: string;
@@ -37,6 +37,7 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
   const tipJob = useTipJob(jobId);
   // F29: a Helpr who can't receive a tip is told so here, not at the last tap.
   const takesTips = useHelprTakesTips(helperId ?? tipJob?.helperId, open);
+  const waitsOnId = useTipWaitsOnId(helperId ?? tipJob?.helperId, open);
   // ME-007: one id per opening of the prompt. The server salts the Stripe
   // idempotency key with it, so a retry while open collapses onto one
   // session and a deliberate second tip after reopening gets its own.
@@ -110,7 +111,7 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
         <DialogHero moment title={first ? `Add a tip for ${first}?` : "Add a tip?"} />
         {takesTips === false ? (
           <>
-            <p className="font-sans text-ds-13 text-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName)}</p>
+            <p className="font-sans text-ds-13 text-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName, waitsOnId)}</p>
             <DialogFooter>
               <DialogPrimaryAction onClick={onClose}>OK</DialogPrimaryAction>
             </DialogFooter>

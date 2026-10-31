@@ -39,7 +39,7 @@ const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
  * the row a person flips; delta re-review #3).
  */
 const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warning_needs_response", "warning_under_review", "won"]);
-import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
@@ -801,6 +801,13 @@ serve(async (req) => {
         console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} not sent: Helpr ${helperId} is on a payout hold.`);
         return true;
       }
+      // No payout without a verified ID (owner 2026-10-30): the row stays open, retried each run.
+      const feeIdHold = await checkIdentityHold(supabaseAdmin, helperId);
+      if (feeIdHold.kind === "error") {
+        defects.record(`cancellation fee ID check ${job.id}: ${feeIdHold.message} — fee not sent`);
+        return true;
+      }
+      if (feeIdHold.kind === "waits") return true;
 
       // ── 6. Where does it go? ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
@@ -1297,6 +1304,13 @@ serve(async (req) => {
           console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}) not paid: member ${share.helper_id} is on a payout hold.`);
           continue;
         }
+        // No payout without a verified ID (owner 2026-10-30): the share stays open, retried each run.
+        const shareIdHold = await checkIdentityHold(supabaseAdmin, share.helper_id);
+        if (shareIdHold.kind === "error") {
+          defects.record(`crew fee share ID check ${share.id}: ${shareIdHold.message} — not paid`);
+          continue;
+        }
+        if (shareIdHold.kind === "waits") continue;
         // Q1358: skip this share this run on a failed tier read (Part D
         // retries it) rather than paying at the fallback rate.
         // Roadmap F3: a flat-model job keeps its stamp; no tier read.
@@ -1419,7 +1433,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, is_seed, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee, cancelled_by, date_needed, start_time, cancelled_at, is_seed, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -2166,7 +2180,10 @@ serve(async (req) => {
         // An unfilled or ban-ended series visit carries no fee
         // (_shared/seriesRefund.ts).
         // A10: a setup job a Declutter seller's backing out cancelled carries no fee.
-        jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
+        // Owner 2026-10-30: poster_cancel_job recorded no fee because the hired Helpr had not verified
+        // their ID: the poster may rehire without paying for the Helpr's time. A 0 recorded by the poster's own cancel stands.
+        const noFeeRecorded = job.cancelled_by === job.customer_id && job.cancellation_fee !== null && Number(job.cancellation_fee) === 0;
+        jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
         // ... so a booked Helpr's late-cancel fee is withheld through no fault of
         // theirs. Said out loud, once a day per job, like Q738 below
         // (lh-money-escrow review of c57d948d0 #3); whether the seller should

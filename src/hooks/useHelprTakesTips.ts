@@ -11,6 +11,11 @@
  * surface now asks this first and, when the answer is no, offers no tip and
  * says so in one line (tipsNotReadyLine).
  *
+ * Owner 2026-10-30: tips are blocked until the Helpr has verified their ID, so
+ * while the ID check is on for this member (identity_check) an unverified Helpr
+ * answers false too, and the line says why (is_id_verified, the same safe
+ * profile read). create-payment, auto-tip-charge and declutter-checkout enforce it.
+ *
  * Returns false only when the server SAID not ready. Loading, a read error or
  * no row is null ("unknown"): the surface keeps offering the tip and
  * create-payment stays the backstop, so an outage never hides a tip that
@@ -24,11 +29,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 
 const CACHE_MS = 60_000;
-const cache = new Map<string, { at: number; value: Promise<boolean | null> }>();
+type TipAnswer = { payoutReady: boolean; idVerified: boolean } | null;
+const cache = new Map<string, { at: number; value: Promise<TipAnswer> }>();
 
-function readTakesTips(helperId: string): Promise<boolean | null> {
+function readTakesTips(helperId: string): Promise<TipAnswer> {
   const hit = cache.get(helperId);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
   const value = (async () => {
@@ -39,8 +46,8 @@ function readTakesTips(helperId: string): Promise<boolean | null> {
       cache.delete(helperId);
       return null;
     }
-    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null }[] | null, helperId);
-    return row ? row.is_payout_ready === true : null;
+    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null; is_id_verified?: boolean | null }[] | null, helperId);
+    return row ? { payoutReady: row.is_payout_ready === true, idVerified: row.is_id_verified === true } : null;
   })();
   cache.set(helperId, { at: Date.now(), value });
   return value;
@@ -51,8 +58,8 @@ export function __resetHelprTakesTipsCache() {
   cache.clear();
 }
 
-export function useHelprTakesTips(helperId: string | null | undefined, enabled = true): boolean | null {
-  const [answer, setAnswer] = useState<{ id: string; value: boolean | null } | null>(null);
+function useTipAnswer(helperId: string | null | undefined, enabled: boolean): TipAnswer {
+  const [answer, setAnswer] = useState<{ id: string; value: TipAnswer } | null>(null);
   useEffect(() => {
     if (!enabled || !helperId) return;
     let live = true;
@@ -69,8 +76,24 @@ export function useHelprTakesTips(helperId: string | null | undefined, enabled =
   return enabled && helperId && answer?.id === helperId ? answer.value : null;
 }
 
+export function useHelprTakesTips(helperId: string | null | undefined, enabled = true): boolean | null {
+  const a = useTipAnswer(helperId, enabled);
+  const idCheckOn = useIdentityCheckOnStore();
+  if (!a) return null;
+  return a.payoutReady && (!idCheckOn || a.idVerified);
+}
+
+/** True when the ID check is on and this Helpr has not verified: the tip waits on that, whatever their payout setup says. */
+export function useTipWaitsOnId(helperId: string | null | undefined, enabled = true): boolean {
+  const idCheckOn = useIdentityCheckOnStore();
+  // No read at all while the switch is off.
+  const a = useTipAnswer(helperId, enabled && idCheckOn);
+  return idCheckOn && a !== null && !a.idVerified;
+}
+
 /** The one honest line a tip surface shows instead of the tip, when the Helpr can't receive one yet. */
-export function tipsNotReadyLine(name: string | null | undefined): string {
+export function tipsNotReadyLine(name: string | null | undefined, waitsOnId = false): string {
   const first = (name ?? "").trim().split(/\s+/)[0];
+  if (waitsOnId) return `${first || "This Helpr"} can receive tips once verified. Nothing was charged.`;
   return `${first || "This Helpr"} hasn't finished payout setup yet, so a tip can't reach them. You can tip once they do.`;
 }

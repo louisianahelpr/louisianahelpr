@@ -1,4 +1,3 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
@@ -6,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { hasIdBadge } from "@/lib/awardGate";
-import { openIdentityCheck } from "@/lib/identityCheck";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { JobPrice } from "@/components/dashboard/JobPrice";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -110,16 +107,13 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
   const payoutsDone = profile?.stripe_payouts_enabled === true;
   // Not while the profile is still loading (null is not "not set up").
   const payoutStepPaused = setupPaused && !!profile && !payoutsDone;
-  // The ID step only while the ID check is on (switch `identity_check`, owner 2026-10-23: off).
-  const idOn = useIdentityCheckOnStore();
   const allSteps = [
-    { key: "id", label: "Verify your ID", done: hasIdBadge(profile?.idv_status), go: () => openIdentityCheck("general") },
     { key: "skills", label: skills ? `Pick what you do: ${skills}` : "Pick what you do", done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
     { key: "about", label: "Add a photo and a line about you", done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
     { key: "payouts", label: "Add your payout bank", done: payoutsDone, go: () => navigate("/profile?tab=payment") },
     { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
   ];
-  const steps = allSteps.filter((st) => (st.key !== "payouts" || !payoutStepPaused) && (st.key !== "id" || idOn));
+  const steps = allSteps.filter((st) => st.key !== "payouts" || !payoutStepPaused);
   const jobs = near.data ?? [];
 
   return (

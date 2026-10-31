@@ -62,6 +62,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     // ID once (20261020044552): taking a delivery is the Helpr's accept.
     helper_identity_unverified: "Verify your ID with Stripe to take this delivery. You only do it once: You, then Settings, then ID.",
+    identity_required_to_deliver: "Verify your ID with Stripe to take this delivery. It takes about 2 minutes, and you only do it once.",
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,
     invalid_slot: DC.invalid_slot,

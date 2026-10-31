@@ -1,5 +1,4 @@
 import { memo, useRef } from "react";
-import { PosterIdentityLine } from "@/components/identity/IdentityPromptCard";
 import { listingExpiryShown, takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
@@ -303,7 +302,6 @@ function PostedJobCardInner({
             className="group relative scroll-mt-3"
           >
             <BackoutBanner job={job} />{/* someone backed out: until Got It (Q1575) */}
-            <PosterIdentityLine status={job.status} />{/* Stripe Identity before the next post (2026-10-21) */}
             <MineJobFace
               jobId={job.id} title={job.title}
               category={job.category}

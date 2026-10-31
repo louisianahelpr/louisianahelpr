@@ -1,5 +1,5 @@
 // @mutate supabase/functions/_shared/posterCancelSplit.ts |     actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents, |     actualFeeCents: fullSeriesRefund ? c.actualFeeCents : 0,
-// @mutate supabase/functions/void-cancelled-payments/index.ts | jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job); | jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) ? 0 : 0;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) ? 0 : 0;
 /**
  * Q327: a job the permanent-ban path cancels is settled by
  * void-cancelled-payments exactly like a poster's own cancel, and the platform

@@ -106,7 +106,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
   const [jobs, cancels, sales, shops, deliveries, referrals] = await Promise.all([
     admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("cancellation_fee_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
-    admin.from("declutter_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, amount_cents").eq("seller_id", userId).in("stripe_transfer_id", ids),
+    admin.from("declutter_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, setup_fee_cents, amount_cents").eq("seller_id", userId).in("stripe_transfer_id", ids),
     admin.from("shop_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, amount_cents, shop_orders!inner(seller_id)").eq("shop_orders.seller_id", userId).in("stripe_transfer_id", ids),
     admin.from("helpr_task_payouts").select("stripe_transfer_id, task_id, helpr_tasks(title)").eq("helpr_id", userId).in("stripe_transfer_id", ids),
     admin.from("referral_credits").select("stripe_transfer_id").eq("user_id", userId).in("stripe_transfer_id", ids),
@@ -131,14 +131,17 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
       titlesByOrder.set(l.order_id, [...(titlesByOrder.get(l.order_id) ?? []), t]);
     }
   }
-  const saleLines = (kind: "sale" | "shop_sale", label: string, href: string, r: { items_cents: number; debt_cents: number; amount_cents: number }): PayoutLine[] =>
-    r.debt_cents > 0
-      ? [
-        { kind, label, amount_cents: r.items_cents, href },
-        { kind: "fee_owed", label: "Fee owed, paid back", amount_cents: -r.debt_cents, href: null },
-      ]
-      : [{ kind, label, amount_cents: 0, href }];
-  for (const r of sales as { stripe_transfer_id: string; order_id: string; items_cents: number; debt_cents: number; amount_cents: number }[]) {
+  const saleLines = (kind: "sale" | "shop_sale", label: string, href: string, r: { items_cents: number; debt_cents: number; setup_fee_cents?: number | null; amount_cents: number }): PayoutLine[] => {
+    // A Declutter payout's one-time setup fee sits inside debt_cents (owner 2026-10-30), named on its own line.
+    const setupFee = Number(r.setup_fee_cents ?? 0);
+    const owed = r.debt_cents - setupFee;
+    if (owed <= 0 && setupFee <= 0) return [{ kind, label, amount_cents: 0, href }];
+    const lines: PayoutLine[] = [{ kind, label, amount_cents: r.items_cents, href }];
+    if (owed > 0) lines.push({ kind: "fee_owed", label: "Fee owed, paid back", amount_cents: -owed, href: null });
+    if (setupFee > 0) lines.push({ kind: "fee_owed", label: "One-time setup fee", amount_cents: -setupFee, href: null });
+    return lines;
+  };
+  for (const r of sales as { stripe_transfer_id: string; order_id: string; items_cents: number; debt_cents: number; setup_fee_cents?: number | null; amount_cents: number }[]) {
     const titles = titlesByOrder.get(r.order_id) ?? [];
     const label = titles.length === 0 ? "A Declutter sale" : titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
     out.set(r.stripe_transfer_id, saleLines("sale", label, "/declutter?tab=selling", r));

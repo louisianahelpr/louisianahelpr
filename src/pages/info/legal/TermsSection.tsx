@@ -156,7 +156,9 @@ export const TermsContent = () => {
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
-            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job, buy on Declutter or list on Declutter before your first payout, it is charged then instead. It is never charged twice.</p>
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. {idOn
+              ? "A Helpr or a Declutter seller pays it out of their first payout; if you post a job, buy on Declutter or claim a free item on Declutter before your first payout, it is charged then instead. It is never charged twice."
+              : "A Helpr pays it out of their first payout; if you post a job, buy on Declutter or list on Declutter before your first payout, it is charged then instead. It is never charged twice."}</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the service fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -183,7 +185,7 @@ export const TermsContent = () => {
         title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter purchase or listing, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter {idOn ? "purchase or free claim" : "purchase or listing"}, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
             <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
             <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>
@@ -195,7 +197,7 @@ export const TermsContent = () => {
         title="Identity verification"
         body={
           idOn ? <>
-            <p><strong className="text-foreground">Stripe Identity verifies a photo ID and a selfie before a member's first accepted or posted job</strong>, and before a Helpr heads out to a job. Helpr pays for this check; there is no charge to you. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
+            <p><strong className="text-foreground">We ask for a photo ID and a selfie through Stripe Identity once per person:</strong> when you post a job; when you're hired, and before you head out; or before your first payout. On Declutter, when you list, at your first purchase, or when you take a delivery. It counts everywhere on Louisiana Helpr. We never ask at sign-up or when you apply. Until it's done, your pay waits safely. The one-time {feeLabel ? `${feeLabel} ` : ""}setup fee covers this check. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>

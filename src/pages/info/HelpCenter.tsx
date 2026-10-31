@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -12,6 +13,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
   FAQ_SECTIONS,
+  type FaqSection,
 } from "./helpCenter/helpCenterContent";
 
 /**
@@ -84,7 +86,7 @@ const TopicSection = ({
   section,
   targeted,
 }: {
-  section: { topic: string; items: Array<{ q: string; a: string }> };
+  section: FaqSection;
   /** True when `location.hash` addresses THIS section. */
   targeted: boolean;
 }) => {
@@ -108,6 +110,7 @@ const TopicSection = ({
   const open = manualOpen || (targeted && !dismissed);
   const ref = useRef<HTMLDivElement | null>(null);
 
+  const idCheckOn = useIdentityCheckOnStore();
   useEffect(() => {
     if (!targeted) {
       // Re-arm: navigating away and back to this anchor should open it again.
@@ -167,7 +170,7 @@ const TopicSection = ({
       {open && (
         <div id={`faq-panel-${topicSlug(section.topic)}`} className="px-5 sm:px-6 pb-2">
           {section.items.map((item) => (
-            <FaqRow key={item.q} q={item.q} a={item.a} />
+            <FaqRow key={item.q} q={item.q} a={idCheckOn && item.aWhenIdCheckOn ? item.aWhenIdCheckOn : item.a} />
           ))}
         </div>
       )}

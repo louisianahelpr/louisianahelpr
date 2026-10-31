@@ -421,6 +421,65 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
   });
 });
 
+// Owner 2026-10-30: poster_cancel_job records 0 when the hired Helpr had not verified their ID: the poster
+// rehires without paying for the Helpr's time, so the money sweep must not recompute the ladder over it.
+// @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
+describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stands", () => {
+  beforeEach(() => {
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+  afterEach(() => resetEnv());
+
+  const seed = (over: Record<string, unknown>) => {
+    scenario.reads.jobs = {
+      selectOverrides: [{
+        // The sweep's own select must name cancelled_by, or the row never carries it and the 0 never stands.
+        includes: "cancelled_by",
+        result: {
+          rows: [{
+            id: "job-hold", title: "Late cancel on a hold", stripe_session_id: null, stripe_payment_intent_id: "pi_hold",
+            budget: 100, customer_fee_amount: 10,
+            date_needed: "2024-10-20", start_time: "10:00:00", cancelled_at: "2024-10-20T13:00:00.000Z",
+            helper_id: "helper-1", helper_confirmed_at: "2024-10-18T12:00:00.000Z",
+            customer_id: "poster-1", helper_fee_percent: 10,
+            ...over,
+          }],
+        },
+      }],
+      rows: [],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_hold", status: "requires_capture", amount: 11000, amount_received: 0, latest_charge: null,
+    });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+    stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+  };
+
+  it("a late cancel with fee 0 recorded by the poster: nothing is captured", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("control: no fee recorded yet, the ladder still charges", async () => {
+    seed({ cancellation_fee: null, cancelled_by: "poster-1" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+  });
+
+  it("control: a 0 not written by the poster's cancel does not waive the ladder", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "someone-else" });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── Q1675: an earlier refund on the same charge comes off this refund ────────
 //
 // settleOnboardingFee refunds a duplicate $2 setup fee off the job's own

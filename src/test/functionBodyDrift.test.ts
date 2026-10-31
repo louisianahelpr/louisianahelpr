@@ -192,7 +192,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-30: 26.) 20261030220537 (notices say no escrow) rewrites five functions in place; the count rose by two.
     // (2026-10-31: 25.) 20261031013445 (a Helpr who cancelled) re-created helper_cancel_booking as a plain CREATE.
     // (2026-10-31: 24.) 20261031004529 (handover money) re-created a function that had been rewritten in place.
-    expect(rewritten.length).toBe(24);
+    // (2026-10-30: 25.) 20261030225327 (the ID check's no-cost cancel) re-created poster_cancel_job, which 20261025203540
+    // had rewritten in place, as a plain CREATE; its six rewritten notice lines are in the new text.
+    expect(rewritten.length).toBe(23);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

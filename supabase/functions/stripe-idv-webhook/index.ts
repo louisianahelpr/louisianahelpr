@@ -259,10 +259,18 @@ serve(async (req) => {
         // simply absent from the object, and the identity fingerprint below
         // would be NULL for every single verification. That is the failure
         // mode this expand exists to prevent.
-        const verified = await stripe.identity.verificationSessions.retrieve(
-          session.id,
-          { expand: ["last_verification_report", "verified_outputs"] }
-        );
+        // Stripe (docs.stripe.com/identity/access-verification-results, read 2026-10-30): the date of
+        // birth and document number come only with a RESTRICTED key AND their own expand path, within
+        // 48 hours. The secret key alone returns no dob, so firstName && lastName && dob below was false
+        // and no fingerprint was ever written (profiles.identity_sha256: 0 rows, 2026-10-30).
+        const resultsKey = Deno.env.get("STRIPE_IDENTITY_RESULTS_KEY");
+        if (!resultsKey) console.warn("[stripe-idv-webhook] STRIPE_IDENTITY_RESULTS_KEY not set: no date of birth, so no ID ban check");
+        const verified = await (resultsKey ? new Stripe(resultsKey, { apiVersion: "2025-08-27.basil" }) : stripe)
+          .identity.verificationSessions.retrieve(session.id, {
+            expand: resultsKey
+              ? ["last_verification_report", "verified_outputs", "verified_outputs.dob", "last_verification_report.document.number", "last_verification_report.document.dob"]
+              : ["last_verification_report", "verified_outputs"],
+          });
         const report = verified.last_verification_report as Stripe.Identity.VerificationReport | null;
 
         // ── Identity-level ban enforcement ────────────────────────────────

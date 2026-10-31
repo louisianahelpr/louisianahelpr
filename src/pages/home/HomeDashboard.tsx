@@ -1,4 +1,3 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { lazy, Suspense, useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRun";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,8 +20,6 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
-import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
-import { needsIdentityCheck } from "@/lib/identityCheck";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
 
@@ -60,8 +57,6 @@ export default function HomeDashboard() {
 const NEXT_UP_MAX_DOTS = 5;
 
 function HomeDashboardScreen() {
-  // Re-render when the ID check switch arrives or flips (needsIdentityCheck reads it).
-  const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
@@ -125,11 +120,6 @@ function HomeDashboardScreen() {
 
             {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
             {firstJob?.isNew && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
-
-            {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
-            {idOn && needsIdentityCheck(profile) && !firstJob?.isNew && (summary.counts.posted > 0 || summary.counts.working > 0) && (
-              <IdentityPromptCard idvStatus={profile?.idv_status} />
-            )}
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {

@@ -64,7 +64,7 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
-import { checkPayoutHold, checkJobPayoutHold, isPayoutHeldRefusal, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, isPayoutHeldRefusal, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { jobMoneyMode, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -504,6 +504,17 @@ serve(async (req) => {
   }
   // Q1491: a JOB payout hold. The claim trigger would refuse it too, but with
   // the Helpr-hold wording; asked here so the answer names the right hold.
+  // No payout without a verified ID (owner 2026-10-30). Before the setup-fee claim and any
+  // Stripe call, so nothing rolls back; the same 409 code, so auto-release counts no failure.
+  const idHold = await checkIdentityHold(supabaseAdmin, job.helper_id);
+  if (idHold.kind === "error") {
+    console.error(`[release-payout] ID check read failed for helper ${job.helper_id} (job ${job.id}): ${idHold.message}`);
+    return jsonResponse({ error: "ID check read failed — payout refused, retry" }, 500);
+  }
+  if (idHold.kind === "waits") {
+    console.warn(`[release-payout] job ${job.id} waits: helper ${job.helper_id} has not verified their ID`);
+    return jsonResponse({ error: IDENTITY_HOLD_MESSAGE, code: PAYOUT_HELD_CODE, hold_reason: "identity" }, 409);
+  }
   const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id);
   if (jobHold.kind === "error") {
     console.error(`[release-payout] job payout hold check failed for job ${job.id}: ${jobHold.message}`);

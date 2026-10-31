@@ -25,14 +25,14 @@ export function setupFeeRefusal(err: unknown): boolean {
  * Open the one-time fee page; it brings the member back to their Declutter listings.
  * "already_paid": the server says nothing is owed (a profile read can lag the webhook), so the caller re-reads it.
  */
-export async function payAccountSetupFee(): Promise<"already_paid" | "opened" | "failed"> {
+export async function payAccountSetupFee(returnTo: "declutter_selling" | "declutter_free_claim" = "declutter_selling"): Promise<"already_paid" | "opened" | "failed"> {
   try {
     const { data, error } = await supabase.functions.invoke("pay-onboarding-fee", {
-      body: { native: isNativePlatform, return_to: "declutter_selling" },
+      body: { native: isNativePlatform, return_to: returnTo },
     });
     if (error) throw await functionInvokeError(error);
     if (data?.alreadyPaid) {
-      toast.success("Your setup fee is already paid. Publish your listing again.");
+      toast.success(returnTo === "declutter_free_claim" ? "Your setup fee is already paid." : "Your setup fee is already paid. Publish your listing again.");
       return "already_paid";
     }
     if (typeof data?.url !== "string") throw new Error("The payment page did not open. Try again.");
@@ -53,4 +53,35 @@ export function promptAccountSetupFee(): void {
     action: { label: "Pay it", onClick: () => void payAccountSetupFee() },
     duration: 20_000,
   });
+}
+
+/**
+ * A first free claim (owner 2026-10-30): the server refuses until the one-time fee is paid, then until the ID is verified
+ * (declutter_free_claim_gate). The first opens the one short screen (FreeClaimFirstTime), the second the ID sheet.
+ */
+export function freeClaimFeeRefusal(err: unknown): boolean {
+  const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
+  return typeof raw === "string" && /(^|[^a-z_])setup_fee_required_to_claim($|[^a-z_])/.test(raw);
+}
+
+/** Either step of the first claim: its own screen answers it, so the caller shows no error message as well. */
+export function freeClaimGateRefusal(err: unknown): boolean {
+  if (freeClaimFeeRefusal(err)) return true;
+  const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
+  return typeof raw === "string" && /(^|[^a-z_])identity_required_to_claim($|[^a-z_])/.test(raw);
+}
+
+let firstTimeOpen = false;
+const firstTimeListeners = new Set<() => void>();
+const setFirstTime = (next: boolean) => {
+  if (next === firstTimeOpen) return;
+  firstTimeOpen = next;
+  firstTimeListeners.forEach((l) => l());
+};
+export const openFreeClaimFirstTime = (): void => setFirstTime(true);
+export const closeFreeClaimFirstTime = (): void => setFirstTime(false);
+export const isFreeClaimFirstTimeOpen = (): boolean => firstTimeOpen;
+export function subscribeFreeClaimFirstTime(l: () => void): () => void {
+  firstTimeListeners.add(l);
+  return () => firstTimeListeners.delete(l);
 }

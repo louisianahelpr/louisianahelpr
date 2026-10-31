@@ -126,6 +126,40 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     resetStripeMock();
   });
 
+  // Owner 2026-10-30: poster_cancel_job records $0, not late, when the hired Helpr had not verified
+  // their ID, and writes job_cancel_id_waivers. Only that row explains a 0 below the ladder.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (idWaivedJobs.has(job.id as string)) return 0; | if (false) return 0;
+  // @mutate supabase/functions/money-reconciliation/index.ts | const expectedLate = hrs < 24 && !idWaivedJobs.has(job.id as string); | const expectedLate = hrs < 24;
+  describe("a cancel the unverified Helpr made free", () => {
+    const lateCancel = () => cancelledJob({
+      helper_id: "helper-1",
+      helper_confirmed_at: new Date(Date.now() - 2 * DAY).toISOString(),
+      date_needed: new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10),
+      start_time: new Date(Date.now() + 5 * 3600_000).toISOString().slice(11, 19),
+      cancelled_at: new Date(Date.now() - 3600_000).toISOString(),
+    });
+
+    it("a correct $0 with its waiver row raises no fee or late-flag finding", async () => {
+      const fn = await load();
+      seed(lateCancel());
+      scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: "job-c" }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi());
+      const { b } = await run(fn);
+      expect(finding(b, "cancellation_fee_mismatch")).toBeUndefined();
+      expect(finding(b, "late_cancellation_flag_wrong")).toBeUndefined();
+    });
+
+    it("control: the same $0 with no waiver row still pages", async () => {
+      const fn = await load();
+      seed(lateCancel());
+      scenario.reads.job_cancel_id_waivers = { rows: [] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi());
+      const { b } = await run(fn);
+      expect(finding(b, "cancellation_fee_mismatch")?.severity).toBe("critical");
+      expect(finding(b, "late_cancellation_flag_wrong")).toBeDefined();
+    });
+  });
+
   it("asks Stripe about every settled job and stays silent when Stripe agrees", async () => {
     const fn = await load();
     seed();

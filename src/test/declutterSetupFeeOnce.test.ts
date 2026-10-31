@@ -34,9 +34,11 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   const chargeCents = order.total_cents + setupFeeCents; |   const chargeCents = order.total_cents;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (answer.result === "paid" \|\| answer.result === "already_paid") { |   if (answer.result === "paid") {
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |     UPDATE public.declutter_orders SET setup_fee_state = 'not_charged' WHERE id = p_order_id;\n |
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN |     IF false THEN
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF public.has_role(auth.uid(), 'admin') OR COALESCE(( |     IF public.has_role(auth.uid(), 'admin') OR public.identity_check_exempt(auth.uid()) OR COALESCE((
+ * @mutate supabase/migrations/20261031002445_seller_setup_fee_from_payout.sql |     IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN |     IF false THEN
+ * @mutate supabase/migrations/20261031002445_seller_setup_fee_from_payout.sql |     IF public.has_role(auth.uid(), 'admin') OR COALESCE(( |     IF public.has_role(auth.uid(), 'admin') OR public.identity_check_exempt(auth.uid()) OR COALESCE((
  * @mutate src/lib/declutter/api.ts |   else if (setupFeeRefusal(err)) promptAccountSetupFee(); |
+ * @mutate src/lib/declutter/setupFee.ts | "declutter_free_claim" = "declutter_selling") | "declutter_free_claim" = "declutter_free_claim")
+ * @mutate src/components/declutter/BunchFeeGate.tsx | const outcome = await payAccountSetupFee(); | const outcome = await payAccountSetupFee("declutter_free_claim");
  * @mutate src/lib/declutter/setupFee.ts |   return typeof raw === "string" && /(^\|[^a-z_])setup_fee_required_to_list($\|[^a-z_])/.test(raw); |   return false;
  */
 import { describe, expect, it } from "vitest";
@@ -143,9 +145,12 @@ describe("Q2352 the setup fee is charged once per account", () => {
     const gate = body("declutter_setup_fee_before_list");
     expect(gate).toContain("IF NEW.status IN ('pending_review', 'live') AND (TG_OP = 'INSERT' OR OLD.status IN ('draft', 'paused')) THEN");
     expect(gate).toContain("IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN RAISE EXCEPTION 'setup_fee_required_to_list'");
-    // The ID switch never waives the fee: identity_check_exempt() is true for every member while
-    // identity_check is off (20261023213857), so the gate spells out its own admin / enrolled-tester carve-out.
-    expect(gate).not.toContain("identity_check_exempt");
+    // identity_check_exempt() is true for every member while identity_check is off (20261023213857), so the gate spells
+    // out its own admin / enrolled-tester carve-out. Off, the card stays. On, the fee comes out of the payout instead
+    // (owner 2026-10-30, 20261031002445): a NOT exempt member is let through, and only that way round.
+    expect(gate).toContain("IF NOT public.identity_check_exempt(auth.uid()) THEN RETURN NEW;");
+    expect(gate.indexOf("identity_check_exempt")).toBeLessThan(gate.indexOf("setup_fee_required_to_list"));
+    expect(gate.indexOf("SELECT p.is_seed IS TRUE")).toBeLessThan(gate.indexOf("identity_check_exempt"));
     expect(gate).toContain("SELECT p.is_seed IS TRUE AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) FROM public.profiles p WHERE p.user_id = auth.uid()");
     // The newest trigger on declutter_items runs it, after the ID check (trigger names fire in name order).
     const sql = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()
@@ -156,7 +161,14 @@ describe("Q2352 the setup fee is charged once per account", () => {
     expect(setupFeeRefusal(new Error("setup_fee_required_to_list"))).toBe(true);
     expect(setupFeeRefusal(new Error("identity_required_to_list"))).toBe(false);
     expect(code("src/lib/declutter/api.ts")).toContain("else if (setupFeeRefusal(err)) promptAccountSetupFee();");
-    expect(code("src/lib/declutter/setupFee.ts")).toContain('supabase.functions.invoke("pay-onboarding-fee", { body: { native: isNativePlatform, return_to: "declutter_selling" }, });');
+    // The return is now a parameter (a first free claim lands on Buying, owner 2026-10-30); the first listing's two callers
+    // pass nothing, so they still come back to their listings, and the edge still reads that value.
+    const fee = code("src/lib/declutter/setupFee.ts");
+    expect(fee).toContain('payAccountSetupFee(returnTo: "declutter_selling" | "declutter_free_claim" = "declutter_selling")');
+    expect(fee).toContain('supabase.functions.invoke("pay-onboarding-fee", { body: { native: isNativePlatform, return_to: returnTo }, });');
+    expect(fee).toContain("onClick: () => void payAccountSetupFee() }");
+    expect(code("src/components/declutter/BunchFeeGate.tsx")).toContain("const outcome = await payAccountSetupFee();");
+    expect(code("supabase/functions/pay-onboarding-fee/index.ts")).toContain('const toDeclutter = (rawBody as { return_to?: unknown })?.return_to === "declutter_selling";');
   });
 
   it("the edge charges the fee on its own line and settles a fee owed back", () => {

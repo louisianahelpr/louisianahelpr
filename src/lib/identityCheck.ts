@@ -1,15 +1,16 @@
 /**
- * Stripe Identity, the one ID check (owner, 2026-10-21): a photo ID and a
- * selfie, required before a member's first accepted job, first posted job,
- * before a Helpr heads out, and before a member's first Declutter purchase or
- * listing (owner 2026-10-22; once across Jobs and Declutter). Payout setup (Stripe Connect) is a separate step and
- * is never an ID check.
+ * Stripe Identity, the one ID check (owner 2026-10-30, replacing the removal of
+ * 2026-10-23): a photo ID and a selfie, once per person. A poster when they post
+ * a job. A Helpr when hired, or at the first payout if somehow skipped; they
+ * cannot head out until verified. Never at sign-up or applying, on Home, in a
+ * checklist or in Settings. Once verified, never again. Payout setup (Stripe
+ * Connect) is a separate step and is never an ID check.
  *
  * THE ENFORCEMENT IS NOT HERE. It is the server: identity_is_verified (the one
- * rule, idv_status = 'verified'), helper_accept_missing for accepts, and the
- * jobs triggers enforce_identity_before_post / enforce_identity_before_start
- * (migration 20261021081258). This module only opens the one sheet that
- * explains and starts the check, from wherever the member meets the gate.
+ * rule, idv_status = 'verified'), the jobs triggers enforce_identity_before_post /
+ * enforce_identity_before_start (migration 20261021081258), and the payout claim
+ * (payout_waits_on_identity). This module only opens the one sheet that explains
+ * and starts the check, from wherever the member meets the gate.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { identityCheckOn } from "@/lib/identityCheckSwitch";
@@ -18,7 +19,7 @@ import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
-export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "general";
+export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "deliver" | "claim" | "general";
 
 interface SheetState {
   open: boolean;
@@ -141,7 +142,7 @@ export async function readIdentityReviewSince(userId: string, fallback: string |
  * The server's refusal, recognised by its raised code (migration
  * 20261021081258), so a caller can open the sheet instead of a dead-end toast.
  */
-export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | null {
+export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | "deliver" | "claim" | null {
   const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
   const m = typeof raw === "string" ? raw : "";
   if (/(^|[^a-z_])identity_required_to_post($|[^a-z_])/.test(m)) return "post";
@@ -149,6 +150,8 @@ export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list"
   // Declutter (owner 2026-10-22): the first purchase or the first listing (20261021202226).
   if (/(^|[^a-z_])identity_required_to_buy($|[^a-z_])/.test(m)) return "buy";
   if (/(^|[^a-z_])identity_required_to_list($|[^a-z_])/.test(m)) return "list";
+  if (/(^|[^a-z_])identity_required_to_deliver($|[^a-z_])/.test(m)) return "deliver";
+  if (/(^|[^a-z_])identity_required_to_claim($|[^a-z_])/.test(m)) return "claim";
   return null;
 }
 

@@ -1,4 +1,5 @@
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
+import { FreeClaimFirstTime } from "@/components/identity/FreeClaimFirstTime";
 import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
 import { useFeature } from "@/hooks/useFeature";
 import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
@@ -32,7 +33,9 @@ const LEAD: Record<IdentityCheckReason, string> = {
   accept: "Before your first job is booked, Stripe checks a photo ID and a selfie.",
   buy: "Before your first Declutter purchase, Stripe checks a photo ID and a selfie.",
   list: "Before your first Declutter listing goes live, Stripe checks a photo ID and a selfie.",
-  general: "Stripe checks a photo ID and a selfie before a member's first accepted or posted job, or first Declutter purchase or listing.",
+  deliver: "Before you take a delivery, Stripe checks a photo ID and a selfie.",
+  claim: "A claim shares a real person's address, so before your first claim Stripe checks a photo ID and a selfie.",
+  general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first Declutter purchase, listing or delivery.",
 };
 
 const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string }> = {
@@ -79,7 +82,7 @@ const REVIEW_ONLY = {
  * reopens it on the honest state the webhook has written.
  */
 export function IdentityCheckHost() {
-  // The ID check switch (owner 2026-10-23: OFF, "we will move to paypal"). The
+  // The ID check switch (OFF until an admin turns it on, owner 2026-10-30). The
   // host publishes it for the plain functions (openIdentityCheck,
   // acceptMissingFromProfile...) and draws nothing while it is off.
   const { on: idOn, settled: idSettled } = useIdentityCheckStatus();
@@ -111,7 +114,10 @@ export function IdentityCheckHost() {
     // before it, the sheet would refuse and the link would be spent (lh-silent-failure #2).
     if (!idSettled) return;
     const next = new URLSearchParams(params);
+    // Back from the one-time fee on a first free claim (pay-onboarding-fee): the next step is the check, in its words.
+    const entryReason: IdentityCheckReason = params.get("verify_reason") === "claim" ? "claim" : "general";
     next.delete("verify_id");
+    next.delete("verify_reason");
     next.delete("idv");
     setParams(next, { replace: true });
     if (back) void refresh();
@@ -119,7 +125,7 @@ export function IdentityCheckHost() {
     // directly so the order of the two effects does not matter.
     if (idOn) {
       setIdentityCheckOn(true);
-      openIdentityCheck("general");
+      openIdentityCheck(entryReason);
     }
   }, [params, setParams, user, refresh, idSettled, idOn]);
 
@@ -205,6 +211,8 @@ export function IdentityCheckHost() {
 
   if (!idOn) return null;
   return (
+    <>
+    <FreeClaimFirstTime />
     <Sheet open={open} onOpenChange={(o) => (o ? undefined : closeIdentityCheck())}>
       <SheetContent side="bottom" data-testid="identity-check-sheet" data-view={view}>
         <SheetHero title={view === "start" ? "Verify your ID" : copy!.title} />
@@ -216,7 +224,7 @@ export function IdentityCheckHost() {
             <ul className="space-y-3" aria-label="What you'll need">
               <Step icon={<IdCard className="w-4 h-4" />} text="A photo ID: driver's license, passport or ID card" />
               <Step icon={<Camera className="w-4 h-4" />} text="A quick selfie, to match it to you" />
-              <Step icon={<ShieldCheck className="w-4 h-4" />} text="Stripe runs the check. Helpr covers its cost." />
+              <Step icon={<ShieldCheck className="w-4 h-4" />} text="Stripe runs the check." />
             </ul>
           </div>
         ) : (
@@ -270,6 +278,7 @@ export function IdentityCheckHost() {
         )}
       </SheetContent>
     </Sheet>
+    </>
   );
 }
 

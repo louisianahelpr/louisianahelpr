@@ -168,3 +168,35 @@ export async function checkPayoutHold(
   if (!row) return { kind: "clear" };
   return { kind: "held", reason: row.reason, denied: row.denied_at !== null && row.denied_at !== undefined };
 }
+
+export type IdentityHoldCheck =
+  | { kind: "clear" }
+  | { kind: "waits" }
+  | { kind: "error"; message: string };
+
+/** The Helpr-facing words when a payout waits on their ID (owner 2026-10-30). */
+export const IDENTITY_HOLD_MESSAGE = "Verify your ID once with Stripe and we send your pay. Nothing was moved.";
+
+/** The tipper's words when the Helpr has not verified their ID (owner 2026-10-30: tips are blocked until they do; no money is taken). */
+export const TIP_WAITS_ON_ID_MESSAGE = "This Helpr can receive tips once verified. Nothing was charged.";
+export const TIP_WAITS_ON_ID_CODE = "tip_waits_on_identity";
+
+/**
+ * No payout without a verified ID (owner 2026-10-30): public.payout_waits_on_identity,
+ * FALSE while the `identity_check` switch is off and for an enrolled test account.
+ * Nothing is claimed or sent, so the money stays where it is and the next run asks
+ * again. FAILS CLOSED like the hold above. PGRST202 (the function is older than this
+ * deploy) reads clear: the payout_transfers claim trigger still asks the same question.
+ */
+export async function checkIdentityHold(
+  supabaseAdmin: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }> },
+  payeeId: string | null | undefined,
+): Promise<IdentityHoldCheck> {
+  if (!payeeId) return { kind: "clear" };
+  const { data, error } = await supabaseAdmin.rpc("payout_waits_on_identity", { p_user_id: payeeId });
+  if (error) {
+    if (error.code === "PGRST202") return { kind: "clear" };
+    return { kind: "error", message: error.message ?? "payout_waits_on_identity failed" };
+  }
+  return data === true ? { kind: "waits" } : { kind: "clear" };
+}

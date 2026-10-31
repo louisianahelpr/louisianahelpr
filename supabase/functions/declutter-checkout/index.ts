@@ -85,7 +85,7 @@ import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { declutterCheckoutLineName } from "../_shared/declutterCheckoutName.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
-import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import {
@@ -733,6 +733,14 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
   if (hold.kind === "held" || review.users.has(helprId)) {
     return json({ error: "tip_helpr_held", code: PAYOUT_HELD_CODE }, 409);
   }
+  // Owner 2026-10-30: no tip until the Helpr has verified their ID: no page opens and no money is taken. The unpaid row
+  // start wrote is harmless (it holds nothing). FALSE while the identity_check switch is off. Fails closed.
+  const tipIdHold = await checkIdentityHold(admin, helprId);
+  if (tipIdHold.kind === "error") {
+    console.error(`[declutter-checkout] tip: ID check read failed for ${helprId}: ${tipIdHold.message}`);
+    return json({ error: "tip_check_failed" }, 500);
+  }
+  if (tipIdHold.kind === "waits") return json({ error: "tip_waits_on_identity" }, 409);
   const mode = await stripeModeForParties(admin, [user.id, helprId], { caller: user.id });
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
   // A row that already has a page (a retry after Stripe's key window): that page, never a second one.

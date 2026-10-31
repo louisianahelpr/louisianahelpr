@@ -14,7 +14,11 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPaidDeliveryTips, startDeliveryTip } from "@/lib/declutter/deliveryTip";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { tipsNotReadyLine } from "@/hooks/useHelprTakesTips";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../../supabase/functions/_shared/tipFees";
+
+/** declutter-checkout's tip_waits_on_identity, in the words errors.ts gives it. */
+const DELIVERY_TIP_WAITS_ON_ID = "This Helpr can receive tips once verified. Nothing was charged.";
 
 export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; helprFirstName: string | null }) {
   const qc = useQueryClient();
@@ -23,6 +27,8 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
   const tips = useQuery({ queryKey: ["declutter", "delivery-tips", taskId, userId], queryFn: () => fetchMyPaidDeliveryTips(taskId, userId), enabled: !!userId });
   const [dollars, setDollars] = useState<number | undefined>(undefined);
   const [opening, setOpening] = useState(false);
+  // Owner 2026-10-30: the server says this Helpr has not verified their ID; the picker gives way to the reason, no money taken.
+  const [waitsOnId, setWaitsOnId] = useState(false);
   // One id per opening of the prompt (the job tip's rule, ME-007): a retry is one page, a new tip a new one.
   const attempt = useRef<string>(crypto.randomUUID());
   const who = helprFirstName ?? "your Helpr";
@@ -36,7 +42,10 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
         void qc.invalidateQueries({ queryKey: ["declutter", "delivery-tips", taskId] });
       });
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => {
+      if (declutterErrorMessage(err) === DELIVERY_TIP_WAITS_ON_ID) setWaitsOnId(true);
+      else toast.error(declutterErrorMessage(err));
+    },
   });
   if (tips.isError) {
     return <ErrorState variant="inline" title="We couldn't load your tip." body={declutterErrorMessage(tips.error)} onRetry={() => void tips.refetch()} />;
@@ -47,6 +56,13 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
     return (
       <section className="space-y-1 border-t border-border pt-3" aria-label="Your tip">
         {paid.map((t) => <p key={t.id} className="text-ds-13">You tipped {who} {centsLabel(t.tip_cents)}. Thank you.</p>)}
+      </section>
+    );
+  }
+  if (waitsOnId) {
+    return (
+      <section className="border-t border-border pt-3" aria-label="Add a tip">
+        <p className="text-ds-13 text-muted-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helprFirstName, true)}</p>
       </section>
     );
   }

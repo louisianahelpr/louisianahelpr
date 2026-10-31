@@ -798,6 +798,48 @@ describe("money-reconciliation edge function", () => {
       expect(names(b)).not.toContain("held_money_not_redriven");
     });
 
+    // Owner 2026-10-30: a tip waiting on the Helpr's ID is waiting on purpose. A critical here could lead staff to pay by hand.
+    // @mutate supabase/functions/money-reconciliation/index.ts | r.failure_reason === "identity_not_verified" && r.status === "reversed" | false
+    describe("a tip waiting on the Helpr's ID", () => {
+      const waiting = () => tip({ failure_reason: "identity_not_verified" });
+
+      it("does not page while the Helpr has not verified, though its first attempt is a day old", async () => {
+        const fn = await loadConfigured();
+        seedCleanLedger();
+        scenario.reads.tip_hold_redrives = { rows: [waiting()] };
+        scenario.rpc.payout_waits_on_identity = true;
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(names(b)).not.toContain("held_money_not_redriven");
+      });
+
+      it("control: pages once the Helpr has verified and the money still has not moved", async () => {
+        const fn = await loadConfigured();
+        seedCleanLedger();
+        scenario.reads.tip_hold_redrives = { rows: [waiting()] };
+        scenario.rpc.payout_waits_on_identity = false;
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(names(b)).toContain("held_money_not_redriven");
+      });
+
+      it("control: an unreadable ID answer still pages", async () => {
+        const fn = await loadConfigured();
+        seedCleanLedger();
+        scenario.reads.tip_hold_redrives = { rows: [waiting()] };
+        scenario.rpcErrors = { payout_waits_on_identity: { message: "boom" } };
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(names(b)).toContain("held_money_not_redriven");
+      });
+
+      it("control: another reason still pages", async () => {
+        const fn = await loadConfigured();
+        seedCleanLedger();
+        scenario.reads.tip_hold_redrives = { rows: [tip({ failure_reason: "balance_insufficient: short" })] };
+        scenario.rpc.payout_waits_on_identity = true;
+        const b = await body(await fn.fetch(cronRequest(fn)));
+        expect(names(b)).toContain("held_money_not_redriven");
+      });
+    });
+
     // Second review (S-B): fires although every hourly attempt moved updated_at.
     // @mutate supabase/functions/money-reconciliation/index.ts | (r.first_repay_attempt_at ? stale(r.first_repay_attempt_at) : staleUntried(r.created_at, r.updated_at))); | stale(r.updated_at ?? null));
     it("flags a reversed tip whose Helpr is clear and whose first re-pay attempt was a day ago", async () => {

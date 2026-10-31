@@ -958,6 +958,46 @@ describe("process-scheduled-payouts edge function", () => {
       expect(updates.some((u) => u.status === "repaid")).toBe(false);
     });
 
+    // Owner 2026-10-30: no money reaches an unverified Helpr. A tip held before the switch went on waits too.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |       const idHold = await checkIdentityHold(supabase, r.helper_id); |       const idHold = { kind: "clear" as const };
+    it("a tip re-payment to a Helpr who has not verified their ID waits: nothing sent, the row back to waiting", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      scenario.rpc.payout_waits_on_identity = true;
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      const res = await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[updates.length - 1]).toMatchObject({ status: "reversed", failure_reason: "identity_not_verified", first_repay_attempt_at: null });
+      expect(updates.some((u) => u.status === "repaid")).toBe(false);
+      expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 0 });
+    });
+
+    it("an unreadable ID answer sends nothing and counts as a defect", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      scenario.rpcErrors = { payout_waits_on_identity: { message: "boom" } };
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[updates.length - 1]).toMatchObject({ status: "reversed" });
+    });
+
+    it("a re-pay Stripe already holds is adopted without asking: no money moves", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "repaying" })] };
+      repayReady();
+      scenario.rpc.payout_waits_on_identity = true;
+      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_prev", metadata: { type: "tip_hold_repay", tip_id: "tip-1" }, reversed: false }] });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[updates.length - 1]).toMatchObject({ status: "repaid", repay_transfer_id: "tr_prev" });
+    });
+
     // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (held) {\n        out.waiting++; |       if (false) {\n        out.waiting++;
     it("Q1222: a tip whose Helpr is STILL held waits: nothing moves, no page while young", async () => {
       seedNoJobs();

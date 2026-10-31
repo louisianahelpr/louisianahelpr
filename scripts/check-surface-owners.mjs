@@ -61,6 +61,7 @@ const OWNERS = {
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
+  "/hire/:service/:town": ["lh-seo-web", "lh-copy-content"],
   "/sms-opt-in": ["lh-copy-content"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],

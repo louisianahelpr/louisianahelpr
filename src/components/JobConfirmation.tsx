@@ -291,7 +291,7 @@ export function JobConfirmation({
         {
           action: "confirm the job",
           rejectedMessage:
-            "We couldn't record that confirmation — this job may have been cancelled. Pull to refresh.",
+            "We couldn't record that confirmation — this job may have been cancelled. Refresh the page.",
           context: { jobId, field },
         },
       );

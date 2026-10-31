@@ -939,7 +939,7 @@ export function JobTracking({
               .select("id, poster_completed_at"),
             {
               action: "mark the job complete",
-              rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
+              rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Refresh the page.",
               context: { jobId },
             },
           );
@@ -989,7 +989,7 @@ export function JobTracking({
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });
-          toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Pull to refresh.", { duration: 8000 });
+          toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page.", { duration: 8000 });
         } else {
           // Analytics (Q222): the Helpr's Done finished a job the poster had
           // already approved. Once per job.
@@ -1075,7 +1075,7 @@ export function JobTracking({
             }).select("id"),
         {
           action: "update your status",
-          rejectedMessage: "We couldn't update your status — this job may have been cancelled. Pull to refresh.",
+          rejectedMessage: "We couldn't update your status — this job may have been cancelled. Refresh the page.",
           context: { jobId, newStatus },
         },
       );

@@ -209,11 +209,11 @@ export function noindexPageMetaFor(pathname) {
  * Pinned by src/test/publicRoutesServeOwnHead.test.ts.
  */
 export const LANDING_PAGE_META = {
-  title: "Helpr — Louisiana's local partner.",
+  title: "Louisiana Helpr — Louisiana's local partner.",
   description:
     "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
   canonical: SITE_ORIGIN,
-  ogTitle: "Helpr — Louisiana's local partner.",
+  ogTitle: "Louisiana Helpr — Louisiana's local partner.",
   ogDescription:
     "Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace.",
 };

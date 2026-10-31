@@ -20,7 +20,7 @@ describe("usePageTitle", () => {
     const { unmount } = renderHook(() => usePageTitle("Custom Title"));
     expect(document.title).toBe("Custom Title");
     unmount();
-    expect(document.title).toBe("Helpr");
+    expect(document.title).toBe("Louisiana Helpr");
   });
 
   it("updates when the title prop changes (route change scenario)", () => {

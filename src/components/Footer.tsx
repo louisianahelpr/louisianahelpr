@@ -314,7 +314,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             the narrowest screens. `whitespace-nowrap` keeps it honest if the
             year or wording ever grows. */}
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 whitespace-nowrap">
-          © {new Date().getFullYear()} Helpr LLC · Louisiana, USA
+          © {new Date().getFullYear()} Louisiana Helpr · Helpr LLC
         </p>
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
           Made with{" "}

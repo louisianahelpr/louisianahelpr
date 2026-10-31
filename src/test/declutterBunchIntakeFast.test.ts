@@ -70,7 +70,7 @@ describe("LEAD-BUNCH-34-SLOW: photos are made ready a few at a time, from the fi
     const ask = (cleaned: File[]) => {
       asked.push(cleaned.length);
       if (asked.length === 1) return new Promise<GroupAnswer>((r) => { answerFirst = r; });
-      return Promise.resolve({ items: [{ title: "Thing", photos: cleaned.map((_, i) => i), description: "", category: "other", deliverySize: "small", conditionStars: 3 }] } as GroupAnswer);
+      return Promise.resolve({ items: [{ title: "Thing", photos: cleaned.map((_, i) => i), description: "", category: "other", deliverySize: "small", conditionStars: 3, flagged: false }], leftover: [] } as GroupAnswer);
     };
     const made: string[] = [];
     let now = 0;
@@ -82,7 +82,7 @@ describe("LEAD-BUNCH-34-SLOW: photos are made ready a few at a time, from the fi
     expect(made).toHaveLength(34);
     expect(c.started).toHaveLength(34);
     expect(c.most()).toBe(4);
-    answerFirst({ items: [{ title: "Chair", photos: [0, 1, 2, 3, 4, 5, 6, 7], description: "", category: "furniture", deliverySize: "medium", conditionStars: 4 }] } as GroupAnswer);
+    answerFirst({ items: [{ title: "Chair", photos: [0, 1, 2, 3, 4, 5, 6, 7], description: "", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false }], leftover: [] } as GroupAnswer);
     const res = await run;
     expect(asked.slice(0, 5)).toEqual([8, 8, 8, 8, 2]);
     expect(res.items.flatMap((it) => it.photoKeys)).toHaveLength(34);

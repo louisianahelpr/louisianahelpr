@@ -253,7 +253,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
     const steps: [string, unknown][] = [];
     const out = await listBunch("seller", [item("cut", ["a", "b"], { draftId: "d1", uploaded: { a: "pa" } })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
@@ -265,6 +265,32 @@ describe("listBunch", () => {
     expect(out).toMatchObject([{ key: "cut", title: "Oak chair", status: "live" }]);
     // Saved after each lasting step, and it leaves the list once listed.
     expect(steps).toEqual([["cut", { uploaded: { a: "pa", b: "ph" } }], ["cut", null]]);
+  });
+
+  // LEAD-BUNCH-34-SLOW: listing runs a few at once, so items finish in any order; each one's own card leaves the list.
+  // @mutate src/lib/declutter/bunch.ts |       const p = prepared[index]; |       const p = prepared[done - 1];
+  it("items listed out of order: each one that went live is the one taken off the list", async () => {
+    const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
+      createDraft: vi.fn(async (f: { title: string }) => `d-${f.title}`),
+      updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
+      addPhoto: vi.fn(async () => "ph"),
+      setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
+      // The last item goes live first; the first never does.
+      publishMany: vi.fn(async (ids: string[], p) => {
+        p(1, ids.length, 2);
+        p(2, ids.length, 1);
+        return ids.map((id, i) => (i === 0 ? { id, error: new Error("photos_required") } : { id, status: "live" as const }));
+      }),
+    };
+    const steps: [string, unknown][] = [];
+    await listBunch("seller", [item("one", ["a"], { title: "One" }), item("two", ["b"], { title: "Two" }), item("three", ["a"], { title: "Three" })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
+    expect(steps.filter(([, patch]) => patch === null).map(([k]) => k)).toEqual(["three", "two"]);
   });
 
   // A photo moved off an item that already has a draft (B19's gap, lead 10-30): it stayed on the draft on the server.
@@ -283,7 +309,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     });
 
     it("leaves the draft before it lists, and what stays is not uploaded again", async () => {
@@ -385,7 +411,7 @@ describe("trying again after a cut-off run", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
   }
 

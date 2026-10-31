@@ -18,7 +18,6 @@ import { InProgressStep } from "./steps/InProgressStep";
 import { CompletedStep } from "./steps/CompletedStep";
 import { DisputedStep } from "./steps/DisputedStep";
 import { crewIsBooked } from "./crewBooked";
-import { takeFaceAction } from "@/components/job-card/faceActionRequest";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -147,17 +146,6 @@ export function PostedJobActions({
   useEffect(() => {
     if (completionRequest > 0 && !job.poster_completed_at) setCompletionSheetOpen(true);
   }, [completionRequest, job.poster_completed_at]);
-  // The job page's "Approve and release" (AUD31-77) asked for this sheet before opening the card.
-  useEffect(() => {
-    if (!job.poster_completed_at && takeFaceAction(job.id, "approve")) setCompletionSheetOpen(true);
-  }, [job.id, job.poster_completed_at]);
-  // The job page's "Cancel job" / "Edit job" (LEAD-JOBPAGE-LAYOUT) asked for the card's own flow: the cancel's
-  // tracking check then the CancellationDialog with the fee quote (onCancel = tryCancelJob); the EditJobDialog.
-  useEffect(() => {
-    if (takeFaceAction(job.id, "cancel")) onCancel(job);
-    else if (takeFaceAction(job.id, "edit")) onEdit(job);
-    // Once per job (the request is one-shot); onCancel / onEdit churn per render, so they stay out of the deps.
-  }, [job.id]);
   // Guards the Resolve & Pay / Escalate to Admin buttons while their
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);

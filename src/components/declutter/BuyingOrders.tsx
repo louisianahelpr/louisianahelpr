@@ -99,7 +99,8 @@ export function buyerNextAction(f: OrderFacts): string | null {
 }
 
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null): string {
+function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
+  taskStatus: string | null = null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
   if (f.problem) return PROBLEM_ON_HOLD;
   if (f.done) return "Handed over. It's yours.";
@@ -117,6 +118,10 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
     case "seller_delivery":
       return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
     case "delivery":
+      // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so
+      // under Details: DeclutterDeliveryViews' own lines).
+      if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded.";
+      if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed.";
       // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
       // never "on the way" days before it.
       return at === 0 ? "Finding a Helpr to bring it."
@@ -124,6 +129,9 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
           : at === 2 ? stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt) ?? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
   }
 }
+
+/** The Helpr task statuses of a delivery still under way or done (helpr_tasks.status); any other one is closed. */
+const LIVE_TASK = new Set(["open", "accepted", "picked_up", "delivered", "confirmed"]);
 
 /**
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
@@ -243,7 +251,8 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null),
+      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+        o.handover === "delivery" ? task?.status ?? null : null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });

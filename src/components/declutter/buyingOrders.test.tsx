@@ -212,6 +212,21 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(card("late")).not.toHaveTextContent("On its way");
   });
 
+  // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  it("AUD31-7: a delivery nobody took, or one closed, never says Finding a Helpr; an open one still does", async () => {
+    const hd = (id: string, status: string): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { status }, step: 0, bucket: "waiting", action: null });
+    load([hd("unfilled", "unfilled"), hd("closed", "cancelled"), hd("open", "open")]);
+    show();
+    await waitFor(() => expect(card("unfilled")).toHaveTextContent("No Helpr took this delivery. What you paid for delivery was refunded."));
+    await waitFor(() => expect(card("closed")).toHaveTextContent("This delivery was closed."));
+    await waitFor(() => expect(card("open")).toHaveTextContent("Finding a Helpr to bring it."));
+    expect(card("unfilled")).not.toHaveTextContent("Finding a Helpr");
+    expect(card("closed")).not.toHaveTextContent("Finding a Helpr");
+  });
+
   it("collapsed, each card has the tracker at its step and at most one primary button: its next action", async () => {
     load(CASES);
     show();

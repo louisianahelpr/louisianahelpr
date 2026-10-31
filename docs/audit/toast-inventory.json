@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1058,
+    "calls": 1060,
     "files": 287,
-    "rendering": 886,
+    "rendering": 888,
     "suppressedByPolicy": 172,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 73,
-      "toast.error": 740,
+      "toast.error": 742,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,8 +19,8 @@
     },
     "copyPiecesByForm": {
       "literal": 459,
-      "template": 100,
-      "dynamic": 549,
+      "template": 101,
+      "dynamic": 550,
       "jsx": 0
     }
   },
@@ -393,7 +393,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 166,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -410,7 +410,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 170,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -420,7 +420,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 323,
+      "line": 324,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -430,7 +430,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 330,
+      "line": 331,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1058,7 +1058,17 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 128,
+      "line": 143,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "\"${f.name}\" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1075,7 +1085,17 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 132,
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "LISTING_PHOTO_UNCLEANABLE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1085,7 +1105,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 149,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1095,7 +1115,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 160,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1105,7 +1125,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 209,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1125,7 +1145,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 218,
+      "line": 243,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1135,7 +1155,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 229,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

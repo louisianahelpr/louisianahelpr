@@ -197,6 +197,49 @@ describe("declutter-money: seller payouts (B53)", () => {
   // Deep audit #57: "Your payout is on its way", only once the transfer is recorded, with the amount sent and no fee words.
   // @mutate supabase/functions/declutter-money/index.ts |      await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents, |      if (false) await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     subject: "Your payout is on its way", |     subject: "Payout update",
+  // Owner 2026-10-30: the seller's one-time setup fee comes out right before the send.
+  // @mutate supabase/functions/declutter-money/index.ts |             p.amount_cents = toSend; |             void toSend;
+  // @mutate supabase/functions/declutter-money/index.ts |               await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);\n              continue; |               void feeErr;
+  // @mutate supabase/functions/declutter-money/index.ts |         if (!maybeSent_declutter(p)) {\n          const { data: toSend | if (true) {\n          const { data: toSend
+  describe("the seller's one-time setup fee", () => {
+    it("sends the amount the take answers, and is asked before the send", async () => {
+      scenario.rpc.declutter_payout_take_setup_fee = 3650;
+      const { body } = await run({ payouts: [payoutRow()] });
+      expect(body.payouts_sent).toBe(1);
+      expect(rpcs("declutter_payout_take_setup_fee")[0]?.args).toEqual({ p_payout_id: PAYOUT });
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3650);
+    });
+
+    it("no fee due: the queued amount goes", async () => {
+      scenario.rpc.declutter_payout_take_setup_fee = 3850;
+      await run({ payouts: [payoutRow()] });
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3850);
+    });
+
+    it("an unreadable answer sends nothing this run and uses no try", async () => {
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), declutter_payout_take_setup_fee: { message: "connection reset", code: "08006" } };
+      const { body } = await run({ payouts: [payoutRow()] });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+      expect(body.payouts_sent).toBe(0);
+    });
+
+    it("a row with a try used is not asked: its Stripe key was sent with the stored amount", async () => {
+      scenario.rpc.declutter_payout_take_setup_fee = 3650;
+      await run({ payouts: [payoutRow({ attempts: 1 })] });
+      expect(rpcs("declutter_payout_take_setup_fee")).toHaveLength(0);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(3850);
+    });
+
+    it("a transfer Stripe already holds is recorded with no fee asked", async () => {
+      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+      scenario.rpc.declutter_payout_take_setup_fee = 3650;
+      await run({ payouts: [payoutRow()] });
+      expect(rpcs("declutter_payout_take_setup_fee")).toHaveLength(0);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("the seller is emailed \"Your payout is on its way\" with the amount sent, once the transfer is recorded", async () => {
     scenario.rpc.declutter_order_items_named = '"Lamp"';
     scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],

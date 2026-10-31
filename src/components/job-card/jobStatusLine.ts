@@ -926,6 +926,10 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
       // and stays Waiting even past the day: the Helpr has done everything.
       if (job.helper_completed_at && !job.poster_completed_at) return "submitted";
       if (jobIsOverdue(job)) return helperOverdue(job, progress);
+      // AUD31-76: auto_start_due_jobs (20261029160717) moves every booked job to in_progress at its start time, so
+      // the status no longer says the Helpr set out. With no On my way and no arrival (a one-Helpr job: a crew's
+      // steps are per member, on the roster), the next step is still I'm on my way, never "Finish and mark it done".
+      if (!job.is_group_job && !setOutOrArrived(job)) return "today";
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       // The expanded card's primary, photo or tracker step (primaryPhotoAsk.ts, helperProgress.ts).
       return arrivedWait(job, progress);
@@ -967,10 +971,16 @@ const OVERDUE_ARRIVED: Record<ArrivedWait, HelperWait> = {
   start_working: "overdue_start_working",
   arrival_unconfirmed: "overdue_arrival_unconfirmed",
 };
+/** Any stamp that says the Helpr set out or got there (their own taps, the GPS check, the poster's confirmations). */
+function setOutOrArrived(job: Job): boolean {
+  return !!(job.helper_on_the_way_at || job.helper_arrived_at || job.helper_arrival_verified_at || job.poster_confirmed_arrival_at || job.poster_confirmed_working_at);
+}
 function helperOverdue(job: Job, progress?: HelperCardProgress): HelperWait {
   if (job.helper_arrived_at) return OVERDUE_ARRIVED[arrivedWait(job, progress)];
   if (job.helper_on_the_way_at) return "overdue_not_arrived";
-  return job.status === "in_progress" ? "overdue_unfinished" : "overdue_not_started";
+  // AUD31-76: an auto-started (in_progress) job with no On my way is not underway; only a crew's job-level stamps stay
+  // empty while its members work (their steps are on the roster).
+  return job.status === "in_progress" && (job.is_group_job || setOutOrArrived(job)) ? "overdue_unfinished" : "overdue_not_started";
 }
 
 export function helperStatusLine(

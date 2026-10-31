@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-31T14:02Z",
+  "measured_at": "2026-10-31T16:35Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/40665658868",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41189360102",
         "runTruncated": false
       },
       {
@@ -85,33 +85,33 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41095168238",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294",
         "runTruncated": false
       },
       {
         "number": 3802,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41206541573",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41220144569",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41068640660",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744",
         "runTruncated": false
       },
       {
         "number": 3823,
-        "title": "🔴 1 scheduled workflow(s) have stopped running",
+        "title": "🔴 3 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41095265442",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151",
         "runTruncated": false
       },
       {
@@ -1007,7 +1007,6 @@
     "ledger 29d0375aa9cc": "Q2523",
     "ledger 29fbdd01ae0a": "Q2526",
     "ledger 2e4f3e726722": "Q1816",
-    "ledger 341d3e1a8154": "Q2529",
     "ledger 346e19be0736": "Q1596",
     "ledger 34e050b1bba0": "Q2539",
     "ledger 36bcfb8c2391": "Q1696",
@@ -1088,7 +1087,6 @@
     "ledger ba752f27944d": "Q1596",
     "ledger bab94ea313cb": "Q2519",
     "ledger bbdaee370c35": "Q1631",
-    "ledger bc51fa1a0ade": "Q2528",
     "ledger bc6810c9f1ab": "Q1596",
     "ledger bd4c3063280b": "Q1596",
     "ledger c1ad0c081216": "Q1596",
@@ -1123,7 +1121,6 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f2afa1349a3a": "Q2301",
     "ledger f3c752b3230f": "Q1596",
     "ledger fba95b3590a6": "Q2538",
     "ledger fcb359880524": "Q2513"

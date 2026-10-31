@@ -693,7 +693,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q1816 MEDIUM Fix the test robots: 18 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
   - nightly-red-age: issue #2244, newest red run: see the issue's latest comment. notes: Q1275. feed: issue #2244 · feed: ledger ab6fdbe8c882
   - prod-audit: issue #2245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/40832806380. notes: Q785. feed: issue #2245 · feed: ledger 16e6e91f6701
-  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/40665658868. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
+  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41189360102. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/40721330192. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41047645233. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
@@ -702,10 +702,10 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41018395640. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722
   - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41108278915. feed: issue #3743 · feed: ledger 8018e82cb167
-  - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41095168238. feed: issue #3784 · feed: ledger db0fb15c4ec3
-  - main: Sensitive review record: issue #3802, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41206541573. feed: issue #3802 · feed: ledger e41c806b9175
-  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41068640660. feed: issue #3813 · feed: ledger 3a3460b71be7
-  - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41095265442. feed: issue #3824 · feed: ledger 4aa239aefeb6
+  - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294. feed: issue #3784 · feed: ledger db0fb15c4ec3
+  - main: Sensitive review record: issue #3802, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41220144569. feed: issue #3802 · feed: ledger e41c806b9175
+  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744. feed: issue #3813 · feed: ledger 3a3460b71be7
+  - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41128418672. feed: issue #3833 · feed: ledger 18539240a894
   - codeql: issue #3846, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41151980186. feed: issue #3846 · feed: ledger 11d7173a8901
   - code-scanning-alerts: issue #3875, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439. feed: issue #3875 · feed: ledger c2e77e40435e

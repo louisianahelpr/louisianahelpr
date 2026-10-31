@@ -40,6 +40,10 @@ const MUTANTS = {
   // Any drop since the last look counts, even one from a price already in budget.
   anyDrop: [THIS, "AND d.from_cents > p_max_budget * 100", "AND d.from_cents > 0"],
   // The drop is not written down.
+  // Lead review 10-31: the helper is a definer any member can call; without the listings policy's own filters it
+  // hands back a hidden seller's or a blocked seller's listing.
+  noHiddenFilter: [THIS, "\n     AND NOT public.declutter_seller_hidden(i.seller_id)\n", "\n"],
+  noBlockFilter: [THIS, "FROM public.user_blocks b\n                      WHERE (b.blocker_id = (SELECT auth.uid())", "FROM (SELECT * FROM public.user_blocks WHERE false) b\n                      WHERE (b.blocker_id = (SELECT auth.uid())"],
   noLog: [THIS, "  INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n", ""],
 };
 const skip = process.env.NEW_MIGRATION === "skip";
@@ -68,7 +72,8 @@ INSERT INTO vault.decrypted_secrets VALUES ('supabase_url','http://x'),('service
 CREATE FUNCTION public.seed_jobs_hidden_publicly() RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
 CREATE FUNCTION public.miles_between(a numeric, b numeric, c numeric, d numeric) RETURNS numeric LANGUAGE sql AS $$ SELECT 1::numeric $$;
 CREATE FUNCTION public.feature_enabled_for_user(p_key text, p_user_id uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
-CREATE FUNCTION public.declutter_seller_hidden(p_seller uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE TABLE public.hidden_sellers (id uuid);
+CREATE FUNCTION public.declutter_seller_hidden(p_seller uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT EXISTS (SELECT 1 FROM public.hidden_sellers WHERE id = p_seller) $$;
 CREATE FUNCTION public.declutter_search_matches(q text, t text, d text, c text) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, email_verified boolean DEFAULT true, ban_status text DEFAULT 'active',
   latitude numeric, longitude numeric, is_seed boolean DEFAULT false, parish text);
@@ -187,6 +192,21 @@ check(await newCount(DEE) === 1, `[fix] a drop to $45, into her budget: 1 new ($
 let ids = [];
 try { await as(DEE); ids = (await q(`SELECT x FROM public.declutter_dropped_into_budget(now() - interval '1 day', 50) x`)).map((r) => r.x); } catch (e) { console.log("  (helper: " + e.message + ")"); }
 check(ids.length === 1 && ids[0] === table, `[fix] Browse's helper gives the same table (${JSON.stringify(ids)})`);
+// Lead review 10-31: the helper reads past the listings' read policy (definer), so it applies that policy itself.
+const helperIds = async () => { try { await as(DEE); return (await q(`SELECT x FROM public.declutter_dropped_into_budget(now() - interval '1 day', 50) x`)).map((r) => r.x); } catch (e) { console.log("  (helper: " + e.message + ")"); return ["error"]; } };
+await q(`INSERT INTO public.hidden_sellers VALUES ($1)`, [SELLER]);
+ids = await helperIds();
+check(ids.length === 0, `[fix] a hidden seller's dropped listing: the helper gives nothing (${JSON.stringify(ids)})`);
+await q(`DELETE FROM public.hidden_sellers`);
+await q(`INSERT INTO public.user_blocks VALUES ($1, $2)`, [SELLER, DEE]);
+ids = await helperIds();
+check(ids.length === 0, `[fix] a seller who blocked Dee: the helper gives nothing (${JSON.stringify(ids)})`);
+await q(`DELETE FROM public.user_blocks`);
+await q(`INSERT INTO public.user_blocks VALUES ($1, $2)`, [DEE, SELLER]);
+ids = await helperIds();
+check(ids.length === 0, `[fix] Dee blocked the seller: the helper gives nothing (${JSON.stringify(ids)})`);
+await q(`DELETE FROM public.user_blocks`);
+check((await helperIds()).length === 1, "with neither, the table is back");
 await drop(4000);
 check(await newCount(DEE) === 1, `[fix] another drop: still 1 new, never 2 (${await newCount(DEE)})`);
 check(await newCount(ERIN) === 0, `Erin has no top price: a drop is not new (${await newCount(ERIN)})`);

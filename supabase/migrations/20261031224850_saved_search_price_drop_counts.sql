@@ -61,7 +61,15 @@ AS $function$
      AND p_since IS NOT NULL
      AND d.at > p_since
      AND d.from_cents > p_max_budget * 100
-     AND i.current_price_cents <= p_max_budget * 100;
+     AND i.current_price_cents <= p_max_budget * 100
+     -- A definer any signed-in member can call: the declutter_items SELECT policy (20261020033623) for the caller, as
+     -- saved_search_new_counts' Declutter branch applies it, so no id comes back that the caller could not read.
+     AND (SELECT public.feature_enabled_for('declutter'))
+     AND NOT public.declutter_seller_hidden(i.seller_id)
+     AND (NOT i.is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))
+     AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
+                      WHERE (b.blocker_id = (SELECT auth.uid()) AND b.blocked_id = i.seller_id)
+                         OR (b.blocker_id = i.seller_id AND b.blocked_id = (SELECT auth.uid())));
 $function$;
 REVOKE ALL ON FUNCTION public.declutter_dropped_into_budget(timestamptz, numeric) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_dropped_into_budget(timestamptz, numeric) TO authenticated, service_role;

@@ -271,6 +271,7 @@
     "rpc_supersede_dispute_decision(uuid, text)": "reviewed 2026-10-05 (Q14): admin-only (has_role check inside); named by the invoker trigger enforce_crew_fanout_dispute_lock; no client caller yet.",
     "rpc_withdraw_dispute(uuid)": "client",
     "rpc_withdraw_refund_request(uuid)": "client",
+    "declutter_dropped_into_budget(timestamp with time zone, numeric)": "client",
     "saved_search_new_counts()": "reviewed 2026-10-21 (Q2275): the caller's own saved searches (WHERE s.user_id = auth.uid()) with a count each; Jobs read through open_jobs_browse for the caller, Declutter through the declutter_items SELECT policy's own predicate (savedSearchesEverySection.test.ts). Definer only because miles_between is not granted to members.",
     "search_profiles_by_name(text)": "client",
     "seed_hidden_in_discovery()": "reviewed 2026-10-07 (Q552): read inside the open_jobs_browse view, whose callers need EXECUTE; answers only whether the launch switch hides test rows from the CALLER.",

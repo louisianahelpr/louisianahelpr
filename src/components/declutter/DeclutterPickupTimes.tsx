@@ -224,6 +224,7 @@ export function PickupTimesCard({ userId }: { userId: string }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // NIGHT-SET-Declutterse-1: a failed read says so, with Try again, as Pickup places and Listing defaults do.
+  const problem = pickupWindowsProblem(windows);
   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your pickup times." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
   const toggle = () => {
     if (!open) {
@@ -246,8 +247,11 @@ export function PickupTimesCard({ userId }: { userId: string }) {
         <div className="space-y-3 border-t border-border px-4 py-3">
           <p className="text-xs text-muted-foreground">When buyers can come for any of your items. They pick one of these after they pay.</p>
           <PickupTimesEditor windows={windows} setWindows={setWindows} />
+          {/* NIGHT-SET-Declutterse-6: Save stayed on with no day picked, or an end before its start (only the server
+              refused). The editor above already says why ("Pick at least one day buyers can come.", "The end time must
+              be after the start."), so Save only goes off; nothing is said twice. */}
           <div className="flex justify-end">
-            <Button type="button" size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
+            <Button type="button" size="sm" disabled={save.isPending || !!problem} onClick={() => save.mutate()}>
               {save.isPending ? "Saving…" : "Save pickup times"}
             </Button>
           </div>

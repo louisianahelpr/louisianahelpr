@@ -130,7 +130,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   // would swap the whole job page for its loading fallback (the Posted list has one around its tab).
   const panel = (
     <Suspense fallback={null}>
-    <div data-poster-more="" hidden={!moreOpen} className="rounded-2xl border border-border bg-card p-3">
+    <div data-poster-more="" hidden={!moreOpen}>
       <PostedJobActions
         job={job}
         userId={userId}

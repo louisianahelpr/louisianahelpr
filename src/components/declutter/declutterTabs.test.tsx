@@ -769,6 +769,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | const ASKABLE = new Set(["live", "paused"]); | const ASKABLE = new Set(["live", "paused", "draft", "sold"]);
+  // AUD31-28 (audit 2026-10-31): the Answer row opens the item at its questions, not at the top.
+  // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | <Link to={`/declutter/item/${r.item_id}#declutter-questions`} | <Link to={`/declutter/item/${r.item_id}`}
   it("DC-9: To answer counts and shows the offers waiting on the seller and the unanswered questions, nothing else", async () => {
     state.mine = [ITEM, { ...ITEM, id: "i2", title: "Desk" }, { ...ITEM, id: "i3", status: "draft", title: "Draft lamp" }];
     state.offers = [OFFER, { ...OFFER, offer_id: "o9", item_id: "i2", item_title: "Desk", awaiting: "buyer" }];
@@ -780,7 +782,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const { container } = at("/declutter?tab=selling&status=offers");
     const qs = await screen.findByRole("region", { name: "Questions to answer" });
     expect(within(qs).getByText("Does the desk come apart?")).toBeInTheDocument();
-    expect(within(qs).getByRole("link", { name: /Does the desk come apart/ })).toHaveAttribute("href", "/declutter/item/i2");
+    expect(within(qs).getByRole("link", { name: /Does the desk come apart/ })).toHaveAttribute("href", "/declutter/item/i2#declutter-questions");
     expect(within(qs).queryByText("Still have it?")).toBeNull();
     const box = container.querySelector('[data-status-box="offers"]') as HTMLElement;
     await vi.waitFor(() => expect(box.textContent).toBe("To answer · 2"));

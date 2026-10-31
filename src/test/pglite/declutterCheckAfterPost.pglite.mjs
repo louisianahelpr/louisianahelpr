@@ -334,6 +334,23 @@ check("T23 the next sweep does not hold or alert again (runs once per item; a li
   r.ok?.n === 0 && !(await one("SELECT 1 AS x FROM public.payout_holds WHERE helper_id = $1", [S2])) && (await alertCount()) === before + 1,
   `${JSON.stringify(r)} ${await alertCount()}`);
 
+// Re-review of e23f131d97: the sale falls through (the buyer removes it, 20261028221904: line 'removed', item back
+// to 'live'). Marked "didn't finish" and live again, it must not stay up unchecked: the next sweep holds it.
+await db.query(`UPDATE public.declutter_cart_items SET status = 'removed', closed_at = now() WHERE id = $1`, [L(13)]);
+await db.query(`UPDATE public.declutter_items SET status = 'live' WHERE id = $1`, [I(13)]);
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T24 reserved, swept, the buyer removes it: the next sweep holds the listing that is live again",
+  r.ok?.n === 1 && (await status(13)) === "pending_review", `${JSON.stringify(r)} ${await status(13)}`);
+check("  the seller is told", (await noticesTo(S2, "Your listing is waiting for a check")).some((n) => n.message.includes("didn't finish") && n.message.includes('"Item 13"')));
+// A flagged sale that falls through the same way (a real flag, from record_ai_check on a paid sale).
+await db.query(`UPDATE public.declutter_cart_items SET status = 'removed', closed_at = now() WHERE id = $1`, [L(11)]);
+await db.query(`UPDATE public.declutter_items SET status = 'live', live_at = now() - interval '1 hour' WHERE id = $1`, [I(11)]);
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T25 a flagged sold listing that is live again is held too, and the seller is told the flag",
+  r.ok?.n === 1 && (await status(11)) === "pending_review"
+  && (await noticesTo(SELLER, "Your listing is waiting for a check")).some((n) => n.message.includes('flagged "Item 11" (looks like a weapon)')),
+  `${JSON.stringify(r)} ${await status(11)}`);
+
 // ---- 4. Grants.
 const g = await one(`SELECT has_function_privilege('anon', 'public.declutter_hold_unchecked_listings()', 'EXECUTE') AS a,
   has_function_privilege('authenticated', 'public.declutter_hold_unchecked_listings()', 'EXECUTE') AS u`).catch((e) => ({ err: e.message }));

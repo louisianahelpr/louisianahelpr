@@ -27,6 +27,8 @@
 --      Review of 62f90f3368 (3): one a buyer reserved or paid for before any check came back is not taken down
 --      (the sale stands): the seller's payouts are held, every admin is alerted (not for a test account), the
 --      seller told, and the item marked judged so it runs once.
+--      Re-review of e23f131d97: a flagged (or "didn't finish") listing that is live again because its sale fell
+--      through is held like an unchecked one.
 --
 -- Not changed: the contact-leak trigger, the test-data marking, a listing an edit sends back for a check.
 -- Grants by role name: REVOKE ... FROM PUBLIC, anon. Replay-safe: CREATE OR REPLACE, cron unschedule first.
@@ -295,13 +297,24 @@ BEGIN
        AND i.live_at < now() - interval '15 minutes'
        -- Review of 41771724f3 (1): an admin's approval since it went live stands (approval sets no ai_checked_at).
        AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at)
-       AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL)
-    RETURNING i.id, i.seller_id, i.title
+       -- Never checked; or flagged and back on sale (re-review of e23f131d97): a flag (or the "didn't finish" mark
+       -- below) on a reserved or sold listing leaves it up while the sale stands, and if that sale falls through (the
+       -- buyer removes it, 20261028221904; a missed checkout, 20261030152217) it is live again. It is held here.
+       AND EXISTS (SELECT 1 FROM public.declutter_item_private pv
+                    WHERE pv.item_id = i.id AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
+    RETURNING i.id, i.seller_id, i.title,
+              (SELECT pv.ai_flag_reason FROM public.declutter_item_private pv WHERE pv.item_id = i.id) AS flag
   LOOP
     v_n := v_n + 1;
-    PERFORM public.declutter_notify(r.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
-      format('Our automatic check of "%s" didn''t finish, so someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', r.title),
-      '/declutter?tab=selling', NULL);
+    IF r.flag IS NULL OR r.flag = 'The automatic check didn''t finish.' THEN
+      PERFORM public.declutter_notify(r.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
+        format('Our automatic check of "%s" didn''t finish, so someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', r.title),
+        '/declutter?tab=selling', NULL);
+    ELSE
+      PERFORM public.declutter_notify(r.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
+        format('Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', r.title, r.flag),
+        '/declutter?tab=selling', NULL);
+    END IF;
   END LOOP;
 
   -- Review of 62f90f3368 (3): a buyer reserved or paid for it before any check came back, and none has 15 minutes

@@ -21,6 +21,9 @@
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| (!f.delivered && (!!f.needsTime \|\| !!f.moveAsked))); |      return buyer && !!f.delivered;
  * @mutate src/components/declutter/BuyingOrders.tsx |         needsTime: sd?.status === "needs_time", moveAsked: | needsTime: false, moveAsked:
  * @mutate src/components/declutter/BuyingOrders.tsx | moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller" }; | moveAsked: !!sd?.proposed_start };
+ * AUD31-2: a seller delivery past its time and never marked delivered is late, under Needs you.
+ * @mutate src/components/declutter/OrderSteps.tsx | !!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); | !!f.needsTime \|\| !!f.moveAsked)));
+ * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1 && f.late) return | if (at === 1 && false) return
  * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
@@ -152,6 +155,9 @@ const CASES: Case[] = [
   // AUD31-3: no time set yet: only the buyer can pick one (Needs you); a move the seller asked: only the buyer accepts.
   { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "needs_you", action: "Pick a time" },
   { id: "sd1move", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "seller" }, step: 1, bucket: "needs_you", action: "Accept the new time" },
+  // AUD31-2: past the window and never marked delivered: late, Needs you, "It wasn't delivered" first.
+  { id: "sd1late", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-3), not_delivered_from: iso(-1) }, step: 1, bucket: "needs_you", action: "It wasn't delivered" },
+  { id: "sd1soon", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-0.5), not_delivered_from: iso(1) }, step: 1, bucket: "upcoming", action: null },
   { id: "sd1mine", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "buyer" }, step: 1, bucket: "upcoming", action: null },
   { id: "sd1", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26) }, step: 1, bucket: "upcoming", action: null },
   { id: "sd2", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-2), delivered_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
@@ -223,6 +229,13 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded."; |
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed."; |
   // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
+    load([CASES.find((c) => c.id === "sd1late")!]);
+    show();
+    await waitFor(() => expect(card("sd1late")).toHaveTextContent(/Late: it was due .* and the seller hasn't marked it delivered\./));
+    expect(card("sd1late")).not.toHaveTextContent("Delivery booked");
+  });
+
   it("AUD31-7: a delivery nobody took, or one closed, never says Finding a Helpr; an open one still does", async () => {
     const hd = (id: string, status: string): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { status }, step: 0, bucket: "waiting", action: null });
     load([hd("unfilled", "unfilled"), hd("closed", "cancelled"), hd("open", "open")]);

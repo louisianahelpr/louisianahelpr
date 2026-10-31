@@ -127,7 +127,7 @@ describe("Browse's first cards when the list is longer than the first answer", (
         <MemoryRouter initialEntries={["/declutter?tab=browse"]}>
           <Where />
           <Routes>
-            <Route path="/declutter" element={<><Link to="/item">to item</Link><DeclutterBrowse userId="me" tabs={(b) => <>{b.end}{b.below}</>} /></>} />
+            <Route path="/declutter" element={<><Link to="/item">to item</Link><DeclutterBrowse userId="me" tabs={(b) => <>{b.end}</>} /></>} />
             <Route path="/item" element={<BackButton />} />
           </Routes>
         </MemoryRouter>

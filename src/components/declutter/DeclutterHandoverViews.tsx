@@ -267,9 +267,10 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {order.side === "seller" && <OrderPorchPlace orderId={order.orderId} side="seller" />}
           {order.side === "seller" && <SellerDeliveryMoney itemsCents={items} problemOpen={!!problem} />}
           {order.deliveryTaskId
-            ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} /></Suspense>
+            ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} problemForm={!problem} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
-          {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" />}
+          {/* BUY-22 / D2-9: the panel holds "Report a problem" until a Helpr has it or their pickup time is over
+              (deliveryProblemTimeCame); still finding a Helpr, none. */}
         </>
       ) : (
         <>

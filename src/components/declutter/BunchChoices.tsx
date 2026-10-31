@@ -40,7 +40,8 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
     applied.current = true;
     const row = saved.data ?? null;
     const lastSetup = last.data ?? null;
-    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct });
+    // LEAD-OFFERS-CHOICE part (2): each item's Accept offers starts from the saved default.
+    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers });
     else if (lastSetup?.dropPct != null) setChoices((c) => ({ ...c, dropPct: lastSetup.dropPct! }));
     const ways = (row?.handovers ?? lastSetup?.ways ?? []).filter((w) => w !== "delivery");
     // The default is porch pickup alone; a seller who already ticked something keeps it.

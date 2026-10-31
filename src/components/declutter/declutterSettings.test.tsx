@@ -58,14 +58,14 @@ vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({
     return state.saveResult;
   },
 }));
-// LEAD-OFFERS-CHOICE: the listings the "for all my listings" row counts (none here, so it stays hidden).
-vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyItems: async () => [] }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/bundle")>()), fetchBundleRule: async () => null }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
   return { ...real, fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [], items_off: [], rules: real.SELLER_DELIVERY_RULES }) };
 });
-vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [] }));
+// One mock of the module (a second vi.mock of the same path replaces the first). LEAD-OFFERS-CHOICE: fetchMyItems is
+// the listings the "for all my listings" row counts (none here, so it stays hidden).
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [], fetchMyItems: async () => [] }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {

@@ -168,14 +168,14 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/BunchChoices.tsx` | checkbox/switch/radio×2 |  |  | bunch-drops · bunch-keep-up |
 | `src/components/declutter/BunchDraftsSection.tsx` | checkbox/switch/radio×1 |  |  | bunch-drafts · bunch-drafts-tax |
-| `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, select×3, checkbox/switch/radio×1 | text | 80, 2000 | Oak rocking chair · Set a price |
+| `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, select×3, checkbox/switch/radio×2 | text | 80, 2000 | Oak rocking chair · Set a price |
 | `src/components/declutter/DeclutterBunchPhotos.tsx` | input×1 | file |  |  |
 | `src/components/declutter/DeclutterBunchRow.tsx` | input×1 | text |  | Price ($) |
 | `src/components/declutter/DeclutterBunchView.tsx` | input×1 | file |  | bunch-where · bunch-address · bunch-photos · bunch-files · Add photos · bunch-check |
 | `src/components/declutter/DeclutterMovingSaleDetails.tsx` | input×1 | text | 60 | move-sale-name · Moving to Lafayette · everything goes · move-sale-start · Pick a date |
 | `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | Photos · sell-files |
 | `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · e.g. Oak rocking chair · sell-desc · How buyers get it · sell-form-problem |
-| `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×2 | text |  | sell-price · Price · sell-drops · sell-floor · e.g. 30 · sell-address · sell-pickup · sell-tax-head |
+| `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×3 | text |  | sell-price · Price · sell-offers · sell-drops · sell-floor · e.g. 30 · sell-address · sell-pickup |
 | `src/components/declutter/SellSummaryCard.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-summary-head · sell-title · e.g. Oak rocking chair · sell-desc |
 
 ## /declutter/sell, /declutter/settings
@@ -194,7 +194,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/BundleDiscountCard.tsx` | select×1 |  |  |  |
-| `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×2 |  |  | defaults-ways |
+| `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×3 |  |  | defaults-ways |
 | `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · Your delivery price and times · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on |
 | `src/components/declutter/SellPorchPlaces.tsx` | input×1 | text | 40 | e.g. Home, Mom · Days and hours at this place · Pickup places |
 

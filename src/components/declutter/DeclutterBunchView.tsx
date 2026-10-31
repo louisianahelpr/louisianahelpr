@@ -554,6 +554,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
               >
                 <BunchCard
                   item={it}
+                  offersDefault={choices.choices.acceptsOffers}
                   index={i}
                   others={others(it.key)}
                   urls={thumbs}

@@ -220,6 +220,9 @@ const FREE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
   pickup_home: { title: "Meet at the giver's home", words: "Pick it up at their door. Address once you confirm." },
 };
 
+const FREE_CHECKOUT_LINE = "Free items are picked up only. Nothing is charged.";
+const FREE_CHECKOUT_FIRST_LINE = "Free items are picked up only. The item stays free. Your first claim has a one-time ID check next, and we'll show you the cost first.";
+
 /**
  * The cart for a seller whose waiting items are ALL free: no payment page and no fee. The buyer picks
  * porch pickup (only when every item allows it) or pickup at the giver's home; Helpr and seller delivery
@@ -232,6 +235,10 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   ways?: Handover[] | null;
 }) {
   const qc = useQueryClient();
+  // Same reading as the ask line: a first-timer's Confirm is one tap from the one-time fee, so "nothing is charged" would be false.
+  const { profile } = useCurrentUser();
+  const idCheckOn = useIdentityCheckOnStore();
+  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // An item made free on day 12 whose giver ticked only other ways offers nothing here: no fallback to the giver's
   // door (Q2462); NoWayWorks below opens the chat with them.
   const offered = freeWaysOffered(porchOk, ways);
@@ -276,7 +283,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
-      <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>
+      <p className="text-xs text-muted-foreground">{oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE}</p>
     </div>
   );
 }

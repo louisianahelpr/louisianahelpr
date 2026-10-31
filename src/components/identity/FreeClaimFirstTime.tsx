@@ -26,7 +26,8 @@ import {
 
 export function FreeClaimFirstTime() {
   const open = useSyncExternalStore(subscribeFreeClaimFirstTime, isFreeClaimFirstTimeOpen, isFreeClaimFirstTimeOpen);
-  const fee = formatFeeLabel(useOnboardingFeeCents()) || "The fee";
+  // An unread amount has no number to show, and the checkout still shows the real one before anything is charged.
+  const feeLabel = formatFeeLabel(useOnboardingFeeCents());
   const [opening, setOpening] = useState(false);
 
   const pay = async () => {
@@ -51,13 +52,13 @@ export function FreeClaimFirstTime() {
             A claim shares a real person's address, so we check ID once to keep members safe.
           </p>
           <p className="font-sans text-ds-13 text-foreground">
-            {fee} covers the check. You pay it first, then verify with Stripe in about 2 minutes. You'll never be asked again, and the item stays free.
+            {feeLabel ? `${feeLabel} covers the check.` : "A one-time fee covers the check."} You pay it first, then verify with Stripe in about 2 minutes. You'll never be asked again, and the item stays free.
           </p>
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={closeFreeClaimFirstTime}>Not now</DialogSecondaryAction>
           <DialogPrimaryAction onClick={() => void pay()} disabled={opening}>
-            {opening ? "Opening…" : `Pay ${fee}`}
+            {opening ? "Opening…" : feeLabel ? `Pay ${feeLabel}` : "Continue to payment"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

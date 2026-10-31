@@ -126,6 +126,9 @@ await db.exec(`ALTER TABLE public.helpr_task_payouts DROP CONSTRAINT IF EXISTS h
     CHECK (status IN ('pending', 'succeeded', 'failed', 'nothing_due', 'held_for_review', 'settled_by_hand'));`);
 for (const fn of ["helpr_task_rows_seed", "declutter_notify", "member_display_name"]) await db.exec(newest(fn));
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(mig); // replay-safe: applied three times
+// The newest shape of the payout row (setup_fee_cents and its amount CHECK), so this proof runs on what prod will hold.
+await db.exec(newest("helpr_payout_round_down_cents", "20261021181119"));
+await db.exec(readFileSync(MIG_DIR + "20261031014752_helpr_setup_fee_from_payout.sql", "utf8"));
 
 const people = [BUYER, SELLER, HELPR, STRANGER, BANNED, OFF, ENEMY, SEEDBUYER, NEWHELPR];
 await db.exec(`insert into auth.users values ${people.map((u) => `('${u}')`).join(",")}`);
@@ -241,7 +244,8 @@ const NEWTASK = await task({ helpr: NEWHELPR });
 await db.exec(`insert into public.declutter_orders values ('${NEWTASK}', 'pi_order_new')`);
 const noPayoutRow = await start(BUYER, NEWTASK, 1000, A1);
 check(refused(noPayoutRow, /tip_unavailable/), "[held] no waiting delivery pay to hold the tip with: no tip (staff would have nothing to send it with)");
-await db.exec(`insert into public.helpr_task_payouts (task_id, helpr_id, pay_cents, fee_cents, amount_cents, status) values ('${NEWTASK}', '${NEWHELPR}', 2500, 195, 2305, 'pending')`);
+// The live CHECK since 20261021181118 and 20261031014752: whole dollars, less any setup fee. 2500 - 195 rounds down to 2300.
+await db.exec(`insert into public.helpr_task_payouts (task_id, helpr_id, pay_cents, fee_cents, amount_cents, status) values ('${NEWTASK}', '${NEWHELPR}', 2500, 195, 2300, 'pending')`);
 const h1 = await start(BUYER, NEWTASK, 1000, A1);
 check(h1.ok && h1.rows[0].r.held === true, `[held] a Helpr with no payout account: the tip is taken and marked held${h1.ok ? "" : ` (${h1.code})`}`);
 check(s1.ok && s1.rows[0].r.held === false, "[held] a Helpr with a payout account: not held (the job tip's destination charge)");
@@ -254,7 +258,7 @@ check(hn.length === 1 && hn[0].message === "Pat L. tipped you $10.00 for a deliv
   `[held] the Helpr is told who tipped and to set up payouts (${hn.map((x) => x.message).join(" | ")})`);
 const due = async () => (await svc("select payout_id, amount_cents, tip_parts from public.helpr_task_payouts_due(50) where task_id = $1", [NEWTASK]));
 const d1 = await due();
-check(d1.ok && d1.rows.length === 1 && d1.rows[0].amount_cents === 2305
+check(d1.ok && d1.rows.length === 1 && d1.rows[0].amount_cents === 2300
   && d1.rows[0].tip_parts.length === 1 && d1.rows[0].tip_parts[0].tip_id === heldId
   && d1.rows[0].tip_parts[0].payment_intent_id === "pi_tip_h" && d1.rows[0].tip_parts[0].cents === 1000,
   `[queue] the payout queue names the held tip beside the delivery pay, exactly the tip, from the tip's own charge (${JSON.stringify(d1.rows?.[0]?.tip_parts ?? d1.code)})`);

@@ -104,6 +104,11 @@ for (const fn of ["declutter_payouts_due", "helpr_task_payouts_due", "shop_payou
 
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
+// The newest shape of the delivery payout row (setup_fee_cents and its amount CHECK: whole dollars, less any setup fee),
+// so these queues run on what prod will hold.
+await db.exec(`ALTER TABLE public.helpr_task_payouts ADD COLUMN IF NOT EXISTS pay_cents integer, ADD COLUMN IF NOT EXISTS fee_cents integer;`);
+await db.exec(readFileSync(`${MIG_DIR}20261021181118_helpr_delivery_payout_round_down.sql`, "utf8").match(/CREATE OR REPLACE FUNCTION public\.helpr_payout_round_down_cents[\s\S]*?\$(\w*)\$[\s\S]*?\$\1\$\s*;/)[0]);
+await db.exec(readFileSync(`${MIG_DIR}20261031014752_helpr_setup_fee_from_payout.sql`, "utf8"));
 
 let pass = 0;
 let fail = 0;
@@ -136,9 +141,9 @@ await db.exec(`INSERT INTO public.declutter_orders (id, buyer_id, stripe_payment
   INSERT INTO public.shop_payouts (id, order_id, amount_cents, status, next_attempt_at) VALUES
     ('${U(610)}', '${U(510)}', 1800, 'pending', now() - interval '1 minute'), ('${U(611)}', '${U(511)}', 1800, 'pending', now() - interval '99 days');
   INSERT INTO public.helpr_tasks (id, source_kind, source_id) VALUES ('${U(520)}', 'declutter_delivery', '${U(500)}'), ('${U(521)}', 'declutter_delivery', '${U(500)}');
-  INSERT INTO public.helpr_task_payouts (id, task_id, helpr_id, amount_cents, status, next_attempt_at) VALUES
-    ('${U(620)}', '${U(520)}', '${READY_HELPR}', 1640, 'pending', now() - interval '1 minute'),
-    ('${U(621)}', '${U(521)}', '${U(4)}', 1640, 'pending', now() - interval '99 days');`);
+  INSERT INTO public.helpr_task_payouts (id, task_id, helpr_id, pay_cents, fee_cents, amount_cents, status, next_attempt_at) VALUES
+    ('${U(620)}', '${U(520)}', '${READY_HELPR}', 1800, 200, 1600, 'pending', now() - interval '1 minute'),
+    ('${U(621)}', '${U(521)}', '${U(4)}', 1800, 200, 1600, 'pending', now() - interval '99 days');`);
 
 // --- 1. starvation, and the fix: the skipped rows hold the front of a full batch until they are deferred
 let due = await q(`SELECT payout_id FROM public.declutter_payouts_due(25)`);

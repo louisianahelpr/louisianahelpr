@@ -26,7 +26,8 @@ vi.mock("@/integrations/supabase/client", () => ({
     rpc: async () => ({ data: [{ onboarding_fee_cents: 200 }], error: null }),
   },
 }));
-vi.mock("@/hooks/useOnboardingFee", () => ({ useOnboardingFeeCents: () => 200, formatFeeLabel: (c: number | null) => (c === 200 ? "$2" : "") }));
+const feeCents = vi.hoisted(() => ({ value: 200 as number | null }));
+vi.mock("@/hooks/useOnboardingFee", () => ({ useOnboardingFeeCents: () => feeCents.value, formatFeeLabel: (c: number | null) => (c === 200 ? "$2" : "") }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => {}) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -81,6 +82,27 @@ describe("a first free claim", () => {
     expect(invoke.mock.calls[0][0]).toBe("pay-onboarding-fee");
     expect(invoke.mock.calls[0][1].body.return_to).toBe("declutter_free_claim");
     expect(read("supabase/functions/pay-onboarding-fee/index.ts")).toContain('buildRedirectUrl("/declutter?tab=buying&verify_id=1&verify_reason=claim", isNative)');
+  });
+
+  // @mutate src/components/identity/FreeClaimFirstTime.tsx | feeLabel ? `Pay ${feeLabel}` : "Continue to payment" | `Pay ${feeLabel}`
+  it("a fee amount that could not be read: sensible words, never \"Pay The fee\"", async () => {
+    feeCents.value = null;
+    try {
+      show();
+      act(() => openFreeClaimFirstTime());
+      expect(await screen.findByRole("button", { name: "Continue to payment" })).toBeTruthy();
+      expect(screen.getByText(/A one-time fee covers the check\./)).toBeTruthy();
+      expect(screen.queryByText(/Pay The fee/)).toBeNull();
+    } finally {
+      feeCents.value = 200;
+    }
+  });
+
+  // @mutate src/components/identity/IdentityCheckSheet.tsx | checks a photo ID and a selfie.",\n  general: | checks a photo ID and a selfie. Once, and never again.",\n  general:
+  it("the ID sheet says \"once\" one time: the shared line does, so the claim's lead does not", () => {
+    const sheet = blankComments(read("src/components/identity/IdentityCheckSheet.tsx"));
+    expect(sheet).toMatch(/you only do it once/);
+    expect(sheet).not.toMatch(/Once, and never again/);
   });
 
   it("the two refusals are told apart, and each is read by name", () => {

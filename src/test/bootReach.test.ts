@@ -14,7 +14,7 @@
  * @mutate vite.config.ts | includeDependenciesRecursively: false, | includeDependenciesRecursively: true,
  * @mutate scripts/perf/bootReach.mjs | const deep = new Set([...signedInOnly].filter((f) => !reach.has(f))); | const deep = new Set();
  * @mutate vite.config.ts | name: "signed-in-deep", | name: "signed-in-deep-off",
- * @mutate vite.config.ts | const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>(); const declutterOnly = new Set<string>();
+ * @mutate vite.config.ts | const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>(); const declutterOnly = new Set<string>(); const homeOff = new Set<string>();
  * @mutate vite.config.ts | name: "declutter-first-screen", | name: "signed-in-shared",
  * @mutate scripts/perf/bootReach.mjs | const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f))); | const declutterOnly = new Set();
  * @mutate src/pages/auth/signup/useCityZipMismatch.ts | void import("@/lib/cityZipMismatch").then( | void Promise.resolve(staticHint).then(
@@ -123,7 +123,7 @@ describe("vite.config.ts wires the group", () => {
   it("has a signed-in-deep group fed by signedInSplit, above signed-in-shared's priority", () => {
     const deepGroup = cfg.match(/name:\s*"signed-in-deep"[\s\S]*?\n\s*\},/)?.[0] ?? "";
     expect(deepGroup).not.toBe("");
-    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep,\s*declutterOnly\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
+    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep,\s*declutterOnly,\s*homeOff\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
     expect(deepGroup).toMatch(/signedInDeep\.has\(/);
     expect(deepGroup).toMatch(/includeDependenciesRecursively:\s*false/);
     expect(Number(deepGroup.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(group.match(/priority:\s*(\d+)/)?.[1]));

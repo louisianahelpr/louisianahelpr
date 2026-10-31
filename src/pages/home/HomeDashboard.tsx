@@ -24,6 +24,7 @@ import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
 import { needsIdentityCheck } from "@/lib/identityCheck";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
+import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
 
 function greeting(d = new Date()) {
@@ -125,6 +126,8 @@ function HomeDashboardScreen() {
 
             {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
             {firstJob?.isNew && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
+            {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
 
             {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
             {idOn && needsIdentityCheck(profile) && !firstJob?.isNew && (summary.counts.posted > 0 || summary.counts.working > 0) && (

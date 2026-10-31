@@ -92,8 +92,9 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
     const rec = flat(body("declutter_record_ai_check"));
     // A draft, or (item B) a listing an edit sent back whose check was cleared; never one already judged.
     expect(rec).toContain("AND (i.status = 'draft'");
-    // LEAD-POST-SLOW: a live listing only while it has no check yet, so a result is never washed off by asking again.
-    expect(rec).toContain("OR (i.status = 'live' AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))");
+    // LEAD-POST-SLOW: a live listing only while it has no check yet; also one a buyer reserved or paid for before the
+    // check landed, never one an admin approved since it went live (review of 41771724f3).
+    expect(rec).toContain("OR (i.status IN ('live', 'reserved', 'sold') AND i.live_at IS NOT NULL AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at) AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))");
     expect(rec).toContain(
       "OR (i.status = 'pending_review' AND i.live_at IS NOT NULL AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))) FOR UPDATE",
     );

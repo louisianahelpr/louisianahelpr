@@ -7,8 +7,8 @@
  *    right" first.
  *  - PickedUpSheet (seller, door pickup): what "Picked up" does.
  *  - NoShowSheet (160): what reporting a no-show really does, from
- *    declutter_report_no_show (read live 2026-10-21): the buyer reporting the
- *    seller cancels the sale with everything refunded; the seller reporting
+ *    declutter_report_no_show (owner 10-30): the buyer reporting the seller gives
+ *    the seller 24 hours to answer, then a refund and a strike; the seller reporting
  *    the buyer gives the buyer one new booking inside the 7-day pickup
  *    deadline, and a second miss cancels the sale with the item price
  *    refunded (not the buyer's fee) and a strike. The seller does not choose.
@@ -183,7 +183,7 @@ export function PickedUpSheet({
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
-        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that."}</Note>
+        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "We ask the buyer to confirm. If they don't say anything, you're paid in about 48 hours."}</Note>
         <SheetFooter>
           <SheetSecondaryAction onClick={() => onOpenChange(false)} disabled={pending}>Not yet</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending}>Picked up</SheetPrimaryAction>
@@ -224,7 +224,9 @@ export function NoShowSheet({
           </ul>
         ) : (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="buyer">
-            <li>{free ? "Your claim is cancelled. Nothing was charged." : "The sale is cancelled and you get everything back."}</li>
+            <li>We tell {who} now, and they have 24 hours to answer.</li>
+            <li>{free ? "If they don't, your claim is cancelled. Nothing was charged." : "If they don't, the sale is cancelled and you get everything back."}</li>
+            <li>If they say they were there, Louisiana Helpr looks at both sides{free ? "." : ", and your money stays held until then."}</li>
             <li className="text-ds-13 text-muted-foreground">A no-show counts against the seller, not you.</li>
           </ul>
         )}

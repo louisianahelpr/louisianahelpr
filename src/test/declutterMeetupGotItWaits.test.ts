@@ -9,10 +9,10 @@
  * prod's body with NEW_MIGRATION=skip; RED with the hour check, the booking check or the door planted out).
  * Client half: declutterHandoverViews.test.tsx ("DB-3: the buyer's I got it waits until an hour before").
  */
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF o.handover IN ('meetup', 'pickup_home') THEN |   IF false THEN
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF o.handover IN ('meetup', 'pickup_home') THEN |   IF o.handover IN ('meetup') THEN
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |     IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |     IF now() < v_slot - make_interval(mins => 1440) THEN
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |     IF v_slot IS NULL THEN\n      RAISE EXCEPTION 'not_booked_yet' |     IF false THEN\n      RAISE EXCEPTION 'not_booked_yet'
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover IN ('meetup', 'pickup_home') THEN |   IF false THEN
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover IN ('meetup', 'pickup_home') THEN |   IF o.handover IN ('meetup') THEN
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |     IF now() < v_slot - make_interval(mins => 1440) THEN
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     IF v_slot IS NULL THEN\n      RAISE EXCEPTION 'not_booked_yet' |     IF false THEN\n      RAISE EXCEPTION 'not_booked_yet'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

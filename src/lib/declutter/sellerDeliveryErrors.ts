@@ -116,13 +116,7 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
   },
   declutter_report_not_delivered: {
     account_restricted: DC.account_restricted,
-    // Raised inside declutter_close_paid_order (and the Helpr task steps it takes on a Helpr order).
-    already_paid_out: DC.already_paid_out,
-    delivery_not_done: DC.delivery_not_done,
-    invalid_method: DC.invalid_method,
-    invalid_status: DC.invalid_status,
-    order_not_paid: DC.order_not_paid,
-    refund_amount_unknown: DC.refund_amount_unknown,
+    problem_taken_back: DC.problem_taken_back,
     item_not_found: DC.item_not_found,
     not_a_seller_delivery: S.not_a_seller_delivery,
     not_authenticated: DC.not_authenticated,

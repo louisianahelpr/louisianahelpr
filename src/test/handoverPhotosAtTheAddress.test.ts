@@ -9,9 +9,9 @@
  * Backend proof: src/test/pglite/declutterHandoverPhotosAtAddress.pglite.mjs (3x; RED without it and on 11 plants).
  */
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |     v_m := public.helpr_task_distance_m(p_lat, p_lng, d.dropoff_lat, d.dropoff_lng); |     v_m := 0;
-// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |       SELECT public.helpr_task_distance_m(p_lat, p_lng, m.spot_lat, m.spot_lng) INTO v_m |       SELECT 0 INTO v_m
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |       SELECT public.helpr_task_distance_m(p_lat, p_lng, m.spot_lat, m.spot_lng) INTO v_m |       SELECT 0 INTO v_m
 // @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1) |   IF v_side = 'seller' THEN RETURN jsonb_build_object('result', 'set_out'); END IF;\n  IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1)
-// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text,\n  p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text)
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text,\n  p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text)
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";

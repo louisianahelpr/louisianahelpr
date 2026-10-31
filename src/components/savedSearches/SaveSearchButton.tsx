@@ -16,7 +16,8 @@ export function SaveSearchButton({ draft, sections, userId }: { draft: SearchDra
         type="button"
         onClick={() => setOpen(true)}
         data-testid="save-search"
-        className="inline-flex items-center gap-1.5 rounded-full px-4 min-h-[44px] border border-border font-sans font-semibold text-ds-13"
+        // SS-8: self-start, so a flex column (Declutter Browse with no results) never stretches the pill full width.
+        className="self-start inline-flex items-center gap-1.5 rounded-full px-4 min-h-[44px] border border-border font-sans font-semibold text-ds-13"
         style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}
       >
         <Bell className="w-4 h-4" aria-hidden />

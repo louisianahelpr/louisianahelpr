@@ -12,7 +12,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx |   return MY_JOBS_LINK_PARAMS.some((k) => params.has(k)) ? "working" : "browse"; |   return "browse";
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;
  * @mutate src/components/sections/StatusBoxes.tsx | aria-pressed={on} | aria-pressed={false}
- * @mutate src/components/sections/StatusBoxes.tsx | {(!onlyLit \|\| value === null) && chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
+ * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
  * @mutate src/components/job-card/embeddedActivity.tsx | label={tab === "posted" ? "Search posted jobs" | label={tab === "posted" ? "Search all sections"
@@ -34,8 +34,8 @@ vi.mock("@/components/job-card/JobListPage", async (orig) => {
   const real = await orig<typeof import("@/components/job-card/JobListPage")>();
   return {
     ...real,
-    default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader?: ReactNode }) => (
-      <div data-testid={`list-${defaultTab}`}>{embeddedHeader}</div>
+    default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader: () => ReactNode }) => (
+      <div data-testid={`list-${defaultTab}`}>{embeddedHeader()}</div>
     ),
   };
 });
@@ -76,7 +76,7 @@ const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("
 afterEach(cleanup);
 
 describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
-  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon in their status chip row (owner 2026-10-25 / 2026-10-27, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
+  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon beside the gear (owner 2026-10-25 / 2026-10-27 / 2026-10-31, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
     let n = 0;
     for (const url of ["/jobs", "/jobs?tab=posted", "/jobs?tab=working"]) {
       open(url);
@@ -85,7 +85,7 @@ describe("one search bar per screen (owner 2026-10-21: two were stacked on Brows
       cleanup();
     }
     expect(n).toBe(3);
-    const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={null} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
+    const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={(row) => <div>{row?.end}</div>} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
     expect(icon.getAttribute("aria-label")).toBe("Search posted jobs");

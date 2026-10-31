@@ -43,6 +43,7 @@ const mocking = tests
 const offenders = mocking.filter(([, code]) => sonnerFactories(code).some(nonCallable)).map(([f]) => f).sort();
 
 /** Still to move onto sonnerMock (2026-10-31). Shrink only: a file that moves leaves this list in the same commit. */
+// @two-way src/test/sonnerMocksAreCallable.test.ts:stale baseline entry in LEGACY
 const LEGACY: readonly string[] = [
   "src/components/BrowseMap.test.tsx",
   "src/components/CancellationDialog.doneRefusal.test.tsx",
@@ -100,7 +101,7 @@ describe("every sonner mock keeps toast callable", () => {
   });
 
   it("LEGACY is exact: each entry is still an offender", () => {
-    expect(LEGACY.filter((f) => !offenders.includes(f))).toEqual([]);
+    expect(LEGACY.filter((f) => !offenders.includes(f)), "stale baseline entry in LEGACY — remove it (lower the baseline)").toEqual([]);
   });
 
   it("the scan sees a planted plain-object mock, and passes the shared and Object.assign ones (self-test)", () => {

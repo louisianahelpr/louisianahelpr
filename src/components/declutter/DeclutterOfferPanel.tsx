@@ -13,8 +13,9 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
-import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
-import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
+import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem, type DeliverySize } from "@/lib/declutter/api";
+import { noDeliveryWay, totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
+import { deliveryPriceCents } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { minOfferCents } from "@/lib/declutter/money";
@@ -137,12 +138,23 @@ const CARD_POLL_MS = 1_500;
  * answer is in, the label says a setup fee may be added rather than show a
  * figure $2 low. Screen readers hear one line.
  */
-function BuyNowLabel({ priceCents }: { priceCents: number }) {
+function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
+  // Audit BUY-3: on an item the seller offers only delivered (way "none"), the pickup total is a figure nobody can
+  // pay. The label names the least it costs delivered instead, the item page's own "from" floor (fromDeliveredCents).
+  const delivered = way === "none";
   return (
     <span className="flex flex-col items-center leading-tight">
       <span className="font-semibold">Buy now</span>{" "}
       <span className="sr-only">·</span>{" "}
-      <BuyerTotal priceCents={priceCents} suffix=" total" className="text-xs font-medium" pendingClassName="text-xs font-medium" />
+      <span className="text-xs font-medium">
+        {delivered && "from "}
+        <BuyerTotal
+          priceCents={priceCents}
+          addCents={delivered ? deliveryPriceCents(1, [size]) : 0}
+          suffix={delivered ? " delivered" : " total"}
+          pendingClassName="text-xs font-medium"
+        />
+      </span>
     </span>
   );
 }
@@ -326,7 +338,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           aria-busy={card.isLoading || undefined}
           onClick={() => tap("buy")}
         >
-          <BuyNowLabel priceCents={item.current_price_cents} />
+          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
         </Button>
         {!myOffer && !offersOff && (
           <Button
@@ -451,7 +463,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                   if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
               >
-                <BuyNowLabel priceCents={item.current_price_cents} />
+                <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
               </Button>
             </div>
           </div>,

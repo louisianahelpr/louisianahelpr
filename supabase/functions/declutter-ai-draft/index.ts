@@ -242,7 +242,9 @@ serve(async (req) => {
     // whether that one may be judged (it was live and its check was cleared) and refuses anything else.
     // LEAD-POST-SLOW (owner 2026-10-31, 20261031152545): Post publishes at once and the check runs right after, on
     // the LIVE listing; declutter_record_ai_check judges a live one only while it has no check yet.
-    const declutterStatuses = mode === "check" ? ["draft", "live", "pending_review"] : ["draft"];
+    // Review of 41771724f3: a buyer can reserve (or pay for) it in the seconds before the check lands, so a check also
+    // reaches a reserved or sold listing that went live with none; record_ai_check holds the payout on a flag.
+    const declutterStatuses = mode === "check" ? ["draft", "live", "pending_review", "reserved", "sold"] : ["draft"];
     const { data: item, error: itemErr } = shopItem
       ? await admin.from("shop_items").select("id, kind, subtype, title, description")
           .eq("id", itemId).eq("owner_id", userId).eq("status", "draft").maybeSingle()

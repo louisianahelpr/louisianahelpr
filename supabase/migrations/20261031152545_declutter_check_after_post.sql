@@ -12,10 +12,18 @@
 --   2. declutter_record_ai_check: also judges a LIVE listing not checked yet (the check the app now runs right
 --      after Post). A flag takes it down at once (pending_review, held for an admin), closes its open offers
 --      (buyers told, nothing charged) and tells the seller why. A clean result just records it.
+--      Review of 41771724f3 (2): a buyer can reserve or pay in the seconds before the check lands, so the check
+--      also judges a RESERVED or SOLD listing that went live with none. On a flag: not paid yet, the cart line
+--      closes with no strike (as the buyer's own "remove", 20261028221904), its unpaid order is superseded (a late
+--      payment on it is refunded in full by declutter_mark_order_paid), the buyer is told and the item is held
+--      for an admin; paid, the seller's payouts are held (payout_holds, the existing hold every payout path
+--      checks) and every admin is alerted: lift the hold to release, or refund the buyer through the existing
+--      refund path. An admin-approved listing is never re-judged by a late check.
 --   3. declutter_hold_unchecked_listings(): the fail-safe (B19) for a check that never comes back (app closed,
 --      tool down): a listing live 15 minutes with no check is held for an admin and the seller told. Every 10 min
 --      by cron ('declutter-unchecked-hold'). A late clean check puts it back live (record_ai_check's own
---      pending_review branch: live_at is set).
+--      pending_review branch: live_at is set). Review of 41771724f3 (1): a listing an admin approved since it
+--      went live (declutter_admin_review_item sets admin_approved_at, not ai_checked_at) is never held again.
 --
 -- Not changed: the contact-leak trigger, the test-data marking, a listing an edit sends back for a check.
 -- Grants by role name: REVOKE ... FROM PUBLIC, anon. Replay-safe: CREATE OR REPLACE, cron unschedule first.
@@ -117,6 +125,7 @@ DECLARE
   v_at timestamptz := now();
   v_flag text := NULLIF(left(btrim(COALESCE(p_flag_reason, '')), 300), '');
   r record;
+  v_line record;
 BEGIN
   -- A draft (before publishing), or a listing an edit sent back for this check:
   -- it was live before (live_at set) and its result was cleared by the edit. A
@@ -125,9 +134,13 @@ BEGIN
   SELECT i.* INTO v_item FROM public.declutter_items i
    WHERE i.id = p_item_id AND i.seller_id = p_seller_id
      AND (i.status = 'draft'
-          -- LEAD-POST-SLOW: the check that runs right after Post, on a live listing not judged yet.
-          OR (i.status = 'live' AND EXISTS (SELECT 1 FROM public.declutter_item_private pv
-                                             WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))
+          -- LEAD-POST-SLOW: the check that runs right after Post, on a live listing not judged yet, or one a buyer
+          -- reserved or paid for before it landed (review of 41771724f3). Never one an admin approved since it
+          -- went live: the admin's decision stands.
+          OR (i.status IN ('live', 'reserved', 'sold') AND i.live_at IS NOT NULL
+              AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at)
+              AND EXISTS (SELECT 1 FROM public.declutter_item_private pv
+                           WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))
           OR (i.status = 'pending_review' AND i.live_at IS NOT NULL
               AND EXISTS (SELECT 1 FROM public.declutter_item_private pv
                            WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL)))
@@ -169,6 +182,59 @@ BEGIN
     PERFORM public.declutter_notify(v_item.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
       format('Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', v_item.title, v_flag),
       '/declutter?tab=selling', NULL);
+  END IF;
+
+  -- Review of 41771724f3 (2): flagged after a buyer reserved or paid for it.
+  IF v_item.status IN ('reserved', 'sold') AND v_flag IS NOT NULL THEN
+    -- Lock order as everywhere in Declutter: items (above) -> orders -> lines.
+    SELECT c.id, c.status, c.buyer_id, c.order_id, o.status AS order_status INTO v_line
+      FROM public.declutter_cart_items c LEFT JOIN public.declutter_orders o ON o.id = c.order_id
+     WHERE c.item_id = p_item_id AND c.status IN ('in_cart', 'paid')
+     ORDER BY c.created_at DESC LIMIT 1;
+    IF v_line.order_id IS NOT NULL THEN
+      PERFORM 1 FROM public.declutter_orders o WHERE o.id = v_line.order_id FOR UPDATE;
+    END IF;
+    IF v_line.id IS NOT NULL AND v_line.status = 'in_cart' AND COALESCE(v_line.order_status, 'awaiting_payment') = 'awaiting_payment' THEN
+      -- Not paid: let the line go with no strike, held for an admin.
+      UPDATE public.declutter_cart_items SET status = 'removed', closed_at = v_at
+       WHERE id = v_line.id AND status = 'in_cart';
+      IF v_line.order_id IS NOT NULL THEN
+        UPDATE public.declutter_orders SET status = 'superseded', close_reason = 'superseded', closed_at = v_at
+         WHERE id = v_line.order_id AND status = 'awaiting_payment';
+        UPDATE public.declutter_cart_items SET order_id = NULL
+         WHERE order_id = v_line.order_id AND status = 'in_cart';
+      END IF;
+      UPDATE public.declutter_items SET status = 'pending_review', updated_at = v_at
+       WHERE id = p_item_id AND status = 'reserved';
+      PERFORM public.declutter_notify(v_line.buyer_id, 'declutter_offers', 'Listing changed',
+        format('"%s" was taken down for a check, so it left your cart. Nothing was charged.', v_item.title),
+        '/declutter?tab=buying', v_item.seller_id);
+      PERFORM public.declutter_notify(v_item.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
+        format('Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', v_item.title, v_flag),
+        '/declutter?tab=selling', NULL);
+    ELSE
+      -- Paid (or the order is past paying): the sale stands until an admin decides; the seller's payouts wait.
+      INSERT INTO public.payout_holds (helper_id, reason, held_by, held_at)
+      VALUES (v_item.seller_id,
+              left(format('Declutter: the automatic check flagged "%s" (%s) after it sold (order %s). Lift this hold to pay the seller, or refund the buyer.',
+                          v_item.title, v_flag, COALESCE(v_line.order_id::text, 'none')), 1000),
+              NULL, v_at)
+      ON CONFLICT (helper_id) DO NOTHING;
+      -- Every admin, never for a test account (owner 2026-10-30).
+      IF NOT public.is_test_subject(v_item.seller_id) THEN
+        INSERT INTO public.notifications (user_id, title, message, type, link)
+        SELECT ur.user_id,
+               'A sold Declutter listing failed its check',
+               left(format('"%s" was flagged (%s) after a buyer paid. The seller''s payouts are on hold: lift the hold to pay them, or refund the buyer.', v_item.title, v_flag), 1000),
+               'admin_alert',
+               '/admin?view=payouts'
+          FROM public.user_roles ur
+         WHERE ur.role = 'admin';
+      END IF;
+      PERFORM public.declutter_notify(v_item.seller_id, 'declutter_listings', 'Your sale is waiting for a check',
+        format('Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it before you''re paid.', v_item.title, v_flag),
+        '/declutter?tab=selling', NULL);
+    END IF;
   END IF;
 
   IF v_item.status = 'pending_review' THEN
@@ -221,6 +287,8 @@ BEGIN
        SET status = 'pending_review', updated_at = now()
      WHERE i.status = 'live'
        AND i.live_at < now() - interval '15 minutes'
+       -- Review of 41771724f3 (1): an admin's approval since it went live stands (approval sets no ai_checked_at).
+       AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at)
        AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL)
     RETURNING i.id, i.seller_id, i.title
   LOOP

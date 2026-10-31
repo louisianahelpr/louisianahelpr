@@ -19,9 +19,11 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
 
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+// AUD31-12: the weekday alone only within 6 days; older lines carry their date.
+const when = (iso: string) => talkTime(iso);
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
 export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller" }) {

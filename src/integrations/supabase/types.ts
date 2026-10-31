@@ -5391,6 +5391,29 @@ export type Database = {
           },
         ]
       }
+      job_cancel_id_waivers: {
+        Row: {
+          created_at: string
+          job_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_cancel_id_waivers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_card_holds: {
         Row: {
           amount_cents: number

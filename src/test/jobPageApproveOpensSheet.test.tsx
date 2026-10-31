@@ -5,6 +5,9 @@
  * sheet once on arrival. This file proves the card half; src/pages/jobs/jobPage/JobPage.test.tsx the page half.
  *
  * @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     if (!job.poster_completed_at && takeFaceAction(job.id, "approve")) setCompletionSheetOpen(true); |     if (false) setCompletionSheetOpen(true);
+ * @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     if (takeFaceAction(job.id, "cancel")) onCancel(job); |     if (false) onCancel(job);
+ *
+ * The job page's "Cancel job" (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31) asks the card's own cancel flow the same way.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -43,13 +46,13 @@ const job = (id: string) => ({
   proof_before_urls: [], proof_after_urls: [],
 }) as never;
 
-function mount(id: string) {
+function mount(id: string, onCancel = vi.fn()) {
   const noop = vi.fn();
   return render(
     <MemoryRouter>
       <PostedJobActions
         job={job(id)} userId="poster-1" helperNames={{ "helper-1": "Hallie H." }} completedJobMeta={{}}
-        onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
+        onBoost={noop} onEdit={noop} onCancel={onCancel} onComplete={noop} completingJobId={null}
         onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
         onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
         onConfirmWorking={noop} confirmingWorkingJobId={null} onActionComplete={noop}
@@ -78,5 +81,24 @@ describe("the job page's Approve and release opens the Posted card's approve she
     requestFaceAction("job-c", "approve");
     mount("job-d");
     expect(sheetOpen()).toBe(false);
+  });
+});
+
+describe("the job page's Cancel job opens the Posted card's own cancel flow", () => {
+  it("a fresh cancel request runs the card's onCancel once, for this job", () => {
+    const onCancel = vi.fn();
+    requestFaceAction("job-e", "cancel");
+    mount("job-e", onCancel);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect((onCancel.mock.calls[0][0] as { id: string }).id).toBe("job-e");
+  });
+
+  it("no request, or an approve request: the card never cancels by itself", () => {
+    const onCancel = vi.fn();
+    mount("job-f", onCancel);
+    requestFaceAction("job-g", "approve");
+    cleanup();
+    mount("job-g", onCancel);
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

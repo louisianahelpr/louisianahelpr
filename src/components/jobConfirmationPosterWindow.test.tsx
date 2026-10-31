@@ -64,7 +64,7 @@ describe("the poster can say the job is still on until it starts", () => {
 /**
  * Card critique item 1 (owner, 2026-10-23): the collapsed card's "I'm still on" opens the card and leaves a
  * one-shot request; THIS control then opens its own "Confirm the job is still on" dialog, so its gates still decide.
- * @mutate src/components/JobConfirmation.tsx |     if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true); |     if (owed) takeFaceAction(jobId, "confirm");
+ * @mutate src/components/JobConfirmation.tsx |     if (owed && (openNow \|\| takeFaceAction(jobId, "confirm"))) setShowConfirmDialog(true); |     if (owed) takeFaceAction(jobId, "confirm");
  * @mutate src/components/JobConfirmation.tsx | && Date.now() >= confirmOpensMs(dateNeeded); | ;
  */
 describe("the face's confirm request opens this card's own dialog", () => {

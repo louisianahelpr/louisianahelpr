@@ -41,8 +41,7 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
-import { requestFaceAction } from "@/components/job-card/faceActionRequest";
-import { RELEASE_ACTION } from "@/lib/releaseCopy";
+import { usePosterPageActions } from "./posterPageActions";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -76,6 +75,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
+  const posterActions = usePosterPageActions({
+    job: q.data?.job, userId, enabled: isPoster,
+    posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
+    open: q.data?.job.status === "open", pending: applicants.data?.pending ?? 0, onChanged: () => void q.refetch(),
+  });
 
   if (q.isPending) {
     return (
@@ -136,42 +140,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
-    // AUD31-77: the Helpr marked it done and the page said "Check the work and approve" over a "Manage job" button.
-    // The button is the approve now: it opens this job's Posted card with its approve sheet (the card's own write).
-    // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step needed now IS the big button. "Confirm it's still on" opens the
-    // job's Posted card with its own confirm sheet (JobConfirmation's write and gates), as approve does below.
-    : isPoster && posterWait === "confirm_still_on"
-    ? {
-        label: "Confirm it's still on",
-        go: () => {
-          requestFaceAction(job.id, "confirm");
-          navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`);
-        },
-      }
-    : isPoster && posterWait === "approve"
-    ? {
-        label: RELEASE_ACTION,
-        go: () => {
-          requestFaceAction(job.id, "approve");
-          navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`);
-        },
-      }
     : isPoster && jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
     ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
+    // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
+    // (posterPageActions.tsx: confirm on this page, approve and cancel through the card's own flows).
     : isPoster
-    ? {
-        label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
-        // The Posted card face is a link back to this page (board 14), so the
-        // page sends the poster to that card with its live controls open.
-        go: () =>
-          navigate(
-            open && pending > 0
-              // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card.
-              ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1`
-              : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
-          ),
-      }
+    ? posterActions.primary
     : hiredFace
       ? { label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled, secondary: hiredFace.tone === "secondary" }
       : viewer.action.kind === "open_working"
@@ -275,6 +250,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 {primary.label}
               </Button>
             )}
+            {isPoster && posterActions.secondary}
             {!isPoster && <MineFaceNote note={hiredFace?.note} />}
             {hiredFace && (
               <div data-hired-actions="" className="flex flex-wrap gap-2">
@@ -296,7 +272,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* Paid or, with the card hold at posting (Q2399), a held card: both are live listings. */}
           {isPoster && open && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
             <div className="order-5 lg:order-none">
-              <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
+              <NoApplicantsYet job={job} onManage={posterActions.edit} />
             </div>
           )}
 
@@ -307,6 +283,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </div>
       </div>
       {!isPoster && <PageApplySheet apply={apply} />}
+      {posterActions.dialogs}
     </AppPage>
   );
 }

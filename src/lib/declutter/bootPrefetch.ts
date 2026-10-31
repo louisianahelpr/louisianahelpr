@@ -14,7 +14,7 @@ const DECLUTTER_PREFETCH_MAX_AGE_MS = 30_000;
 
 export interface FirstScreenAnswer {
   switches: Record<string, unknown>;
-  items: { id: string; seller_id: string; sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null }[];
+  items: { id: string; seller_id: string; sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null; drops_stopped?: boolean | null }[];
   /** There are more listings than the answer holds, so it can stand in only for the top of the list. */
   more: boolean;
   /** The position the items were sorted from; null = newest first. */

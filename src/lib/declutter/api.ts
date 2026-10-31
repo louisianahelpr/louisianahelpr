@@ -289,20 +289,30 @@ export async function fetchItemDropState(itemId: string): Promise<DropStateRow |
 }
 
 /** The price-drop columns a buyer may read; drop_pct is the seller's step (20261028160637). */
-export type DropStateRow = { sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null };
-const DROP_COLUMNS = "sale_mode, last_price_drop_on, drop_pct";
+export type DropStateRow = { sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null; drops_stopped?: boolean | null };
+const DROP_COLUMNS = "sale_mode, last_price_drop_on, drop_pct, drops_stopped";
+const DROP_COLUMNS_BEFORE_STOPPED = "sale_mode, last_price_drop_on, drop_pct";
 const DROP_COLUMNS_BEFORE_PCT = "sale_mode, last_price_drop_on";
 
 /**
  * The drop columns, with drop_pct. Before 20261028160637 reaches prod the read
  * is refused with 42703 naming drop_pct: read again without it (every listing
  * then had the 5% step, which priceDrop.ts reads for an absent column). Every
- * other refusal is thrown. Remove once the migration is live on prod.
+ * other refusal is thrown. Remove once the migration is live on prod. The same for
+ * drops_stopped before 20261031020705: read without it, and a stopped listing shows
+ * its line until the next sweep, as it did before that column.
  */
 async function readDropColumns(run: (columns: string) => PromiseLike<ItemRead>, extra = ""): Promise<unknown> {
   const first = await run(extra + DROP_COLUMNS);
+  if (first.error?.code === "42703" && first.error.message.includes("drops_stopped")) return readDropColumnsBeforeStopped(run, extra);
   if (first.error?.code === "42703" && first.error.message.includes("drop_pct")) return unwrap(await run(extra + DROP_COLUMNS_BEFORE_PCT));
   return unwrap(first);
+}
+
+async function readDropColumnsBeforeStopped(run: (columns: string) => PromiseLike<ItemRead>, extra: string): Promise<unknown> {
+  const second = await run(extra + DROP_COLUMNS_BEFORE_STOPPED);
+  if (second.error?.code === "42703" && second.error.message.includes("drop_pct")) return unwrap(await run(extra + DROP_COLUMNS_BEFORE_PCT));
+  return unwrap(second);
 }
 
 /** Owner 2026-10-28: the seller's nightly drop, 0 (off), 5, 10, 15 or 20 percent (declutter_set_drop_pct). */
@@ -327,7 +337,7 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
   const prefetched = await takeFirstScreenDropStates(itemIds);
   const rows = prefetched ?? (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
     (DropStateRow & { id: string })[] | null;
-  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct });
+  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct, drops_stopped: r.drops_stopped });
   return out;
 }
 

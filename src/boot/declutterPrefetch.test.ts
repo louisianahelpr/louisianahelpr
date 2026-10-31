@@ -83,7 +83,7 @@ describe("the entry's /declutter first screen", () => {
     const quoted = (name: string) => (api.match(new RegExp(`const ${name} =\\s*"([^"]+)"`))?.[1] ?? "").split(", ");
     const asked = [...quoted("ITEM_COLUMNS"), ...quoted("DROP_COLUMNS")];
     expect(asked.length).toBeGreaterThan(15);
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20261030171747_declutter_first_screen.sql", "utf8"));
+    const sql = blankSqlComments(readFileSync("supabase/migrations/20261031020705_declutter_drops_stopped_public.sql", "utf8"));
     const selected = (sql.match(/SELECT (i\.id,[\s\S]*?),\s*CASE WHEN/)?.[1] ?? "").split(",").map((c) => c.trim().replace(/^i\./, ""));
     expect(selected.sort()).toEqual(asked.sort());
   });

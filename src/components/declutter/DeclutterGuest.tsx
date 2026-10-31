@@ -25,12 +25,14 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
   return <Navigate to={`/login?redirect=${here(location)}`} replace />;
 }
 
-/** In place of Buy now / Make an offer (or Ask for it) for a guest: sign up, or log in, and come back to this item. */
-export function DeclutterGuestJoin({ free }: { free: boolean }) {
+/** In place of Buy now / Make an offer (or Ask for it) for a guest: sign up, or log in, and come back to this item.
+ *  AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer. */
+export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; offers?: boolean }) {
   const location = useLocation();
+  const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
   return (
-    <section data-guest-join="" aria-label={free ? "Ask for this item" : "Buy or make an offer"} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : "Sign up to buy it or make an offer."}</p>
+    <section data-guest-join="" aria-label={label} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+      <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button asChild size="wrap" className="w-full rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>

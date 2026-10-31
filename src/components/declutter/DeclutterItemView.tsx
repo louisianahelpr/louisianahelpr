@@ -168,7 +168,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
     {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
-    {canAct && !user && <DeclutterGuestJoin free={free} />}
+    {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 

@@ -222,10 +222,9 @@ export function SettingsTab({
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
-        {/* Stripe Identity (owner 2026-10-21): the row says where the check
-            stands and opens the one ID sheet. A test account has no check. */}
-        {/* ID check off (switch `identity_check`, owner 2026-10-23): no ID row. */}
-        {idOn && profile && profile.is_seed !== true && (
+        {/* Stripe Identity: the row says where a check stands, only once there is one to report.
+            Settings never asks an unverified member (owner 2026-10-30). A test account has no check. */}
+        {idOn && profile && profile.is_seed !== true && ["verified", "checking", "with_team"].includes(identityView(profile.idv_status)) && (
           <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheck("general")} />
         )}
         {/* A3-I4: downloads here, through the same export as the Privacy policy's card (useDataExport), instead of opening the whole policy. */}

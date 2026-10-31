@@ -1,7 +1,7 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
-import { identityView, openIdentityCheck } from "@/lib/identityCheck";
+import { identityView } from "@/lib/identityCheck";
 import type { Profile } from "./types";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
@@ -35,16 +35,17 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
       : { key: "phone", label: "Phone", done: false, state: "Add", onClick: () => document.getElementById("phone")?.focus() },
     view === "verified"
       ? { key: "id", label: "Photo ID", done: true, state: "Done" }
-      : view === "checking" || view === "with_team"
-        ? { key: "id", label: "Photo ID", done: false, state: "Checking" }
-        : { key: "id", label: "Photo ID", done: false, state: "Verify now", onClick: () => openIdentityCheck("general") },
+      : { key: "id", label: "Photo ID", done: false, state: "Checking" },
     profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
       : bankPaused
         ? { key: "bank", label: "Payout bank", done: false, state: "Later" }
         : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
   ];
-  const rows = allRows.filter((r) => r.key !== "id" || idOn || r.done);
+  // Never an ask (owner 2026-10-30: asked once, when hired or at the first payout):
+  // the row shows a verified ID, or a check under way while the check is on.
+  const idUnderWay = idOn && (view === "checking" || view === "with_team");
+  const rows = allRows.filter((r) => r.key !== "id" || r.done || idUnderWay);
   return (
     <div data-trust-marks="" className="rounded-2xl liquid-glass p-card">
       <p className="font-sans uppercase tracking-wider text-ds-11 font-semibold mb-1" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>

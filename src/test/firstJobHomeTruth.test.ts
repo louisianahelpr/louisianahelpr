@@ -3,8 +3,9 @@
  * - "How you get paid" quotes the shared payout and fee constants, never a typed
  *   number of days or percent;
  * - each job's price is the ONE money component (JobPrice with the job's fee stamp);
- * - every checklist step is read from the member's real profile (ID = Stripe
- *   Identity via hasIdBadge; payouts = stripe_payouts_enabled);
+ * - every checklist step is read from the member's real profile (payouts =
+ *   stripe_payouts_enabled); no "Verify your ID" step: the ID is asked when posting,
+ *   when hired or at the first payout, never on a new member's Home (owner 2026-10-30, B49);
  * - the alerts card shows only while job alerts are really off.
  *
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | it reaches your Helpr account {STANDARD_PAYOUT_PHRASE} | it reaches your Helpr account 2 days after the job
@@ -34,7 +35,7 @@ describe("board 189: the first-job Home says only what is true", () => {
   });
 
   it("steps read the real profile, and the alerts card waits for alerts to be off", () => {
-    expect(src).toMatch(/done: hasIdBadge\(profile\?\.idv_status\)/);
+    expect(src).not.toMatch(/Verify your ID|openIdentityCheck|hasIdBadge/);
     expect(src).toMatch(/const payoutsDone = profile\?\.stripe_payouts_enabled === true;[\s\S]*?done: payoutsDone/);
     expect(src).toMatch(/\{alertsOff && \(/);
     expect(src).toMatch(/prefs\.job_matches === false && prefs\.email_job_matches === false/);

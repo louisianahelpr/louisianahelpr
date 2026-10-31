@@ -127,17 +127,18 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // "You'll need an account" understated the gate by two steps and sent
         // people into a flow they could not finish. A new account must also
         // confirm its email (ProtectedRoute.tsx holds it on /signup-pending)
-        // AND clear Stripe identity verification before posting or
-        // accepting (useJobSubmit.ts gates on it). Discovering that after
-        // writing a job post is the worst moment to learn it. There is no
+        // and verify their ID when posting (useJobSubmit.ts gates on it). Discovering
+        // that after writing a job post is the worst moment to learn it. There is no
         // approval from our team any more (Q193: every signup is
         // auto-approved), so the answer no longer promises one.
         // AUD31-57: the ID check is the `identity_check` switch (off since owner
         // 2026-10-23), so the answer reads it like the Terms do; HelpCenter
         // subscribes (useIdentityCheckOnStore) so the getter is re-read.
+        // Owner 2026-10-30 (ID check details): once per person, when posting, when hired or at the first payout,
+        // and on Declutter at listing, buying, a free claim or taking a delivery (B49, ported 10-31).
         get a() {
           return identityCheckOn()
-            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. The first time you hire someone or get paid, there's a one-time quick identity check through Stripe."
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy, claim a free item or take a delivery."
             : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
         },
       },

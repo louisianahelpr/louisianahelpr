@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" "); |       const note = notSorted;
- * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" | alt="" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb=""
+ * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" draggable={false} loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" | alt="" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : wantsBunch(params) ? ( |       ) : false ? (
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" /> | groups={CATEGORY_PICKER_GROUPS} />
@@ -235,7 +235,7 @@ describe("the page's name", () => {
 describe("the merge picker's row", () => {
   it("has the card's whole width, with the buttons below it", () => {
     const item = { ...blankItem(["a"]), key: "one" };
-    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
+    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onReorder={() => {}} canDrag={false} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
     const row = document.querySelector("[data-bunch-merge-row]") as HTMLElement;
     expect(row.className.split(" ")).toContain("w-full");
     expect(row.className).not.toContain("flex-1");

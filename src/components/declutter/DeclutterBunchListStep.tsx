@@ -14,9 +14,11 @@ import { UsesSettingsNote } from "./SellLastSetup";
 import { TaxStatementsCheck } from "./declutterUi";
 import type { useSavedPickup } from "./useSavedPickup";
 
-export function BunchListStep({ step, items, readyCount, heldForFee, savedSetup, savedWindows, savedWays, windows, setWindows, choices, ways, setWays, sellerDeliveryOpen, attested, setAttested, problem, blocked, listing, photoProgress, onList }: {
+export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, heldForFee, savedSetup, savedWindows, savedWays, windows, setWindows, choices, ways, setWays, sellerDeliveryOpen, attested, setAttested, problem, blocked, listing, photoProgress, onList }: {
   step: number;
   items: BunchItem[];
+  /** The one tick also covers the saved drafts, so a priced one on offer means the four statements, even if every item here is free. */
+  pricedDraftsOffered: boolean;
   readyCount: number;
   heldForFee: number;
   savedSetup: ReturnType<typeof useSavedPickup>;
@@ -63,8 +65,8 @@ export function BunchListStep({ step, items, readyCount, heldForFee, savedSetup,
           </>)}
           {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
           <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
-          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item you list now.</p>
-          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free)} />
+          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item and saved draft you list now.</p>
+          <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free) && !pricedDraftsOffered} />
           {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           <Button type="button" disabled={blocked || readyCount === 0 || !savedWindows.isSuccess} onClick={onList}>

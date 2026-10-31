@@ -30,9 +30,8 @@ import { SellFreeToggle, SellTaxBox } from "./SellFormParts";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
-import { itemPriceLabel } from "@/lib/declutter/distance";
+import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
-import { FallbackImg } from "./FallbackImg";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
@@ -69,17 +68,8 @@ function BuyerPreview({ s }: { s: SellFlow }) {
   const title = s.form.title.trim();
   if (!title || (!cover && !heldCover)) return null;
   const src = cover ? photoPublicUrl(cover.storage_path) : url;
-  return (
-    <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-3" data-sell-preview="">
-      {/* Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
-      {src && (cover || src.startsWith("blob:")) && <FallbackImg src={src} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" />}
-      <div className="min-w-0 flex-1">
-        <p className="text-ds-13 text-muted-foreground">What buyers see</p>
-        <p className="truncate text-ds-15 font-bold text-foreground">{title}</p>
-        {(s.form.free || s.priceCents) && <p className="text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(s.form.free ? 0 : (s.priceCents as number))}</p>}
-      </div>
-    </div>
-  );
+  // Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern).
+  return <BuyerPreviewCard src={src && (cover || src.startsWith("blob:")) ? src : null} title={title} cents={s.form.free ? 0 : (s.priceCents || null)} />;
 }
 
 /** Start over (a listing brought back from this device): a fresh form, with the seller's saved settings read again. */

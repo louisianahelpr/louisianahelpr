@@ -979,105 +979,40 @@ serve(async (_req) => {
 
     // ─── 4. Owner daily summary (INTERNAL, every run; OPS-1, owner 10-29) ──
     // The last 24 hours for the owner: sign-ups, posts, sales, what is stuck and the errors real members hit.
-    // Built like the weekly digest above: real members and real items only (is_seed = false; test accounts never
-    // show), a failed read skips the send instead of mailing a zero, and it goes only to admins who are not test
-    // accounts (opsMailRecipients).
+    // Every count comes from ONE server read, public.owner_daily_summary_stats (20261031224638), which leaves out
+    // is_seed rows AND test subjects (is_test_subject: test_accounts, seed profiles, fixture/example logins) in
+    // each count (review 10-31: is_seed alone let unmarked test accounts in). A failed or malformed answer skips
+    // the send instead of mailing a zero, and it goes only to admins who are not test accounts (opsMailRecipients).
     {
       const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-      const [dUsers, dJobs, dItems, dDone, dReports, dPayouts] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', since),
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', since),
-        supabase.from('declutter_items').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('live_at', since),
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', since),
-        supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('declutter_payouts').select('id', { count: 'exact', head: true }).eq('status', 'failed').eq('is_seed', false),
-      ])
-      const salesScan = await scanAll<{ total_cents: number | null }>(
-        'declutter sales',
-        (countOpt) =>
-          supabase.from('declutter_orders').select('total_cents', countOpt).eq('is_seed', false).gte('paid_at', since).order('id', { ascending: true }),
-      )
-      const errScan = await scanAll<{ user_id: string | null; tags: unknown }>(
-        'member errors',
-        (countOpt) =>
-          supabase.from('error_logs').select('user_id, tags', countOpt).gte('created_at', since)
-            .in('severity', ['error', 'fatal']).not('user_id', 'is', null).order('id', { ascending: true }),
-      )
-      const dailyFailures = ([
-        ['sign-ups', dUsers], ['jobs posted', dJobs], ['items posted', dItems], ['jobs completed', dDone],
-        ['open reports', dReports], ['failed payouts', dPayouts],
-      ] as Array<[string, { error: { message: string } | null }]>)
-        .filter(([, r]) => r.error)
-        .map(([name, r]) => `${name} (${r.error!.message})`)
-      if (salesScan.error || !salesScan.complete) dailyFailures.push(`sales (${salesScan.shortfall ?? salesScan.error?.message})`)
-      if (errScan.error || !errScan.complete) dailyFailures.push(`member errors (${errScan.shortfall ?? errScan.error?.message})`)
-
-      // Errors from test runs never count: a seed-tagged row (error_log_is_seed's rule: tags.seed = true or a
-      // source ending in '-seed'), or a member who is a seed profile or a test account.
-      const isSeedTag = (t: unknown) => {
-        if (!t || typeof t !== 'object' || Array.isArray(t)) return false
-        const o = t as Record<string, unknown>
-        return String(o.seed ?? '') === 'true' || String(o.source ?? o.area ?? '').endsWith('-seed')
+      const { data: statsData, error: statsErr } = await supabase.rpc('owner_daily_summary_stats', { p_since: since })
+      const raw = (statsData && typeof statsData === 'object' && !Array.isArray(statsData) ? statsData : null) as Record<string, unknown> | null
+      const COUNT_KEYS = [
+        'new_users', 'jobs_posted', 'items_posted', 'jobs_completed', 'items_sold', 'sales_cents',
+        'open_reports', 'failed_payouts', 'member_errors', 'members_with_errors',
+      ] as const
+      const num = (k: string) => {
+        const v = raw?.[k]
+        const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN
+        return Number.isFinite(n) && n >= 0 ? n : null
       }
-      const errRows = (errScan.rows || []).filter((r) => r.user_id && !isSeedTag(r.tags))
-      const errIds = [...new Set(errRows.map((r) => r.user_id as string))]
-      const realIds = new Set<string>()
-      for (let i = 0; i < errIds.length && !dailyFailures.length; i += 200) {
-        const chunk = errIds.slice(i, i + 200)
-        const [realRes, testRes] = await Promise.all([
-          supabase.from('profiles').select('user_id, is_seed').in('user_id', chunk).eq('is_seed', false),
-          supabase.from('test_accounts').select('user_id').in('user_id', chunk),
-        ])
-        if (realRes.error || testRes.error) {
-          dailyFailures.push(`member errors (${(realRes.error ?? testRes.error)!.message})`)
-          break
-        }
-        const testIds = new Set(((testRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id))
-        const asked = new Set(chunk)
-        for (const r of (realRes.data || []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !testIds.has(r.user_id)) realIds.add(r.user_id)
+      const dailyFailures: string[] = []
+      if (statsErr) dailyFailures.push(`daily stats (${statsErr.message})`)
+      else if (!raw) dailyFailures.push('daily stats (no answer)')
+      else {
+        const bad = COUNT_KEYS.filter((k) => num(k) === null)
+        if (bad.length) dailyFailures.push(`daily stats (unreadable: ${bad.join(', ')})`)
       }
-
-      // OPS-5: where today's sign-ups came from (member_signup_sources, 20261031220447), real members only. Its own
-      // read: the table not deployed yet (PGRST205 / 42P01) leaves the line out quietly; any other failure leaves it
-      // out and is recorded, and never stops the rest of the summary.
-      let topSources: Array<{ source: string; signups: number }> | null = null
-      if (!dailyFailures.length) {
-        const srcScan = await scanAll<{ user_id: string; source: string }>(
-          'signup sources',
-          (countOpt) =>
-            supabase.from('member_signup_sources').select('user_id, source', countOpt).gte('recorded_at', since).order('user_id', { ascending: true }),
-        )
-        const missing = srcScan.error && /PGRST205|42P01|does not exist|Could not find the table/.test(srcScan.error.message)
-        if (srcScan.error || !srcScan.complete) {
-          if (!missing) results.errors.push(`owner daily summary: sign-up sources left out (${srcScan.shortfall ?? srcScan.error?.message})`)
-        } else {
-          const ids = [...new Set(srcScan.rows.map((r) => r.user_id))]
-          const real = new Set<string>()
-          let ok = true
-          for (let i = 0; i < ids.length; i += 200) {
-            const chunk = ids.slice(i, i + 200)
-            const [realRes, testRes] = await Promise.all([
-              supabase.from('profiles').select('user_id, is_seed').in('user_id', chunk).eq('is_seed', false),
-              supabase.from('test_accounts').select('user_id').in('user_id', chunk),
-            ])
-            if (realRes.error || testRes.error) {
-              results.errors.push(`owner daily summary: sign-up sources left out (${(realRes.error ?? testRes.error)!.message})`)
-              ok = false
-              break
-            }
-            const tests = new Set(((testRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id))
-            const asked = new Set(chunk)
-            for (const r of (realRes.data || []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !tests.has(r.user_id)) real.add(r.user_id)
-          }
-          if (ok) {
-            const bySource = new Map<string, number>()
-            for (const r of srcScan.rows) if (real.has(r.user_id)) bySource.set(r.source, (bySource.get(r.source) ?? 0) + 1)
-            topSources = [...bySource.entries()]
-              .map(([source, signups]) => ({ source, signups }))
-              .sort((a, b) => b.signups - a.signups || a.source.localeCompare(b.source))
-              .slice(0, 5)
-          }
-        }
+      const rawSources = raw?.top_sources
+      const topSources: Array<{ source: string; signups: number }> | null = Array.isArray(rawSources)
+        ? (rawSources as Array<Record<string, unknown>>)
+          .filter((r) => typeof r?.source === 'string' && Number.isFinite(Number(r?.signups)))
+          .map((r) => ({ source: String(r.source), signups: Number(r.signups) }))
+          .slice(0, 5)
+        : null
+      if (raw && !dailyFailures.length && !Array.isArray(rawSources)) {
+        // The sources line never stops the summary; a missing one is recorded.
+        results.errors.push('owner daily summary: sign-up sources left out (no list in the answer)')
       }
 
       if (dailyFailures.length) {
@@ -1086,20 +1021,36 @@ serve(async (_req) => {
         )
       } else {
         const dailyStats: OwnerDailyStats = {
-          newUsers: dUsers.count || 0,
-          jobsPosted: dJobs.count || 0,
-          itemsPosted: dItems.count || 0,
-          jobsCompleted: dDone.count || 0,
-          itemsSold: salesScan.rows.length,
-          salesCents: salesScan.rows.reduce((sum, o) => sum + (o.total_cents || 0), 0),
-          openReports: dReports.count || 0,
-          failedPayouts: dPayouts.count || 0,
-          memberErrors: errRows.filter((r) => realIds.has(r.user_id as string)).length,
-          membersWithErrors: realIds.size,
+          newUsers: num('new_users')!,
+          jobsPosted: num('jobs_posted')!,
+          itemsPosted: num('items_posted')!,
+          jobsCompleted: num('jobs_completed')!,
+          itemsSold: num('items_sold')!,
+          salesCents: num('sales_cents')!,
+          openReports: num('open_reports')!,
+          failedPayouts: num('failed_payouts')!,
+          memberErrors: num('member_errors')!,
+          membersWithErrors: num('members_with_errors')!,
           topSources,
         }
         const dailyTo = await opsMailRecipients(supabase, suppressedSet, results, 'owner daily summary')
+        // No double send (review 10-31): a recipient who already has a daily summary from the last 20 hours that
+        // did not fail (a re-run, a manual trigger, two crons) is skipped. A failed check skips them too and is
+        // recorded: a missed summary is recorded, a doubled one is not.
+        const sentSince = new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString()
         for (const to of dailyTo) {
+          const { data: sentRows, error: sentErr } = await supabase.from('email_send_log')
+            .select('message_id')
+            .eq('template_name', 'owner_daily_summary')
+            .eq('recipient_email', to)
+            .not('status', 'in', '(failed,dlq)')
+            .gte('created_at', sentSince)
+            .limit(1)
+          if (sentErr) {
+            results.errors.push(`owner daily summary skipped for ${to}: the earlier-send check failed (${sentErr.message})`)
+            continue
+          }
+          if ((sentRows || []).length > 0) continue
           const { subject, html, text } = await ownerDailyEmail(dailyStats)
           const messageId = crypto.randomUUID()
           await logSend(

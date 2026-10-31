@@ -47,6 +47,14 @@ import { resetEmailMocks, emailRenders } from "./mocks/email";
 
 const CRON_SECRET = "cron-secret";
 
+/** Every run reads the owner's daily summary counts (OPS-1); a quiet day answers zeros, as the server would. */
+function seedQuietDay() {
+  scenario.rpc.owner_daily_summary_stats = {
+    new_users: 0, jobs_posted: 0, items_posted: 0, jobs_completed: 0, items_sold: 0, sales_cents: 0,
+    open_reports: 0, failed_payouts: 0, member_errors: 0, members_with_errors: 0, top_sources: [],
+  };
+}
+
 async function loadConfigured(): Promise<EdgeHarness> {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
@@ -118,6 +126,7 @@ describe("engagement-automations edge function", () => {
     resetSupabaseMock();
     resetSharedMocks();
     resetEmailMocks();
+    seedQuietDay();
   });
 
   it("rejects a request without the cron bearer", async () => {
@@ -470,8 +479,8 @@ describe("engagement-automations edge function", () => {
       await fn.fetch(cronRequest(fn));
 
       const counts = (scenario.readQueries ?? []).filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
-      // Three for the weekly digest and the same three for the daily summary (OPS-1), which runs every day.
-      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "jobs", "jobs", "profiles", "profiles"]);
+      // Three for the weekly digest; the daily summary (OPS-1) reads its counts from owner_daily_summary_stats.
+      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "profiles"]);
       for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
     });
 
@@ -518,19 +527,30 @@ describe("engagement-automations edge function", () => {
   });
 
   // ─── OPS-1 (owner 10-29): the owner's daily summary email ─────────────────
-  // Every run (the cron is daily), built on the weekly digest: real members and real items only, a failed read
-  // never becomes a zero, and it goes ONLY to admins who are not test accounts.
+  // Every run (the cron is daily). Every count comes from ONE server read, owner_daily_summary_stats
+  // (20261031224638), which leaves out is_seed rows and test subjects (proved in
+  // src/test/pglite/ownerDailySummaryStats.pglite.mjs); a failed or malformed answer never becomes a zero; it goes
+  // ONLY to admins who are not test accounts; and never twice to one admin within 20 hours (review 10-31).
   // @mutate supabase/functions/engagement-automations/index.ts |     if (isTest !== false) continue |     if (isTest === true) continue
   // @mutate supabase/functions/engagement-automations/index.ts |     if (!adminProfile?.email \|\| adminProfile.is_seed === true) continue |     if (!adminProfile?.email) continue
-  // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('declutter_items').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('live_at', since), | supabase.from('declutter_items').select('id', { count: 'exact', head: true }).gte('live_at', since),
-  // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('declutter_orders').select('total_cents', countOpt).eq('is_seed', false) | supabase.from('declutter_orders').select('total_cents', countOpt)
-  // @mutate supabase/functions/engagement-automations/index.ts | .eq('status', 'failed').eq('is_seed', false), | .eq('status', 'failed'),
-  // @mutate supabase/functions/engagement-automations/index.ts | const errRows = (errScan.rows \|\| []).filter((r) => r.user_id && !isSeedTag(r.tags)) | const errRows = (errScan.rows \|\| []).filter((r) => r.user_id)
-  // @mutate supabase/functions/engagement-automations/index.ts |         for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !testIds.has(r.user_id)) realIds.add(r.user_id) |         for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id)) realIds.add(r.user_id)
+  // @mutate supabase/functions/engagement-automations/index.ts |       if (statsErr) dailyFailures.push | if (false) dailyFailures.push
+  // @mutate supabase/functions/engagement-automations/index.ts |       else if (!raw) dailyFailures.push | else if (false) dailyFailures.push
+  // @mutate supabase/functions/engagement-automations/index.ts |         if (bad.length) dailyFailures.push | if (false) dailyFailures.push
   // @mutate supabase/functions/engagement-automations/index.ts |       if (dailyFailures.length) { |       if (false) {
+  // @mutate supabase/functions/engagement-automations/index.ts | .rpc('owner_daily_summary_stats', { p_since: since }) | .rpc('owner_daily_summary_stats', { p_since: new Date(0).toISOString() })
+  // @mutate supabase/functions/engagement-automations/index.ts |           if ((sentRows \|\| []).length > 0) continue | 
+  // @mutate supabase/functions/engagement-automations/index.ts |             .not('status', 'in', '(failed,dlq)') | 
+  // @mutate supabase/functions/engagement-automations/index.ts |             .gte('created_at', sentSince) | 
+  // @mutate supabase/functions/engagement-automations/index.ts | the earlier-send check failed (${sentErr.message})`)\n            continue | the earlier-send check failed (${sentErr.message})`)
+  // @mutate supabase/functions/engagement-automations/index.ts |       if (raw && !dailyFailures.length && !Array.isArray(rawSources)) { |       if (false) {
   describe("the owner's daily summary (OPS-1)", () => {
     /** A Tuesday: the weekly digest does not run, the daily summary does. */
     const A_TUESDAY = new Date("2026-09-01T16:22:00Z");
+    const STATS = {
+      new_users: 4, jobs_posted: 3, items_posted: 5, jobs_completed: 2, items_sold: 2, sales_cents: 3750,
+      open_reports: 1, failed_payouts: 0, member_errors: 2, members_with_errors: 1,
+      top_sources: [{ source: "facebook", signups: 2 }, { source: "direct", signups: 1 }],
+    };
 
     beforeEach(() => {
       vi.useFakeTimers();
@@ -547,21 +567,19 @@ describe("engagement-automations edge function", () => {
         includes: "email, full_name",
         result: { rows: [{ email, full_name: "Owner", is_seed: false, ...profile }] },
       });
-      scenario.reads.declutter_items = { rows: [] };
-      scenario.reads.declutter_orders = { rows: [{ total_cents: 2500 }, { total_cents: 1250 }] };
-      scenario.reads.declutter_payouts = { rows: [] };
-      scenario.reads.error_logs = { rows: [] };
-      scenario.reads.test_accounts = { rows: [] };
+      scenario.reads.email_send_log = { rows: [] };
       scenario.rpc.is_test_subject = false;
+      scenario.rpc.owner_daily_summary_stats = { ...STATS };
     }
 
     const dailySends = () =>
       queued().filter((c) => (c.args as { payload?: { label?: string } })?.payload?.label === "owner_daily_summary");
     const dailyStats = () =>
-      (emailRenders as Array<{ type: { name: string }; props: { stats: Record<string, number> } }>)
+      (emailRenders as Array<{ type: { name: string }; props: { stats: Record<string, unknown> } }>)
         .find((e) => e.type.name === "OwnerDailySummaryEmail")?.props.stats;
+    const sendLogCheck = () => (scenario.readQueries ?? []).find((q) => q.table === "email_send_log");
 
-    it("sends the daily summary to the owner on a day that is not Monday, with the sales added up", async () => {
+    it("sends the daily summary on a day that is not Monday, with the server's counts", async () => {
       const fn = await loadConfigured();
       seedOwner();
 
@@ -574,7 +592,35 @@ describe("engagement-automations edge function", () => {
         to: "owner@louisianahelpr.com",
         purpose: "internal",
       });
-      expect(dailyStats()).toMatchObject({ itemsSold: 2, salesCents: 3750 });
+      expect(dailyStats()).toEqual({
+        newUsers: 4, jobsPosted: 3, itemsPosted: 5, jobsCompleted: 2, itemsSold: 2, salesCents: 3750,
+        openReports: 1, failedPayouts: 0, memberErrors: 2, membersWithErrors: 1,
+        topSources: [{ source: "facebook", signups: 2 }, { source: "direct", signups: 1 }],
+      });
+    });
+
+    it("asks the server for exactly the last 24 hours", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+
+      await fn.fetch(cronRequest(fn));
+
+      const call = (scenario.rpcCalls ?? []).find((c) => c.name === "owner_daily_summary_stats");
+      expect(call?.args).toEqual({ p_since: new Date(A_TUESDAY.getTime() - 24 * 3600_000).toISOString() });
+    });
+
+    it("every count comes from the server function that leaves out test subjects, never a table read here", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+
+      await fn.fetch(cronRequest(fn));
+
+      // A count read straight from a table here is the is_seed-only read the review found (test accounts counted).
+      const tables = ["declutter_items", "declutter_orders", "declutter_payouts", "reports", "error_logs", "member_signup_sources", "test_accounts"];
+      const direct = (scenario.readQueries ?? []).filter((q) => tables.includes(q.table));
+      expect(direct.map((q) => q.table)).toEqual([]);
+      const jobCounts = (scenario.readQueries ?? []).filter((q) => q.table === "jobs");
+      expect(jobCounts).toEqual([]);
     });
 
     it("never goes to a test account, even one with the admin role", async () => {
@@ -622,105 +668,10 @@ describe("engagement-automations edge function", () => {
       expect(String(b.defectReasons)).toContain("owner daily summary test-account check failed");
     });
 
-    it("every count reads real members and real items only", async () => {
+    it("does NOT mail when the stats read fails", async () => {
       const fn = await loadConfigured();
       seedOwner();
-
-      await fn.fetch(cronRequest(fn));
-
-      const reads = scenario.readQueries ?? [];
-      for (const table of ["declutter_items", "declutter_orders", "declutter_payouts"]) {
-        const q = reads.find((r) => r.table === table);
-        expect(q, `${table} read`).toBeDefined();
-        expect(q!.filters, `${table} read`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
-      }
-      const counts = reads.filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
-      expect(counts).toHaveLength(3);
-      for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
-    });
-
-    it("member errors leave out seed-tagged errors and test accounts", async () => {
-      const fn = await loadConfigured();
-      seedOwner();
-      scenario.reads.error_logs = {
-        rows: [
-          { user_id: "m1", tags: { source: "app" } },
-          { user_id: "m1", tags: {} },
-          { user_id: "t1", tags: {} },
-          { user_id: "m2", tags: { seed: true } },
-          { user_id: "m3", tags: { source: "checkout-seed" } },
-        ],
-      };
-      scenario.reads.profiles.selectOverrides!.push({
-        includes: "user_id, is_seed",
-        // m2 and m3 are real members: their errors still do not count, because the error itself is a test run's.
-        result: { rows: [{ user_id: "m1" }, { user_id: "t1" }, { user_id: "m2" }, { user_id: "m3" }] },
-      });
-      scenario.reads.test_accounts = { rows: [{ user_id: "t1" }] };
-
-      const b = await body(await fn.fetch(cronRequest(fn)));
-
-      expect(b.ownerDaily).toBe(1);
-      expect(dailyStats()).toMatchObject({ memberErrors: 2, membersWithErrors: 1 });
-    });
-
-    // OPS-5: where today's sign-ups came from, real members only; this line never stops the summary.
-    // @mutate supabase/functions/engagement-automations/index.ts |             for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !tests.has(r.user_id)) real.add(r.user_id) |             for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id)) real.add(r.user_id)
-    // @mutate supabase/functions/engagement-automations/index.ts |           if (!missing) results.errors.push | if (false) results.errors.push
-    // @mutate supabase/functions/engagement-automations/index.ts |       if (!dailyFailures.length) {\n        const srcScan |       if (false) {\n        const srcScan
-    it("says where today's sign-ups came from, real members only", async () => {
-      const fn = await loadConfigured();
-      seedOwner();
-      scenario.reads.member_signup_sources = {
-        rows: [
-          { user_id: "m1", source: "facebook" },
-          { user_id: "m2", source: "facebook" },
-          { user_id: "m3", source: "direct" },
-          { user_id: "t1", source: "facebook" },
-          { user_id: "s1", source: "direct" },
-        ],
-      };
-      scenario.reads.profiles.selectOverrides!.push({
-        includes: "user_id, is_seed",
-        result: { rows: [{ user_id: "m1" }, { user_id: "m2" }, { user_id: "m3" }, { user_id: "t1" }] },
-      });
-      scenario.reads.test_accounts = { rows: [{ user_id: "t1" }] };
-
-      const b = await body(await fn.fetch(cronRequest(fn)));
-
-      expect(b.ownerDaily).toBe(1);
-      expect(dailyStats()).toMatchObject({ topSources: [{ source: "facebook", signups: 2 }, { source: "direct", signups: 1 }] });
-    });
-
-    it("the sources table not deployed yet leaves the line out quietly and still sends", async () => {
-      const fn = await loadConfigured();
-      seedOwner();
-      scenario.reads.member_signup_sources = { error: { message: "PGRST205: Could not find the table 'public.member_signup_sources'" } };
-
-      const res = await fn.fetch(cronRequest(fn));
-      const b = await body(res);
-
-      expect(res.status).toBe(200);
-      expect(b.ownerDaily).toBe(1);
-      expect(dailyStats()?.topSources).toBeNull();
-    });
-
-    it("any other sources failure is recorded, and the summary still goes", async () => {
-      const fn = await loadConfigured();
-      seedOwner();
-      scenario.reads.member_signup_sources = { error: { message: "statement timeout" } };
-
-      const res = await fn.fetch(cronRequest(fn));
-      const b = await body(res);
-
-      expect(b.ownerDaily).toBe(1);
-      expect(String(b.defectReasons)).toContain("sign-up sources left out");
-    });
-
-    it("does NOT mail a stat derived from a failed read", async () => {
-      const fn = await loadConfigured();
-      seedOwner();
-      scenario.reads.declutter_payouts = { error: { message: "statement timeout" } };
+      scenario.rpcErrors = { owner_daily_summary_stats: { message: "statement timeout" } };
 
       const res = await fn.fetch(cronRequest(fn));
       const b = await body(res);
@@ -729,7 +680,88 @@ describe("engagement-automations edge function", () => {
       expect(b.ownerDaily).toBe(0);
       expect(dailySends()).toHaveLength(0);
       expect(String(b.defectReasons)).toContain("owner daily summary NOT sent");
-      expect(String(b.defectReasons)).toContain("failed payouts");
+      expect(String(b.defectReasons)).toContain("statement timeout");
+    });
+
+    it("does NOT mail when the stats answer is empty", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.rpc.owner_daily_summary_stats = null;
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      expect(String(b.defectReasons)).toContain("daily stats (no answer)");
+    });
+
+    it("does NOT mail a zero for a count missing from the answer", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      const partial: Record<string, unknown> = { ...STATS, failed_payouts: "x" };
+      delete partial.open_reports;
+      scenario.rpc.owner_daily_summary_stats = partial;
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      expect(String(b.defectReasons)).toContain("unreadable: open_reports, failed_payouts");
+    });
+
+    it("a missing sources list is recorded, and the summary still goes", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      const noSources: Record<string, unknown> = { ...STATS };
+      delete noSources.top_sources;
+      scenario.rpc.owner_daily_summary_stats = noSources;
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(1);
+      expect(dailyStats()?.topSources).toBeNull();
+      expect(String(b.defectReasons)).toContain("sign-up sources left out");
+    });
+
+    it("never sends twice: an admin with a daily summary in the last 20 hours that did not fail is skipped", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.email_send_log = { rows: [{ message_id: "earlier" }] };
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      const q = sendLogCheck();
+      expect(q, "the earlier-send check ran").toBeDefined();
+      expect(q!.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ op: "eq", column: "template_name", value: "owner_daily_summary" }),
+        expect.objectContaining({ op: "eq", column: "recipient_email", value: "owner@louisianahelpr.com" }),
+        expect.objectContaining({ op: "gte", column: "created_at", value: new Date(A_TUESDAY.getTime() - 20 * 3600_000).toISOString() }),
+      ]));
+      expect(JSON.stringify(q!.filters)).toContain("(failed,dlq)");
+    });
+
+    it("with no earlier send in the window the summary goes", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(sendLogCheck()).toBeDefined();
+      expect(b.ownerDaily).toBe(1);
+    });
+
+    it("a failed earlier-send check skips that admin and says so (never risks a double send)", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.email_send_log = { error: { message: "statement timeout" } };
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      expect(String(b.defectReasons)).toContain("earlier-send check failed");
     });
   });
 
@@ -777,6 +809,7 @@ describe("engagement-automations edge function", () => {
 
       resetSupabaseMock();
       resetEmailMocks();
+      seedQuietDay();
       seedSignup(14 * DAY + 60_000, 2);
       expect(await dripsSent()).toBe(0);
     });

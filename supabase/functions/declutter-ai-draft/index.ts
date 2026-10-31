@@ -67,6 +67,7 @@ import {
   sanitizeDraft, sanitizeGroups, sanitizeRoom, type DeclutterDraft, type SoldRange,
 } from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
+import { priceDraftFromLookup } from "./priceLookup.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
 
@@ -356,7 +357,7 @@ serve(async (req) => {
       return json({ checked: true, flagged: draft.flagged });
     }
 
-    return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
+    return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));
   } catch (e) {
     console.error("[declutter-ai-draft] error:", caughtMessage(e));
     return json({ error: "ai_unavailable" }, 500);
@@ -575,7 +576,7 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
   }
   const draft = answer.parsed ? sanitizeDraft(answer.parsed, photos.length) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
-  return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
+  return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));
 }
 
 /**
@@ -643,8 +644,10 @@ The photos below may show SEVERAL different items. They are numbered from 0 in t
   // Everything sanitizeDraft returns except the flag's reason (never shown to the seller), so a field it
   // gains later (builder 25's suggested price) reaches this mode too without a second list here. Each suggested
   // price is held to our own sold prices near body.at, as one item's draft is (no point: it stays as it is).
+  // LEAD-PRICE-LOOKUP: every item's used-price lookup runs at once, each in its own time box, so a bunch adds
+  // about one lookup's time, not one per item.
   const grounded = await Promise.all(items.map(async ({ photos: held, ...draft }) => {
-    const { flagReason: _reason, ...d } = await groundWithOurSales(anon, draft, body);
+    const { flagReason: _reason, ...d } = await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body);
     return { ...d, photos: held };
   }));
   return json({ items: grounded, leftover });

@@ -45,9 +45,9 @@ const job = (over: Partial<Job> = {}): Job =>
     status: "accepted",
     customer_id: "poster",
     helper_id: "helpr",
-    date_needed: "2026-11-01",
+    date_needed: "2037-11-01",
     start_time: "09:00:00",
-    helper_confirmed_at: "2026-10-30T04:11:58Z",
+    helper_confirmed_at: "2037-10-30T04:11:58Z",
     helper_dayof_confirmed_at: null,
     poster_confirmed_at: null,
     payment_status: "held",
@@ -61,8 +61,8 @@ afterEach(() => vi.useRealTimers());
 
 describe("one rule: Home's to-do holds a job exactly when Jobs files it under Needs you", () => {
   // Two days out, the window just opened, the owner's 10:25 / 10:35 CT, an hour before, after the start.
-  const times = ["2026-10-30T12:00:00Z", "2026-10-31T05:30:00Z", "2026-10-31T15:25:00Z", "2026-10-31T15:35:00Z", "2026-11-01T13:00:00Z", "2026-11-01T14:30:00Z"];
-  const stamps = [null, "2026-10-31T15:31:41Z"];
+  const times = ["2037-10-30T12:00:00Z", "2037-10-31T05:30:00Z", "2037-10-31T15:25:00Z", "2037-10-31T15:35:00Z", "2037-11-01T13:00:00Z", "2037-11-01T14:30:00Z"];
+  const stamps = [null, "2037-10-31T15:31:41Z"];
   let cases = 0;
   for (const t of times)
     for (const pc of stamps)
@@ -82,10 +82,10 @@ describe("one rule: Home's to-do holds a job exactly when Jobs files it under Ne
 
   it("the owner's row: Confirm the job is still on before her tap, Waiting (no to-do) after", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-10-31T15:35:00Z"));
+    vi.setSystemTime(new Date("2037-10-31T15:35:00Z"));
     expect(todosFor([job()]).map((x) => x.title)).toEqual(["Confirm the job is still on"]);
     expect(postedActivityBucket(job())).toBe("needs_you");
-    const after = job({ poster_confirmed_at: "2026-10-31T15:31:41Z" } as Partial<Job>);
+    const after = job({ poster_confirmed_at: "2037-10-31T15:31:41Z" } as Partial<Job>);
     expect(todosFor([after])).toEqual([]);
     expect(postedActivityBucket(after)).toBe("waiting");
   });
@@ -109,18 +109,18 @@ describe("every client confirm write updates the shared activity cache", () => {
 
   it("the helper moves the cached row so Home's to-do drops at once, for the poster and for the Helpr", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-10-31T15:35:00Z"));
+    vi.setSystemTime(new Date("2037-10-31T15:35:00Z"));
     const qc = new QueryClient();
     qc.setQueryData(queryKeys.activity.posted("poster"), { postedJobs: [job()], applicantCounts: {}, pendingApplicantCounts: {} });
     qc.setQueryData(queryKeys.activity.applied("helpr"), { appliedApps: [app(job())], declinedJobIds: new Set(), helperReviewedJobIds: new Set() });
     expect(todosFor([job()])).toHaveLength(1);
     expect(todosFor([], [app(job())])).toHaveLength(1);
 
-    recordConfirmInActivityCache("7b1da54b", "poster_confirmed_at", "2026-10-31T15:31:41Z", qc);
+    recordConfirmInActivityCache("7b1da54b", "poster_confirmed_at", "2037-10-31T15:31:41Z", qc);
     const posted = qc.getQueryData<{ postedJobs: Job[] }>(queryKeys.activity.posted("poster"))!;
     expect(todosFor(posted.postedJobs)).toEqual([]);
 
-    recordConfirmInActivityCache("7b1da54b", "helper_dayof_confirmed_at", "2026-10-31T15:36:00Z", qc);
+    recordConfirmInActivityCache("7b1da54b", "helper_dayof_confirmed_at", "2037-10-31T15:36:00Z", qc);
     const applied = qc.getQueryData<{ appliedApps: AppliedApp[] }>(queryKeys.activity.applied("helpr"))!;
     expect(todosFor([], applied.appliedApps)).toEqual([]);
   });

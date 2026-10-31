@@ -14,6 +14,9 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
  * @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} | globalSearch={view !== "buying"}
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 px-3
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 pl-3 pr-3 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | -mx-3 flex items-center gap-2 overflow-x-auto pb-1 | -mx-3 flex flex-wrap items-center gap-2 pb-1
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
@@ -209,6 +212,22 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     }
     expect(buttons.filter((b) => b.getAttribute("aria-pressed") === "true")).toHaveLength(1);
     expect(within(row).queryByRole("button", { name: "Sell an item" })).toBeNull();
+  });
+
+  it("AUD31-4 (lead 10-31): the chip row stays one sideways-scrolling line and fades its right edge, so a chip cut at 375 reads as more to scroll; its end padding lets the last chip clear the fade", async () => {
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    const row = container.querySelector("[data-status-chips]") as HTMLElement;
+    const cls = row.className.split(/\s+/);
+    expect(cls).toContain("overflow-x-auto");
+    expect(cls).not.toContain("flex-wrap");
+    const fade = cls.map((c) => /^\[mask-image:linear-gradient\(to_right,#000_calc\(100%-(\d+)px\),transparent\)\]$/.exec(c)).find(Boolean);
+    expect(fade, "a right-edge fade on the chip row").toBeTruthy();
+    const fadePx = Number(fade![1]);
+    expect(fadePx).toBeGreaterThanOrEqual(24);
+    const pr = cls.map((c) => /^pr-(\d+)$/.exec(c)).find(Boolean);
+    expect(pr, "an end padding on the chip row").toBeTruthy();
+    expect(Number(pr![1]) * 4, "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
   });
 
   it("no 'Search all sections' row on Selling (Deliver keeps it)", async () => {

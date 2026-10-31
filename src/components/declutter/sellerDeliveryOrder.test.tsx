@@ -13,6 +13,10 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
+ * AUD31-38: after "It wasn't delivered", and once the delivery's hour has passed, the buyer is not offered Leave it at my door / Hand it to me.
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {can.changeHandoff && !noShowWaiting && ( |       {can.changeHandoff && (
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | (b.status === "needs_time" \|\| (b.status === "booked" && !slotOver)), | (b.status === "needs_time" \|\| b.status === "booked"),
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const slotOver = booked && now >= Date.parse(b.slot_end ?? b.slot_start!); |   const slotOver = booked && now >= Date.parse(b.not_delivered_from ?? b.slot_start!) + 24 * 3_600_000;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -260,6 +264,33 @@ describe("DB-2: a problem is open on the delivery", () => {
     await frozenAfterRead();
     expect(screen.queryByRole("button", { name: "Delivered" })).toBeNull();
 
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+  });
+
+  it("AUD31-38: the door-or-hand choice shows for a delivery to come, and is gone once its hour passed and after It wasn't delivered", async () => {
+    const pastDue = { slot_start: iso(-3 * HOUR), slot_end: iso(-2 * HOUR), not_delivered_from: iso(-HOUR) };
+    const choice = () => screen.queryByRole("radiogroup", { name: "When the seller arrives" });
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+    const ahead = show();
+    expect(await screen.findByRole("radiogroup", { name: "When the seller arrives" })).toBeInTheDocument();
+    ahead.unmount();
+
+    state.booking = { ...BASE, ...pastDue, side: "buyer" };
+    const late = show();
+    expect(await screen.findByRole("button", { name: "It wasn't delivered" })).toBeInTheDocument();
+    expect(choice()).toBeNull();
+    late.unmount();
+
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reads = 0;
+    handoverRow.reported = "2026-10-30T12:00:00Z";
+    show();
+    await screen.findByRole("button", { name: /Ask for a new time|Pick a time|Report a problem/ });
+    await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(choice()).toBeNull();
     state.booking = { ...BASE, side: "buyer" };
     handoverRow.reported = null;
   });

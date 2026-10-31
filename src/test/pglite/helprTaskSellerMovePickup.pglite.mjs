@@ -61,7 +61,7 @@ create function public.declutter_notify(p_user uuid, p_type text, p_title text, 
   returns void language sql as $$ insert into public.notices values (p_user, p_title, p_message, p_link) $$;
 create function public.declutter_order_items_named(uuid) returns text language sql stable as $$ select '"Oak chair"' $$;
 `);
-await db.exec(checkBefore.replace("ADD CONSTRAINT", "ADD CONSTRAINT").replace(/^/, ""));
+await db.exec(checkBefore);
 for (const f of ["helpr_task_log", "helpr_task_source_require_feature", "helpr_task_source_slot_ok", "helpr_task_source_held", "helpr_task_lock"]) {
   await db.exec(fnFrom(base, f));
 }

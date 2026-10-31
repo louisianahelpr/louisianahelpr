@@ -11,7 +11,7 @@ import { useState, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -58,6 +58,7 @@ import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop"
 import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
+import { toastWatching } from "./DeclutterWatching";
 
 /** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
 function addressNote(free: boolean, isSeller: boolean): string {
@@ -81,6 +82,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
   // A link whose id is not an item id at all can never load one: say so at
@@ -125,7 +127,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
+    onSuccess: () => {
+      // SS-5: a new heart says where to find the item again.
+      if (!isWatching) toastWatching(navigate);
+      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
+    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 

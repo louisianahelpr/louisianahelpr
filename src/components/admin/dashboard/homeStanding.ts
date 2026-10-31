@@ -4,7 +4,7 @@ import { ADMIN_QUEUE_IDS, type PendingCounts } from "@/components/admin/adminRai
  * What the admin home may say about the platform.
  *
  * "Calm" is a claim, so it needs every number behind it to be read and zero: the
- * home said "Everything looks calm" while 4 critical and 84 error ledger items
+ * home said "Everything looks calm" on 2026-10-30 while 4 critical and 84 error ledger items
  * were open (measured 10-30), because it asked only three of the nine queues and
  * never the ledger. Anything still loading or unreadable is `unknown`, not calm.
  */

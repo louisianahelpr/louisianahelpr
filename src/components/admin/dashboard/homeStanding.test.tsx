@@ -1,8 +1,8 @@
 /**
  * The admin home says "calm" only when every number behind it was read and is zero.
  *
- * THE BUG (Admin H1, measured 10-30): "Everything looks calm on the platform."
- * while 4 critical and 84 error ledger items were open, because the line asked
+ * THE BUG (Admin H1, measured 2026-10-30): "Everything looks calm on the platform."
+ * while 4 critical and 84 error ledger items were open on 2026-10-30, because the line asked
  * three of the nine queues and never the ledger, and read a query still loading
  * as a zero.
  *

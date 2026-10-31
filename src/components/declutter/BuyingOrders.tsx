@@ -13,7 +13,7 @@
 import { useEffect } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
-import { fetchMyBookings, fetchMyHandover, type MyBooking, type MyHandover } from "@/lib/declutter/handover";
+import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
@@ -78,8 +78,17 @@ export function buyerOrderFacts(
   }
 }
 
+/**
+ * NIGHT-BUYINGopenpr-2: an open problem the buyer did not report and has not answered yet. The order card's "Add your
+ * side" (DeclutterProblemSides) is then the buyer's move. Null (still loading or no problem): not theirs.
+ */
+export function problemAwaitsBuyer(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
+  return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note;
+}
+
 /** The buyer's one next move, named as the control that does it. Null when the order does not wait on the buyer. */
 export function buyerNextAction(f: OrderFacts): string | null {
+  if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side";
   if (!orderWaitsOnYou(f)) return null;
   if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup day";
   if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
@@ -182,6 +191,9 @@ export function useBuyingTracker(): BuyingTracker {
   const paidCents = useMyPaidCents(ids);
   // Audit 1b D2-2: an open problem puts the order on hold (the same key the order card reads).
   const problems = useOpenProblems(ids);
+  // NIGHT-BUYINGopenpr-2: whether this buyer still owes their side of each open problem (the card reads the same key).
+  const problemIds = ids.filter((id) => problems.has(id));
+  const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
@@ -212,6 +224,7 @@ export function useBuyingTracker(): BuyingTracker {
         task,
       }),
       problem: problems.has(o.orderId),
+      problemAwaitsYou: problemAwaitsBuyer(problemRows[problemIds.indexOf(o.orderId)]?.data ?? null),
     };
     const bucket = orderBucket(facts);
     counts[bucket]++;

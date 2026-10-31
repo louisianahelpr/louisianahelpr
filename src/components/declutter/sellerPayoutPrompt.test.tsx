@@ -120,6 +120,8 @@ describe("Declutter payout prompt: only when Declutter money waits", () => {
 
   it("the Selling tab shows it where the money is: with the sold group", () => {
     const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
-    expect(dash).toContain('{show("sold") && <SellerPayoutPrompt />}');
+    // AUD31-4 (4c8920f168): the sold group is built once as `sold` so it can come first; the prompt opens it
+    // (blankComments leaves the JSX comment as an empty {}).
+    expect(dash).toMatch(/const sold = show\("sold"\) && <>\s*(?:\{\s*\}\s*)?<SellerPayoutPrompt \/>/);
   });
 });

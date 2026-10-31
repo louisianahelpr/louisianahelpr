@@ -27,8 +27,10 @@ describe("Saving a search says so, with a way to the list (SS-2)", () => {
   });
 
   it("its View action opens the Saved searches tab, which the profile page resolves", () => {
-    const m = /action: \{ label: "View", onClick: \(\) => navigate\("\/profile\?tab=([a-z_]+)"\) \}/.exec(src);
+    // BUY-54: the action is shared with "You already saved this search" (const toList).
+    const m = /const toList = \{ label: "View", onClick: \(\) => navigate\("\/profile\?tab=([a-z_]+)"\) \};/.exec(src);
     expect(m).not.toBeNull();
+    expect(src).toMatch(/toast\("Search saved", \{\s*description: [^}]*action: toList,/);
     expect(resolveTab(m![1])).toBe("saved_searches");
   });
 });

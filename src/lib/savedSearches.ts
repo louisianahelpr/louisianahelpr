@@ -93,6 +93,17 @@ export function filterWords(s: { section: string; category: string | null; min_b
   return out;
 }
 
+/**
+ * BUY-54: the same search saved twice sent every alert twice and used up the 10-search cap. Same section, words (any
+ * case), category, price and distance = the same search (the origin is a rounded position; it does not make it new).
+ */
+export function sameSearch(s: Pick<SavedSearch, "section" | "query" | "category" | "min_budget" | "max_budget" | "radius_miles">, d: SearchDraft): boolean {
+  const words = (q: string | null | undefined) => (q ?? "").trim().toLowerCase();
+  return s.section === d.section && words(s.query) === words(d.query) && (s.category ?? null) === (d.category ?? null)
+    && (s.min_budget ?? null) === (d.minDollars ?? null) && (s.max_budget ?? null) === (d.maxDollars ?? null)
+    && (s.radius_miles ?? null) === (d.radiusMiles ?? null);
+}
+
 /** A saved row's line under its name: `Email · within 25 mi · under $100`. */
 export function rowSummary(s: SavedSearch, paused = false): string {
   // "Pause all alerts" stops every search's alerts, so a row never claims a channel then.

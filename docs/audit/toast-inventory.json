@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1047,
-    "files": 290,
+    "files": 291,
     "rendering": 906,
     "suppressedByPolicy": 141,
     "byKind": {
@@ -4713,7 +4713,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 299,
+      "line": 292,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4733,7 +4733,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 305,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4743,7 +4743,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 368,
+      "line": 361,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4753,7 +4753,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 372,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4763,7 +4763,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 385,
+      "line": 378,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4773,7 +4773,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 468,
+      "line": 461,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4783,7 +4783,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 469,
+      "line": 462,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4793,7 +4793,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 495,
+      "line": 488,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4813,7 +4813,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 496,
+      "line": 489,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4823,7 +4823,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 497,
+      "line": 490,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4833,7 +4833,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 498,
+      "line": 491,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4843,27 +4843,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 501,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 573,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Reported. Nobody is paid until Louisiana Helpr decides."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 579,
+      "line": 494,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5113,7 +5093,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 223,
+      "line": 230,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5123,7 +5103,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 235,
+      "line": 242,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5321,6 +5301,26 @@
     {
       "file": "src/components/declutter/DeclutterPorchPlaces.tsx",
       "line": 115,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterProblemForm.tsx",
+      "line": 38,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Reported. Nobody is paid until Louisiana Helpr decides."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterProblemForm.tsx",
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

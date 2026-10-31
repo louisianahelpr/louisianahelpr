@@ -31,6 +31,9 @@ describe("LEAD-BUNCH-34-SLOW: the photos being added show at once", () => {
     const view = blankComments(readFileSync(resolve(process.cwd(), "src/components/declutter/DeclutterBunchView.tsx"), "utf8"));
     expect(view).toMatch(/\{sorting && \(\s*<BunchIntake /);
     expect(view).toContain("onCleaned: (key, copy) => {");
-    expect(view).toContain("useBunchThumbs(photos, { paused: !!sorting, ready: copyUrls })");
+    // The small copies live in useSortingThumbs (split out of the view, componentSizeRatchet).
+    expect(view).toContain("useSortingThumbs(photos, !!sorting)");
+    const hook = blankComments(readFileSync(resolve(process.cwd(), "src/components/declutter/useBunchThumbs.ts"), "utf8"));
+    expect(hook).toContain("useBunchThumbs(photos, { paused: sorting, ready: copyUrls })");
   });
 });

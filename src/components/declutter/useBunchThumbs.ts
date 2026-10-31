@@ -3,7 +3,7 @@
  * and released when the photo leaves the list or the page closes. The screen re-renders every few previews, not for
  * each one. Until a photo's preview is ready its card shows an empty square.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { BunchPhoto } from "@/lib/declutter/bunch";
 import { bunchThumbnail } from "@/lib/declutter/photos";
 
@@ -13,7 +13,7 @@ const SHOW_EVERY = 4;
  * LEAD-BUNCH-34-SLOW: `paused` while a sort makes each photo's small copy (Sell a bunch shows that copy, so the full photo
  * isn't decoded twice at once); `ready` = the photos that already have one, skipped here.
  */
-export function useBunchThumbs(photos: BunchPhoto[], { paused = false, ready }: { paused?: boolean; ready?: ReadonlyMap<string, string> } = {}): Map<string, string> {
+function useBunchThumbs(photos: BunchPhoto[], { paused = false, ready }: { paused?: boolean; ready?: ReadonlyMap<string, string> } = {}): Map<string, string> {
   const [shown, setShown] = useState<Map<string, string>>(() => new Map());
   const made = useRef(new Map<string, string>());
   const wanted = useRef(new Set<string>());
@@ -70,4 +70,31 @@ export function useBunchThumbs(photos: BunchPhoto[], { paused = false, ready }: 
   }, [photos, paused]);
 
   return shown;
+}
+
+/**
+ * LEAD-BUNCH-34-SLOW (split out of DeclutterBunchView.tsx, componentSizeRatchet): while sorting, each photo's thumbnail
+ * is its small copy (set through the returned setter), shown the moment it is made; useBunchThumbs fills in the rest
+ * once sorting is done. A copy is released when its photo leaves the list or the page closes.
+ */
+export function useSortingThumbs(photos: BunchPhoto[], sorting: boolean): [Map<string, string>, Dispatch<SetStateAction<ReadonlyMap<string, string>>>] {
+  const [copyUrls, setCopyUrls] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const made = useBunchThumbs(photos, { paused: sorting, ready: copyUrls });
+  const thumbs = useMemo(() => new Map([...copyUrls, ...made]), [copyUrls, made]);
+  useEffect(() => {
+    const now = new Set(photos.map((p) => p.key));
+    if (![...copyUrls.keys()].some((k) => !now.has(k))) return;
+    setCopyUrls((m) => {
+      const kept = new Map<string, string>();
+      for (const [k, url] of m) {
+        if (now.has(k)) kept.set(k, url);
+        else URL.revokeObjectURL(url);
+      }
+      return kept;
+    });
+  }, [photos, copyUrls]);
+  const copyUrlsNow = useRef(copyUrls);
+  copyUrlsNow.current = copyUrls;
+  useEffect(() => () => copyUrlsNow.current.forEach((url) => URL.revokeObjectURL(url)), []);
+  return [thumbs, setCopyUrls];
 }

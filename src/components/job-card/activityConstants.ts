@@ -163,6 +163,8 @@ export type EnrichedApplication = Application & {
 export type CompletionPromptTarget = { job: Job; revieweeId: string; revieweeName: string; tipped?: boolean };
 
 export type AppliedApp = Application & {
+  /** JOBS-12: what is left to read of a job closed to this Helpr (get_closed_application_job_labels). */
+  closed_job_label?: { title: string | null; date_needed: string | null } | null;
   job?: (Job & { revision_note?: string | null }) | null;
   posterName?: string;
 };

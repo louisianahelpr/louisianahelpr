@@ -97,8 +97,8 @@ interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
   /**
-   * Slide-up sheet glued to the bottom edge with a grab handle and a plain
-   * dim scrim (owner 2026-10-18, tweak 6). Only with side="bottom"; every
+   * Slide-up sheet glued to the bottom edge with a plain dim scrim (owner
+   * 2026-10-18, tweak 6; no grab handle since LEAD-SHEET-X-ONLY, 10-31). Only with side="bottom"; every
    * other bottom sheet stays the centred modal.
    */
   floor?: boolean;
@@ -159,7 +159,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             opener.current.focus();
           }}
         >
-          {isFloor && <div aria-hidden className="sheet-grab-handle" />}
+          {/* LEAD-SHEET-X-ONLY (owner 10-31): no drag bar or grab handle; a sheet closes with its X or a tap outside. */}
           <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
           {!hasDismiss && <SheetCloseButton top={closeTop} right={closeRight} />}
         </SheetPrimitive.Content>

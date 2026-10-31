@@ -836,6 +836,8 @@ export const GAPS: Record<string, string> = {
   "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
   // LEAD-SHAKE-PROMPT: the shake switch, split out of SecurityTab (componentSizeRatchet).
   "src/components/profile/ShakeToReportCard.tsx": "no text input: one on/off switch, saved on the device only (no server write); it renders only in the native app (isShakeToReportSupported), never on the website the sweep drives.",
+  // LEAD bundle dropdown (b4 1b53b4f42b): the bundle discount's on/off row became one dropdown.
+  "src/components/declutter/BundleDiscountCard.tsx": "no text input: one native select whose options are Off and the fixed BUNDLE_PERCENTS list, saved the moment it changes; nothing can be typed.",
   "src/components/declutter/DeclutterListingDefaults.tsx": "no typed text: switches and choices only, saved as the seller's listing defaults.",
   // Message quiet time (Messages audit): the browser's own time picker.
   "src/components/notificationPreferences/QuietTimeInput.tsx": "no text input: one native type=time control, which only ever yields a valid HH:MM or empty.",

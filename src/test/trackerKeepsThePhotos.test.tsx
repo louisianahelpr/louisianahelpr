@@ -34,7 +34,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage: { from: () => ({}) }, from: () => ({}), rpc: () => ({}) } }));
 vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: () => [], PENDING_PHOTO_SRC: "" }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { helperFaceAction, helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { takePhotoCapture, requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";

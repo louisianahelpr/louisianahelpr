@@ -18,7 +18,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({}), rpc: vi.fn() },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { buildJobInsertPayload, type BuildJobInsertPayloadInput } from "./jobSubmitHelpers";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";

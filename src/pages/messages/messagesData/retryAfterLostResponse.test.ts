@@ -65,7 +65,7 @@ vi.mock("@/integrations/supabase/client", () => {
   return { supabase: { from, rpc: vi.fn() } };
 });
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn() }));
 vi.mock("@/lib/requireOnline", () => ({ requireOnline: () => true }));
 vi.mock("@/lib/messagingLockout", () => ({

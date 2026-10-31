@@ -14,12 +14,12 @@
  * migration 3x; 8 FAIL on prod's body, the owner's case among them). This
  * guard pins the rule on the NEWEST definition.
  *
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |        AND h.hired_on > now() - interval '72 hours'\n |        AND true\n
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |        AND h.hired_on >= v_since\n |        AND true\n
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |            (j.status::text NOT IN ('completed', 'cancelled', 'disputed')) AS live | true AS live
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |          WHERE h.live AND h.uid IN (SELECT x.uid FROM helprs x)\n |          WHERE h.uid IN (SELECT x.uid FROM helprs x)\n
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |                         WHERE r.helper_id = h.uid AND r.reminder_stage = 'hired' AND r.job_id = h.jid) |                         WHERE r.helper_id = h.uid AND r.reminder_stage = 'hired')
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |   v_since constant timestamptz := '2026-10-25 23:40:59+00'; |   v_since constant timestamptz := '-infinity';
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |        AND h.hired_on > now() - interval '72 hours'\n |        AND true\n
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |        AND h.hired_on >= v_since\n |        AND true\n
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |            (j.status::text NOT IN ('completed', 'cancelled', 'disputed')) AS live | true AS live
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |          WHERE h.live AND h.uid IN (SELECT x.uid FROM helprs x)\n |          WHERE h.uid IN (SELECT x.uid FROM helprs x)\n
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |                         WHERE r.helper_id = h.uid AND r.reminder_stage = 'hired' AND r.job_id = h.jid) |                         WHERE r.helper_id = h.uid AND r.reminder_stage = 'hired')
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |   v_since constant timestamptz := '2026-10-25 23:40:59+00'; |   v_since constant timestamptz := '-infinity';
  */
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
@@ -31,7 +31,8 @@ describe("the 'hired' payout reminder is only for a fresh, live hire", () => {
   it("reads the newest definition (floor)", () => {
     expect(fn.body.length).toBeGreaterThan(1000);
     // 20261030031059 (Job reminders) restated it with the follow-up switch; the hired rules are unchanged.
-    expect(fn.file).toContain("20261030031059");
+    // 20261031220849 (LEAD-B49-REBUILD: Builder 49's 20261030225327) adds the ID ask to the same ladder; hired rules unchanged.
+    expect(fn.file).toContain("20261031220849");
   });
 
   it("a hire carries its time and whether it is live (not completed, cancelled or disputed; a crew seat by joined_at)", () => {

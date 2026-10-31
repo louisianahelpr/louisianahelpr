@@ -45,5 +45,5 @@ describe("Q1245: a booked job's terms are locked against the poster", () => {
   });
 });
 
-// @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'requires_w9',\n |
-// @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'business_id',\n |     'location_x',\n
+// @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'requires_w9',\n |
+// @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'business_id',\n |     'location_x',\n

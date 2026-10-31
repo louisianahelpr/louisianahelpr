@@ -5,7 +5,7 @@
  * keeps the newest definition on that gate, and every poster-facing sentence
  * that names the rule true.
  *
- * @mutate supabase/migrations/20261031015647_poster_cancel_strike_only_inside_24h.sql |   IF v_late THEN\n    v_verdict |   IF v_committed THEN\n    v_verdict
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |   IF v_late THEN\n    v_verdict |   IF v_committed THEN\n    v_verdict
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | It isn't a strike either. | A strike is still recorded.
  */
 import { describe, it, expect } from "vitest";

@@ -11,6 +11,11 @@
  * @mutate src/components/postjob/AddressAutocomplete.tsx | if (mapKitStatus !== "ready" && !plainWithoutMapKit) { | if (mapKitStatus !== "ready") {
  * @mutate src/components/declutter/sellForm.ts | return /\d/.test(city) \|\| AREA_ADDRESS_RE.test(city) ? "" : city; | return city;
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       if (!d.area.trim()) throw new Error("no_city_in_address");\n |
+ * @mutate src/components/declutter/SellerAddressField.tsx | onFocusCapture={bringUp} |
+ * @mutate src/components/declutter/SellerAddressField.tsx |         keepListInView\n |
+ * @mutate src/components/declutter/SellerAddressField.tsx |     if (desktop) return;\n |
+ * @mutate src/components/postjob/AddressAutocomplete.tsx | if (keepListInView && showList) listRef | if (false) listRef
+ * @mutate src/components/postjob/AddressAutocomplete.tsx | {keepListInView ? "scroll-mb-safe-nav" : ""} |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -26,12 +31,14 @@ const h = vi.hoisted(() => ({
   status: "ready",
   suggestions: [] as { displayLines: string[]; place: Record<string, unknown> }[],
   here: { lat: 30.4601, lng: -91.1601 },
+  desktop: false,
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => h.here }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => h.status }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => h.desktop }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { SellPorchPlaces } from "./SellPorchPlaces";
@@ -185,6 +192,56 @@ describe("a pickup place's address", () => {
     pressSave();
     await waitFor(() => expect(saved()).toHaveLength(1));
     expect(saved()[0]).toMatchObject({ p_area: "New Orleans", p_lat: 29.95 });
+  });
+});
+
+describe("a box low on a phone's page", () => {
+  const scroll = vi.fn();
+  beforeEach(() => {
+    scroll.mockClear();
+    Element.prototype.scrollIntoView = scroll;
+  });
+  afterEach(() => {
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    h.desktop = false;
+  });
+
+  it("scrolls up on focus, under the page's title, and the open list stays clear of the bottom nav", async () => {
+    await newPlace();
+    fireEvent.focus(addressBox());
+    expect(scroll).toHaveBeenCalledWith({ block: "start" });
+    expect((scroll.mock.contexts[0] as HTMLElement).className).toContain("scroll-mt-24");
+    scroll.mockClear();
+    type("123 Mai");
+    const list = await screen.findByRole("listbox");
+    await waitFor(() => expect(scroll).toHaveBeenCalledWith({ block: "nearest" }));
+    expect(list.className).toContain("scroll-mb-safe-nav");
+  });
+
+  it("scrolls again as the keyboard opens, once", async () => {
+    const listeners = new Set<() => void>();
+    vi.stubGlobal("visualViewport", {
+      addEventListener: (_: string, f: () => void) => listeners.add(f),
+      removeEventListener: (_: string, f: () => void) => listeners.delete(f),
+    });
+    try {
+      await newPlace();
+      fireEvent.focus(addressBox());
+      scroll.mockClear();
+      expect(listeners.size).toBe(1);
+      for (const f of [...listeners]) f();
+      expect(scroll).toHaveBeenCalledTimes(1);
+      expect(listeners.size).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("a desktop page doesn't jump", async () => {
+    h.desktop = true;
+    await newPlace();
+    fireEvent.focus(addressBox());
+    expect(scroll).not.toHaveBeenCalled();
   });
 });
 

@@ -16,9 +16,9 @@
  *
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill /> | {null}
  * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
- * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} /> |       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />\n      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />
- * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd }) | : undefined)
- * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
+ * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />\n      {phoneSearchOpen && <SearchTriggerSlot width="40px" />}\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} /> |       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />\n      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />
+ * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen }) | : undefined)
+ * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
@@ -137,11 +137,11 @@ describe("Jobs > Browse on a phone: search and filters end the tabs row, before 
 
   it("Dashboard hands the tabs row, on a phone, the search ICON (opens in place) then Filters", () => {
     expect(phoneEnd.length).toBeGreaterThan(100);
-    const search = phoneEnd.indexOf('<InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />');
+    const search = phoneEnd.indexOf('<InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />');
     const filtersAt = phoneEnd.indexOf("<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />");
     expect(search, "the search icon").toBeGreaterThan(-1);
     expect(filtersAt, "the Filters button").toBeGreaterThan(search);
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd })");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })");
     // JobsSection puts whatever Browse hands it BEFORE the gear (profileIsAccountMoneyHelp renders the order).
     expect(read("pages/jobs/JobsSection.tsx")).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
   });

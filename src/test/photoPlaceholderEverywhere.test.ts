@@ -83,6 +83,9 @@ describe("a photo-less card shows its category on a tint, never a blank box", ()
     const notATile: Record<string, string> = {
       "src/components/declutter/DeclutterWantedReplies.tsx": "a Wanted post's own photo: with none, no tile is drawn at all",
       "src/components/declutter/DeclutterWantedViews.tsx": "a line of text for a seller's reply: with no photo, no tile is drawn at all",
+      "src/components/declutter/DeclutterBunchPhotos.tsx": "a photo the seller just took, on this device, while its blob loads; every tile has a photo",
+      "src/components/declutter/DeclutterBunchRow.tsx": "an item being sorted always has a photo; only its local blob can be loading",
+      "src/components/declutter/SellOneScreen.tsx": "the post preview: it returns nothing with no cover, so no tile is drawn",
       "src/components/declutter/SellerDeliveryOrder.tsx": "the delivery proof photo while its link loads; a failed read says so in words",
     };
     expect(seen).toBeGreaterThan(2);

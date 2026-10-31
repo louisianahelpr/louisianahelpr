@@ -3668,7 +3668,10 @@ export type Database = {
           id: string
           is_seed: boolean
           max_price_cents: number
+          photo_added_at: string | null
           photo_paths: string[]
+          photos_cleared: string[]
+          photos_held: string[]
           public: boolean
           radius_miles: number
           removed_at: string | null
@@ -3687,7 +3690,10 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents: number
+          photo_added_at?: string | null
           photo_paths?: string[]
+          photos_cleared?: string[]
+          photos_held?: string[]
           public?: boolean
           radius_miles: number
           removed_at: string | null
@@ -3706,7 +3712,10 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents?: number
+          photo_added_at?: string | null
           photo_paths?: string[]
+          photos_cleared?: string[]
+          photos_held?: string[]
           public?: boolean
           radius_miles?: number
           removed_at?: string | null
@@ -3839,6 +3848,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_free_still_asks: {
+        Row: {
+          answered_at: string | null
+          asked_at: string | null
+          item_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          asked_at?: string | null
+          item_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          asked_at?: string | null
+          item_id?: string
+        }
+        Relationships: []
       }
       declutter_watchlist: {
         Row: {

@@ -24,7 +24,7 @@ function joinedLabel(iso: string | null | undefined): string | null {
 }
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
-export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: string; noun?: "seller" | "poster" }) {
+export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: string; noun?: "seller" | "poster" | "Helpr" }) {
   const card = useQuery({ queryKey: ["declutter", "seller-card", sellerId], queryFn: () => fetchSellerCard(sellerId) });
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
   // Q2265: what buyers said most (Declutter only; never on the job page's poster card). A failed read shows nothing.

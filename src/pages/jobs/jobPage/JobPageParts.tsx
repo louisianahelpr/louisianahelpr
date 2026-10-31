@@ -153,3 +153,15 @@ export function PostedBy({ posterId }: { posterId: string }) {
     </section>
   );
 }
+
+/**
+ * AUD31-80: the poster's page never named the hired Helpr (PostedBy is the Helpr's view of the poster). The poster now
+ * sees the same person card for their Helpr; "Message <name>" is already the page's own button (posterPageActions).
+ */
+export function HiredHelpr({ helprId }: { helprId: string }) {
+  return (
+    <section aria-label="Your Helpr">
+      <DeclutterSellerCard sellerId={helprId} noun="Helpr" />
+    </section>
+  );
+}

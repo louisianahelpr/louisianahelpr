@@ -168,7 +168,7 @@ export function SellerSetupGate({ free = false, children }: { free?: boolean; ch
   if (setup.failed || windows.isError) {
     return (
       <AppPage title="Sell" backTo="/declutter?tab=selling">
-        <ErrorState variant="inline" title="We couldn't load your selling settings." body="Check your connection and try again." onRetry={() => { setup.retry(); void windows.refetch(); }} />
+        <ErrorState variant="inline" title="We couldn't load your selling settings." body="Check your connection and try again." onRetry={() => { setup.reload(); void windows.refetch(); }} />
       </AppPage>
     );
   }

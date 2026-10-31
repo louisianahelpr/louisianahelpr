@@ -133,11 +133,12 @@ describe("Browse's first cards when the list is longer than the first answer", (
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    fireEvent.change(screen.getByPlaceholderText("Search items"), { target: { value: "oak chair" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search items" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search items" }), { target: { value: "oak chair" } });
     await waitFor(() => expect(path).toBe("/declutter?tab=browse&q=oak+chair"));
     fireEvent.click(screen.getByRole("link", { name: "to item" }));
     fireEvent.click(await screen.findByRole("button", { name: "back" }));
-    expect(((await screen.findByPlaceholderText("Search items")) as HTMLInputElement).value).toBe("oak chair");
+    expect(((await screen.findByRole("searchbox", { name: "Search items" })) as HTMLInputElement).value).toBe("oak chair");
     expect(path).toBe("/declutter?tab=browse&q=oak+chair");
   });
 

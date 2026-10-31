@@ -48,7 +48,7 @@ const MAX_LENGTH = 500;
 
 type Step = "form" | "confirmation";
 
-interface ReportDialogProps {
+export interface ReportDialogProps {
   open: boolean;
   onClose: () => void;
   /**

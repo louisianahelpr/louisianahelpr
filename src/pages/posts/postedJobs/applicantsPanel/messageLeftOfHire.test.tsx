@@ -149,7 +149,7 @@ function flexChildrenAt(el: Element, width: number): Element[] {
 }
 
 function controls(region: HTMLElement, hire: HTMLElement) {
-  const name = hire.getAttribute("aria-label")!.replace(/^Select /, "").replace(/ — payout setup not finished yet$/, "");
+  const name = hire.getAttribute("aria-label")!.replace(/^Hire /, "");
   return {
     name,
     message: within(region).getByRole("button", { name: `Message ${name}` }),
@@ -161,7 +161,7 @@ function controls(region: HTMLElement, hire: HTMLElement) {
 describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left of Hire", () => {
   it("each pending applicant's card reads Message, Hire, decline on one row", () => {
     const region = renderPanel([app("a1", "helper-1", "Yusef Harris", "pending"), app("a2", "helper-2", "Ann Boudreaux", "pending")]);
-    const hires = within(region).getAllByRole("button", { name: /^Select / });
+    const hires = within(region).getAllByRole("button", { name: /^Hire / });
     expect(hires.length).toBe(2);
     for (const hire of hires) {
       const { name, message, decline } = controls(region, hire);
@@ -181,7 +181,7 @@ describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left
 
   it("at 375 (below sm) the row sits UNDER the name and note, full width, Message < Hire < x", () => {
     const region = renderPanel([app("a1", "helper-1", "Yusef Harris", "pending")]);
-    const hire = within(region).getByRole("button", { name: /^Select / });
+    const hire = within(region).getByRole("button", { name: /^Hire / });
     const { name, message, decline, nameLink } = controls(region, hire);
     const row = hire.parentElement!;
     const W = 375;
@@ -213,7 +213,7 @@ describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left
 
   it("at 750 and 1440 (sm and up) the row stays beside the name, in the right column, at its natural size", () => {
     const region = renderPanel([app("a1", "helper-1", "Yusef Harris", "pending")]);
-    const hire = within(region).getByRole("button", { name: /^Select / });
+    const hire = within(region).getByRole("button", { name: /^Hire / });
     const { message, nameLink } = controls(region, hire);
     const row = hire.parentElement!;
     for (const W of [750, 1440]) {
@@ -242,7 +242,7 @@ describe("Q?message-left-of-hire: Message sits on the Hire row, immediately left
 
   it("a hired applicant (no Hire row) still has one Message", () => {
     const region = renderPanel([app("a1", "helper-1", "Yusef Harris", "accepted")]);
-    expect(within(region).queryByRole("button", { name: /^Select / })).toBeNull();
+    expect(within(region).queryByRole("button", { name: /^Hire / })).toBeNull();
     expect(within(region).getAllByRole("button", { name: /^Message / })).toHaveLength(1);
   });
 });

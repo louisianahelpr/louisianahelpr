@@ -35,6 +35,7 @@ const h = vi.hoisted(() => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<object>()), track: vi.fn() }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => h.here }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => h.status }));

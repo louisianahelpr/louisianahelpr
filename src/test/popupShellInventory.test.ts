@@ -356,6 +356,7 @@ describe("one footer convention", () => {
    * here.
    */
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
+    "src/components/declutter/DeclutterBunchPhotos.tsx": "a photo viewer: each action acts and closes, and Done sits in the same row",
     "src/components/create/CreateSheet.tsx": "a menu (board 1): each row's chips go straight to their flow; the sheet's close is the exit",
     "src/components/sections/ChoiceFilterRow.tsx": "a radio list: a tap picks and closes",
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": "a comparison table (boards 22/170): each column ends in its own Hire; the sheet's close is the exit",

@@ -180,7 +180,7 @@ export function SectionTabs<T extends string>({
               data-section-tab={o.value}
               onClick={() => { if (!active) { hapticLight(); onChange(o.value); } }}
               className={cn(
-                "data-[tab-cut]:invisible section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold",
+                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold data-[tab-cut]:invisible",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] rounded-sm",
                 active ? "text-foreground section-tab-selected" : "text-muted-foreground",
               )}
@@ -197,7 +197,7 @@ export function SectionTabs<T extends string>({
         })}
       </div>
       {more && !onlySelected && (
-        <button type="button" aria-label="More tabs" data-tabs-more-button="" onClick={showNext}
+        <button type="button" aria-label={tr("tabs.more")} data-tabs-more-button="" onClick={showNext}
           className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
           <ChevronRight className="h-4 w-4" aria-hidden />
         </button>

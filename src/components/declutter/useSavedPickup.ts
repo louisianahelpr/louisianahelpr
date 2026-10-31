@@ -76,6 +76,6 @@ export function useSavedPickup(userId: string | undefined, apply: (p: SavedPicku
     hasPlaces: !!fromPlaces,
     hasWays: (saved.data?.handovers ?? last.data?.ways ?? []).length > 0,
     failed: places.isError || saved.isError || last.isError,
-    retry: () => { void places.refetch(); void saved.refetch(); void last.refetch(); },
+    reload: () => { void places.refetch(); void saved.refetch(); void last.refetch(); },
   };
 }

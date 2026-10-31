@@ -27,7 +27,7 @@ function ItemPicker({ others, urls, onPick, label }: { others: BunchOther[]; url
         return (
           <li key={o.key}>
             <button type="button" aria-label={label(o.name)} onClick={() => onPick(o.key)} data-bunch-pick={o.key}
-              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-card p-1.5 text-left text-ds-14 font-medium hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-card p-1.5 text-left text-ds-14 font-medium ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-photo-empty">
                 {url?.startsWith("blob:") && <FallbackImg src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" />}
               </span>

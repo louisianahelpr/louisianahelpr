@@ -1061,6 +1061,8 @@ describe("Popup grammar — footer", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
     const DECLINE_LABELS = new Set([
+      // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).
+      "It's gone",
       // Declutter handover sheets (Builder 3c s3, DeclutterHandoverSheets.tsx):
       // "Retake" takes the porch photo again (an action, not a dismissal);
       // "Something's not right" opens the problem report instead of confirming;

@@ -34,7 +34,7 @@ import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unusablePhotosNote, watchBunchRun,
+  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, movePhotoWithin, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unreadyFirst, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
 import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
@@ -123,6 +123,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     },
   );
   const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);
+  const [pricedDraftsOffered, setPricedDraftsOffered] = useState(false);
 
   // A run outlives this screen (the back link). Coming back during one shows it and takes it over; it never starts a second.
   const runDone = useRef<BunchRunWatcher["onDone"]>(() => {});
@@ -459,7 +460,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); document.getElementById("bunch-files")?.focus(); }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} />
+      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
 
       {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
       {saved.restoredCount > 0 && items.length > 0 && (
@@ -540,6 +541,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                 url={thumbs.get(it.photoKeys[0])}
                 open={isRowOpen(it)}
                 chosen={chosen.has(it.key)}
+                canDrop={!listing && !listingDrafts}
+                onPhotoDrop={(k) => regroup((its) => movePhoto(its, k, it.key), `Moved a photo to ${nameOf(it.key)}.`)}
                 nextPriceId={items.slice(i + 1).find((x) => !x.free && !x.notSorted) ? `price-${items.slice(i + 1).find((x) => !x.free && !x.notSorted)!.key}` : null}
                 onToggleOpen={() => setOpenRows((m) => new Map(m).set(it.key, !isRowOpen(it)))}
                 onToggleChosen={(on) => setChosen((c) => { const n = new Set(c); if (on) n.add(it.key); else n.delete(it.key); return n; })}
@@ -559,6 +562,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                   onSplit={(keys) => onSplit(it.key, keys)}
                   onRemovePhoto={(k) => regroup((its) => takePhotoOff(its, it.key, k), it.photoKeys.length === 1 ? `Removed ${nameOf(it.key)}: that was its last photo.` : "Photo removed.")}
                   onCover={(k) => setItems((its) => makeCover(its, it.key, k))}
+                  onReorder={(k, before) => setItems((its) => movePhotoWithin(its, it.key, k, before))}
+                  canDrag={!listing && !listingDrafts}
                   onAddPhotos={(list) => void onAddPhotos(it.key, list)}
                   onMerge={(into) => onMerge(it.key, into)}
                   onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${nameOf(it.key)}.`)}
@@ -574,12 +579,12 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {items.length > 0 && (
         <BunchListStep
-          step={firstStep + 2} items={items} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
+          step={firstStep + 2} items={items} pricedDraftsOffered={pricedDraftsOffered} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
           choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} onList={() => void onListAll()}
         />
       )}
 
-      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => jumpTo(firstUnready.key) : null} onNext={toListing} onUndo={onUndo}
+      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={toListing} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>
   );

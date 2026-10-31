@@ -268,7 +268,7 @@ describe("listBunch", () => {
   });
 
   // A photo moved off an item that already has a draft (B19's gap, lead 10-30): it stayed on the draft on the server.
-  // @mutate src/lib/declutter/bunch.ts |         await removeDraftPhoto(deps, photoId); |         void photoId;
+  // @mutate src/lib/declutter/bunch.ts |         await removeDraftPhoto(deps, uploaded[k]); |         void k;
   // @mutate src/lib/declutter/bunch.ts |         delete uploaded[k]; |         void k;
   // @mutate src/lib/declutter/bunch.ts |     if (!String((err as Error)?.message ?? "").includes("photo_not_found")) throw err; |     throw err;
   describe("a photo moved off an item with a draft", () => {

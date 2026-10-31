@@ -441,11 +441,25 @@ describe("DeliverView (the Helpr's screen)", () => {
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                   onClick={() => setAsk({ kind: "backOut" })}> |                   onClick={() => backOut.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Back out of this delivery?");
-    expect(sheet).toHaveTextContent("Under 2 hours before the pickup it costs a delivery strike, unless the seller moved the time.");
+    // AUD31-26: this pickup is past, so THIS back-out costs a strike.
+    expect(sheet).toHaveTextContent("It's under 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time.");
     expect(state.calls).toHaveLength(0);
     fireEvent.click(within(sheet).getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["release", "t1"]));
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  // AUD31-26: 40 hours before the pickup the sheet says this back-out is free.
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   return !Number.isFinite(t) \|\| now > t - 2 * 3_600_000; |   return true;
+  it("AUD31-26: backing out well before the pickup says it costs no strike", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: new Date(Date.now() + 40 * 3_600_000).toISOString(), payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: new Date(Date.now() + 40 * 3_600_000).toISOString(), pickup_address: "1234 Example St" };
+    show(<DeliverView />);
+    fireEvent.click(await screen.findByRole("button", { name: "Back out" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("It's more than 2 hours before the pickup, so backing out now costs no strike.");
+    expect(sheet).not.toHaveTextContent("delivery strike");
   });
 
   it("audit 1c #1: after the seller's \"Handed over\" the card says so", async () => {

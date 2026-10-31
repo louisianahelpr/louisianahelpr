@@ -11,7 +11,7 @@
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.paid_with = 'free' THEN\n    -- complete_handover first |   IF true THEN\n    -- complete_handover first
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |    WHERE order_id = o.id AND status = 'open' AND reporter_side = 'system'; |    WHERE order_id = o.id AND status = 'open';
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   VALUES (o.id, o.buyer_id, 'buyer', 'no_show',\n |   VALUES (o.id, v_uid, 'seller', 'no_show',\n
-// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL WHERE order_id = o.id; |     NULL;
+// @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |     UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL WHERE order_id = o.id; |     NULL;
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings\n  FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR NEW.pickup_day IS DISTINCT FROM OLD.pickup_day) |   BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings\n  FOR EACH ROW WHEN (false)
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     IF v_open.reporter_side = 'buyer' AND v_open.other_side_note IS NULL THEN |     IF false THEN
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start\n                     OR (NEW.proposed_start IS NOT NULL AND NEW.proposed_start IS DISTINCT FROM OLD.proposed_start)) |   FOR EACH ROW WHEN (false)
@@ -23,14 +23,27 @@
 // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : noShowAnswered ? noShowAnsweredWords(side, delivery)\n | \n
 // @mutate supabase/functions/delete-own-account/index.ts |             ? DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE | ? MONEY_OWED_BLOCKS_DELETION_MESSAGE
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DEFS = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const flat = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "").replace(/\s+/g, " ");
 const file = (p: string) => readFileSync(resolve(__dirname, "../..", p), "utf8");
+const MIGS = resolve(__dirname, "../../supabase/migrations");
+const NO_SHOW_TRIGGERS = ["declutter_delivery_time_waits_for_no_show_answer", "declutter_booking_waits_for_no_show_answer"];
+/** The newest migration that (re)creates each no-show trigger, flattened (a later restatement of a function in the same file must not pin it). */
+function newestTriggers(): string {
+  const files = readdirSync(MIGS).filter((f) => f.endsWith(".sql")).sort().reverse();
+  return NO_SHOW_TRIGGERS.map((t) => {
+    for (const f of files) {
+      const sql = blankSqlComments(readFileSync(join(MIGS, f), "utf8")).replace(/\s+/g, " ");
+      if (sql.includes(`CREATE TRIGGER ${t} `)) return sql;
+    }
+    return "";
+  }).join("\n");
+}
 
 describe("Declutter: both sides confirm before money moves", () => {
   it("T9: the seller's answer leaves the report the buyer's, and taking it back ends it", () => {
@@ -43,7 +56,7 @@ describe("Declutter: both sides confirm before money moves", () => {
   });
 
   it("review of 7496d29c8b: a delivery's time stands too, a late porch photo waits, and a late problem doesn't reopen the address", () => {
-    const mig = blankSqlComments(file("supabase/migrations/20261031004529_declutter_handover_both_confirm.sql")).replace(/\s+/g, " ");
+    const mig = newestTriggers();
     expect(mig).toContain("BEFORE UPDATE OF slot_start, proposed_start ON public.declutter_seller_deliveries FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR (NEW.proposed_start IS NOT NULL AND NEW.proposed_start IS DISTINCT FROM OLD.proposed_start)) EXECUTE FUNCTION public.declutter_refuse_move_during_no_show()");
     const sweep = flat("declutter_handover_sweep");
     expect(sweep.match(/h\.set_out_at \+ interval '24 hours' <= now\(\)/g)?.length).toBe(2);
@@ -54,7 +67,7 @@ describe("Declutter: both sides confirm before money moves", () => {
 
   it("T9: the pickup time stands while the report waits", () => {
     expect(flat("declutter_refuse_move_during_no_show")).toContain("RAISE EXCEPTION 'no_show_waiting'");
-    const mig = blankSqlComments(file("supabase/migrations/20261031004529_declutter_handover_both_confirm.sql")).replace(/\s+/g, " ");
+    const mig = newestTriggers();
     expect(mig).toContain("BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR NEW.pickup_day IS DISTINCT FROM OLD.pickup_day) EXECUTE FUNCTION public.declutter_refuse_move_during_no_show()");
   });
 

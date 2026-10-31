@@ -240,9 +240,11 @@ describe("Declutter settings", () => {
     const view = open();
     const button = await save();
     fireEvent.click(radio("How much each evening", "20%"));
+    // The edit shows the unsaved line first, so its absence below is reached, not the first paint.
+    expect(await screen.findByText("Not saved yet. Tap Save to keep these.")).toBeInTheDocument();
     fireEvent.click(button);
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
-    await vi.waitFor(() => expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull());
+    expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull();
     view.unmount();
     expect(toast).toHaveBeenCalledTimes(1);
   });

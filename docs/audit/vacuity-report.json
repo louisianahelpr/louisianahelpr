@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T16:25:41.232Z",
-  "guards": 2927,
-  "registered": 2924,
+  "generated": "2026-10-31T18:14:19.770Z",
+  "guards": 2948,
+  "registered": 2945,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -24,6 +24,7 @@
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/instantReleaseSaysThreeDays.test.ts",
+    "src/test/masterSwitchSaysWhatOffDoes.test.ts",
     "src/test/photoViewerArrowsAbovePhoto.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",

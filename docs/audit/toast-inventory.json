@@ -3,18 +3,18 @@
   "summary": {
     "calls": 1049,
     "files": 291,
-    "rendering": 895,
-    "suppressedByPolicy": 154,
+    "rendering": 908,
+    "suppressedByPolicy": 141,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 86,
+      "toast": 99,
       "toast.error": 736,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 158,
+      "toast.success": 145,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -4632,7 +4632,7 @@
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 299,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "r.result === \"booked\" ? \"Pickup booked.\" : \"Pickup time changed.\"",
@@ -4647,7 +4647,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
@@ -4662,12 +4662,12 @@
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 368,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Handover done. Enjoy your item."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
@@ -4692,12 +4692,12 @@
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 468,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Saved."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
@@ -4712,7 +4712,7 @@
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 495,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : \"Left on porch. The buyer is told.\"",
@@ -4727,37 +4727,37 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 496,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Picked up. Enjoy it."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 497,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 498,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Picked up. If something is wrong, you can ask for a refund within 24 hours."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
@@ -5249,12 +5249,12 @@
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
       "line": 81,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Sent. Louisiana Helpr reads both sides before it decides."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
@@ -5269,12 +5269,12 @@
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
       "line": 93,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Report taken back. Nothing is held for it now."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterProblemSides.tsx",
@@ -5319,12 +5319,12 @@
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
       "line": 130,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "template",
         "text": "Sent. ${cap(who)} answers within 24 hours."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
@@ -5339,7 +5339,7 @@
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
       "line": 135,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "r.result === \"refunded\" ? \"Done. Your refund is on its way.\" : \"Sent to Louisiana Helpr to decide.\"",
@@ -5354,7 +5354,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
@@ -5369,12 +5369,12 @@
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
       "line": 140,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Refund request taken back."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
@@ -5439,12 +5439,12 @@
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",
       "line": 300,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Refund sent. The buyer is told."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterRefundRequest.tsx",

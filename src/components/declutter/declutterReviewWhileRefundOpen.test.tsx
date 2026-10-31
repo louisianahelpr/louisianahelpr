@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const state = vi.hoisted(() => ({ status: null as string | null, reads: 0 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/components/UserAvatar", () => ({ default: () => null }));
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Lexi", avatarUrl: null, who: "Lexi" }) }));
 vi.mock("@/lib/declutter/handover", () => ({ leaveReview: vi.fn() }));

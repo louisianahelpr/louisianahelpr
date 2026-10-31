@@ -296,7 +296,7 @@ function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; bo
   const book = useMutation({
     mutationFn: (iso: string) => bookPickup(order.orderId, iso),
     onSuccess: (r) => {
-      toast.success(r.result === "booked" ? "Pickup booked." : "Pickup time changed.");
+      toast(r.result === "booked" ? "Pickup booked." : "Pickup time changed.");
       setValue("");
       setSlot(null);
       setMoving(false);
@@ -365,7 +365,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
     mutationFn: () => confirmHandover(order.orderId),
     onSuccess: () => {
       markReviewPrompt(order.orderId);
-      toast.success("Handover done. Enjoy your item.");
+      toast("Handover done. Enjoy your item.");
       setAsking(false);
       invalidate(qc, order.orderId);
     },
@@ -465,7 +465,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
   const [shot, setShot] = useState<File | null>(null);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),
-    onSuccess: () => { toast.success("Saved."); invalidate(qc, order.orderId); },
+    onSuccess: () => { toast("Saved."); invalidate(qc, order.orderId); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const photo = useMutation({
@@ -492,10 +492,10 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
     onSuccess: (r) => {
       setPreview(null);
       setShot(null);
-      if (r.result === "set_out") toast.success(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
-      else if (free) toast.success("Picked up. Enjoy it.");
-      else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
-      else toast.success("Picked up. If something is wrong, you can ask for a refund within 24 hours.");
+      if (r.result === "set_out") toast(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
+      else if (free) toast("Picked up. Enjoy it.");
+      else if (r.paid === false) toast("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
+      else toast("Picked up. If something is wrong, you can ask for a refund within 24 hours.");
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

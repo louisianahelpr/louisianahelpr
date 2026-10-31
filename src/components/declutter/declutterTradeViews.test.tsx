@@ -59,6 +59,10 @@ const state = {
   underAge: false,
   handovers: null as string[] | null,
   card: null as unknown,
+  /** NIGHT-BUYING0-5: the card read fails. */
+  cardReadFails: false,
+  /** NIGHT-BUYING0-6: declutter_buy_now refuses with this message (e.g. card_required). */
+  buyRefusal: null as string | null,
   bought: 0,
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
   returnWithCard: null as unknown,
@@ -128,7 +132,10 @@ const cartPhotos: { id: string; item_id: string; storage_path: string; position:
 vi.mock("@/lib/declutter/api", () => ({
   // Audit 1030 DB-4: the ways the seller ticked (null = an older item: "with pickup").
   fetchItemHandovers: async () => state.handovers,
-  fetchMyCard: async () => state.card,
+  fetchMyCard: async () => {
+    if (state.cardReadFails) throw new Error("read failed");
+    return state.card;
+  },
   fetchMyActiveStrikes: async () => state.strikes,
   fetchMyOffers: async () => state.offers,
   fetchMyCart: async () => state.cart,
@@ -142,6 +149,7 @@ vi.mock("@/lib/declutter/api", () => ({
   respondOffer: async (_id: string, action: string) => { state.responded.push(action); return "declined"; },
   buyNow: async () => {
     state.bought++;
+    if (state.buyRefusal) throw new Error(state.buyRefusal);
     return "l1";
   },
   sellerCancelSale: async () => 1,
@@ -173,6 +181,7 @@ vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title:
 
 import { CartView, FinishSalesView, OffersSection, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
 import { OfferPanel } from "./DeclutterOfferPanel";
+import { afterCardReturnState } from "@/lib/declutter/afterCard";
 
 /** The router's history state, shown so a test can see OfferPanel clear it. */
 function RouterState() {
@@ -215,6 +224,8 @@ describe("Declutter slice 3 screens", () => {
     state.setupFeeCents = 0;
     state.setupFeeKnown = true;
     state.card = null;
+    state.cardReadFails = false;
+    state.buyRefusal = null;
     state.bought = 0;
     state.returnWithCard = null;
     sessionStorage.clear();
@@ -420,7 +431,7 @@ describe("Declutter slice 3 screens", () => {
 
   // NIGHT-BUYING0-2 (audit 1030 night, d-375-31-webhook-late): the card filed after the 10-second wait; Buy now
   // still showed the Add a card step and never called declutter_buy_now.
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     void card.refetch().then((r) => {\n      if (r.data) { |     void card.refetch().then((r) => {\n      if (false) {
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     void card.refetch().then((r) => {\n      if (r.data \|\| r.isError) { |     void card.refetch().then((r) => {\n      if (false) {
   it("a card filed after the wait is noticed: Buy now goes on, not to a second card page", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
@@ -438,6 +449,33 @@ describe("Declutter slice 3 screens", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // NIGHT-BUYING0-5: with the card read failing, Buy now did nothing (no step, no call, no toast). The server decides.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       if (r.data \|\| r.isError) { |       if (r.data) {
+  // NIGHT-BUYING0-6: the server's card_required left a toast and no way forward; its card step opens.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     onError: (err) => { if (!askCardIfRefused(err, "buy")) toast.error(declutterErrorMessage(err)); }, |     onError: (err) => toast.error(declutterErrorMessage(err)),
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const showCardStep = !!needCard && !resume && (!card.isError \|\| serverNoCard); |   const showCardStep = !!needCard && !resume && !card.isError;
+  it("0-5/0-6: a failed card read lets Buy now go to the server, and its card_required opens the card step", async () => {
+    state.cardReadFails = true;
+    state.buyRefusal = "card_required";
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    expect(await screen.findByText("We couldn't check your saved card.")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
+    await waitFor(() => expect(state.bought).toBe(1));
+    expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+  });
+
+  // NIGHT-BUYING0-7: cancelling on the card page came back with no words and the buy dropped.
+  // @mutate src/lib/declutter/afterCard.ts |   return { cardCancelled: next.action, ...amount }; |   return next.offerAmount ? amount : null;
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       note={cardCancelled === action ? CARD_NOT_SAVED : undefined} |       note={undefined}
+  it("0-7: back from the card page with none saved, the card step opens again and says so", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "buy" }) });
+    expect(await screen.findByText("No card was saved, so nothing happened yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
+    expect(state.bought).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByText("No card was saved, so nothing happened yet.")).toBeNull();
   });
 
   // NIGHT-BUYING0-1 (audit 1030 night, d-375-30-checking.png): back from the card page the panel sat below a phone's

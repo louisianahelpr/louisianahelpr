@@ -461,7 +461,8 @@ export async function fetchSellerCard(sellerId: string): Promise<SellerCard | nu
 export async function fetchGuestSellerFirstName(itemId: string): Promise<string | null> {
   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_first_name")) return null;
-  const name = rpcData(res, (e) => rpcErrorMessage("declutter_guest_seller_first_name", e));
+  // The function raises nothing of its own (it answers NULL instead), so a failure is the transport's: thrown as is.
+  const name = unwrap(res);
   return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
 }
 

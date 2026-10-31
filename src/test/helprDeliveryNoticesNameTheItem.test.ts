@@ -60,7 +60,7 @@ function notices(fn: string) {
 /** The functions still linking a retired address on main today (exact; it only shrinks). */
 // @two-way src/test/helprDeliveryNoticesNameTheItem.test.ts:expect(now.sort()).toEqual(KNOWN_OLD_LINKS);
 const KNOWN_OLD_LINKS = [
-  "declutter_add_handover", "declutter_admin_decide_delivery_damage", "declutter_admin_decide_problem", "declutter_answer_refund",
+  "declutter_add_handover", "declutter_admin_decide_problem", "declutter_answer_refund",
   "declutter_checkout_free", "declutter_close_paid_order", "declutter_complete_handover", "declutter_delivery_raise_paid",
   "declutter_delivery_raises_on_task_close", "declutter_hand_refund_failed", "declutter_handover_sweep", "declutter_mark_order_paid",
   "declutter_pickup_reminder_sweep", "declutter_record_hand_refund", "declutter_refund_after_handover", "declutter_refund_gave_up_check",

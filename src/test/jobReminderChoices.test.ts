@@ -14,7 +14,7 @@
  *
  * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql | IF v_rem_kind IS NOT NULL AND v_rem_always IS TRUE THEN | IF false THEN
  * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql | IF public.job_reminder_switched_off(NEW.user_id, NEW.type, NEW.title, NEW.message) THEN | IF false THEN
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql | WHERE np.user_id = h.uid AND np.remind_payout_followups IS FALSE) | WHERE false)
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql | WHERE np.user_id = h.uid AND np.remind_payout_followups IS FALSE) | WHERE false)
  * @mutate src/components/notificationPreferences/JobRemindersGroup.tsx | "remind_starting_soon", "remind_finish_job", "remind_payout_followups", | "remind_starting_soon", "remind_finish_job",
  * @mutate supabase/functions/stalled-completion-reminder/index.ts | if (!switchErr && switchedOff === true) return; | if (false) return;
  * @mutate src/components/NotificationPreferences.tsx | <JobRemindersGroup | <JobRemindersGroupGone

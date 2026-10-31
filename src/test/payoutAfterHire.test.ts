@@ -10,7 +10,8 @@
  *   (a2) the client mirror (acceptMissingFromProfile) does the same, and both
  *        hooks that read it pass the switch.
  *   (p1) the ID check gates the PAYOUT instead: refuse_payout_claim_while_held
- *        asks payout_waits_on_identity, which needs payout_after_hire.
+ *        asks payout_waits_on_identity (since Builder 49's 20261030225327, rebuilt as
+ *        20261031220849, it needs only identity_check).
  *   (r1) reminders only while payout_after_hire AND payout_setup are on, at
  *        most one a day, never for a payout-ready Helpr.
  *   (c1) the reminder's 'hired' words equal the app prompt's, and no copy
@@ -25,8 +26,8 @@
  *
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |            WHEN public.feature_enabled_for_user('payout_after_hire', p.user_id) THEN ARRAY[]::text[] |            WHEN false THEN ARRAY[]::text[]
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |      AND public.payout_waits_on_identity(NEW.helper_id) THEN |      AND false THEN
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |       AND public.feature_enabled_for_user('payout_setup', h.uid) |
- * @mutate supabase/migrations/20261030031059_job_reminder_choices.sql |                         WHERE r.helper_id = h.uid AND r.claimed_at > now() - interval '20 hours') |                         WHERE false)
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |       AND public.feature_enabled_for_user('payout_setup', h.uid) |
+ * @mutate supabase/migrations/20261031220849_id_check_asked_when_hired_restated.sql |                         WHERE r.helper_id = h.uid AND r.claimed_at > now() - interval '20 hours') |                         WHERE false)
  * @mutate src/lib/awardGate.ts |   if (opts.payoutAfterHire === true) return []; |
  * @mutate src/hooks/useAwardBlockReason.ts |   const missing = acceptMissingFromProfile(profile, { payoutAfterHire }); |   const missing = acceptMissingFromProfile(profile);
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |   if (!(await deps.promptPayoutAfterHire?.(user.id))) {\n    setPaymentHeldWho | {\n    setPaymentHeldWho
@@ -67,11 +68,11 @@ describe("payout setup after the hire", () => {
     expect(code("src/components/identity/IdentityCheckSheet.tsx")).toMatch(/const payoutAfterHire = useFeature\("payout_after_hire"\);\s*useEffect\(\(\) => setPayoutAfterHireOn\(payoutAfterHire\), \[payoutAfterHire\]\);/);
   });
 
-  it("(p1) the ID check gates the payout claim, and only under payout_after_hire", () => {
+  it("(p1) the ID check gates the payout claim, whatever payout_after_hire says (owner 2026-10-30)", () => {
     const trig = newestFunction("refuse_payout_claim_while_held").body;
     expect(trig).toMatch(/public\.payout_waits_on_identity\(NEW\.helper_id\)/);
     const waits = newestFunction("payout_waits_on_identity").body;
-    expect(waits).toMatch(/feature_enabled_for_user\(\s*'payout_after_hire'/);
+    expect(waits).not.toMatch(/payout_after_hire/);
     expect(waits).toMatch(/NOT public\.identity_check_exempt\(p_user_id\)/);
   });
 

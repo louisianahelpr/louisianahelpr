@@ -442,7 +442,7 @@ describe("Selling tab: Taken down, with Relist", () => {
     const previews = Array.from(container.querySelectorAll("[data-listing-preview]")) as HTMLAnchorElement[];
     expect(previews.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Preview", `/declutter/item/${ITEM.id}?preview=buyer`], ["Preview", "/declutter/item/p1?preview=buyer"]]);
     expect(previews.every((a) => !a.className.split(/\s+/).includes("hidden"))).toBe(true);
-    expect(screen.queryByRole("link", { name: /^View\b|See what buyers see/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^(?:View\b|See what buyers see)/ })).toBeNull();
   });
 
   it("no 'Taken down' chip or group while nothing is taken down", async () => {

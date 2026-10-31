@@ -12,6 +12,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeature } from "@/hooks/useFeature";
 import { BUNDLE_PERCENTS, bundleLabel, fetchBundleRule, setBundleDiscount } from "@/lib/declutter/bundle";
 import { bundleErrorMessage } from "@/lib/declutter/bundleErrors";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 export function BundleDiscountCard() {
   const on = useFeature("declutter");
@@ -30,7 +32,9 @@ export function BundleDiscountCard() {
     },
     onError: (err) => toast.error(bundleErrorMessage(err)),
   });
-  if (!on || !user || rule.isError) return null;
+  if (!on || !user) return null;
+  // NIGHT-SET-Declutterse-1: a failed read says so, with Try again.
+  if (rule.isError) return <ErrorState variant="inline" title="We couldn't load your bundle discount." body={declutterErrorMessage(rule.error)} onRetry={() => void rule.refetch()} />;
   const current = rule.data ?? null;
   const chosen = pick ?? current;
   // NIGHT-SET-Declutterse-2: pressing Off picks 0 (Save sends null); either way Off is the one shown selected.

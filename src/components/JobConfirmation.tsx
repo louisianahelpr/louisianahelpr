@@ -53,6 +53,7 @@ export function JobConfirmation({
   hideNotYetOpen = false,
   otherFirstName = null,
   rescheduled = false,
+  jobTitle = null,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -110,6 +111,8 @@ export function JobConfirmation({
   /** The date or time was moved by an accepted change (useJobRescheduled, owner 2026-10-21): both sides
    *  confirm the NEW slot, and the words say so ("Confirm the new time, Thu 9:00 AM"). */
   rescheduled?: boolean;
+  /** The job's name, shown first in the confirm sheet so the member knows WHICH job they confirm (owner 2026-10-31, LEAD-CONFIRM-WORDS / LEAD-JOBPAGE-LAYOUT). */
+  jobTitle?: string | null;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -358,6 +361,9 @@ export function JobConfirmation({
         {/* Plain words by role, no "commit" (owner 2026-10-31, LEAD-CONFIRM-WORDS). */}
         <DialogHero title={isOwner ? "Confirm the job is still on" : "Confirm you'll be there"} />
         <div className="space-y-3">
+          {jobTitle?.trim() && (
+            <p data-confirm-job-title="" className="text-ds-16 font-semibold text-foreground [overflow-wrap:anywhere]">{jobTitle.trim()}</p>
+          )}
           <div
             className="rounded-ds-md p-3"
             style={{

@@ -152,8 +152,8 @@ describe("anon open-jobs surfaces never return a raw street address", () => {
 
   // Jobs audit 10-30: "123 Main St, Lafayette" came back whole. Run for real in
   // src/test/pglite/guestsGetNoPosterIdOrStreet.pglite.mjs (15 addresses).
-  // @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     WHEN p.n = 2 THEN p.last_part\n |     WHEN p.n = 2 THEN p.first_part \|\| ', ' \|\| p.last_part\n
-  // @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     WHEN loc ~ '\d' THEN NULL\n |
+  // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     WHEN p.n = 2 THEN p.last_part\n |     WHEN p.n = 2 THEN p.first_part \|\| ', ' \|\| p.last_part\n
+  // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     WHEN loc ~ '\d' THEN NULL\n |
   it("a two-part address keeps only the town, and a lone street nothing", () => {
     const body = latest.get("mask_job_location")!.body;
     expect(body).toMatch(/WHEN p\.n = 2 THEN p\.last_part\b/);

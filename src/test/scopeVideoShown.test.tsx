@@ -12,7 +12,7 @@
  *   (D) the Review step plays the picked clip; the browse sheet and the job page draw the shared player
  *       (the job page's render test is in src/pages/jobs/jobPage/JobPage.test.tsx).
  *
- * @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     helper_fee_percent,\n    scope_video_url\n   FROM jobs |     helper_fee_percent\n   FROM jobs
+ * @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     helper_fee_percent,\n    scope_video_url\n   FROM jobs |     helper_fee_percent\n   FROM jobs
  * @mutate src/lib/jobColumns.ts | ["helper_fee_percent", "scope_video_url"] as const; | ["helper_fee_percent"] as const;
  * @mutate src/hooks/useDashboardData.ts | "id, title, description, scope_video_url, | "id, title, description,
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | const BASE_COLUMNS =\n  "id, title, description, scope_video_url, | const BASE_COLUMNS =\n  "id, title, description,

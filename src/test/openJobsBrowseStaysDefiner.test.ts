@@ -25,11 +25,12 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     scope_video_url\n   FROM jobs |     scope_video_url,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     scope_video_url\n   FROM jobs |     scope_video_url,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
-// @mutate supabase/migrations/20261030223527_guests_get_no_poster_id_or_street.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN NULL::uuid ELSE customer_id END AS customer_id, |     customer_id,
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     customer_id,
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     CASE WHEN CURRENT_USER = 'anon'::name THEN NULL::uuid ELSE customer_id END AS customer_id,
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -176,8 +177,9 @@ describe("open_jobs_browse stays a pinned SECURITY DEFINER view (Q182)", () => {
     expect(expr("longitude")).toMatch(/^round\s*\(\s*longitude\s*,\s*2\s*\)/i);
     expect(expr("offered_to_helper_id")).toMatch(/^case\b[\s\S]*\belse\s+null(::uuid)?\s+end\b/i);
     // Jobs audit 10-30: a guest reads no poster id. By role, not auth.uid(): service_role
-    // and definer functions read this view with no uid and still need the id.
-    expect(expr("customer_id")).toMatch(/^case when current_user = 'anon'(::name)? then null(::uuid)? else customer_id end/i);
+    // and definer functions read this view with no uid and still need the id. All zeros,
+    // never NULL: every client's browse cull drops an empty id, and installed apps keep theirs.
+    expect(expr("customer_id")).toMatch(/^case when current_user = 'anon'(::name)? then '00000000-0000-0000-0000-000000000000'(::uuid)? else customer_id end/i);
   });
 
   it("keeps the browse row rules (open, owned, funded, early-access, seed, credential tier)", () => {

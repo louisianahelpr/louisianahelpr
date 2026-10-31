@@ -2,20 +2,25 @@
 -- 2026-09-02 sign-in rule). Two private things the public read still carried
 -- are closed here, by the lead's decision of 10-30.
 --
--- 1. open_jobs_browse.customer_id reads NULL for a signed-out visitor (role anon).
---    It was the poster's account id, readable and filterable with the public key.
---    Everyone else keeps it: a member's own-job check compares it to their id,
---    and service_role and definer functions read the view with no auth.uid(), so
---    the test is the role and not auth.uid(). The row rules below still read the
---    table's column, so a guest sees the same rows, and `customer_id=eq.<id>` from
---    a guest now matches nothing.
+-- 1. open_jobs_browse.customer_id reads the all-zero id for a signed-out visitor
+--    (role anon). It was the poster's account id, readable and filterable with the
+--    public key. Everyone else keeps it: a member's own-job check compares it to
+--    their id, and service_role and definer functions read the view with no
+--    auth.uid(), so the test is the role and not auth.uid(). The row rules below
+--    still read the table's column, so a guest sees the same rows, and
+--    `customer_id=eq.<id>` from a guest now matches nothing.
+--    All zeros and not NULL, because every client since 2026-09-02 drops a browse
+--    row whose customer_id is empty (useDashboardFilters, 27ead0ddc1). NULL emptied
+--    /browse for guests (measured in WebKit, 3 cards -> 0), and the phone apps carry
+--    that code in their own bundle (capacitor.config.ts has no server.url), so no web
+--    deploy reaches an installed app. No account and no job has this id (prod, 10-30).
 --    The body is the newest definition, 20261029194021_browse_carries_scope_video.sql,
 --    verbatim but for that one column (its column list and WHERE equal the live
 --    pg_get_viewdef read 10-30). Still security_invoker = false, same order, same
 --    types, grants restated as live.
 --    What a guest loses: the rating badge and tier placement on /browse, which
---    looked the poster up by this id. The feed already handles a null id (a
---    deleted poster) as "no enrichment" (DashboardGuest.tsx).
+--    looked the poster up by this id. The lookup finds nothing for this id, and a
+--    poster nobody can look up already gets no badge and no tier (DashboardGuest.tsx).
 --
 -- 2. mask_job_location kept a street whenever an address had exactly two parts:
 --    "123 Main St, Lafayette" came back whole. Two parts now keep "town, state"
@@ -58,7 +63,7 @@ AS
     recurrence_end_date,
     parent_job_id,
     payment_status,
-    CASE WHEN CURRENT_USER = 'anon'::name THEN NULL::uuid ELSE customer_id END AS customer_id,
+    CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id,
         CASE
             WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id
             ELSE NULL::uuid

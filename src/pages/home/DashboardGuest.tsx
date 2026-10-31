@@ -15,6 +15,7 @@ import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateAc
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import { guestPosterIds } from "./guestPosterIds";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
 const BrowseMap = lazy(() =>
@@ -239,10 +240,7 @@ const DashboardGuest = () => {
   // survives with no owner. Null is not an id to look up, and handing one to a
   // uuid[] RPC parameter is a malformed filter rather than a no-match — so it
   // is dropped here, not tolerated downstream.
-  const posterIds = useMemo(
-    () => [...new Set(baseJobs.map((j) => j.customer_id).filter((id): id is string => !!id))],
-    [baseJobs],
-  );
+  const posterIds = useMemo(() => guestPosterIds(baseJobs), [baseJobs]);
 
   // Social-proof enrichment. Runs only once the job list exists (it needs the
   // poster ids), and the feed never blocks on it.

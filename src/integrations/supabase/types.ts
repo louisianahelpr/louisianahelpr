@@ -10966,6 +10966,42 @@ export type Database = {
           },
         ]
       }
+      saved_search_item_matches: {
+        Row: {
+          at: string
+          held: boolean
+          item_id: string
+          search_id: string
+        }
+        Insert: {
+          at?: string
+          held: boolean
+          item_id: string
+          search_id: string
+        }
+        Update: {
+          at?: string
+          held?: boolean
+          item_id?: string
+          search_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_search_item_matches_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_search_item_matches_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "saved_searches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_search_item_queue: {
         Row: {
           attempts: number

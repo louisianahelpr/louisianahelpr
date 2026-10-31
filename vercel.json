@@ -99,6 +99,10 @@
       "destination": "/api/share?_og=page&_id=browse"
     },
     {
+      "source": "/declutter",
+      "destination": "/api/share?_og=page&_id=declutter"
+    },
+    {
       "source": "/help",
       "destination": "/api/share?_og=page&_id=help"
     },

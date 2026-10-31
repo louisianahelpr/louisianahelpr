@@ -46,7 +46,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {(isPoster \|\| isHired) && <JobProofPhotos
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { JobPageRow } from "./useJobPage";
@@ -739,5 +739,72 @@ describe("a crew member's own job page (A2-B8)", () => {
     renderPage();
     expect(await screen.findByText("Not selected this time")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+  });
+});
+
+// LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): ONE screen in the owner's order. The top bar is the back arrow with the
+// job's title; then the price, the description, the tracker with the step needed now as the big button; the Helpr
+// Guarantee at the very bottom. "Get help now" is off the page (help is the header icon). On a phone the column boxes
+// are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-details="" className="order-3 space-y-4 lg:order-none"> |           <div data-job-details="" className="order-5 space-y-4 lg:order-none">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <section aria-label="Job summary" data-job-head="" className="order-2 space-y-4 lg:order-none"> |           <section aria-label="Job summary" data-job-head="" className="order-4 space-y-4 lg:order-none">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-guarantee="" className="order-last lg:order-none empty:hidden"> |           <div data-job-guarantee="" className="order-2 lg:order-none empty:hidden">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |         <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4"> |         <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |     : isPoster && posterWait === "confirm_still_on" |     : isPoster && false
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions
+describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () => {
+  const orderOf = (el: Element | null): number => {
+    expect(el, "the part is drawn").not.toBeNull();
+    const cls = (el!.getAttribute("class") ?? "").split(/\s+/);
+    if (cls.includes("order-last")) return 9999;
+    const m = cls.map((c) => /^order-(\d+)$/.exec(c)).find(Boolean);
+    expect(m, `an order class on ${el!.outerHTML.slice(0, 80)}`).toBeTruthy();
+    return Number(m![1]);
+  };
+
+  it("a Helpr reads the price, then what the job is, then Apply; the Guarantee is last; the column boxes are `contents` on a phone", async () => {
+    state.job = row();
+    renderPage();
+    const page = document.querySelector("[data-job-page]")!;
+    const head = page.querySelector("[data-job-head]");
+    const details = page.querySelector("[data-job-details]");
+    const steps = page.querySelector("[data-job-steps]");
+    const guarantee = page.querySelector("[data-job-guarantee]");
+    expect(details?.textContent).toContain("Two-car concrete driveway");
+    expect(within(steps as HTMLElement).getByRole("button", { name: "Apply" })).toBeTruthy();
+    const seq = [orderOf(head), orderOf(details), orderOf(steps), orderOf(guarantee)];
+    expect(seq).toEqual([...seq].sort((a, b) => a - b));
+    expect(new Set(seq).size).toBe(4);
+    // Every box between the page and those parts is `contents` below lg, so `order` acts on the page's own stack.
+    for (const part of [head, details, steps, guarantee]) {
+      let box = part!.parentElement;
+      while (box && box !== page) {
+        expect((box.getAttribute("class") ?? "").split(/\s+/), "a phone-transparent column box").toContain("contents");
+        box = box.parentElement;
+      }
+    }
+  });
+
+  it("the title shows in the top bar beside the back arrow on a phone (no phoneHidesTitle), and no Get help now", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z" });
+    state.party = true;
+    renderPage();
+    const src = readFileSync(path.resolve(__dirname, "JobPage.tsx"), "utf8");
+    const call = src.slice(src.indexOf("<AppPage\n      title={job.title}"), src.indexOf(">", src.indexOf("<AppPage\n      title={job.title}") + 30));
+    expect(call.length).toBeGreaterThan(20);
+    expect(call).not.toMatch(/phoneHidesTitle/);
+    expect(screen.queryByRole("button", { name: "Get help now" })).toBeNull();
+  });
+
+  it("the poster's day-before step is the big button: Confirm it's still on asks for the confirm and opens the card", () => {
+    state.job = row({
+      customer_id: ME, helper_id: POSTER, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: null, date_needed: jobLocalDateISO(1), start_time: "00:30",
+    });
+    state.party = true;
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm it's still on" }));
+    expect(faceRequests).toContainEqual([row().id, "confirm"]);
+    expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&manage=1`);
   });
 });

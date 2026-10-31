@@ -49,6 +49,8 @@ export interface SearchDraft {
   minDollars: number | null;
   maxDollars: number | null;
   radiusMiles: number | null;
+  /** Where the radius measures from (BUY-49): Browse's own device or ZIP position. */
+  origin?: { lat: number; lng: number } | null;
 }
 
 const COLUMNS =
@@ -142,25 +144,24 @@ export async function fetchNewCounts(): Promise<Map<string, number>> {
 }
 
 export async function createSavedSearch(userId: string, d: SearchDraft, email: boolean): Promise<string> {
-  const rows = unwrapMutation(
-    await supabase
-      .from("saved_searches")
-      .insert({
-        user_id: userId,
-        name: defaultName(d),
-        section: d.section,
-        query: d.query.trim() || null,
-        category: d.category,
-        min_budget: d.minDollars,
-        max_budget: d.maxDollars,
-        radius_miles: d.radiusMiles,
-        notify_enabled: true,
-        notify_email: email,
-      })
-      .select("id"),
-    { action: "save this search" },
-  );
-  return rows[0].id;
+  const row = {
+    user_id: userId,
+    name: defaultName(d),
+    section: d.section,
+    query: d.query.trim() || null,
+    category: d.category,
+    min_budget: d.minDollars,
+    max_budget: d.maxDollars,
+    radius_miles: d.radiusMiles,
+    notify_enabled: true,
+    notify_email: email,
+  };
+  // Two decimals, about half a mile: enough to measure a radius, and no home address kept on the row.
+  const origin = d.origin && d.radiusMiles ? { origin_lat: Math.round(d.origin.lat * 100) / 100, origin_lng: Math.round(d.origin.lng * 100) / 100 } : null;
+  let res = await supabase.from("saved_searches").insert({ ...row, ...origin }).select("id");
+  // PGRST204: the columns are not deployed yet; the search still saves and measures from the profile.
+  if (origin && res.error?.code === "PGRST204") res = await supabase.from("saved_searches").insert(row).select("id");
+  return unwrapMutation(res, { action: "save this search" })[0].id;
 }
 
 export async function updateSavedSearch(userId: string, id: string, patch: { notify_enabled?: boolean; notify_email?: boolean }): Promise<void> {

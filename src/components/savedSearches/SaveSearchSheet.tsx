@@ -101,7 +101,7 @@ export function SaveSearchSheet({
           <div className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border">
             <span className="flex-1 min-w-0">
               <span className="block font-sans font-semibold text-ds-15">In the app</span>
-              <span className="block font-sans text-ds-13 text-muted-foreground">Always on for saved searches</span>
+              <span className="block font-sans text-ds-13 text-muted-foreground">Follows New matches in your notification settings</span>
             </span>
             <span className="font-sans font-semibold text-ds-13 text-muted-foreground">On</span>
           </div>

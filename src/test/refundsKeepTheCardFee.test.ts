@@ -521,7 +521,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D-NEW14 porch places (20261030164712, lh-money-escrow approved via the lead 2026-10-29): only the porch_place_needed
       // refusal (before any order) and the frozen-place INSERT added; it still records no refund.
       // LEAD-PLACE-TIMES (20261031164337). Reviewed 2026-10-31: the place read also runs for pickup_home; still $0 and records no refund.
-      declutter_checkout_free: "20261031164337_declutter_door_pickup_uses_places.sql fe6fca34ff725085",
+      // LEAD-B49-REBUILD (20261031211922, Builder 28, for verdict): only the free-claim gate call added, before any order;
+      // it raises or returns, and still records no refund.
+      declutter_checkout_free: "20261031211922_free_claim_fee_then_id_restated.sql cbd27bb5698fddf0",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale

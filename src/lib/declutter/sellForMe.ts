@@ -24,6 +24,18 @@ export function sellForMePostJobPath(): string {
 /** The job category option A posts in (migration 20261019210635). */
 const SELL_FOR_ME_JOB_CATEGORY: JobCategory = "declutter_help";
 
+/** A job posted through option A (any Declutter Help job). */
+export function isSellForMeJob(category: string | null | undefined): boolean {
+  return category === SELL_FOR_ME_JOB_CATEGORY;
+}
+
+/**
+ * POST-H3 (posting audit 10-30 #3): the finished job leads to what it was for. The seller's own listings
+ * (Declutter, Selling): what sold, and for what didn't, the item's own Lower price, Give it away free and
+ * haul-away, which already live there.
+ */
+export const SELL_FOR_ME_LISTINGS_PATH = "/declutter?tab=selling";
+
 /** The Shops category option B lists (migration 20261019210636). */
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
 

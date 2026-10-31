@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, CheckCircle2, Star, RotateCcw, Image, CalendarPlus } from "lucide-react";
+import { DollarSign, CheckCircle2, Star, RotateCcw, Image, CalendarPlus, Tag } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { PhotoProofDialog } from "@/components/PhotoProof";
@@ -8,6 +8,7 @@ import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
+import { isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH } from "@/lib/declutter/sellForMe";
 import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 
 /**
@@ -199,6 +200,18 @@ export function CompletedStep({
               />
             )
           : null,
+        /* POST-H3: a Helpr who helped list the poster's things: the job leads to those listings (what sold;
+           Lower price, Give it away free and haul-away for what didn't). Quiet: not a fresh decision. */
+        isSellForMeJob(job.category) ? (
+          <JobActionChip
+            key="listings"
+            icon={Tag}
+            label="Your listings"
+            ariaLabel="Your listings — see what sold, and lower, give away or haul away the rest"
+            tone="neutral"
+            onClick={() => navigate(SELL_FOR_ME_LISTINGS_PATH)}
+          />
+        ) : null,
         /* Book <Helpr> again (Q2471 #3, owner 2026-10-29): the SAME job copied
            (never its date) as a direct offer to this Helpr, opening at When
            and where so only the date is left. One Helpr only: a crew job has

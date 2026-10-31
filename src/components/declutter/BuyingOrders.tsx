@@ -19,6 +19,7 @@ import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundRequests";
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
@@ -147,7 +148,15 @@ const LIVE_TASK = new Set(["open", "accepted", "picked_up", "delivered", "confir
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
  * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
  */
-export function refundStanding(status: string | null | undefined, inFull = false): string | null {
+export function refundStanding(status: string | null | undefined, inFull = false, request?: RefundTookItBack | null): string | null {
+  // AUD31-36, checked before soldstates-7's inFull (merged by Lander 9): a full refund with the item given back ends
+  // "agreed" with returned_at set (20261030071818); the order stays handed_over, so without this line the card read
+  // "Handed over. It's yours." over a returned item.
+  if (refundTookItBack(request)) {
+    const back = request!.refund_cents ? formatPrice(request!.refund_cents) : null;
+    if (!back) return "Returned for a refund.";
+    return request!.refund_status === "succeeded" ? `Returned. You got ${back} back.` : `Returned. ${back} is on its way back to your card.`;
+  }
   switch (status) {
     // NIGHT-SELL-soldstates-7: a full refund undid the sale (refundedInFull); a part refund leaves it handed over.
     case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null;

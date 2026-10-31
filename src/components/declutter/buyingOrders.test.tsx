@@ -11,7 +11,11 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |     const total = paidCents?.get(o.orderId) ?? null; |     const total = o.lines[0]?.total_cents ?? null;
  *
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt }; |       return { ...base, booked: !!rows.slotStart, out: !!rows.slotStart, pickedUp: tookIt };
- * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at }; |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
+ * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at, |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at,
+ * LEAD-GOTIT30H: a Helpr delivery held 24 hours undelivered puts "I got it" on the card (Needs you), as its line says.
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| !!f.inHandLong); |      return buyer && !!f.delivered;
+ * @mutate src/components/declutter/BuyingOrders.tsx |         inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) }; |         inHandLong: false };
+ * @mutate src/lib/declutter/stillInHand.ts |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= STILL_IN_HAND_MS; |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= 0;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
  * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
@@ -147,6 +151,9 @@ const CASES: Case[] = [
   { id: "hd0", line: { handover: "delivery", delivery_task_id: "t-hd0" }, step: 0, bucket: "waiting", action: null },
   { id: "hd1", line: { handover: "delivery", delivery_task_id: "t-hd1" }, task: { accepted_at: iso(-2) }, step: 1, bucket: "upcoming", action: null },
   { id: "hd2", line: { handover: "delivery", delivery_task_id: "t-hd2" }, task: { accepted_at: iso(-2), picked_up_at: iso(-1) }, step: 2, bucket: "waiting", action: null },
+  // LEAD-GOTIT30H: 24 hours after pickup with no drop-off, the card's line says tap "I got it"; the button is on the card.
+  { id: "hd2held", line: { handover: "delivery", delivery_task_id: "t-hd2held" }, task: { accepted_at: iso(-26), picked_up_at: iso(-25) }, step: 2, bucket: "needs_you", action: "I got it" },
+  { id: "hd2day", line: { handover: "delivery", delivery_task_id: "t-hd2day" }, task: { accepted_at: iso(-24), picked_up_at: iso(-23.5) }, step: 2, bucket: "waiting", action: null },
   { id: "hd3", line: { handover: "delivery", delivery_task_id: "t-hd3" }, task: { accepted_at: iso(-3), picked_up_at: iso(-2), delivered_at: iso(-1) }, step: 3, bucket: "needs_you", action: "I got it" },
   { id: "done", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "done", action: null },
   { id: "refunded", line: { order_status: "refunded" }, step: 0, bucket: "cancelled", action: null },

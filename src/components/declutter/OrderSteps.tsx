@@ -32,6 +32,8 @@ export type OrderFacts = {
   gotItOpen?: boolean;
   /** The item has left the seller: the buyer picked it up, met, or the Helpr picked it up. */
   pickedUp?: boolean;
+  /** Helpr delivery: picked up 24 hours ago and not marked delivered (heldPastADay); the buyer may say they got it. */
+  inHandLong?: boolean;
   /** Delivery kinds: dropped off at the buyer's. */
   delivered?: boolean;
   /** The order is handed over (final). */
@@ -112,8 +114,8 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
       return buyer && (!f.booked || (!!f.gotItOpen && !f.pickedUp));
     case "seller_delivery":
     case "delivery":
-      // Dropped off: the buyer says they have it.
-      return buyer && !!f.delivered;
+      // Dropped off: the buyer says they have it. LEAD-GOTIT30H: so too once a Helpr has held it 24 hours undelivered.
+      return buyer && (!!f.delivered || !!f.inHandLong);
   }
 }
 

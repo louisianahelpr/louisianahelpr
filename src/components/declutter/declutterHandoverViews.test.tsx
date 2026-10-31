@@ -243,9 +243,9 @@ describe("Q2425: a safe-spot meetup order", () => {
   // handed the order over and started the seller's payout clock. It now opens an hour before, as "I'm here" does
   // (the server refuses it before then: got_it_too_early, src/test/declutterMeetupGotItWaits.test.ts). A door pickup
   // gets the same gate (lead decision 2026-10-30: the same payout-clock risk).
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if ((order.handover === "meetup" \|\| order.handover === "pickup_home") && Date.now() |   if (false && Date.now()
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | new Date(slotStart).getTime() - 60 * 60_000) { | new Date(slotStart).getTime() - 24 * 60 * 60_000) {
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (order.handover === "meetup" \|\| order.handover === "pickup_home") && Date.now() | (order.handover === "meetup") && Date.now()
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if ((order.handover === "meetup" \|\| order.handover === "pickup_home") && !gotItOpen(slotStart)) { |   if (false && !gotItOpen(slotStart)) {
+  // @mutate src/components/declutter/OrderSteps.tsx |   return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000; |   return Number.isFinite(t) && now >= t - 24 * 60 * 60_000;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (order.handover === "meetup" \|\| order.handover === "pickup_home") && !gotItOpen(slotStart) | (order.handover === "meetup") && !gotItOpen(slotStart)
   for (const [handover, words] of [["meetup", "meeting"], ["pickup_home", "pickup"]] as const) {
     it(`DB-3: the buyer's I got it waits until an hour before the ${words} time (${handover})`, async () => {
       for (const [minsAgo, shown] of [[-180, false], [-61, false], [-59, true], [10, true]] as const) {
@@ -799,7 +799,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
 /**
  * Boards 159 + 160 (Builder 3c): the handover moments are sheets.
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } | if (f) photo.mutate({ file: f });
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "If they don't, the sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
@@ -891,7 +891,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     handover, side, free, booked: !!slot, |     handover, side, free: false, booked: !!slot,
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "} | {"You're paid 24 hours after the handover, unless the buyer asks for a refund. "}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending | who={who} pending
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending={pickedUp.isPending} | who={who} pending={pickedUp.isPending}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && <p | {order.side === "seller" && payout && <p
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${free ? "." : "; they're paid 24 hours later."} | you have it${"; they're paid 24 hours later."}

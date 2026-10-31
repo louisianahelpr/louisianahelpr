@@ -7,7 +7,7 @@
  * Inventory from source: every `<input type="file">` in a .tsx under src/ (tests excluded). One is an offender when
  * its className does not hide it (`sr-only` or `hidden`). LEGACY is an exact countdown list.
  *
- * @mutate src/components/declutter/StopActions.tsx |         <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending \|\| (opensAt !== null && stop.handed_over_at === null)} onPick={(f) => pickedUp.mutate(f)} /> |         <input id={`${id}-pick`} type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files?.[0]; if (f) pickedUp.mutate(f); }} />
+ * @mutate src/components/declutter/StopActions.tsx |         <PhotoPickButton id={`${id}-pick`} picked={pickPhoto} disabled={pickedUp.isPending \|\| (opensAt !== null && stop.handed_over_at === null)} onPick={setPickPhoto} /> |         <input id={`${id}-pick`} type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files?.[0]; if (f) setPickPhoto(f); }} />
  * @mutate src/components/ui/PhotoPickButton.tsx |         className="peer sr-only" |         className="peer"
  * @mutate src/components/declutter/StopActions.tsx |       <PhotoPickButton id={`${id}-drop`} picked={dropPhoto} onPick={setDropPhoto} /> |       <input id={`${id}-drop`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
  */

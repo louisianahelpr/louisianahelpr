@@ -2726,6 +2726,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
         }
@@ -2750,6 +2751,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
         }
@@ -2774,6 +2776,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null
         }
@@ -4977,6 +4980,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
           task_id: string
@@ -4999,6 +5003,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
           task_id: string
@@ -5021,6 +5026,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null
           task_id?: string
@@ -5459,6 +5465,29 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: true
             referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_cancel_id_waivers: {
+        Row: {
+          created_at: string
+          job_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_cancel_id_waivers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -14726,6 +14755,7 @@ export type Database = {
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
       declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
+      declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }
         Returns: {
@@ -15319,6 +15349,10 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_payout_take_setup_fee: {
+        Args: { p_payout_id: string }
+        Returns: number
+      }
       declutter_payout_unsent: { Args: { p_order_id: string }; Returns: boolean }
       declutter_payouts_due: {
         Args: { p_limit: number }
@@ -15653,6 +15687,10 @@ export type Database = {
       declutter_setup_helpr: { Args: { p_order_id: string }; Returns: Json }
       declutter_claim_setup_fee: { Args: { p_order_id: string }; Returns: string }
       declutter_setup_fee_due_cents: { Args: { p_user: string }; Returns: number }
+      declutter_setup_fee_from_payout_cents: {
+        Args: { p_seller: string }
+        Returns: number
+      }
       declutter_setup_fee_refund_reversed: {
         Args: { p_order_id: string; p_stripe_refund_id: string }
         Returns: string
@@ -17083,6 +17121,10 @@ export type Database = {
       helpr_task_no_show_report: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
       helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
+      helpr_task_payout_take_setup_fee: {
+        Args: { p_payout_id: string }
+        Returns: number
+      }
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
       helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
@@ -17154,6 +17196,10 @@ export type Database = {
         }[]
       }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
+      identity_notify_posters_before_start: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       identity_fingerprint: {
         Args: {
           p_dob: string

@@ -46,6 +46,7 @@ const ALLOWED: Record<string, string> = {
   "src/pages/auth/completeProfile/constants.ts": "foreground submit the person is watching",
   // Local image decode / canvas encode: no network request to be frozen behind.
   "src/lib/imageCompression.ts": "on-device image work, not a network read",
+  "src/lib/heicToJpeg.ts": "on-device image work, not a network read",
   // "Use my location": the person tapped it and is looking at "Locating...".
   "src/components/postjob/CurrentLocationPill.tsx": "foreground lookup the person is watching",
   // Sign-out caps (3 s / 1.5 s): the person tapped Log Out.

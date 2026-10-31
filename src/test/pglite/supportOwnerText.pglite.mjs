@@ -75,6 +75,7 @@ INSERT INTO public.profiles (user_id, is_seed, phone) VALUES
 INSERT INTO public.test_subjects VALUES ('${TEST}'), ('${TEST_ADMIN}');
 INSERT INTO public.user_roles VALUES ('${ADMIN1}', 'admin'), ('${ADMIN2}', 'admin'), ('${TEST_ADMIN}', 'admin'), ('${MEMBER}', 'user');
 `);
+await db.exec(`CREATE OR REPLACE FUNCTION public.attach_unconfirmed_email_gate() RETURNS void LANGUAGE sql AS $f$ SELECT $f$;`);
 if (!SKIP) for (let i = 0; i < 3; i++) await db.exec(migration);
 
 const q = async (sql, p) => (await db.query(sql, p)).rows;

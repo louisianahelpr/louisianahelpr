@@ -1,6 +1,7 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { prepareProofPhotos } from "@/components/prepareProofPhotos";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType } from "@/lib/uploadTypes";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { useEffect, useRef, useState } from "react";
 import { takePhotoCapture } from "@/components/job-card/photoCaptureRequest";
@@ -129,7 +130,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
 
   const addFiles = async (picked: File[]) => {
     setConverting(true);
-    const selected = await prepareProofPhotos(picked).finally(() => setConverting(false));
+    const selected = await prepareProofPhotos(picked, (f) => isAllowedUploadType(f, PROOF_PHOTO_TYPES)).finally(() => setConverting(false));
     if (selected.length === 0) return;
     const current = filesRef.current;
     if (current.length + selected.length > 5) { toast.error("Max 5 photos."); return; }

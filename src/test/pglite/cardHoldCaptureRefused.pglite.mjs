@@ -136,7 +136,8 @@ check("anyone else reads nothing", theirs.length === 0, `${theirs.length} row(s)
 
 const acl = (await rows(`SELECT proname, proacl::text AS acl FROM pg_proc WHERE proname IN ('get_my_job_card_hold','expire_unanswered_offers') ORDER BY proname`));
 const aclOf = (n) => acl.find((r) => r.proname === n)?.acl ?? "";
-check("grants: expire_unanswered_offers is service_role only", /service_role=X/.test(aclOf("expire_unanswered_offers")) && !/anon=|authenticated=|=X\/[^,}]*,?\s*\}?$/.test(aclOf("expire_unanswered_offers").replace(/postgres=X\/postgres,?|service_role=X\/postgres,?/g, "")), aclOf("expire_unanswered_offers"));
+const grantees = (n) => aclOf(n).replace(/[{}"]/g, "").split(",").filter(Boolean).map((e) => e.split("=")[0]);
+check("grants: expire_unanswered_offers is service_role only", grantees("expire_unanswered_offers").includes("service_role") && grantees("expire_unanswered_offers").every((g) => g === "service_role" || g === "postgres"), aclOf("expire_unanswered_offers"));
 check("grants: get_my_job_card_hold is authenticated + service_role, never anon or PUBLIC",
   /authenticated=X/.test(aclOf("get_my_job_card_hold")) && /service_role=X/.test(aclOf("get_my_job_card_hold")) && !/anon=/.test(aclOf("get_my_job_card_hold")) && !/[{,]=X/.test(aclOf("get_my_job_card_hold")), aclOf("get_my_job_card_hold"));
 

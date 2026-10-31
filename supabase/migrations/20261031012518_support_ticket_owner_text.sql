@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.support_text_throttle (
 ALTER TABLE public.support_text_throttle ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.support_text_throttle FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.support_text_throttle TO service_role;
+SELECT public.attach_unconfirmed_email_gate();
 
 CREATE OR REPLACE FUNCTION public.notify_owner_support_text()
  RETURNS trigger
@@ -73,6 +74,7 @@ BEGIN
     IF (SELECT count(*) FROM public.support_text_throttle WHERE last_sent_at > now() - interval '1 hour') >= 12 THEN
       IF NOT EXISTS (SELECT 1 FROM public.error_logs e
                       WHERE e.tags->>'source' = 'notify_owner_support_text' AND e.message = 'support text cap reached'
+                        AND coalesce(e.tags->>'origin', '') <> 'client'
                         AND e.created_at > now() - interval '1 hour') THEN
         INSERT INTO public.error_logs (severity, message, tags, context)
         VALUES ('warning', 'support text cap reached', jsonb_build_object('source', 'notify_owner_support_text'), '{}'::jsonb);

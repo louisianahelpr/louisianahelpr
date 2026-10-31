@@ -158,10 +158,7 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!id && !!userId,
     staleTime: 30 * 1000,
     // A job under way moves while its page is open (the Helpr's photos, Tester 6 10-30); this page has no live channel.
-    refetchInterval: (query) => {
-      const d = query.state.data;
-      return d?.party && ["accepted", "in_progress", "revision_requested"].includes(d.job.status ?? "") ? 30 * 1000 : false;
-    },
+    refetchInterval: (query) => (query.state.data?.party && ["accepted", "in_progress", "revision_requested"].includes(query.state.data.job.status ?? "") ? 30_000 : false),
   });
   const isPoster = !!job.data && !!userId && job.data.job.customer_id === userId;
   const applicants = useQuery({

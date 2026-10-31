@@ -141,6 +141,63 @@ describe("InstantPayoutDialog", () => {
   });
 });
 
+// Jobs audit 54a: after a failure the screen says what is true. The offer and
+// its live Cash Out used to stay up under a toast that faded.
+// @mutate src/components/InstantPayoutDialog.tsx | canRetry: body?.can_retry !== false && body?.code !== "instant_fee_return_pending", | canRetry: true,
+// @mutate src/components/InstantPayoutDialog.tsx |   if (failure) { |   if (false) {
+describe("InstantPayoutDialog after a failed cash-out", () => {
+  const failWith = (body: Record<string, unknown>) =>
+    invokeMock.mockImplementation(async (_fn: string, opts: { body?: { action?: string } }) =>
+      opts?.body?.action === "quote"
+        ? { data: QUOTE, error: null }
+        : {
+            data: null,
+            error: Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+              context: new Response(JSON.stringify(body), { status: 500 }),
+            }),
+          },
+    );
+
+  it("fee still owed: the message stays, the offer and Cash Out are gone, no way to press again", async () => {
+    const message = "Your instant payout didn't go through, and the $1.80 fee was already taken. You won't be charged a second fee.";
+    failWith({ code: "instant_payout_failed", fee: "pending", can_retry: false, error: message });
+    const { btn } = await openWithQuote();
+    fireEvent.click(btn);
+
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
+    expect(screen.queryByRole("button", { name: /Cash Out/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/You receive/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/30 minutes/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(executeCalls()).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("fee went back: Try again asks for a new amount first, it never re-sends the cash-out", async () => {
+    failWith({ code: "instant_payout_failed", fee: "returned", can_retry: true, error: "Your instant payout didn't go through. The $1.80 fee went back to your balance. You can try again." });
+    const { btn } = await openWithQuote();
+    fireEvent.click(btn);
+    fireEvent.click(await screen.findByRole("button", { name: /Try again/ }));
+
+    expect(await screen.findByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(executeCalls()).toHaveLength(1);
+    expect(invokeMock.mock.calls.filter(([, o]) => (o as { body?: { action?: string } })?.body?.action === "quote")).toHaveLength(2);
+  });
+
+  it("no answer at all: it says nobody knows yet, not that it failed", async () => {
+    invokeMock.mockImplementation(async (_fn: string, opts: { body?: { action?: string } }) =>
+      opts?.body?.action === "quote"
+        ? { data: QUOTE, error: null }
+        : { data: null, error: new Error("Failed to fetch") },
+    );
+    const { btn } = await openWithQuote();
+    fireEvent.click(btn);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/couldn't confirm/i);
+  });
+});
+
 // `if (!ok) return;` is the entire gate: without it a refused (or cancelled,
 // or locked-out) Face ID prompt still executes the transfer. The real module
 // returns true on web, so only the mocked refusal above can see this line

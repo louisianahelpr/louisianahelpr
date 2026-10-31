@@ -19,6 +19,7 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
+import { jobStartDateTime } from "@/lib/dateUtils";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -609,7 +610,9 @@ export function derivePosterWait(
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       // In progress by the clock only (auto-start-due-jobs), with no arrival anyone recorded: not "at the job" (A2-B12).
       if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) {
-        return "started_no_checkin";
+        // T12-B: a start still ahead hasn't "passed", and Report no-show would be refused or wrong: it stays confirmed.
+        const start = jobStartDateTime(job.date_needed, job.start_time);
+        return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin";
       }
       if (job.status === "in_progress") return "working";
       if (agreedJobStage(job, "poster", now) === "confirm_owed") return "confirm_still_on";

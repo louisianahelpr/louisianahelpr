@@ -12,6 +12,7 @@
  * "Report no-show" on the face.
  *
  * @mutate src/components/job-card/jobStatusLine.ts |       if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) { |       if (false) {
+ * @mutate src/components/job-card/jobStatusLine.ts |         return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin"; |         return "started_no_checkin";
  * @mutate src/components/tracker/jobStepFromWait.ts |   started_no_checkin: NO_SHOW, |   started_no_checkin: at(6),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |     case "started_no_checkin":\n      // started_no_checkin: |       // started_no_checkin:
  */
@@ -67,6 +68,12 @@ describe("a job the clock started never says the Helpr is there (A2-B12)", () =>
       const j = { ...base, [stamp]: "2026-10-29T15:20:00Z" } as Job;
       expect(posterStatusLine(j, 0, NOW).id, stamp).not.toBe("started_no_checkin");
     }
+  });
+
+  it("a start still ahead has not passed: no 'Start time passed', no Report no-show (T12-B)", () => {
+    const ahead = { ...base, start_time: "23:00:00" } as Job;
+    expect(posterStatusLine(ahead, 0, NOW).id).toBe("confirmed");
+    expect(posterStatusLine(ahead, 0, NOW).eyebrow).not.toBe("Start time passed");
   });
 
   it("the named line says who", () => {

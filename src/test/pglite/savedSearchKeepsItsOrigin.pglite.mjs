@@ -20,7 +20,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const THIS = "20261031023451_saved_search_keeps_its_origin.sql";
-const BEFORE = process.argv.includes("--before");
+const BEFORE = process.argv.includes("--before") || process.env.NEW_MIGRATION === "skip";
 const d = effectiveDefs(DIR, { before: THIS }).get("deliver_saved_search_item_alerts");
 const open = /\bAS\s+(\$\w*\$)/i.exec(d.stmt);
 const oldBody = `${d.stmt.slice(0, d.stmt.indexOf(open[1], open.index + open[0].length) + open[1].length)};`;

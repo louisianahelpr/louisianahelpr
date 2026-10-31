@@ -16,7 +16,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIGRATION = readFileSync(new URL("../../../supabase/migrations/20261031021424_closed_application_job_labels.sql", import.meta.url).pathname, "utf8");
-const BEFORE = process.argv.includes("--before");
+const BEFORE = process.argv.includes("--before") || process.env.NEW_MIGRATION === "skip";
 
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const P = U(1), H = U(2), OTHER = U(3), J1 = U(101), J2 = U(102);

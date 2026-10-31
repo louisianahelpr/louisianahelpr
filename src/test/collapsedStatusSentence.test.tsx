@@ -251,6 +251,13 @@ const POSTER_FIXTURES: Record<
   started_no_checkin: {
     job: job({ status: "in_progress", helper_id: HELPER, date_needed: TODAY, helper_confirmed_at: ago(20) }),
   },
+  /* A crew's job row: helper_id null, the members live in group_job_helpers (JOBS-4). */
+  crew_underway: {
+    job: job({ status: "in_progress", helper_id: null, is_group_job: true, date_needed: TODAY }),
+  },
+  crew_overdue: {
+    job: job({ status: "in_progress", helper_id: null, is_group_job: true, date_needed: YESTERDAY }),
+  },
   approve: {
     job: job({
       status: "in_progress", helper_id: HELPER, date_needed: TODAY,

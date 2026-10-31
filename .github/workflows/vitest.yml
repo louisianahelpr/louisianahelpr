@@ -93,7 +93,6 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           EVENT: ${{ github.event_name }}
           MG_BASE: ${{ github.event.merge_group.base_sha }}
-          MG_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT" = "pull_request" ]; then
@@ -101,9 +100,11 @@ jobs:
             export CHANGED_FILES
             node scripts/ci/docs-only-tests.mjs > scope.json
           elif [ "$EVENT" = "merge_group" ]; then
-            # A queue entry has no PR number, so its change is the event's two
-            # commits. A base it cannot read runs the whole suite, never less.
-            if [ -n "$MG_BASE" ] && [ -n "$MG_HEAD" ] && git fetch --no-tags --depth=1 origin "$MG_BASE" "$MG_HEAD" && CHANGED_FILES=$(git diff --no-renames --name-only "$MG_BASE" "$MG_HEAD"); then
+            # A queue entry has no PR number, so its change is the event's base
+            # against the checked-out commit (never the event's head_sha: CodeQL's
+            # untrusted-checkout query flags that). A base it cannot read runs the
+            # whole suite, never less.
+            if [ -n "$MG_BASE" ] && git fetch --no-tags --depth=1 origin "$MG_BASE" && CHANGED_FILES=$(git diff --no-renames --name-only "$MG_BASE" "$GITHUB_SHA"); then
               export CHANGED_FILES
               node scripts/ci/docs-only-tests.mjs > scope.json
             else

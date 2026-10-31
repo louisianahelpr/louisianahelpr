@@ -4,6 +4,8 @@
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |         tools: [{ type: "web_search_20260209", name: "web_search", max_uses: LOOKUP_MAX_SEARCHES }], |         tools: [],
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   if (draft.flagged \|\| !draft.title.trim()) return estimate(); |   if (!draft.title.trim()) return estimate();
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts | draft.priceReason ? estimateReason(draft.priceReason) : "Our estimate." | draft.priceReason
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |       console.warn("[price-lookup]", res.status, | console.debug("[price-lookup]", res.status,
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |     console.warn("[price-lookup] failed", (e as Error)?.name); |     console.debug("[price-lookup] failed", (e as Error)?.name);
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));\n} |   return json(draftAnswer(await groundWithOurSales(anon, draft, body)));\n}
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     const { flagReason: _reason, ...d } = await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body); |     const { flagReason: _reason, ...d } = await groundWithOurSales(anon, draft, body);
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));\n  } catch (e) { |     return json(draftAnswer(await groundWithOurSales(anon, draft, body)));\n  } catch (e) {
@@ -52,6 +54,23 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     const bad = vi.fn(async () => new Response("{}", { status: 529 }));
     expect(await lookupUsedPrice("k", { title: "Lamp" }, { fetchImpl: bad as unknown as typeof fetch })).toBeNull();
     expect(lookupQuery({ title: "Lamp" })).toBe("Lamp. Used.");
+  });
+
+  it("a rejected or failed lookup is never silent: the edge log gets its status, or the error's name", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const rejected = vi.fn(async () => new Response('{"type":"error","error":{"type":"invalid_request_error","message":"tool not allowed"}}', { status: 400 }));
+      expect(await lookupUsedPrice("k", { title: "Lamp" }, { fetchImpl: rejected as unknown as typeof fetch })).toBeNull();
+      expect(warn).toHaveBeenCalledWith("[price-lookup]", 400, expect.stringContaining("tool not allowed"));
+      warn.mockClear();
+      const hangs = vi.fn((_u: string, init: RequestInit) => new Promise<Response>((_res, rej) => {
+        init.signal?.addEventListener("abort", () => rej(new DOMException("aborted", "AbortError")));
+      }));
+      expect(await lookupUsedPrice("k", { title: "Lamp" }, { fetchImpl: hangs as unknown as typeof fetch, timeoutMs: 20 })).toBeNull();
+      expect(warn).toHaveBeenCalledWith("[price-lookup] failed", "AbortError");
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   const draft = (over: Record<string, unknown> = {}) => ({

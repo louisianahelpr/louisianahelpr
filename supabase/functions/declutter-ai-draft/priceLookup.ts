@@ -64,6 +64,7 @@ export async function lookupUsedPrice(
 ): Promise<PriceRange | null> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), opts.timeoutMs ?? LOOKUP_TIMEOUT_MS);
+  const started = Date.now();
   try {
     const res = await (opts.fetchImpl ?? fetch)(CLAUDE_URL, {
       signal: ctl.signal,
@@ -78,10 +79,22 @@ export async function lookupUsedPrice(
         output_config: { effort: "low" },
       }),
     });
-    if (!res.ok) return null;
-    return rangeFromAnswer(await res.json());
-  } catch {
-    // A timeout (abort) or a network failure: no lookup, the caller's estimate stands.
+    if (!res.ok) {
+      // A rejected request (a tool or model the API refuses, a bad key, overload) is logged, never silent: otherwise every
+      // price would quietly read "Our estimate". The body is the API's own error, never the item's words.
+      console.warn("[price-lookup]", res.status, (await res.text().catch(() => "")).slice(0, 200));
+      return null;
+    }
+    const answer = await res.json();
+    const range = rangeFromAnswer(answer);
+    // Numbers only (no item words): how long it took and how many web searches ran, so a live draft's log shows both.
+    console.log("[price-lookup] done", JSON.stringify({
+      ms: Date.now() - started, searches: answer?.usage?.server_tool_use?.web_search_requests ?? null, found: !!range,
+    }));
+    return range;
+  } catch (e) {
+    // A timeout shows as "AbortError", a network failure as its own name: no lookup, the caller's estimate stands.
+    console.warn("[price-lookup] failed", (e as Error)?.name);
     return null;
   } finally {
     clearTimeout(timer);

@@ -191,7 +191,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // Audit DB-6 (2026-10-30): Buying showed history above action (cart order). Needs you first, Done and Cancelled last.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const shown = views ? byBucket(chosen, views) : chosen; |   const shown = chosen;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen); |   const shown = liveSalesFirst(chosen);
   // @mutate src/components/declutter/BuyingOrders.tsx |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.r - b.r \|\| a.i - b.i).map((x) => x.o); |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.i - b.i).map((x) => x.o);
   it("DB-6: orders run Needs you, Waiting, Upcoming, Done, Cancelled, whatever the cart order", async () => {
     const pick = (ids: string[]) => ids.map((id) => CASES.find((c) => c.id === id)!);

@@ -30,6 +30,17 @@ export function paidOrdersFromCart(cart: CartLine[]): PaidOrder[] {
   return [...byOrder.values()];
 }
 
+/** Handed over after the live sales, refunded last; anything else (paid, still to hand over) first. */
+const SALE_RANK: Readonly<Record<string, number>> = { handed_over: 1, refunded: 2 };
+
+/**
+ * NIGHT-SELL-soldstates-2: Selling's "Hand over" listed paid-out, refunded and still-to-hand-over sales mixed, in cart
+ * order. The sales still to hand over come first, then the handed-over ones, then the refunded; cart order inside each.
+ */
+export function liveSalesFirst<T extends Pick<PaidOrder, "status">>(orders: readonly T[]): T[] {
+  return orders.map((o, i) => ({ o, i, r: SALE_RANK[o.status ?? ""] ?? 0 })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.o);
+}
+
 export const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** `<input type="datetime-local">` value -> ISO (the device's own time zone). */

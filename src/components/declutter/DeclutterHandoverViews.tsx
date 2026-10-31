@@ -35,7 +35,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
 import type { CartLine } from "@/lib/declutter/api";
-import { invalidate, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
+import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
   bookPickup,
   confirmHandover,
@@ -121,8 +121,9 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
   const problems = useOpenProblems(ids);
   const chosen = show ? orders.filter((o) => show(o.orderId)) : orders;
-  // DB-6: on Buying, what needs the buyer comes first and history (Done, Cancelled) last.
-  const shown = views ? byBucket(chosen, views) : chosen;
+  // DB-6: on Buying, what needs the buyer comes first and history (Done, Cancelled) last; on Selling (soldstates-2),
+  // the sales still to hand over, then handed over, then refunded.
+  const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen);
   if (shown.length === 0 || !userId) return null;
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;

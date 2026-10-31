@@ -1,6 +1,6 @@
 /**
  * The Helpr Guarantee in plain words, for screens that SELL it (first post's
- * Review step, /book/<id>, signed-out home). One constant so no screen can
+ * Review step, /book/<id>). One constant so no screen can
  * drift into a bigger promise than the terms make (lead + owner, 2026-10-29:
  * "never overpromise"; no fee details on these screens).
  *

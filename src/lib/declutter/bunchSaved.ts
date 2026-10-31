@@ -100,7 +100,8 @@ export async function savedSellWork(
   try {
     const [bunch, one] = await Promise.all([get<SavedBunch>("lh-bunch-v1"), get<SavedPhotos>(SELL_ONE_KEY)]);
     const kept = mine(bunch) && !(await allPosted(bunch!, itemStatuses));
-    return { bunch: kept, moving: kept && !!bunch?.moveDate, one: mine(one) };
+    const oneKept = mine(one) && !(await onePosted(one as SavedPhotos & { createdId?: string | null }, itemStatuses));
+    return { bunch: kept, moving: kept && !!bunch?.moveDate, one: oneKept };
   } catch (err) {
     console.warn("[declutter] could not read saved selling work", err);
     return { bunch: false, moving: false, one: false };
@@ -126,4 +127,16 @@ async function allPosted(saved: SavedBunch, itemStatuses: (ids: string[]) => Pro
     return false;
   }
   return items.every((it) => idsOf(it).some((id) => statuses.has(id) && statuses.get(id) !== "draft"));
+}
+
+/** The one-item listing kept on the device is already posted (its draft is past draft on the server): not work. */
+async function onePosted(saved: { createdId?: string | null }, itemStatuses: (ids: string[]) => Promise<Map<string, string>>): Promise<boolean> {
+  if (!saved.createdId) return false;
+  try {
+    const status = (await itemStatuses([saved.createdId])).get(saved.createdId);
+    return status !== undefined && status !== "draft";
+  } catch (err) {
+    console.warn("[declutter] could not check the kept listing against the server", err);
+    return false;
+  }
 }

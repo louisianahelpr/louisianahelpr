@@ -136,6 +136,8 @@ vi.mock("@/lib/declutter/api", () => ({
   setPickupWindows: async () => { calls.push("windows"); return 1; },
   attestItem: async () => { await post.attestGate; post.attested += 1; calls.push("attest"); },
   publishItem: async () => { calls.push("publish"); return "live"; },
+  // LEAD-OFFERS-CHOICE part (2): offers off goes on the draft before it is up.
+  setOfferRules: async (id: string, accepts: boolean, auto: boolean) => { calls.push(`offers:${id}:${accepts}:${auto}`); },
 }));
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
@@ -219,7 +221,8 @@ describe("photo-first selling, one screen", () => {
     expect(rowValue("size")).toBe("Add a size");
     expect(screen.queryByRole("heading", { name: "How buyers get it" })).toBeNull();
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
-    expect(screen.queryByRole("switch")).toBeNull();
+    // The one switch is the Price row's Accept offers (LEAD-OFFERS-CHOICE part (2), owner 2026-10-31); no other setting is here.
+    expect(screen.queryAllByRole("switch").map((s) => s.id)).toEqual(["sell-offers"]);
     expect(document.querySelector("[data-auto-free]")).toBeNull();
     expect(document.querySelector("[data-uses-settings]")).not.toBeNull();
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();
@@ -235,6 +238,51 @@ describe("photo-first selling, one screen", () => {
     // The words now live on a saved draft's step form (a new listing has no address box).
     const src = readFileSync(join(process.cwd(), "src/components/declutter/SellFormParts.tsx"), "utf8");
     expect(src).toContain('(form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it.")');
+  });
+
+  // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): the Price row's own Accept offers starts from the saved default,
+  // and OFF is saved on the draft before it is listed. On (the server's default) sends nothing.
+  // @mutate src/components/declutter/useSellerDefaultsPrefill.ts |     setOffersWanted?.(row ? row.acceptsOffers : SELLER_DEFAULTS.acceptsOffers); |     void row;
+  // @mutate src/components/declutter/useSellFlowState.ts |         !urlItemId && !offersWanted && !form.free | false
+  // @mutate src/components/declutter/SellFormParts.tsx | onCheckedChange={(v) => setOffersWanted(v === true)} | onCheckedChange={() => {}}
+  // @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       acceptsOffers: offersWanted ?? saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers, |       acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers,
+  it("Accept offers starts from the saved default; off is saved on the draft before it is listed, and remembered", async () => {
+    savedRow.value = { keepUp: false, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: false };
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg", "c.jpg");
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    const offers = await screen.findByRole("switch", { name: /Accept offers/ });
+    await waitFor(() => expect(offers).toHaveAttribute("aria-checked", "false"));
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(calls.indexOf(`offers:${NEW_ID}:false:false`)).toBeGreaterThan(-1);
+    expect(calls.indexOf(`offers:${NEW_ID}:false:false`)).toBeLessThan(calls.indexOf("publish"));
+  });
+
+  it("Accept offers turned on in the form sends nothing (the server's default) and is what is remembered", async () => {
+    savedRow.value = { keepUp: false, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: false };
+    const defaults = await import("@/lib/declutter/sellerDefaults");
+    const save = vi.spyOn(defaults, "saveSellerDefaults");
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg", "c.jpg");
+    expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    const offers = await screen.findByRole("switch", { name: /Accept offers/ });
+    await waitFor(() => expect(offers).toHaveAttribute("aria-checked", "false"));
+    fireEvent.click(offers);
+    expect(offers).toHaveAttribute("aria-checked", "true");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(calls.some((c) => c.startsWith("offers:"))).toBe(false);
+    await waitFor(() => expect(save).toHaveBeenCalledWith("u1", expect.objectContaining({ acceptsOffers: true })));
+    save.mockRestore();
   });
 
   it("held photos wait on the device; Post creates the draft, uploads them, saves the price choice, then lists it", async () => {

@@ -11,8 +11,10 @@ import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import type { DeliverySize } from "@/lib/declutter/api";
-import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
+import { bunchItemProblem, bunchItemTakesOffers, type BunchItem } from "@/lib/declutter/bunch";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
@@ -24,6 +26,8 @@ const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field p
 
 interface BunchCardProps {
   item: BunchItem;
+  /** LEAD-OFFERS-CHOICE part (2): the seller's saved "Accept offers", for an item with no choice of its own. Absent: on. */
+  offersDefault?: boolean;
   index: number;
   /** The other items, for "Move to" and "Merge into": key, the name the seller sees, and a first photo. */
   others: BunchOther[];
@@ -60,7 +64,7 @@ export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
+export function BunchCard({ item, offersDefault, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
   const [mergeInto, setMergeInto] = useState("");
   const id = item.key;
   const problem = bunchItemProblem(item);
@@ -132,6 +136,19 @@ export function BunchCard({ item, index, others, urls, files, at, rewriting, rew
             Give it away free
           </label>
         </div>
+        {/* A free item is claimed, never offered on, so only a priced one has the switch. */}
+        {!item.free && (() => {
+          const on = bunchItemTakesOffers(item, { acceptsOffers: offersDefault });
+          return (
+            <div className="flex min-h-11 items-center gap-3 sm:col-span-2" data-bunch-offers={on ? "on" : "off"}>
+              <label htmlFor={`offers-${id}`} className="min-w-0 flex-1">
+                <span className="block text-ds-14 font-medium">{OFFERS_TITLE}</span>
+                <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(on)}</span>
+              </label>
+              <Switch id={`offers-${id}`} aria-label={`${OFFERS_TITLE} for ${name}`} checked={on} onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} />
+            </div>
+          );
+        })()}
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>Condition</label>
           <select id={`cond-${id}`} className={field} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>

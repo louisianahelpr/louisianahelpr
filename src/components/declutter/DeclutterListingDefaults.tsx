@@ -4,6 +4,7 @@
  * what it has. A failed read shows the retry, never the app's defaults, so a Save can never write defaults over
  * choices we simply failed to read.
  */
+import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -24,9 +25,6 @@ import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
 import { DROPS_SWITCH_LABEL } from "./sellForm";
 import { OffersForAllListings } from "./DeclutterOffersForAll";
 
-/** LEAD-OFFERS-CHOICE (owner 2026-10-31): what "Accept offers" means, on or off. */
-const offersSettingLine = (on: boolean) =>
-  on ? "Buyers can offer a lower price, and you say yes or no." : "Off. Buyers pay your price with Buy now; no offers.";
 
 /** The everyday choices; a saved share that is none of these (from a typed lowest price) is added so it stays selected. */
 const FLOOR_CHOICES = [25, 40, 50, 60, 75];
@@ -72,14 +70,14 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
         </span>
         <Switch aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
       </div>
-      <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-offers`} className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">Accept offers</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{OFFERS_TITLE}</span>
           <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(draft.acceptsOffers)}</span>
         </label>
         <Switch id={`${idPrefix}-offers`} checked={draft.acceptsOffers} onCheckedChange={(v) => change({ acceptsOffers: v === true })} />
       </div>
+      <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
   </>);
 }
 

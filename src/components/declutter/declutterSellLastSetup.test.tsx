@@ -313,7 +313,7 @@ describe("Give it away free (?free=1)", () => {
   });
 
   // LEAD-FREE-MOVE (owner 2026-10-31): free is picked on the chooser's first screen, never ticked on the Price row.
-  // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : null} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
+  // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
   it("the one screen has no Give it away free tick; a free listing can still go back to a price", async () => {
     open("/declutter/sell");
     await addPhotoAndWait();

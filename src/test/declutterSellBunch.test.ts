@@ -212,6 +212,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[]) => ids.map((id: string) => (id === "id3" ? { id, error: new Error("setup_fee_required") } : { id, status: "live" as const }))),
     };
     const items = [
@@ -254,6 +255,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
     const steps: [string, unknown][] = [];
@@ -282,6 +284,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       // The last item goes live first; the first never does.
       publishMany: vi.fn(async (ids: string[], p) => {
         p(1, ids.length, 2);
@@ -310,6 +313,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     });
 
@@ -348,6 +352,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async () => []),
     };
     const steps: [string, unknown][] = [];
@@ -412,6 +417,7 @@ describe("trying again after a cut-off run", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
   }

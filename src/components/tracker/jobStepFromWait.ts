@@ -110,6 +110,7 @@ export const HELPER_STEP: Record<HelperWait, Entry> = {
   job_gone: at(null),
   not_selected: at(null),
   reported_no_show: at(null, "problem", "No-show"),
+  helper_cancelled: at(null),
   cancelled: CANCELLED,
   applied: at(0),
   offer: at(1),

@@ -4414,7 +4414,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 236,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7894,7 +7894,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 97,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7904,7 +7904,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 140,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7914,7 +7914,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 160,
+      "line": 169,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",

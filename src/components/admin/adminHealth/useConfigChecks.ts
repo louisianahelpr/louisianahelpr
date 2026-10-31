@@ -45,6 +45,13 @@ const unreadable = (id: string, label: string): ConfigCheck => ({
  */
 
 export type CheckTone = "ok" | "warn" | "danger" | "unknown";
+/** The status dot beside each check row on Admin Health. */
+export const CHECK_TONE_DOT: Record<CheckTone, string> = {
+  ok: "bg-[hsl(var(--bark))]",
+  warn: "bg-[hsl(var(--burnt-sienna))]",
+  danger: "bg-destructive",
+  unknown: "bg-muted-foreground",
+};
 
 export interface ConfigCheck {
   id: string;

@@ -34,6 +34,14 @@ const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
 export { helperDayOfConfirmation };
 
 
+/** The confirm sheet's warning line, by side (LEAD-CONFIRM-WORDS). Guard: src/pages/jobs/jobPage/JobPage.test.tsx. */
+function posterConfirmWarning(isOwner: boolean, helperConfirmedAt: string | null): string {
+  if (!isOwner) return "No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.";
+  return helperConfirmedAt
+    ? "If you cancel late, your Helpr is paid for their trouble."
+    : "There's no late-cancel fee until your Helpr confirms.";
+}
+
 export function JobConfirmation({
   jobId,
   isOwner,
@@ -390,9 +398,13 @@ export function JobConfirmation({
               same 8% sienna fill, same sienna hairline, same AlertTriangle —
               one border width and one radius token off from the one
               BrandConfirmDialog renders behind every confirm in the app.
-              Copy unchanged. */}
+              The words name each side's real consequence (LEAD-CONFIRM-WORDS, owner 10-31): a poster
+              who cancels within 24 hours of the start, once the Helpr confirmed, pays 25% of the price
+              (50% inside 2 hours) and the sweep sends it to the Helpr (computeCancellationFee,
+              void-cancelled-payments); before the Helpr confirms there is no fee. A Helpr keeps the
+              no-show line. */}
           <DialogCallout>
-            No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
+            {posterConfirmWarning(isOwner, helperConfirmedAt)}
           </DialogCallout>
         </div>
         <DialogFooter>

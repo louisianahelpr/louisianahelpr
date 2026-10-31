@@ -558,17 +558,24 @@ export class AlreadyPosted extends Error {
 }
 
 /**
- * The caller's own item with this id: its status, or null when it is not the caller's (or can't be read). A draft reads
- * back only for its own seller (the declutter_items read policy); a posted item reads for everyone, so the seller is
- * compared too. A failed read says null (a fresh id, as before).
+ * The caller's own item with this id: its status, or null when it is really not the caller's (no row, or another
+ * seller's). A draft reads back only for its own seller (the declutter_items read policy); a posted item reads for
+ * everyone, so the seller is compared too.
+ * A failed read THROWS (lead review, 10-31): null there meant a fresh id, and when the run's status read had failed too
+ * nothing else knew the id was already posted, so the item was posted twice. Not knowing stops this item; Try again asks
+ * again with the same id.
  */
+const CANT_CHECK = "We couldn't check whether this item is already posted. Try again.";
 async function readMyItem(itemId: string): Promise<string | null> {
   const r = await supabase.from("declutter_items").select("id, status, seller_id").eq("id", itemId).maybeSingle();
-  const row = r.error ? null : (r.data as { status?: string; seller_id?: string } | null);
+  if (r.error) throw Object.assign(new Error(`item_read_failed: ${r.error.message}`), { userMessage: CANT_CHECK });
+  const row = r.data as { status?: string; seller_id?: string } | null;
   if (!row?.status) return null;
   if (row.status === "draft") return "draft";
   const me = (await supabase.auth.getSession()).data.session?.user.id;
-  return me && row.seller_id === me ? row.status : null;
+  // Who is signed in can't be read: whether a posted row is theirs is unknown, so the same as a failed read.
+  if (!me) throw Object.assign(new Error("item_read_failed: no session"), { userMessage: CANT_CHECK });
+  return row.seller_id === me ? row.status : null;
 }
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {

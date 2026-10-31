@@ -642,7 +642,7 @@ describe("RPC writes", () => {
 // LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates c87b7de4 / 019dd0b3): Post again with an id that is already the
 // seller's POSTED item makes no second copy; it says "Already posted" (AlreadyPosted, with the id to open).
 // @mutate src/lib/declutter/api.ts |     if (mine) throw new AlreadyPosted(withId); |     void mine;
-// @mutate src/lib/declutter/api.ts |   return me && row.seller_id === me ? row.status : null; |   return null;
+// @mutate src/lib/declutter/api.ts |   return row.seller_id === me ? row.status : null; |   return null;
 describe("createDraft with the app's own id", () => {
   const taken = { data: null, error: { code: "22023", message: "item_id_taken" } };
   it("makes the draft with that id", async () => {
@@ -667,13 +667,25 @@ describe("createDraft with the app's own id", () => {
       expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id"]);
     }
   });
-  it("the id is taken by a row that isn't the caller's (or the read fails): a fresh draft", async () => {
-    for (const read of [ok(null), ok({ id: "app-id", status: "live", seller_id: "someone-else" }), { data: null, error: { code: "500", message: "boom" } }]) {
+  it("the id is taken by a row that isn't the caller's: a fresh draft", async () => {
+    for (const read of [ok(null), ok({ id: "app-id", status: "live", seller_id: "someone-else" })]) {
       h.rpcs.length = 0;
       h.queue.push(taken, read, ok("fresh"));
       await expect(createDraft(FIELDS, "app-id")).resolves.toBe("fresh");
       expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id", "declutter_create_item"]);
     }
+  });
+  // Lead review 10-31: a failed read said null, so a taken id got a fresh one; with the run's status read failed too,
+  // the item was posted twice. Now it stops this item, makes nothing, and says why.
+  // @mutate src/lib/declutter/api.ts |   if (r.error) throw Object.assign(new Error(`item_read_failed: ${r.error.message}`), { userMessage: CANT_CHECK }); |   if (r.error) return null;
+  it("the id is taken and the check of it fails: nothing is made, never a fresh id (it may be posted)", async () => {
+    h.rpcs.length = 0;
+    h.queue.push(taken, { data: null, error: { code: "500", message: "boom" } });
+    const err = await createDraft(FIELDS, "app-id").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(AlreadyPosted);
+    expect((err as { userMessage?: string }).userMessage).toBe("We couldn't check whether this item is already posted. Try again.");
+    expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id"]);
   });
 });
 

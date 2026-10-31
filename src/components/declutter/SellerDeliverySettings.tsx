@@ -130,7 +130,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
     },
     onSuccess: (s) => {
       qc.setQueryData(KEY, s);
-      toast.success(s.enabled ? "Delivery is on. Buyers near you can pick a time at checkout." : "Delivery is off.");
+      toast(s.enabled ? "Delivery is on. Buyers near you can pick a time at checkout." : "Delivery is off.");
       onDone();
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
@@ -257,7 +257,7 @@ export function ItemDeliveryRow({ itemId, rowClassName }: { itemId: string; rowC
   const set = useMutation({
     mutationFn: (deliver: boolean) => setItemSellerDelivery(itemId, deliver),
     onSuccess: (deliver) => {
-      toast.success(deliver ? "You'll offer delivery for this item." : "No delivery for this item.");
+      toast(deliver ? "You'll offer delivery for this item." : "No delivery for this item.");
       void qc.invalidateQueries({ queryKey: KEY });
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),

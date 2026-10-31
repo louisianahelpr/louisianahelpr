@@ -68,7 +68,7 @@ export function EndSeriesControl({
       const booked = result.booked_visits_remaining ?? 0;
       // "No new visits", not "nothing after <end date>": an ended series gets
       // no new visit at all, a gap before the end date included.
-      toast.success(
+      toast(
         result.action === "left"
           ? `You left the series. ${(result.released ?? []).length} upcoming date${(result.released ?? []).length === 1 ? " goes" : "s go"} back to it.${result.strike ? " One started within 24 hours, so it counts as a reliability strike." : ""}`
           : "Series ended. No new visits will be booked or charged.",

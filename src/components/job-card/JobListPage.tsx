@@ -296,9 +296,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     // waits while a `?job=` link is unresolved, and once `job` leaves the URL
     // it chooses exactly as it does for a plain open.
     if (deepLinkJobId && !onList) {
-      toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
+      toast(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
     } else if (tab === "posted" && highlightJobId && !onList) {
-      toast.info(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
+      toast(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
     }
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");

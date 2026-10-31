@@ -18,7 +18,7 @@ export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "ite
     mutationFn: () => removeCartItem(line.line_id),
     onSettled: () => setAsking(false),
     onSuccess: () => {
-      toast.success("Removed from your cart. It's back on sale.");
+      toast("Removed from your cart. It's back on sale.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

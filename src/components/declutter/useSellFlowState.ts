@@ -286,7 +286,7 @@ export function useSellFlowState(urlItemId: string | null) {
         if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
         // A new listing's second Post: only the photos that failed go up again.
         if (!urlItemId && waiting.length > 0) await uploadHeld(itemId, waiting);
-        if (urlItemId) toast.success("Saved.");
+        if (urlItemId) toast("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
@@ -455,7 +455,7 @@ export function useSellFlowState(urlItemId: string | null) {
         try {
           const out = await answerAfterListing(answer, id, status, form.free ? null : dollarsToCents(form.price));
           if (out.kind === "sent") {
-            toast.success(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
+            toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
             navigate("/declutter?view=wanted");
             return;
           }

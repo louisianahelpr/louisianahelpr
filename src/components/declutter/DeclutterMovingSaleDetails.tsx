@@ -35,7 +35,7 @@ export function MovingSaleDetails({ userId, moveOutOn, today }: { userId: string
     mutationFn: () => setMovingSale(name.trim(), startsOn || null),
     onSuccess: (n) => {
       if (n === "not_deployed") toast.error("Sale names aren't available yet. Try again later.");
-      else toast.success(n === 0 ? "Saved. It shows once your items are listed." : "Saved. Buyers see it on your moving sale.");
+      else toast(n === 0 ? "Saved. It shows once your items are listed." : "Saved. Buyers see it on your moving sale.");
       void qc.invalidateQueries({ queryKey: ["declutter", "moving-sale"] });
       void qc.invalidateQueries({ queryKey: ["declutter", "my-moving-sale"] });
     },

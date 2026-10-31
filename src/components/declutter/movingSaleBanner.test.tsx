@@ -22,7 +22,7 @@ const watchCalls: [string, boolean][] = [];
 const viewer = { id: "u9" as string | null };
 const watched = new Set<string>();
 const sold = new Set<string>();
-const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toasts = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 const sale = { moveOutOn: "2026-11-01", saleName: null as string | null, startsOn: null as string | null, more: false, items: [] as Record<string, unknown>[] };
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/authRedirects", () => ({ getPublicOrigin: () => "https://louisianahelpr.com" }));
@@ -60,7 +60,7 @@ beforeEach(() => {
   watchCalls.length = 0;
   watched.clear();
   sold.clear();
-  toasts.success.mockClear();
+  toasts.mockClear();
   toasts.error.mockClear();
   viewer.id = "u9";
   sale.saleName = null;
@@ -101,7 +101,7 @@ describe("board 164: the moving sale, as a buyer sees it", () => {
     sold.add("a");
     renderIt();
     fireEvent.click(await screen.findByRole("button", { name: "Follow sale" }));
-    await waitFor(() => expect(toasts.success).toHaveBeenCalledWith("Following 1 of 2 items. The others aren't for sale anymore."));
+    await waitFor(() => expect(toasts).toHaveBeenCalledWith("Following 1 of 2 items. The others aren't for sale anymore."));
     expect(watchCalls.map(([id]) => id).sort()).toEqual(["a", "b"]);
     expect(toasts.error).not.toHaveBeenCalled();
   });

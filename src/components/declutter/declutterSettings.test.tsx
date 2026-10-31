@@ -78,7 +78,7 @@ beforeEach(() => {
   state.saves = [];
   state.places = [];
   state.features = { declutter: true, declutter_seller_delivery: true };
-  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast).mockClear();
   vi.mocked(toast.error).mockClear();
 });
 
@@ -120,7 +120,7 @@ describe("Declutter settings", () => {
     fireEvent.click(button);
     await vi.waitFor(() => expect(state.saves).toHaveLength(1));
     expect(state.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: null, handovers: ["porch", "meetup"] });
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Listing defaults saved."));
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
     // Saved: what shows is now the saved row, and there is nothing left to save.
     await vi.waitFor(() => expect(button).toBeDisabled());
     expect(radio("How much each evening", "15%")).toHaveAttribute("aria-checked", "true");
@@ -207,7 +207,7 @@ describe("Declutter settings", () => {
     fireEvent.click(radio("How much each evening", "20%"));
     fireEvent.click(button);
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("We couldn't save your listing defaults yet. Try again in a little while."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
     expect(radio("How much each evening", "20%")).toHaveAttribute("aria-checked", "true");
     expect(button).toBeEnabled();
   });

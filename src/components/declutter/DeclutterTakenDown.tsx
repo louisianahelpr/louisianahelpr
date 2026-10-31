@@ -23,7 +23,7 @@ function useReopenListing() {
   return useMutation({
     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId),
     onSuccess: (itemId) => {
-      toast.success("Back in your listings. Add photos and put it up again.");
+      toast("Back in your listings. Add photos and put it up again.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       navigate(`/declutter/sell?item=${itemId}`);
     },

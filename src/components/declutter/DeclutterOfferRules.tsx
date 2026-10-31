@@ -36,7 +36,7 @@ export function DeclutterOfferRules({
   const auto = priv.data?.auto_offers === true;
   const [suggestion, setSuggestion] = useState<SuggestedFloor | null>(null);
   const done = (msg: string) => {
-    toast.success(msg);
+    toast(msg);
     void qc.invalidateQueries({ queryKey: ["declutter"] });
   };
   const rules = useMutation({

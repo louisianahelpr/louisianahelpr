@@ -209,7 +209,7 @@ function RequestView({ id }: { id: string }) {
   const cancel = useMutation({
     mutationFn: () => cancelQuoteRequest(id),
     onSuccess: () => {
-      toast.success("Request cancelled");
+      toast("Request cancelled");
       void qc.invalidateQueries({ queryKey: ["quotes"] });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),

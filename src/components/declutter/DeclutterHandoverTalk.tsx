@@ -188,7 +188,7 @@ function AddPorchPickup({ sellerId, buyerId }: { sellerId: string; buyerId: stri
   const items = useQuery({ queryKey: key, queryFn: () => fetchTalkItems(sellerId, buyerId) });
   const add = useMutation({
     mutationFn: (itemId: string) => addHandover(itemId, "porch"),
-    onSuccess: () => { toast.success("Porch pickup added. The buyer is told and has at least a day to check out."); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
+    onSuccess: () => { toast("Porch pickup added. The buyer is told and has at least a day to check out."); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (items.isError) {

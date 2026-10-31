@@ -318,7 +318,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         return;
       }
       hapticSuccess();
-      toast.success("Arrival confirmed.");
+      toast("Arrival confirmed.");
       refresh();
     } finally {
       setConfirmingArrivalJobId(null);
@@ -354,7 +354,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "work_confirmed" });
       }
       hapticSuccess();
-      toast.success("Work confirmed.");
+      toast("Work confirmed.");
       refresh();
     } finally {
       setConfirmingWorkingJobId(null);

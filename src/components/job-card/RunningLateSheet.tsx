@@ -55,7 +55,7 @@ export function RunningLateSheet({
         { action: "tell them you're running late" },
       );
       hapticSuccess();
-      toast.success(first ? `${first} knows you're about ${minutes} minutes late.` : `Sent: about ${minutes} minutes late.`);
+      toast(first ? `${first} knows you're about ${minutes} minutes late.` : `Sent: about ${minutes} minutes late.`);
       onOpenChange(false);
     } catch (err) {
       hapticError();

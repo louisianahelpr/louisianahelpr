@@ -55,7 +55,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
     mutationFn: () =>
       submitJobQuote({ requestId, priceDollars: dollarsTyped ?? 0, note: note.trim(), when: when.trim(), photoPaths: photos }),
     onSuccess: () => {
-      toast.success("Quote sent", { description: "We'll let you know when they answer." });
+      toast("Quote sent", { description: "We'll let you know when they answer." });
       void qc.invalidateQueries({ queryKey: ["quotes"] });
       navigate(QUOTE_HOMES.myQuotes, { replace: true });
     },
@@ -66,7 +66,7 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
     if (!files || files.length === 0) return;
     const room = MAX_QUOTE_PHOTOS - photos.length;
     const picked = Array.from(files).slice(0, Math.max(0, room));
-    if (files.length > room) toast.info(`A quote can carry up to ${MAX_QUOTE_PHOTOS} photos.`);
+    if (files.length > room) toast(`A quote can carry up to ${MAX_QUOTE_PHOTOS} photos.`);
     setUploading(true);
     try {
       for (const f of picked) {

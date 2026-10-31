@@ -104,7 +104,8 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
   });
 
   it("create and edit refuse an address in the public area label", () => {
-    for (const fn of ["declutter_create_item", "declutter_update_draft"]) {
+    // declutter_create_item makes its item through declutter_create_item_with_id (LEAD-POST-SLOW a), which checks it.
+    for (const fn of ["declutter_create_item_with_id", "declutter_update_draft"]) {
       expect(body(fn), fn).toContain("IF public.declutter_area_label_problem(p_area_label, p_pickup_address) IS NOT NULL THEN");
     }
   });

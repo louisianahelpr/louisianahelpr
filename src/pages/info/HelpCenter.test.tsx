@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import HelpCenter from "./HelpCenter";
+import HelpCenter, { LEGACY_TOPIC_ANCHORS } from "./HelpCenter";
 import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
@@ -94,6 +94,16 @@ describe("/help FAQ anchors are real destinations", () => {
     const header = container.querySelector("#faq-payments-how-your-money-is-held button")!;
     await waitFor(() => expect(header.getAttribute("aria-expanded")).toBe("true"));
     expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
+  });
+
+  it("every old anchor alias still points at a live topic, and no live topic shadows it", () => {
+    const { container } = renderHelp();
+    const ids = new Set([...container.querySelectorAll("[id^='faq-']")].map((n) => n.id));
+    const stale = Object.entries(LEGACY_TOPIC_ANCHORS)
+      .filter(([old, target]) => !ids.has(target) || ids.has(old))
+      .map(([old]) => `stale topic anchor alias ${old} — point it at a live topic or remove it`);
+    expect(Object.keys(LEGACY_TOPIC_ANCHORS).length).toBeGreaterThan(0);
+    expect(stale).toEqual([]);
   });
 
   it("an addressed section can still be closed by hand", async () => {

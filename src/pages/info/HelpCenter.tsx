@@ -63,6 +63,7 @@ const topicSlug = (label: string) =>
  * result sent before the rename still opens the topic it meant (JOBS-28:
  * "Payments & Escrow" became "Payments & how your money is held").
  */
+// @two-way src/pages/info/HelpCenter.test.tsx:stale topic anchor alias
 export const LEGACY_TOPIC_ANCHORS: Readonly<Record<string, string>> = {
   "faq-payments-escrow": "faq-payments-how-your-money-is-held",
 };

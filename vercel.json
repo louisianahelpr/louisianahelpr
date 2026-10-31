@@ -107,6 +107,10 @@
       "destination": "/api/share?_og=page&_id=help"
     },
     {
+      "source": "/hire/:service/:town",
+      "destination": "/api/share?_og=page&_id=hire/:service/:town"
+    },
+    {
       "source": "/support",
       "destination": "/api/share?_og=page&_id=support"
     },

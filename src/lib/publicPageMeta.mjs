@@ -21,6 +21,8 @@
  * public/sitemap.xml and exercises the handler for every URL in it.
  */
 
+import { townPageMetaFor } from "./townPages.mjs";
+
 export const SITE_ORIGIN = "https://www.louisianahelpr.com";
 
 /** @type {readonly ["terms", "community", "privacy"]} */
@@ -248,5 +250,8 @@ export function publicPageMetaFor(pathname, tabParam) {
   if (path === "/legal" || Object.prototype.hasOwnProperty.call(LEGAL_PATH_TAB, path)) {
     return legalPageMeta(resolveLegalTab(path, tabParam));
   }
+  // OPS-4: the town + service pages (/hire/<service>/<town>), from their own table.
+  const town = townPageMetaFor(path);
+  if (town) return town;
   return Object.prototype.hasOwnProperty.call(PUBLIC_PAGE_META, path) ? PUBLIC_PAGE_META[path] : null;
 }

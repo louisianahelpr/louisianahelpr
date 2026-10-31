@@ -45,7 +45,8 @@ const EARLY_ACCESS_LADDER = EARLY_ACCESS_TIERS
 const CREDENTIAL_CATEGORY_PHRASE = (() => {
   const names = JOB_CATEGORY_VALUES
     .filter((value) => CREDENTIAL_TIER_CATEGORIES.has(value))
-    .map((value) => JOB_CATEGORY_LABELS[value].toLowerCase());
+    // AUD31-58: an acronym keeps its capitals ("HVAC", not "hvac").
+    .map((value) => (/^[A-Z0-9]+$/.test(JOB_CATEGORY_LABELS[value]) ? JOB_CATEGORY_LABELS[value] : JOB_CATEGORY_LABELS[value].toLowerCase()));
   if (names.length <= 1) return names[0] ?? "";
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
@@ -99,7 +100,7 @@ export const TOPICS: { label: string; desc: string }[] = [
     desc: "How money is held, released, and paid.",
   },
   { label: "Trust & Safety", desc: "Verification, disputes, and reporting." },
-  { label: "Account & Settings", desc: "Email, password, deletion, Senior Mode." },
+  { label: "Account & Settings", desc: "Email, password, deletion, bigger text." },
   // The seventh FAQ topic had no blurb entry, so it rendered bare next to
   // six that carry one.
   { label: "Membership & Billing", desc: "Plans, upgrades, and cancelling." },
@@ -339,7 +340,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I change my email or password?",
-        a: "Go to Profile → Account Security.",
+        // AUD31-58: the app's screens are You › Settings › Account and security (TAB_TITLES.security).
+        a: "Go to You › Settings › Account and security.",
       },
       {
         q: "Can I delete my account?",
@@ -353,10 +355,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // not exist. Also added: `delete-own-account/index.ts:56-105` REFUSES
         // deletion while the account holds an active job or escrowed funds, so
         // "Yes." on its own was an answer some readers could not act on.
-        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still being held. We retain transaction records per Louisiana law but remove all personal data.",
+        a: "Yes. Go to You › Settings: \"Delete account\" is under Your account. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still being held. We retain transaction records per Louisiana law but remove all personal data.",
       },
       {
-        q: "What is Senior Mode?",
+        q: "How do I make the text and buttons bigger?",
         // There is no Settings TAB. Senior Mode lives on the Accessibility tab
         // (AccessibilityTab.tsx). A help answer that names a screen the app
         // does not have sends the reader looking for it.
@@ -370,7 +372,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // enlarge type and tap targets (index.css:2683-2694, 2747-2749) — it
         // enlarges, it does not remove or simplify anything, so "simplifies" is
         // corrected too.
-        a: "Senior Mode makes the app easier to read and tap — larger type and bigger touch targets throughout. Enable it in Profile → Accessibility.",
+        // AUD31-58: the switch is "Bigger text and buttons" in You › Settings (SettingsTab), not "Senior Mode".
+        a: "Turn on Bigger text and buttons in You › Settings. It makes the app easier to read and tap: larger type and bigger touch targets throughout.",
       },
     ],
   },
@@ -402,7 +405,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "Can I cancel my membership anytime?",
         // WAS "Your paid perks stay active through the end of your billing
         // period": while memberships are off no paid perk is active (F4a).
-        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time from Profile → Membership → Manage.`,
+        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time.`,
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,

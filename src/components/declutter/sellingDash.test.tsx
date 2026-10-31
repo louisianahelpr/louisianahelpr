@@ -14,7 +14,7 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
  * @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} | globalSearch={view !== "buying"}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                   <p data-listing-status={item.status} title={statusLine}\n |                   <p data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status} title={statusLine}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14

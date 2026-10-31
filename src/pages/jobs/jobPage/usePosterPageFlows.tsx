@@ -10,7 +10,7 @@
  *    no-show, dispute, review, tip, edit), the Posted list's own mount;
  *  - the approve sheet and "More options" are the card's PostedJobActions itself (CompletionChoiceSheet, every
  *    step's own gate), drawn in a panel on this page;
- *  - the row is the Posted list's own read of this one job (the same columns, the same detail read for the
+ *  - the row is the Posted list's own read of this one job (the same columns, series state and offeree, the same detail read for the
  *    Helpr's name, the tip and review badges and a crew's roster), so the cancel quote sees onboarding_fee_amount
  *    and the poster's fee.
  *
@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { fetchPostedActivityDetail, postedDetailInputs, type PostedActivityDetail } from "@/hooks/useActivityData";
+import { fetchJobSeriesState } from "@/lib/jobSeriesState";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Job, CompletionPromptTarget } from "@/components/job-card/activityConstants";
 import { createLifecycleHandlers } from "@/components/job-card/activityActions/useLifecycleHandlers";
@@ -49,7 +51,18 @@ async function fetchPosterRow(jobId: string, userId: string): Promise<{ job: Job
     supabase.from("jobs").select(columns).eq("id", jobId).eq("customer_id", userId).limit(1));
   const row = readableJobRows<Job>(unwrap(res))[0];
   if (!row) return null;
-  const job = { series_ended_on: null, series_split_ok: false, ...row } as Job;
+  // As the Posted list builds its row: the series state (its own read) and the poster's offeree (get_job_offer_targets).
+  const [seriesState, offerTargets] = await Promise.all([
+    fetchJobSeriesState(!row.parent_job_id && (row.recurrence_days?.length ?? 0) > 0 ? [row.id] : []),
+    fetchJobOfferTargets([row.id], { throwOnNetwork: true }),
+  ]);
+  const job: Job = {
+    ...row,
+    series_ended_on: null,
+    series_split_ok: false,
+    ...seriesState.get(row.id),
+    offered_to_helper_id: offerTargets.get(row.id) ?? null,
+  };
   return { job, detail: await fetchPostedActivityDetail(userId, postedDetailInputs([job])) };
 }
 

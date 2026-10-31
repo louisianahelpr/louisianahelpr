@@ -25,7 +25,6 @@ import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import type { JobPageRow } from "./useJobPage";
-import type { PosterWait } from "@/components/job-card/jobStatusLine";
 
 export type PagePrimary = { label: string; go: () => void; disabled?: boolean };
 
@@ -49,7 +48,8 @@ export function usePosterPageActions({
   userId: string;
   /** False for anyone but the poster: no read, no buttons. */
   enabled: boolean;
-  posterWait: PosterWait | null;
+  /** posterStatusLine(job).id: what the poster is waiting on ("confirm_still_on", "approve", ...). */
+  posterWait: string | null;
   open: boolean;
   pending: number;
   /** Re-read the page after a write here (the confirm). */

@@ -29,7 +29,7 @@ export function hiredHelprFace(
   const tracking = o.trackingStatus ? ({ status: o.trackingStatus } as TrackingData) : null;
   // A crew's steps are per member, on the roster (AppliedJobCard: no face step for a group job).
   const step = job.is_group_job ? null : helperFaceNextStep({ ...row, id: job.id }, tracking, line.id);
-  return helperFaceAction({
+  const face = helperFaceAction({
     isMinimalCard: false,
     isOffered: false,
     owesReview: false,
@@ -42,4 +42,8 @@ export function hiredHelprFace(
     jobId: job.id,
     message: job.customer_id && !job.is_group_job ? { name: o.posterFirst || "them", onClick: o.message } : undefined,
   });
+  // JOBS-27 (Jobs audit 10-30, h6-crew): a crew member's page fell through to the generic "Manage job". Their own
+  // steps (on the way, arrived, photos, done) are on the crew roster in the Working card, so the button says that.
+  if (job.is_group_job && face && !face.step && face.label === "Manage job") return { ...face, label: "See your crew steps" };
+  return face;
 }

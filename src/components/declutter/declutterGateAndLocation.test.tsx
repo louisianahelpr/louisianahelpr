@@ -366,7 +366,7 @@ describe("Declutter location ask", () => {
     // ONE search on Browse: "Search items" with its filters, never Explore's "Search all sections" above it.
     // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} tabs={tabs(header)} | globalSearch tabs={tabs(header)}
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
-    expect(screen.getAllByRole("search")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Search items" })).toHaveLength(1);
     // No chip row on the page: no category, porch-pickup or price-drop chip outside the sheet.
     expect(document.querySelector("[data-chip-row], [data-category-tiles]")).toBeNull();
     expect(screen.queryByRole("button", { name: "Kitchen" })).toBeNull();
@@ -445,18 +445,31 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("phone: ONE 'Search items' row with the filter button inside, under the tabs; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
+  it("phone: search and filters end the tabs row, before the gear, with no row of their own; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && phoneView === "map") { |   } else if (false) {
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |     {browse?.below} |
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     twoItems();
     pins.reads = 0;
     try {
       const { container } = at("/declutter", <DeclutterPage />);
       await screen.findByText("Oak rocking chair");
-      const row = screen.getByTestId("declutter-browse-bar");
-      expect(row).toHaveAttribute("role", "search");
-      expect(within(row).getByRole("button", { name: "Filters" })).toBeInTheDocument();
+      expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();
+      const row = screen.getByTestId("section-tabs");
+      const controls = within(row);
+      expect(controls.getByRole("button", { name: "Search items" })).toBeInTheDocument();
+      expect(controls.getByRole("button", { name: "Filters" })).toBeInTheDocument();
+      // Search, filters, then the gear last, as Jobs.
+      const gear = controls.getByRole("button", { name: "Declutter settings" });
+      expect(controls.getByRole("button", { name: "Filters" }).compareDocumentPosition(gear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // Search opens in place, as Jobs': the field takes the row beside the selected tab, and closing brings every tab back.
+      fireEvent.click(controls.getByRole("button", { name: "Search items" }));
+      expect(controls.getByRole("searchbox", { name: "Search items" })).toBeInTheDocument();
+      expect(controls.getAllByRole("tab").map((t) => t.getAttribute("data-section-tab"))).toEqual(["browse"]);
+      expect(container.querySelector("[data-search-trigger-slot]")).not.toBeNull();
+      fireEvent.click(controls.getByRole("button", { name: "Close search" }));
+      expect(controls.queryByRole("searchbox", { name: "Search items" })).toBeNull();
+      expect(controls.getAllByRole("tab").length).toBeGreaterThan(3);
       expect(container.querySelector("[data-feed-strip]")).toBeNull();
       expect(container.querySelector("[data-filter-column]")).toBeNull();
       // The list first; no map and no pin read until the member asks for the map.

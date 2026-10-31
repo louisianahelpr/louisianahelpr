@@ -16,7 +16,7 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const denser = options.length >= DENSER_TAB_COUNT; |   const denser = false;
  * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 15px); |     font-size: 15px;
  * @mutate src/components/sections/SectionTabs.tsx | denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense | dense
- * @mutate src/components/sections/SectionTabs.tsx | style={more ? { maskImage: TABS_END_FADE, WebkitMaskImage: TABS_END_FADE } : undefined} | style={undefined}
+ * @mutate src/components/sections/SectionTabs.tsx | {more && !onlySelected && ( | {false && (
  * @mutate src/components/sections/SectionTabs.tsx | list.scrollWidth - list.clientWidth - list.scrollLeft > 2 | list.scrollWidth - list.clientWidth > 2
  */
 import { describe, expect, it, vi } from "vitest";
@@ -53,7 +53,7 @@ describe("five section tabs fit a phone (A3-6)", () => {
     expect(screen.getByRole("tablist").className).not.toMatch(/section-tabs-denser/);
   });
 
-  it("a row that does not fit fades at its right edge until the end is reached; a row that fits has no fade", () => {
+  it("a row that does not fit shows a chevron until the end is reached; a row that fits has none", () => {
     const { unmount } = render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
     const list = screen.getByRole("tablist");
     expect(list.hasAttribute("data-tabs-more")).toBe(false);
@@ -63,7 +63,7 @@ describe("five section tabs fit a phone (A3-6)", () => {
     render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
     const over = screen.getByRole("tablist");
     expect(over.hasAttribute("data-tabs-more")).toBe(true);
-    expect(over.style.maskImage || over.style.getPropertyValue("-webkit-mask-image")).toMatch(/linear-gradient/);
+    expect(screen.getByRole("button", { name: "More tabs" })).toBeInTheDocument();
     over.scrollLeft = 55;
     fireEvent.scroll(over);
     expect(over.hasAttribute("data-tabs-more")).toBe(false);

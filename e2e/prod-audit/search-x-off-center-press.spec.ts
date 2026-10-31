@@ -84,11 +84,12 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     maxWidth: 899,
   },
   {
-    name: "declutter-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
+    name: "declutter-browse-phone", file: "src/components/sections/InlineListSearch.tsx",
     url: "/declutter",
-    trigger: 'input[aria-label="Search items"]',
-    field: 'input[aria-label="Search items"]',
-    close: CLEAR,
+    trigger: '[data-browse-phone-controls] button[aria-label="Search items"]',
+    field: '[data-browse-phone-controls] input[aria-label="Search items"]',
+    maxWidth: 899,
+    close: `[data-browse-phone-controls] ${CLOSE}`,
   },
   {
     name: "shops-browse-row", file: "src/components/sections/SectionSearchRow.tsx",

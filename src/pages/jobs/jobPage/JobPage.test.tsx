@@ -18,6 +18,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {hasVideo && <ScopeVideo url={job.scope_video_url} />} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | arrival.confirming ? "Confirming…" : "Confirm they've arrived" | arrival.confirming ? "Confirming…" : "Confirm arrival"
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
@@ -446,7 +447,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     renderPage();
     expect(screen.getByLabelText(/^Job progress, step 6 of 8: Arrived, waiting on you\./)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm arrival" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm they've arrived" }));
     await waitFor(() => expect(confirmArrivalMock).toHaveBeenCalledTimes(1));
     expect(confirmArrivalMock.mock.calls[0][0]).toMatchObject({ id: arrived().id, helper_id: POSTER });
     // Still on the job page: the catch-all route (any navigation) never rendered.
@@ -480,7 +481,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     state.job = { ...arrived(), helper_arrived_at: null };
     state.party = true;
     renderPage();
-    expect(screen.queryByRole("button", { name: "Confirm arrival" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Confirm they've arrived" })).toBeNull();
     expect(screen.getByRole("button", { name: "Manage job" })).toBeTruthy();
   });
 });

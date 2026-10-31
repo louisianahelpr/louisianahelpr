@@ -8,7 +8,7 @@ import { en } from "@/lib/i18n/en";
  * line", then "remove the stuff under the password ... what's required". The
  * consent and footer lines measured one line each at 375/390 (Chromium, WebKit).
  *
- * @mutate src/pages/auth/signup/SignupStep1.tsx | {password ? passwordProblem(password) : t("signup.passwordMissing")} | {password ? "Check your password" : t("signup.passwordMissing")}
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | {serverPasswordError ?? (password ? passwordProblem(password) : t("signup.passwordMissing"))} | {serverPasswordError ?? (password ? "Check your password" : t("signup.passwordMissing"))}
  */
 const step1 = readFileSync(resolve(__dirname, "SignupStep1.tsx"), "utf8");
 const terms = readFileSync(resolve(__dirname, "../../info/legal/TermsSection.tsx"), "utf8");

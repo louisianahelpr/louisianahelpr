@@ -20,7 +20,7 @@
  * @mutate src/pages/home/DashboardGuest.tsx | onClick: () => navigate(NOTIFY_SIGNUP_URL), | onClick: () => navigate("/signup"),
  * @mutate src/lib/notifyWhenWorkLands.ts | export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const; | export const NOTIFY_PREF_PATCH = { push_enabled: false, job_matches: true } as const;
  * @mutate src/lib/notifyWhenWorkLands.ts | .select("user_id"); | ;
- * @mutate src/pages/auth/Signup.tsx | subtitle: notifySignupSubtitle(searchParams.get("reason")) | subtitle: undefined
+ * @mutate src/pages/auth/Signup.tsx | subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) | subtitle: undefined
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast("You're set. We'll ping you when paid work lands."); | toast.success("You're set. We'll ping you when paid work lands.");
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast.warning("Job alerts are on | toast.message("Job alerts are on
  * @mutate src/lib/jobIntent.ts | return reason === "notify" ? t("signup.notifySubtitle") : undefined; | return undefined;
@@ -125,7 +125,7 @@ describe("Notify me when work lands is push only (Q1313)", () => {
     expect(notifySignupSubtitle(null)).toBeUndefined();
     expect(notifySignupSubtitle("other")).toBeUndefined();
     const signup = blankComments(read("src/pages/auth/Signup.tsx"));
-    expect(signup).toMatch(/subtitle: notifySignupSubtitle\(searchParams\.get\("reason"\)\)/);
+    expect(signup).toMatch(/subtitle: signupSubtitle\(searchParams\.get\("reason"\), searchParams\.get\("redirect"\)\)/);
     expect(NOTIFY_SIGNUP_SUBTITLE).toMatch(/notified/i);
   });
   it("every outcome of the tap shows a message (no toast channel toastPolicy suppresses)", () => {

@@ -32,6 +32,7 @@ import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
+import { FallbackImg } from "./FallbackImg";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
@@ -71,7 +72,7 @@ function BuyerPreview({ s }: { s: SellFlow }) {
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-3" data-sell-preview="">
       {/* Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
-      {src && (cover || src.startsWith("blob:")) && <img src={src} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-photo-empty object-cover" />}
+      {src && (cover || src.startsWith("blob:")) && <FallbackImg src={src} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" />}
       <div className="min-w-0 flex-1">
         <p className="text-ds-13 text-muted-foreground">What buyers see</p>
         <p className="truncate text-ds-15 font-bold text-foreground">{title}</p>

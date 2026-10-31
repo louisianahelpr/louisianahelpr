@@ -16,6 +16,7 @@
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | places.length > 0 ? places.some((p) => p.chosen) : !refused | places.length === 0 \|\| places.some((p) => p.chosen)
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     if (r.isSuccess && (r.data === PORCH_PLACES_NOT_DEPLOYED \|\| r.data.length === 0)) setRefused(false);\n |
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {free ? "You get the exact address once you confirm." : "You get the exact address after you pay."} | {"You get the exact address after you pay."}
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |       setRefused(true);\n      // The server has no pick for this cart: the one place is sent again.\n      sent.current = null; |       setRefused(true);
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | places={porchPlaces.places} free refused | places={porchPlaces.places} refused
  * @mutate src/components/declutter/SellHandoverChoices.tsx |       <SellPorchPlaces free={free} helprOnly={!free && !ways.includes("porch")} />\n |
  * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."} | {"Buyers pick one of these times. They apply to all your listings."}
@@ -177,6 +178,27 @@ describe("the buyer's pick", () => {
   // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   if (places.length === 1) {\n    const p = places[0]; |   if (false) {\n    const p = places[0];
   describe("a seller with exactly one place", () => {
     const ONE = [{ id: "p1", label: "Home", area: "Lafayette", weekdays: [6], chosen: false, address: "12 Home Street, Lafayette" }];
+
+    it("a refused checkout sends the one place again; any other error doesn't", async () => {
+      answers({ declutter_seller_porch_places: ONE, declutter_set_porch_place: "p1" });
+      const picks = () => h.rpc.mock.calls.filter(([n]) => n === "declutter_set_porch_place").length;
+      const reads = () => h.rpc.mock.calls.filter(([n]) => n === "declutter_seller_porch_places").length;
+      function Refusable() {
+        const p = useSellerPorchPlaces("s1", 1000);
+        return (<>
+          <button type="button" onClick={() => void p.reread({ message: "item_not_available" })}>Other error</button>
+          <button type="button" onClick={() => void p.reread({ message: "porch_place_needed" })}>Refused</button>
+        </>);
+      }
+      wrap(<Refusable />);
+      await waitFor(() => expect(picks()).toBe(1));
+      await waitFor(() => expect(reads()).toBe(2));
+      fireEvent.click(screen.getByRole("button", { name: "Other error" }));
+      await waitFor(() => expect(reads()).toBe(3));
+      expect(picks()).toBe(1);
+      fireEvent.click(screen.getByRole("button", { name: "Refused" }));
+      await waitFor(() => expect(picks()).toBe(2));
+    });
 
     it("it is picked for the buyer, the server gets the pick, Pay is open, and no address or list shows", async () => {
       answers({ declutter_seller_porch_places: ONE, declutter_set_porch_place: "p1" });

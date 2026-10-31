@@ -188,6 +188,12 @@ vi.mock("@/lib/declutter/api", () => ({
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { toast } from "sonner";
+// LEAD-TOAST3: member confirmations are the bare toast(), which vi.spyOn cannot wrap; a callable mock that
+// still shows the real toast (and keeps toast.success/error) lets a test read what was said.
+vi.mock("sonner", async (importOriginal) => {
+  const m = await importOriginal<typeof import("sonner")>();
+  return { ...m, toast: Object.assign(vi.fn((...a: Parameters<typeof m.toast>) => m.toast(...a)), m.toast) };
+});
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
 vi.mock("@/lib/declutter/donate", () => ({
   fetchDonationPartnersNear: vi.fn(async () => []),
@@ -477,11 +483,11 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(sheet).toHaveTextContent("No strike for a free item.");
     expect(sheet).toHaveTextContent("it goes back up so others can ask for it.");
     expect(sheet).not.toHaveTextContent(/Declutter strike|comes down/);
-    const said = vi.spyOn(toast, "success");
+    const said = vi.mocked(toast);
+    said.mockClear();
     fireEvent.click(within(sheet).getByRole("button", { name: "Cancel claim" }));
     await vi.waitFor(() => expect(state.calls).toContainEqual(["cancel_sale", "if1"]));
     await vi.waitFor(() => expect(said).toHaveBeenCalledWith("Claim cancelled. It's back up."));
-    said.mockRestore();
     unmount();
 
     // A paid sale waiting beside the free claim keeps the sale words; the chip names both.

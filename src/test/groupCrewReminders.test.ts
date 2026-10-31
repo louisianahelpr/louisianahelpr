@@ -29,8 +29,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
-// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
-// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
+// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
 // @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
@@ -100,8 +100,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261029173937 (A2-C40) restates sweep_no_show_alerts with its copy only (the start time, "Helpr").
       // 20261030015205 (b62) restates get_public_profile_stats and get_helper_completed_counts with the
       // test-data exclusion only (test data never counts in any number).
+      // 20261031234653 (owner 10-31) leaves an unfilled expired listing out of cancelled_jobs only.
       const want = fn === "get_public_profile_stats"
-        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql"]
+        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql"]
         : fn === "sweep_no_show_alerts"
           ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql"]
           : fn === "get_helper_completed_counts"

@@ -160,7 +160,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
-      {show("waiting") && <SalesWaiting />}
+      {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
       {show("sold") && <SellerPayoutPrompt />}
       {show("sold") && <PaidOrders side="seller" />}

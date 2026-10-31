@@ -211,7 +211,10 @@ describe("finding 2: compact rows, and changes for many at once", () => {
   it("percent off works from each suggestion, says what it left alone, and a condition reaches every row", async () => {
     await open();
     const bulk = document.querySelector("[data-bunch-bulk]") as HTMLElement;
-    fireEvent.click(within(bulk).getByRole("button", { name: "% off suggested" }));
+    // LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): named and explained so it never reads as a daily price drop.
+    // @mutate src/components/declutter/DeclutterBunchBulk.tsx | {pill("percent", "Price below our suggestion")} | {pill("percent", "% off suggested")}
+    fireEvent.click(within(bulk).getByRole("button", { name: "Price below our suggestion" }));
+    expect(within(bulk).getByText(/Sets each price once, this much below the price we suggested\. It doesn't lower them again later/)).toBeTruthy();
     fireEvent.change(within(bulk).getByLabelText("Percent off our suggested prices"), { target: { value: "50" } });
     fireEvent.click(within(bulk).getByRole("button", { name: "Apply" }));
     expect((row("i1").querySelector("input[aria-label='Price ($)']") as HTMLInputElement).value).toBe("20");

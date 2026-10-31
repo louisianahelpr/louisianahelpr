@@ -42,6 +42,7 @@ import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
+import { StillAvailableSheet } from "./DeclutterStillAvailable";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
@@ -366,6 +367,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           );
         })}
       </ul>
+      <StillAvailableSheet items={mine.data} />
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?"}
         confirmLabel={asking?.status === "draft" ? "Delete" : "Take down"} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>

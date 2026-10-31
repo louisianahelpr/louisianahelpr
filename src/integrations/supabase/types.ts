@@ -14907,6 +14907,8 @@ export type Database = {
           pin_lng: number
         }[]
       }
+      declutter_free_still_available: { Args: { p_item_id: string }; Returns: string }
+      declutter_free_still_available_sweep: { Args: never; Returns: Json }
       declutter_mark_sold_elsewhere: { Args: { p_item_id: string }; Returns: string[] }
       declutter_mark_order_paid: {
         Args: {

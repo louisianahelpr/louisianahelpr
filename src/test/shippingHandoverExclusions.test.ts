@@ -12,11 +12,11 @@
  *
  * Behaviour: src/test/pglite/shippingS2ShipHandover.pglite.mjs (sweep, booking, address, "I got it", fee rule).
  *
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        WHEN NEW.handover = 'ship' THEN 'f1_ship' | WHEN NEW.handover = 'shipX' THEN 'f1_ship'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'ship') THEN | IF false THEN
- * @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF o.handover = 'ship' AND NOT EXISTS ( | IF false AND NOT EXISTS (
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover = 'ship' AND NOT EXISTS ( | IF false AND NOT EXISTS (
  */
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";

@@ -633,6 +633,7 @@ export const RPC_ERROR_COPY = {
     review_contact_info: DC.review_contact_info,
   },
   declutter_porch_photo: {
+    no_show_reported: DC.no_show_reported,
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,
@@ -671,6 +672,7 @@ export const RPC_ERROR_COPY = {
     // Anti-lying #1 (20261028235709): a "Picked up" photo is taken where the handover is.
     location_required: "Turn on location so we can confirm where you took the photo.",
     no_delivery_fee: DC.no_delivery_fee,
+    no_show_reported: DC.no_show_reported,
     not_a_door_pickup: DC.not_a_door_pickup,
     not_at_meetup: DC.not_at_meetup,
     not_at_pickup: DC.not_at_pickup,
@@ -682,8 +684,21 @@ export const RPC_ERROR_COPY = {
     problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,
   },
+  declutter_answer_no_show: {
+    account_restricted: DC.account_restricted,
+    item_not_found: DC.item_not_found,
+    no_show_answer_late: DC.no_show_answer_late,
+    no_show_not_reported: DC.no_show_not_reported,
+    not_authenticated: DC.not_authenticated,
+    order_not_paid: DC.order_not_paid,
+    problem_open: DC.problem_open,
+    wrong_side: DC.wrong_side,
+  },
   declutter_report_no_show: {
     account_restricted: DC.account_restricted,
+    already_confirmed: DC.already_confirmed,
+    no_show_reported: DC.no_show_reported,
+    seller_confirmed: DC.seller_confirmed,
     already_paid_out: DC.already_paid_out,
     already_picked_up: DC.already_picked_up,
     delivery_not_done: DC.delivery_not_done,

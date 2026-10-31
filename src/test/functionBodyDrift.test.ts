@@ -190,7 +190,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-30: 24.) 20261030002630 (Q2477, a paid order is never cancelled) re-created
     // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
     // (2026-10-30: 26.) 20261030220537 (notices say no escrow) rewrites five functions in place; the count rose by two.
-    expect(rewritten.length).toBe(26);
+    // (2026-10-31: 25.) 20261031004529 (handover money) re-created a function that had been rewritten in place.
+    expect(rewritten.length).toBe(25);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1058,
+    "calls": 1056,
     "files": 287,
     "rendering": 886,
-    "suppressedByPolicy": 172,
+    "suppressedByPolicy": 170,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
@@ -14,13 +14,13 @@
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 176,
+      "toast.success": 174,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 459,
+      "literal": 458,
       "template": 100,
-      "dynamic": 549,
+      "dynamic": 548,
       "jsx": 0
     }
   },
@@ -4638,7 +4638,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 280,
+      "line": 283,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4658,7 +4658,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 286,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4668,7 +4668,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 347,
+      "line": 351,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4678,7 +4678,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 351,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4688,27 +4688,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 360,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "free ? \"Picked up.\" : \"Picked up. You're paid in 24 hours, unless the buyer asks for a refund.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Picked up."
-          },
-          {
-            "form": "literal",
-            "text": "Picked up. You're paid in 24 hours, unless the buyer asks for a refund."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 365,
+      "line": 368,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4718,7 +4698,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 436,
+      "line": 445,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4728,7 +4708,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 437,
+      "line": 446,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4738,7 +4718,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 462,
+      "line": 471,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4758,7 +4738,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 463,
+      "line": 472,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4768,7 +4748,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 464,
+      "line": 473,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4778,7 +4758,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 465,
+      "line": 474,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4788,7 +4768,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 468,
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4798,17 +4778,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 524,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Reported. We'll tell the other side and sort out the money."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 525,
+      "line": 535,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4818,7 +4788,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 557,
+      "line": 570,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4828,7 +4798,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 563,
+      "line": 576,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

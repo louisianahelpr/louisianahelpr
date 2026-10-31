@@ -151,7 +151,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   const id = (k: string) => `dcl-prob-${k}-${row.id}`;
   return (
     <li className="rounded-xl border border-border p-3 space-y-2">
-      <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</p>
+      <p className="font-semibold">{row.reporter_side === "system" ? "Held 60 days · nobody has said anything" : <>{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</>}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
@@ -159,7 +159,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
       {/* D2-3: the reporter's photos, and the other side's words and photos. */}
-      {row.reporter_side !== "helpr" && (row.photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt={`The ${row.reporter_side}'s photo`} />)}
+      {row.reporter_side !== "helpr" && row.reporter_side !== "system" && (row.photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt={`The ${row.reporter_side}'s photo`} />)}
       {row.detail?.other_side_note ? (
         <div className="space-y-1" data-admin-other-side="">
           <p className="text-sm [overflow-wrap:anywhere]">

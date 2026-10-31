@@ -189,10 +189,10 @@ describe("DB-2: a problem is open on the delivery", () => {
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 
-  it("seller, delivered: not told they are paid in 24 hours while a problem is open, and no second report", async () => {
+  it("seller, delivered: not told they are paid in about 48 hours while a problem is open, and no second report", async () => {
     state.booking = { ...BASE, side: "seller", handoff: "hand", delivered_at: iso(-HOUR), dropoff_address: "500 Drop Rd" };
     const before = show(false);
-    expect(await screen.findByText(/You're paid when the buyer confirms, or in 24 hours/)).toBeInTheDocument();
+    expect(await screen.findByText(/You're paid when the buyer confirms, or in about 48 hours/)).toBeInTheDocument();
     before.unmount();
     show(true);
     expect(await screen.findByText("Handed over.")).toBeInTheDocument();

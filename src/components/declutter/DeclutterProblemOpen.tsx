@@ -21,11 +21,13 @@ export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the probl
  */
 export function ProblemOpenNote({ problem, side }: { problem: OpenProblem; side: "buyer" | "seller" }) {
   const by = problem.reporter_side === side ? "you" : `the ${problem.reporter_side}`;
+  // Nobody's report: a sale held 60 days with nobody speaking (20261031004529).
+  const reported = problem.reporter_side === "system" ? "Nobody has confirmed this handover for 60 days." : `${REASON_WORDS[problem.reason] ?? REASON_WORDS.other}, reported by ${by}.`;
   return (
     <div role="status" className="rounded-xl border border-border px-3 py-2 text-ds-13" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-problem-open="">
       <p className="font-semibold">{PROBLEM_OPEN_HEADLINE}</p>
       <p className="text-muted-foreground">
-        {REASON_WORDS[problem.reason] ?? REASON_WORDS.other}, reported by {by}. {side === "seller" ? "Your money is held until they decide." : "Nobody is paid until they decide."}
+        {reported} {side === "seller" ? "Your money is held until they decide." : "Nobody is paid until they decide."}
       </p>
     </div>
   );

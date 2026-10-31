@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
  * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
@@ -394,7 +394,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.calls = [];
     state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or you tap "Picked up"/)).toBeInTheDocument();
+    expect(await screen.findByText(/You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it", or 24 hours after you tap "Picked up"/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
     expect(screen.getByText("Pickup at the door")).toBeInTheDocument();
@@ -771,7 +771,7 @@ describe("Declutter slice 4: paid-order cards", () => {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
- * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "The sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "If they don't, the sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       const where = await currentPosition();\n      const path | const where = order.side === "buyer" ? await currentPosition() : null;\n      const path
@@ -843,7 +843,7 @@ describe("boards 159 + 160: handover sheets", () => {
   });
 
   // Deep audit part 2 (B2-2): a free item's no-show sheet promised "the item price back" on $0.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | free={order.lines.every((l) => l.price_cents === 0)} | free={false}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} | who={who} free={false} pending={report.isPending}
   it("a free item's no-show sheet has no money words", async () => {
     state.bookings = [slot(16)];
     show([line({ my_side: "seller", price_cents: 0, premium_cents: 0, total_cents: 0 })]);
@@ -1220,8 +1220,8 @@ describe("D2-2: an open problem shows on both cards", () => {
 // pickup, a meetup, a porch pickup or a seller delivery (the panel is told); the seller's "Picked up" stays (it records
 // the handover, and the payout stays held).
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (problemOpen) return null; |
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); | who={who} problemOpen={false} onProblem={() => { setAtHandover(true);
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onProblem={() => setProblemOpen(true)} problemOpen={!!problem} /> | onProblem={() => setProblemOpen(true)} />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); | who={who} problemOpen={false} onProblem={() => { setAtHandover(true);
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} /> | onProblem={() => setProblemOpen(true)} />
 describe("DB-2: no I got it while a problem is open", () => {
   const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
   beforeEach(() => {

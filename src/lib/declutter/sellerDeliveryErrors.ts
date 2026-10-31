@@ -101,6 +101,7 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
   },
   declutter_seller_delivered: {
+    no_show_reported: DC.no_show_reported,
     account_restricted: DC.account_restricted,
     before_delivery_time: S.before_delivery_time,
     item_not_found: DC.item_not_found,

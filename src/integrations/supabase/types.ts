@@ -15301,6 +15301,10 @@ export type Database = {
       }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
       declutter_report_no_show: { Args: { p_order_id: string }; Returns: Json }
+      declutter_answer_no_show: {
+        Args: { p_note: string; p_order_id: string; p_photo_paths?: string[] }
+        Returns: string
+      }
       declutter_report_not_delivered: { Args: { p_order_id: string }; Returns: Json }
       declutter_report_problem: {
         Args: {

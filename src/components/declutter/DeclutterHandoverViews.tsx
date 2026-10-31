@@ -82,6 +82,7 @@ import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
+import { NoShowAnswer } from "./DeclutterNoShowAnswer";
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -221,8 +222,9 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}
           <Suspense fallback={<HelprSpinner />}>
-            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} problemOpen={!!problem} />
+            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} />
           </Suspense>
+          {!problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery free={order.lines.every((l) => l.price_cents === 0)} />}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
       ) : order.handover === "delivery" ? (
@@ -253,8 +255,9 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
+          {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
@@ -333,7 +336,8 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
   // A1-C2: the buyer's "I got it" on a porch pickup waits for the porch photo (set_out_at) or the pickup day
   // (the same handover row and key PorchOutPhoto reads, so nothing is read twice).
   const porchBuyer = order.side === "buyer" && order.handover === "porch";
-  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: porchBuyer });
+  const doorSeller = order.side === "seller" && (order.handover === "pickup_home" || order.handover === "meetup");
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: porchBuyer || doorSeller });
   const porchReady = !porchBuyer || !!handoverRow.data?.set_out_at || (pickupDay ? porchDayIsNow(pickupDay) : Date.now() >= new Date(slotStart).getTime());
   // #6: a free claim has no payment, payout or refund to speak of.
   const free = order.lines.every((l) => l.price_cents === 0);
@@ -357,7 +361,6 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
       return sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null, where);
     },
     onSuccess: () => {
-      toast.success(free ? "Picked up." : "Picked up. You're paid in 24 hours, unless the buyer asks for a refund.");
       setPhoto(null);
       setAsking(false);
       invalidate(qc, order.orderId);
@@ -370,13 +373,19 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
       return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
+    // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
+    if (handoverRow.data?.no_show_reported_at) return null;
+    // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).
+    if (handoverRow.data?.seller_confirmed_at && !free) {
+      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">You said it was picked up. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.</p>;
+    }
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return rule('the buyer taps "I got it", or you tap "Picked up" from the pickup time, or 24 hours after the pickup time unless a problem is reported');
+      return rule('the buyer taps "I got it", or 24 hours after you tap "Picked up" from the pickup time, unless a problem is reported. If neither of you says anything, the money stays held');
     }
     return (
       <div className="space-y-2">
-        {rule('the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported')}
+        {rule('the buyer taps "I got it", or 24 hours after you tap "Picked up", unless a problem is reported. If neither of you says anything, the money stays held')}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
           onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
@@ -521,11 +530,15 @@ function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: 
   const [asking, setAsking] = useState(false);
   const report = useMutation({
     mutationFn: () => reportNoShow(order.orderId),
-    onSuccess: () => { setAsking(false); toast.success("Reported. We'll tell the other side and sort out the money."); invalidate(qc, order.orderId); },
+    // Where it stands shows on the card (NoShowAnswer): toasts for a confirmation show nothing (toastPolicy).
+    onSuccess: () => { setAsking(false); invalidate(qc, order.orderId); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const handover = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
   // Row 94: from 15 minutes after the booked time. The server checks again.
   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
+  // One report at a time; after the seller's "Picked up" it is a problem report (seller_confirmed).
+  if (handover.data?.no_show_reported_at || handover.data?.seller_confirmed_at) return null;
   return (
     <div>
       <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>

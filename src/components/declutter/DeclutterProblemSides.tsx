@@ -95,7 +95,7 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
   const p = problem.data;
   if (!p || p.status !== "open") return null;
   const mine = p.reporter_side === side;
-  const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : "The Helpr";
+  const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : p.reporter_side === "system" ? "Louisiana Helpr" : "The Helpr";
   const other = side === "buyer" ? "The seller" : "The buyer";
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" data-problem-sides="">

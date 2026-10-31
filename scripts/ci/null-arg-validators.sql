@@ -58,6 +58,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_problem_window_open', 'allow',    'may the buyer still report a problem on this handed-over sale (board 141, 20261026155251)'),
   ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
   ('shipping_rate_buyable',         'allow',    'may the label worker buy this rate: claimed, and within the shipping the buyer paid (shipping S2, 20261030000030)'),
+  ('declutter_held_address_closed', 'deny',     'TRUE closes a held sale''s address to the buyer, 7 days after the time (20261031004529)'),
   ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('declutter_delivery_tip_open',   'allow',    'A3-8 / A2-18 (20261028210552): TRUE = the buyer of this order can tip its delivery Helpr now, so "Enjoy your item" says so (the notice only; helpr_task_tip_start checks again)'),

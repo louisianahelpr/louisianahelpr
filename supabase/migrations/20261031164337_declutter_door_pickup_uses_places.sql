@@ -1,6 +1,7 @@
 -- Declutter: a door pickup (pickup_home) is at the pickup place the buyer picked, as a porch pickup and a Helpr
 -- delivery already are (LEAD-PLACE-TIMES, owner 2026-10-31; lead's decision 2: "door pickup uses places at checkout").
--- WIP (B9, 2026-10-31), FOR VERDICT (money: the two checkout functions). NOT PROVEN YET: no PGlite run, no review.
+-- B9 + B11, 2026-10-31. FOR VERDICT (money: the two checkout functions). Proof: src/test/pglite/declutterDoorPickupUsesPlaces.pglite.mjs
+-- (35/0 with it, applied 3x; NEW_MIGRATION=skip 12 FAIL; planted free-only and paid-only reverts 3 and 9 FAIL).
 --
 -- Layers changed: declutter_start_checkout and declutter_checkout_free, each restated VERBATIM from its newest CREATE
 -- (20261030164712_declutter_porch_places.sql; measured on origin/main 2026-10-31 with git show over every migration),

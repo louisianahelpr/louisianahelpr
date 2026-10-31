@@ -23,7 +23,7 @@ const sql = blankSqlComments(readFileSync(MIGRATION, "utf8"));
 describe("the owner's support text", () => {
   it("skips a test, seed or admin sender and a fixture guest before it claims or sends", () => {
     const send = body.indexOf("public.sms_post_to_edge");
-    const claim = body.indexOf("INSERT INTO public.support_text_throttle");
+    const claim = body.indexOf("INSERT INTO private.support_text_throttle");
     expect(send).toBeGreaterThan(0);
     expect(claim).toBeGreaterThan(0);
     for (const skip of ["public.is_test_subject(v_sender)", "p.is_seed IS TRUE", "r.role = 'admin'", "public.is_fixture_email(v_guest)"]) {
@@ -62,6 +62,6 @@ describe("the owner's support text", () => {
   it("only the service role can run it", () => {
     expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.notify_owner_support_text\(\) FROM PUBLIC, anon, authenticated/);
     expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.sms_claim_owner_support\(boolean, text\) FROM PUBLIC, anon, authenticated/);
-    expect(sql).toMatch(/REVOKE ALL ON TABLE public\.support_text_throttle FROM PUBLIC, anon, authenticated/);
+    expect(sql).toMatch(/REVOKE ALL ON TABLE private\.support_text_throttle FROM PUBLIC, anon, authenticated/);
   });
 });

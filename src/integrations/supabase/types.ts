@@ -12746,21 +12746,6 @@ export type Database = {
           },
         ]
       }
-      support_text_throttle: {
-        Row: {
-          conversation_key: string
-          last_sent_at: string
-        }
-        Insert: {
-          conversation_key: string
-          last_sent_at: string
-        }
-        Update: {
-          conversation_key?: string
-          last_sent_at?: string
-        }
-        Relationships: []
-      }
       suppressed_emails: {
         Row: {
           created_at: string

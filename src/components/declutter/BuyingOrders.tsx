@@ -16,7 +16,7 @@ import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
-import { stillInHandLine } from "@/lib/declutter/stillInHand";
+import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { endedOnPrefix } from "./DeclutterEndedSales";
@@ -71,7 +71,8 @@ export function buyerOrderFacts(
     }
     case "delivery": {
       const t = rows.task;
-      return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
+      return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at,
+        inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) };
     }
     default:
       return { ...base, booked: !!rows.slotStart, pickedUp: tookIt, gotItOpen: gotItOpen(rows.slotStart, now) };

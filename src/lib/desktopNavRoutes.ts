@@ -75,6 +75,7 @@ const AUTH_PREFIXES = [
   // useAppShellViewport, so it still never shows on the public surface.
   "/help", "/legal", "/support",
   "/sms-opt-in", // the text-alerts opt-in page (Twilio A2P review, 2026-10-23), same PublicLayout as /help
+  "/hire/", // the town + service pages (OPS-4, /hire/<service>/<town>), same PublicHeaderPage as /help
   // /terms, /privacy and /rules render the SAME Legal page through the same
   // PublicLayout (real routes since 8570fdbef, 2026-09-11) but were never
   // named here, so signed in they got the app shell with NO rail, top bar or

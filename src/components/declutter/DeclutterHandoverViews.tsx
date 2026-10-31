@@ -70,6 +70,8 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
 import { fetchRefundRequestView, refundHoldsTheItem } from "@/lib/declutter/refundRequests";
+import { RadioCardList } from "@/components/ui/RadioCardList";
+import { DISPUTE_DETAILS_MIN } from "@/components/disputeReasons";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -188,7 +190,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
             {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
           </p>
         </div>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(items)}</span>
+        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(items)}</span>
       </div>
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
@@ -574,15 +576,18 @@ function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigg
   if (!open) return trigger ? <button type="button" className={btn} onClick={() => setOpen(true)}>Report a problem</button> : null;
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
-      <label htmlFor={`dcl-reason-${orderId}`} className="block text-xs font-medium">What went wrong?</label>
-      <select id={`dcl-reason-${orderId}`} className={input} value={reason} onChange={(e) => setReason(e.target.value as ProblemReason)}>
-        {reasons.map(([r, words]) => <option key={r} value={r}>{words}</option>)}
-      </select>
+      {/* BUY-35: the shared pick-one list, as Jobs' dispute and Declutter's refund use. */}
+      <RadioCardList label="What went wrong?" value={reason} onChange={(r) => setReason(r as ProblemReason)}
+        options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
       <textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      {/* BUY-35: one letter isn't a report; the same floor as Jobs' dispute (and said, so Send isn't dark for no reason). */}
+      {note.trim().length > 0 && note.trim().length < DISPUTE_DETAILS_MIN && (
+        <p className="text-ds-12 text-muted-foreground" data-problem-note-short="">A few more words, please, so Louisiana Helpr can help.</p>
+      )}
       {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />}
       <div className="flex gap-2">
-        <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate()}>Send</button>
+        <button type="button" className={primary} disabled={send.isPending || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</button>
         <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>
       </div>
     </div>

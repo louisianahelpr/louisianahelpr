@@ -45,6 +45,7 @@ import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
+import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
@@ -230,6 +231,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           )}
 
           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
 

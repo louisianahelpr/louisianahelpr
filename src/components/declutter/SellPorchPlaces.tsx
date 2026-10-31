@@ -267,7 +267,10 @@ export function MyPickupPlacesSummary() {
 
 /** The item page's places (declutter_item_pickup_places): label, area, days and hours; nothing before it is on the server. */
 export function ItemPickupPlaces({ itemId }: { itemId: string }) {
-  const read = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId) });
+  // retryOnMount false: ItemHandoverTimes mounts this BECAUSE the shared read failed. Refetching on mount put the query
+  // back to pending (no data yet), which unmounted this, and the next failure mounted it again: an endless request loop
+  // (#3889, 44,033 requests in one test). Retry is the button's.
+  const read = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), retryOnMount: false });
   // Review 2026-10-31: a failed read says so, with a retry, instead of dropping the places silently.
   if (read.isError) {
     return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(read.error)} onRetry={() => void read.refetch()} />;

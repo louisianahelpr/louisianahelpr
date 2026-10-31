@@ -237,7 +237,7 @@ export function CrewMemberSection({
     return isExpanded ? (
       <div className="px-4 py-3 border-t border-border/30">
         <p className="text-ds-13 text-muted-foreground text-center">
-          We couldn't load your spot on this crew. Pull to refresh.
+          We couldn't load your spot on this crew. Refresh the page.
         </p>
         <ReportErrorScreen source="CrewMemberSection.slot" title="We couldn't load your spot on this crew." />
       </div>

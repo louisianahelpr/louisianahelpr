@@ -309,6 +309,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   ai_timed_out: "The photo tool took too long. Try again, or fill in the details yourself.",
   // declutter-card / declutter-checkout (slice 3b) when no code came back.
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
+  // The delivery price and address checks (delivery.ts, sellerDelivery.ts): no payment page is involved.
+  delivery_check_unavailable: "We couldn't check delivery for that address. Please try again. Nothing was charged.",
   // declutter-ai-draft room mode (moving-out mode).
   room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
   // setDropPct before 20261028160637 reaches prod (PGRST202): only the old 5% step exists.

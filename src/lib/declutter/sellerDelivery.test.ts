@@ -235,13 +235,13 @@ describe("quoteSellerDelivery", () => {
       { error: { message: "x" } },
       { error: { message: "x", context: new Response(JSON.stringify({ error: "" }), { status: 400 }) } },
     );
-    for (let i = 0; i < 3; i++) expect((await thrown(quoteSellerDelivery("seller1"))).message).toBe("payment_unavailable");
+    for (let i = 0; i < 3; i++) expect((await thrown(quoteSellerDelivery("seller1"))).message).toBe("delivery_check_unavailable");
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
 
-  it("an answer without a well-formed offer is payment_unavailable, never a half offer", async () => {
+  it("an answer without a well-formed offer is delivery_check_unavailable, never a half offer", async () => {
     h.queue.push({ data: null }, { data: { offer: { available: "yes", slots: [] } } }, { data: { offer: { available: true } } });
-    for (let i = 0; i < 3; i++) expect((await thrown(quoteSellerDelivery("seller1"))).message).toBe("payment_unavailable");
+    for (let i = 0; i < 3; i++) expect((await thrown(quoteSellerDelivery("seller1"))).message).toBe("delivery_check_unavailable");
   });
 });

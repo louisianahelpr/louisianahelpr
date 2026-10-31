@@ -185,7 +185,7 @@ function OfferRow({ o }: { o: MyOffer }) {
         confirmLabel="Accept" testId="accept-offer">
         {o.my_side === "seller"
           ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
-          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay; nothing is charged until you do.`}</>}
+          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
       </ConfirmSheet>
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}
         title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">

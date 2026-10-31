@@ -357,7 +357,9 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       {!active && (
         <p className="text-sm">
           {t.status === "confirmed"
-            ? t.payout_status === "succeeded" ? "Delivered and paid." : "Delivered. Your pay is on its way."
+            ? t.payout_status === "succeeded" ? "Delivered and paid."
+              : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up."
+                : "Delivered. Your pay is on its way."
             : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
         </p>
       )}
@@ -500,7 +502,7 @@ export function DeliverView() {
         ) : open.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
         ) : openList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No deliveries to take right now. Large items only show once you add a truck.</p>
+          <p className="text-sm text-muted-foreground">No deliveries to take right now.{vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."}</p>
         ) : (
           <ul className="space-y-3">{openList.map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
         )}

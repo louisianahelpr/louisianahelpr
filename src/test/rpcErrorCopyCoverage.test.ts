@@ -71,6 +71,14 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // LEAD-POST-SLOW (a), 20261031160546: these make their item through declutter_create_item_with_id with a fresh
+  // gen_random_uuid(), never an id from the caller, so its item_id_taken (an id already used) can't happen.
+  declutter_create_item: {
+    item_id_taken: { reason: "declutter_create_item passes gen_random_uuid() to declutter_create_item_with_id; a fresh v4 id never collides." },
+  },
+  declutter_create_move_drafts: {
+    item_id_taken: { reason: "each draft is made by declutter_create_item, which passes gen_random_uuid(); a fresh v4 id never collides." },
+  },
   // OPS-3 job drafts (20261030223154): saveDraftToAccount and clearDraftOnAccount (src/lib/jobPostDraftAccount.ts)
   // run in the background while typing and after posting. Any error goes to the console and the device keeps its copy; no message exists.
   save_my_job_post_draft: {

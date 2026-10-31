@@ -217,6 +217,8 @@ function tsSites(): Site[] {
 // account (their payout, subscription, verification, warning), or an operator
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
+  "sql:declutter_record_ai_check#1": "an admin alert that a sold listing failed its check: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(v_item.seller_id), 20261031152545)",
+  "sql:declutter_hold_unchecked_listings#1": "an admin alert that a sold listing was never checked: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(r.seller_id), 20261031152545)",
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
   "ts:supabase/functions/admin-support-reply/index.ts#1": "an admin's answer to the member's own support ticket",
   "ts:supabase/functions/str-ical-sync/index.ts#1": "own calendar's checkout ready to post (Q768): the host's own STR connection, no job exists yet",

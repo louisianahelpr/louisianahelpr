@@ -149,7 +149,8 @@ describe("every pop-up title is sentence case", () => {
     // 194: +1 "You're all set" (SmsPhonePrompt, the phone prompt closes itself once texts are on, 8372dffb4d).
     // 193: +2 train l50 (2026-10-31): "Cash out didn't finish" (InstantPayoutDialog's failed cash-out screen) and
     // "Decline ${dollars(priceCents)}?" (QuoteAnswerControls, Decline asks before it ends a quote).
-    expect(all.length).toBe(195);
+    // 196: +1 the order chat after the order closes: "Your chat with the ${other}" (DeclutterOrderTalk, b3 train #3892).
+    expect(all.length).toBe(196);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | { end: <ExploreSearchEntry /> }
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | undefined
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} | <SectionScreen section="declutter" title="Declutter"
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                   <p data-listing-status={item.status} title={statusLine}\n |                   <p data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status} title={statusLine}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14

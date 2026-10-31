@@ -31,8 +31,8 @@ export const JOBS_TABS = [
   { value: "working", label: "Working", labelKey: "jobs.tabWorking" },
 ] as const;
 
-/** Params only the old My Jobs page read: their presence (with no ?tab=) means Working. */
-export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q"] as const;
+/** Params only the old My Jobs page read (and ?quotes=, QUOTE_HOMES.myQuotes): their presence (with no ?tab=) means Working. */
+export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const;
 
 /** Every param a tab's list reads; switching tab drops them so one tab's state never leaks into another. */
 const LIST_PARAMS = ["tab", "status", ...MY_JOBS_LINK_PARAMS] as const;

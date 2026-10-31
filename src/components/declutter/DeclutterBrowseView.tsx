@@ -253,7 +253,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
         onlySelected: searchOpen,
         // Phone: search + filters end the tabs row, before the gear, as Jobs' (Dashboard's phoneBrowseEnd; owner 10-30).
         end: (
-          <div data-browse-phone-controls="" className={`flex items-center gap-0 -ml-1 self-center ${searchOpen ? "min-w-0 flex-1" : "shrink-0"}`}>
+          <div data-browse-phone-controls="" className={`flex items-center gap-0 self-center ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"}`}>
             <InlineListSearch value={query} onChange={setQuery} label="Search items" onOpenChange={setSearchOpen} fill />
             {searchOpen && <SearchTriggerSlot width="40px" />}
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />

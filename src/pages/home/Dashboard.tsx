@@ -354,7 +354,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   ) : undefined;
 
   /* Phone: search + filters end the tabs row, before the gear (owner 2026-10-28). Guard: jobsSearchIsAnIcon.test.tsx */
-  const phoneBrowseEnd = isWebDesktop ? undefined : (<div data-browse-phone-controls="" className={`flex items-center gap-0 -ml-1 self-center ${phoneSearchOpen ? "min-w-0 flex-1" : "shrink-0"}`}>
+  const phoneBrowseEnd = isWebDesktop ? undefined : (<div data-browse-phone-controls="" className={`flex items-center gap-0 self-center ${phoneSearchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"}`}>
       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />
       {phoneSearchOpen && <SearchTriggerSlot width="40px" />}
       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />

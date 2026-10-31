@@ -664,6 +664,59 @@ describe("engagement-automations edge function", () => {
       expect(dailyStats()).toMatchObject({ memberErrors: 2, membersWithErrors: 1 });
     });
 
+    // OPS-5: where today's sign-ups came from, real members only; this line never stops the summary.
+    // @mutate supabase/functions/engagement-automations/index.ts |             for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !tests.has(r.user_id)) real.add(r.user_id) |             for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id)) real.add(r.user_id)
+    // @mutate supabase/functions/engagement-automations/index.ts |           if (!missing) results.errors.push | if (false) results.errors.push
+    // @mutate supabase/functions/engagement-automations/index.ts |       if (!dailyFailures.length) {\n        const srcScan |       if (false) {\n        const srcScan
+    it("says where today's sign-ups came from, real members only", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.member_signup_sources = {
+        rows: [
+          { user_id: "m1", source: "facebook" },
+          { user_id: "m2", source: "facebook" },
+          { user_id: "m3", source: "direct" },
+          { user_id: "t1", source: "facebook" },
+          { user_id: "s1", source: "direct" },
+        ],
+      };
+      scenario.reads.profiles.selectOverrides!.push({
+        includes: "user_id, is_seed",
+        result: { rows: [{ user_id: "m1" }, { user_id: "m2" }, { user_id: "m3" }, { user_id: "t1" }] },
+      });
+      scenario.reads.test_accounts = { rows: [{ user_id: "t1" }] };
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(1);
+      expect(dailyStats()).toMatchObject({ topSources: [{ source: "facebook", signups: 2 }, { source: "direct", signups: 1 }] });
+    });
+
+    it("the sources table not deployed yet leaves the line out quietly and still sends", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.member_signup_sources = { error: { message: "PGRST205: Could not find the table 'public.member_signup_sources'" } };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(res.status).toBe(200);
+      expect(b.ownerDaily).toBe(1);
+      expect(dailyStats()?.topSources).toBeNull();
+    });
+
+    it("any other sources failure is recorded, and the summary still goes", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.member_signup_sources = { error: { message: "statement timeout" } };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(b.ownerDaily).toBe(1);
+      expect(String(b.defectReasons)).toContain("sign-up sources left out");
+    });
+
     it("does NOT mail a stat derived from a failed read", async () => {
       const fn = await loadConfigured();
       seedOwner();

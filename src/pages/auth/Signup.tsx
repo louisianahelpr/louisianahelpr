@@ -35,7 +35,7 @@ import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
-import { recognizedAuthError } from "@/lib/authErrors";
+import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
@@ -146,6 +146,8 @@ const Signup = () => {
 
   // Step 2 inline field errors — populated on Continue tap, cleared as user fixes each field
   const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+  // The server's refusal of the password, shown under step 1's field until the password changes (AUD31-53).
+  const [serverPasswordError, setServerPasswordError] = useState<string | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -452,6 +454,15 @@ const Signup = () => {
       // userFacingError guarantees the raw text still reaches the console; on
       // the auth branch it is never called, so log it here rather than lose
       // the breadcrumb a bug report depends on.
+      // AUD31-53: a server refusal of the password (weak_password: a leaked one, or a rule the client's list does
+      // not know) is about step 1's field. It showed as a raw toast on step 2; now step 1 opens with the reason
+      // under the password.
+      if (isWeakPasswordError(err)) {
+        setServerPasswordError(weakPasswordWords(err));
+        setStep2Errors({});
+        setStep(1);
+        return;
+      }
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
       if (authCopy) console.error("[signup:auth]", err);
       toast.error(authCopy ?? userFacingError(err, t("signup.createFailed")));
@@ -573,7 +584,8 @@ const Signup = () => {
             email={email}
             setEmail={setEmail}
             password={password}
-            setPassword={setPassword}
+            setPassword={(v: string) => { setServerPasswordError(null); setPassword(v); }}
+            serverPasswordError={serverPasswordError}
             showPassword={showPassword}
             setShowPassword={setShowPassword}
             acceptedPolicies={acceptedPolicies}

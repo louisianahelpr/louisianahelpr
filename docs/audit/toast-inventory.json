@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
-    "files": 293,
-    "rendering": 970,
+    "calls": 1049,
+    "files": 292,
+    "rendering": 968,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 164,
-      "toast.error": 734,
+      "toast.error": 732,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 455,
       "template": 95,
-      "dynamic": 551,
+      "dynamic": 549,
       "jsx": 0
     }
   },
@@ -5249,16 +5249,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterOrderTalk.tsx",
-      "line": 74,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterPickupDayCard.tsx",
       "line": 32,
       "kind": "toast.error",
@@ -5400,7 +5390,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 88,
+      "line": 91,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5410,17 +5400,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 92,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 173,
+      "line": 180,
       "kind": "toast",
       "title": {
         "form": "literal",

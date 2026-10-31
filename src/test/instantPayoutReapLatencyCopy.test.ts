@@ -8,7 +8,8 @@
  * @mutate supabase/functions/instant-payout/index.ts | will release the lock within about 90 minutes | will release the lock within the hour
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 
 const root = resolve(__dirname, "../..");

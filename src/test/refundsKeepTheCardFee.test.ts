@@ -562,7 +562,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
-      declutter_withdraw_problem: "20261031004529_declutter_handover_both_confirm.sql 697f519bfab88400",
+      // LEAD-TAKENBACK-LINK (20261031103443): restated verbatim; only the "taken back" notice link reads ?tab=. Still records no refund.
+      declutter_withdraw_problem: "20261031103443_declutter_taken_back_notice_opens_the_tab.sql aaa47fe596998b22",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
       declutter_answer_no_show: "20261031004529_declutter_handover_both_confirm.sql 1def49eaa52f1de0",
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.

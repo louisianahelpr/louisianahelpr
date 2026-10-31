@@ -149,6 +149,7 @@ export function HelperTrackerPanel({
   const confirmation = (
     <JobConfirmation
       variant="inline"
+      jobTitle={job.title}
       jobId={app.job_id}
       isOwner={false}
       isHelper={true}

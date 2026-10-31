@@ -1,7 +1,7 @@
 /**
- * B30 (10-31, LEAD-OFFERS-CHOICE screenshots at 375): in Declutter settings > Listing defaults, the "make it free after"
+ * B30 (2026-10-31, LEAD-OFFERS-CHOICE screenshots at 375): in Declutter settings > Listing defaults, the "make it free after"
  * dropdown read "Never make it fr" and the Bundle discount one would cut "Buy 2+, 20% off": both were capped at 55% of
- * their row. Measured in a real 375 px page (~/.lh-shots/b30/shots.mjs, the select's width with no cap):
+ * their row. Measured 2026-10-31 in a real 375 px page (~/.lh-shots/b30/shots.mjs, the select's width with no cap):
  *   - make it free after: 189 px in a 301 px row (62.8%);
  *   - Bundle discount: 163 px in a 277 px row (58.8%).
  * The cap is now 65%, so both fit; the rows stay one row (LEAD-FREE-AFTER-DROPDOWN keeps label left, dropdown right).

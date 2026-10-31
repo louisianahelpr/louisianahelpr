@@ -54,6 +54,7 @@ import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { SectionScreen } from "@/components/sections/SectionScreen";
+import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
@@ -578,10 +579,12 @@ function DeclutterMemberHome() {
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
-    // Browse (above) draws its own "Search items", so Explore's global search shows only on Deliver and Wanted. Not on
-    // Buying (lead walkthrough 2026-10-28, shot 05) or Selling (owner 2026-10-28): a member's own cart, offers,
-    // listings and sales are not what "Search all sections" finds.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()}>
+    // LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no full-width "Search all sections" bar under the tabs
+    // on any tab. Deliver, Wanted and Free carry the same search as Jobs' 40px icon square, right before the gear
+    // (Browse's own "Search items" icon sits there too). Not on Buying (lead walkthrough 2026-10-28, shot 05) or
+    // Selling (owner 2026-10-28): a member's own cart, offers, listings and sales are not what "Search all sections"
+    // finds. Guard: src/components/declutter/sellingDash.test.tsx.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor(view === "buying" || view === "selling" ? undefined : { end: <ExploreSearchEntry variant="icon" /> })}>
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>

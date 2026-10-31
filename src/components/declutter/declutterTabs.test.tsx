@@ -512,7 +512,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter?view=buying");
     expect(await screen.findByRole("heading", { name: /^Your cart/ })).toBeInTheDocument();
     // Lead 2026-10-28 (shot 05): no "Search all sections" row on a buyer's own lists (nor on Selling: sellingDash.test.tsx).
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()} | globalSearch={view !== "selling"} tabs={tabsFor()}
+    // LEAD-DECL-SEARCHBAR (2026-10-31): nor its icon by the gear (Deliver, Wanted and Free carry that).
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | tabsFor(view === "buying" \|\| view === "selling" ? undefined | tabsFor(view === "selling" ? undefined
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     for (const a of BEFORE_ACTIONS.buying) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const sent = screen.getByRole("region", { name: "Your offers" });

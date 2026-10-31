@@ -99,7 +99,7 @@ describe("the Declutter Free section", () => {
     expect(itemPriceLabel(4050)).toBe("$40.50");
     const view = read("src/components/declutter/DeclutterItemView.tsx");
     expect(view).toContain("(free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)");
-    expect(view).toContain("{!free && <PriceHint");
+    expect(view).toContain("{!free && user && <PriceHint");
     const cart = read("src/components/declutter/DeclutterTradeViews.tsx");
     expect(cart).toContain("const allFree = lines.every((l) => l.price_cents === 0);");
     expect(cart).toContain("{allFree ? ( <FreeCheckoutForSeller");

@@ -15700,6 +15700,7 @@ export type Database = {
         Returns: {
           amount_cents: number
           capture_before: string | null
+          onboarding_fee_cents: number
           place_at: string | null
           state: string
         }[]

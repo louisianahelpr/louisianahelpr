@@ -29,7 +29,7 @@
  * 20260923205635: (a) 8 functions, (b) the same 8 (14 links).
  *
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=fraud&user=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */

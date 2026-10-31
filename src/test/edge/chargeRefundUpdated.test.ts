@@ -99,6 +99,19 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     expect(scenario.writes.some((w) => w.table === "notifications")).toBe(false);
   });
 
+  // A hold captured without its $2 setup fee: charge.amount stays the authorized amount, so
+  // "still fully refunded" reads against what was captured. Another full refund still stands.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |       stillFull = Number(charge.amount_refunded ?? 0) >= (captured > 0 ? captured : Number(charge.amount ?? 0)); |       stillFull = Number(charge.amount_refunded ?? 0) >= Number(charge.amount ?? 0);
+  it("a partly captured hold still fully refunded is not paged as a failed refund", async () => {
+    const fn = await load();
+    refundEvent("failed", { amount: 4000 });
+    scenario.reads.jobs = { rows: [{ id: "job-1", status: "cancelled", payment_status: "refunded", customer_id: "poster-1" }] };
+    scenario.writeSelectRows["payment_refunds:delete"] = [];
+    stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_1", amount: 4200, amount_captured: 4000, amount_refunded: 4000 });
+    await post(fn);
+    expect(alerts().find((a) => /Refund FAILED after the job was marked refunded/.test(a.title))).toBeUndefined();
+  });
+
   // Q1355 (1): cancel_escrow closes 'cancelled', not 'refunded'.
   it("a failed refund on a job cancel_escrow closed 'cancelled' pages critical too", async () => {
     const fn = await load();

@@ -97,6 +97,12 @@ async function recordShopHandRefunds(
   }
 }
 
+/** What the charge captured; charge.amount stays the authorized amount after a partial capture. 0 or absent: the amount. */
+function capturedCentsOf(charge: Pick<Stripe.Charge, "amount"> & { amount_captured?: number | null }): number {
+  const captured = Number(charge.amount_captured ?? 0);
+  return captured > 0 ? captured : charge.amount;
+}
+
 export async function handleChargeRefunded(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
@@ -208,7 +214,9 @@ export async function handleChargeRefunded(
   const liveRefundedCents = allRefunds.length > 0
     ? liveRefunds.reduce((sum, r) => sum + Number(r.amount ?? 0), 0)
     : Number(charge.amount_refunded ?? 0);
-  const isFullRefund = liveRefundedCents >= charge.amount;
+  // What was CAPTURED, not charge.amount: a hold captured without its $2 setup fee
+  // (Q2399) keeps the authorized amount there, and refunding all of it is a full refund.
+  const isFullRefund = liveRefundedCents >= capturedCentsOf(charge);
   const isOnboardingFeeCorrection = liveRefunds.length > 0 && ordinaryRefunds.length === 0;
   // Newest first (Stripe's list order): on a FULL refund this is the refund
   // that completed the charge (is_partial false); the others were partial.
@@ -765,7 +773,7 @@ async function closeDecidedDisputeOnExternalRefund(
     _job_id: job.id,
     _stripe_charge_id: charge.id,
     _refunded_cents: charge.amount_refunded,
-    _charge_cents: charge.amount,
+    _charge_cents: capturedCentsOf(charge),
   });
   if (error?.code === "PGRST202") {
     // Not deployed yet: the old behaviour (left pending), said out loud.

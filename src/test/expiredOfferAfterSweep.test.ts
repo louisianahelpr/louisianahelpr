@@ -80,6 +80,6 @@ describe("Q1207: the sweep's expiry close keeps saying the offer expired", () =>
 });
 
 // @mutate src/components/job-card/jobStatusLine.ts |   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired"; |   if (false) return "offer_expired";
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |            SET status = 'rejected', closed_reason = 'offer_expired'\n         WHERE id = v_app_id; |            SET status = 'rejected'\n         WHERE id = v_app_id;
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |            SET status = 'rejected', closed_reason = 'offer_expired'\n         WHERE id = v_app_id; |            SET status = 'rejected'\n         WHERE id = v_app_id;
 // The newest CHECK is 20261008205730's (it added not_confirmed); this registration followed it there.
 // @mutate supabase/migrations/20261008205730_confirm_reminders_nudge_and_repost.sql |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired', 'not_confirmed')); |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'not_confirmed'));

@@ -1386,7 +1386,7 @@ serve(async (req) => {
           payment_method_types: ["card", "link"],
           billing_address_collection: "required",
           setup_intent_data: { metadata: { job_id: jobId, customer_id: user.id, card_hold: "1" } },
-          custom_text: { submit: { message: CARD_HOLD_COPY.scheduled(lineItemsCents) } },
+          custom_text: { submit: { message: CARD_HOLD_COPY.scheduled(lineItemsCents, owesOnboardingFee ? onboardingFeeCents : 0) } },
           success_url: successUrl,
           cancel_url: cancelUrl,
           expires_at: checkoutExpiresAt,

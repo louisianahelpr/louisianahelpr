@@ -45,14 +45,18 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 const h = vi.hoisted(() => ({
   rpc: vi.fn(),
   lookup: vi.fn(),
+  usual: { data: [], error: null } as { data: unknown; error: unknown },
+  toastError: vi.fn(),
 }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
+// The usual pickup times (fetchMyPickupWindows): h.usual (none by default, so a new place starts at Sat 9-12).
+const usualTimes = { select: () => usualTimes, eq: () => usualTimes, order: () => Promise.resolve(h.usual) };
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc, from: () => usualTimes } }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: h.toastError, success: vi.fn() }) }));
 
-import { SellPorchPlaces } from "./SellPorchPlaces";
+import { ItemPickupPlaces, SellPorchPlaces } from "./SellPorchPlaces";
 import { SellWaysFields } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 import { SellPorchDays } from "./SellPorchDays";
@@ -88,6 +92,8 @@ function Checkout({ sellerId = "s1" }: { sellerId?: string }) {
 beforeEach(() => {
   h.rpc.mockReset();
   h.lookup.mockReset();
+  h.toastError.mockReset();
+  h.usual = { data: [], error: null };
 });
 
 describe("the seller's pickup places", () => {
@@ -149,6 +155,44 @@ describe("the seller's pickup places", () => {
         expect(row.lastElementChild).toBe(b.closest("[data-place-actions]"));
       }
     }
+  });
+
+  // Review 2026-10-31 (item 8): the usual times a new place starts from are read first; a failed read is said with a retry.
+  // @mutate src/components/declutter/SellPorchPlaces.tsx |         : places.length < MAX_PORCH_PLACES && (usualRead.isError | : places.length < MAX_PORCH_PLACES && (false
+  it("a failed read of the usual times says so with a retry, never a silent Sat 9-12", async () => {
+    answers({ declutter_my_porch_places: [] });
+    h.usual = { data: null, error: { message: "boom" } };
+    wrap(<SellPorchPlaces />);
+    expect(await screen.findByText("We couldn't load your usual pickup times.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again|retry/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add a pickup place" })).toBeNull();
+  });
+
+  // Review 2026-10-31 (item 7): an older server takes the days alone; the seller is told the hours were not saved.
+  // @mutate src/components/declutter/SellPorchPlaces.tsx |       if (!r.hoursSaved) toast.error(PLACE_HOURS_NOT_SAVED); |
+  // @mutate src/lib/declutter/porchPlaces.ts |     return { id, hoursSaved: false }; |     return { id, hoursSaved: true };
+  it("an older server saves the days alone: the seller is told the hours were not saved", async () => {
+    h.lookup.mockResolvedValue({ status: "exact", lat: 29.95, lng: -90.07 });
+    h.rpc.mockImplementation((name: string, args: Record<string, unknown>) => builder(Promise.resolve(
+      name === "declutter_my_porch_places" ? { data: [], error: null }
+        : name === "declutter_save_porch_place" && "p_windows" in args ? { data: null, error: { code: "PGRST202", message: "Could not find the function" } }
+          : { data: "new-id", error: null })));
+    wrap(<SellPorchPlaces />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save place" }));
+    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith("Place saved, but not its hours. Update the app, then set its hours again."));
+    expect(h.rpc.mock.calls.filter(([n]) => n === "declutter_save_porch_place")).toHaveLength(2);
+  });
+
+  // Review 2026-10-31: the item page's places read failing says so with a retry.
+  // @mutate src/components/declutter/SellPorchPlaces.tsx |   if (read.isError) { |   if (false) {
+  it("the item page's places: a failed read says so with a retry", async () => {
+    answers({});
+    wrap(<ItemPickupPlaces itemId="i1" />);
+    expect(await screen.findByText("We couldn't load the pickup places.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again|retry/i })).toBeInTheDocument();
   });
 
   it("removing asks first, then deletes that place", async () => {

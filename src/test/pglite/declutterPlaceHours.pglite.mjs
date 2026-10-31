@@ -103,6 +103,14 @@ const itemPlaces = await me(BUYER, `SELECT * FROM public.declutter_item_pickup_p
 ok(Array.isArray(itemPlaces) && itemPlaces.length === 2 && itemPlaces.every((r) => !("address" in r) && !("lat" in r))
    && hours(itemPlaces[1]?.windows) === "0 13:00-15:00, 6 09:00-12:00",
   `the item page reads both places with their hours, no address (${short(itemPlaces)})`);
+// Review 2026-10-31: an out seller's places are never shown to anyone else (as declutter_seller_porch_places).
+await svc(`INSERT INTO public.declutter_seller_flags (user_id, business_like) VALUES ('${SELLER2}', true)
+  ON CONFLICT (user_id) DO UPDATE SET business_like = true`);
+const outPlaces = await me(BUYER, `SELECT * FROM public.declutter_item_pickup_places('${I(1)}')`);
+ok(Array.isArray(outPlaces) && outPlaces.length === 0, `an out seller's places are not shown to a buyer (${short(outPlaces)})`);
+const ownWhileOut = await me(SELLER2, `SELECT * FROM public.declutter_item_pickup_places('${I(1)}')`);
+ok(Array.isArray(ownWhileOut) && ownWhileOut.length === 2, `the seller still sees their own places (${short(ownWhileOut)?.slice(0, 80)})`);
+await svc(`UPDATE public.declutter_seller_flags SET business_like = false WHERE user_id = '${SELLER2}'`);
 await me(BUYER, `SELECT public.declutter_buy_now('${I(1)}', 1500)`);
 const seen = await me(BUYER, `SELECT * FROM public.declutter_seller_porch_places('${SELLER2}')`);
 ok(Array.isArray(seen) && seen.length === 2 && seen.every((r) => !("address" in r)) && hours(seen[0]?.windows) === "1 07:00-21:00, 2 07:00-21:00",
@@ -144,11 +152,13 @@ ok(Array.isArray(oldHours) && oldHours.length === 7 && oldHours.every((r) => r.s
 // 9. Grants.
 const acl = async (role, fn) => one(await svc(`SELECT has_function_privilege('${role}', 'public.${fn}', 'EXECUTE')`));
 ok(await acl("authenticated", "declutter_place_windows_fill(jsonb, uuid, smallint[])") === false
-   && await acl("authenticated", "declutter_order_slot_in_windows(uuid, uuid, timestamptz)") === false,
+   && await acl("authenticated", "declutter_order_slot_in_windows(uuid, uuid, timestamptz)") === false
+   && await acl("authenticated", "declutter_delivery_slot_ok(uuid, timestamptz)") === false,
   "the fill and slot helpers are internal");
 let anonNone = true;
 for (const fn of ["declutter_save_porch_place(uuid, text, text, text, numeric, numeric, smallint[], jsonb)", "declutter_my_porch_places()",
-  "declutter_seller_porch_places(uuid)", "declutter_item_pickup_places(uuid)", "declutter_order_pickup_windows(uuid)", "declutter_book_pickup(uuid, timestamptz)"]) {
+  "declutter_seller_porch_places(uuid)", "declutter_item_pickup_places(uuid)", "declutter_order_pickup_windows(uuid)", "declutter_book_pickup(uuid, timestamptz)",
+  "helpr_task_pickup_windows(uuid)"]) {
   if (await acl("anon", fn) !== false) anonNone = false;
 }
 ok(anonNone, "anon cannot call any of them (REVOKE FROM PUBLIC, anon)");

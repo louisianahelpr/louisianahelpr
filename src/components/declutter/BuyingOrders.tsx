@@ -19,6 +19,7 @@ import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundRequests";
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
@@ -146,7 +147,14 @@ const LIVE_TASK = new Set(["open", "accepted", "picked_up", "delivered", "confir
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
  * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
  */
-export function refundStanding(status: string | null | undefined): string | null {
+export function refundStanding(status: string | null | undefined, request?: RefundTookItBack | null): string | null {
+  // AUD31-36: a full refund with the item given back ends "agreed" with returned_at set (20261030071818); the order
+  // stays handed_over, so without this line the card read "Handed over. It's yours." over a returned item.
+  if (refundTookItBack(request)) {
+    const back = request!.refund_cents ? formatPrice(request!.refund_cents) : null;
+    if (!back) return "Returned for a refund.";
+    return request!.refund_status === "succeeded" ? `Returned. You got ${back} back.` : `Returned. ${back} is on its way back to your card.`;
+  }
   switch (status) {
     case "open": return "Handed over. You asked for a refund.";
     case "offered": return "Handed over. You have a refund offer to answer.";

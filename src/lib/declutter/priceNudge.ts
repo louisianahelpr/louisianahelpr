@@ -52,6 +52,17 @@ export function priceNudgePath(itemId: string): string {
   return `/declutter?tab=selling&manage=${encodeURIComponent(itemId)}&drop=1`;
 }
 
+/** The link of the free listing "still available?" notice (20261030232231). */
+export function stillAvailablePath(itemId: string): string {
+  return `/declutter?tab=selling&still=${encodeURIComponent(itemId)}`;
+}
+
+/** Reads `?still=<id>` back: the listing to ask about, or null. */
+export function readStillAvailableLink(params: URLSearchParams): string | null {
+  const itemId = params.get("still");
+  return itemId && /^[0-9a-f-]{36}$/i.test(itemId) ? itemId : null;
+}
+
 /** Reads `?manage=<id>&drop=1` back: the item to open, or null. */
 export function readPriceNudgeLink(params: URLSearchParams): string | null {
   const itemId = params.get("manage");

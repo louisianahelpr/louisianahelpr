@@ -608,6 +608,11 @@ export async function withdrawItem(itemId: string): Promise<void> {
   await removeObjects((paths ?? []) as string[]);
 }
 
+/** The seller says their free listing is still there; the next ask is 14 days away (20261030232231). */
+export async function markStillAvailable(itemId: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_free_still_available", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_free_still_available", e)) as string;
+}
+
 /** "Mark sold elsewhere" (A2-5): off sale like a withdraw, but the listing is kept as 'sold_elsewhere'. Its photos go the same way. */
 export async function markSoldElsewhere(itemId: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_mark_sold_elsewhere", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_mark_sold_elsewhere", e));

@@ -42,6 +42,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
 import { usePosterPageActions } from "./posterPageActions";
+import { usePosterPageFlows } from "./usePosterPageFlows";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -75,8 +76,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
+  // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
+  const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });
   const posterActions = usePosterPageActions({
-    job: q.data?.job, userId, enabled: isPoster,
+    job: q.data?.job, userId, enabled: isPoster, flows: posterFlows,
     posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
     open: q.data?.job.status === "open", pending: applicants.data?.pending ?? 0, onChanged: () => void q.refetch(),
   });
@@ -144,7 +147,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
     ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
     // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
-    // (posterPageActions.tsx: confirm on this page, approve and cancel through the card's own flows).
+    // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
     : isPoster
     ? posterActions.primary
     : hiredFace

@@ -10,6 +10,17 @@
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
  *
+ * AUD31-15 (audit 10-31): the asker's own questions say "Your question"; nobody else is told who asked. The client reads
+ * declutter_my_question_ids (20261031183631) only when signed in and not the seller; the server answers only the
+ * caller's own ids (newest definition read below; behaviour: src/test/pglite/declutterMyQuestionIds.pglite.mjs,
+ * 12 PASS; NEW_MIGRATION=skip 10 FAIL).
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question" : "Asked by a neighbor"} | {"Asked by a neighbor"}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question · asked" : "Asked"} {asked} | Asked {asked}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | enabled: !!user && !isSeller }); | enabled: true });
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | mine={!!myIds.data?.has(q.id)} | mine={!!myIds.data}
+ * @mutate supabase/migrations/20261031183631_declutter_my_question_ids.sql |        AND q.asker_id = v_uid\n |\n
+ * @mutate supabase/migrations/20261031183631_declutter_my_question_ids.sql | REVOKE ALL ON FUNCTION public.declutter_my_question_ids(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_my_question_ids(uuid) FROM PUBLIC;
+ *
  * Audit 1028 part 2, D2-13: the Ask refusal shows under the box (role="alert", tied to the box), never as a toast over it.
  * @mutate src/components/declutter/DeclutterQuestions.tsx |           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>} |
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   const askError = ask.isError ? declutterErrorMessage(ask.error) : null; |   const askError = null; void ask.error;
@@ -24,17 +35,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup as cleanupAll, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null, answerRefusal: null as Error | null };
 const toasts = vi.hoisted(() => ({ error: [] as unknown[] }));
 vi.mock("sonner", () => ({ toast: { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } } }));
+const mineState = { ids: new Set<string>(), calls: 0, user: { id: "b1" } as { id: string } | null };
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: mineState.user, isReady: true }) }));
 const state = { questions: [] as unknown[], seller: { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null } as unknown };
 
 vi.mock("@/lib/declutter/api", () => ({
   fetchQuestions: async () => state.questions,
   fetchSellerCard: async () => state.seller,
+  fetchMyQuestionIds: async () => { mineState.calls++; return mineState.ids; },
   askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); if (calls.askRefusal) throw calls.askRefusal; return "q9"; },
   answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); if (calls.answerRefusal) throw calls.answerRefusal; return "2026-10-20"; },
 }));
@@ -50,6 +64,8 @@ vi.mock("@/lib/declutter/aiReply", () => ({
 }));
 
 import { DeclutterQuestions, askedWhen } from "./DeclutterQuestions";
+import { blankSqlComments } from "@/test/helpers/blankNonCode";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 const TODAY = new Date().toISOString();
@@ -68,6 +84,9 @@ function renderIt(props: { isSeller: boolean; canAsk: boolean }) {
 }
 
 beforeEach(() => {
+  mineState.ids = new Set();
+  mineState.calls = 0;
+  mineState.user = { id: "b1" };
   state.questions = QS;
   state.seller = { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null };
   calls.answer = [];
@@ -101,6 +120,48 @@ describe("board 162: public questions", () => {
     const note = screen.getByText(/Contact info is not allowed\./);
     expect(note.textContent).not.toMatch(/message/i);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
+  });
+
+  it("AUD31-15: the asker's own questions say 'Your question'; a neighbour's still say 'Asked by a neighbor'", async () => {
+    mineState.ids = new Set(["q2"]);
+    renderIt({ isSeller: false, canAsk: true });
+    expect(await screen.findByText("Your question · asked today · waiting for Marie")).toBeInTheDocument();
+    const cards = screen.getAllByRole("listitem");
+    expect(within(cards[0]).getByText("Asked by a neighbor · today")).toBeInTheDocument();
+    expect(cards[0].hasAttribute("data-mine")).toBe(false);
+    expect(cards[1].hasAttribute("data-mine")).toBe(true);
+    mineState.ids = new Set(["q1"]);
+    cleanupAll();
+    renderIt({ isSeller: false, canAsk: true });
+    expect(await screen.findByText("Your question · today")).toBeInTheDocument();
+    expect(screen.getByText("Asked today · waiting for Marie")).toBeInTheDocument();
+  });
+
+  it("AUD31-15: the seller and a guest never ask which questions are theirs", async () => {
+    mineState.ids = new Set(["q2"]);
+    renderIt({ isSeller: true, canAsk: false });
+    expect(await screen.findByText("Asked today · waiting for your answer")).toBeInTheDocument();
+    cleanupAll();
+    mineState.user = null;
+    renderIt({ isSeller: false, canAsk: false });
+    expect(await screen.findByText("Asked today · waiting for Marie")).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mineState.calls).toBe(0);
+    expect(screen.queryByText(/Your question/)).toBeNull();
+  });
+
+  it("AUD31-15 server: the newest declutter_my_question_ids answers only the caller's own ids, signed in only", () => {
+    const def = effectiveDefs(resolve(process.cwd(), "supabase/migrations")).get("declutter_my_question_ids");
+    expect(def, "declutter_my_question_ids is defined").toBeTruthy();
+    const body = blankSqlComments(def!.stmt);
+    expect(body).toMatch(/security\s+definer/i);
+    expect(body).toMatch(/require_feature\('declutter'\)/);
+    expect(body).toMatch(/q\.asker_id\s*=\s*v_uid/);
+    expect(body).toMatch(/v_uid\s+uuid\s*:=\s*auth\.uid\(\)/);
+    expect(body).toMatch(/returns\s+setof\s+uuid/i);
+    const file = blankSqlComments(readFileSync(resolve(process.cwd(), "supabase/migrations", def!.file), "utf8"));
+    expect(file).toMatch(/REVOKE ALL ON FUNCTION public\.declutter_my_question_ids\(uuid\) FROM PUBLIC, anon;/);
+    expect(file).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.declutter_my_question_ids\(uuid\) TO[^;]*\banon\b/);
   });
 
   it("no seller name: waits for 'the seller', never a pronoun", async () => {

@@ -15137,6 +15137,7 @@ export type Database = {
       }
       declutter_my_move_out_date: { Args: never; Returns: string }
       declutter_my_order_talks: { Args: never; Returns: Json }
+      declutter_my_question_ids: { Args: { p_item_id: string }; Returns: string[] }
       declutter_miles_between: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number

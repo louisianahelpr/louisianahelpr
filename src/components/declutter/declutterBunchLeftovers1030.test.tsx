@@ -42,6 +42,7 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />,
 }));
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => ({ state: "idle" }), useMapKitTokenSource: () => "none" }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.4, lng: -91.1 }) }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));

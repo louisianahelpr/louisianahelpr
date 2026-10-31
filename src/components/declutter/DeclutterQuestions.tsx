@@ -81,15 +81,18 @@ function QuestionCard({
 function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; itemId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const [answer, setAnswer] = useState("");
+  // AUD31-30: a refused answer is said under the box (the draft stays), as Ask does, never a toast over the box.
+  const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
     mutationFn: (args: { id: string; text: string }) => answerQuestion(args.id, args.text),
     onSuccess: () => {
       setAnswer("");
+      setRefusal(null);
       toast("Answer posted.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
       onClose();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => setRefusal(declutterErrorMessage(err)),
   });
   const text = answer.trim();
   return (
@@ -98,6 +101,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
       onOpenChange={(o) => {
         if (!o) {
           setAnswer("");
+          setRefusal(null);
           onClose();
         }
       }}
@@ -126,8 +130,11 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
               rows={3}
               maxLength={1000}
               value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
+              onChange={(e) => { setAnswer(e.target.value); setRefusal(null); }}
+              aria-invalid={refusal ? true : undefined}
+              aria-describedby={refusal ? "declutter-answer-error" : undefined}
             />
+            {refusal && <p id="declutter-answer-error" role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
             <p className="text-ds-13 text-muted-foreground">Everyone viewing the item sees this.</p>
           </div>
         )}

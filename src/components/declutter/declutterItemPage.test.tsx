@@ -21,11 +21,11 @@
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
  * @mutate src/components/declutter/DeclutterItemView.tsx |       phoneHidesTitle\n |
  * @mutate src/components/PageHeader.tsx | ${phoneHidesTitle ? " max-sm:sr-only" : ""} | ${phoneHidesTitle ? "" : ""}
- * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | rightSlot={titleActions} sticky={stickyHeader} />
+ * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | rightSlot={titleActions} sticky={stickyHeader} wrapTitle={wrapTitle} />
  * DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned on the item page while it scrolls.
  * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n      titleActions={ |       titleActions={
  * @mutate src/components/AppPage.tsx | data-own-title-row={stickyHeader ? "" : undefined} | data-own-title-row={undefined}
- * @mutate src/components/AppPage.tsx | phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | phoneHidesTitle={phoneHidesTitle} />
+ * @mutate src/components/AppPage.tsx | phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | phoneHidesTitle={phoneHidesTitle} wrapTitle={wrapTitle} />
  * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"
  * @mutate src/components/PageHeader.tsx |             {stickyTitle && phoneHidesTitle && ( |             {false && (
  * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |

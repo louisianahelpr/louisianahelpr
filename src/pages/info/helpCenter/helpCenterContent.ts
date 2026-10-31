@@ -103,6 +103,7 @@ export const TOPICS: { label: string; desc: string }[] = [
   { label: "Account & Settings", desc: "Email, password, deletion, bigger text." },
   // The seventh FAQ topic had no blurb entry, so it rendered bare next to
   // six that carry one.
+  { label: "Declutter", desc: "Buying, selling, pickup, delivery and refunds." },
   { label: "Membership & Billing", desc: "Plans, upgrades, and cancelling." },
 ];
 
@@ -377,6 +378,33 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // corrected too.
         // AUD31-58: the switch is "Bigger text and buttons" in You › Settings (SettingsTab), not "Senior Mode".
         a: "Turn on Bigger text and buttons in You › Settings. It makes the app easier to read and tap: larger type and bigger touch targets throughout.",
+      },
+    ],
+  },
+  {
+    // AUD31-23 (Legal, help, rules): Help had no Declutter section. Every answer restates the Declutter terms
+    // (src/pages/info/legal/TermsSection.tsx, "Declutter"), which are the rule set; change them together.
+    topic: "Declutter",
+    items: [
+      {
+        q: "How do I buy something on Declutter?",
+        a: "Tap Buy now to pay the price, or send the seller a private offer of at least half of today's price. It isn't an auction: the item goes to the first buyer whose purchase or offer is accepted and who then pays. After you buy, or your offer is accepted, you have 48 hours to check out, and you see one total before you pay, delivery included. Missing the checkout on an accepted offer is a Declutter strike; a Buy now you don't pay for just goes back on sale.",
+      },
+      {
+        q: "How do I sell?",
+        a: "List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Each evening an unsold item's price drops 5%, stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price.",
+      },
+      {
+        q: "How do I get the item?",
+        a: "Four ways: porch pickup (the seller leaves it out and posts a photo), pickup at the seller's door, Helpr delivery, or seller delivery when the seller offers it. Shipping isn't offered. Every pickup or delivery happens within 7 days of paying, and you get the exact address right after you pay. If no Helpr takes a delivery within 48 hours, what you paid for delivery comes back, and you pick it up at the seller's door or cancel the sale for a refund.",
+      },
+      {
+        q: "What if something's wrong with my item?",
+        a: "You have 24 hours after pickup to ask the seller for a refund: they can refund all of it, offer part, or decline, and then you can report a problem for us to decide. Either of you can report a problem until the sale is final, and the money stays held while we look at both sides. An item that isn't as described, or a seller who doesn't show, means everything back at the seller's cost. Once the sale is final the item is yours as is.",
+      },
+      {
+        q: "Can I deliver Declutter items?",
+        a: "Yes, if you're 18 or older, not banned, have fewer than 3 Declutter strikes and aren't the buyer or seller. You see your take-home pay before you take a delivery, pick the pickup time, take a photo at pickup and at the door. Large items need a truck; extra-large items a truck and a second person. You set up payouts after you take your first delivery.",
       },
     ],
   },

@@ -25,7 +25,7 @@ import { leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
-import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
+import { fetchRefundRequestView, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 import { focusSheetItself } from "./focusSheetItself";
 
@@ -59,16 +59,20 @@ function rememberReviewed(orderId: string, side: "buyer" | "seller") {
  * Audit 1028 part 2, D2-15: a solid "Leave a review" under an open refund request pulled the eye from the refund
  * itself. While a request is still being worked out the button is the outline one. The refund panel's own read
  * (same key, same fetch, so one request on the wire), only when the card shows the refund panel.
+ * Audit BUY-31: while the item is going back, with Louisiana Helpr, or under an open problem, no review is asked for.
+ * It comes back when that ends and the order still stands.
  */
-const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered", "returning", "to_admin"]);
+const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered"]);
 const refundStillOpen = (v: RefundRequestView | undefined) => !!v?.request && REFUND_STILL_OPEN.has(v.request.status);
 
-export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false }: {
+export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false, problemOpen = false }: {
   orderId: string;
   side: "buyer" | "seller";
   userId: string;
   /** The card shows the refund panel for this order (its switch is on and the order has items). */
   refundPanel?: boolean;
+  /** An open problem on this order (BUY-31). */
+  problemOpen?: boolean;
 }) {
   const refund = useQuery({
     queryKey: ["declutter", "refund-request", orderId],
@@ -108,6 +112,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   }, [open, sent, orderId]);
 
   if (sent) return <p className="text-sm text-muted-foreground" data-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
+  if (problemOpen || refundHoldsTheItem(refund.data?.request?.status)) return null;
   return (
     <>
       {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}

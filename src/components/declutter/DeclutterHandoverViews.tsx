@@ -68,7 +68,8 @@ import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./Decl
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
-import { BuyerOrderHead, byBucket, type BuyerOrderView } from "./BuyingOrders";
+import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
+import { fetchRefundRequestView, refundHoldsTheItem } from "@/lib/declutter/refundRequests";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -157,6 +158,13 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
   const [atHandover, setAtHandover] = useState(false); // opened from the "I got it" sheet (D2-11)
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
   const refundRequests = useFeature("declutter_refund_requests");
+  // Audit BUY-31: the buyer's head line is always on screen, so it reads the refund panel's own query (same key).
+  const refund = useQuery({
+    queryKey: ["declutter", "refund-request", order.orderId],
+    queryFn: () => fetchRefundRequestView(order.orderId),
+    enabled: !!view && done && refundRequests && items > 0,
+  });
+  const refundStatus = refund.data?.request?.status;
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
   const [open, setOpen] = useState(false);
   // Audit 1c D3-7: a Helpr delivery's "I got it" opened Details only; it now opens the "Do you have it?" sheet too.
@@ -184,7 +192,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       </div>
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && <ProblemOpenNote problem={problem} side={order.side} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
@@ -208,14 +216,15 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
       )}
       {done ? (
         <>
-          {(order.handover === "delivery" || (order.handover === "seller_delivery" && !!view)) && <p className="text-sm font-medium">Handed over.</p>}
+          {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
+          {order.handover === "delivery" && !view && <p className="text-sm font-medium">Handed over.</p>}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
             </Suspense>
           )}
-          <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} refundPanel={!!refundRequests && items > 0} />
+          <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} refundPanel={!!refundRequests && items > 0} problemOpen={!!problem} />
         </>
       ) : order.handover === "seller_delivery" ? (
         <>
@@ -260,7 +269,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
         </>
       )}
-      {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
+      {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus)} /></Suspense>}
       </div>}
       {/* CMP-3: outside Details, so it is one tap from the card. */}
       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} />

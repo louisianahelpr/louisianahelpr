@@ -82,12 +82,12 @@ const REQ = {
   created_at: "2026-10-23T18:00:00Z",
 };
 
-function show(view: RefundRequestView) {
+function show(view: RefundRequestView, who = "Nikki") {
   state.view = view;
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <DeclutterRefundPanel orderId="o1" who="Nikki" problemForm={<p>PROBLEM FORM</p>} />
+      <DeclutterRefundPanel orderId="o1" who={who} problemForm={<p>PROBLEM FORM</p>} />
     </QueryClientProvider>,
   );
 }
@@ -250,6 +250,33 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.change(screen.getByLabelText(/When will you come\?/), { target: { value: "2030-01-02T15:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
     await waitFor(() => expect(state.accepted).toEqual([["r1", "collect", null, new Date("2030-01-02T15:00").toISOString()]]));
+  });
+
+  // Audit BUY-32: "Bring the item back to The seller's pickup address".
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx | <DeclutterReturnBuyer v={v} who={who} /> | <DeclutterReturnBuyer v={v} who={who.toUpperCase()} />
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx | <DeclutterReturnSellerInfo v={v} who={who} /> | <DeclutterReturnSellerInfo v={v} who={who.toUpperCase()} />
+  // @mutate src/components/declutter/DeclutterRefundReturn.tsx | <p className="text-sm">{cap(who)} will come for it | <p className="text-sm">{who} will come for it
+  // @mutate src/components/declutter/DeclutterRefundReturn.tsx | data-return-drop-off="">{cap(who)} brings it to | data-return-drop-off="">{who} brings it to
+  describe("BUY-32: the other person's name is capitalised only at the start of a sentence", () => {
+    const back = { status: "returning" as const, return_by: "2026-10-26T18:00:00Z" };
+    it("buyer, a drop-off: mid-sentence stays lower case", async () => {
+      const { container } = show({ ...BASE, can_ask: false, request: { ...REQ, ...back, return_way: "drop_off" } }, "the seller");
+      await screen.findByRole("button", { name: "Take your drop-off photo" });
+      expect(container.querySelector("[data-return-drop-off] p")?.textContent).toMatch(/^Bring the item back to the seller's pickup address/);
+    });
+    it("buyer, a collect: a sentence's first word is capitalised", async () => {
+      show({ ...BASE, can_ask: false, request: { ...REQ, ...back, return_way: "collect" } }, "the seller");
+      expect(await screen.findByText(/^The seller will come for it/)).toBeTruthy();
+    });
+    it("seller, a collect with no address yet: mid-sentence stays lower case", async () => {
+      show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, ...back, return_way: "collect" } }, "the buyer");
+      expect(await screen.findByText("Waiting for the buyer to add the address.")).toBeTruthy();
+    });
+    it("seller, a drop-off: a sentence's first word is capitalised", async () => {
+      const { container } = show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, ...back, return_way: "drop_off" } }, "the buyer");
+      await screen.findByRole("button", { name: "I got it back" });
+      expect(container.querySelector("[data-return-drop-off]")?.textContent).toMatch(/^The buyer brings it to your pickup address/);
+    });
   });
 
   it("seller: a collect shows the buyer's address with directions while it is coming back", async () => {

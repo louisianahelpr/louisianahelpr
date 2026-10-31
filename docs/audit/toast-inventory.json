@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1052,
+    "calls": 1053,
     "files": 293,
-    "rendering": 971,
+    "rendering": 972,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 164,
+      "toast": 165,
       "toast.error": 735,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 455,
+      "literal": 456,
       "template": 96,
       "dynamic": 551,
       "jsx": 0
@@ -7826,7 +7826,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 96,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7836,7 +7836,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 139,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7846,11 +7846,21 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 159,
+      "line": 160,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
         "text": "Check ${trimmed} to confirm your new address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 227,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Shake to report stays off. Your phone didn't allow motion access."
       },
       "renders": true
     },

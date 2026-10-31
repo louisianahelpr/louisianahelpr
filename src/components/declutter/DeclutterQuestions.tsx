@@ -147,6 +147,7 @@ export function DeclutterQuestions({
   isSeller,
   canAsk,
   free = false,
+  preview = false,
 }: {
   itemId: string;
   sellerId: string;
@@ -155,6 +156,8 @@ export function DeclutterQuestions({
   canAsk: boolean;
   /** A free item is claimed, never offered on (deep audit #23): no "Make an offer" line. */
   free?: boolean;
+  /** The seller's "See what buyers see" (LEAD-PREVIEW-ASK): the Ask box shows, greyed out, saying how it works. */
+  preview?: boolean;
 }) {
   const qc = useQueryClient();
   const sellerName = useSellerFirstName(sellerId);
@@ -220,6 +223,21 @@ export function DeclutterQuestions({
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
           <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? "" : " Want to make a deal? Make an offer."}</p>
         </form>
+      )}
+      {preview && (
+        // LEAD-PREVIEW-ASK (owner 2026-10-31): the seller sees where buyers ask, but can't ask on their own listing.
+        <div className="space-y-2" aria-disabled="true" data-preview-ask="">
+          <label htmlFor="declutter-question-preview" className="block text-ds-15 font-semibold text-muted-foreground">Ask a question</label>
+          <div className="flex gap-2">
+            <input id="declutter-question-preview" className={`${field} bg-muted`} disabled placeholder="Ask about size, condition…" aria-describedby="declutter-question-preview-note" />
+            <Button type="button" variant="outline" className="h-auto shrink-0" disabled>
+              Ask
+            </Button>
+          </div>
+          <p id="declutter-question-preview-note" className="text-ds-13 text-muted-foreground">
+            Buyers ask here. You'll get a notice and answer from this page.
+          </p>
+        </div>
       )}
       {isSeller && <AnswerSheet q={answering} itemId={itemId} onClose={() => setAnswering(null)} />}
     </section>

@@ -716,6 +716,7 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} /> | <DeclutterGuestJoin free={free} />
   // @mutate src/components/declutter/DeclutterGuest.tsx |  : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."} |  : "Sign up to buy it or make an offer."}
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         <GuestBrand />\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <>{children}</>; |   return <>{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
@@ -733,6 +734,8 @@ describe("the photo-first Declutter item page", () => {
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Watch this item" })).toBeNull();
+    // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
+    expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
     // The seller's first name only (declutter_guest_seller_first_name), never the member card's "Dana R." or its link.
     const seller = await screen.findByText("Dana");
     expect(seller.closest("[data-guest-seller]")).not.toBeNull();

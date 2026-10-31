@@ -63,6 +63,11 @@ const state = {
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
   returnWithCard: null as unknown,
   strikes: 0,
+  /** BUY-9: the buyer's newest drop-off (declutter_delivery_dropoffs, theirs only); null = none. */
+  lastDropoff: null as string | null,
+  lastDropoffReads: 0,
+  /** BUY-9: the signed-in buyer (null = none, as every other case here reads it). */
+  me: null as string | null,
   offers: [] as unknown[],
   cart: [] as unknown[],
   /** A2-8: cart lines the buyer removed (declutter_remove_cart_item). */
@@ -100,6 +105,8 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   fetchSellerDeliveryOffer: async () => state.sdOffer,
   quoteSellerDelivery: async () => state.sdOffer,
 }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
+vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
 vi.mock("@/lib/declutter/delivery", () => ({
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
@@ -208,6 +215,9 @@ describe("Declutter slice 3 screens", () => {
     sessionStorage.clear();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     state.strikes = 0;
+    state.lastDropoff = null;
+    state.lastDropoffReads = 0;
+    state.me = null;
     state.offers = [];
     state.cart = [];
     state.sent = [];
@@ -944,6 +954,44 @@ describe("Declutter slice 3 screens", () => {
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+    state.deliveryOn = false;
+  });
+
+  // BUY-9 (buying audit 10-30 #9): "Deliver to" was typed from nothing on every order. The buyer's newest drop-off
+  // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} /> | onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+  it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    expect(await screen.findByLabelText(/Porch pickup/)).toBeChecked();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(state.lastDropoffReads).toBe(0);
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    await waitFor(() => expect((screen.getByLabelText(/^Deliver to/) as HTMLInputElement).value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    await waitFor(() => expect(state.quotes).toEqual([{ sellerId: "s2", address: "12 Oak St, Baton Rouge, LA" }]));
+    state.deliveryOn = false;
+  });
+
+  it("BUY-9: what the buyer types is never replaced, even emptied", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+    const box = () => screen.getByLabelText(/^Deliver to/) as HTMLInputElement;
+    await waitFor(() => expect(box().value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.change(box(), { target: { value: "" } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(box().value).toBe("");
     state.deliveryOn = false;
   });
 

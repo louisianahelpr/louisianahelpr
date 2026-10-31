@@ -11,6 +11,7 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
+import { isExpiredListing } from "@/lib/expiredListing";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
 import { arrivalEstablished } from "@/lib/arrivalGate";
@@ -651,10 +652,13 @@ export function posterStatusLine(
   const copy = POSTER_WAIT[id];
   const bucket = postedActivityBucket(job, pendingApplicantCount, now);
   const named = helperName ? POSTER_NAMED[id]?.(helperName, job) : undefined;
+  // Expired is not cancelled (owner 10-31, src/lib/expiredListing.ts): the poster's
+  // own card says "Expired", never "Cancelled", and keeps its Post again.
+  const expired = id === "cancelled" && isExpiredListing(job);
   return {
     id,
-    eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: named ?? copy.detail,
+    eyebrow: expired ? "Expired" : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job) : null,
@@ -662,11 +666,15 @@ export function posterStatusLine(
   };
 }
 
+/** The poster's line for a listing that expired with no Helpr (never "Cancelled"). */
+export const EXPIRED_LISTING_DETAIL = "No Helpr was hired in time";
+
 /** The cancelled line's tail for the POSTER: the reason, and that their money
  *  came back when it did (owner, 2026-10-06). Only on payment_status
  *  'refunded', the state void-cancelled-payments writes after a full refund. */
 export function cancelledSuffix(job: Job): string | null {
-  const reason = sanitizeCancellationReason(job.cancellation_reason);
+  // An expired listing's fixed sweep reason is the detail's own sentence; only the refund follows.
+  const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason);
   if (job.payment_status !== "refunded") return reason;
   return reason ? `${reason} · Your payment was refunded` : "Your payment was refunded";
 }

@@ -27,7 +27,7 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
- * @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
+ * @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
@@ -187,7 +187,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     const st = flat(body("get_public_profile_stats"));
     // 20261021074131 (ID badge = Stripe Identity only) restates it from this body with only the verdict changed.
     // 20261030015205 (b62: test data never counts) restates it with the test-data exclusion only.
-    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261030015205_test_data_never_counts.sql");
+    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261031234653_public_stats_expired_is_not_cancelled.sql");
     expect(st).toContain("JOIN public.declutter_reviews dr ON dr.reviewee_id = t.user_id");
     expect(st).toContain("WHERE o.status = 'handed_over' AND (o.handed_over_at <= now() - interval '14 days' OR (SELECT count(*) FROM public.declutter_reviews d2 WHERE d2.order_id = dr.order_id) = 2)");
     expect(st).toContain("SELECT t.user_id, dr.stars::integer, false");

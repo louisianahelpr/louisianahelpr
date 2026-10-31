@@ -424,7 +424,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                   onClick={() => setAsk({ kind: "backOut" })}> |                   onClick={() => backOut.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Back out of this delivery?");
-    expect(sheet).toHaveTextContent("Under 2 hours before the pickup it costs a delivery strike.");
+    expect(sheet).toHaveTextContent("Under 2 hours before the pickup it costs a delivery strike, unless the seller moved the time.");
     expect(state.calls).toHaveLength(0);
     fireEvent.click(within(sheet).getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["release", "t1"]));

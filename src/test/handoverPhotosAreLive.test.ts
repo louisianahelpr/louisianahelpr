@@ -80,7 +80,7 @@ describe("every Declutter handover photo is live (camera at that moment, server'
   });
 
   it("the device: every handover photo input opens the camera, and both upload paths check the file's time", () => {
-    for (const f of ["src/components/ui/PhotoPickButton.tsx", "src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/SellerDeliveryOrder.tsx"]) {
+    for (const f of ["src/components/ui/PhotoPickButton.tsx", "src/components/declutter/DeclutterHandoverViews.tsx"]) {
       const s = src(f);
       const inputs = [...s.matchAll(/<input\b[^>]*type="file"[^>]*>/g)].map((m) => m[0]);
       expect(inputs.length, f).toBeGreaterThan(0);

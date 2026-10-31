@@ -153,7 +153,7 @@ const Admin = () => {
   // nav's red counts on every page and the Dashboard's Priority Alerts below.
   const pendingCounts = useAdminPendingCounts(!loading);
   const openQueues = pendingCounts.data;
-  const seriousAlerts = useSeriousOpenAlertCount(!loading);
+  const { data: seriousAlertCount, isError: seriousAlertsFailed } = useSeriousOpenAlertCount(!loading);
   const qc = useQueryClient();
 
   const loadUnreadCounts = useCallback(async () => {
@@ -493,7 +493,7 @@ const Admin = () => {
   const viewLabels = VIEW_LABELS;
 
   const renderContent = () => {
-    const homeDataError = statsLoadError || unreadCountsError || pendingCounts.isError || seriousAlerts.isError;
+    const homeDataError = statsLoadError || unreadCountsError || pendingCounts.isError || seriousAlertsFailed;
     switch (view) {
       case "analytics": return <AdminAnalytics />;
       case "people": return <AdminUsers />;
@@ -546,10 +546,10 @@ const Admin = () => {
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
           dataError={homeDataError}
-          seriousAlerts={seriousAlerts.data}
+          seriousAlerts={seriousAlertCount}
           standing={homeStanding({
             queues: openQueues,
-            seriousAlerts: seriousAlerts.data,
+            seriousAlerts: seriousAlertCount,
             dataError: homeDataError,
           })}
         />

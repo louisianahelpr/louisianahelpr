@@ -129,7 +129,7 @@ BEGIN
      SET no_show_reported_at = now(), no_show_answer_by = now() + interval '24 hours'
    WHERE order_id = o.id
   RETURNING * INTO h;
-  PERFORM public.declutter_notify(o.seller_id, 'warning',
+  PERFORM public.declutter_notify(o.seller_id, 'declutter_pickups',
     CASE WHEN o.handover = 'seller_delivery' THEN 'The buyer says it wasn''t delivered' ELSE 'The buyer says you didn''t show' END,
     format('About %s. Answer within 24 hours in Selling. If you don''t, the buyer is refunded and you get a strike.',
            public.declutter_order_items_named(o.id)),
@@ -349,7 +349,7 @@ BEGIN
       UPDATE public.declutter_problems
          SET other_side_note = btrim(p_note), other_side_photo_paths = COALESCE(p_photo_paths, '{}'), other_side_at = now()
        WHERE id = v_open.id;
-      PERFORM public.declutter_notify(o.buyer_id, 'warning', 'The seller answered your report',
+      PERFORM public.declutter_notify(o.buyer_id, 'declutter_refunds', 'The seller answered your report',
         format('About %s. Louisiana Helpr looks at both sides and tells you what it decides. The money stays held until then.',
                public.declutter_order_items_named(o.id)),
         '/declutter?tab=buying', v_uid);
@@ -371,7 +371,7 @@ BEGIN
           CASE WHEN o.handover = 'seller_delivery' THEN 'It wasn''t delivered at the delivery time.' ELSE 'The seller didn''t show at the pickup time.' END,
           '{}', btrim(p_note), COALESCE(p_photo_paths, '{}'), now())
   RETURNING id INTO v_id;
-  PERFORM public.declutter_notify(o.buyer_id, 'warning', 'The seller answered your report',
+  PERFORM public.declutter_notify(o.buyer_id, 'declutter_refunds', 'The seller answered your report',
     format('About %s. Louisiana Helpr looks at both sides and tells you what it decides. The money stays held until then.',
            public.declutter_order_items_named(o.id)),
     '/declutter?tab=buying', v_uid);
@@ -502,7 +502,7 @@ BEGIN
          picked_up_at = CASE WHEN picked_up_photo_path IS NULL AND p_photo_path IS NOT NULL THEN now() ELSE picked_up_at END,
          picked_up_distance_m = CASE WHEN picked_up_photo_path IS NULL AND p_photo_path IS NOT NULL THEN v_m ELSE picked_up_distance_m END
    WHERE order_id = o.id;
-  PERFORM public.declutter_notify(o.buyer_id, 'payment', 'The seller says you have it',
+  PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'The seller says you have it',
     format('About %s. Tap "I got it" in Buying. If you don''t have it, report a problem there. If we don''t hear from you, the seller is paid in 48 hours.',
            public.declutter_order_items_named(o.id)),
     '/declutter?tab=buying', o.seller_id);
@@ -974,10 +974,10 @@ BEGIN
         VALUES (o.id, NULL, 'system', 'other',
                 'Nobody has said anything about this handover for 60 days, so the money is still held. Neither side confirmed it or reported a problem. Decide who gets the money.',
                 '{}');
-        PERFORM public.declutter_notify(o.buyer_id, 'warning', 'Louisiana Helpr is looking at this order',
+        PERFORM public.declutter_notify(o.buyer_id, 'declutter_refunds', 'Louisiana Helpr is looking at this order',
           'Nobody has confirmed this handover for 60 days. The money stays held until Louisiana Helpr decides. You can add your side on the order.',
           '/declutter?tab=buying', o.seller_id);
-        PERFORM public.declutter_notify(o.seller_id, 'warning', 'Louisiana Helpr is looking at this order',
+        PERFORM public.declutter_notify(o.seller_id, 'declutter_refunds', 'Louisiana Helpr is looking at this order',
           'Nobody has confirmed this handover for 60 days. The money stays held until Louisiana Helpr decides. You can add your side on the order.',
           '/declutter?tab=selling', o.buyer_id);
         -- A cron has no caller for the gate to read, so test data is skipped here too (20261030150104's rule).

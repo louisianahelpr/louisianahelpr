@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {false && (
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
  * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
+ * @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
@@ -453,7 +453,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // that are neighbours in the card's stacked body share one line with no gap, so each action sits in its own block.
   // A wrapper with no box of its own (display: contents, or a fragment) counts as its children.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return (\n    <div>\n      <button type="button" className={primary} disabled={confirm.isPending} |   return (\n    <div style={{ display: "contents" }}>\n      <button type="button" className={primary} disabled={confirm.isPending}
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <div>\n      <button type="button" className={btn} disabled={report.isPending} |     <div style={{ display: "contents" }}>\n      <button type="button" className={btn} disabled={report.isPending}
+  // @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |     <div>\n      <button type="button" className={btn} disabled={report.isPending} |     <div style={{ display: "contents" }}>\n      <button type="button" className={btn} disabled={report.isPending}
   it("no two action buttons sit edge to edge in the card body, either side (D1-12)", async () => {
     const boxes = (el: Element): Element[] => (getComputedStyle(el).display === "contents" ? [...el.children].flatMap(boxes) : [el]);
     let checked = 0;
@@ -849,7 +849,7 @@ describe("boards 159 + 160: handover sheets", () => {
   });
 
   // Deep audit part 2 (B2-2): a free item's no-show sheet promised "the item price back" on $0.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} | who={who} free={false} pending={report.isPending}
+  // @mutate src/components/declutter/DeclutterNoShowAnswer.tsx | who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} | who={who} free={false} pending={report.isPending}
   it("a free item's no-show sheet has no money words", async () => {
     state.bookings = [slot(16)];
     show([line({ my_side: "seller", price_cents: 0, premium_cents: 0, total_cents: 0 })]);

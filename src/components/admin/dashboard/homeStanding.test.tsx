@@ -10,7 +10,7 @@
  * @mutate src/components/admin/dashboard/homeStanding.ts | if (input.dataError \|\| counts.some((n) => n === undefined)) return "unknown"; |
  * @mutate src/components/admin/dashboard/DashboardHome.tsx | {HOME_STANDING_LINE[standing]} | {hasAlerts ? HOME_STANDING_LINE.attention : HOME_STANDING_LINE.calm}
  * @mutate src/components/admin/dashboard/DashboardHome.tsx | {healthAlerts > 0 && ( | {false && (
- * @mutate src/pages/admin/Admin.tsx | seriousAlerts: seriousAlerts.data,\n            dataError: | seriousAlerts: 0,\n            dataError:
+ * @mutate src/pages/admin/Admin.tsx | seriousAlerts: seriousAlertCount,\n            dataError: | seriousAlerts: 0,\n            dataError:
  * @mutate src/components/admin/adminHealth/useOpenAlerts.ts | .in("severity", ["fatal", "critical", "error"]); | .in("severity", ["fatal"]);
  */
 import { describe, it, expect, vi } from "vitest";
@@ -117,7 +117,7 @@ describe("the wiring", () => {
   const code = (f: string) => readFileSync(join(process.cwd(), f), "utf8");
 
   it("Admin hands the ledger count to homeStanding", () => {
-    expect(code("src/pages/admin/Admin.tsx")).toMatch(/homeStanding\(\{\s*queues: openQueues,\s*seriousAlerts: seriousAlerts\.data,/);
+    expect(code("src/pages/admin/Admin.tsx")).toMatch(/homeStanding\(\{\s*queues: openQueues,\s*seriousAlerts: seriousAlertCount,/);
   });
 
   it("the count asks the ledger for every serious severity", () => {

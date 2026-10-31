@@ -452,6 +452,7 @@ describe("Popup grammar — footer", () => {
   };
   /** Footers whose commit is chosen at render time between two components. */
   const BRANCHED_COMMITS: Record<string, string> = {
+    "src/pages/profile/SavedSearchesTab.tsx": "Delete search asks once in the sheet: \"Delete search\" or, after it, \"Yes, delete it\": exactly one renders (asking ? confirm : delete)",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
     "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",

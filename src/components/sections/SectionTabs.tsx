@@ -176,7 +176,7 @@ export function SectionTabs<T extends string>({
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
       {less && !onlySelected && (
-        <button type="button" aria-label="Earlier tabs" data-tabs-less-button="" onClick={showPrevious}
+        <button type="button" aria-label={tr("tabs.less")} data-tabs-less-button="" onClick={showPrevious}
           className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>

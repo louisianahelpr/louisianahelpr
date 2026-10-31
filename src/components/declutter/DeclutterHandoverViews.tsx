@@ -44,7 +44,6 @@ import {
   fetchMyPayouts,
   porchNote,
   porchPhoto,
-  reportNoShow,
   sellerPickedUp,
   reportProblem,
   setPorchTime,
@@ -63,7 +62,7 @@ import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
-import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
+import { GotItSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
@@ -86,7 +85,7 @@ import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
-import { NoShowAnswer } from "./DeclutterNoShowAnswer";
+import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -541,31 +540,6 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
     </div>
   );
 }
-
-function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {
-  const qc = useQueryClient();
-  const [asking, setAsking] = useState(false);
-  const report = useMutation({
-    mutationFn: () => reportNoShow(order.orderId),
-    // Where it stands shows on the card (NoShowAnswer): toasts for a confirmation show nothing (toastPolicy).
-    onSuccess: () => { setAsking(false); invalidate(qc, order.orderId); },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  const handover = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
-  // Row 94: from 15 minutes after the booked time. The server checks again.
-  if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
-  // One report at a time; after the seller's "Picked up" it is a problem report (seller_confirmed).
-  if (handover.data?.no_show_reported_at || handover.data?.seller_confirmed_at) return null;
-  return (
-    <div>
-      <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
-        They didn't show
-      </button>
-      <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />
-    </div>
-  );
-}
-
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
 function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean }) {

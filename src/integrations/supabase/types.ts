@@ -11107,6 +11107,10 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          conditions: number[]
+          drops_only: boolean
+          free_only: boolean
+          porch_only: boolean
           id: string
           last_emailed_at: string | null
           last_notified_at: string | null
@@ -11128,6 +11132,10 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          conditions?: number[]
+          drops_only?: boolean
+          free_only?: boolean
+          porch_only?: boolean
           id?: string
           last_emailed_at?: string | null
           last_notified_at?: string | null
@@ -11149,6 +11157,10 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          conditions?: number[]
+          drops_only?: boolean
+          free_only?: boolean
+          porch_only?: boolean
           id?: string
           last_emailed_at?: string | null
           last_notified_at?: string | null

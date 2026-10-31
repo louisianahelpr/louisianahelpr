@@ -1303,8 +1303,10 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_cc", url: "https://checkout.stripe.test/cs_cc" });
       }
 
-      async function escrow(): Promise<{ items: Array<{ price_data: { unit_amount: number; product_data: { name: string; description?: string } } }>; stamp: Record<string, unknown>; meta: Record<string, string> }> {
-        const fn = await load();
+      // `loaded`: one build of the function reused across a matrix (LEAD-FLAKE-CREATEPAY: every load() rebuilds
+      // the whole import graph, and 44 of them in one test ran past 20 s on a loaded CI runner).
+      async function escrow(loaded?: EdgeHarness): Promise<{ items: Array<{ price_data: { unit_amount: number; product_data: { name: string; description?: string } } }>; stamp: Record<string, unknown>; meta: Record<string, string> }> {
+        const fn = loaded ?? await load();
         const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc" } }));
         expect(res.status).toBe(200);
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
@@ -1325,33 +1327,36 @@ describe("create-payment edge function", () => {
         ["profile read fails", null],
       ];
 
-      it("the poster is charged exactly the job price for every tier and budget, and the flat model is stamped", async () => {
+      // LEAD-FLAKE-CREATEPAY: one test per budget (it timed out at 20 s in CI as one 44-call test, #3858 #3870), and
+      // each loads the function once. The mocks are re-seeded per call (seedEscrowJob), so nothing carries over.
+      // @mutate supabase/functions/create-payment/index.ts |             unit_amount: Math.round(job.budget * 100), |             unit_amount: Math.round(job.budget * 100) + (job.budget >= 1000 ? 1 : 0),
+      it.each([30, 100, 200, 1000])("the poster is charged exactly the job price for every tier at a $%i budget, and the flat model is stamped", async (budget) => {
         // FLOOR: a derivation that produced nothing would pass vacuously.
         expect(Object.keys(TIER_FEE_PERCENT).length).toBeGreaterThanOrEqual(5);
         let checked = 0;
-        for (const budget of [30, 100, 200, 1000]) {
-          for (const [label, row] of PROFILES) {
-            seedEscrowJob(budget, row);
-            const { items, stamp, meta } = await escrow();
-            const names = items.map((li) => li.price_data.product_data.name);
-            expect(names, `$${budget} ${label}`).not.toContain("Service fee");
-            // Every line but the job and the one-time setup (absent here, or
-            // never billed on a failed profile read) would be a fee.
-            const total = items
-              .filter((li) => li.price_data.product_data.name !== "One-time account setup")
-              .reduce((t, li) => t + li.price_data.unit_amount, 0);
-            expect(total, `$${budget} ${label}`).toBe(budget * 100);
-            // The row and the PaymentIntent record the model it was charged under.
-            expect(stamp.customer_fee_amount).toBe(0);
-            expect(stamp.platform_fee_percent).toBe(0);
-            expect(stamp.helper_fee_flat_cents).toBe(70);
-            expect(stamp.helper_fee_percent).toBe(10);
-            expect(meta.customer_fee_percent).toBe("0");
-            expect(meta.helper_fee_flat_cents).toBe("70");
-            checked++;
-          }
+        const fn = await load();
+        for (const [label, row] of PROFILES) {
+          seedEscrowJob(budget, row);
+          const { items, stamp, meta } = await escrow(fn);
+          const names = items.map((li) => li.price_data.product_data.name);
+          expect(names, `$${budget} ${label}`).not.toContain("Service fee");
+          // Every line but the job and the one-time setup (absent here, or
+          // never billed on a failed profile read) would be a fee.
+          const total = items
+            .filter((li) => li.price_data.product_data.name !== "One-time account setup")
+            .reduce((t, li) => t + li.price_data.unit_amount, 0);
+          expect(total, `$${budget} ${label}`).toBe(budget * 100);
+          // The row and the PaymentIntent record the model it was charged under.
+          expect(stamp.customer_fee_amount).toBe(0);
+          expect(stamp.platform_fee_percent).toBe(0);
+          expect(stamp.helper_fee_flat_cents).toBe(70);
+          expect(stamp.helper_fee_percent).toBe(10);
+          expect(meta.customer_fee_percent).toBe("0");
+          expect(meta.helper_fee_flat_cents).toBe("70");
+          checked++;
         }
-        expect(checked).toBeGreaterThan(40);
+        // 5 tiers x active/lapsed + null, junk, failed read = 13 per budget.
+        expect(checked).toBeGreaterThan(12);
       });
 
       // The fee-model stamp is written BEFORE any funding branch, only while

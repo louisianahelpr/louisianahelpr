@@ -1457,3 +1457,19 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     expect(label.className).toMatch(/\bbreak-words\b/);
   });
 });
+
+// NIGHT-SELL-soldstates-2 (night audit 10-30, seller sold states #2): Selling's "Hand over" listed paid-out, refunded
+// and still-to-hand-over sales mixed, in cart order. The sales still to hand over come first, then handed over, then
+// refunded; cart order inside each.
+// @mutate src/components/declutter/paidOrders.ts | const SALE_RANK: Readonly<Record<string, number>> = { handed_over: 1, refunded: 2 }; | const SALE_RANK: Readonly<Record<string, number>> = {};
+// @mutate src/components/declutter/paidOrders.ts | sort((a, b) => a.r - b.r \|\| a.i - b.i) | sort((a, b) => a.i - b.i)
+describe("Selling's sale cards: still to hand over first, refunded last (soldstates-2)", () => {
+  it("live sales come before handed-over ones, and refunded ones last, whatever the cart order", async () => {
+    const sale = (n: number, order_status: string) => line({ line_id: `l${n}`, item_id: `i${n}`, item_title: `Sale ${n}`, my_side: "seller", order_id: `o${n}`, order_status });
+    state.bookings = [];
+    show([sale(1, "refunded"), sale(2, "handed_over"), sale(3, "paid"), sale(4, "handed_over"), sale(5, "paid")]);
+    const order = () => Array.from(document.querySelectorAll("article")).map((a) => /Sale (\d)/.exec(a.textContent ?? "")?.[1]);
+    await waitFor(() => expect(order().length).toBe(5));
+    expect(order()).toEqual(["3", "5", "2", "4", "1"]);
+  });
+});

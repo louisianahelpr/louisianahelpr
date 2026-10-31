@@ -122,8 +122,7 @@ interface LogisticsSectionProps {
   setIncludeMaterials?: (v: boolean) => void;
   materialsNote?: string;
   setMaterialsNote?: (v: string) => void;
-  /** Board 45's saved address (the poster's last full job address), or null
-   *  when there is none; the WHERE radio only shows when there is one. */
+  /** Board 45's saved address (the poster's last full job address) or null; the WHERE radio shows only with one. */
   savedAddress?: SavedAddress | null;
   /** GROW-4: the poster's other places (earlier jobs), newest first; each is one more WHERE card. */
   otherSavedAddresses?: SavedAddress[];
@@ -131,16 +130,9 @@ interface LogisticsSectionProps {
 
 const NO_OTHER_PLACES: SavedAddress[] = [];
 
-// Categories where it's common for posters to provide their own paint /
-// parts / supplies. The "Materials" toggle only renders for these — for
-// pet care or errands it'd just be noise.
-const MATERIALS_RELEVANT_CATEGORIES = new Set([
-  "painting",
-  "handyman",
-  "assembly",
-  "yard_work",
-  "cleaning",
-]);
+// Categories where posters often supply their own paint / parts / supplies; the "Materials" toggle renders only for
+// these (for pet care or errands it'd be noise).
+const MATERIALS_RELEVANT_CATEGORIES = new Set(["painting", "handyman", "assembly", "yard_work", "cleaning"]);
 
 export function LogisticsSection({
   stepNumber,

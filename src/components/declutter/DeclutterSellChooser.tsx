@@ -44,10 +44,10 @@ export default function DeclutterSellChooser() {
             You can still look around. Selling opens when your birthday on file says you're 18.
           </DeclutterNotice>
         ) : (
-          // Audit 10-30 #17: the cards are shorter here, so all six reach a 375 screen; two sit under their own small heading
-          // since neither is a way to sell it yourself.
-          <section className="flex flex-col gap-3 [&_[data-sell-choice]]:!min-h-[80px]" aria-labelledby="sell-step">
-            <StepHead title="What would you like to do?" sub="Pick one. You can come back and choose another." />
+          // Audit 10-30 #17 / POST-H17: the cards are shorter here and the two under "Other ways" (neither is a way to sell it
+          // yourself) are compact rows, so all six reach a 375x812 screen (measured b18 10-31: Wanted's top was at 859px).
+          <section className="flex flex-col gap-3 [&_[data-sell-choice]:not([data-compact])]:!min-h-[80px]" aria-labelledby="sell-step">
+            <StepHead title="What would you like to do?" sub="Pick one. You can come back for another." />
             {kept.data?.bunch && (
               <ChoiceCard data-sell-choice="continue-bunch" to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} icon={<History className={ICON} />} title="Continue where you left off" line="Your photos and items from Sell a bunch are kept on this device." />
             )}
@@ -55,15 +55,15 @@ export default function DeclutterSellChooser() {
               <ChoiceCard data-sell-choice="continue-one" to={SELL_ONE_PATH} icon={<History className={ICON} />} title="Continue your listing" line="Your photos and words for one item are kept on this device." />
             )}
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
-            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything and we write each listing for you to check." />
+            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything. We write each listing." />
             {movingOut && (
-              <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Add photos of everything, and your move date groups them as one sale." />
+              <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Your move date groups everything as one sale." />
             )}
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
             <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3>
-            <ChoiceCard data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A local Helpr takes the photos and writes the listings with you." />
+            <ChoiceCard compact data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A Helpr photographs and lists it." />
             {wanted && (
-              <ChoiceCard data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Looking for something? Tell sellers near you." />
+              <ChoiceCard compact data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Tell sellers what you're after." />
             )}
             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />
           </section>

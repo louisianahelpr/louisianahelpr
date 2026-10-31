@@ -172,6 +172,24 @@ describe("declutter-checkout: delivery_tip", () => {
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
+  it("a Helpr who has not verified their ID: refused, no page, no money", async () => {
+    ready();
+    scenario.rpc.payout_waits_on_identity = true;
+    const res = await call();
+    expect(res.status).toBe(409);
+    expect(JSON.parse(await res.text())).toEqual({ error: "tip_waits_on_identity" });
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("the ID check unreadable: fails closed, no page", async () => {
+    ready();
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), payout_waits_on_identity: { message: "connection reset", code: "08006" } };
+    const res = await call();
+    expect(res.status).toBe(500);
+    expect(JSON.parse(await res.text())).toEqual({ error: "tip_check_failed" });
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
   it("a buyer under a ban review is told to contact support, no page", async () => {
     ready();
     scenario.reads.ban_settlement_queue = { rows: [{ user_id: BUYER }] };

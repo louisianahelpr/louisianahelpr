@@ -784,6 +784,67 @@ describe("auto-resolve-disputes", () => {
       });
     });
 
+    // Owner 2026-10-30: a split waiting on the Helpr's ID records the payout-hold error with NO
+    // payout_holds row. It waits on purpose (nothing moved), so it never pages while the ID is outstanding.
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |                   if (idWaiting.get(helper)) idHeldIds.add(row.id as string); |                   void helper;
+    describe("a split waiting on the Helpr's ID", () => {
+      const idSplit = {
+        id: DISPUTE_ID,
+        job_id: "job-7",
+        execution_status: "failed",
+        execution_started_at: "2026-08-30T10:00:00Z",
+        execution_error: "the Helpr's payouts are on hold",
+      };
+      const withHelper = () => {
+        scenario.reads.jobs!.selectOverrides!.push({
+          includes: "is_seed",
+          result: { rows: [{ id: "job-7", is_seed: false, helper_id: "helper-7" }] },
+        });
+        scenario.reads.payout_holds = { rows: [] };
+      };
+
+      it("is set aside while the ID is outstanding: no defect, no admin page, answers 200", async () => {
+        seedStuck(scenario, [idSplit]);
+        withHelper();
+        scenario.rpc.payout_waits_on_identity = true;
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(200);
+        expect(body.stuck_splits).toEqual([]);
+        expect(body.held_stuck_splits).toEqual([{ id: DISPUTE_ID, job_id: "job-7" }]);
+        expect(writesTo("notifications", "insert")).toHaveLength(0);
+      });
+
+      it("pages once the Helpr has verified", async () => {
+        seedStuck(scenario, [idSplit]);
+        withHelper();
+        scenario.rpc.payout_waits_on_identity = false;
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+
+      it("a DIFFERENT failure still pages while the ID is outstanding", async () => {
+        seedStuck(scenario, [{ ...idSplit, execution_error: "transfer sent, refund rejected" }]);
+        withHelper();
+        scenario.rpc.payout_waits_on_identity = true;
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+
+      it("FAILS CLOSED: an unreadable answer exempts nothing", async () => {
+        seedStuck(scenario, [idSplit]);
+        withHelper();
+        scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), payout_waits_on_identity: { message: "connection reset", code: "08006" } };
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(500);
+        expect(body.stuck_splits).toHaveLength(1);
+        expect((body.defectReasons as string[]).join(" ")).toContain("ID check read");
+      });
+    });
+
     // Money review of the live gate (M2): execute-dispute-split holds a split
     // before any leg moves when Stripe does not say the Helpr's account is
     // payable and records CONNECT_HOLD_SPLIT_ERROR. Nothing moved, so it is

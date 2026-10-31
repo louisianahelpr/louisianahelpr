@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { formatExactDollars } from "../_shared/money.ts";
-import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, IDENTITY_HOLD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { CONNECT_NOT_PAYABLE_CODE } from "../_shared/livePayoutGate.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
@@ -128,6 +128,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Payouts on your account are paused while we review it. Your credits are safe. Contact support if you have questions.", code: PAYOUT_HELD_CODE }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
+      );
+    }
+    // No payout without a verified ID (owner 2026-10-30). Credits are not claimed yet, so they stay.
+    const idHold = await checkIdentityHold(supabase, userId);
+    if (idHold.kind !== "clear") {
+      return new Response(
+        JSON.stringify(idHold.kind === "error"
+          ? { error: "We couldn't verify your payout account right now. Please try again in a moment." }
+          : { error: IDENTITY_HOLD_MESSAGE, code: PAYOUT_HELD_CODE }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: idHold.kind === "error" ? 500 : 409 }
       );
     }
 

@@ -34,7 +34,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
@@ -357,6 +357,26 @@ serve(async (req) => {
           tipDollars,
           "payout_hold: the Helpr's payouts were on hold for the whole automatic-tip window; nothing was charged",
           "Your Helpr can't receive payments right now, so your automatic tip for this job was not charged. Nothing was taken from your card.",
+        );
+        continue;
+      }
+      // Owner 2026-10-30: no tip until the Helpr has verified their ID. Not claimed, not charged; a candidate until the
+      // window's last day, then recorded and the poster told. FALSE while the identity_check switch is off. Fails closed.
+      const tipIdHold = await checkIdentityHold(supabase, c.helper_id as string);
+      if (tipIdHold.kind === "error") {
+        log("ERROR reading the ID check — not charging", { jobId, error: tipIdHold.message });
+        results.failed++;
+        defects.record(`ID check read ${jobId}: ${tipIdHold.message}`);
+        continue;
+      }
+      if (tipIdHold.kind === "waits") {
+        log("Helpr has not verified their ID — tip not charged", { jobId });
+        results.held++;
+        await ageOutHeldTip(
+          c,
+          tipDollars,
+          "identity: the Helpr had not verified their ID for the whole automatic-tip window; nothing was charged",
+          "Your Helpr hasn't verified their ID yet, so your automatic tip for this job was not charged. Nothing was taken from your card.",
         );
         continue;
       }

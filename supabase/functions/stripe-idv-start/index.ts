@@ -60,7 +60,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const isNative = isNativeRequest(body);
     // NO FEE GATE (owner, 2026-10-21): Stripe Identity is required before a
-    // member's first accepted or posted job, and Helpr absorbs its cost. The
+    // member's first posted job or hire; the one-time setup fee covers it. The
     // poster's $2 first-job setup fee is unchanged and is charged where it always
     // was, at the first job's checkout; this function never charged it and never
     // marks it paid, so skipping the old "settle the fee first" check can neither
@@ -189,6 +189,35 @@ serve(async (req) => {
           return fail(503, "We couldn't reach your ID check just now. Please try again in a moment.");
         }
         previousReadable = false;
+      }
+    }
+
+    // ALREADY VERIFIED AT STRIPE (owner 2026-10-30, D1): 16 members verified by Stripe were reset
+    // to not_started on 2026-10-27 and still hold their session id. Ask Stripe about it: verified,
+    // and for this member, is recorded with no new session, so nobody checks or is billed twice.
+    // An unreadable or missing session falls through to the normal start.
+    if (profile?.idv_session_id && profile.idv_status === "not_started") {
+      try {
+        const stored = await stripe.identity.verificationSessions.retrieve(profile.idv_session_id);
+        if (stored.status === "verified" && stored.metadata?.user_id === user.id) {
+          const { data: restored, error: restoreErr } = await supabaseAdmin.from("profiles")
+            .update({ idv_status: "verified", idv_failure_reason: null })
+            .eq("user_id", user.id).eq("idv_status", "not_started").select("user_id");
+          if (restoreErr) throw new Error(`restoring a verified session failed: ${restoreErr.message}`);
+          if ((restored?.length ?? 0) > 0) {
+            return new Response(JSON.stringify({ alreadyVerified: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+            });
+          }
+        }
+      } catch (e) {
+        const code = (e as { code?: unknown } | null)?.code;
+        const http = (e as { statusCode?: unknown } | null)?.statusCode;
+        const gone = code === "resource_missing" || http === 404;
+        if (!gone) {
+          console.error("[stripe-idv-start] could not read the stored session:", (e as { message?: string })?.message);
+          return fail(503, "We couldn't reach your ID check just now. Please try again in a moment.");
+        }
       }
     }
 

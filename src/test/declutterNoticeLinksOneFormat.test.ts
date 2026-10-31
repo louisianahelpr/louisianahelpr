@@ -15,9 +15,12 @@
  * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
  * @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
+ * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=offers', o.buyer_id);
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | asked === "deliver" ? "deliver" | asked === "deliverx" ? "deliver"
  * @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?view=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
  */
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { newestFunction } from "./helpers/parityReaders";
 import { blankSqlComments } from "./helpers/blankNonCode";
@@ -132,6 +135,17 @@ describe("Declutter notices link in one format (DC-17)", () => {
       expect(body, name).toMatch(/public\.declutter_(notify|notify_strict|pickup_remind)\(/);
       expect(body, `${name} inserts a notice itself, around the writer`).not.toMatch(/INSERT INTO public\.notifications/i);
     }
+  });
+
+  it("NOID-16: every ?view= link left is either rewritten by the writer or the live Deliver address", () => {
+    // ?view=cart is rewritten too (Q2489, the cart case in declutter_notice_link); ?view=deliver is not an old
+    // address: DeclutterHomeView opens it as the Deliver sub-view.
+    const left = new Set(Object.values(viewLinks()).flatMap((v) => v.split(",")));
+    expect(left.size).toBeGreaterThan(5);
+    const notRewritten = [...left].filter((v) => !REWRITTEN.has(v) && v !== "cart");
+    expect(notRewritten).toEqual(["deliver"]);
+    const home = readFileSync("src/components/declutter/DeclutterHomeView.tsx", "utf8");
+    expect(home).toContain('const subView: "deliver" | "wanted" | null = asked === "deliver" ? "deliver"');
   });
 
   it("no NEW ?view= link: the list left is exact (lower it when a sender moves to ?tab=)", () => {

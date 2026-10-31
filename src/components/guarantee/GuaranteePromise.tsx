@@ -10,7 +10,7 @@ import {
 
 /**
  * The Helpr Guarantee, said once, the same way everywhere it is offered
- * (first post's Review, /book/<id>, signed-out home). Copy lives in
+ * (first post's Review, /book/<id>). Copy lives in
  * src/lib/guarantee/promiseCopy.ts; built on the shared CardSubPanel.
  */
 export function GuaranteePromise({ className }: { className?: string }) {

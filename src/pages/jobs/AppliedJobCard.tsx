@@ -30,6 +30,7 @@ import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
 import { HelperCollapsedStrip, helperCardLine } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
+import { ClosedJobRow } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
@@ -117,12 +118,7 @@ function AppliedJobCardInner({
       <div ref={cardRef}>
         <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
           <div className="px-4 py-3 space-y-1">
-            <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              {closedCardLabel(app)}
-            </p>
-            <p className="text-ds-11 text-muted-foreground">
-              This job has closed, so its details aren’t available any more.
-            </p>
+            <ClosedJobRow label={app.closed_job_label} status={closedCardLabel(app)} />
           </div>
         </JobCardShell>
       </div>

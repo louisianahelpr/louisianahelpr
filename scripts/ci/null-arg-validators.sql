@@ -113,6 +113,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_set_item_seller_delivery', 'action', 'VOLATILE: a seller turns seller delivery on or off for one own item and gets the new setting back; a NULL item or setting raises item_not_found (20261027153244)'),
   ('helpr_task_tip_attach',         'action',   'VOLATILE: records a delivery tip''s Stripe page on its pending row once and says whether the row holds it (service only); a NULL id or page answers false and writes nothing (Q2453; 20261028014848)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
+  ('record_my_signup_source',       'action',   'VOLATILE: a new member (account under 2 days old) records their own sign-up source once (writes; TRUE = a row was added); a NULL source is stored as direct, a NULL campaign as none; no access decision (20261031220447)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_open_to_guests',      'noarg',    'no argument: is the declutter switch''s audience everyone (BUY-16 anon read policies, 20261031060656)'),
   ('declutter_set_auto_free',       'action',   'VOLATILE: the seller turns "free on day 12" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice (Q2430; 20261027205327)'),

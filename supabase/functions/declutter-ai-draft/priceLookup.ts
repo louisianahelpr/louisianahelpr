@@ -9,7 +9,8 @@
  * the reason line is built here from the numbers alone.
  *
  * Pure (fetch and the clock are passed in) so src/test/declutterAiPriceLookup.test.ts runs it with the model mocked.
- * WIP (b19, 10-31): not yet called from index.ts; see ~/.lh-shots/handoffs-1031/b19-HANDOFF.md.
+ * Called from index.ts through priceDraftFromLookup for the one-item draft (both the saved-draft and the photos
+ * path) and for Sell a bunch, where every item's lookup runs at once (Promise.all), each in its own time box.
  */
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
@@ -99,3 +100,31 @@ export function lookupReason(r: PriceRange): string {
 
 /** The fallback label when no lookup answered. */
 export const estimateReason = (reason: string): string => `Our estimate: ${reason}`;
+
+/** The fields of a draft the lookup reads and may change (DeclutterDraft and Sell a bunch's items both have them). */
+export type PricedDraft = {
+  title: string;
+  description: string;
+  conditionStars: number;
+  flagged: boolean;
+  priceDollars: number | null;
+  priceReason: string | null;
+};
+
+/**
+ * The draft's price from a real used-price lookup when one answers in time; otherwise the model's own price, its
+ * reason labelled "Our estimate". A draft with no price keeps none; a flagged item (it may not be sellable) is not
+ * looked up. The lookup sees the draft's title and description (written by the model from the photos), its condition,
+ * and nothing about the member. Never throws.
+ */
+export async function priceDraftFromLookup<D extends PricedDraft>(
+  apiKey: string,
+  draft: D,
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<D> {
+  if (draft.priceDollars === null) return draft;
+  const estimate = (): D => ({ ...draft, priceReason: draft.priceReason ? estimateReason(draft.priceReason) : "Our estimate." });
+  if (draft.flagged || !draft.title.trim()) return estimate();
+  const range = await lookupUsedPrice(apiKey, { title: draft.title, details: draft.description, conditionStars: draft.conditionStars }, opts);
+  return range ? { ...draft, priceDollars: priceFromRange(range), priceReason: lookupReason(range) } : estimate();
+}

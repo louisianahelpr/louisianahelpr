@@ -14,8 +14,8 @@
  * @mutate supabase/functions/declutter-ai-draft/sanitize.ts |   const price = Math.min(high, Math.max(low, draft.priceDollars)); |   const price = draft.priceDollars;
  * @mutate supabase/functions/declutter-ai-draft/sanitize.ts |     && hint.low_cents >= 100 && hint.high_cents >= hint.low_cents; |     && hint.low_cents >= 0;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { data, error } = await anon.rpc("declutter_price_hint", { |   const { data, error } = await admin.rpc("declutter_price_hint", {
- * @mutate supabase/functions/declutter-ai-draft/index.ts | 502);\n  return json(draftAnswer(await groundWithOurSales(anon, draft, body))); | 502);\n  return json(draftAnswer(draft));
- * @mutate supabase/functions/declutter-ai-draft/index.ts |     }\n\n    return json(draftAnswer(await groundWithOurSales(anon, draft, body))); |     }\n\n    return json(draftAnswer(draft));
+ * @mutate supabase/functions/declutter-ai-draft/index.ts | 502);\n  return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body))); | 502);\n  return json(draftAnswer(await priceDraftFromLookup(ANTHROPIC_API_KEY, draft)));
+ * @mutate supabase/functions/declutter-ai-draft/index.ts |     }\n\n    return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body))); |     }\n\n    return json(draftAnswer(await priceDraftFromLookup(ANTHROPIC_API_KEY, draft)));
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -101,6 +101,6 @@ describe("Claude's suggested price", () => {
     expect(EDGE).toContain('const { data, error } = await anon.rpc("declutter_price_hint", {');
     expect(EDGE).toContain("priceDollars: draft.priceDollars,");
     // The saved draft's path and a new listing's photos path both ground the price.
-    expect([...EDGE.matchAll(/return json\(draftAnswer\(await groundWithOurSales\(anon, draft, body\)\)\);/g)]).toHaveLength(2);
+    expect([...EDGE.matchAll(/return json\(draftAnswer\(await groundWithOurSales\(anon, await priceDraftFromLookup\(ANTHROPIC_API_KEY, draft\), body\)\)\);/g)]).toHaveLength(2);
   });
 });

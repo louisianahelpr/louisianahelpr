@@ -112,6 +112,18 @@ export function refundedInFull(v: Pick<RefundRequestView, "full_refund_cents" | 
   return !!r && r.status === "agreed" && r.refund_cents != null && r.refund_cents >= v.full_refund_cents;
 }
 
+/** The fields of a request that say the item went back and what came back for it (AUD31-36). */
+export type RefundTookItBack = Pick<RefundRequest, "status" | "returned_at"> & Partial<Pick<RefundRequest, "refund_cents" | "refund_status">>;
+
+/**
+ * AUD31-36: a full refund where the item went back to the seller (status "agreed", returned_at set). The buyer no longer
+ * has it, so the card stops offering help moving it and says it was returned. A part refund (the buyer keeps it) has no
+ * returned_at and reads as before.
+ */
+export function refundTookItBack(request: RefundTookItBack | null | undefined): boolean {
+  return request?.status === "agreed" && !!request.returned_at;
+}
+
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {
   return rpcData(
     await supabase.rpc("declutter_refund_request_view", { p_order_id: orderId }),

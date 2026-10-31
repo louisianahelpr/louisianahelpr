@@ -6,8 +6,10 @@
  * bank was for something else.
  *
  * CLASS: no copy string in the app or an edge function says payouts or payments are only for jobs. Inventory: every
- * .ts/.tsx under src/ and supabase/functions/ (tests excluded), comments blanked; a string literal is an offender when it
- * speaks of payouts/payments/getting paid AND of jobs, and names neither Declutter nor sales.
+ * .ts/.tsx under src/ and supabase/functions/ (tests excluded), comments blanked; a string literal or JSX text is an
+ * offender when it speaks of payouts/payments/getting paid AND of jobs in general ("for completed jobs", "when jobs
+ * are completed"; one job's own line, "this job", is not this class), and names neither Declutter, sales nor
+ * deliveries.
  *
  * @mutate supabase/functions/_shared/connectGateSync.ts | message: "Your payout account is set up. You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | message: "Your payout account is set up. You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
@@ -21,7 +23,8 @@ import { walkSource } from "./helpers/walkSource";
 
 const ROOT = resolve(__dirname, "../..");
 const MONEY = /\b(payouts?|payments?|get paid|paid out)\b/i;
-const JOBS = /\bjobs?\b/i;
+/** Jobs in general (plural, no "this job"): what the money is FOR, not one job's own line. */
+const JOBS = /\b(for|from) (completed |finished |your )?jobs\b|\bwhen (your )?jobs (are|get) (completed|done|finished)\b/i;
 const OTHER_EARNINGS = /declutter|\bsales?\b|deliver/i;
 
 /** String literals ('..', "..", `..` without ${}) in a source with its comments blanked. */

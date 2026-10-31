@@ -6,17 +6,27 @@
 //     into a user gesture, otherwise iOS rejects it silently)
 //   - cleanup invariants (no leaked listeners after dispose)
 
+//
+// LEAD-SHAKE-PROMPT (10-31): it runs only in the native app and only once the
+// member turned it on (src/test/shakeToReportNeverAsksOnWeb.test.ts proves the
+// website and the default-off side), and one jolt is not a shake: it takes
+// SHAKE_PEAKS hard swings. So every case here runs as the app, opted in, and
+// "a shake" is shakeOnce().
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { initShakeToReport, disposeShakeToReport } from "./shakeToReport";
+import { initShakeToReport, disposeShakeToReport, SHAKE_PEAKS } from "./shakeToReport";
+
+vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: true }));
 
 const onShake = vi.fn();
 
 beforeEach(() => {
   onShake.mockReset();
+  window.localStorage.setItem("lh-shake-to-report", "on");
   // Reset module-scoped cleanupFn between tests by disposing
   disposeShakeToReport();
-  // Default: no requestPermission (web/Android-style API)
-  Reflect.deleteProperty(window, "DeviceMotionEvent");
+  // Default: the API with no requestPermission (Android-style)
+  Object.defineProperty(window, "DeviceMotionEvent", { configurable: true, writable: true, value: class {} });
   vi.useFakeTimers();
 });
 
@@ -24,6 +34,14 @@ afterEach(() => {
   disposeShakeToReport();
   vi.useRealTimers();
 });
+
+/** SHAKE_PEAKS hard swings, 150 ms apart (fake timers move Date.now). */
+function shakeOnce(x = 20, y = 20, z = 20) {
+  for (let i = 0; i < SHAKE_PEAKS; i++) {
+    vi.advanceTimersByTime(150);
+    fireMotion(x, y, z);
+  }
+}
 
 function fireMotion(x: number, y: number, z: number) {
   const evt = new Event("devicemotion") as DeviceMotionEvent;
@@ -34,15 +52,15 @@ function fireMotion(x: number, y: number, z: number) {
 }
 
 describe("initShakeToReport — non-iOS path (no permission required)", () => {
-  it("fires onShake when magnitude crosses threshold (22)", () => {
+  it("fires onShake when several swings cross the threshold", () => {
     initShakeToReport(onShake);
-    fireMotion(20, 20, 20); // mag ≈ 34.6 — exceeds 22
+    shakeOnce(); // mag ≈ 34.6 — exceeds 32, SHAKE_PEAKS times
     expect(onShake).toHaveBeenCalledOnce();
   });
 
   it("does NOT fire on a pocket bump below threshold", () => {
     initShakeToReport(onShake);
-    fireMotion(5, 5, 5); // mag ≈ 8.66 — below 22
+    shakeOnce(5, 5, 5); // mag ≈ 8.66 — below 32
     expect(onShake).not.toHaveBeenCalled();
   });
 
@@ -56,19 +74,19 @@ describe("initShakeToReport — non-iOS path (no permission required)", () => {
 
   it("respects 5-second cooldown — back-to-back shakes only fire once", () => {
     initShakeToReport(onShake);
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1);
-    fireMotion(20, 20, 20); // immediate second shake
+    shakeOnce(); // immediate second shake
     expect(onShake).toHaveBeenCalledTimes(1); // still 1, blocked by cooldown
   });
 
   it("fires again after cooldown expires", () => {
     initShakeToReport(onShake);
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1);
 
     vi.advanceTimersByTime(5_001);
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(2);
   });
 
@@ -94,7 +112,7 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
 
     // Before tap: motion events should NOT fire onShake (listener not
     // attached yet)
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).not.toHaveBeenCalled();
     expect(requestPermission).not.toHaveBeenCalled();
 
@@ -103,8 +121,9 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
     // Allow the async requestPermission to resolve
     await vi.waitFor(() => expect(requestPermission).toHaveBeenCalled());
 
-    // Now motion events should fire
-    fireMotion(20, 20, 20);
+    // Now motion events should fire (the grant resolves through two awaits)
+    for (let i = 0; i < 3; i++) await Promise.resolve();
+    shakeOnce();
     await vi.waitFor(() => expect(onShake).toHaveBeenCalledTimes(1));
   });
 
@@ -120,7 +139,7 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
     window.dispatchEvent(new Event("touchend"));
     await vi.waitFor(() => expect(requestPermission).toHaveBeenCalled());
 
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).not.toHaveBeenCalled();
   });
 
@@ -170,7 +189,7 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
     window.dispatchEvent(new Event("touchend"));
     // Should not throw; should not attach listener either
     await vi.waitFor(() => expect(requestPermission).toHaveBeenCalled());
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).not.toHaveBeenCalled();
   });
 });
@@ -179,18 +198,18 @@ describe("initShakeToReport — idempotency + cleanup", () => {
   it("calling init twice does not double-attach (second call is a no-op)", () => {
     initShakeToReport(onShake);
     initShakeToReport(onShake); // second call should be ignored
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1);
   });
 
   it("disposeShakeToReport removes the listener — no further events fire", () => {
     initShakeToReport(onShake);
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1);
 
     disposeShakeToReport();
     vi.advanceTimersByTime(10_000); // past cooldown
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1); // no new fire
   });
 
@@ -199,7 +218,7 @@ describe("initShakeToReport — idempotency + cleanup", () => {
     disposeShakeToReport();
 
     initShakeToReport(onShake);
-    fireMotion(20, 20, 20);
+    shakeOnce();
     expect(onShake).toHaveBeenCalledTimes(1);
   });
 });
@@ -208,4 +227,4 @@ describe("initShakeToReport — idempotency + cleanup", () => {
 // reached it before the auth-route test above: every other case runs at
 // jsdom's default path "/".
 // @mutate src/lib/shakeToReport.ts | if (AUTH_ROUTES.some((r) => window.location.pathname.startsWith(r))) return; | if (false) return;
-// @mutate src/lib/shakeToReport.ts | const THRESHOLD = 22; | const THRESHOLD = 0;
+// @mutate src/lib/shakeToReport.ts | export const THRESHOLD = 32; | export const THRESHOLD = 0;

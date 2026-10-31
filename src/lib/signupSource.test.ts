@@ -4,8 +4,10 @@
  *
  * @mutate src/lib/signupSource.ts |   const kept = readFirstTouch(now);\n  if (kept) return kept; |   const kept = readFirstTouch(now);
  * @mutate src/lib/signupSource.ts |     if (now - t.at > TOUCH_DAYS * 86_400_000) return null; |
- * @mutate src/lib/signupSource.ts |   if (!word \|\| word.includes("@") \|\| /\d{7,}/.test(word)) return null; |   if (!word \|\| /\d{7,}/.test(word)) return null;
- * @mutate src/lib/signupSource.ts |   if (!word \|\| word.includes("@") \|\| /\d{7,}/.test(word)) return null; |   if (!word \|\| word.includes("@")) return null;
+ * @mutate src/lib/signupSource.ts |   if (!word \|\| word.includes("@") \|\| word.includes("%40") \|\| | if (!word \|\| word.includes("%40") \|\|
+ * @mutate src/lib/signupSource.ts | \|\| /\d{7,}/.test(word.replace(/\D/g, ""))) return null; |) return null;
+ * @mutate src/lib/signupSource.ts | word.includes("@") \|\| word.includes("%40") \|\| | word.includes("@") \|\|
+ * @mutate src/lib/signupSource.ts | /\d{7,}/.test(word.replace(/\D/g, "")) | /\d{7,}/.test(word)
  * @mutate src/lib/signupSource.ts | rawTag && clean(rawTag) === null ? null : | false ? null :
  * @mutate src/lib/signupSource.ts |   if (safeStorage.getItem(SENT_KEY) === userId) return; |
  * @mutate src/lib/signupSource.ts |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });\n      return; |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });
@@ -58,6 +60,28 @@ describe("rememberFirstTouch", () => {
     const t = rememberFirstTouch("?utm_source=5045551234&utm_campaign=call-3375550000", "", 1000);
     expect(t.source).toBe("direct");
     expect(t.campaign).toBeNull();
+  });
+
+  it("a phone number written with separators is never kept (review 10-31)", () => {
+    for (const phone of ["555-123-4567", "(555) 123-4567", "+1 555 123 4567"]) {
+      localStorage.clear();
+      const q = new URLSearchParams({ utm_source: phone, utm_campaign: phone }).toString();
+      const t = rememberFirstTouch(`?${q}`, "", 1000);
+      expect(t.source, phone).toBe("direct");
+      expect(t.campaign, phone).toBeNull();
+    }
+  });
+
+  it("a link-encoded email (%40) is never kept (review 10-31)", () => {
+    // %2540 decodes to the literal text "%40" that a double-encoded share link carries.
+    const t = rememberFirstTouch("?utm_source=jo%2540x.com&utm_campaign=jo%2540x.com", "", 1000);
+    expect(t.source).toBe("direct");
+    expect(t.campaign).toBeNull();
+  });
+
+  it("a word with only a few digits (a year, a post number) is still kept", () => {
+    const t = rememberFirstTouch("?utm_source=fall-2026&utm_campaign=post-12", "", 1000);
+    expect(t).toMatchObject({ source: "fall-2026", campaign: "post-12" });
   });
 
   it("no tag and no outside referrer is direct", () => {

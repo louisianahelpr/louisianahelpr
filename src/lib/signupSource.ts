@@ -30,8 +30,9 @@ export interface FirstTouch {
 }
 
 function clean(word: string | null | undefined): string | null {
-  // An @ (an email) or 7+ digits in a row (a phone number) may be someone's details: never kept.
-  if (!word || word.includes("@") || /\d{7,}/.test(word)) return null;
+  // An @ or %40 (an email, raw or link-encoded) or 7+ digits in all (a phone number, separators included:
+  // "555-123-4567", "(555) 123-4567", "+1 555 123 4567") may be someone's details: never kept.
+  if (!word || word.includes("@") || word.includes("%40") || /\d{7,}/.test(word.replace(/\D/g, ""))) return null;
   const w = word.toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 64);
   return w || null;
 }

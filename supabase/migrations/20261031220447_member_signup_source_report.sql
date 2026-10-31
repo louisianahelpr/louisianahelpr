@@ -10,7 +10,7 @@
 -- 2. public.record_my_signup_source(source, campaign): the signed-in member's own row, written once (first one wins),
 --    and only in the first 2 days after the account was made, so an old member opening a tagged link is never
 --    counted as a new sign-up from it. Both words are cleaned on the server: lower case, only a-z 0-9 . _ -,
---    64 characters at most; an empty source is 'direct'; a word with an @ or 7+ digits in a row (maybe an email or a phone) is never kept. Never an error for the member: false when nothing is written.
+--    64 characters at most; an empty source is 'direct'; a word with an @ or %40 or 7+ digits in all (maybe an email or a phone, separators included) is never kept. Never an error for the member: false when nothing is written.
 -- 3. public.admin_signup_source_report(days): admins only (42501 otherwise). Per source and campaign, for the last
 --    N days (1-365, default 30): how many joined, and how many made their first post (a job or a Declutter item
 --    going live) in that window. Real members only: seed profiles, anonymised profiles and test accounts
@@ -52,12 +52,15 @@ BEGIN
   IF v_made IS NULL OR v_made < now() - interval '2 days' THEN
     RETURN false;
   END IF;
-  -- A word with an @ (an email) or a run of 7+ digits (a phone number) may be someone's details put in a link:
-  -- never kept ('other' / no campaign).
-  v_source := CASE WHEN position('@' IN coalesce(p_source, '')) > 0 OR coalesce(p_source, '') ~ '[0-9]{7,}' THEN 'other'
+  -- A word with an @ or a %40 (an email, raw or link-encoded) or 7+ digits in all (a phone number, with or
+  -- without separators: "555-123-4567", "(555) 123-4567", "+1 555 123 4567") may be someone's details put in
+  -- a link: never kept ('other' / no campaign).
+  v_source := CASE WHEN position('@' IN coalesce(p_source, '')) > 0 OR position('%40' IN coalesce(p_source, '')) > 0
+                     OR regexp_replace(coalesce(p_source, ''), '[^0-9]', '', 'g') ~ '[0-9]{7,}' THEN 'other'
                    ELSE left(regexp_replace(lower(coalesce(p_source, '')), '[^a-z0-9._-]', '', 'g'), 64) END;
   IF v_source = '' THEN v_source := 'direct'; END IF;
-  v_campaign := CASE WHEN position('@' IN coalesce(p_campaign, '')) > 0 OR coalesce(p_campaign, '') ~ '[0-9]{7,}' THEN NULL
+  v_campaign := CASE WHEN position('@' IN coalesce(p_campaign, '')) > 0 OR position('%40' IN coalesce(p_campaign, '')) > 0
+                       OR regexp_replace(coalesce(p_campaign, ''), '[^0-9]', '', 'g') ~ '[0-9]{7,}' THEN NULL
                      ELSE nullif(left(regexp_replace(lower(coalesce(p_campaign, '')), '[^a-z0-9._-]', '', 'g'), 64), '') END;
 
   INSERT INTO public.member_signup_sources (user_id, source, campaign)

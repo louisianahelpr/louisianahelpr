@@ -433,6 +433,45 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
+  // LEAD-PORCH-SR (l41 at 375, seller porch card with an open buyer problem): the photo input's screen-reader label
+  // still promised "needed before you can be paid automatically" while the money was held. Both sides, label and hint.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const payWords = !free && !held; |   const payWords = !free;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} held={!!problem} /> | who={who} held={false} />
+  it("LEAD-PORCH-SR: with a problem open, the porch photo's label and hint promise no pay, on either side", async () => {
+    const today = new Date();
+    const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    state.porchDays = [day];
+    state.bookings = [{ ...slot(-60), pickup_day: day }];
+    state.handover = { side: "seller" };
+    let checked = 0;
+    try {
+      for (const held of [false, true]) {
+        state.problems = held ? [{ id: "p9", order_id: "o1", reporter_side: "buyer", reason: "no_show" }] : [];
+        const v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+        await screen.findByLabelText(/^Photo of the item on your porch/);
+        await waitFor(() => expect(!!screen.queryByLabelText(/paid automatically/)).toBe(!held));
+        expect(!!screen.queryByText(/You need it before you can be paid automatically/)).toBe(!held);
+        checked++;
+        v.unmount();
+      }
+      state.bookings = [slot(60)];
+      state.handover = null;
+      for (const held of [false, true]) {
+        state.problems = held ? [{ id: "p9", order_id: "o1", reporter_side: "seller", reason: "no_show" }] : [];
+        const v = show([line({ handover: "porch" })]);
+        await screen.findByLabelText(/^Photo when you pick it up/);
+        await waitFor(() => expect(!!screen.queryByLabelText(/this pays the seller/)).toBe(!held));
+        expect(!!screen.queryByText(/they're paid 24 hours later/)).toBe(!held);
+        checked++;
+        v.unmount();
+      }
+    } finally {
+      state.problems = [];
+      state.porchDays = null;
+    }
+    expect(checked).toBeGreaterThan(3);
+  });
+
   // BUY-5 (buying audit 10-30 #5): the buyer's pickup photo was offered days early and finished the sale the
   // moment a photo was chosen. It now waits like "I got it" and shows a preview with Retake before sending.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |      {buyerWaits ? null : notYet ? ( |      {notYet ? (

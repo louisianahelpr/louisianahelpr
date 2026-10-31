@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T20:52:30.906Z",
-  "guards": 2966,
-  "registered": 2963,
+  "generated": "2026-10-31T21:36:20.820Z",
+  "guards": 2979,
+  "registered": 2976,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -21,6 +21,7 @@
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/browseEmptySameSpot.test.tsx",
     "src/test/crewHasNoJobLevelNoShow.test.ts",
+    "src/test/declutterOnePreview.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/instantReleaseSaysThreeDays.test.ts",
@@ -319,6 +320,7 @@
     {
       "module": "src/pages/post-job/FormStep.tsx",
       "tests": [
+        "src/test/detailsPlaceholdersAskOnContinue.test.tsx",
         "src/test/flexibleScheduleUnlocksSubmit.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],

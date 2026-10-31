@@ -74,12 +74,12 @@ each naming the lane accountable for it.
 | Redirect-only routes | 1 | `lh-route-walker` | COVERED |
 | `?tab=` variants | 34 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 27 | `lh-route-walker` · `lh-state-matrix` | COVERED |
-| Overlay surfaces | 207 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
+| Overlay surfaces | 208 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
 | Toast messages | 1053 | `lh-copy-content` | COVERED |
 | Multi-step flows — confirmed | 33 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 30 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 58 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
-| Forms (submittable) | 91 | `lh-input-boundary` | COVERED |
+| Forms (submittable) | 90 | `lh-input-boundary` | COVERED |
 | Admin components (components/admin + pages/admin/Admin*) | 173 | `lh-admin-moderation` | COVERED |
 | Email templates | 22 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 26 | `lh-notifications` | COVERED |

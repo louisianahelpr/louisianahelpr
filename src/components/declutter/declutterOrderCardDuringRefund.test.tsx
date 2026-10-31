@@ -22,7 +22,7 @@ const state = vi.hoisted(() => ({
   problems: [] as Record<string, unknown>[],
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests" }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));

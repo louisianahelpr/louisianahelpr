@@ -22,7 +22,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { OrderProblem } from "@/lib/declutter/handover";
 
 const state = vi.hoisted(() => ({ problem: null as unknown, added: [] as unknown[][], withdrawn: [] as unknown[], uploaded: [] as string[] }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchOrderProblem: async () => state.problem,

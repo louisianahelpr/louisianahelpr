@@ -47,7 +47,7 @@ vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
 import { SellPorchPlaces } from "./SellPorchPlaces";
 import { SellWaysFields } from "./SellFormParts";

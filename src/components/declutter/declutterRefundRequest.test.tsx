@@ -47,7 +47,7 @@ vi.mock("@/lib/declutter/refundReturns", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/refundReturns")>();
   return { ...real, acceptRefundWithReturn: async (...a: unknown[]) => { state.accepted.push(a); return { result: "returning" }; } };
 });
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 // D2-11: who made the handover (declutter_my_handover); the card's handover row.
 const handover = vi.hoisted(() => ({ row: { confirmed_by: "auto", picked_up_at: null } as { confirmed_by: string | null; picked_up_at: string | null } }));
 vi.mock("@/lib/declutter/problemPhotos", () => ({

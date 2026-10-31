@@ -78,7 +78,7 @@ export function DeclutterProblemSides({ orderId, side, delivery = false }: { ord
     // Sent again, the server replaces the earlier words and photos: with no new photo the ones already sent stay.
     mutationFn: async (p: OrderProblem) => addProblemSide(p.id, note.trim(), photos.length ? await uploadProblemPhotos(orderId, photos) : (p.other_side_photo_paths ?? [])),
     onSuccess: () => {
-      toast.success("Sent. Louisiana Helpr reads both sides before it decides.");
+      toast("Sent. Louisiana Helpr reads both sides before it decides.");
       setOpen(false);
       setPhotos([]);
       void qc.invalidateQueries({ queryKey: ["declutter", "problem", orderId] });
@@ -90,7 +90,7 @@ export function DeclutterProblemSides({ orderId, side, delivery = false }: { ord
     mutationFn: (q: OrderProblem) => withdrawProblem(q.id),
     onSettled: () => setTakingBack(false),
     onSuccess: () => {
-      toast.success("Report taken back. Nothing is held for it now.");
+      toast("Report taken back. Nothing is held for it now.");
       // The order card's hold, refund panel and steps all read from the order, so refresh every Declutter read.
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },

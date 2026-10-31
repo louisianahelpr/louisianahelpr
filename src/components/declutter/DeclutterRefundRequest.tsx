@@ -127,17 +127,17 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       const paths = REFUND_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(v.order_id, photos) : [];
       return askRefund(v.order_id, reason, note.trim(), paths);
     },
-    onSuccess: () => { toast.success(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); setPhotos([]); refresh(); },
+    onSuccess: () => { toast(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); setPhotos([]); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const offer = useMutation({
     mutationFn: (accept: boolean) => answerRefundOffer(v.request?.id ?? "", accept),
-    onSuccess: (r) => { toast.success(r.result === "refunded" ? "Done. Your refund is on its way." : "Sent to Louisiana Helpr to decide."); refresh(); },
+    onSuccess: (r) => { toast(r.result === "refunded" ? "Done. Your refund is on its way." : "Sent to Louisiana Helpr to decide."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const withdraw = useMutation({
     mutationFn: () => withdrawRefund(v.request?.id ?? ""),
-    onSuccess: () => { toast.success("Refund request taken back."); refresh(); },
+    onSuccess: () => { toast("Refund request taken back."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Audit 2026-10-30 DB-11: "Take it back" ended the request in one tap. It asks first, in Declutter's one confirm
@@ -297,7 +297,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   const { user } = useAuthReady();
   const back = useMutation({
     mutationFn: async () => confirmItemReturned(v.request?.id ?? "", await sellerReturnPhotoPath(user?.id, v.order_id, backPhoto)),
-    onSuccess: () => { toast.success("Refund sent. The buyer is told."); refresh(); },
+    onSuccess: () => { toast("Refund sent. The buyer is told."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const r = v.request;

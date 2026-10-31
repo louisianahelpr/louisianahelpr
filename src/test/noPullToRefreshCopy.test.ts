@@ -19,6 +19,7 @@ import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
+// @two-way src/test/noPullToRefreshCopy.test.ts:stale baseline entry in EXEMPT
 const EXEMPT = new Set(["src/components/PullToRefreshWrapper.tsx"]);
 const files = trackedFiles("src").filter(
   (f) => /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.(ts|tsx)$/.test(f) && !f.startsWith("src/test/"),
@@ -35,6 +36,6 @@ describe('member copy never says "Pull to refresh" (a desktop page cannot be pul
   });
 
   it("the exemption is still needed (the indicator still says it)", () => {
-    for (const f of EXEMPT) expect(/pull to refresh/i.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))), f).toBe(true);
+    for (const f of EXEMPT) expect(/pull to refresh/i.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))), `stale baseline entry in EXEMPT — remove it (lower the baseline): ${f}`).toBe(true);
   });
 });

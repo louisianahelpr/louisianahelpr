@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { jobIsUnfundedDraft } from "./activityFilters";
 import { hasFaceAction } from "./faceActionRequest";
 
@@ -52,10 +51,7 @@ export function useManageDeepLink(
   idFromUrl: string | null,
   postedJobs: ReadonlyArray<{ id: string }>,
   cards: { expandedJobIds: Set<string>; toggleExpandedJobId: (id: string) => void },
-  /** Posted's `&manage=1`: an old link opens the job page instead (useManageLinkOpensJobPage below). */
-  opts: { jobPageFirst?: boolean } = {},
 ): void {
-  useManageLinkOpensJobPage(opts.jobPageFirst ? idFromUrl : null);
   const [target, setTarget] = useState(idFromUrl);
   const done = useRef<string | null>(null);
   useEffect(() => {
@@ -84,15 +80,14 @@ export function useOpenWorkingDeepLink(
 }
 
 /**
- * THE MANAGE JOB SCREEN IS GONE (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT): its actions are on the job page. An old
+ * THE MANAGE JOB SCREEN IS GONE (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT): its actions are on the job page, so an old
  * `/posts?highlight=<id>&manage=1` link (a chat card, an email, a notification already on a phone) opens /jobs/<id>.
- * Only a link the job page itself sent with a request for the card (approve, cancel, edit: faceActionRequest) still
- * opens the card, whose own control answers it. Read once, on the first render, like the links above.
+ * Only a link the job page itself sent with a request for the card (approve, cancel, edit, more options:
+ * faceActionRequest) still opens the card, whose own control answers it. JobsSection redirects BEFORE the Posted
+ * list mounts: redirecting from inside the list raced its own deep-link URL writes, which put the list back
+ * (measured in a browser, 2026-10-31).
  */
-export function useManageLinkOpensJobPage(idFromUrl: string | null): void {
-  const navigate = useNavigate();
-  const [target] = useState(() => (idFromUrl && !hasFaceAction(idFromUrl) ? idFromUrl : null));
-  useEffect(() => {
-    if (target) navigate(`/jobs/${encodeURIComponent(target)}`, { replace: true });
-  }, [target, navigate]);
+export function manageLinkOpensJobPage(params: URLSearchParams): string | null {
+  const id = params.get("manage") === "1" ? params.get("highlight") : null;
+  return id && !hasFaceAction(id) ? `/jobs/${encodeURIComponent(id)}` : null;
 }

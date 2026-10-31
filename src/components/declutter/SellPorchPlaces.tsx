@@ -13,21 +13,41 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
-  saveMyPorchPlace, type MyPorchPlace,
+  deleteMyPorchPlace, fetchItemPickupPlaces, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
+  saveMyPorchPlace, type MyPorchPlace, type PickupPlaceHours,
 } from "@/lib/declutter/porchPlaces";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { DayChip, shortDays } from "./DeclutterPickupTimes";
+import { fetchMyPickupWindows, type PickupWindow } from "@/lib/declutter/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./DeclutterPickupTimes";
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 
-/** `saved`: a saved place's own point. Kept while its address is unchanged, so editing its days moves nothing buyers rely on. */
-type Draft = { id: string | null; label: string; address: string; area: string; weekdays: number[]; saved?: { address: string; lat: number; lng: number } };
+/**
+ * `saved`: a saved place's own point. Kept while its address is unchanged, so editing its hours moves nothing buyers rely on.
+ * `windows`: the place's days and hours (LEAD-PLACE-TIMES, owner 2026-10-31: one Pickup places card, each place with its
+ * own days and hours set with the same "Same hours every day / Different each day" control the pickup times used).
+ */
+type Draft = { id: string | null; label: string; address: string; area: string; windows: PickupWindow[]; saved?: { address: string; lat: number; lng: number } };
 
-const EMPTY: Draft = { id: null, label: "", address: "", area: "", weekdays: [] };
-const WEEK = [0, 1, 2, 3, 4, 5, 6];
+const FALLBACK_HOURS: PickupWindow[] = [{ weekday: 6, starts: "09:00", ends: "12:00" }];
+
+/** A new place starts from the seller's usual pickup times (the owner's: 7 AM to 9 PM every day), else Sat 9-12. */
+function usualHours(rows: { weekday: number; starts_local: string; ends_local: string }[] | undefined): PickupWindow[] {
+  const ws = (rows ?? []).map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) }));
+  return ws.length ? ws : FALLBACK_HOURS;
+}
+
+/** A saved place's hours, else hours made from its days and the usual times (an older server returned days only). */
+function placeHours(p: MyPorchPlace, usual: PickupWindow[]): PickupWindow[] {
+  if (p.windows && p.windows.length) return p.windows.map((w) => ({ weekday: w.weekday, starts: w.starts, ends: w.ends }));
+  return p.weekdays.flatMap((d) => {
+    const that = usual.filter((w) => w.weekday === d);
+    return (that.length ? that : [usual[0]]).map((w) => ({ weekday: d, starts: w.starts, ends: w.ends }));
+  });
+}
 
 /**
  * index.css T2 makes every .bg-card border transparent with !important, and dark drops the shadow that draws the edge
@@ -36,15 +56,15 @@ const WEEK = [0, 1, 2, 3, 4, 5, 6];
  */
 export const PLACE_CARD_EDGE = "dark:!border-border";
 
-/** What the server books: a frozen place's weekdays only (declutter_order_is_porch_day), never the usual pickup times. */
-const PLACE_DAYS_RULE = "Porch pickup uses each place's days, not your usual pickup times.";
+/** What the server books: the frozen place's days and hours (declutter_order_is_porch_day, declutter_order_pickup_windows). */
+const PLACE_DAYS_RULE = "Buyers come on each place's own days and hours.";
 
 /** The words over the places. `free`: nobody pays. `helprOnly`: porch is unticked, so only Helpr delivery reads them. */
 function placesWords(count: number, free: boolean, helprOnly: boolean): string {
   if (free) {
     return count > 0
       ? "The person who gets it picks one of these and sees its address once they confirm. This applies to all your listings."
-      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days. The person who gets it picks one and sees its address once they confirm.`;
+      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. The person who gets it picks one and sees its address once they confirm.`;
   }
   if (helprOnly) {
     return count > 0
@@ -53,7 +73,7 @@ function placesWords(count: number, free: boolean, helprOnly: boolean): string {
   }
   return count > 0
     ? "Buyers pick one of these. They only get its address after paying. This applies to all your listings."
-    : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days. Buyers pick one and only get its address after paying.`;
+    : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. Buyers pick one and only get its address after paying.`;
 }
 
 function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => void; free: boolean }) {
@@ -70,7 +90,7 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       // the list, an exact lookup, or "I'm at this address". A town or street match stops at the note under the box.
       const point = d.saved && d.saved.address.trim() === address ? d.saved : await place.locate(address);
       if (!d.area.trim()) throw new Error("no_city_in_address");
-      return saveMyPorchPlace({ id: d.id, label: d.label.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, weekdays: d.weekdays });
+      return saveMyPorchPlace({ id: d.id, label: d.label.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, weekdays, windows: d.windows });
     },
     onMutate: () => setProblem(null),
     onSuccess: () => {
@@ -84,8 +104,9 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       setProblem(code === "no_city_in_address" ? NO_CITY_IN_ADDRESS : declutterErrorMessage(err));
     },
   });
-  const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && d.weekdays.length > 0;
-  const toggle = (day: number) => set({ weekdays: d.weekdays.includes(day) ? d.weekdays.filter((x) => x !== day) : [...d.weekdays, day].sort((a, b) => a - b) });
+  const hoursProblem = pickupWindowsProblem(d.windows);
+  const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && !hoursProblem;
+  const weekdays = [...new Set(d.windows.map((w) => w.weekday))].sort((a, b) => a - b);
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
       <div className="space-y-1.5">
@@ -99,11 +120,9 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
         <AddressNeedsExactSpot typedAddress={d.address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
         <p className="text-ds-13 text-muted-foreground">{free ? "Private. Only the person who picks this place sees it." : "Private. Only the buyer who pays and picks this place sees it."}</p>
       </div>
-      <div className="space-y-1.5" role="group" aria-label="Days at this place">
-        <p className="text-ds-14 font-semibold text-foreground">Days at this place</p>
-        <div className="flex flex-wrap gap-2">
-          {WEEK.map((day) => <DayChip key={day} day={day} on={d.weekdays.includes(day)} disabled={save.isPending} onToggle={() => toggle(day)} />)}
-        </div>
+      <div className="space-y-1.5" role="group" aria-label="Days and hours at this place" data-place-hours="">
+        <p className="text-ds-14 font-semibold text-foreground">Days and hours at this place</p>
+        <PickupTimesEditor windows={d.windows} setWindows={(f) => setD((x) => ({ ...x, windows: f(x.windows) }))} />
       </div>
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
@@ -132,7 +151,7 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
       <div className="min-w-0">
         <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{place.label}</p>
         <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{place.address}</p>
-        <p className="text-ds-13 text-muted-foreground">{shortDays(place.weekdays)}</p>
+        <p className="text-ds-13 text-muted-foreground" data-place-hours-line="">{placeHoursLine(place.windows, place.weekdays)}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onEdit} aria-label={`Edit ${place.label}`}>Edit</Button>
@@ -171,6 +190,9 @@ export function SavedPlacesComeFirst({ free }: { free: boolean }) {
 /** `card`: in Declutter settings it sits among the setting cards, so it brings its own (and none while there is nothing to show). */
 export function SellPorchPlaces({ card = false, free = false, helprOnly = false }: { card?: boolean; free?: boolean; helprOnly?: boolean }) {
   const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
+  const { user } = useCurrentUser();
+  const usualRead = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
+  const usual = usualHours(usualRead.data);
   // null: no form open; a draft: adding (id null) or editing that place.
   const [draft, setDraft] = useState<Draft | null>(null);
   if (mine.data === PORCH_PLACES_NOT_DEPLOYED) return null;
@@ -190,14 +212,48 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
       {places.length > 0 && (
         <ul className="grid gap-2 lg:grid-cols-2">
-          {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, weekdays: p.weekdays, saved: { address: p.address, lat: p.lat, lng: p.lng } })} />)}
+          {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, windows: placeHours(p, usual), saved: { address: p.address, lat: p.lat, lng: p.lng } })} />)}
         </ul>
       )}
       {draft
         ? <PlaceForm key={draft.id ?? "new"} initial={draft} free={free} onDone={() => setDraft(null)} />
         : places.length < MAX_PORCH_PLACES && (
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft(EMPTY)}>Add a pickup place</Button>
+          <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ id: null, label: "", address: "", area: "", windows: usual })}>Add a pickup place</Button>
         )}
     </div>,
+  );
+}
+
+/** Each place on its own line with its own days and hours (LEAD-POST-PLACES, owner 2026-10-31: "both must show"). No address. */
+export function PickupPlacesHoursList({ places }: { places: PickupPlaceHours[] }) {
+  if (places.length === 0) return null;
+  return (
+    <ul className="space-y-1" data-pickup-places-hours="">
+      {places.map((p, i) => (
+        <li key={`${p.label}-${i}`} className="text-ds-13 [overflow-wrap:anywhere]" data-pickup-place-hours="">
+          <span className="font-semibold text-foreground">{[p.label, p.area].filter(Boolean).join(" · ")}</span>
+          <span className="block text-muted-foreground">{placeHoursLine(p.windows, p.weekdays)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The posting summary's places: every saved place, not just the listing's own area (null while none are saved). */
+export function MyPickupPlacesSummary() {
+  const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
+  if (!Array.isArray(mine.data) || mine.data.length === 0) return null;
+  return <PickupPlacesHoursList places={mine.data} />;
+}
+
+/** The item page's places (declutter_item_pickup_places): label, area, days and hours; nothing before it is on the server. */
+export function ItemPickupPlaces({ itemId }: { itemId: string }) {
+  const read = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId) });
+  if (!Array.isArray(read.data) || read.data.length === 0) return null;
+  return (
+    <div className="space-y-1 pt-1" data-item-pickup-places="">
+      <p className="text-sm font-semibold">{read.data.length === 1 ? "Pickup place" : "Pickup places"}</p>
+      <PickupPlacesHoursList places={read.data} />
+    </div>
   );
 }

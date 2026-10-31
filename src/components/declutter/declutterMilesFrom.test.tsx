@@ -40,8 +40,9 @@ describe("Declutter miles line (DA-10)", () => {
   it("BUY-21: Use my location is a text button that shares the line's row (no outline, no wrap row of its own)", () => {
     render(<DeclutterMilesFrom ask={ask({ origin: at("profile") })} />);
     const btn = screen.getByRole("button", { name: "Use my location" });
-    expect(btn.className).toContain("link-standard");
     expect(btn.className).not.toMatch(/\bborder\b|ctl-tint/);
+    expect(btn.className).toContain("text-primary");
+    expect(btn.className).toContain("text-ds-13");
     expect(btn.className).toContain("shrink-0");
   });
 

@@ -105,7 +105,7 @@ vi.mock("@/lib/declutter/delivery", () => ({
     return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,

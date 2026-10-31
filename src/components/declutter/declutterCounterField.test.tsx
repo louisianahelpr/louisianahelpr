@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = vi.hoisted(() => ({ offers: [] as unknown[], responded: [] as unknown[][] }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyOffers: async () => state.offers,

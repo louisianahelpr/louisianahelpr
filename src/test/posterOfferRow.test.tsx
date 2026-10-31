@@ -29,7 +29,7 @@ vi.mock("@/lib/scheduleChange", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scheduleChange")>()),
   fetchPendingScheduleChange: async () => null,
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { ScheduledStep } from "@/pages/posts/postedJobCard/steps/ScheduledStep";
 import { JobCardMetaRow } from "@/components/job-card/JobCardMetaRow";

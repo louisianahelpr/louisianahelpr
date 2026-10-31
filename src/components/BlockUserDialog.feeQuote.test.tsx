@@ -20,7 +20,7 @@ import { blankNonCode } from "@/test/helpers/blankNonCode";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const rows: Array<Record<string, unknown>> = [];
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/userBlocks", () => ({ blockUser: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

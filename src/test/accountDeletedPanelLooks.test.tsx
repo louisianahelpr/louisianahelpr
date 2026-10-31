@@ -21,7 +21,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u1", email: "member@example.com", identities: [{ provider: "email" }] } }),
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { DeleteAccountDialog } from "@/components/profile/DeleteAccountDialog";
 

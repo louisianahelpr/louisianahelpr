@@ -37,7 +37,7 @@ vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: () => [], PENDI
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // Cleaning needs a real canvas; its own proof is src/test/heicProofPhotos.test.tsx.
 vi.mock("@/lib/cleanProofPhoto", () => ({ cleanProofPhoto: async (f: File) => f }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { PhotoProofCaptureChip } from "@/components/PhotoProof";
 

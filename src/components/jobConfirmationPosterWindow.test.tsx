@@ -12,7 +12,7 @@ import { render, screen } from "@testing-library/react";
  * @mutate src/components/JobConfirmation.tsx |     isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24); |     isLiveJob && confirmOpen && hoursUntilJob > (isOwner ? -12 : -24);
  */
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => {

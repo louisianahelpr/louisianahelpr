@@ -99,6 +99,7 @@
     "supabase/functions/_shared/payments/paypalWebhookVerify.ts",
     "supabase/functions/_shared/payments/registry.ts",
     "supabase/functions/_shared/smsPolicy.ts",
+    "supabase/functions/_shared/email-templates/notificationAction.ts",
     "supabase/functions/stripe-webhook/handlers/_payoutRetry.ts",
     "supabase/functions/_shared/memberDisplayName.ts",
     "supabase/functions/_shared/landlordIdRetention.ts",

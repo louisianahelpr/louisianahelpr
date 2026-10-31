@@ -3662,6 +3662,7 @@ export type Database = {
           area_lng: number
           category: string
           closed_at: string | null
+          expiry_told_at: string | null
           created_at: string
           expires_at: string
           id: string
@@ -3670,6 +3671,7 @@ export type Database = {
           photo_paths: string[]
           public: boolean
           radius_miles: number
+          removed_at: string | null
           status: string
           user_id: string
           what: string
@@ -3679,6 +3681,7 @@ export type Database = {
           area_lng: number
           category: string
           closed_at?: string | null
+          expiry_told_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -3687,6 +3690,7 @@ export type Database = {
           photo_paths?: string[]
           public?: boolean
           radius_miles: number
+          removed_at: string | null
           status?: string
           user_id: string
           what: string
@@ -3696,6 +3700,7 @@ export type Database = {
           area_lng?: number
           category?: string
           closed_at?: string | null
+          expiry_told_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -3704,6 +3709,7 @@ export type Database = {
           photo_paths?: string[]
           public?: boolean
           radius_miles?: number
+          removed_at?: string | null
           status?: string
           user_id?: string
           what?: string

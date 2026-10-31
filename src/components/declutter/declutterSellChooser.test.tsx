@@ -12,7 +12,7 @@
  *   6. "Have a Helpr list it for me" is Post a job pre-filled with the owner's words.
  *
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />\n |
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h2 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h2> |
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3> |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {movingOut && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {wanted && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | to={SELL_FREE_PATH} | to={SELL_ONE_PATH}

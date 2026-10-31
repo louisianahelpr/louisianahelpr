@@ -48,7 +48,7 @@ export default function DeclutterSellChooser() {
               <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Photograph each room and list everything at once." />
             )}
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
-            <h2 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h2>
+            <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3>
             <ChoiceCard data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A local Helpr takes the photos and writes the listings with you." />
             {wanted && (
               <ChoiceCard data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Looking for something? Tell sellers near you." />

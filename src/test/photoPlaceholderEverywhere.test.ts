@@ -82,6 +82,7 @@ describe("a photo-less card shows its category on a tint, never a blank box", ()
     // Not an item's tile (each names why); two-way.
     const notATile: Record<string, string> = {
       "src/components/declutter/DeclutterWantedReplies.tsx": "a Wanted post's own photo: with none, no tile is drawn at all",
+      "src/components/declutter/DeclutterWantedViews.tsx": "a line of text for a seller's reply: with no photo, no tile is drawn at all",
       "src/components/declutter/SellerDeliveryOrder.tsx": "the delivery proof photo while its link loads; a failed read says so in words",
     };
     expect(seen).toBeGreaterThan(2);

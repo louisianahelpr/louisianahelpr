@@ -80,7 +80,9 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/components/mobileNav/mobileNavHelpers.ts": "which routes are signed-in pages",
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
-  "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock's center + opens CreateSheet, whose Post a job reads useAgeGate and greys it",
+  // Moved out of MobileNav.tsx with the dock warmups (componentSizeRatchet, 424064faba).
+  "src/components/mobileNav/useDockWarmups.ts": "idle chunk prefetch only: the dock's center + opens CreateSheet, whose Post a job reads useAgeGate and greys it",
+  "src/lib/shakeToReport.ts": "a route list of screens where a shake never opens a report (FORM_ROUTES); it sends no one to /post-job",
   "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's add path; the desktop top bar's soft \"+ Post a job\" that reads it (AppTopBar) reads useAgeGate and greys it (owner 2026-10-28)",
   "src/components/landing/HowItWorksSection.tsx": "the landing page's Post a job (I need help side): signed out it goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",

@@ -38,7 +38,9 @@ const FORM_ROUTES = [
   // Every Sell flow (one item, a bunch, moving out, the chooser) lives under this path.
   SELL_ONE_PATH,
   "/post-job",
-  "/quotes/",
+  // The two quote forms (App.tsx /quotes/request/:id, /quotes/send/:id); /quotes alone is the retired hub redirect.
+  "/quotes/request/",
+  "/quotes/send/",
   "/support",
   "/messages",
   "/rentals/listings/",

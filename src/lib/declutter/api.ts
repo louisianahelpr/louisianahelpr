@@ -502,7 +502,18 @@ const draftArgs = (f: DraftFields) => ({
   p_pickup_lng: f.pickupLng,
 });
 
-export async function createDraft(f: DraftFields): Promise<string> {
+/**
+ * A new draft. `withId` is the id the app picked when the first photo was added, so those photos were already uploaded
+ * into its folder (LEAD-POST-SLOW (a), migration 20261031160546). Before that migration reaches prod (PGRST202) the
+ * draft gets a fresh id instead; the caller compares and uploads the photos again into the right folder.
+ */
+export async function createDraft(f: DraftFields, withId?: string): Promise<string> {
+  if (withId) {
+    const res = await supabase.rpc("declutter_create_item_with_id", { p_item_id: withId, ...draftArgs(f) });
+    if (!(res.error && isMissingRpcNamed(res.error, "declutter_create_item_with_id"))) {
+      return rpcData(res, (e) => rpcErrorMessage("declutter_create_item_with_id", e)) as string;
+    }
+  }
   return rpcData(await supabase.rpc("declutter_create_item", draftArgs(f)), (e) => rpcErrorMessage("declutter_create_item", e)) as string;
 }
 
@@ -561,15 +572,21 @@ const BUNCH_UPLOAD_QUALITY = 0.78;
  * itself with backoff, and never stores or attaches it twice (lib/declutter/steadyUpload.ts). Throws once it is out of
  * tries. The copy is Sell a bunch's unless the caller asks for the one-item form's (FULL_LISTING_COPY).
  */
-export async function addPhotoSteadily(sellerId: string, itemId: string, file: File, options: UploadHooks & { size?: number; quality?: number } = {}): Promise<string> {
-  const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, ...hooks } = options;
-  const cleaned = await cleanListingPhoto(file, size, quality);
-  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
-  const path = listingPhotoPath(sellerId, itemId, nonce);
+export async function addPhotoSteadily(
+  sellerId: string,
+  itemId: string,
+  file: File,
+  options: UploadHooks & { size?: number; quality?: number; uploadedPath?: string } = {},
+): Promise<string> {
+  const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, uploadedPath, ...hooks } = options;
+  // Already in this item's folder (stageListingPhoto, when it was added): only the attach is left.
+  const cleaned = uploadedPath ? null : await cleanListingPhoto(file, size, quality);
+  if (cleaned && !LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
+  const path = uploadedPath ?? listingPhotoPath(sellerId, itemId, photoNonce());
   const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
   return uploadSteadily({
     store: async (again) => {
+      if (!cleaned) return;
       const { error } = await bucket.upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (!error) return;
       // The first try landed and only its answer was lost.
@@ -594,6 +611,37 @@ export async function addPhotoSteadily(sellerId: string, itemId: string, file: F
       return data?.id ?? null;
     },
   }, hooks);
+}
+
+const photoNonce = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()));
+
+/**
+ * LEAD-POST-SLOW (a): a NEW listing's photo goes up the moment it is added, into the folder of the id the app picked
+ * for it (createDraft(fields, withId)). Only the object is stored; Post attaches it (addPhotoSteadily with
+ * `uploadedPath`). `cleaned` is cleanListingPhoto's copy at the one-item form's size. null when it could not go up now: Post then uploads it the usual way, with its retries.
+ */
+export async function stageListingPhoto(sellerId: string, itemId: string, cleaned: File): Promise<string | null> {
+  try {
+    if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) return null;
+    const path = listingPhotoPath(sellerId, itemId, photoNonce());
+    const { error } = await supabase.storage
+      .from(DECLUTTER_PHOTO_BUCKET)
+      .upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+    if (error) {
+      console.warn("[declutter] early photo upload failed; it goes up at Post", error.message);
+      return null;
+    }
+    return path;
+  } catch (err) {
+    // Not silent: the photo stays held and Post uploads it (or says why it can't).
+    console.warn("[declutter] early photo upload failed; it goes up at Post", err);
+    return null;
+  }
+}
+
+/** Early uploads Post did not use (the photo was removed first): best effort, as removeObjects. */
+export async function dropStagedPhotos(paths: string[]): Promise<void> {
+  await removeObjects(paths);
 }
 
 /** Remove storage objects the server detached (photo removed, listing withdrawn). */

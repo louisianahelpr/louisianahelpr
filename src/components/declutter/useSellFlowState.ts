@@ -4,9 +4,10 @@
  * (DeclutterSellView). Kept in its own file so neither screen crosses the god-component line
  * (src/test/componentSizeRatchet.test.ts).
  *
- * A new listing's photos wait on the device until Post (there is no draft to hold them); Claude reads them
- * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft, uploads
- * them, then runs the same list path a draft's "List it" runs: saveDetails, then setPickupWindows and attestItem side
+ * A new listing's photos go up the moment they are added (LEAD-POST-SLOW (a), owner 2026-10-31: Post under 2 s): the
+ * app picks the new item's id at the first photo and stores each one in that item's folder at once; Claude reads them
+ * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft with that id
+ * (20261031160546), attaches the photos already up (uploading only one that did not go up yet), then runs the same list path a draft's "List it" runs: saveDetails, then setPickupWindows and attestItem side
  * by side, then publishItem, then requestAiCheckWithRetry right after (LEAD-POST-SLOW). The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,8 @@ import {
   addPhotoSteadily,
   attestItem,
   createDraft,
+  dropStagedPhotos,
+  stageListingPhoto,
   fetchItem,
   fetchMyItemPrivate,
   fetchMyPickupWindows,
@@ -101,6 +104,24 @@ export function useSellFlowState(urlItemId: string | null) {
   const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
+  // LEAD-POST-SLOW (a): the id a NEW listing will have, picked at its first photo, and each held photo's early upload
+  // into that item's folder (the stored path, or null when it must go up at Post).
+  const newItemId = useRef<string | null>(null);
+  const staged = useRef(new Map<File, Promise<string | null>>());
+  const stage = (pairs: readonly (readonly [File, File])[]) => {
+    if (!user || urlItemId || createdId || pairs.length === 0) return;
+    newItemId.current ??= crypto.randomUUID();
+    for (const [original, cleaned] of pairs) {
+      // Never in the way: an early upload that can't start is just uploaded at Post, as before.
+      const early = Promise.resolve()
+        .then(() => stageListingPhoto(user.id, newItemId.current!, cleaned))
+        .catch((err: unknown) => {
+          console.warn("[declutter] early photo upload did not start; it goes up at Post", err);
+          return null;
+        });
+      staged.current.set(original, early);
+    }
+  };
   // The AI's cover pick moves a photo first and says so, with Undo; once the seller has chosen, it never moves it again
   // (audit posting 1030 #9).
   const heldNow = useRef(held);
@@ -242,6 +263,17 @@ export function useSellFlowState(urlItemId: string | null) {
     setKeepUpWanted(back.keepUpWanted);
     setAutoFreeWanted(back.autoFreeWanted);
     setHeld((h) => [...back.held, ...h]);
+    // Brought-back photos go up now as well, cleaned again off the main path (one that can't be is uploaded at Post).
+    if (!back.createdId) {
+      void Promise.all(
+        back.held.map((f) =>
+          cleanListingPhoto(f)
+            .then((c) => [f, c] as const)
+            // Said at Post if it still can't be prepared (uploadHeld's own refusal words).
+            .catch(() => null),
+        ),
+      ).then((pairs) => stage(pairs.filter((x): x is readonly [File, File] => x !== null)));
+    }
     if (back.createdId) {
       // The form holds what the seller last had; the draft's own reads must not reset it.
       loadedFor.current = back.createdId;
@@ -290,7 +322,21 @@ export function useSellFlowState(urlItemId: string | null) {
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
-      const id = await createDraft(fields);
+      const wanted = newItemId.current;
+      const id = await createDraft(fields, wanted ?? undefined);
+      // Early uploads Post won't attach: photos removed before Post, or every one if the server picked another id
+      // (before 20261031160546 is live); those go up again below, into the right folder.
+      const unused: Promise<string | null>[] = [];
+      for (const [f, path] of staged.current) {
+        if (id !== wanted || !waiting.includes(f)) {
+          unused.push(path);
+          staged.current.delete(f);
+        }
+      }
+      void Promise.all(unused)
+        .then((paths) => dropStagedPhotos(paths.filter((x): x is string => !!x)))
+        // Best effort: an unattached object in the seller's own folder is only storage, never shown to anyone.
+        .catch((err: unknown) => console.warn("[declutter] unused early photo uploads not removed", err));
       loadedFor.current = id;
       setLoadedId(id);
       // The form already holds this draft's step: the drop-state read must not reset it.
@@ -346,11 +392,17 @@ export function useSellFlowState(urlItemId: string | null) {
     let why: string | null = null;
     setUploading(list.length);
     for (const [i, f] of list.entries()) {
-      setPostStep(`Uploading photo ${i + 1} of ${list.length}`);
+      // Already up since it was added (LEAD-POST-SLOW (a)): only attached now.
+      const early = id === newItemId.current ? staged.current.get(f) : undefined;
+      setPostStep(early ? `Adding photo ${i + 1} of ${list.length}` : `Uploading photo ${i + 1} of ${list.length}`);
       try {
-        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
+        const uploadedPath = (await early) ?? undefined;
+        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, uploadedPath, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
         up.add(f);
+        staged.current.delete(f);
       } catch (err) {
+        // A refused attach removed its object: the next Post uploads this photo again.
+        staged.current.delete(f);
         // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.
         failed.push(f);
         // The plain upload failure is what the panel's own words already say; a refusal says its own reason.
@@ -374,11 +426,12 @@ export function useSellFlowState(urlItemId: string | null) {
     if (!itemId) {
       // Each is tried now, so one that can't be used is said at once, on the screen, instead of being lost at Post.
       const good: File[] = [];
+      const ready: (readonly [File, File])[] = [];
       const refused: { key: string; name: string; error: unknown }[] = [];
       setUploading(list.length);
       for (const f of list) {
         try {
-          await cleanListingPhoto(f);
+          ready.push([f, await cleanListingPhoto(f)]);
           good.push(f);
         } catch (error) {
           // Not swallowed: unusablePhotosNote names this photo and says why, under the photos.
@@ -389,6 +442,8 @@ export function useSellFlowState(urlItemId: string | null) {
       }
       setHeld((h) => [...h, ...good]);
       setRefusedNote(unusablePhotosNote(refused));
+      // LEAD-POST-SLOW (a): each goes up now, not on Post.
+      stage(ready);
       return;
     }
     if (urlItemId) await uploadPhotos(itemId, list);

@@ -11,7 +11,7 @@
     "src/components/JobTracking.tsx": 1891,
     "src/components/messages/ConversationList.tsx": 1748,
     "src/components/MobileNav.tsx": 696,
-    "src/components/NotificationPanel.tsx": 967,
+    "src/components/NotificationPanel.tsx": 963,
     "src/components/NotificationPreferences.tsx": 873,
     "src/components/postjob/CheckoutStep.tsx": 754,
     "src/components/profile/CredentialsTab.tsx": 911,

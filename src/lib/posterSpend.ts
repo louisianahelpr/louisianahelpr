@@ -155,6 +155,8 @@ export interface SpentRow<J> {
   cents: number;
   /** The tips part of `cents`. */
   tipCents: number;
+  /** AUD31-55: the card fee inside `tipCents` (what the card paid over the tips themselves). */
+  tipFeeCents: number;
   /** Refunds ledgered against the job's own charge (0 for a tip row). */
   refundedCents: number;
   /** True when an admin refund (admin_refund_general) is among them. */
@@ -195,38 +197,47 @@ export function spentRows<J extends PosterSpendJob>(
   const giftByJob = new Map<string, number>();
   for (const g of gifts) if (g.job_id) giftByJob.set(g.job_id, (giftByJob.get(g.job_id) ?? 0) + (g.amount ?? 0));
   const tipCentsByJob = new Map<string, number>();
-  const orphanTips: { tip: PosterTipRow; cents: number }[] = [];
+  const tipFeeByJob = new Map<string, number>();
+  const orphanTips: { tip: PosterTipRow; cents: number; fee: number }[] = [];
   const jobIds = new Set(jobs.map((j) => j.id));
   for (const t of tips) {
     const c = tipSpentCents(t, t.stripe_payment_intent_id ? refundedByPi.get(t.stripe_payment_intent_id) ?? 0 : 0);
     if (c <= 0) continue;
-    if (t.job_id && jobIds.has(t.job_id)) tipCentsByJob.set(t.job_id, (tipCentsByJob.get(t.job_id) ?? 0) + c);
-    else orphanTips.push({ tip: t, cents: c });
+    // The card fee is whatever the card kept paying over the tip itself (0 once a refund ate into the tip).
+    const fee = Math.max(0, c - cents(t.amount ?? 0));
+    if (t.job_id && jobIds.has(t.job_id)) {
+      tipCentsByJob.set(t.job_id, (tipCentsByJob.get(t.job_id) ?? 0) + c);
+      tipFeeByJob.set(t.job_id, (tipFeeByJob.get(t.job_id) ?? 0) + fee);
+    } else orphanTips.push({ tip: t, cents: c, fee });
   }
   const rows: SpentRow<J>[] = [];
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
     const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents;
-    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
+    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, tipFeeCents: tipFeeByJob.get(job.id) ?? 0, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
   }
-  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false });
+  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, tipFeeCents: o.fee, refundedCents: 0, adminRefunded: false });
   return rows;
 }
 
 /**
  * AUD31-55: the words after a Spent / Receipts row's date, one rule for both lists. A cancelled job says so; a job
  * with money back says how much came back (" · $25.00 refunded"), so the amount shown is not read as the price; a
- * tip is named with its card fee, since the row's tip cents are what the card paid (tip + card fee,
- * tipChargeBreakdown), not the tip the Helpr got.
+ * tip is named apart from its card fee (" · includes $20.00 tip + $0.91 card fee"), since the row's tip cents are what
+ * the card paid (tip + card fee, tipChargeBreakdown), not the tip the Helpr got.
  */
 export function spentRowNote(
-  r: Pick<SpentRow<{ status?: string | null }>, "job" | "tipCents" | "refundedCents">,
+  r: Pick<SpentRow<{ status?: string | null }>, "job" | "tipCents" | "tipFeeCents" | "refundedCents">,
   money: (cents: number) => string,
 ): string {
   if (!r.job) return "";
   return (r.job.status === "cancelled" ? " · Cancelled" : "")
     + (r.refundedCents > 0 ? ` · ${money(r.refundedCents)} refunded` : "")
-    + (r.tipCents > 0 ? ` · includes ${money(r.tipCents)} tip and card fee` : "");
+    + (r.tipCents > 0
+      ? r.tipFeeCents > 0
+        ? ` · includes ${money(r.tipCents - r.tipFeeCents)} tip + ${money(r.tipFeeCents)} card fee`
+        : ` · includes ${money(r.tipCents)} tip`
+      : "");
 }
 
 /**

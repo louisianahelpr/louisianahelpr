@@ -166,9 +166,9 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       receipts.push({
         key: `job-${job.id}`,
         title: job.title ?? "Job",
-        ms: spentRowMs({ job, tip: null, cents: 0, tipCents: 0, refundedCents: 0, adminRefunded: false }),
+        ms: spentRowMs({ job, tip: null, cents: 0, tipCents: 0, tipFeeCents: 0, refundedCents: 0, adminRefunded: false }),
         cents: null,
-        note: spentRowNote({ job, tipCents: 0, refundedCents: 0 }, formatCents),
+        note: spentRowNote({ job, tipCents: 0, tipFeeCents: 0, refundedCents: 0 }, formatCents),
       });
     }
     for (const r of rows) {

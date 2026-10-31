@@ -3,14 +3,14 @@
  * for a $105 job refunded $25) with nothing saying money came back, and "includes $20.91 tip" for a $20 tip (the row's
  * tip cents are the card charge, tip + card fee, tipChargeBreakdown). Receipts said only " · Cancelled".
  * Now ONE rule for both lists (spentRowNote, src/lib/posterSpend.ts): " · Cancelled", " · $25.00 refunded",
- * " · includes $20.91 tip and card fee". A job refunded in full stays on Receipts as "Refunded" (fullyRefundedJobs), as a
+ * " · includes $20.00 tip + $0.91 card fee". A job refunded in full stays on Receipts as "Refunded" (fullyRefundedJobs), as a
  * refunded Declutter order does; Spent's total and list still count only money kept.
  *
  * CLASS: every list that draws spentRows() (SpentSection, Receipts) writes its row words through spentRowNote, so the
  * two can never say different things about the same money; and the rule says the refund and the card fee.
  *
  * @mutate src/lib/posterSpend.ts |     + (r.refundedCents > 0 ? ` · ${money(r.refundedCents)} refunded` : "") |     + ""
- * @mutate src/lib/posterSpend.ts | tip and card fee` : ""); | tip` : "");
+ * @mutate src/lib/posterSpend.ts |         ? ` · includes ${money(r.tipCents - r.tipFeeCents)} tip + ${money(r.tipFeeCents)} card fee` |         ? ` · includes ${money(r.tipCents)} tip`
  * @mutate src/pages/profile/Receipts.tsx |         note: spentRowNote(r, formatCents), |         note: r.job?.status === "cancelled" ? " · Cancelled" : "",
  * @mutate src/lib/posterSpend.ts |   return jobs.filter((j) => !kept.has(j.id) && refunded.has(j.id)); |   return jobs.filter((j) => !kept.has(j.id));
  * @mutate src/pages/profile/Receipts.tsx |     for (const job of fullyRefundedJobs(jobs, refunds, rows)) { |     for (const job of [] as typeof jobs) {
@@ -28,17 +28,19 @@ const job = (status: string | null = "completed") => ({ status });
 
 describe("Spent and Receipts say a refund and the tip's card fee (AUD31-55)", () => {
   it("a partly refunded job says how much came back", () => {
-    expect(spentRowNote({ job: job(), tipCents: 0, refundedCents: 2500 }, money)).toBe(" · $25.00 refunded");
+    expect(spentRowNote({ job: job(), tipCents: 0, tipFeeCents: 0, refundedCents: 2500 }, money)).toBe(" · $25.00 refunded");
   });
 
   it("a tip is named with its card fee", () => {
-    expect(spentRowNote({ job: job(), tipCents: 2091, refundedCents: 0 }, money)).toBe(" · includes $20.91 tip and card fee");
+    expect(spentRowNote({ job: job(), tipCents: 2091, tipFeeCents: 91, refundedCents: 0 }, money)).toBe(" · includes $20.00 tip + $0.91 card fee");
+    // A refund that ate into the tip leaves no fee to name: the tip alone.
+    expect(spentRowNote({ job: job(), tipCents: 1500, tipFeeCents: 0, refundedCents: 0 }, money)).toBe(" · includes $15.00 tip");
   });
 
   it("a cancelled job with money back says both, in that order; a plain job says nothing; a lone tip row says nothing", () => {
-    expect(spentRowNote({ job: job("cancelled"), tipCents: 0, refundedCents: 4500 }, money)).toBe(" · Cancelled · $45.00 refunded");
-    expect(spentRowNote({ job: job(), tipCents: 0, refundedCents: 0 }, money)).toBe("");
-    expect(spentRowNote({ job: null, tipCents: 900, refundedCents: 0 }, money)).toBe("");
+    expect(spentRowNote({ job: job("cancelled"), tipCents: 0, tipFeeCents: 0, refundedCents: 4500 }, money)).toBe(" · Cancelled · $45.00 refunded");
+    expect(spentRowNote({ job: job(), tipCents: 0, tipFeeCents: 0, refundedCents: 0 }, money)).toBe("");
+    expect(spentRowNote({ job: null, tipCents: 900, tipFeeCents: 50, refundedCents: 0 }, money)).toBe("");
   });
 
   it("every list that draws spentRows() writes its row words through spentRowNote", () => {
@@ -62,7 +64,7 @@ describe("Spent and Receipts say a refund and the tip's card fee (AUD31-55)", ()
     ];
     const refunds = [{ job_id: "full", amount_cents: 2500 }, { job_id: "part", amount_cents: 1500 }];
     // What spentRows() keeps for these: the part-refunded and the kept job (money stayed on the card).
-    const row = (job: (typeof jobs)[number]) => ({ job, tip: null, cents: 100, tipCents: 0, refundedCents: 0, adminRefunded: false });
+    const row = (job: (typeof jobs)[number]) => ({ job, tip: null, cents: 100, tipCents: 0, tipFeeCents: 0, refundedCents: 0, adminRefunded: false });
     const rows = [row(jobs[1]), row(jobs[2])];
     expect(fullyRefundedJobs(jobs as never[], refunds, rows as never[]).map((j: { id: string }) => j.id)).toEqual(["full"]);
   });

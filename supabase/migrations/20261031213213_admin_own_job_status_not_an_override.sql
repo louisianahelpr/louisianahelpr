@@ -4,7 +4,10 @@
 -- job_status_override rows, 11 are on a job where the actor is the job's poster or its Helpr (the latest 2026-10-30,
 -- "Mow and Weed Eat" -> accepted, her own post); the other 22 name jobs no longer readable by that join.
 -- Now a change by the job's own poster or Helpr (before or after the change) is a member action, not an override, and
--- writes no audit row. Every other admin change is logged exactly as before.
+-- writes no audit row, ONLY when the move is one a member could make: a (from, to) pair on the non-admin list of
+-- enforce_job_status_transition (newest CREATE 20260828020000_cancellation_requires_rpc), less every move out of
+-- 'disputed' (a dispute is settled by an admin decision, never by the poster or Helpr themselves). An admin-only forced
+-- move on her own job (disputed -> completed, completed -> open, ...) is still logged, as is every other admin change.
 --
 -- Restated from its newest CREATE, 20260504154605_audit_admin_job_status_overrides (no later CREATE in the repo; the
 -- live body, pg_proc.prosrc read 10-31, is the same code with the comments and blank lines stripped). Grants: prod's
@@ -34,8 +37,19 @@ BEGIN
   END IF;
 
   -- NOID-23: the admin acting on her own job (its poster, or its Helpr before or after the change) is a member, not an
-  -- override.
-  IF auth.uid() = NEW.customer_id OR auth.uid() = NEW.helper_id OR auth.uid() = OLD.helper_id THEN
+  -- override, but only for a move a member could make (enforce_job_status_transition's non-admin list, 20260828020000,
+  -- less the moves out of 'disputed', which only an admin decision makes). Any other move on her own job is logged.
+  IF (auth.uid() = NEW.customer_id OR auth.uid() = NEW.helper_id OR auth.uid() = OLD.helper_id)
+     AND (OLD.status::text, NEW.status::text) IN (
+       ('open', 'accepted'), ('open', 'cancelled'), ('pending_approval', 'cancelled'),
+       ('accepted', 'open'), ('accepted', 'in_progress'), ('accepted', 'completed'), ('accepted', 'cancelled'),
+       ('accepted', 'disputed'),
+       ('in_progress', 'completed'), ('in_progress', 'revision_requested'), ('in_progress', 'cancelled'),
+       ('in_progress', 'disputed'), ('in_progress', 'open'),
+       ('revision_requested', 'in_progress'), ('revision_requested', 'completed'), ('revision_requested', 'cancelled'),
+       ('revision_requested', 'disputed'),
+       ('completed', 'disputed')
+     ) THEN
     RETURN NEW;
   END IF;
 

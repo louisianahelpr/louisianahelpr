@@ -1770,6 +1770,31 @@ serve(async (req) => {
 
     const jobs = cancelledJobs;
 
+    // Owner 2026-10-30: poster_cancel_job records no fee, not late, when the hired Helpr had not verified their ID,
+    // and writes a job_cancel_id_waivers row in the same transaction. That row, not a recorded 0, is what waives the
+    // ladder below (money-reconciliation reads it the same way): a 0 a poster's cancel wrote for any other reason is
+    // re-priced. Read once for every single Part A job with a hired Helpr. Only a missing table (a function deployed
+    // before the migration, when no such cancel can exist) reads "no waiver"; any other read error moves no money for
+    // those jobs this run.
+    const idWaiverCandidates = (jobs ?? [])
+      .filter((j) => j.is_group_job !== true && !!j.helper_id)
+      .map((j) => j.id as string);
+    const idWaivedJobs = new Set<string>();
+    let idWaiverReadError: string | null = null;
+    if (idWaiverCandidates.length > 0) {
+      const { data: waiverRows, error: waiverErr } = await supabaseAdmin
+        .from("job_cancel_id_waivers")
+        .select("job_id")
+        .in("job_id", idWaiverCandidates);
+      const noWaiverTable = !!waiverErr && (waiverErr.code === "42P01" || waiverErr.code === "PGRST205");
+      if (waiverErr && !noWaiverTable) {
+        idWaiverReadError = waiverErr.message;
+        console.error("[void-cancelled-payments] job_cancel_id_waivers read failed; not settling jobs with a hired Helpr:", waiverErr.message);
+        defects.record(`job_cancel_id_waivers read: ${waiverErr.message} — jobs with a hired Helpr not settled`);
+      }
+      for (const r of (waiverRows ?? []) as Array<{ job_id: string }>) idWaivedJobs.add(r.job_id);
+    }
+
     let voided = 0;
     let refunded = 0;
     const results: any[] = [];
@@ -2181,8 +2206,13 @@ serve(async (req) => {
         // (_shared/seriesRefund.ts).
         // A10: a setup job a Declutter seller's backing out cancelled carries no fee.
         // Owner 2026-10-30: poster_cancel_job recorded no fee because the hired Helpr had not verified
-        // their ID: the poster may rehire without paying for the Helpr's time. A 0 recorded by the poster's own cancel stands.
-        const noFeeRecorded = job.cancelled_by === job.customer_id && job.cancellation_fee !== null && Number(job.cancellation_fee) === 0;
+        // their ID: the poster may rehire without paying for the Helpr's time. Keyed on the job_cancel_id_waivers row
+        // poster_cancel_job wrote, read once above; a read error moves no money for this job.
+        if (idWaiverReadError !== null && job.helper_id) {
+          results.push({ job_id: job.id, title: job.title, status: "id_waiver_read_failed" });
+          continue;
+        }
+        const noFeeRecorded = idWaivedJobs.has(job.id);
         jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
         // ... so a booked Helpr's late-cancel fee is withheld through no fault of
         // theirs. Said out loud, once a day per job, like Q738 below

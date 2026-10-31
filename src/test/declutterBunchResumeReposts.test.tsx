@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/useBunchSaved.ts |       if (back.length === 0 && fresh.posted > 0) { |       if (false) {
  * @mutate src/lib/declutter/bunch.ts |   const kept = items.filter((it) => !isPosted(it.draftId) && !isPosted(it.appId)); |   const kept = items.filter((it) => !isPosted(it.draftId));
  * @mutate src/lib/declutter/bunchSaved.ts |     const kept = mine(bunch) && !(await allPosted(bunch!, itemStatuses)); |     const kept = mine(bunch);
+ * @mutate src/lib/declutter/bunchSaved.ts |     const oneKept = mine(one) && !(await onePosted( |     const oneKept = mine(one) \|\| !(await onePosted(
  * @mutate src/lib/declutter/bunch.ts |             : await deps.createDraft(fields, appId); |             : await deps.createDraft(fields);
  * @mutate src/lib/declutter/bunch.ts |     if (byAppId !== undefined && it.appId) { |     if (false) {
  * @mutate src/lib/declutter/bunch.ts |          if (err instanceof AlreadyPosted) { |          if (false) {
@@ -103,6 +104,12 @@ describe("the Sell chooser's Continue where you left off", () => {
     const fails = async () => { throw new Error("offline"); };
     keepOnDisk([bag("navy", { draftId: "c87b7de4" })]);
     expect((await savedSellWork("owner", Date.now(), fails)).bunch).toBe(true);
+  });
+
+  it("Continue your listing is not offered for a one-item listing that is already posted", async () => {
+    h.disk.set("lh-sell-one-v1", { userId: "owner", savedAt: Date.now(), photos: [], createdId: "c87b7de4", form: { title: "Sleeping bag" } });
+    expect((await savedSellWork("owner", Date.now(), async (ids) => new Map(ids.map((id) => [id, "live"])))).one).toBe(false);
+    expect((await savedSellWork("owner", Date.now(), async (ids) => new Map(ids.map((id) => [id, "draft"])))).one).toBe(true);
   });
 });
 

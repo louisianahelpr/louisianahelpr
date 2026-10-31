@@ -8,8 +8,8 @@
  * 4 FAIL without it; RED on a UTC calendar, the delivered exception dropped, any status, the slot time instead
  * of its day).
  */
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql | AND (now() AT TIME ZONE 'America/Chicago')::date >= (d.slot_start AT TIME ZONE 'America/Chicago')::date | AND (now() AT TIME ZONE 'UTC')::date >= (d.slot_start AT TIME ZONE 'UTC')::date
-// @mutate supabase/migrations/20261030061753_declutter_meetup_got_it_waits.sql |   IF o.handover = 'seller_delivery' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql | AND (now() AT TIME ZONE 'America/Chicago')::date >= (d.slot_start AT TIME ZONE 'America/Chicago')::date | AND (now() AT TIME ZONE 'UTC')::date >= (d.slot_start AT TIME ZONE 'UTC')::date
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover = 'seller_delivery' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

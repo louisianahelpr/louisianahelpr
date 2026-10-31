@@ -124,7 +124,9 @@ export async function setPorchTime(orderId: string, mode: "all_day" | "until", u
 
 type HandoverResult =
   | { result: "handed_over"; payout_id: string | null; by: string }
-  | { result: "already_handed_over" };
+  | { result: "already_handed_over" }
+  /** The seller's "Picked up" on a paid sale: recorded, and it waits for the buyer (owner 10-30). */
+  | { result: "seller_confirmed" };
 
 /** The buyer's "I got it" ('buyer'): the only way a person confirms a Declutter handover (owner 2026-10-18). */
 export async function confirmHandover(orderId: string): Promise<HandoverResult> {
@@ -253,6 +255,11 @@ export interface MyHandover {
   /** Board 159 / Q2266: the seller's "Where exactly?" note (absent until 20261021023158 is on prod). */
   set_out_note?: string | null;
   picked_up_at: string | null;
+  /** The seller's "Picked up" (owner 10-30, 20261031004529). Absent before that migration reaches prod. */
+  seller_confirmed_at?: string | null;
+  /** The buyer's no-show report, and when the seller's 24 hours to answer end. */
+  no_show_reported_at?: string | null;
+  no_show_answer_by?: string | null;
 }
 
 export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
@@ -287,6 +294,11 @@ export async function handoverPhotoUrl(path: string): Promise<string | null> {
 }
 
 /** "They didn't show", 15 minutes after the booked time (row 94). */
+/** The seller's answer to a buyer's no-show report: a problem for Louisiana Helpr, with the money held. */
+export async function answerNoShow(orderId: string, note: string): Promise<void> {
+  rpcData(await supabase.rpc("declutter_answer_no_show", { p_order_id: orderId, p_note: note }), (e) => rpcErrorMessage("declutter_answer_no_show", e));
+}
+
 export async function reportNoShow(orderId: string): Promise<{ result: string }> {
   return rpcData(
     await supabase.rpc("declutter_report_no_show", { p_order_id: orderId }),
@@ -307,7 +319,8 @@ export async function reportProblem(orderId: string, reason: ProblemReason, note
 /** D2-3 (20261029225634): an order's newest problem as either side reads it (RLS: the two sides and admins). */
 export interface OrderProblem {
   id: string;
-  reporter_side: "buyer" | "seller" | "helpr";
+  /** "system": nobody's report, a sale held 60 days with nobody speaking (20261031004529). */
+  reporter_side: "buyer" | "seller" | "helpr" | "system";
   reason: ProblemReason;
   note: string;
   photo_paths: string[];
@@ -366,7 +379,7 @@ export async function addProblemSide(problemId: string, note: string, photoPaths
 export interface OpenProblem {
   id: string;
   order_id: string;
-  reporter_side: "buyer" | "seller";
+  reporter_side: "buyer" | "seller" | "system";
   reason: ProblemReason;
 }
 
@@ -511,7 +524,8 @@ export interface AdminProblemDetail {
 export interface AdminProblem {
   id: string;
   order_id: string;
-  reporter_side: "buyer" | "seller" | "helpr";
+  /** "system": nobody's report, a sale held 60 days with nobody speaking (20261031004529). */
+  reporter_side: "buyer" | "seller" | "helpr" | "system";
   reason: string;
   note: string;
   photo_paths: string[] | null;

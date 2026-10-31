@@ -22,6 +22,7 @@ import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/J
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import type { JobPageRow } from "./useJobPage";
 import type { PosterPageFlows } from "./usePosterPageFlows";
@@ -68,12 +69,14 @@ export function usePosterPageActions({
   // Each tap remounts the confirm, so "Not now" then a second tap opens it again.
   const [confirmAsk, setConfirmAsk] = useState(0);
   const [changeOpen, setChangeOpen] = useState(false);
+  // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
+  const { gate: ageGate } = useAgeGate();
   if (!enabled || !job) return { primary: null, secondary: null, dialogs: null, edit: () => {} };
 
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
   const message = job.helper_id && HAS_HELPR.has(status)
-    ? { label: helperFirst ? `Message ${helperFirst}` : "Message your Helpr", go: () => navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) }
+    ? { label: helperFirst ? `Message ${helperFirst}` : "Message your Helpr", go: () => job.helper_id ? navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) : undefined }
     : null;
   const canChange = !!job.date_needed && scheduleChangeAllowed(job as unknown as SeriesCardJob, userId, "poster");
   // Not once the Helpr set off or arrived: the card's cancel refuses it then (tryCancelJob's tracking check).
@@ -97,7 +100,7 @@ export function usePosterPageActions({
       : message
       ? message
       : status === "cancelled"
-      ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${id}`) }
+      ? { label: "Post this job again", go: ageGate("post", () => navigate(`/post-job?rebook=${id}`)) }
       : null;
 
   const buttons = [
@@ -117,7 +120,7 @@ export function usePosterPageActions({
       </Button>
     ),
     canCancel && (
-      <Button key="cancel" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15 text-destructive" disabled={!flows.ready} onClick={flows.cancel}>
+      <Button key="cancel" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15 text-destructive-ink" disabled={!flows.ready} onClick={flows.cancel}>
         Cancel job
       </Button>
     ),

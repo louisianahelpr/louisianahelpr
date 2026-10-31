@@ -17,7 +17,7 @@
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   PERFORM public.declutter_notice_about(o.id);\n  RETURN o; |   RETURN o;
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), true); |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), false);
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |      AND ((o.buyer_id = p_user AND o.seller_id = p_other) OR (o.seller_id = p_user AND o.buyer_id = p_other)); | ;
-// @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(p_message), v_link);
+// @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(p_message), v_link);
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   AFTER INSERT OR UPDATE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about(); |   AFTER DELETE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about();
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql | CREATE TRIGGER trg_declutter_orders_a_notice_about | CREATE TRIGGER trg_declutter_orders_z_notice_about
 import { describe, it, expect } from "vitest";

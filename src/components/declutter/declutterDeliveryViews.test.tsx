@@ -39,6 +39,8 @@ vi.mock("@/components/DateTimeField", () => ({
   ),
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// soldstates-5: the seller's report and the Helpr's answer read their own RPC; none on these cards.
+vi.mock("@/lib/declutter/noHelpr", () => ({ fetchHelprNoShowReport: async () => null, fetchNoHelprChoice: async () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
 // Q2416: the hired-Helpr payout prompt after taking a delivery (its own dialog test is payoutAfterHire.test.tsx).
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({

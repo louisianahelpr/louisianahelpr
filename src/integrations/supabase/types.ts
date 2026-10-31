@@ -14724,6 +14724,7 @@ export type Database = {
       }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }

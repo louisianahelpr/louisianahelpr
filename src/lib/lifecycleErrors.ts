@@ -1047,6 +1047,14 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   // Owner 2026-10-28: the ways the seller ticks on step 4 (20261028235247).
+  // LEAD-DELIVER-OFF-ALL (20261031180550): what declutter_assert_member, the switch and the ban check raise.
+  declutter_stop_my_seller_delivery: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_set_handovers: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

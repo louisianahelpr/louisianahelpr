@@ -25,6 +25,7 @@
  * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
  * photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -304,7 +305,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   const id = `dcl-slot-${order.orderId}`;
   return (
     <div className="space-y-2">
-      {booked && <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
+      {booked && <p className="text-sm">{order.handover === "meetup" ? "Meeting" : "Pickup"}: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
       {/* Q2432: the existing no-show rule (declutter_report_no_show), stated where the buyer books, plus the reminder. */}
       {order.side === "buyer" && (
         <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
@@ -389,8 +390,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
       <div className="space-y-2">
         {rule('the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported')}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
-        <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
-          onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+        <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
           Picked up
         </button>

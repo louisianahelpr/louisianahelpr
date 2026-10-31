@@ -9,7 +9,7 @@ import type { MyPayout } from "@/lib/declutter/handover";
 const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
   // 141d: the payout waits until the sale is final (20261026155251).
   pending: "We send it once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.",
-  failed: "Your payout didn't go through yet. We'll keep trying. Check that your payout account is set up.",
+  failed: "Your payout didn't go through yet. Check that your payout account is set up. If it still doesn't arrive, message Support.",
   succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
   nothing_due: "Nothing to pay out.",
 };

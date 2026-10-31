@@ -49,7 +49,7 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
         <span className="font-semibold">
           {buyable.length}{capped ? "+" : ""} more from {name}.
         </span>{" "}
-        Check out together: one pickup, one payment.
+        {item.current_price_cents === 0 ? "Get them together: one pickup." : "Check out together: one pickup, one payment."}
         {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null}
       </span>
     </button>

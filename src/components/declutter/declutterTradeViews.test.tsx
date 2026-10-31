@@ -616,7 +616,7 @@ describe("Declutter slice 3 screens", () => {
     show(<OffersSection side="buyer" />);
     fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
     const sheet = await screen.findByText(/you pay at most/);
-    expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay; nothing is charged until you do.');
+    expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.');
   });
 
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in

@@ -11,7 +11,7 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const capturedSplit = posterCancelSplit({ | const capturedSplit = posterCancelSplitCopy({
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const holdSplit = posterCancelSplit({ | const holdSplit = posterCancelSplitCopy({
 // @mutate supabase/functions/create-payment/index.ts |           const holdSplit = posterCancelSplit({ |           const holdSplit = posterCancelSplitCopy({
-// @mutate supabase/migrations/20261021130723_poster_cancel_checks_quoted_fee.sql |     RAISE EXCEPTION 'quote_changed' |     RAISE NOTICE 'quote_changed'
+// @mutate supabase/migrations/20261031015647_poster_cancel_strike_only_inside_24h.sql |     RAISE EXCEPTION 'quote_changed' |     RAISE NOTICE 'quote_changed'
 // @mutate src/lib/lifecycleErrors.ts |     quote_changed: "The amount for your Helpr's time changed | quote_changed_old: "The amount for your Helpr's time changed
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);

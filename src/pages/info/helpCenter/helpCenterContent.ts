@@ -174,7 +174,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // `void-cancelled-payments/index.ts:258`. A poster cancelling an
         // accepted job two days out was told they owed a fee they do not owe,
         // which is the version of this error that costs the platform a job.
-        a: `Yes. It's always free before you accept anyone. After you accept a Helpr it is still free 24 or more hours out. Closer to the start, part of the job goes to the Helpr, because by then they have held the slot for you; the cancel screen shows the exact amount before you confirm.`,
+        a: `Yes. It's always free before you accept anyone. After you accept a Helpr it is still free 24 or more hours out. It isn't a strike either. Closer to the start, part of the job goes to the Helpr, because by then they have held the slot for you, and it counts as a strike; the cancel screen shows the exact amount before you confirm.`,
       },
     ],
   },

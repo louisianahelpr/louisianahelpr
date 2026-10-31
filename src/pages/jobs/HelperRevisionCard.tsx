@@ -165,7 +165,7 @@ export function HelperRevisionCard({
             { data: rows, error: null },
             {
               action: "acknowledge this revision",
-              rejectedMessage: "This revision couldn't be acknowledged — it may have already been resolved. Pull to refresh.",
+              rejectedMessage: "This revision couldn't be acknowledged — it may have already been resolved. Refresh the page.",
               context: { revisionId: revision.id },
             },
           );

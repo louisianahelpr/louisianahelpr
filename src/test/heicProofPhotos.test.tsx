@@ -4,10 +4,10 @@
  * file; nothing is uploaded that the poster's browser may not draw. A stored one that won't draw is a labelled link.
  * jsdom decodes nothing, so Image and the canvas encoder are stood in for; a real decode is the browser run's job.
  *
- * @mutate src/components/PhotoProof.tsx | const ready = isHeicFile(f) ? await heicToJpeg(f) : f; | const ready = f;
- * @mutate src/components/PhotoProof.tsx |           toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);\n | \n
- * @mutate src/components/PhotoProof.tsx |           const clean = await cleanProofPhoto(ready); |           const clean: File \| null = ready;
- * @mutate src/components/PhotoProof.tsx |           else toast.error(LISTING_PHOTO_UNCLEANABLE); |           else selected.push(ready);
+ * @mutate src/components/prepareProofPhotos.ts | const ready = isHeicFile(f) ? await heicToJpeg(f) : f; | const ready = f;
+ * @mutate src/components/prepareProofPhotos.ts |       toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);\n | \n
+ * @mutate src/components/prepareProofPhotos.ts |       const clean = await cleanProofPhoto(ready); |       const clean: File \| null = ready;
+ * @mutate src/components/prepareProofPhotos.ts |       else toast.error(LISTING_PHOTO_UNCLEANABLE); |       else selected.push(ready);
  * @mutate src/lib/cleanProofPhoto.ts |     return await cleanListingPhoto(file, PROOF_MAX_SIDE, PROOF_QUALITY); |     return file;
  * @mutate src/lib/heicToJpeg.ts |   if (!blob \|\| blob.type !== "image/jpeg") return null; |   if (!blob) return null;
  * @mutate src/lib/heicToJpeg.ts |   if (type) return HEIC_TYPES.has(type);\n | \n

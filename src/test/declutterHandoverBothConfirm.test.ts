@@ -23,7 +23,8 @@
 // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : noShowAnswered ? noShowAnsweredWords(side, delivery)\n | \n
 // @mutate supabase/functions/delete-own-account/index.ts |             ? DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE | ? MONEY_OWED_BLOCKS_DELETION_MESSAGE
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

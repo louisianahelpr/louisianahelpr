@@ -133,6 +133,11 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// The bare toast() is the one that renders (LEAD-TOAST3): a callable mock that keeps sonner's methods.
+vi.mock("sonner", async (orig) => {
+  const real = await orig<typeof import("sonner")>();
+  return { ...real, toast: Object.assign(vi.fn(), real.toast) };
+});
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (
@@ -477,7 +482,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(sheet).toHaveTextContent("No strike for a free item.");
     expect(sheet).toHaveTextContent("it goes back up so others can ask for it.");
     expect(sheet).not.toHaveTextContent(/Declutter strike|comes down/);
-    const said = vi.spyOn(toast, "success");
+    const said = vi.mocked(toast);
+    said.mockClear();
     fireEvent.click(within(sheet).getByRole("button", { name: "Cancel claim" }));
     await vi.waitFor(() => expect(state.calls).toContainEqual(["cancel_sale", "if1"]));
     await vi.waitFor(() => expect(said).toHaveBeenCalledWith("Claim cancelled. It's back up."));

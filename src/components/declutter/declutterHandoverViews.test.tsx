@@ -1205,6 +1205,24 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
     expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
   });
+
+  // Night audit sold states #8: the seller moving a porch day with none left read the buyer's line ("The seller has no
+  // pickup days left before your 7-day pickup deadline"). Only the booked day left counts as none (it was an empty row).
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |                 {side === "seller"\n | {false\n
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   const otherDays = (days.data ?? []).filter((d) => d !== booked); |   const otherDays = days.data ?? [];
+  it("sold states #8: a seller with no other day left reads their own line", async () => {
+    const today = new Date();
+    const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const tomorrow = key(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    state.porchDays = [tomorrow];
+    state.bookings = [{ ...slot(-60 * 24), pickup_day: tomorrow }];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Pick another day (once)" }));
+    expect(await screen.findByText("You have no pickup days left before the buyer's 7-day pickup deadline.")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/The seller has no pickup days left/);
+    expect(screen.queryByRole("group", { name: "Pickup days" })).toBeNull();
+  });
 });
 
 // Audit 1028 part 2, D2-11 and D2-8: the problem reasons fit who reports and when (problemReasons.ts). After the booked

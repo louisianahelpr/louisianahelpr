@@ -58,6 +58,7 @@ const DISPUTE =
 // @two-way src/test/notificationProducersCovered.test.ts:an entry whose producer is gone from source fails
 export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   // ── SQL functions ───────────────────────────────────────────────────────
+  "sql:identity_notify_posters_before_start": { uncovered: "tells a poster 24 hours before the start that their Helpr has not verified their ID, and only while the identity_check switch is on, which stays off until one real session works; a journey cannot wait out a real start. Proven in src/test/pglite/idCheckTiming.pglite.mjs (sent once, not again on a second run)." },
   "sql:admin_reverse_violation": { uncovered: ADMIN_ONLY("reverses a violation from the admin user view") },
   "sql:apply_consequence_ladder": { uncovered: STRIKE },
   "sql:sweep_unanswered_applications": { uncovered: "needs a pending application 24 to 72 hours old in daytime; the journeys apply and answer in the same pass. Proven in src/test/pglite/applicantNudgesAndFilledNotice.pglite.mjs." },

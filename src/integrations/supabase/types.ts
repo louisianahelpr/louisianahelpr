@@ -5087,6 +5087,7 @@ export type Database = {
           handed_over_to: string | null
           helpr_id: string | null
           id: string
+          in_hand_nudged_at: string | null
           is_seed: boolean
           latest_pickup_at: string
           open_until: string
@@ -5131,6 +5132,7 @@ export type Database = {
           handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
+          in_hand_nudged_at?: string | null
           is_seed?: boolean
           latest_pickup_at: string
           open_until: string
@@ -5175,6 +5177,7 @@ export type Database = {
           handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
+          in_hand_nudged_at?: string | null
           is_seed?: boolean
           latest_pickup_at?: string
           open_until?: string

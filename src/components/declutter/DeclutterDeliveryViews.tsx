@@ -71,6 +71,8 @@ const SIZE_WORDS: Record<TaskSize, string> = {
 
 const DELIVERY_STEPS = ["Booked", "Picked up", "Delivered"] as const;
 const DELIVERY_STEP: Partial<Record<TaskView["status"], number>> = { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 };
+/** helpr_task_sweep's first "still not delivered" nudge (20261031014011): 24 hours after Picked up. */
+const STILL_IN_HAND_MS = 24 * 3_600_000;
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -150,7 +152,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else if (v.status === "picked_up") {
     // Audit 1c #1: without the seller's "Handed over" the seller reads it as the Helpr's word.
     line = side === "buyer"
-      ? `${who} has your item and is on the way.`
+      ? v.picked_up_at && Date.now() - new Date(v.picked_up_at).getTime() >= STILL_IN_HAND_MS
+        ? `${who} picked it up ${when(v.picked_up_at)} and hasn't marked it delivered. If you have it, tap "I got it". If not, report a problem. Your money stays held until then.`
+        : `${who} has your item and is on the way.`
       : v.handed_over_at
         ? `${who} picked it up. You're paid when the buyer has it.`
         : `${who} says it was picked up. You're paid when the buyer has it. If you didn't hand it over, report a problem.`;

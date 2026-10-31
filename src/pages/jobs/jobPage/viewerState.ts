@@ -36,6 +36,7 @@ export function jobPageViewerState(o: {
   if (app) {
     if (app.closed_reason === "job_cancelled") return { action: { kind: "none" }, status: "This job is no longer available" };
     if (app.closed_reason === "no_show") return { action: { kind: "none" }, status: "This job was reported as a no-show" };
+    if (app.status === "rejected" && app.closed_reason === "helper_cancelled") return { action: { kind: "none" }, status: "You cancelled this job" };
     if (app.status === "rejected") return { action: { kind: "none" }, status: "Not selected this time" };
     if (app.status === "pending" && o.job.status === "open") return { action: { kind: "view_application" }, status: `You applied · Waiting on ${them}` };
     return { action: { kind: "none" }, status: "This job is no longer available" };

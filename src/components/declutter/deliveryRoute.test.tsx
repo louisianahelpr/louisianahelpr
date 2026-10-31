@@ -16,7 +16,8 @@ import type { RouteStop } from "@/lib/helprTasks/api";
 
 const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as string[] };
 
-vi.mock("sonner", () => ({ toast: { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() } }));
+// LEAD-TOAST3: the step confirmations are the bare toast(); toast.success stays for any other caller.
+vi.mock("sonner", () => ({ toast: Object.assign((m: string) => { state.toasts.push(m); }, { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));

@@ -1408,7 +1408,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1418,7 +1418,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1428,7 +1428,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1438,7 +1438,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 258,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1448,17 +1448,28 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 260,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't save your search — please try again.\")"
+        "text": "savedSearchSaveError(err, \"We couldn't save your search — please try again.\")",
+        "from": "src/lib/savedSearches.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "SAVED_SEARCH_CAP_COPY"
+          },
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, fallback)"
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 297,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1468,7 +1479,7 @@
     },
     {
       "file": "src/components/SavedSearches.tsx",
-      "line": 333,
+      "line": 334,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9388,17 +9399,28 @@
     },
     {
       "file": "src/components/savedSearches/SaveSearchSheet.tsx",
-      "line": 61,
+      "line": 60,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't save your search. Please try again.\")"
+        "text": "savedSearchSaveError(err, \"We couldn't save your search. Please try again.\")",
+        "from": "src/lib/savedSearches.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "SAVED_SEARCH_CAP_COPY"
+          },
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, fallback)"
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/savedSearches/SaveSearchSheet.tsx",
-      "line": 68,
+      "line": 67,
       "kind": "toast",
       "title": {
         "form": "literal",

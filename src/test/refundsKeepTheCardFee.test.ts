@@ -646,7 +646,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
-      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
@@ -763,7 +763,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
     // held-for-review admin tools move status and record what moved, never change refund_cents.
     functions: {
-      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
       admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
       admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
       payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",

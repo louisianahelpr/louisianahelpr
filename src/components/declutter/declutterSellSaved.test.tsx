@@ -5,7 +5,8 @@
  *
  * @mutate src/components/declutter/useSellFlowState.ts |     setHeld((h) => [...back.held, ...h]); |     void back.held;
  * @mutate src/components/declutter/useSellFlowState.ts |     setBroughtBack(back.form.title.trim() ? "written" : "unwritten"); |     setBroughtBack("unwritten");
- * @mutate src/components/declutter/useSellFlowState.ts |       void keptWork.finish(); |       void 0;
+ * @mutate src/components/declutter/useSellFlowState.ts |       void requestAiCheckWithRetry(id);\n      void keptWork.finish(); |       void requestAiCheckWithRetry(id);\n      void 0;
+ * @mutate src/components/declutter/useSellFlowState.ts |         void keptWork.finish();\n        toast(String( |         void 0;\n        toast(String(
  * @mutate src/components/declutter/useSellFlowState.ts |       setCreatedId(back.createdId); |       void setCreatedId;
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,
  * @mutate src/components/declutter/useSellSaved.ts |           if (!row) draftId = null; |           void row;
@@ -23,6 +24,8 @@ const h = vi.hoisted(() => ({
   aiCalls: 0,
   onDraft: [] as { id: string; storage_path: string }[],
   publishFails: false,
+  // LEAD-RESUME-REPOSTS: Post's create answers "already posted" (the app's id is the seller's live listing).
+  alreadyPosted: false,
   draftRow: { id: "", status: "draft" } as { id: string; status: string } | null,
   // LEAD-BUNCH-DROPS-IGNORED: the seller's saved Settings row, and what Post saved.
   defaults: null as unknown,
@@ -68,7 +71,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => h.onDraft,
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
-  createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { h.calls.push("createDraft"); h.floors.push([f.priceCents, f.floorPriceCents]); return NEW_ID; },
+  createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { h.calls.push("createDraft");
+    if (h.alreadyPosted) throw Object.assign(new Error("already_posted"), { itemId: "live-1", userMessage: "Already posted. It's under Selling." }); h.floors.push([f.priceCents, f.floorPriceCents]); return NEW_ID; },
   setDropPct: async (_id: string, pct: number) => { h.drops.push(pct); return pct; },
   fetchItemDropState: async () => null,
   updateDraft: async () => { h.calls.push("updateDraft"); return "ok"; },
@@ -105,6 +109,7 @@ function open(entry = "/declutter/sell") {
         <Routes>
           <Route path="/declutter/sell" element={<DeclutterSellPage />} />
           <Route path="/declutter" element={<p>Selling tab</p>} />
+          <Route path="/declutter/item/:id" element={<p>Item page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -133,6 +138,7 @@ describe("a new listing is kept on this device", () => {
     h.onDraft.length = 0;
     h.aiCalls = 0;
     h.publishFails = false;
+    h.alreadyPosted = false;
     h.draftRow = { id: NEW_ID, status: "draft" };
     h.defaults = null;
     h.drops.length = 0;
@@ -191,6 +197,20 @@ describe("a new listing is kept on this device", () => {
     await waitFor(() => expect(h.disk.size).toBe(0));
   });
 
+  // LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates c87b7de4 / 019dd0b3): Post again on a listing that is
+  // already live makes no second copy: no publish, the kept work is cleared, and the posted listing opens.
+  // @mutate src/components/declutter/useSellFlowState.ts |       if (posted?.message === "already_posted" && typeof posted.itemId === "string") { |       if (false) {
+  it("post, then Post again on the same listing: nothing is made twice, the kept work goes, the listing opens", async () => {
+    await startAndEdit();
+    h.alreadyPosted = true;
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Item page");
+    expect(h.calls).toEqual(["createDraft"]);
+    await waitFor(() => expect(h.disk.size).toBe(0));
+    h.alreadyPosted = false;
+  });
+
   it("a failed publish then a reload updates the same draft, never a second one", async () => {
     await startAndEdit();
     h.publishFails = true;
@@ -200,6 +220,7 @@ describe("a new listing is kept on this device", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Post it" })).toBeEnabled());
     cleanup();
     h.publishFails = false;
+    h.alreadyPosted = false;
     h.calls.length = 0;
     open();
     await screen.findByText("We kept your listing from last time.");

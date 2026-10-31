@@ -167,26 +167,43 @@ describe("Manage a listing (board 158)", () => {
     first.unmount();
     autoFree = null;
     sheet();
-    await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
+    await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
     expect(screen.queryByText(/wins over a stopped price/)).toBeNull();
   });
 
-  it("make it free after __ days: Never by default, each chip sends the seller's choice; hidden before the migration is on prod (OWN-FREE)", async () => {
+  // LEAD-FREE-AFTER-DROPDOWN (owner 2026-10-31): one row, the label on the left, a native labelled dropdown on the right.
+  // @mutate src/components/declutter/AutoFreeRow.tsx |       <div className="flex items-center justify-between gap-3" data-auto-free-row=""> |       <div className="space-y-2" data-auto-free-row="">
+  // @mutate src/components/declutter/AutoFreeRow.tsx |         <label htmlFor={id} | <label
+  it("make it free after: one row, label left, native dropdown right, explainer under it", async () => {
+    autoFree = null;
+    sheet();
+    const pick = await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
+    expect(pick.tagName).toBe("SELECT");
+    const row = pick.closest("[data-auto-free-row]")!;
+    expect(row.className).toMatch(/\bflex\b/);
+    expect(row.className).not.toMatch(/\bflex-col\b|\bflex-wrap\b/);
+    expect(row.firstElementChild!.tagName).toBe("LABEL");
+    expect(row.lastElementChild).toBe(pick);
+    expect(row.parentElement!.querySelectorAll('[role="radio"]')).toHaveLength(0);
+    expect(row.nextElementSibling?.textContent).toBeTruthy(); // the explainer stays under it
+  });
+
+  it("make it free after __ days: Never by default, each choice sends the seller's choice; hidden before the migration is on prod (OWN-FREE)", async () => {
     autoFree = null;
     const a = sheet();
-    const group = await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
-    const chips = Array.from(group.querySelectorAll('[role="radio"]')).map((c) => c.textContent);
-    expect(chips).toEqual(["Never make it free", "7 days", "14 days", "21 days", "30 days"]);
-    expect(screen.getByRole("radio", { name: "Never make it free" }).getAttribute("aria-checked")).toBe("true");
+    const pick = await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
+    const options = Array.from((pick as HTMLSelectElement).options).map((c) => c.textContent);
+    expect(options).toEqual(["Never make it free", "7 days", "14 days", "21 days", "30 days"]);
+    expect((pick as HTMLSelectElement).value).toBe("never");
     expect(screen.queryByText("Free on day 12")).toBeNull();
-    fireEvent.click(screen.getByRole("radio", { name: "21 days" }));
+    fireEvent.change(pick, { target: { value: "21" } });
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", 21]));
     a.unmount();
     autoFree = 7;
     calls.length = 0;
     const b = sheet();
-    await waitFor(() => expect(screen.getByRole("radio", { name: "7 days" }).getAttribute("aria-checked")).toBe("true"));
-    fireEvent.click(screen.getByRole("radio", { name: "Never make it free" }));
+    await waitFor(() => expect((screen.getByRole("combobox", { name: "If it doesn't sell, make it free after" }) as HTMLSelectElement).value).toBe("7"));
+    fireEvent.change(screen.getByRole("combobox", { name: "If it doesn't sell, make it free after" }), { target: { value: "never" } });
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", null]));
     b.unmount();
     autoFree = "not_deployed";
@@ -196,7 +213,7 @@ describe("Manage a listing (board 158)", () => {
     // Wait for the auto-free DATA ("not_deployed" resolved and React settled), then assert the absence.
     await waitFor(() => expect(autoFreeReads.n).toBeGreaterThan(readsBefore));
     await act(async () => {});
-    expect(screen.queryByRole("radiogroup", { name: "If it doesn't sell, make it free after" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "If it doesn't sell, make it free after" })).toBeNull();
     autoFree = null;
   });
 

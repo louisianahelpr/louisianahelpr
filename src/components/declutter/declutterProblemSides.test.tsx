@@ -50,8 +50,10 @@ beforeEach(() => { state.added = []; state.withdrawn = []; state.uploaded = []; 
 describe("DeclutterProblemSides", () => {
   it("the seller sees the buyer's report with its photo, and adds their side (exactly the words)", async () => {
     show("seller", OPEN);
-    expect((await screen.findByText(/The buyer reported a problem: It's damaged\./)).closest("p")?.textContent)
-      .toBe('The buyer reported a problem: It\'s damaged. "The leg is cracked."');
+    // NIGHT-BUYINGopenpr-8: the reason and who reported it are said once, in the note above (ProblemOpenNote).
+    expect((await screen.findByText(/The buyer's report:/)).closest("p")?.textContent)
+      .toBe('The buyer\'s report: "The leg is cracked."');
+    expect(screen.queryByText(/reported a problem|It's damaged/)).toBeNull();
     expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/a.jpg");
     fireEvent.click(screen.getByRole("button", { name: "Add your side" }));
     fireEvent.change(screen.getByLabelText("Your side, for Louisiana Helpr"), { target: { value: "  It left here in one piece.  " } });
@@ -84,7 +86,7 @@ describe("DeclutterProblemSides", () => {
 
   it("the reporter sees the other side's answer and cannot add a side to their own report", async () => {
     show("buyer", { ...OPEN, other_side_note: "It left here in one piece.", other_side_photo_paths: ["s/declutter/problem/o1/b.jpg"] });
-    expect(await screen.findByText(/You reported a problem/)).toBeTruthy();
+    expect(await screen.findByText(/Your report:/)).toBeTruthy();
     expect(screen.getByText(/The seller's side:/).closest("p")?.textContent).toBe('The seller\'s side: "It left here in one piece."');
     expect(await screen.findByAltText("Problem photo 1", {}, { timeout: 2000 })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /your side/i })).toBeNull();
@@ -112,7 +114,7 @@ describe("DeclutterProblemSides", () => {
     expect(screen.queryByRole("button", { name: "Take back my report" })).toBeNull();
     other.unmount();
     show("seller", { ...OPEN, reporter_side: "helpr" });
-    expect(await screen.findByText(/The Helpr reported a problem/)).toBeTruthy();
+    expect(await screen.findByText(/The Helpr's report:/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Take back my report" })).toBeNull();
   });
 

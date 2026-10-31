@@ -11,6 +11,7 @@
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql |   IF v_retry IS NOT NULL THEN |   IF false THEN
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | AND (NOT v_rerun OR EXISTS | AND (true OR EXISTS
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql |   DELETE FROM public.saved_search_item_matches WHERE item_id = NEW.id;\n |
+ * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), | miles_between(p.latitude, p.longitude,
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END | ''
  */
 import { describe, expect, it } from "vitest";
@@ -45,6 +46,13 @@ describe("A saved-search match inside the hour is held, not dropped (BUY-50)", (
     expect(fn).toMatch(/CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END/);
     // The same words go to the bell and the email.
     expect(fn.indexOf("'message', v_message")).toBeGreaterThan(fn.indexOf("declutter_notify(r.user_id, 'job_match', v_title, v_message"));
+  });
+
+  // Restated from 20261031023451 (BUY-49): the distance still measures from where the search was saved.
+  it("keeps BUY-49's origin: distance from where the search was saved, else the profile", () => {
+    expect(body("deliver_saved_search_item_alerts")).toMatch(
+      /public\.miles_between\(COALESCE\(s\.origin_lat, p\.latitude\), COALESCE\(s\.origin_lng, p\.longitude\), v_item\.area_lat::numeric, v_item\.area_lng::numeric\) <= s\.radius_miles/,
+    );
   });
 
   it("a listing that goes live again starts fresh", () => {

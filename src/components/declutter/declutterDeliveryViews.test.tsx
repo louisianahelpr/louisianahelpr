@@ -459,7 +459,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Back out of this delivery?");
     // AUD31-26: this pickup is past, so THIS back-out costs a strike.
-    expect(sheet).toHaveTextContent("It's under 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time.");
+    expect(sheet).toHaveTextContent("It's less than 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time.");
     expect(state.calls).toHaveLength(0);
     fireEvent.click(within(sheet).getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["release", "t1"]));

@@ -433,7 +433,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
         {/* AUD31-26: say whether THIS back-out costs a strike (helpr_task_release: late = under 2 hours before the
             pickup, and free whenever the seller moved the time, which this view cannot see). */}
         Another Helpr can take it. {backOutCostsStrike(v?.pickup_slot_start)
-          ? "It's under 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time."
+          ? "It's less than 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time."
           : "It's more than 2 hours before the pickup, so backing out now costs no strike."}
       </ConfirmSheet>
     </li>

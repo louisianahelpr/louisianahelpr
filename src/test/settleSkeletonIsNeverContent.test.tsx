@@ -32,6 +32,10 @@ import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs"
 import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import { YOU_ROWS, YOU_STATIC_CAPTIONS, YouMenuList } from "@/components/profile/profileLanding/YouMenu";
 
+// AUD31-73 (8c6add3458): a guest's section tabs ask features_open_to_everyone; a skeleton's frame renders signed out
+// here, so that answer is stubbed (as in centerCreateNav.test.tsx) instead of reaching Supabase.
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+
 type Settle = { counts: { n: number; added?: string[] }[] };
 const settle = () => (window as unknown as { __settle: Settle }).__settle;
 const repoRoot = resolve(__dirname, "../..");

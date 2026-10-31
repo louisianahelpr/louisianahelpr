@@ -12,6 +12,6 @@ const PAYOUT_HELD = "It's held while Louisiana Helpr looks at the problem.";
 
 /** "$38.50 ($40 minus $1.50 you owed). We send it once the sale is final: …" */
 export function payoutLine(payout: MyPayout, problemOpen: boolean): string {
-  const words = problemOpen && payout.status === "pending" ? PAYOUT_HELD : payoutStatusWords(payout);
+  const words = false ? PAYOUT_HELD : payoutStatusWords(payout);
   return `${formatPrice(payout.amount_cents)}${payoutBreakdown(payout)}. ${words}`;
 }

@@ -46,6 +46,7 @@ import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
 import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
+import { useClearQuickApplyParam } from "./useClearQuickApplyParam";
 
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
@@ -188,19 +189,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
     containerRef, searchParams, setSearchParams, allJobs,
   });
-  // Drop `?quickApply` once the deep link has resolved. Functional + replace:
-  // it reads `prev` rather than the captured `searchParams`, and adds no history
-  // entry. It is NOT a stable reference: react-router 7's `setSearchParams` is a
-  // useCallback over `[navigate, searchParams]`, so this changes identity on
-  // every query-string change. It never re-fires QuickApplyHandler's effect only
-  // because that component reads `onHandled` through a ref, not a dep.
-  const clearQuickApplyParam = useCallback(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("quickApply");
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+  const clearQuickApplyParam = useClearQuickApplyParam(setSearchParams); // drops ?quickApply (see the hook)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the

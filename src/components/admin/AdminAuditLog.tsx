@@ -17,6 +17,7 @@ import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
+import { pillLabel } from "@/components/admin/useFilterCounts";
 
 interface AuditEntry {
   id: string;
@@ -266,7 +267,7 @@ const AdminAuditLog = () => {
                 aria-pressed={who === value}
                 className="shrink-0"
               >
-                {label} ({entries.filter((e) => auditWhoMatches(value, e)).length})
+                {pillLabel(label, entries.filter((e) => auditWhoMatches(value, e)).length)}
               </Button>
             ))}
           </AdminFilterStrip>

@@ -33,12 +33,19 @@ export function CategoryRow({
             >
               {item.icon}
             </span>
-            <Label
-              className="font-sans font-semibold text-ds-14 mb-0"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              {item.label}
-            </Label>
+            <div className="min-w-0">
+              <Label
+                className="font-sans font-semibold text-ds-14 mb-0"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                {item.label}
+              </Label>
+              {item.description && (
+                <p className="font-sans text-ds-12 leading-snug mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {item.description}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
             <SwitchSlot

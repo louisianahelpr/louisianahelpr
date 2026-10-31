@@ -26,6 +26,7 @@ import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
+import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
@@ -92,6 +93,7 @@ export function PickupStatus({
   day = null,
   itemsCents,
   problemOpen = false,
+  refunded = false,
 }: {
   orderId: string;
   handover: Pickup;
@@ -104,6 +106,8 @@ export function PickupStatus({
   itemsCents: number;
   /** Audit 1b D2-2: a problem is open, so the order is on hold and the money is held until Louisiana Helpr decides. */
   problemOpen?: boolean;
+  /** NIGHT-SELL-soldstates-7: the sale was refunded in full after the handover (refundedInFull). */
+  refunded?: boolean;
 }) {
   const h = useMyHandover(orderId);
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
@@ -124,7 +128,7 @@ export function PickupStatus({
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
+      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
       <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
     </div>
   );
@@ -164,8 +168,8 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
  * come from the delivery booking (the same row and query key SellerDeliveryOrderPanel reads): booked with a time,
  * delivered_at, and the order's handed_over.
  */
-export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = false }: {
-  orderId: string; side: "buyer" | "seller"; itemsCents: number; problemOpen?: boolean;
+export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = false, refunded = false }: {
+  orderId: string; side: "buyer" | "seller"; itemsCents: number; problemOpen?: boolean; refunded?: boolean;
 }) {
   const b = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId) });
   const free = itemsCents === 0;
@@ -182,9 +186,41 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   return (
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
+      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
       <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
     </div>
+  );
+}
+
+/**
+ * NIGHT-SELL-soldstates-7: a finished Helpr delivery on the seller's card had no tracker, only "Handed over." (the
+ * delivery panel with its tracker leaves the card once the sale is done). The one tracker at its end, and one line.
+ */
+export function DeliveryDoneStatus({ free, refunded = false }: { free: boolean; refunded?: boolean }) {
+  const facts: OrderFacts = { handover: "delivery", side: "seller", free, booked: true, pickedUp: true, delivered: true, done: true };
+  return (
+    <div className="space-y-2" data-pickup-status={orderStepAt(facts)} data-delivery-done="">
+      <OrderSteps facts={facts} />
+      <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller : "Handed over."}</p>
+    </div>
+  );
+}
+
+/**
+ * NIGHT-SELL-soldstates-7: a Helpr delivery's seller card said nothing of the money until the drop-off (every other
+ * kind's card shows "You get $X" from the start). The amount, in the same good-news note; the delivery panel's own
+ * line gives the payout rule once the Helpr has left it.
+ */
+export function SellerDeliveryMoney({ itemsCents, problemOpen = false }: { itemsCents: number; problemOpen?: boolean }) {
+  if (itemsCents === 0) return null;
+  return problemOpen ? (
+    <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-money-note="">
+      Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.
+    </p>
+  ) : (
+    <p className={GOOD_NEWS_NOTE} data-money-note="" data-tone="good">
+      You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the buyer has it.
+    </p>
   );
 }
 

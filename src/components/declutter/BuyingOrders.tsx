@@ -22,6 +22,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
+import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
@@ -128,8 +129,10 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
  * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
  */
-export function refundStanding(status: string | null | undefined): string | null {
+export function refundStanding(status: string | null | undefined, inFull = false): string | null {
   switch (status) {
+    // NIGHT-SELL-soldstates-7: a full refund undid the sale (refundedInFull); a part refund leaves it handed over.
+    case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null;
     case "open": return "Handed over. You asked for a refund.";
     case "offered": return "Handed over. You have a refund offer to answer.";
     case "returning": return "Going back for a refund.";

@@ -3,7 +3,9 @@
  * ~/.lh-shots/declutter-walk-1028/): the classes the walkthrough found, each checked on the rendered tab.
  *   1. ONE selected look in the filter row: a filled pill is always the pressed filter (a filled "Sell an item"
  *      ended the row and read as a second selected filter).
- *   2. No Explore "Search all sections" row on Selling.
+ *   2. No Explore "Search all sections" row on Selling. LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no
+ *      such row on ANY Declutter tab; Deliver, Wanted and Free carry that search as Jobs' 40px icon right before the
+ *      gear. Red on cb20b3f6b1: Deliver, Wanted and Free drew the full-width field under the tabs, and no icon.
  *   3. Every listing row: a thumbnail, ONE status line ("Not listed yet" + "Finish the listing to put it up for
  *      sale." read as two), its actions in one group (right-aligned from sm up).
  *   4. "Offers on your items" and "Sold: pickup and payout" empty: a designed empty state, not a bare sentence.
@@ -13,7 +15,11 @@
  * The Declutter API module and the account hooks are stubbed (what each STATE renders), as in declutterTabs.test.tsx.
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
- * @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} | globalSearch={view !== "buying"}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} tabs={tabsFor(view | title="Declutter" globalSearch={view === "deliver"} tabs={tabsFor(view
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | tabsFor(view === "buying" \|\| view === "selling" ? undefined | tabsFor(view === "buying" ? undefined
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | { end: <ExploreSearchEntry /> }
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | undefined
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} | <SectionScreen section="declutter" title="Declutter"
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
@@ -211,15 +217,38 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(row).queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 
-  it("no 'Search all sections' row on Selling (Deliver keeps it)", async () => {
+  it("no 'Search all sections' row on Selling", async () => {
     at("/declutter?tab=selling");
     await screen.findByRole("heading", { name: /^Your listings/ });
     expect(screen.queryByRole("button", { name: "Search all sections" })).toBeNull();
   });
 
-  it("the mock draws the search row where it is on, so the check above can fail", async () => {
-    at("/declutter?tab=deliver");
-    expect(await screen.findByRole("button", { name: "Search all sections" })).toBeInTheDocument();
+  // LEAD-DECL-SEARCHBAR (owner 2026-10-31): the field (the mock's button) is on no tab; the search is the icon link
+  // right before the gear on Deliver, Wanted and Free, and not on a member's own Buying / Selling lists.
+  it.each([
+    ["buying", false], ["selling", false], ["deliver", true], ["wanted", true], ["free", true],
+  ] as const)("the %s tab: no search bar, and the search icon by the gear: %s", async (tab, icon) => {
+    const view = at(`/declutter?tab=${tab}`);
+    const gear = await screen.findByTestId("section-settings");
+    expect(screen.queryByRole("button", { name: "Search all sections" })).toBeNull();
+    const link = screen.queryByRole("link", { name: "Search all sections" });
+    if (!icon) expect(link).toBeNull();
+    else {
+      expect(link).toHaveAttribute("href", "/search");
+      // Jobs' icon: a glyph only (no words), the 40px square, and the control right before the gear.
+      expect((link?.textContent ?? "").trim()).toBe("");
+      expect(link?.className).toContain("h-10 w-10");
+      expect(link?.nextElementSibling).toBe(gear);
+    }
+    view.unmount();
+  });
+
+  it("every Declutter section screen turns the bar off (an inventory of the SectionScreen calls)", () => {
+    const dir = join(process.cwd(), "src/components/declutter");
+    const calls = readdirSync(dir).filter((f) => f.endsWith(".tsx") && !f.includes(".test."))
+      .flatMap((f) => [...blankComments(readFileSync(join(dir, f), "utf8")).matchAll(/<SectionScreen\b[^>]*section="declutter"[^>]*>/g)].map((m) => [f, m[0]] as const));
+    expect(calls.length).toBeGreaterThan(2);
+    for (const [f, call] of calls) expect(call, f).toContain("globalSearch={false}");
   });
 
   // B48 live check 2026-10-29: a porch + meetup listing read only "For sale · Porch pickup".

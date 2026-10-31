@@ -20,6 +20,7 @@ const displayName = readFileSync(`${MIG_DIR}20261021061341_member_display_name.s
   .match(/CREATE OR REPLACE FUNCTION public\.member_display_name\([\s\S]*?AS (\$fn\$)[\s\S]*?\1;/)[0];
 const old = readFileSync(`${MIG_DIR}20261016053541_declutter_wanted_price_hint.sql`, "utf8");
 const pick = (src, name) => src.match(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\([^)]*\\)\\s*RETURNS[\\s\\S]*?AS (\\$[a-z_]*\\$)\\n[\\s\\S]*?\\1;`))[0];
+const readsCaller = readFileSync(`${MIG_DIR}20261031011531_declutter_my_reply_listings_reads_caller.sql`, "utf8");
 const db = new PGlite();
 const P = "11111111-1111-4111-8111-111111111111", S = "22222222-2222-4222-8222-222222222222", X = "33333333-3333-4333-8333-333333333333";
 const I = (n) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -81,6 +82,8 @@ if (process.env.NEW_MIGRATION === "skip") {
     return v; end $$;`);
 } else {
   for (let i = 1; i <= 3; i++) await db.exec(mig);
+  // 20261031011531 restates declutter_my_reply_listings to read the caller itself; READS_CALLER=skip leaves it out.
+  if (process.env.READS_CALLER !== "skip") for (let i = 1; i <= 3; i++) await db.exec(readsCaller);
 }
 const as = async (uid, sql) => { await db.exec(`select set_config('t.uid', '${uid ?? ""}', false)`); return db.query(sql); };
 const fails = async (uid, sql, code) => { try { await as(uid, sql); return `NO ERROR (wanted ${code})`; } catch (e) { return String(e.message).includes(code) ? "ok" : `wrong: ${e.message}`; } };
@@ -217,6 +220,19 @@ await safe("blockedIsOneAnswer", async () => {
   const r = await fails(S, `select * from declutter_my_reply_listings('${bike}')`, "wanted_not_found");
   await db.exec(`delete from user_blocks`);
   return r;
+});
+
+// Q1284: the check on prod reads this function's own body for the caller. The same query, from the same file.
+await safe("readsTheCaller", async () => {
+  const inv = readFileSync(new URL("../../../scripts/ci/definer-exec-inventory.sql", import.meta.url), "utf8").replace(/^\s*--[^\n]*\n/gm, "").trim().replace(/;\s*$/, "");
+  const rows = (await db.query(`select scoped from (${inv}) o where signature = 'declutter_my_reply_listings(uuid)' and role = 'authenticated'`)).rows;
+  return rows.length === 1 && rows[0].scoped === true;
+});
+// The restatement adds that one line and nothing else: the original migration's body, line removed, is what's deployed.
+await safe("restatementAddsOneLine", async () => {
+  const live = (await db.query(`select prosrc from pg_proc where proname = 'declutter_my_reply_listings'`)).rows[0].prosrc;
+  const first = mig.match(/FUNCTION public\.declutter_my_reply_listings[\s\S]*?AS \$function\$([\s\S]*?)\$function\$;/)[1];
+  return live.replace("  v_uid := (SELECT auth.uid());\n", "") === first && live.includes("v_uid := (SELECT auth.uid());");
 });
 
 // #19: every photo for a seller; a reply's photo for the poster; still never a user id.

@@ -113,9 +113,9 @@ DECLARE
   h public.declutter_handovers;
 BEGIN
   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
-  -- B100's rule: a member who took back their report on this sale cannot report it again.
+  -- B100's rule: a member who took back a report on this sale, of any reason, cannot report it again.
   IF EXISTS (SELECT 1 FROM public.declutter_problems p
-              WHERE p.order_id = o.id AND p.reporter_id = o.buyer_id AND p.reason = 'no_show' AND p.status = 'withdrawn') THEN
+              WHERE p.order_id = o.id AND p.reporter_id = o.buyer_id AND p.status = 'withdrawn') THEN
     RAISE EXCEPTION 'problem_taken_back' USING ERRCODE = '55000',
       HINT = 'You took back your report on this sale, so it can''t be reported again.';
   END IF;
@@ -319,15 +319,6 @@ BEGIN
   -- reporter and carries the seller's words as the other side. Going through declutter_report_problem recorded the seller
   -- as the reporter: their card said "reported by you", the buyer could not take it back, and a false-report decision
   -- would have gone against the wrong person.
-  SELECT p.* INTO v_open FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open';
-  IF FOUND THEN
-    -- The same answer sent again (a double tap) answers the same; anything else goes on the open problem.
-    IF v_open.reporter_side = 'buyer' AND v_open.reason = 'no_show' AND v_open.other_side_note = btrim(p_note) THEN
-      RETURN v_open.id;
-    END IF;
-    RAISE EXCEPTION 'problem_already_open' USING ERRCODE = '55000',
-      HINT = 'A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.';
-  END IF;
   IF p_note IS NULL OR char_length(btrim(p_note)) NOT BETWEEN 1 AND 1000 THEN
     RAISE EXCEPTION 'note_required' USING ERRCODE = '22023', HINT = 'Tell us what happened (up to 1,000 characters).';
   END IF;
@@ -346,6 +337,31 @@ BEGIN
       RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
     END IF;
   END LOOP;
+  SELECT p.* INTO v_open FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open';
+  IF FOUND THEN
+    -- The same answer sent again (a double tap) answers the same.
+    IF v_open.reporter_side = 'buyer' AND v_open.other_side_note = btrim(p_note) THEN
+      RETURN v_open.id;
+    END IF;
+    -- Review of 7496d29c8b #1: the buyer's OTHER open problem: this answer is the seller's side of it, never refused into
+    -- a dead end. Anything else (their own report, or a side already sent) goes through "Add your side".
+    IF v_open.reporter_side = 'buyer' AND v_open.other_side_note IS NULL THEN
+      UPDATE public.declutter_problems
+         SET other_side_note = btrim(p_note), other_side_photo_paths = COALESCE(p_photo_paths, '{}'), other_side_at = now()
+       WHERE id = v_open.id;
+      PERFORM public.declutter_notify(o.buyer_id, 'warning', 'The seller answered your report',
+        format('About %s. Louisiana Helpr looks at both sides and tells you what it decides. The money stays held until then.',
+               public.declutter_order_items_named(o.id)),
+        '/declutter?tab=buying', v_uid);
+      FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
+        PERFORM public.declutter_notify(a.user_id, 'info', 'Declutter problem: the other side answered',
+          'The other side of a reported Declutter problem added their side. It is in the problem case.', '/admin');
+      END LOOP;
+      RETURN v_open.id;
+    END IF;
+    RAISE EXCEPTION 'problem_already_open' USING ERRCODE = '55000',
+      HINT = 'A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.';
+  END IF;
   INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths,
                                          other_side_note, other_side_photo_paths, other_side_at)
   VALUES (o.id, o.buyer_id, 'buyer', 'no_show',
@@ -526,7 +542,7 @@ AS $function$
 BEGIN
   IF EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = NEW.order_id AND h.no_show_reported_at IS NOT NULL) THEN
     RAISE EXCEPTION 'no_show_waiting' USING ERRCODE = '55000',
-      HINT = 'A no-show report on this pickup is waiting for an answer, so the time can''t move.';
+      HINT = 'A no-show report on this order is waiting for an answer, so the time can''t move.';
   END IF;
   RETURN NEW;
 END;
@@ -536,6 +552,14 @@ DROP TRIGGER IF EXISTS declutter_booking_waits_for_no_show_answer ON public.decl
 CREATE TRIGGER declutter_booking_waits_for_no_show_answer
   BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings
   FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR NEW.pickup_day IS DISTINCT FROM OLD.pickup_day)
+  EXECUTE FUNCTION public.declutter_refuse_move_during_no_show();
+-- Review of 7496d29c8b #2: a seller delivery's time stands the same way, as the pickup path's does. Asking or accepting
+-- waits; turning a request down still works (proposed_start goes to NULL).
+DROP TRIGGER IF EXISTS declutter_delivery_time_waits_for_no_show_answer ON public.declutter_seller_deliveries;
+CREATE TRIGGER declutter_delivery_time_waits_for_no_show_answer
+  BEFORE UPDATE OF slot_start, proposed_start ON public.declutter_seller_deliveries
+  FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start
+                     OR (NEW.proposed_start IS NOT NULL AND NEW.proposed_start IS DISTINCT FROM OLD.proposed_start))
   EXECUTE FUNCTION public.declutter_refuse_move_during_no_show();
 
 -- Restated from 20261030134109 (take back a problem report); only the marked lines change.
@@ -594,9 +618,11 @@ BEGIN
    WHERE problem_id = p.id AND status = 'to_admin' AND v_side = 'buyer';
   GET DIAGNOSTICS v_withdrawn = ROW_COUNT;
   UPDATE public.declutter_problems SET status = 'withdrawn', withdrawn_at = now() WHERE id = p.id;
-  -- CHANGED (T9, 10-30): now the seller's answer sits on the buyer's report, taking it back ends the report. Left set, the
-  -- sweep would read the passed 24 hours as no answer and refund the buyer with a strike on a seller who did answer.
-  IF p.reason = 'no_show' AND v_side = 'buyer' THEN
+  -- CHANGED (T9, review of 7496d29c8b #1): whatever problem the buyer takes back, the no-show clock ends with it: the seller
+  -- may have answered on it. Left set, the sweep would read the passed 24 hours as no answer and refund, with a strike, a
+  -- seller who did answer, and the buyer could force that past Louisiana Helpr. The seller taking back their OWN response
+  -- doesn't touch the buyer's report: the clock runs on.
+  IF v_side = 'buyer' THEN
     UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL WHERE order_id = o.id;
   END IF;
   PERFORM public.declutter_notify(CASE WHEN v_side = 'buyer' THEN o.seller_id ELSE o.buyer_id END, 'declutter_refunds',
@@ -628,9 +654,13 @@ AS $function$
       JOIN public.declutter_bookings b ON b.order_id = o.id
      WHERE o.id = p_order_id AND o.status = 'paid' AND b.slot_start IS NOT NULL
        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days' <= now()
-       AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')
+       -- Review of 7496d29c8b #4: what was already going on when it closed keeps it open. A problem or no-show report filed
+       -- after the close, and the 60-day problem (nobody's report), don't reopen the seller's home to the buyer.
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open'
+                        AND p.created_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days')
        AND NOT EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id
-                        AND (h.seller_confirmed_at IS NOT NULL OR h.no_show_reported_at IS NOT NULL OR h.set_out_at IS NOT NULL)));
+                        AND (h.seller_confirmed_at IS NOT NULL OR h.set_out_at IS NOT NULL
+                             OR h.no_show_reported_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days')));
 $function$;
 REVOKE ALL ON FUNCTION public.declutter_held_address_closed(uuid) FROM PUBLIC, anon, authenticated;
 
@@ -768,8 +798,10 @@ BEGIN
       JOIN public.declutter_bookings b ON b.order_id = o2.id
      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()
        AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o2.id AND p.status = 'open')
+       -- CHANGED (review of 7496d29c8b #3): a porch sale waits 24 hours from the later of the pickup time and the photo.
        AND (o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h
-                                               WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))
+                                               WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL
+                                                 AND h.set_out_at + interval '24 hours' <= now()))
        -- CHANGED (owner 10-30): never while the seller's 24 hours to answer run. A door or meeting-spot sale needs the
        -- seller's "Picked up", 24 hours old (declutter_sale_final's 24 hours follow: paid about 48 hours after it). If
        -- neither side says anything the money is held until someone does: no auto-pay, refund, strike or admin problem.
@@ -789,7 +821,8 @@ BEGIN
                                                AND h.seller_confirmed_at + interval '24 hours' <= now()))
          -- Porch (owner 2026-10-18): no "Left on porch" photo, no auto-pay.
          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h
-                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN
+                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL
+                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN
         PERFORM public.declutter_complete_handover(o.id, 'auto');
         v_auto := v_auto + 1;
       END IF;

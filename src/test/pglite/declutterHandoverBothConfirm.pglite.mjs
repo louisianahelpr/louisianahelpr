@@ -269,8 +269,12 @@ ok((await addr(SELLER2, 9))?.length === 1, "  the seller still reads their own")
 ok(refused(await addr(OUTSIDER, 9), /item_not_found|feature_disabled/), "  a stranger is refused as before");
 const talk = one(await svc(`SELECT public.declutter_order_talk_until('${G}')::text`));
 ok(talk === "infinity", `  chat stays open (${talk})`);
+// Review 7496d29c8b #4: a problem filed after the close doesn't reopen it. One filed before the close keeps it open.
 await me(BUYER2, `SELECT public.declutter_report_problem('${G}', 'other', 'Where is it?', '{}')`);
-ok((await addr(BUYER2, 9))?.length === 1, "an open problem opens it again for the order being decided");
+const stillClosed = await addr(BUYER2, 9);
+ok(Array.isArray(stillClosed) && stillClosed.length === 0, `a problem filed after the close doesn't reopen the address (${short(stillClosed)})`);
+await svc(`UPDATE public.declutter_problems SET created_at = now() - interval '8 days' WHERE order_id = '${G}'`);
+ok((await addr(BUYER2, 9))?.length === 1, "  one filed before the close keeps it open");
 
 // 7. Held 60 days: admin decides, no money moves; decided by the existing function.
 const H = await paidDoor(10, BUYER2, 1);
@@ -280,6 +284,9 @@ ok(toAdmin.held_to_admin >= 1, `held 60 days: it goes to admin (${short(toAdmin)
 const ph = await problems(H);
 ok(ph.length === 1 && ph[0].reporter_side === "system" && ph[0].reporter_id === null && ph[0].status === "open", `  as nobody's report (${short(ph)})`);
 ok(await status(H) === "paid" && (await refunds(H)) === 0 && (await payouts(H)) === 0, "  and no money moved");
+const hItem = one(await svc(`SELECT c.item_id FROM public.declutter_cart_items c WHERE c.order_id = '${H}' LIMIT 1`));
+const hAddr = await me(BUYER2, `SELECT * FROM public.declutter_item_address('${hItem}')`);
+ok(Array.isArray(hAddr) && hAddr.length === 0, `  the 60-day problem doesn't reopen the address (${short(hAddr)})`);
 await sweep();
 ok((await problems(H)).length === 1, "  once");
 const gotH = await me(BUYER2, `SELECT public.declutter_confirm_handover('${H}', 'buyer', NULL) AS r`);
@@ -329,6 +336,66 @@ await svc(`UPDATE public.declutter_seller_deliveries SET slot_start = now() - in
 await sweep();
 ok((await notes(BUYER2, "Did your delivery come?")) >= 1 && (await notes(SELLER, "Did you make this delivery?")) >= 1, "a delivery nobody speaks about is nudged");
 ok(await status(SD3) === "paid", "  and stays held");
+
+// Review 7496d29c8b #1: any problem stops the clock; a seller's response of any kind counts; a withdrawal clears it.
+const F1 = await paidDoor(50, BUYER2, 1);
+await me(BUYER2, `SELECT public.declutter_report_no_show('${F1}')`);
+await me(BUYER2, `SELECT public.declutter_report_problem('${F1}', 'other', 'It is also the wrong colour', '{}')`);
+const f1Id = one(await svc(`SELECT id FROM public.declutter_problems WHERE order_id = '${F1}'`));
+const f1Ans = await me(SELLER2, `SELECT public.declutter_answer_no_show('${F1}', 'I was there all morning.') AS id`);
+ok(f1Ans?.[0]?.id === f1Id, `the seller's answer lands on the buyer's other problem, not refused (${short(f1Ans)})`);
+ok(one(await svc(`SELECT other_side_note FROM public.declutter_problems WHERE id = '${f1Id}'`)) === "I was there all morning.", "  as the seller's side");
+const f1S = await strikes(SELLER2);
+await svc(`UPDATE public.declutter_handovers SET no_show_answer_by = now() - interval '1 minute' WHERE order_id = '${F1}'`);
+await me(BUYER2, `SELECT public.declutter_withdraw_problem('${f1Id}')`);
+ok(one(await svc(`SELECT no_show_reported_at FROM public.declutter_handovers WHERE order_id = '${F1}'`)) == null, "the buyer takes back the other problem: the clock is cleared");
+await sweep();
+ok(await status(F1) === "paid" && (await refunds(F1)) === 0 && (await strikes(SELLER2)) === f1S, "  so the sweep can't refund and strike a seller who responded");
+ok(refused(await me(BUYER2, `SELECT public.declutter_report_no_show('${F1}')`), /problem_taken_back/), "  and a report can't be made again, whatever was taken back");
+// The same, the seller responding through "Add your side".
+const F2 = await paidDoor(51, BUYER2, 1);
+await me(BUYER2, `SELECT public.declutter_report_no_show('${F2}')`);
+await me(BUYER2, `SELECT public.declutter_report_problem('${F2}', 'other', 'Something else', '{}')`);
+const f2Id = one(await svc(`SELECT id FROM public.declutter_problems WHERE order_id = '${F2}'`));
+await me(SELLER2, `SELECT public.declutter_problem_add_side('${f2Id}', 'My side.')`);
+await svc(`UPDATE public.declutter_handovers SET no_show_answer_by = now() - interval '1 minute' WHERE order_id = '${F2}'`);
+await sweep();
+ok(await status(F2) === "paid" && (await refunds(F2)) === 0, "an open problem stops the clock");
+await me(BUYER2, `SELECT public.declutter_withdraw_problem('${f2Id}')`);
+await sweep();
+ok(await status(F2) === "paid" && (await refunds(F2)) === 0, "  and taking it back after Add your side doesn't refund either");
+// The seller takes back their own response in time: their answer is gone, and the clock runs on.
+const F3 = await paidDoor(52, BUYER2, 1);
+await me(BUYER2, `SELECT public.declutter_report_no_show('${F3}')`);
+await me(SELLER2, `SELECT public.declutter_report_problem('${F3}', 'other', 'The buyer never came.', '{}')`);
+const f3Id = one(await svc(`SELECT id FROM public.declutter_problems WHERE order_id = '${F3}'`));
+await me(SELLER2, `SELECT public.declutter_withdraw_problem('${f3Id}')`);
+ok(one(await svc(`SELECT no_show_reported_at FROM public.declutter_handovers WHERE order_id = '${F3}'`)) != null, "a seller's own withdrawal doesn't erase the buyer's report");
+
+// Review 7496d29c8b #2: a delivery's time stands during the 24 hours too, as a pickup's does.
+const M1 = await paidDelivery(53);
+const m1Slot = one(await svc(`SELECT s::text FROM public.declutter_delivery_open_slots('${SELLER}', '${M1}') s LIMIT 1`));
+await svc(`UPDATE public.declutter_seller_deliveries SET proposed_start = now() + interval '3 days', proposed_by = 'seller', proposed_at = now() WHERE order_id = '${M1}'`);
+await me(BUYER2, `SELECT public.declutter_report_not_delivered('${M1}')`);
+ok(refused(await me(BUYER2, `SELECT public.declutter_answer_delivery_time('${M1}', true)`), /no_show_waiting/), "accepting a new delivery time waits for the answer");
+ok(refused(await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${M1}', '${m1Slot}')`), /no_show_waiting/), `  and so does asking for one (slot ${m1Slot})`);
+const m1Kept = await me(BUYER2, `SELECT public.declutter_answer_delivery_time('${M1}', false) AS r`);
+ok(m1Kept?.[0]?.r?.result === "kept", `  turning a proposal down still works (${short(m1Kept)})`);
+
+// Review 7496d29c8b #3: a late porch photo: the later of the pickup time and the photo, plus 24 hours.
+const P1 = await paidDoor(54, BUYER2, 30);
+await run(`ALTER TABLE public.declutter_orders DISABLE TRIGGER USER; UPDATE public.declutter_orders SET handover = 'porch' WHERE id = '${P1}'; ALTER TABLE public.declutter_orders ENABLE TRIGGER USER;`);
+await svc(`UPDATE public.declutter_handovers SET set_out_at = now() - interval '1 hour', set_out_photo_path = 'x/declutter/handover/${P1}/out.jpg' WHERE order_id = '${P1}'`);
+await sweep();
+ok(await status(P1) === "paid", "a porch photo an hour old, the pickup time 30 hours ago: not paid yet");
+await svc(`UPDATE public.declutter_handovers SET set_out_at = now() - interval '25 hours' WHERE order_id = '${P1}'`);
+await sweep();
+ok(await status(P1) === "handed_over", "  25 hours after the photo it is");
+const P2 = await paidDoor(55, BUYER2, 1);
+await run(`ALTER TABLE public.declutter_orders DISABLE TRIGGER USER; UPDATE public.declutter_orders SET handover = 'porch' WHERE id = '${P2}'; ALTER TABLE public.declutter_orders ENABLE TRIGGER USER;`);
+await svc(`UPDATE public.declutter_handovers SET set_out_at = now() - interval '30 hours', set_out_photo_path = 'x/declutter/handover/${P2}/out.jpg' WHERE order_id = '${P2}'`);
+await sweep();
+ok(await status(P2) === "paid", "a photo early, the pickup time an hour ago: not paid yet either");
 
 // Porch: the set-out photo is refused during the seller's 24 hours (the trigger on the handover row).
 const PR = await paidDoor(30, BUYER2, 30);

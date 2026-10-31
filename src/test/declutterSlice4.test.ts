@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF v_side <> 'buyer' THEN\n    -- the seller cannot tap | IF false THEN\n    -- the seller cannot tap
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
- * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
@@ -152,8 +152,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     // Then the handover money ruling (20261031004529): the porch rule unchanged, door and meetup need the seller's word.
     expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261031004529_declutter_handover_both_confirm.sql");
     // porch: both the query and the re-check under the lock
-    expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
-    expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
+    expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);
+    expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);
     const sp = flat(body("declutter_seller_picked_up"));
     expect(sp).toContain("IF v_side <> 'seller' THEN RAISE EXCEPTION 'wrong_side'");
     // Q2425 (20261027204500): a safe-spot meetup is handed over the same way as a door pickup.

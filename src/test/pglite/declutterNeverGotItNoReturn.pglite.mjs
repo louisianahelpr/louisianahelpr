@@ -85,6 +85,13 @@ ok(mN?.reason === "seller_no_show" && mN?.fee_policy === "full_seller_pays_fee" 
 const dN = (await svc(`SELECT d.seller_id::text AS seller, d.amount_cents, d.remaining_cents FROM public.declutter_seller_fee_debts d JOIN public.declutter_refunds r ON r.id = d.refund_id WHERE r.order_id = '${N.id}'`))?.[0];
 ok(dN?.seller === SELLER2 && dN?.amount_cents === mN?.card_fee_cents && dN?.remaining_cents === mN?.card_fee_cents && mN?.card_fee_cents > 0, `  the card fee is a debt on the seller, so the platform absorbs nothing (${short(dN)})`);
 ok(/next Declutter sale/.test(await noteTo(SELLER2, "You owe from a refund") ?? ""), "  the seller is told where it comes from");
+// What the Stripe worker (declutter-money) reads and writes: it sends the row's refund_cents and takes no decision on the reason.
+await svc(`UPDATE public.declutter_refunds SET created_at = now() - interval '5 minutes' WHERE order_id = '${N.id}'`);
+const dueN = (await svc(`SELECT reason, refund_cents, payment_intent_id FROM public.declutter_refunds_due(50) WHERE order_id = '${N.id}'`))?.[0];
+ok(dueN?.reason === "seller_no_show" && dueN?.refund_cents === N.total && dueN?.payment_intent_id === "pi_never_1", `  the refund worker picks it up on a handed-over order, for the whole amount (${short(dueN)})`);
+const execN = one(await svc(`SELECT public.declutter_refund_executed(r.id, 're_never_1', true) FROM public.declutter_refunds r WHERE r.order_id = '${N.id}'`));
+ok(execN === "succeeded", `  and records it (${execN})`);
+ok((await payout(N.id))?.amount_cents === 0, "  the payout stays at nothing");
 ok((await view(BUYER2, N.id))?.never_got_it_refund_cents === N.total, "  the view gives the buyer the whole amount");
 const pN = await payout(N.id);
 ok(pN?.amount_cents === 0 && pN?.status === "nothing_due", `  no payout for that sale (${short(pN)})`);

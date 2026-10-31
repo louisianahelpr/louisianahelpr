@@ -27,7 +27,7 @@
  * declutterSellerDelivery, declutterHelprDelivery, declutterRefundRequests). This file pins the rule as ONE class,
  * so a restatement of any one function that drops its part fails here.
  *
- * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |       IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')\n         AND EXISTS | IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND EXISTS
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                       WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL AND (d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL) | WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR (p_photo_path IS NOT NULL AND ( |   IF (p_photo_path IS NOT NULL AND (
@@ -110,8 +110,8 @@ describe("Declutter money waits for proof (anti-lying #3)", () => {
     expect(pickupLoop, "the pickup/porch/meetup loop").toBeTruthy();
     expect(sdLoop, "the seller-delivery loop").toBeTruthy();
     // Porch: no "on the porch" photo, no automatic finish (pick and lock).
-    expect(pickupLoop).toContain("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))");
-    expect(pickupLoop).toContain("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN PERFORM public.declutter_complete_handover(o.id, 'auto')");
+    expect(pickupLoop).toContain("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))");
+    expect(pickupLoop).toContain("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now())) THEN PERFORM public.declutter_complete_handover(o.id, 'auto')");
     // Seller delivery left at the door: no door photo, no automatic finish (pick and lock).
     expect(count(sdLoop, "(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)")).toBe(2);
     expect(sdLoop.indexOf("declutter_lock_order(r.id)")).toBeLessThan(sdLoop.lastIndexOf("(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)"));

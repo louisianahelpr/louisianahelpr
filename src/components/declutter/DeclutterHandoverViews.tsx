@@ -375,7 +375,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
   if (order.side === "seller") {
     // Q2425: at a safe meeting spot the seller hands it over as at the door ("Picked up").
     if (order.handover !== "pickup_home" && order.handover !== "meetup") {
-      return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported');
+      return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the later of the pickup time and your porch photo, if no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
     // T9: any open problem, the 60-day one too: the server refuses "Picked up" then (problem_open). The card's note says why.

@@ -14,14 +14,16 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 
 const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://signed.test/s1/declutter/handover/o/door.jpg" as string | null };
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
+const handoverRow = vi.hoisted(() => ({ reported: null as string | null, reads: 0 }));
 vi.mock("@/lib/declutter/handover", () => ({
+  fetchMyHandover: async () => { handoverRow.reads++; return { no_show_reported_at: handoverRow.reported }; },
   confirmHandover: async () => { state.calls.push("got_it"); },
   uploadHandoverPhoto: async () => "p.jpg",
   handoverPhotoUrl: async () => state.photoUrl,
@@ -198,5 +200,22 @@ describe("DB-2: a problem is open on the delivery", () => {
     expect(await screen.findByText("Handed over.")).toBeInTheDocument();
     expect(screen.queryByText(/You're paid when the buyer confirms/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("review of 7496d29c8b #2: during the 24 hours after 'It wasn't delivered' nobody can ask for or accept a new time", async () => {
+    state.booking = { ...BASE, side: "buyer", proposed_start: iso(96 * HOUR), proposed_by: "seller" };
+    handoverRow.reported = null;
+    const before = show();
+    expect(await screen.findByRole("button", { name: "Accept the new time" })).toBeInTheDocument();
+    before.unmount();
+    handoverRow.reported = "2026-10-30T12:00:00Z";
+    handoverRow.reads = 0;
+    show();
+    expect(await screen.findByRole("button", { name: "Keep the current time" })).toBeInTheDocument();
+    await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("button", { name: "Accept the new time" })).toBeNull();
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
   });
 });

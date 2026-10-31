@@ -18,7 +18,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
-import { confirmHandover, handoverPhotoUrl, uploadHandoverPhoto } from "@/lib/declutter/handover";
+import { confirmHandover, fetchMyHandover, handoverPhotoUrl, uploadHandoverPhoto } from "@/lib/declutter/handover";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import {
   answerDeliveryTime,
@@ -86,6 +86,9 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
+  // Review of 7496d29c8b #2: during "It wasn't delivered"'s 24 hours the time stands (the server refuses a move: no_show_waiting).
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
+  const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
   const [moving, setMoving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   // The money moments ask in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
@@ -145,7 +148,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         <div className="rounded-xl border border-border px-3 py-2 text-sm space-y-2" role="status">
           <p>{b.proposed_by === b.side ? `You asked to move it to ${slotLabel(b.proposed_start)}.` : `The ${b.proposed_by} asked to move it to ${slotLabel(b.proposed_start)}.`}</p>
           <div className="flex flex-wrap gap-2">
-            {can.answerProposal && <button type="button" className={primary} disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</button>}
+            {can.answerProposal && !noShowWaiting && <button type="button" className={primary} disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</button>}
             <button type="button" className={btn} disabled={busy} onClick={() => answer.mutate(false)}>{can.withdrawProposal ? "Take back my request" : "Keep the current time"}</button>
           </div>
         </div>
@@ -163,7 +166,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
       )}
       <div className="flex flex-wrap gap-2">
         {can.gotIt && !problemOpen && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
-        {can.askNewTime && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
+        {can.askNewTime && !noShowWaiting && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
         {can.notDelivered && (
           <button type="button" className={btn} disabled={busy}
             onClick={() => setAsk("notDelivered")}>

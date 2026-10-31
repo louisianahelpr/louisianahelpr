@@ -562,7 +562,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
-      declutter_withdraw_problem: "20261031004529_declutter_handover_both_confirm.sql a8ce9a2a3b8852bb",
+      declutter_withdraw_problem: "20261031004529_declutter_handover_both_confirm.sql 697f519bfab88400",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout

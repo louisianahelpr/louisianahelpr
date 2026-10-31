@@ -13,6 +13,11 @@
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   VALUES (o.id, o.buyer_id, 'buyer', 'no_show',\n |   VALUES (o.id, v_uid, 'seller', 'no_show',\n
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL WHERE order_id = o.id; |     NULL;
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings\n  FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR NEW.pickup_day IS DISTINCT FROM OLD.pickup_day) |   BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings\n  FOR EACH ROW WHEN (false)
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     IF v_open.reporter_side = 'buyer' AND v_open.other_side_note IS NULL THEN |     IF false THEN
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start\n                     OR (NEW.proposed_start IS NOT NULL AND NEW.proposed_start IS DISTINCT FROM OLD.proposed_start)) |   FOR EACH ROW WHEN (false)
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |                                                  AND true)) THEN
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                         AND p.created_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days') |                         AND true)
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.askNewTime && !noShowWaiting && | {can.askNewTime &&
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (anyProblem) return null;\n | \n
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (frozen) return booked ? | if (false) return booked ?
 // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : noShowAnswered ? noShowAnsweredWords(side, delivery)\n | \n
@@ -32,8 +37,19 @@ describe("Declutter: both sides confirm before money moves", () => {
     const a = flat("declutter_answer_no_show");
     expect(a).toContain("VALUES (o.id, o.buyer_id, 'buyer', 'no_show',");
     expect(a).not.toContain("declutter_report_problem(");
-    expect(flat("declutter_withdraw_problem")).toContain("IF p.reason = 'no_show' AND v_side = 'buyer' THEN UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL");
+    expect(flat("declutter_withdraw_problem")).toContain("IF v_side = 'buyer' THEN UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL");
+    expect(a).toContain("IF v_open.reporter_side = 'buyer' AND v_open.other_side_note IS NULL THEN UPDATE public.declutter_problems SET other_side_note = btrim(p_note)");
     expect(flat("declutter_start_no_show_answer")).toContain("RAISE EXCEPTION 'problem_taken_back'");
+  });
+
+  it("review of 7496d29c8b: a delivery's time stands too, a late porch photo waits, and a late problem doesn't reopen the address", () => {
+    const mig = blankSqlComments(file("supabase/migrations/20261031004529_declutter_handover_both_confirm.sql")).replace(/\s+/g, " ");
+    expect(mig).toContain("BEFORE UPDATE OF slot_start, proposed_start ON public.declutter_seller_deliveries FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR (NEW.proposed_start IS NOT NULL AND NEW.proposed_start IS DISTINCT FROM OLD.proposed_start)) EXECUTE FUNCTION public.declutter_refuse_move_during_no_show()");
+    const sweep = flat("declutter_handover_sweep");
+    expect(sweep.match(/h\.set_out_at \+ interval '24 hours' <= now\(\)/g)?.length).toBe(2);
+    const closed = flat("declutter_held_address_closed");
+    expect(closed).toContain("p.status = 'open' AND p.created_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days'");
+    expect(closed).toContain("h.no_show_reported_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days'");
   });
 
   it("T9: the pickup time stands while the report waits", () => {

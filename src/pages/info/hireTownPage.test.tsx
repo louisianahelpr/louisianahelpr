@@ -6,13 +6,18 @@
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
  * @mutate src/pages/info/HireTownPage.tsx |   usePageMeta(townPageMeta(service, town)); |
  * @mutate src/pages/info/HireTownPage.tsx |   const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`; |   const post = "/post-job";
- * @mutate src/lib/townPages.ts |   { slug: "baton-rouge", name: "Baton Rouge" }, |
- * @mutate src/lib/townPages.ts |   "handyman", "cleaning", | "plumbing", "cleaning",
+ * @mutate src/lib/townPages.mjs |   { slug: "baton-rouge", name: "Baton Rouge" }, |
+ * @mutate src/lib/townPages.mjs |   { category: "handyman", label: "Handyman", phrase: "a handyman" }, |   { category: "plumbing", label: "Plumbing", phrase: "a plumber" },
+ * @mutate src/lib/townPages.mjs |   { category: "yard_work", label: "Yard work", phrase: "yard work" }, |   { category: "yard_work", label: "Yard Work", phrase: "yard work" },
+ * The pre-JS head and the sitemap (api/share.ts and generate-sitemap.mjs read the same table):
+ * @mutate src/lib/publicPageMeta.mjs |   const town = townPageMetaFor(path);\n  if (town) return town; |
+ * @mutate scripts/generate-sitemap.mjs |   const included = [...new Set([...routeIncluded, ...extraLegalTabs, ...allTownPagePaths()])]; |   const included = [...new Set([...routeIncluded, ...extraLegalTabs])];
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const meta: { title?: string; canonical?: string; description?: string }[] = [];
@@ -25,7 +30,9 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>NOT FOUND</p> }));
 
 import HireTownPage from "./HireTownPage";
-import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, allTownPagePaths } from "@/lib/townPages";
+import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, allTownPagePaths } from "@/lib/townPages.mjs";
+import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
+import { publicPageMetaFor } from "@/lib/publicPageMeta.mjs";
 
 function at(path: string) {
   return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/hire/:service/:town" element={<HireTownPage />} /></Routes></MemoryRouter>);
@@ -76,5 +83,23 @@ describe("OPS-4: town + service pages", () => {
     expect(line).toBeDefined();
     expect(line).toContain("<HireTownPage />");
     expect(line).not.toContain("ProtectedRoute");
+  });
+
+  it("each service is a real job category under its own shown name", () => {
+    for (const s of TOWN_PAGE_SERVICES) expect(s.label).toBe(JOB_CATEGORY_LABELS[s.category as JobCategory]);
+  });
+
+  it("the pre-JS head (api/share.ts reads publicPageMetaFor) and the sitemap carry every town page", () => {
+    const head = publicPageMetaFor("/hire/handyman/baton-rouge", null);
+    expect(head).toMatchObject({ title: "Handyman in Baton Rouge, LA | Louisiana Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
+    expect(publicPageMetaFor("/hire/plumbing/baton-rouge", null)).toBeNull();
+    // The committed sitemap, and what the generator writes now (so a generator that drops them fails here too).
+    const committed = readFileSync("public/sitemap.xml", "utf8");
+    const generated = execFileSync(process.execPath, ["scripts/generate-sitemap.mjs", "--stdout"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    for (const sitemap of [committed, generated]) {
+      for (const p of allTownPagePaths()) expect(sitemap).toContain(`<loc>https://www.louisianahelpr.com${p}</loc>`);
+    }
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] };
+    expect(vercel.rewrites.find((r) => r.source === "/hire/:service/:town")?.destination).toBe("/api/share?_og=page&_id=hire/:service/:town");
   });
 });

@@ -43,6 +43,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { LEGAL_PAGE_META } from "../src/lib/publicPageMeta.mjs";
+import { allTownPagePaths } from "../src/lib/townPages.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -257,7 +258,8 @@ function main() {
     process.exit(1);
   }
   const extraLegalTabs = parseExtraLegalTabPaths();
-  const included = [...new Set([...routeIncluded, ...extraLegalTabs])];
+  // OPS-4: the town + service pages are one parameterised route, so their real URLs come from their table.
+  const included = [...new Set([...routeIncluded, ...extraLegalTabs, ...allTownPagePaths()])];
 
   // Deterministic order: highest priority first, then alphabetical. A stable
   // order keeps the diff empty when nothing actually changed.

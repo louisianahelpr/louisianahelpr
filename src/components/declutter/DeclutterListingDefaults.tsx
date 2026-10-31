@@ -89,7 +89,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   const save = useMutation({
     mutationFn: async () => {
       // Lead review 2026-10-31: the stop runs FIRST and also takes I'll deliver off the saved default in the same
-      // transaction (declutter_stop_my_seller_delivery), so a failed save after it can never leave the default off
+      // transaction (declutter_stop_my_seller_delivery, 20261031183416), so a failed save after it can never leave the default off
       // while live listings still offer delivery. If the stop fails, nothing is saved and the error is shown.
       const stopped = deliverOff ? await stopMySellerDelivery() : null;
       const done = await saveSellerDefaults(userId, draft);

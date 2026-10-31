@@ -5,8 +5,8 @@
  * live after it wears the "New" tag.
  *
  * @mutate src/lib/savedSearches.ts |     if (since) p.set("new", since); |     if (since) p.delete("new");
- * @mutate src/lib/declutter/browseFilters.ts |   return Date.parse(item.live_at) > since; |   return Date.parse(item.live_at) < since;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   tag={isNewSince(item, newSince) ? "new" : outlook | tag={false ? "new" : outlook
+ * @mutate src/lib/declutter/browseFilters.ts |   return !!item.live_at && Date.parse(item.live_at) > since; |   return !!item.live_at && Date.parse(item.live_at) < since;
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook | tag={false ? "new" : outlook
  * @mutate src/components/declutter/DeclutterItemCard.tsx | new: "New" }; | new: "Helpr delivery" };
  */
 import { readFileSync } from "node:fs";
@@ -57,7 +57,7 @@ describe("BUY-53: Browse marks which listings a saved search's \"N new\" counted
   it("Browse reads the param once and gives the tag to new listings first (inventory floor)", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
     expect(src).toContain("useState(() => newSinceFromParams(params))");
-    const tags = src.match(/tag=\{isNewSince\(item, newSince\) \? "new" :/g) ?? [];
+    const tags = src.match(/tag=\{isNewSince\(item, newSince, droppedIn\.data\) \? "new" :/g) ?? [];
     expect(tags.length).toBeGreaterThan(0);
   });
 });

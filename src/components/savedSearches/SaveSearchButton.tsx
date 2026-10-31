@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Check } from "lucide-react";
-import { sameSearch, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
+import { extrasAsColumns, sameSearch, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 import { SaveSearchSheet } from "./SaveSearchSheet";
 
 /**
@@ -15,7 +15,7 @@ export function SaveSearchButton({ draft, sections, userId }: { draft: SearchDra
   const [saved, setSaved] = useState<SearchDraft | null>(null);
   if (!userId) return null;
   const isSaved = !!saved && sameSearch({ section: saved.section, query: saved.query, category: saved.category, min_budget: saved.minDollars,
-    max_budget: saved.maxDollars, radius_miles: saved.radiusMiles }, sections ? { ...draft, section: saved.section } : draft);
+    max_budget: saved.maxDollars, radius_miles: saved.radiusMiles, ...extrasAsColumns(saved.extras) }, sections ? { ...draft, section: saved.section } : draft);
   if (isSaved) {
     return (
       <Link

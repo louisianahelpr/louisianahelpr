@@ -14809,6 +14809,10 @@ export type Database = {
         Returns: Json
       }
       declutter_close_wanted: { Args: { p_wanted_id: string }; Returns: string }
+      declutter_dropped_into_budget: {
+        Args: { p_max_budget: number; p_since: string }
+        Returns: string[]
+      }
       declutter_donation_own_items: {
         Args: { p_item_ids: string[]; p_uid: string }
         Returns: string[]

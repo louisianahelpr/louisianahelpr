@@ -2,8 +2,8 @@
  * BUY-49: a Declutter distance alert measured from the profile, while Browse measures from the device or ZIP. Behaviour
  * of the sender: src/test/pglite/savedSearchKeepsItsOrigin.pglite.mjs.
  *
- * @mutate supabase/migrations/20261031023451_saved_search_keeps_its_origin.sql |                OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL\n                    AND public.miles_between(COALESCE(s.origin_lat, p.latitude), | OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL\n                    AND public.miles_between(p.latitude,
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | radiusMiles: from ? maxMiles : null, origin: from ?? null } | radiusMiles: from ? maxMiles : null }
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |                OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL\n                    AND public.miles_between(COALESCE(s.origin_lat, p.latitude), | OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL\n                    AND public.miles_between(p.latitude,
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | radiusMiles: from ? maxMiles : null, origin: from ?? null, extras | radiusMiles: from ? maxMiles : null, extras
  * @mutate src/lib/savedSearches.ts |   const origin = d.origin && d.radiusMiles ? |   const origin = false ?
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -58,6 +58,6 @@ describe("a saved search keeps where it measured from", () => {
   });
 
   it("Browse hands over the origin it measured from", () => {
-    expect(blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterBrowseView.tsx"), "utf8"))).toContain("radiusMiles: from ? maxMiles : null, origin: from ?? null }");
+    expect(blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterBrowseView.tsx"), "utf8"))).toContain("radiusMiles: from ? maxMiles : null, origin: from ?? null, extras: saveExtras }");
   });
 });

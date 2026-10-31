@@ -63,6 +63,8 @@ export interface DeclutterBrowseHeader {
 
 /** Persisted like Jobs' "helpr.jobsMapVisible", default ON (the split view is the desktop layout). */
 const MAP_KEY = "helpr.declutterMapVisible";
+// NIGHT-BUYINGrealma-1: the phone's List or Map choice is kept too (it was plain state, so a reload went back to List).
+const PHONE_VIEW_KEY = "helpr.declutterPhoneView";
 
 /** The next DISTANCE_CHOICES step above `miles`; null = "Any distance". */
 function widerMiles(miles: number): number | null {
@@ -162,7 +164,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
   // Phone: the list or the map (the sheet's View). Desktop: the map column shown or hidden.
-  const [phoneView, setPhoneView] = useState<"list" | "map">("list");
+  const [phoneView, setPhoneViewState] = useState<"list" | "map">(() => (safeStorage.getItem(PHONE_VIEW_KEY) === "map" ? "map" : "list"));
+  const setPhoneView = useCallback((v: "list" | "map") => {
+    setPhoneViewState(v);
+    safeStorage.setItem(PHONE_VIEW_KEY, v);
+  }, []);
   const [mapChoice, setMapChoice] = useState<boolean>(() => safeStorage.getItem(MAP_KEY) !== "0");
   // BUY-16: no map for a guest (its pins are a member-only read).
   const mapVisible = member && mapChoice;

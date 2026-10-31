@@ -10913,7 +10913,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 322,
+      "line": 312,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10923,7 +10923,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 600,
+      "line": 590,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11335,7 +11335,7 @@
           },
           {
             "form": "literal",
-            "text": "Job cancelled. No strike: it was more than 24 hours before the start."
+            "text": "Job cancelled. No strike: the start was more than 24 hours away."
           },
           {
             "form": "literal",

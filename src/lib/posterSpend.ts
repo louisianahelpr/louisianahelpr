@@ -155,6 +155,11 @@ export interface SpentRow<J> {
   cents: number;
   /** The tips part of `cents`. */
   tipCents: number;
+  /**
+   * AUD31-55: the tips themselves (what was given, without the card part that rides on a tip's charge), for the
+   * row's "includes $X tip" words: a $20 tip read "includes $20.91 tip". Members never see a fee name or figure.
+   */
+  tipGivenCents: number;
   /** Refunds ledgered against the job's own charge (0 for a tip row). */
   refundedCents: number;
   /** True when an admin refund (admin_refund_general) is among them. */
@@ -195,21 +200,25 @@ export function spentRows<J extends PosterSpendJob>(
   const giftByJob = new Map<string, number>();
   for (const g of gifts) if (g.job_id) giftByJob.set(g.job_id, (giftByJob.get(g.job_id) ?? 0) + (g.amount ?? 0));
   const tipCentsByJob = new Map<string, number>();
-  const orphanTips: { tip: PosterTipRow; cents: number }[] = [];
+  const tipGivenByJob = new Map<string, number>();
+  const orphanTips: { tip: PosterTipRow; cents: number; given: number }[] = [];
   const jobIds = new Set(jobs.map((j) => j.id));
   for (const t of tips) {
     const c = tipSpentCents(t, t.stripe_payment_intent_id ? refundedByPi.get(t.stripe_payment_intent_id) ?? 0 : 0);
     if (c <= 0) continue;
-    if (t.job_id && jobIds.has(t.job_id)) tipCentsByJob.set(t.job_id, (tipCentsByJob.get(t.job_id) ?? 0) + c);
-    else orphanTips.push({ tip: t, cents: c });
+    const given = Math.min(c, Math.max(0, cents(t.amount ?? 0)));
+    if (t.job_id && jobIds.has(t.job_id)) {
+      tipCentsByJob.set(t.job_id, (tipCentsByJob.get(t.job_id) ?? 0) + c);
+      tipGivenByJob.set(t.job_id, (tipGivenByJob.get(t.job_id) ?? 0) + given);
+    } else orphanTips.push({ tip: t, cents: c, given });
   }
   const rows: SpentRow<J>[] = [];
   for (const job of jobs) {
     const tipCents = tipCentsByJob.get(job.id) ?? 0;
     const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents;
-    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
+    if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, tipGivenCents: tipGivenByJob.get(job.id) ?? 0, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
   }
-  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false });
+  for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, tipGivenCents: o.given, refundedCents: 0, adminRefunded: false });
   return rows;
 }
 
@@ -293,4 +302,9 @@ export function heldRows<J extends PosterSpendJob & { status: string }>(rows: re
     if (held > 0) out.push({ job: r.job, held });
   }
   return out;
+}
+
+/** AUD31-55: a row whose job's own charge was partly refunded says how much came back (" · $25.00 refunded"). */
+export function refundedReceiptNote(r: Pick<SpentRow<unknown>, "job" | "refundedCents">): string {
+  return r.job && r.refundedCents > 0 ? ` · $${(r.refundedCents / 100).toFixed(2)} refunded` : "";
 }

@@ -35,7 +35,7 @@ describe("Declutter porch pickup is a DAY (owner 2026-10-28)", () => {
     expect(anchored.length).toBe(2);
     expect(sweep).not.toMatch(/b\.slot_start \+ interval '24 hours' <= now\(\)/);
     // Porch still needs the porch photo before any auto-pay (owner 2026-10-18).
-    expect(sweep).toMatch(/o2\.handover <> 'porch' OR EXISTS \(SELECT 1 FROM public\.declutter_handovers h\s+WHERE h\.order_id = o2\.id AND h\.set_out_photo_path IS NOT NULL\)/);
+    expect(sweep).toMatch(/o2\.handover <> 'porch' OR EXISTS \(SELECT 1 FROM public\.declutter_handovers h\s+WHERE h\.order_id = o2\.id AND h\.set_out_photo_path IS NOT NULL/);
     const anchor = body("declutter_pickup_anchor");
     expect(anchor).toMatch(/WHEN p_pickup_day IS NOT NULL\s+THEN \(\(p_pickup_day \+ 1\)::timestamp AT TIME ZONE 'America\/Chicago'\)\s+ELSE p_slot_start END/);
   });

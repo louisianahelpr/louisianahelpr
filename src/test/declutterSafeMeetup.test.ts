@@ -30,8 +30,8 @@ describe("Q2425 safe meetup spots: the server", () => {
   it("reads the newest definitions (floor)", () => {
     const names = ["declutter_meetup_spots_near", "declutter_set_meetup_spot", "declutter_meetup_here", "admin_declutter_save_meetup_spot",
       "declutter_meetup_spot_near_lines", "declutter_seller_picked_up"];
-    // declutter_address_access: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql) with the meetup exclusion kept (asserted below).
-    expect(newestFunction("declutter_address_access").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
+    // declutter_address_access: restated by handover money (20261031004529_declutter_handover_both_confirm.sql) with the meetup exclusion kept (asserted below).
+    expect(newestFunction("declutter_address_access").file).toContain("20261031004529_declutter_handover_both_confirm.sql");
     // declutter_start_checkout: restated again by Q2427 (20261027211754) with the meetup lines kept (asserted below).
     expect(newestFunction("declutter_start_checkout").file >= FILE).toBe(true);
     // declutter_seller_picked_up: restated by anti-lying #1 (20261028235709, its photo taken at the spot) with the

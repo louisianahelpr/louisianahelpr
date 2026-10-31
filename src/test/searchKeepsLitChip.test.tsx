@@ -23,7 +23,7 @@
  * @mutate src/components/sections/StatusBoxes.tsx | {boxes.filter((b) => !onlyLit \|\| b.key === value).map( | {boxes.map(
  * @mutate src/components/sections/StatusBoxes.tsx | {(!onlyLit \|\| value === null) && chip(ALL, | {chip(ALL,
  * @mutate src/components/sections/StatusBoxes.tsx |               "-mx-1 flex flex-none gap-2 px-1 pb-0.5" |               "-mx-1 flex min-w-0 flex-1 gap-2 pl-1 pr-11 pb-0.5 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
- * @mutate src/components/sections/InlineListSearch.tsx | ${fill ? "search-fill min-w-0 flex-1" : "w-[clamp(200px,55vw,320px)] shrink-0"} | w-[clamp(200px,55vw,320px)] shrink-0
+ * @mutate src/components/sections/InlineListSearch.tsx | ${fill ? "search-fill min-w-0 flex-1 gap-1 pl-2" : "w-[clamp(200px,55vw,320px)] shrink-0 gap-1.5 pl-3"} | w-[clamp(200px,55vw,320px)] shrink-0 gap-1.5 pl-3
  * @mutate src/components/sections/InlineListSearch.tsx | ${fill && !desktop ? "search-fill-glyph" : ""} | ${""}
  * @mutate src/index.css | @container (max-width: 159px) {\n  .search-fill-glyph { display: none; } | @container (max-width: 99px) {\n  .search-fill-glyph { display: none; }
  * @mutate src/components/sections/InlineListSearch.tsx |     onOpenChangeRef.current?.(open);\n |

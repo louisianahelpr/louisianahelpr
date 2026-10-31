@@ -1,3 +1,4 @@
+import { unwrap } from "@/lib/supabaseResult";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -35,14 +36,14 @@ export const useSeriousOpenAlertCount = (enabled: boolean) =>
     enabled,
     staleTime: 60_000,
     queryFn: async () => {
-      const { count, error } = await supabase
+      const result = await supabase
         .from("ops_alert_ledger")
         .select("id", { count: "exact", head: true })
         .neq("status", "closed")
         .in("severity", ["fatal", "critical", "error"]);
-      if (error) throw error;
-      if (count === null) throw new Error("The alert ledger returned no count");
-      return count;
+      unwrap(result);
+      if (result.count === null) throw new Error("The alert ledger returned no count");
+      return result.count;
     },
   });
 

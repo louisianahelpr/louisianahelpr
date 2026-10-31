@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
-import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetSecondaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
@@ -95,10 +94,10 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
               {asking ? (
                 <>
                   <p className="font-sans text-ds-13 text-muted-foreground">Delete this search? Its alerts stop, and it can't be brought back.</p>
+                  <SheetSecondaryAction disabled={busy} onClick={() => setAsking(false)}>Keep it</SheetSecondaryAction>
                   <SheetDestructiveAction onClick={() => remove.mutate()} disabled={busy} aria-busy={remove.isPending}>
                     Yes, delete it
                   </SheetDestructiveAction>
-                  <Button type="button" variant="outline" className="w-full rounded-full" disabled={busy} onClick={() => setAsking(false)}>Keep it</Button>
                 </>
               ) : (
                 <SheetDestructiveAction onClick={() => setAsking(true)} disabled={busy}>

@@ -94,7 +94,7 @@ describe("only the pressed button shows busy text (F6)", () => {
   it("confirming Decline: Decline says Declining…, Accept keeps its word", () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: /^Decline$/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Decline the Job" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decline job" }));
     expect(screen.getByRole("button", { name: /Declining…/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Accept job/ })).toBeDisabled();
     expect(screen.queryByText(/Accepting…/)).toBeNull();

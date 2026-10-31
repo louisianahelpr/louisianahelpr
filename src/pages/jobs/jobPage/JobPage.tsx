@@ -25,7 +25,6 @@ import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCity } from "@/lib/locationUtils";
-import { hasStreetAddress } from "@/pages/jobs/appliedJobCard/JobAddressLine";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
@@ -44,31 +43,24 @@ import { hiredHelprFace } from "./hiredHelprFace";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { GetHelpNow } from "@/components/jobs/GetHelpNow";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
+import { useAgeGate } from "@/hooks/useAgeGate";
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
-function metaLine(job: JobPageRow, showStreet: boolean): string {
+function metaLine(job: JobPageRow): string {
   return [
     job.date_needed ? formatJobDate(job.date_needed) : null,
     jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
-    showStreet && hasStreetAddress(job.location) ? job.location : job.location ? getCity(job.location) : null,
+    job.location ? getCity(job.location) : null,
   ].filter(Boolean).join(" · ");
 }
-
-/**
- * The job statuses in which the Helpr's Working card prints the street (AppliedJobCard's
- * showFullAddress: offered, confirmed, working, disputed). The job page prints the same
- * street in the same states (audit 2026-10-28 F7: the offer card showed "4412 Highland Rd"
- * while the job page said only "Baton Rouge"). Owner rule 2026-08-31: "Should only see
- * address when they are offered the job"; the server (user_may_see_job_address) decides
- * what `location` holds, this only stops the page printing the city in its place.
- */
-const STREET_STATUSES = new Set(["open", "accepted", "in_progress", "revision_requested", "disputed"]);
 
 const CARD = "rounded-2xl border border-border bg-card";
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
+  // Q1586(c): the same under-18 grey-out as every other Apply; a tap says why, before the sheet and its uploads (JOBS-17).
+  const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const trackingStatus = tracking.data ?? null;
   // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
   const posterId = q.data?.job.customer_id ?? null;
@@ -112,7 +104,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) || onCrew);
   const eyebrow = jobEyebrow(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
-  const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? ""));
+  // The city here; the street once, on the Address line below for the offered or hired Helpr (F7, JOBS2-39: it was printed twice in a row).
+  const meta = metaLine(job);
   const open = job.status === "open";
   const pending = applicants.data?.pending ?? 0;
   const total = applicants.data?.total ?? 0;
@@ -158,7 +151,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           ? { label: "View application", go: () => navigate(highlight) }
           : viewer.action.kind === "apply" && canApply
             // The apply sheet opens over THIS page (F9), the flow Home runs (PageApplySheet).
-            ? { label: "Apply", go: () => void apply.flow.handleApplyRequest(job.id) }
+            ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") }
             : null;
 
   return (
@@ -223,6 +216,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               className="w-full rounded-full text-ds-16"
               onClick={primary.go}
               disabled={"disabled" in primary ? primary.disabled : false}
+              {...("gated" in primary ? primary.gated : {})}
             >
               {primary.label}
             </Button>

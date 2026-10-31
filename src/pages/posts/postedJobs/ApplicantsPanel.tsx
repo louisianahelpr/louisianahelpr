@@ -469,7 +469,6 @@ export function ApplicantsPanel({
                           {app.status === "pending" && (
                             <ApplicantHireRow
                               jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName}
-                              payoutReady={app.profiles?.is_payout_ready === true}
                               onAcceptApplication={() => onAcceptApplication(app)}
                               onDecline={() => { setDeclineTarget(app); setDeclineNote(""); setDeclineReason(null); }}
                             />

@@ -17,14 +17,12 @@ export function ApplicantHireRow({
   jobId,
   helperId,
   helperName,
-  payoutReady,
   onAcceptApplication,
   onDecline,
 }: {
   jobId: string;
   helperId: string;
   helperName: string;
-  payoutReady: boolean;
   onAcceptApplication: () => void;
   onDecline: () => void;
 }) {
@@ -42,7 +40,7 @@ export function ApplicantHireRow({
         // (20261003193541). A crew hire's roster-gate
         // refusal comes back as a toast naming the reason
         // (useOfferHandlers), which beats a dead control.
-        aria-label={payoutReady ? `Select ${helperName}` : `Select ${helperName} — payout setup not finished yet`}
+        aria-label={`Hire ${helperName}`}
         onClick={() => onAcceptApplication()}
       >
         Hire

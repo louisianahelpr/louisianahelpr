@@ -334,9 +334,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                   style={{ color: "hsl(var(--destructive-ink))" }}
                 >
                   <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
-                  Couldn't send:
+                  {/* The generic refusal already says "Couldn't send" (JOBS3-49). */}
+                  {/^couldn't send/i.test(errorMessage) ? errorMessage : "Couldn't send:"}
                 </span>{" "}
-                {errorMessage}
+                {/^couldn't send/i.test(errorMessage) ? null : errorMessage}
               </p>
             </div>
           )}

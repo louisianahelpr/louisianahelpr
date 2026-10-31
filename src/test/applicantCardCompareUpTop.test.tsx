@@ -130,7 +130,7 @@ describe("applicant card: Compare up top, a round decline (owner 2026-10-29)", (
       expect(cls.some((c) => /rounded-ds-sm/.test(c)), "never the old square").toBe(false);
       expect(cls, "Hire's height (Button size sm)").toContain("h-11");
       expect(cls, "as wide as it is tall: a circle").toContain("w-11");
-      const hire = Array.from(decline.parentElement!.children).find((c) => /^Select /.test(c.getAttribute("aria-label") ?? ""))!;
+      const hire = Array.from(decline.parentElement!.children).find((c) => /^Hire /.test(c.getAttribute("aria-label") ?? ""))!;
       expect(hire.className.split(/\s+/)).toContain("h-11");
     }
   });

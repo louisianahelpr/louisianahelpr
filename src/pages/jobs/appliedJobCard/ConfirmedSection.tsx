@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { helperCancelCallout, helperCancelToast } from "./helperCancelCopy";
 import { MessageSquare, CalendarX2, CalendarClock, Clock } from "lucide-react";
 import { RunningLateSheet } from "@/components/job-card/RunningLateSheet";
 import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
@@ -88,11 +88,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       return;
     }
     toast.warning(
-      action === "temp_ban"
-        ? "Job cancelled — third strike: your account is suspended for 7 days."
-        : action === "warning"
-          ? "Job cancelled — final warning. One more strike is a 7-day suspension."
-          : "Job cancelled. This counts as a reliability strike.",
+      helperCancelToast(action),
     );
     setCancelOpen(false);
     // The job left this list; the realtime jobs subscription refetches, but
@@ -249,7 +245,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           // automatic permanent ban on the SANCTIONED exit is what pushes a
           // helper to ghost instead, which is the behaviour this exit exists to
           // replace.
-          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`,
+          text: helperCancelCallout(job.date_needed, job.start_time),
         }}
         primaryLabel={cancelling ? "Cancelling…" : "Cancel job"}
         primaryTone="sienna"

@@ -38,6 +38,9 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Stripe Identity once, at the first purchase or listing (owner 2026-10-22); the ID sheet opens with it.
   identity_required_to_buy: "Verify your ID with Stripe first. It takes about 2 minutes, once, then buy again.",
   identity_required_to_list: "Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.",
+  // Owner 2026-10-30: a first free claim: the one-time fee first, then the ID check. Their own screens answer these.
+  identity_required_to_claim: "Verify your ID with Stripe first. It takes about 2 minutes, once, then confirm again.",
+  setup_fee_required_to_claim: "Your first free item needs the one-time ID check, because a claim shares a real person's address. Pay its fee once, then verify. The item stays free.",
   // Q2352 (owner 2026-10-23): the one-time account setup fee, by card at the first listing; the fee page is offered with it.
   setup_fee_required_to_list:
     "Your first listing needs the one-time account setup fee. Pay it once, then publish again. If you already paid it for Jobs, you won't pay it again.",

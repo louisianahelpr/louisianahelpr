@@ -16,7 +16,7 @@ import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
-import { promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
+import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 
@@ -31,7 +31,9 @@ export const DECLUTTER_PHOTO_BUCKET = "job-photos";
 /** A Declutter refusal that is the ID check (identity_required_to_buy / _to_list) opens the one ID sheet. */
 function openIdentitySheetFor(err: unknown): void {
   const kind = identityRefusal(err);
-  if (kind === "buy" || kind === "list") openIdentityCheck(kind);
+  if (kind === "buy" || kind === "list" || kind === "claim") openIdentityCheck(kind);
+  // A first free claim (owner 2026-10-30): the one-time fee first, on its one short screen.
+  else if (freeClaimFeeRefusal(err)) openFreeClaimFirstTime();
   // Q2352: the first listing's one-time setup fee (after the ID check): offer the fee page.
   else if (setupFeeRefusal(err)) promptAccountSetupFee();
 }

@@ -11,7 +11,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { unwrapMutation } from "@/lib/mutationResult";
+import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 // JOB_CATEGORY_LABELS straight from its source (activityConstants re-exports it as categoryLabels): importing
 // activityConstants from a src/lib module pulled that 16.7 KB module into app-shared, on every page's boot path
@@ -141,6 +141,18 @@ export async function fetchNewCounts(): Promise<Map<string, number>> {
   if (isMissingRpcNamed(res.error, "saved_search_new_counts")) return new Map();
   const rows = unwrap(res) ?? [];
   return new Map(rows.map((r) => [r.search_id, r.new_count]));
+}
+
+/**
+ * NIGHT-SAVEDS1-SS-3: the 11th saved search is refused by the saved_searches trigger (migration 20260426132214,
+ * "You can save up to 10 searches. Delete one to add another."), and both save screens said "Please try again",
+ * which can never work. The limit is said instead; anything else keeps the caller's fallback.
+ */
+export const SAVED_SEARCH_CAP_COPY = "You can save up to 10 searches. Delete one in You › Settings › Saved searches, then save this one.";
+export function savedSearchSaveError(err: unknown, fallback: string): string {
+  const message = typeof err === "object" && err !== null && "message" in err ? String((err as { message: unknown }).message) : "";
+  if (/save up to 10 searches/i.test(message)) return SAVED_SEARCH_CAP_COPY;
+  return mutationErrorMessage(err, fallback);
 }
 
 export async function createSavedSearch(userId: string, d: SearchDraft, email: boolean): Promise<string> {

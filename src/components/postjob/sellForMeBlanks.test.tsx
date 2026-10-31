@@ -3,8 +3,10 @@
  *
  * @mutate src/lib/declutter/sellForMe.ts |   return description.replace(blankLine(b), () => `${b.label}: ${v \|\| b.placeholder}`); |   return description;
  * @mutate src/lib/declutter/sellForMe.ts |   return v === b.placeholder ? "" : v; |   return v;
+ * @mutate src/components/postjob/SellForMeBlanks.tsx |               <Input id={id} inputMode="numeric" |               <input id={id} inputMode="numeric"
  * @mutate src/pages/post-job/FormStep.tsx |           {isSellForMeJob(form.category) && <SellForMeBlanks | {false && <SellForMeBlanks
  */
+import { Input } from "@/components/ui/input";
 import { describe, expect, it } from "vitest";
 import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -42,7 +44,10 @@ describe("POST-H15: the three blanks as their own fields", () => {
 
   it("the fields write the description", () => {
     render(<Harness start={start} />);
-    fireEvent.change(screen.getByLabelText("How many items"), { target: { value: "12" } });
+    // Screen check b18 10-31: the count box is the form's own Input (it was a white box over Job title's filled one).
+    const { getByTestId } = render(<Input data-testid="shared-input" />);
+    expect(screen.getByLabelText("How many items?").className).toBe(getByTestId("shared-input").className);
+    fireEvent.change(screen.getByLabelText("How many items?"), { target: { value: "12" } });
     fireEvent.click(screen.getByRole("button", { name: "A mix" }));
     fireEvent.click(screen.getByRole("button", { name: "Yes" }));
     const d = screen.getByTestId("desc").textContent ?? "";

@@ -49,10 +49,10 @@ export default function DeclutterSellChooser() {
           <section className="flex flex-col gap-3 [&_[data-sell-choice]:not([data-compact])]:!min-h-[80px]" aria-labelledby="sell-step">
             <StepHead title="What would you like to do?" sub="Pick one. You can come back for another." />
             {kept.data?.bunch && (
-              <ChoiceCard data-sell-choice="continue-bunch" to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} icon={<History className={ICON} />} title="Continue where you left off" line="Your photos and items from Sell a bunch are kept on this device." />
+              <ChoiceCard compact data-sell-choice="continue-bunch" to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} icon={<History className={ICON} />} title="Continue where you left off" line={kept.data.moving ? "Your moving out sale, kept here." : "Your Sell a bunch items, kept here."} />
             )}
             {kept.data?.one && (
-              <ChoiceCard data-sell-choice="continue-one" to={SELL_ONE_PATH} icon={<History className={ICON} />} title="Continue your listing" line="Your photos and words for one item are kept on this device." />
+              <ChoiceCard compact data-sell-choice="continue-one" to={SELL_ONE_PATH} icon={<History className={ICON} />} title="Continue your listing" line="Your one item, kept here." />
             )}
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything. We write each listing." />

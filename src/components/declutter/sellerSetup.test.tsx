@@ -64,7 +64,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 import { SellerSetupGate, setupNeeds } from "./SellerSetup";
 
 const PLACE = { id: "p", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45, lng: -91.15, weekdays: [6] };
-const ROW = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+const ROW = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
 const WINDOW = { weekday: 6, starts_local: "09:00:00", ends_local: "12:00:00" };
 
 function open(free = false) {

@@ -58,6 +58,8 @@ vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({
     return state.saveResult;
   },
 }));
+// LEAD-OFFERS-CHOICE: the listings the "for all my listings" row counts (none here, so it stays hidden).
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyItems: async () => [] }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/bundle")>()), fetchBundleRule: async () => null }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
@@ -142,7 +144,7 @@ describe("Declutter settings", () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
     await vi.waitFor(() => expect(state.saves).toHaveLength(1));
-    expect(state.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: null, handovers: ["porch", "meetup"] });
+    expect(state.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: null, handovers: ["porch", "meetup"], acceptsOffers: true });
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
     // Saved: what shows is now the saved row, and there is nothing left to save.
     await vi.waitFor(() => expect(button).toBeDisabled());
@@ -150,7 +152,7 @@ describe("Declutter settings", () => {
   });
 
   it("a saved row shows as saved, including a lowest price share that is not one of the everyday choices", async () => {
-    state.saved = { keepUp: false, drops: true, dropPct: 10, floorPct: 53, freeAfterDays: 14, handovers: ["meetup"] };
+    state.saved = { keepUp: false, drops: true, dropPct: 10, floorPct: 53, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     open();
     await save();
     expect(radio("How much each evening", "10%")).toHaveAttribute("aria-checked", "true");
@@ -168,6 +170,21 @@ describe("Declutter settings", () => {
     expect(screen.queryByRole("radiogroup", { name: "How much each evening" })).toBeNull();
     fireEvent.click(button);
     await vi.waitFor(() => expect(state.saves[0]?.drops).toBe(false));
+  });
+
+  // LEAD-OFFERS-CHOICE (owner 2026-10-31): the default for a new listing.
+  // @mutate src/components/declutter/DeclutterListingDefaults.tsx | onCheckedChange={(v) => change({ acceptsOffers: v === true })} | onCheckedChange={() => {}}
+  // @mutate src/components/declutter/DeclutterListingDefaults.tsx |  a.keepUp === b.keepUp && a.acceptsOffers === b.acceptsOffers && |  a.keepUp === b.keepUp &&
+  it("Accept offers is on with nothing saved; turning it off says Buy now only and is saved", async () => {
+    open();
+    const button = await save();
+    const offers = screen.getByRole("switch", { name: /Accept offers/ });
+    expect(offers).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(offers);
+    expect(screen.getByText(/Buyers pay your price with Buy now; no offers\./)).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await vi.waitFor(() => expect(state.saves[0]?.acceptsOffers).toBe(false));
   });
 
   it("with no way ticked Save is off and says why", async () => {
@@ -204,7 +221,7 @@ describe("Declutter settings", () => {
   });
 
   it("a stored Helpr delivery tick is dropped, and I'll deliver is not offered while its switch is off", async () => {
-    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery", "seller_delivery", "porch"] };
+    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery", "seller_delivery", "porch"], acceptsOffers: true };
     state.features.declutter_seller_delivery = false;
     open();
     const button = await save();

@@ -145,7 +145,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     geocode.mockClear();
     places.value = [];
     last.value = LAST;
-    remembered.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    remembered.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
   });
   afterEach(() => {
     places.value = [];
@@ -166,7 +166,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
   });
 
   it("drops saved off: the line before Post says off", async () => {
-    remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toMatch(/Price drops: off\. It stays at \$\d+/));
@@ -239,13 +239,13 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));
-    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] });
+    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true });
     expect(drafts[0]).toMatchObject({ priceCents: 4500, floorPriceCents: 2300 });
   });
 
   it("a saved row sets the step, the lowest price's share, free-after and the ways", async () => {
     places.value = [PLACE];
-    remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"] };
+    remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 15% each evening, never below $27."));

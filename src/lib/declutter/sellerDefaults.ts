@@ -24,10 +24,12 @@ export interface SellerDefaults {
   freeAfterDays: number | null;
   /** The ways buyers can get it, at least one. */
   handovers: SellerHandover[];
+  /** LEAD-OFFERS-CHOICE (owner 2026-10-31): "Accept offers" on a new listing; off is Buy now only. */
+  acceptsOffers: boolean;
 }
 
 /** No saved row: keep it up ON, drops ON at 5% a night down to half the price, never free, porch pickup. */
-export const SELLER_DEFAULTS: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+export const SELLER_DEFAULTS: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
 
 interface Row {
   keep_up: boolean;
@@ -36,9 +38,15 @@ interface Row {
   floor_pct: number;
   free_after_days: number | null;
   handovers: string[];
+  accepts_offers?: boolean;
 }
 
-const COLUMNS = "keep_up, drops, drop_pct, floor_pct, free_after_days, handovers";
+const BASE_COLUMNS = "keep_up, drops, drop_pct, floor_pct, free_after_days, handovers";
+// LEAD-OFFERS-CHOICE: accepts_offers is migration 20261031201036; until it is on prod (42703 / PGRST204) the rest still
+// reads and saves, and a new listing takes offers, as before.
+const COLUMNS = `${BASE_COLUMNS}, accepts_offers`;
+const noOffersColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "42703" || e.code === "PGRST204") && /accepts_offers/.test(e.message ?? "");
 const WAYS: readonly SellerHandover[] = ["porch", "seller_delivery", "meetup", "delivery"];
 
 const table = () => supabase.from("declutter_seller_defaults");
@@ -55,12 +63,14 @@ function fromRow(r: Row): SellerDefaults {
     floorPct: r.floor_pct,
     freeAfterDays: r.free_after_days,
     handovers: ways.length > 0 ? ways : SELLER_DEFAULTS.handovers,
+    acceptsOffers: r.accepts_offers !== false,
   };
 }
 
 /** The member's saved choices, or null when they have none saved yet (then use SELLER_DEFAULTS). */
 export async function fetchSellerDefaults(userId: string): Promise<SellerDefaults | null> {
-  const res = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
+  let res = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
+  if (noOffersColumn(res.error)) res = await table().select(BASE_COLUMNS).eq("member_id", userId).maybeSingle();
   if (res.error && notDeployed(res.error.code)) return null;
   const data = unwrap(res);
   return data ? fromRow(data as Row) : null;
@@ -68,19 +78,20 @@ export async function fetchSellerDefaults(userId: string): Promise<SellerDefault
 
 /** Save the member's choices (their own row; insert or update). Returns false when the table is not deployed yet. */
 export async function saveSellerDefaults(userId: string, d: SellerDefaults): Promise<boolean> {
-  const { error } = await table().upsert(
-    {
-      member_id: userId,
-      keep_up: d.keepUp,
-      drops: d.drops,
-      drop_pct: d.dropPct,
-      floor_pct: Math.min(95, Math.max(10, Math.round(d.floorPct))),
-      free_after_days: d.freeAfterDays,
-      handovers: d.handovers.length > 0 ? d.handovers : SELLER_DEFAULTS.handovers,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "member_id" },
-  ).select("member_id");
+  const row = {
+    member_id: userId,
+    keep_up: d.keepUp,
+    drops: d.drops,
+    drop_pct: d.dropPct,
+    floor_pct: Math.min(95, Math.max(10, Math.round(d.floorPct))),
+    free_after_days: d.freeAfterDays,
+    handovers: d.handovers.length > 0 ? d.handovers : SELLER_DEFAULTS.handovers,
+    updated_at: new Date().toISOString(),
+  };
+  const upsert = (r: typeof row & { accepts_offers?: boolean }) => table().upsert(r, { onConflict: "member_id" }).select("member_id");
+  let { error } = await upsert({ ...row, accepts_offers: d.acceptsOffers });
+  // Before 20261031201036 the rest is still saved; the offers choice waits for the column.
+  if (noOffersColumn(error)) ({ error } = await upsert(row));
   if (error) {
     if (notDeployed(error.code)) return false;
     throw error;

@@ -122,6 +122,9 @@ export function resultsPath(s: SavedSearch): string {
     if (s.max_budget) p.set("max", String(s.max_budget));
     if (s.min_budget) p.set("min", String(s.min_budget));
     if (s.radius_miles) p.set("mi", String(s.radius_miles));
+    // BUY-53: what "N new" counted (live_at after the last look, saved_search_new_counts), so Browse can mark them.
+    const since = s.last_seen_at ?? s.created_at;
+    if (since) p.set("new", since);
     const qs = p.toString();
     return `/declutter${qs ? `?${qs}` : ""}`;
   }

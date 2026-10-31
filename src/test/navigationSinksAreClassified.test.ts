@@ -111,6 +111,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/MessageAttachment.tsx::url": "thumbUrl / getMessageAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
   "components/DisputeTimelineDialog.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
   "components/admin/adminDisputes/DisputeCard.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
+  "components/ProofPhotoImg.tsx::src": `${PROOF_SIGNED}; every caller passes useProofPhotoUrls() output`,
   "components/PhotoProof.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
   "components/PhotoProof.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
   // The read-only gallery, split out of PhotoProof.tsx on 2026-10-23: the same signed proof links.

@@ -58,6 +58,9 @@ describe("F11: the day-of confirm sheet", () => {
     expect(within(sheet).getByText("Confirm you'll be there")).toBeTruthy();
     expect(within(sheet).getByRole("button", { name: "Yes, I'll be there" })).toBeTruthy();
     expect(sheet.textContent ?? "").not.toMatch(/commit/i);
+    // The Helpr keeps the no-show line; the poster's late-cancel line is theirs only (JobPage.test.tsx).
+    expect(within(sheet).getByText(/^No-shows or last-minute cancellations after confirming/)).toBeTruthy();
+    expect(sheet.textContent ?? "").not.toMatch(/paid for their trouble/);
   });
 
   it("the sheet names the job first; no name, no empty line", () => {

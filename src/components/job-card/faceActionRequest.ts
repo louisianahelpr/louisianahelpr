@@ -8,8 +8,9 @@
 const REQUEST_TTL_MS = 10_000;
 const pending = new Map<string, { action: FaceRequest; at: number }>();
 
-/** "open": only open the card (its own steps: no-show, dispute, revision, tip and review); no control takes it. */
-type FaceRequest = "confirm" | "approve" | "cancel" | "edit" | "open";
+/** The job page's approve, cancel, edit and "More options" run the card's flows on the page now
+ *  (usePosterPageFlows, LEAD-JOBPAGE-LAYOUT), so the confirm is the one request left. */
+type FaceRequest = "confirm";
 
 export function requestFaceAction(jobId: string, action: FaceRequest): void {
   pending.set(jobId, { action, at: Date.now() });
@@ -21,11 +22,4 @@ export function takeFaceAction(jobId: string, action: FaceRequest): boolean {
   if (!req || req.action !== action) return false;
   pending.delete(jobId);
   return Date.now() - req.at < REQUEST_TTL_MS;
-}
-
-/** Whether a fresh request waits for this job's card (any action), without taking it: a Posted `&manage=1` link
- *  with one opens the card (its control answers); one without opens the job page (LEAD-JOBPAGE-LAYOUT). */
-export function hasFaceAction(jobId: string): boolean {
-  const req = pending.get(jobId);
-  return !!req && Date.now() - req.at < REQUEST_TTL_MS;
 }

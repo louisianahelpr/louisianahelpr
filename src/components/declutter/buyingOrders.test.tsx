@@ -39,6 +39,8 @@ const state = {
   raiseReads: [] as string[],
   /** Audit 1b D2-2: open problems (declutter_problems, status open). */
   problems: [] as Record<string, unknown>[],
+  /** NIGHT-BUYINGopenpr-2: declutter_order_problem per order (the other side's words included). */
+  problem: {} as Record<string, Record<string, unknown>>,
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -57,6 +59,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
   fetchOpenProblems: async () => state.problems,
+  fetchOrderProblem: async (orderId: string) => state.problem[orderId] ?? null,
   fetchOrderPickupWindows: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null,
     set_out_photo_path: null, picked_up_at: null, ...state.handovers[orderId] }),
@@ -308,6 +311,35 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     // The other order is untouched.
     expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();
     state.problems = [];
+  });
+
+  // NIGHT-BUYINGopenpr-2: a handed-over order the seller reported was filed under Done with nothing asked; the
+  // buyer's "Add your side" waited unseen under Details. Answered, it waits on Louisiana Helpr.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       problemAwaitsYou: problemAwaitsBuyer( |       problemAwaitsYou: false && problemAwaitsBuyer(
+  // @mutate src/components/declutter/BuyingOrders.tsx |   return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side"; |
+  it("openpr-2: a handed-over order with the seller's open report is Needs you with Add your side, then Waiting once answered", async () => {
+    load([
+      { id: "rep", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "needs_you", action: "Add your side" },
+      { id: "mine", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "waiting", action: null },
+      { id: "ans", line: { order_status: "handed_over" }, step: 3, bucket: "waiting", action: null },
+    ]);
+    state.problems = ["rep", "mine", "ans"].map((id) => ({ id: `p-${id}`, order_id: id, reporter_side: id === "mine" ? "buyer" : "seller", reason: "no_show" }));
+    const base = { reason: "no_show", note: "They never came.", photo_paths: [], status: "open", created_at: iso(-1) };
+    state.problem = {
+      rep: { ...base, id: "p-rep", reporter_side: "seller", other_side_note: null },
+      mine: { ...base, id: "p-mine", reporter_side: "buyer", other_side_note: null },
+      ans: { ...base, id: "p-ans", reporter_side: "seller", other_side_note: "I was there at 3." },
+    };
+    show();
+    await waitFor(() => expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("needs_you"));
+    expect(within(card("rep")).getByRole("button", { name: "Add your side" })).toBeInTheDocument();
+    for (const id of ["mine", "ans"]) {
+      expect(card(id).querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
+      expect(within(card(id)).queryByRole("button", { name: "Add your side" })).toBeNull();
+    }
+    state.problems = [];
+    state.problem = {};
   });
 
   // Audit 1c D3-3 (1c-b3-buying-p1-375): two days before the booked pickup the buyer's card said "A Helpr is on the way

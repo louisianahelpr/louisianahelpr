@@ -39,6 +39,11 @@ export type OrderFacts = {
   cancelled?: boolean;
   /** Audit 1b D2-2: a problem is open; nothing is asked of either side until Louisiana Helpr decides. */
   problem?: boolean;
+  /**
+   * NIGHT-BUYINGopenpr-2: the other side (or Louisiana Helpr) reported the problem and this viewer has not added their
+   * side yet ("Add your side" waits on them).
+   */
+  problemAwaitsYou?: boolean;
 };
 
 export type OrderBucket = "needs_you" | "waiting" | "upcoming" | "done" | "cancelled";
@@ -115,8 +120,10 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
 /** Which chip the order sits under. */
 export function orderBucket(f: OrderFacts): OrderBucket {
   if (f.cancelled) return "cancelled";
+  // NIGHT-BUYINGopenpr-2: an open problem holds the money, so a handed-over order with one is never Done; when the
+  // other side reported it and this viewer's side is still missing, the move is theirs.
+  if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting";
   if (f.done) return "done";
-  if (f.problem) return "waiting";
   if (orderWaitsOnYou(f)) return "needs_you";
   // A day or time is set, the handover has not happened and nothing is asked of the viewer before it: coming up.
   // Otherwise it is on the other person or the clock (a buyer's day to pick, a Helpr to take it, the sale to settle).

@@ -26,41 +26,42 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const html = readFileSync(resolve(ROOT, process.env.INDEX_HTML || "index.html"), "utf8");
-// The real tag, after </head>: head comments mention "<body>" in prose.
-const body = html.slice(html.indexOf("<body", html.indexOf("</head>")), html.lastIndexOf("</body>"));
+// Parsed as a browser would (DOMParser), not filtered with regexps: CodeQL js/bad-tag-filter.
+const page = new DOMParser().parseFromString(html, "text/html");
 
-/** Text a visitor sees with the stylesheet in the page: drops scripts, styles, comments and hidden elements. */
-function visibleText(fragment: string): string {
-  return fragment
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<([a-z0-9]+)\b[^>]*(\bhidden\b|aria-hidden="true"|display:\s*none|visibility:\s*hidden|class="[^"]*\bsr-only\b)[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+/** The body as a visitor with the stylesheet sees it: no scripts, styles, <noscript>, or hidden elements. */
+function visibleBody(): HTMLElement {
+  const body = page.body.cloneNode(true) as HTMLElement;
+  const hidden = 'script, style, noscript, [hidden], [aria-hidden="true"], .sr-only';
+  for (const el of Array.from(body.querySelectorAll<HTMLElement>(hidden))) el.remove();
+  for (const el of Array.from(body.querySelectorAll<HTMLElement>("[style]"))) {
+    if (/display:\s*none|visibility:\s*hidden/i.test(el.getAttribute("style") ?? "")) el.remove();
+  }
+  return body;
 }
+const visibleText = () => (visibleBody().textContent ?? "").replace(/\s+/g, " ").trim();
 
 describe("the home page names the app before JavaScript runs (LEAD-GOOGLE-NAME)", () => {
   it("reads a real body (floor: the boot shell and the entry script are in it)", () => {
-    expect(body).toContain('id="boot-loader"');
-    expect(body.length).toBeGreaterThan(500);
+    expect(page.body.querySelector("#boot-loader")).not.toBeNull();
+    expect(page.body.innerHTML.length).toBeGreaterThan(500);
   });
 
   it('shows "Louisiana Helpr" as visible text in the boot shell (not only in <noscript>)', () => {
-    const shell = body.replace(/<noscript>[\s\S]*?<\/noscript>/gi, " ");
-    expect(visibleText(shell)).toContain("Louisiana Helpr");
+    expect(visibleText()).toContain("Louisiana Helpr");
   });
 
   it("links to /privacy and /terms with plain anchors", () => {
-    const shell = body.replace(/<noscript>[\s\S]*?<\/noscript>/gi, " ");
-    expect(shell).toMatch(/<a href="\/privacy">[^<]*Privacy[^<]*<\/a>/);
-    expect(shell).toMatch(/<a href="\/terms">[^<]*Terms[^<]*<\/a>/);
+    const links = Array.from(visibleBody().querySelectorAll("a")).map((a) => `${a.getAttribute("href")} ${a.textContent ?? ""}`);
+    expect(links.some((l) => /^\/privacy .*Privacy/.test(l))).toBe(true);
+    expect(links.some((l) => /^\/terms .*Terms/.test(l))).toBe(true);
   });
 
   it("carries no HTML comment in the body", () => {
-    expect(body.match(/<!--[\s\S]*?-->/g) ?? []).toEqual([]);
+    const walker = page.createTreeWalker(page.body, NodeFilter.SHOW_COMMENT);
+    const comments: string[] = [];
+    while (walker.nextNode()) comments.push(walker.currentNode.textContent ?? "");
+    expect(comments).toEqual([]);
   });
 
   it("the landing's footer shows the name once the app runs", () => {

@@ -14,6 +14,7 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at` | JOB_READABLE_COLUMNS}`
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden={!moreOpen} | <div data-poster-more="" hidden
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     if (moreOpen) moreRef.current?.scrollIntoView | if (false) moreRef.current?.scrollIntoView
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -134,7 +135,16 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
     const panel = container.querySelector("[data-poster-more]") as HTMLElement;
     expect(panel.hidden).toBe(true);
     expect(panel.textContent!.length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "more" }));
-    expect((container.querySelector("[data-poster-more]") as HTMLElement).hidden).toBe(false);
+    const scrolled: Element[] = [];
+    const orig = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "more" }));
+      expect((container.querySelector("[data-poster-more]") as HTMLElement).hidden).toBe(false);
+      // Opened below the fold at 375, it is brought into view.
+      expect(scrolled).toContain(container.querySelector("[data-poster-more]"));
+    } finally {
+      Element.prototype.scrollIntoView = orig;
+    }
   });
 });

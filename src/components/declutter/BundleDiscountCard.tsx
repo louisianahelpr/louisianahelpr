@@ -58,7 +58,7 @@ export function BundleDiscountCard() {
             const next = e.target.value === "off" ? null : Number(e.target.value);
             if (next !== current) save.mutate(next);
           }}
-          className="h-11 w-auto max-w-[55%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-11 w-auto max-w-[65%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="off">Off</option>
           {BUNDLE_PERCENTS.map((p) => <option key={p} value={String(p)}>Buy 2+, {p}% off</option>)}

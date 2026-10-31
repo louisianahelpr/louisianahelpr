@@ -358,19 +358,24 @@ describe("ApplyConfirmDialog contact filter", () => {
  */
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | if (online) toast.dismiss(OFFLINE_TOAST_ID); | if (online) void OFFLINE_TOAST_ID;
 describe("ApplyConfirmDialog offline toast (Q131)", () => {
-  const setOnline = (v: boolean) => {
+  // The event is a hint the app confirms with a probe (src/lib/connectivity.ts;
+  // setup.ts's test probe agrees with navigator.onLine), so wait one tick for it.
+  const setOnline = async (v: boolean) => {
     Object.defineProperty(window.navigator, "onLine", { configurable: true, get: () => v });
-    act(() => { window.dispatchEvent(new Event(v ? "online" : "offline")); });
+    await act(async () => {
+      window.dispatchEvent(new Event(v ? "online" : "offline"));
+      await new Promise((r) => setTimeout(r, 0));
+    });
   };
 
-  it("takes down its own offline toast the moment the network is back", () => {
-    setOnline(false);
+  it("takes down its own offline toast the moment the network is back", async () => {
+    await setOnline(false);
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: "Free Sunday." })} />);
     // Offline: the submit is refused with the critical offline toast, and nothing dismisses it yet.
     toastDismiss.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(toastDismiss).not.toHaveBeenCalledWith("apply-offline");
-    setOnline(true);
+    await setOnline(true);
     expect(toastDismiss).toHaveBeenCalledWith("apply-offline");
     expect(screen.getByRole("button", { name: "Apply at $100" })).toBeEnabled();
     cleanup();

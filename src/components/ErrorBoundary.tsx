@@ -1,4 +1,5 @@
 import React from "react";
+import { isConfirmedOffline } from "@/lib/connectivity";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
 import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
@@ -106,7 +107,8 @@ class ErrorBoundary extends React.Component<Props, State> {
       if (this.state.recovering) return <ChunkRecoveringState />;
       if (this.props.fallback) return this.props.fallback;
 
-      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      // Confirmed offline only: navigator.onLine=false alone is a hint (connectivity.ts).
+      const offline = isConfirmedOffline();
 
       return (
         <div className="min-h-[300px] flex flex-col items-center justify-center gap-4 p-8 text-center bg-background rounded-2xl">

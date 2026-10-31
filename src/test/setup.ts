@@ -1,8 +1,9 @@
 import { appendFileSync } from "node:fs";
-import { afterEach, expect, vi } from "vitest";
+import { afterEach, beforeEach, expect, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { installProdNetworkGuard } from "./prodNetworkGuard";
+import { resetConnectivityForTests } from "@/lib/connectivity";
 
 // Payout setup only after a hire (owner 2026-10-25): every component that
 // reads usePayoutSetupPaused() now also asks the server whether the member was
@@ -34,6 +35,13 @@ afterEach(async () => {
   if (!vi.isFakeTimers()) await new Promise((r) => setTimeout(r, 0));
 });
 afterEach(() => cleanup());
+
+// Connectivity (src/lib/connectivity.ts) confirms a false navigator.onLine with
+// a backend probe before the app says offline. Unit tests never reach the
+// network, so by default the probe agrees with navigator.onLine: a test that
+// sets onLine=false still sees offline (after the probe's microtask). Tests
+// ABOUT the probe pass their own (src/lib/useOnlineStatus.test.ts).
+beforeEach(() => resetConnectivityForTests(async () => navigator.onLine !== false));
 
 // Unit tests never reach prod Supabase (Q55a): see src/test/prodNetworkGuard.ts.
 installProdNetworkGuard();

@@ -65,10 +65,21 @@ function sectionWord(section: string): string {
   return SECTION_LABEL[section as SavedSearchSection] ?? section;
 }
 
+/** A saved search's longest default name. */
+const NAME_MAX = 60;
+
 /** `"chair" in Declutter` / `Yard work in Jobs` / `Everything in Jobs`. */
 export function defaultName(d: Pick<SearchDraft, "section" | "query" | "category">): string {
-  const what = d.query.trim() ? `“${d.query.trim()}”` : d.category ? categoryWord(d.section, d.category) : "Everything";
-  return `${what} in ${sectionWord(d.section)}`.slice(0, 60);
+  const q = d.query.trim();
+  const where = ` in ${sectionWord(d.section)}`;
+  const what = q ? `“${q}”` : d.category ? categoryWord(d.section, d.category) : "Everything";
+  if (what.length + where.length <= NAME_MAX || !q) return `${what}${where}`.slice(0, NAME_MAX);
+  // SS-7: a long search is cut at a word, with "…" and its closing quote, never mid-word ("…eight matching chai").
+  const room = NAME_MAX - where.length - 3;
+  const cut = q.slice(0, room + 1);
+  const atWord = cut.lastIndexOf(" ");
+  const words = (atWord > 0 ? cut.slice(0, atWord) : q.slice(0, room)).trimEnd();
+  return `“${words}…”${where}`;
 }
 
 /** The filters in plain words: `Within 25 mi · under $100 · Furniture`. */

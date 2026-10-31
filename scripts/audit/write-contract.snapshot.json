@@ -1,6 +1,6 @@
 {
  "appliedMigrations": {
-  "count": 1504,
+  "count": 1505,
   "latest": "20261031111949"
  },
  "functions": {
@@ -11043,6 +11043,15 @@
    }
   ],
   "refuse_done_before_come_back": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "refuse_instant_payout_while_fee_owed": [
    {
     "anon": false,
     "args": [],
@@ -27630,6 +27639,7 @@
   "instant_payouts": {
    "checks": [
     "CHECK (((gross_amount >= (0)::numeric) AND (fee_amount >= (0)::numeric) AND (net_amount >= (0)::numeric)))",
+    "CHECK ((fee_state = ANY (ARRAY['none'::text, 'attempting'::text, 'taken'::text, 'not_taken'::text, 'kept'::text, 'returned'::text])))",
     "CHECK ((round(net_amount, 2) = round((gross_amount - fee_amount), 2)))"
    ],
    "columnGrants": {},
@@ -27654,6 +27664,27 @@
      "hasDefault": false,
      "notNull": true,
      "type": "numeric(10,2)"
+    },
+    "fee_reversal_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "fee_state": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "fee_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
     },
     "gross_amount": {
      "enum": null,
@@ -27732,6 +27763,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:insert",
     "before:insert|update|delete",
     "before:update"
    ]

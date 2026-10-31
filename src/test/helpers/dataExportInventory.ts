@@ -565,6 +565,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_cart_items.checkout_by": { reason: "a deadline timestamp (when checkout must happen), not a person; the line is exported by declutter_cart_items.buyer_id/seller_id (20261014210518)" },
   "helpr_tasks.customer_id": { reason: "the buyer of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by buyer_id), and the Helpr's task row holds the seller's address, which is never the buyer's data (20261017055505)" },
   "helpr_tasks.pickup_contact_id": { reason: "the seller of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by seller_id), and the Helpr's task row holds the buyer's drop-off address, which is never the seller's data (20261017055505)" },
+  "helpr_tasks.seller_no_show_answer_by": { reason: "a deadline timestamp (when the Helpr must answer the seller's \"The Helpr didn't come\" report, 24 hours on), not a person; the task is exported by helpr_tasks.helpr_id (20261031134217)" },
   "helpr_tasks.confirmed_by": { reason: "how a delivery was confirmed ('code', 'customer', 'auto', 'admin'), not a person (20261017055505)" },
   "job_guarantee_claims.helpr_answer_by": { reason: "a deadline timestamp (when the Helpr must answer), not a person (20261027200455)" },
   "job_guarantee_claims.poster_answer_by": { reason: "a deadline timestamp (when the poster must answer), not a person (20261027200455)" },

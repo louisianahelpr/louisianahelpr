@@ -47,7 +47,8 @@ const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[])
 export function buyerOrderFacts(
   order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents">[] },
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
-    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by">> | null;
+    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at">
+      & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by" | "not_delivered_from">> | null;
     task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
   now: number = Date.now(),
 ): OrderFacts {
@@ -69,7 +70,9 @@ export function buyerOrderFacts(
     case "seller_delivery": {
       const sd = rows.sellerDelivery;
       return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at,
-        needsTime: sd?.status === "needs_time", moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller" };
+        needsTime: sd?.status === "needs_time", moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller",
+        // AUD31-2: the panel's own "It wasn't delivered" rule (SellerDeliveryOrder can.notDelivered).
+        late: sd?.status === "booked" && !sd.delivered_at && !!sd.not_delivered_from && now >= Date.parse(sd.not_delivered_from) };
     }
     case "delivery": {
       const t = rows.task;
@@ -97,7 +100,9 @@ export function buyerNextAction(f: OrderFacts): string | null {
   if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
   // AUD31-3: the seller-delivery panel's own button words.
-  if (f.handover === "seller_delivery" && !f.delivered) return f.needsTime ? "Pick a time" : f.moveAsked ? "Accept the new time" : "I got it";
+  if (f.handover === "seller_delivery" && !f.delivered) {
+    return f.needsTime ? "Pick a time" : f.moveAsked ? "Accept the new time" : f.late ? "It wasn't delivered" : "I got it";
+  }
   return "I got it";
 }
 
@@ -119,6 +124,8 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
     case "meetup":
       return at === 0 ? "Book a time to meet at the safe spot." : at === 1 ? `Meeting booked${when ? ` for ${when}` : ""}.` : "Met.";
     case "seller_delivery":
+      // AUD31-2: past its time and not marked delivered, it says it is late, never "booked".
+      if (at === 1 && f.late) return `Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`;
       return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
     case "delivery":
       // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so

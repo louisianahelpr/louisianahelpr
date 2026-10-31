@@ -26,7 +26,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -69,6 +69,12 @@ export interface BunchItem {
   sizeUnknown?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
+  /**
+   * LEAD-RESUME-REPOSTS: the id its draft is made with, picked and saved before the draft is asked for. A run cut off
+   * before its draft id was saved, or work brought back from an older save, asks with the same id again: the server
+   * says it is already posted, so it is never listed twice.
+   */
+  appId?: string;
   /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
   uploaded?: Record<string, string>;
   /** Photos waiting to be sorted, kept together with why: not an item yet, so it can't be listed. The screen offers Sort again. */
@@ -697,6 +703,34 @@ interface BunchRun {
 
 let activeRun: BunchRun | null = null;
 
+/** The id a bunch item's draft is made with (crypto.randomUUID; the server checks its form). */
+export function newBunchItemId(): string {
+  return crypto.randomUUID();
+}
+
+/**
+ * LEAD-RESUME-REPOSTS (owner 2026-10-31: "Continue where you left off" offered Sell a bunch items she had already
+ * posted, and posting them made duplicates). Work brought back from the device, against what the server says of its
+ * ids: an item whose draft or app id is already posted (any status but draft) is left out, with the photos only it
+ * held, so it is never offered again; an item whose draft is gone keeps its place and gets a new draft at listing.
+ * `statuses` null (the read failed): nothing is left out here, and listing asks again.
+ */
+export function withoutPosted<T extends { key: string }>(items: BunchItem[], photos: T[], statuses: Map<string, string> | null): { items: BunchItem[]; photos: T[]; posted: number } {
+  if (!statuses) return { items, photos, posted: 0 };
+  const isPosted = (id?: string) => !!id && statuses.has(id) && statuses.get(id) !== "draft";
+  const kept = items.filter((it) => !isPosted(it.draftId) && !isPosted(it.appId));
+  const posted = items.length - kept.length;
+  if (posted === 0) return { items, photos, posted };
+  const held = new Set(kept.flatMap((it) => it.photoKeys));
+  const goneOnly = new Set(items.filter((it) => !kept.includes(it)).flatMap((it) => it.photoKeys).filter((k) => !held.has(k)));
+  return { items: kept, photos: photos.filter((p) => !goneOnly.has(p.key)), posted };
+}
+
+/** Every id the server may know a kept item by: its draft and its app id. */
+export function keptItemIds(items: BunchItem[]): string[] {
+  return [...new Set(items.flatMap((it) => [it.draftId, it.appId].filter((x): x is string => !!x)))];
+}
+
 /**
  * One listing run at a time on this device. A run outlives its screen (the back link), and the screen brought back holds
  * the same drafts: a second run would publish them again (item_not_a_draft) and upload their photos twice.
@@ -762,7 +796,7 @@ export async function listBunch(
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
-  const held = items.flatMap((it) => (it.draftId ? [it.draftId] : []));
+  const held = keptItemIds(items);
   let statuses: Map<string, string> | null = null;
   if (held.length > 0) {
     try {
@@ -774,6 +808,12 @@ export async function listBunch(
   }
   for (const [i, original] of items.entries()) {
     let it = original;
+    // Its app id is already one of the seller's items (a run cut off before its draft id was saved): that is its draft.
+    const byAppId = !it.draftId && it.appId && statuses ? statuses.get(it.appId) : undefined;
+    if (byAppId !== undefined && it.appId) {
+      it = { ...it, draftId: it.appId };
+      onStep(it.key, { draftId: it.appId });
+    }
     if (it.draftId && statuses) {
       const status = statuses.get(it.draftId);
       if (status === "live" || status === "pending_review") {
@@ -819,9 +859,23 @@ export async function listBunch(
         // Its draft exists from an earlier try: the seller's edits go onto it.
         await deps.updateDraft(id, fields);
       } else {
-        id = choices.moveOutOn
-          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
-          : await deps.createDraft(fields);
+        // Saved before the draft is asked for, so a cut-off run asks with the same id and never makes a second.
+        const appId = it.appId ?? newBunchItemId();
+        if (!it.appId) onStep(it.key, { appId });
+        try {
+          id = choices.moveOutOn
+            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
+            : await deps.createDraft(fields, appId);
+        } catch (err) {
+          // LEAD-RESUME-REPOSTS: that id is already the seller's posted listing. Never a second copy: it leaves the list.
+          if (err instanceof AlreadyPosted) {
+            out.set(it.key, { key: it.key, title: it.title, error: err, draftId: err.itemId });
+            onStep(it.key, null);
+            onProgress(i + 1, total);
+            continue;
+          }
+          throw err;
+        }
         onStep(it.key, { draftId: id });
       }
       const uploaded = { ...it.uploaded };

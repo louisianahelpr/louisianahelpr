@@ -2,7 +2,7 @@
  * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
  * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("pagehide", now); |     void now;
  * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") flush(); |       void 0;
- * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: mine(bunch), moving: | return { bunch: false, moving:
+ * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: kept, moving: kept && | return { bunch: false, moving: kept &&
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *

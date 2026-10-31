@@ -8,7 +8,7 @@
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !ownListing && !forSale; |   const boughtByMe = false;
- * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes | {way !== "none" && !porchOnly && user && <ItemPickupTimes
+ * @mutate src/components/declutter/DeclutterItemView.tsx | {forSale && user && <ItemHandoverTimes | {user && <ItemHandoverTimes
  *   DA-6 (Declutter audit 2026-10-30): the buyer's own sold item says "You bought this." / "You claimed this." with
  *   Buying, asks no item pickup times (that read answers only while it is for sale) and no "shared after you pay".
  * @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => setOpen(i)} |               onClick={() => undefined}
@@ -21,11 +21,11 @@
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
  * @mutate src/components/declutter/DeclutterItemView.tsx |       phoneHidesTitle\n |
  * @mutate src/components/PageHeader.tsx | ${phoneHidesTitle ? " max-sm:sr-only" : ""} | ${phoneHidesTitle ? "" : ""}
- * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | rightSlot={titleActions} sticky={stickyHeader} />
+ * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | rightSlot={titleActions} sticky={stickyHeader} wrapTitle={wrapTitle} />
  * DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned on the item page while it scrolls.
  * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n      titleActions={ |       titleActions={
  * @mutate src/components/AppPage.tsx | data-own-title-row={stickyHeader ? "" : undefined} | data-own-title-row={undefined}
- * @mutate src/components/AppPage.tsx | phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} /> | phoneHidesTitle={phoneHidesTitle} />
+ * @mutate src/components/AppPage.tsx | phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | phoneHidesTitle={phoneHidesTitle} wrapTitle={wrapTitle} />
  * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"
  * @mutate src/components/PageHeader.tsx |             {stickyTitle && phoneHidesTitle && ( |             {false && (
  * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |
@@ -111,9 +111,11 @@ vi.mock("@/lib/authRedirects", async () => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    // The pickup-times and bundle reads (2026-10-28) answer their own shapes: no windows, no discountable items.
+    // The pickup-times, pickup-places and bundle reads answer their own shapes: no windows, no places (so the usual
+    // times are the item's pickup times, ItemHandoverTimes), no discountable items. Without its own answer the places
+    // read got the seller-card rows an earlier case left in state.safeRows, and DA-6 lost its pickup-times read.
     rpc: async (fn: string) =>
-      fn === "declutter_item_pickup_windows" || fn === "declutter_bundle_applies"
+      fn === "declutter_item_pickup_windows" || fn === "declutter_item_pickup_places" || fn === "declutter_bundle_applies"
         ? { data: [], error: null }
         : fn === "declutter_guest_seller_first_name"
           ? { data: "Dana", error: null }

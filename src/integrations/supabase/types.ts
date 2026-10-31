@@ -2773,6 +2773,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          send_tried: boolean
           setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
@@ -2798,6 +2799,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
           setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
@@ -2823,6 +2825,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
           setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null
@@ -5030,6 +5033,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          send_tried: boolean
           setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
@@ -5053,6 +5057,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
           setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
@@ -5076,6 +5081,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
           setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null

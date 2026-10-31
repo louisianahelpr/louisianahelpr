@@ -278,8 +278,13 @@ const EXEMPT: Record<string, string> = {
   // Q1390: the crew block-fee charge link, read after the main loop has
   // already retrieved and classified this job's PaymentIntent.
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(a.paymentIntentId)": REREAD,
+  // B49 (owner 2026-10-30, D1): a reset member's stored session is asked about first; unreadable or missing falls
+  // through to the normal start, so the later retrieve becomes #2. No money moves on either.
   "stripe-idv-start/index.ts::stripe.identity.verificationSessions.retrieve(profile.idv_session_id)": ABSENT,
-  "stripe-idv-webhook/index.ts::stripe.identity.verificationSessions.retrieve(session.id)": EVENT,
+  "stripe-idv-start/index.ts::stripe.identity.verificationSessions.retrieve(profile.idv_session_id)#2": ABSENT,
+  // stripe-idv-webhook's retrieve(session.id) now runs on the results-key client when STRIPE_IDENTITY_RESULTS_KEY is
+  // set ((resultsKey ? new Stripe(..) : stripe).identity...), so this scan no longer sees it; the id is still the
+  // event's own (EVENT).
   "_shared/chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,
   // Q1222: holdBackPaidTip runs only from checkout.session.completed; the
   // PaymentIntent is the event session's, the transfer that charge's.

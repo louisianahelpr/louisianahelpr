@@ -5,9 +5,9 @@
  * already writes the quotes and "in Declutter". Reads the EFFECTIVE function. Backend proof:
  * src/test/pglite/declutterSavedSearchAlertQuotes.pglite.mjs (3x; red without the migration and on its planted defects).
  */
-// @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | CASE WHEN r.search_name ~ '["“”]' OR r.search_name | CASE WHEN r.search_name
-// @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | OR r.search_name ~ ' in Declutter$' THEN | THEN
-// @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql | ELSE '"' \|\| r.search_name \|\| '"' END | ELSE r.search_name END
+// @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | CASE WHEN r.search_name ~ '["“”]' OR r.search_name | CASE WHEN r.search_name
+// @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | OR r.search_name ~ ' in Declutter$' THEN | THEN
+// @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql | ELSE '"' \|\| r.search_name \|\| '"' END | ELSE r.search_name END
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

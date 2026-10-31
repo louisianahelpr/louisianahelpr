@@ -292,7 +292,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : null);
             if (res.paid || !res.url) {
-              toast.success("This order is already paid.");
+              toast("This order is already paid.");
               invalidateTrades(qc);
               setOpening(false);
               return;

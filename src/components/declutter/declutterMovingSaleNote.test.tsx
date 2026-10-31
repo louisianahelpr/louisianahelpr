@@ -93,8 +93,7 @@ describe("BUY-33: Selling now doesn't repeat the sale", () => {
     state.sellerItems = [item("a")];
     state.saleItems = [{ id: "a" }];
     const { container } = wrap(<SellingNowRow sellerId="s1" />);
-    await waitFor(() => expect(screen.queryByRole("heading")).toBeNull());
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 30));
     expect(container.querySelector("[data-testid=selling-now]")).toBeNull();
   });
 

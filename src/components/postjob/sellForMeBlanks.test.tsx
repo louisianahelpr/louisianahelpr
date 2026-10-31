@@ -67,6 +67,6 @@ describe("POST-H15: the three blanks as their own fields", () => {
 
   it("Post a Job's details step shows the fields for a Helpr-list-it job", () => {
     const src = readFileSync(resolve(__dirname, "../../pages/post-job/FormStep.tsx"), "utf8");
-    expect(src).toContain("{isSellForMeJob(form.category) && <SellForMeBlanks description={form.description} setDescription={form.setDescription} />}");
+    expect(src).toContain("{isSellForMeJob(form.category) && <SellForMeBlanks description={form.description} setDescription={form.setDescription} refused={placeholdersRefused} />}");
   });
 });

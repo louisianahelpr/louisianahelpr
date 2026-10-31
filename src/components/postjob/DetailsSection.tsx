@@ -35,6 +35,7 @@ export function DetailsSection({
   scopeVideoUrl,
   onVideoSelect,
   onClearVideo,
+  placeholdersRefused,
 }: DetailsSectionProps) {
   // Automatically reset to tier 0 when switching to a non-trade category
   // so the picker never shows a stale tier on a category where it's hidden.
@@ -63,6 +64,7 @@ export function DetailsSection({
         description={description}
         setDescription={setDescription}
         category={category}
+        placeholdersRefused={placeholdersRefused}
       />
 
       {/* "Who can apply?" credential-tier selector — only shown for

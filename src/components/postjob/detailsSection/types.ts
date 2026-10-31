@@ -32,4 +32,6 @@ export interface DetailsSectionProps {
   onVideoSelect?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   /** Clear the selected video. */
   onClearVideo?: () => void;
+  /** Continue was pressed with a [placeholder] still in the description (POST-H15): the field shows it in red. */
+  placeholdersRefused?: boolean;
 }

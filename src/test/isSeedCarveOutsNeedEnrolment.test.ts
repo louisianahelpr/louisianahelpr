@@ -209,6 +209,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   retract_new_member_notice_for_test_account: "hides",
   rpc_close_test_mode_dispute: "money-gate",
   saved_search_new_counts: "hides",
+  declutter_dropped_into_budget: "hides", // 20261031224850: a seed listing's price drop counts only where seed listings show (seed_hidden_in_discovery), like saved_search_new_counts
   search_profiles_by_name: "hides",
   seed_hidden_for: "hides",
   seed_hidden_from_caller: "hides",

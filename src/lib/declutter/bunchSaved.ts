@@ -84,3 +84,19 @@ export const clearSavedBunch = () => clearQuietly(bunchStore.clearNow);
 /** One item's listing (useSellSaved): the small record is that hook's own; here only so sign-out can clear it. */
 export const SELL_ONE_KEY = "lh-sell-one-v1";
 export const clearSavedSellOne = () => clearQuietly(deviceStore(SELL_ONE_KEY).clearNow);
+
+/**
+ * LEAD-BUNCH-DRAFT-KEEP (owner 10-31): whether this member has selling work kept on this device, read from the small
+ * records only (no photos), for the Sell chooser's "Continue where you left off". A save keeps a record only while
+ * there is work, so a record of theirs under 7 days old is work. Unreadable storage: nothing to offer.
+ */
+export async function savedSellWork(userId: string, now = Date.now()): Promise<{ bunch: boolean; moving: boolean; one: boolean }> {
+  const mine = (s: SavedPhotos | undefined): boolean => !!s && s.userId === userId && now - s.savedAt <= MAX_AGE_MS;
+  try {
+    const [bunch, one] = await Promise.all([get<SavedBunch>("lh-bunch-v1"), get<SavedPhotos>(SELL_ONE_KEY)]);
+    return { bunch: mine(bunch), moving: mine(bunch) && !!bunch?.moveDate, one: mine(one) };
+  } catch (err) {
+    console.warn("[declutter] could not read saved selling work", err);
+    return { bunch: false, moving: false, one: false };
+  }
+}

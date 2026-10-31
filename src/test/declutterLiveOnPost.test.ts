@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |           jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)); |           jsonb_build_object('note', v_note, 'was', v_item.status));
  * @mutate src/lib/declutter/api.ts |   for (let attempt = 1; attempt <= 2; attempt++) { |   for (let attempt = 1; attempt <= 1; attempt++) {
- * @mutate src/components/declutter/useSellFlowState.ts |       await requestAiCheckWithRetry(id); |       void id;
+ * @mutate src/components/declutter/useSellFlowState.ts |       const checked = requestAiCheckWithRetry(id); |       const checked = Promise.resolve(null);
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id); |       void item.id;
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!ownListing && user && <DeclutterReportListing itemId={itemId} />} |           {null}
  * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
@@ -88,7 +88,8 @@ describe("item B: a listing goes live when posted; only a failed automatic check
     let calls = 0;
     for (const p of callers) {
       const s = code(p);
-      const n = (s.match(/await requestAiCheckWithRetry\(/g) ?? []).length;
+      // Awaited where it is asked, or (Post, LEAD-POST-SLOW) started first and awaited with the settings beside it.
+      const n = (s.match(/(?:await|const \w+ =) requestAiCheckWithRetry\(/g) ?? []).length;
       expect(n, p).toBe(1);
       calls += n;
       // The single-try call is gone from every caller.

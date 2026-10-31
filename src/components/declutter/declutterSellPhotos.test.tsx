@@ -39,6 +39,8 @@ const upload = {
   gate: null as Promise<void> | null,
   onDraft: [] as { id: string; storage_path: string }[],
 };
+/** LEAD-POST-SLOW: holds for the photo check and the tax tick, to see what Post does while each is still out. */
+const post = { checkGate: null as Promise<void> | null, attestGate: null as Promise<void> | null, checksStarted: 0, attested: 0 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
   fails: false,
@@ -119,14 +121,15 @@ vi.mock("@/lib/declutter/api", () => ({
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
   requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.fails ? Promise.reject(new Error("ai_unavailable")) : aiAnswer.next(); },
   requestAiCheck: async () => ({ checked: true, flagged: false }),
-  requestAiCheckWithRetry: async () => ({ checked: true, flagged: false }),
+  requestAiCheckWithRetry: async () => { post.checksStarted += 1; await post.checkGate; return { checked: true, flagged: false }; },
   setPickupWindows: async () => { calls.push("windows"); return 1; },
-  attestItem: async () => { calls.push("attest"); },
+  attestItem: async () => { await post.attestGate; post.attested += 1; calls.push("attest"); },
   publishItem: async () => { calls.push("publish"); return "live"; },
 }));
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
+import { SLOW_CHECK_AFTER_MS, SLOW_CHECK_STEP } from "./useSellFlowState";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 /** Where Post lands: the address and the router state the "Your listing is live" sheet reads. */
@@ -174,6 +177,10 @@ describe("photo-first selling, one screen", () => {
     aiAnswer.hold = false;
     aiAnswer.release = null;
     aiAnswer.extra = {};
+    post.checkGate = null;
+    post.attestGate = null;
+    post.checksStarted = 0;
+    post.attested = 0;
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
     URL.revokeObjectURL = vi.fn();
@@ -722,5 +729,65 @@ describe("photo-first selling, one screen", () => {
     expect(document.querySelector("[data-helpr-delivery-always]")?.textContent).toBe(
       "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.");
     expect(screen.queryByText(/Pickup at your door/)).toBeNull();
+  });
+  // LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing, or posts only after a very long delay"). Prod, measured
+  // from the request log of the owner's own Post (c87b7de4): 5.8 s from the draft to live, 3.9 s of it the photo check,
+  // which waited for keep-up, the tax tick and the rest to go up one by one first. The check reads only what
+  // saveDetails saved, so it starts at once and the rest go up beside it.
+  // @mutate src/components/declutter/useSellFlowState.ts |       const checked = requestAiCheckWithRetry(id); |       await attestItem(id);\n      const checked = requestAiCheckWithRetry(id);
+  it("LEAD-POST-SLOW: the photo check starts while the tax tick is still going up, and Post waits for both", async () => {
+    let releaseAttest = () => {};
+    post.attestGate = new Promise<void>((r) => { releaseAttest = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(post.checksStarted).toBe(1));
+    expect(post.attested).toBe(0);
+    expect(calls).not.toContain("publish");
+    releaseAttest();
+    await screen.findByTestId("landed");
+    expect(calls.slice(-2)).toEqual(["attest", "publish"]);
+  });
+
+  // A slow photo check says it is still going, so a long wait never looks like a Post that did nothing.
+  // @mutate src/components/declutter/useSellFlowState.ts |       const slow = setTimeout(() => setPostStep(SLOW_CHECK_STEP), SLOW_CHECK_AFTER_MS); |       const slow = setTimeout(() => undefined, SLOW_CHECK_AFTER_MS);
+  it("LEAD-POST-SLOW: a photo check still out after a few seconds says so on the button", async () => {
+    let releaseCheck = () => {};
+    post.checkGate = new Promise<void>((r) => { releaseCheck = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+      expect(await screen.findByRole("button", { name: "Checking your listing" })).toBeDisabled();
+      await vi.advanceTimersByTimeAsync(SLOW_CHECK_AFTER_MS + 50);
+      expect(await screen.findByRole("button", { name: SLOW_CHECK_STEP })).toBeDisabled();
+      // Nothing goes live before the check has answered.
+      expect(calls).not.toContain("publish");
+    } finally {
+      vi.useRealTimers();
+    }
+    releaseCheck();
+    await screen.findByTestId("landed");
+  });
+
+  // The owner's second Post on 10-31 never reached the server (no declutter_create_item in the request log between
+  // 14:40:30 and 14:41:47Z): a tap that stops on the device must say why right by the button, in the row's own words.
+  // @mutate src/components/declutter/SellOneScreen.tsx | Not posted yet: {bad.message} Fix | Fix
+  it("LEAD-POST-SLOW: a Post that stops on the device names what stops it, right by the button", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    // Everything but the tax tick.
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    expect(screen.getByTestId("sell-form-pointer")).toHaveTextContent("Not posted yet: Tick the box about this item before you list it.");
+    expect(calls).toEqual([]);
   });
 });

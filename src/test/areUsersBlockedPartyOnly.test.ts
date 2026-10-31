@@ -93,7 +93,7 @@ const EXPECTED_CALLERS = [
   "declutter_open_handover_talk",
   // The paid-order chat view: declutter_order_side(o.buyer_id, o.seller_id, auth.uid()) must name a side first.
   "declutter_order_talk_view",
-  // The delivery chat (20261031043609, BUY-36): v_uid := auth.uid() is always one argument, a party of the task the other.
+  // The delivery chat (20261031231948, BUY-36): v_uid := auth.uid() is always one argument, a party of the task the other.
   "helpr_task_send_message",
   // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
   "declutter_pick_free_request",

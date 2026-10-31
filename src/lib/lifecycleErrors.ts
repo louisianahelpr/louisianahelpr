@@ -1098,7 +1098,7 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     order_not_paid: DC.order_not_paid,
   },
-  // The delivery chat (BUY-36, 20261031043609).
+  // The delivery chat (BUY-36, 20261031231948).
   helpr_task_talk_view: {
     not_authenticated: DC.not_authenticated,
     task_not_found: "We couldn't find that delivery.",

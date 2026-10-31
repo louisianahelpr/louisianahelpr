@@ -1,5 +1,5 @@
 /**
- * The delivery chat (BUY-36, migration 20261031043609_helpr_delivery_talk): the Helpr, the buyer and the seller of one
+ * The delivery chat (BUY-36, migration 20261031231948_helpr_delivery_talk): the Helpr, the buyer and the seller of one
  * delivery, from accept until it ends. The server is the protection: only the three read or write it, and the
  * contact-leak filter, the block check, the rate limit and the notice all run there.
  */

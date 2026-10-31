@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261031231150_helpr_delivery_cant_finish.sql";
-const TALK_FILE = "20261031043609_helpr_delivery_talk.sql";
+const TALK_FILE = "20261031231948_helpr_delivery_talk.sql";
 const BASES = [
   "20261027171453_declutter_withdraw_refund_not_once_returning.sql",
   "20261027211754_declutter_bundle_discount.sql",
@@ -38,6 +38,23 @@ const BASES = [
   "20261030031642_helpr_delivery_notices_name_the_item.sql",
   "20261030164712_declutter_porch_places.sql",
   "20261031014011_helpr_delivery_still_in_hand_nudge.sql",
+  // B36: what main applied since (the newest CREATEs this file is restated from, and their neighbours).
+  "20261031075157_helpr_open_deliveries_hide_backed_out.sql",
+  "20261031082308_helpr_task_confirm_not_on_the_road.sql",
+  "20261031082821_helpr_open_count_and_windows_hide_backed_out.sql",
+  "20261031085000_helpr_same_pickup_slot_hides_backed_out.sql",
+  "20261031095846_helpr_task_seller_move_pickup.sql",
+  "20261031102758_helpr_backout_after_seller_move_is_free.sql",
+  "20261031103443_declutter_taken_back_notice_opens_the_tab.sql",
+  "20261031105148_declutter_refund_debt_notice_names_the_item.sql",
+  "20261031133938_declutter_no_helpr_buyer_refund.sql",
+  "20261031134217_helpr_delivery_seller_reports_no_show.sql",
+  "20261031140431_helpr_delivery_seller_told_delivered.sql",
+  "20261031170803_declutter_no_helpr_notice_offers_refund.sql",
+  "20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql",
+  "20261031184929_declutter_damage_notices_name_the_item.sql",
+  "20261031200034_declutter_payout_tries_restart.sql",
+  "20261031202929_helpr_my_tasks_ended_at.sql",
 ];
 const skip = process.env.NEW_MIGRATION === "skip";
 if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migration (expect FAILs)");
@@ -200,6 +217,8 @@ ok((await strikes()) === 1, "  still one strike");
 
 // The debt comes off the Helpr's next delivery payout.
 const D = await carried(4);
+// BUY-39 (main 20261031082308): "I got it" only from the drop-off or after 24 h in the Helpr's hands.
+await svc(`UPDATE public.helpr_tasks SET picked_up_at = now() - interval '25 hours' WHERE id = '${D.task}'`);
 await me(BUYER, `SELECT public.helpr_task_customer_confirm('${D.task}')`);
 const pD = await helprPayout(D.task);
 const full = one(await svc(`SELECT public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) FROM public.helpr_tasks t WHERE t.id = '${D.task}'`));
@@ -287,9 +306,8 @@ await sweep();
 ok((await task(K.task)).in_hand_nudged_at === null, "a delivery already reported isn't nudged");
 ok(one(await svc(`SELECT count(*)::int FROM public.cron_defects_seen WHERE fn = 'helpr_task_sweep'`)) === 0, "no sweep step failed");
 
-// 9. BUY-44: the seller hears it was delivered (A was dropped off above).
-ok(/at the buyer's drop-off address/.test((await noteTo(SELLER, "Delivered")) ?? ""), "the seller is told it was delivered, once");
-ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${SELLER}' AND title = 'Delivered' AND message LIKE '%Carried item 1%'`)) === 1, "  one notice, naming the item");
+// 9. BUY-44 (the seller hears it was delivered) is no longer in this file's migration: main's 20261031140431 and
+// 20261031170803 carry it, with their own proofs. (These two checks also read item 1, which this flow brings back.)
 
 // 10. The delivery chat: the three of them, nobody else, and it ends with the delivery.
 const L = await carried(30);
@@ -315,11 +333,18 @@ ok(noWords === 0, "  the notice never carries the words");
 await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${SELLER}', '${HELPR}')`);
 ok(refused(await say(HELPR, "Blocked?"), /talk_blocked/), "a blocked pair can't reach each other here");
 await svc(`DELETE FROM public.user_blocks WHERE blocker_id = '${SELLER}' AND blocked_id = '${HELPR}'`);
-await svc(`UPDATE public.helpr_tasks SET status = 'confirmed' WHERE id = '${L.task}'`);
+// B36: the row's own CHECK (helpr_tasks_confirmed) wants confirmed_at and confirmed_by with the status; without them
+// this UPDATE was refused silently and the chat stayed open.
+const endL = await svc(`UPDATE public.helpr_tasks SET status = 'confirmed', confirmed_at = now(), confirmed_by = 'customer' WHERE id = '${L.task}' RETURNING status`);
+ok(endL?.[0]?.status === "confirmed", `  (the delivery is confirmed: ${short(endL)})`);
 ok(refused(await say(HELPR, "After."), /talk_closed/), "it ends with the delivery");
 ok((await view(BUYER))?.open === false && (await view(BUYER))?.messages?.length === 4, "  the history stays");
-const exp = await svc(`SELECT public.export_my_data('${HELPR}') AS d`);
-ok(Array.isArray(exp?.[0]?.d?.helpr_task_talk_messages) && exp[0].d.helpr_task_talk_messages.length === 2, `the Helpr's export carries what they wrote (${short(exp?.[0]?.d?.helpr_task_talk_messages)})`);
+// export_my_data reads most of the schema, which this world lacks, so its chat line is run on its own: the exact
+// line, read from the newest migration that defines export_my_data (it applied above, so the function parses).
+const talkSql = readFileSync(process.env.TALK_PATH ?? `${MIG_DIR}${TALK_FILE}`, "utf8");
+const expLine = /jsonb_build_object\('helpr_task_talk_messages', (\(SELECT [^\n]*?WHERE t\.sender_id = v_uid\))\);/.exec(talkSql)?.[1];
+const exp = expLine ? await svc(`SELECT ${expLine.replace(/v_uid/g, `'${HELPR}'::uuid`)} AS d`) : null;
+ok(Array.isArray(exp?.[0]?.d) && exp[0].d.length === 2, `the Helpr's export carries what they wrote (${short(exp?.[0]?.d ?? exp)})`);
 
 console.log(`\n${pass} PASS / ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

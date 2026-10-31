@@ -1064,6 +1064,7 @@ DECLARE
   v_note text := NULLIF(btrim(COALESCE(p_note, '')), '');
   v_problem uuid;
   a record;
+  o public.declutter_orders;  -- B36: was used below but never declared ("missing FROM-clause entry for table o")
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
@@ -1090,8 +1091,9 @@ BEGIN
   IF v_note IS NULL OR char_length(v_note) > 1000 THEN
     RAISE EXCEPTION 'note_required' USING ERRCODE = '22023', HINT = 'Tell us what happened (up to 1,000 characters).';
   END IF;
-  INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths)
-  VALUES (t.source_id, v_uid, 'seller', 'other', v_note, '{}')
+  SELECT * INTO o FROM public.declutter_orders WHERE id = t.source_id;
+  INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths, is_seed)
+  VALUES (t.source_id, v_uid, 'seller', 'other', v_note, '{}', COALESCE(o.is_seed, false))
   RETURNING id INTO v_problem;
   PERFORM public.declutter_notify(t.helpr_id, 'warning', 'The seller says it didn''t come back',
     format('About "%s". Louisiana Helpr looks at it and tells you what it decides.', t.title), '/declutter?view=deliver', v_uid);

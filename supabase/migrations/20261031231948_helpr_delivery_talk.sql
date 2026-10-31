@@ -4,6 +4,10 @@
 -- are the only way in, contact-leak filter, 30 messages an hour, a notice at most once per 15 minutes without the words,
 -- and each message is a side, never a name or an id. Seller's address stays private: nothing here reads it.
 -- MONEY: none. REPLAY-SAFE. Proof: src/test/pglite/helprDeliveryCantFinish.pglite.mjs, section 10 (3x).
+-- RE-TIMESTAMPED 2026-10-31 by Builder 36 (was 20261031231948, never on main or prod), to run after
+-- 20261031231150_helpr_delivery_cant_finish. export_my_data is restated from origin/main's NEWEST CREATE
+-- (20261030223154_job_post_drafts; none newer at 70f35119f9, 18:20 CT) plus the one chat line, which now sits after
+-- the order-chat statement instead of inside it (it was a syntax error: "mismatched parentheses").
 
 CREATE TABLE IF NOT EXISTS public.helpr_task_talk_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -645,9 +649,10 @@ BEGIN
   v_out := v_out || jsonb_build_object('declutter_order_talks', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_order_talks t
       WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))));
   v_out := v_out || jsonb_build_object('declutter_order_talk_messages', (SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.created_at), '[]'::jsonb) FROM public.declutter_order_talk_messages t
-  v_out := v_out || jsonb_build_object('helpr_task_talk_messages', (SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.created_at), '[]'::jsonb) FROM public.helpr_task_talk_messages t WHERE t.sender_id = v_uid));
       WHERE t.sender_id = v_uid OR t.talk_id IN (SELECT ot.id FROM public.declutter_order_talks ot JOIN public.declutter_orders o ON o.id = ot.order_id
                                                   WHERE v_uid IN (o.buyer_id, o.seller_id))));
+  -- BUY-36 (the delivery chat): what the member wrote in a delivery's chat. (B36: this line sat inside the statement above.)
+  v_out := v_out || jsonb_build_object('helpr_task_talk_messages', (SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.created_at), '[]'::jsonb) FROM public.helpr_task_talk_messages t WHERE t.sender_id = v_uid));
   -- Q1866 (20261015091114, the 'quotes' switch): the member's quote requests as the poster, their own quotes as the
   -- quoter, the quotes on their requests WITHOUT the quoter's id or photos (another member's details), and every
   -- counter-offer on a quote the member is a side of.

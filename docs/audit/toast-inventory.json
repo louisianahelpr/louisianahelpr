@@ -966,7 +966,7 @@
       "kind": "toast.warning",
       "title": {
         "form": "literal",
-        "text": "Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Pull to refresh."
+        "text": "Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page."
       },
       "renders": true
     },
@@ -2362,7 +2362,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 43,
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2372,7 +2372,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 47,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2382,7 +2382,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 51,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2392,7 +2392,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3420,7 +3420,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 85,
+      "line": 106,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3430,7 +3430,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 88,
+      "line": 109,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3440,7 +3440,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 99,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3450,7 +3450,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 105,
+      "line": 126,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -8241,7 +8241,7 @@
     },
     {
       "file": "src/components/quotes/QuoteAnswerControls.tsx",
-      "line": 76,
+      "line": 79,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -8271,7 +8271,7 @@
     },
     {
       "file": "src/components/quotes/QuoteAnswerControls.tsx",
-      "line": 84,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10903,7 +10903,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 196,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10913,7 +10913,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 197,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10923,7 +10923,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 198,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10933,7 +10933,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 218,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10943,7 +10943,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 219,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10953,7 +10953,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 220,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10963,7 +10963,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 236,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10973,7 +10973,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 319,
+      "line": 321,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10983,7 +10983,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 327,
+      "line": 329,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10993,7 +10993,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 396,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11003,7 +11003,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 457,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11013,7 +11013,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 179,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11023,7 +11023,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 184,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12615,7 +12615,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 214,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12625,7 +12625,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 220,
+      "line": 225,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -12635,7 +12635,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 264,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12655,7 +12655,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 275,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12665,7 +12665,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 287,
+      "line": 292,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

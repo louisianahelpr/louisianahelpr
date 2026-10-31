@@ -39,6 +39,8 @@ const PROD_BEFORE = [
   // The effective prod definitions on 2026-10-31 (pg_get_functiondef matched the newest repo copy).
   fnFrom("20261030071816_declutter_live_on_post.sql", "declutter_publish_item"),
   fnFrom("20261030071816_declutter_live_on_post.sql", "declutter_record_ai_check"),
+  // Not changed here; the approval the sweep must leave alone (review of 41771724f3).
+  fnFrom("20261028200440_declutter_audit3_notices_and_empty_cart.sql", "declutter_admin_review_item"),
 ].join("\n");
 
 let failures = 0;
@@ -116,6 +118,21 @@ await db.exec(`
   -- As 20260924182505 left it (the live CHECK before this migration).
   ALTER TABLE public.reports ADD CONSTRAINT reports_reported_type_check
     CHECK (reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text]));
+
+  -- Review of 41771724f3 (2): a buyer reserves or pays before the check lands. Shapes as prod (20261014210518,
+  -- 20261028221904 statuses, 20261004162921 payout_holds), trimmed to the columns the functions touch.
+  CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid,
+    status text NOT NULL CHECK (status IN ('awaiting_payment', 'paid', 'superseded', 'expired', 'completed', 'refunded')),
+    close_reason text, closed_at timestamptz, created_at timestamptz DEFAULT now());
+  CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY, item_id uuid, buyer_id uuid, seller_id uuid, order_id uuid,
+    status text NOT NULL CHECK (status IN ('in_cart', 'paid', 'missed', 'cancelled_by_seller', 'removed')),
+    created_at timestamptz DEFAULT now(), closed_at timestamptz);
+  CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 1 AND 1000),
+    held_by uuid, held_at timestamptz NOT NULL DEFAULT now());
+  CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text);
+  CREATE TABLE public.test_subjects (user_id uuid);
+  CREATE FUNCTION public.is_test_subject(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$
+    SELECT EXISTS (SELECT 1 FROM public.test_subjects t WHERE t.user_id = u) $$;
 
   INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');
   INSERT INTO public.profiles (user_id, ban_status) VALUES ('${SELLER}', NULL), ('${BANNED}', NULL), ('${ADMIN}', NULL), ('${B1}', NULL), ('${B2}', NULL);
@@ -206,6 +223,70 @@ check("  the seller is told", (await noticesTo(SELLER, "Your listing is waiting 
 r = await verdict(7, SELLER, null);
 check("T11 a late clean check puts the held listing back LIVE", r.ok?.t != null && (await status(7)) === "live", `${JSON.stringify(r)} ${await status(7)}`);
 check("T12 the sweep runs every 10 minutes by cron", (await one("SELECT count(*)::int AS n FROM cron.job WHERE jobname = 'declutter-unchecked-hold'")).n === 1);
+
+// ---- 3b. Review of 41771724f3 (1): an admin's approval is never undone by the sweep.
+await draft(8, SELLER, "unchecked");
+await call(SELLER, "SELECT public.declutter_publish_item($1) AS s", [I(8)]);
+await db.query(`UPDATE public.declutter_items SET live_at = now() - interval '20 minutes' WHERE id = $1`, [I(8)]);
+await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T14 the sweep holds an unchecked listing", (await status(8)) === "pending_review", await status(8));
+r = await call(ADMIN, "SELECT public.declutter_admin_review_item($1, true, NULL) AS s", [I(8)]);
+check("  an admin approves it", r.ok?.s === "live", JSON.stringify(r));
+await db.query(`UPDATE public.declutter_items SET live_at = now() - interval '30 minutes', admin_approved_at = now() - interval '30 minutes' WHERE id = $1`, [I(8)]);
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T15 the next sweep leaves the approved listing LIVE", r.ok?.n === 0 && (await status(8)) === "live", `${JSON.stringify(r)} ${await status(8)}`);
+r = await verdict(8, SELLER, "late flag after approval");
+check("T16 a late check can't take down a listing an admin approved", !!r.err && (await status(8)) === "live", `${JSON.stringify(r)} ${await status(8)}`);
+// Approved long ago, then posted again (live_at after the approval): the sweep still holds it.
+await draft(9, SELLER, "unchecked");
+await call(SELLER, "SELECT public.declutter_publish_item($1) AS s", [I(9)]);
+await db.query(`UPDATE public.declutter_items SET live_at = now() - interval '20 minutes', admin_approved_at = now() - interval '9 days' WHERE id = $1`, [I(9)]);
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T17 an old approval does not shield a later Post", (await status(9)) === "pending_review", `${JSON.stringify(r)} ${await status(9)}`);
+
+// ---- 3c. Review of 41771724f3 (2): a check that lands after a buyer reserved or paid is not lost.
+const O = (n) => `00000000-0000-4000-8000-0000000004${String(n).padStart(2, "0")}`;
+const L = (n) => `00000000-0000-4000-8000-0000000005${String(n).padStart(2, "0")}`;
+// Reserved, not paid (an unpaid order open), then flagged.
+await draft(10, SELLER, "unchecked");
+await call(SELLER, "SELECT public.declutter_publish_item($1) AS s", [I(10)]);
+await db.query(`UPDATE public.declutter_items SET status = 'reserved' WHERE id = $1`, [I(10)]);
+await db.query(`INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status) VALUES ($1, $2, $3, 'awaiting_payment')`, [O(10), B2, SELLER]);
+await db.query(`INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, order_id, status) VALUES ($1, $2, $3, $4, $5, 'in_cart')`, [L(10), I(10), B2, SELLER, O(10)]);
+r = await verdict(10, SELLER, "looks like a weapon");
+check("T18 a flag on a RESERVED listing is recorded", r.ok?.t != null, JSON.stringify(r));
+const line10 = await one("SELECT status FROM public.declutter_cart_items WHERE id = $1", [L(10)]);
+check("  its cart line closes with no strike ('removed')", line10?.status === "removed", JSON.stringify(line10));
+check("  its unpaid order is superseded", (await one("SELECT status FROM public.declutter_orders WHERE id = $1", [O(10)])).status === "superseded");
+check("  the item is held for an admin", (await status(10)) === "pending_review", await status(10));
+check("  the buyer is told it left their cart, nothing charged", (await noticesTo(B2, "Listing changed")).some((n) => n.message.includes("left your cart")));
+check("  no payout hold for an unpaid sale", (await one("SELECT count(*)::int AS n FROM public.payout_holds")).n === 0);
+// Paid, then flagged: the payout waits for an admin.
+await draft(11, SELLER, "unchecked");
+await call(SELLER, "SELECT public.declutter_publish_item($1) AS s", [I(11)]);
+await db.query(`UPDATE public.declutter_items SET status = 'reserved' WHERE id = $1`, [I(11)]);
+await db.query(`INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status) VALUES ($1, $2, $3, 'paid')`, [O(11), B2, SELLER]);
+await db.query(`INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, order_id, status) VALUES ($1, $2, $3, $4, $5, 'paid')`, [L(11), I(11), B2, SELLER, O(11)]);
+r = await verdict(11, SELLER, "looks like a weapon");
+check("T19 a flag on a PAID listing is recorded", r.ok?.t != null, JSON.stringify(r));
+const hold = await one("SELECT reason FROM public.payout_holds WHERE helper_id = $1", [SELLER]);
+check("  the seller's payouts are held, naming the order", !!hold?.reason?.includes(O(11)), JSON.stringify(hold));
+const alerts = (await db.query("SELECT user_id, link FROM public.notifications WHERE type = 'admin_alert'")).rows;
+check("  every admin is alerted", alerts.length === 1 && alerts[0].user_id === ADMIN && alerts[0].link === "/admin?view=payouts", JSON.stringify(alerts));
+check("  the sale stands (line paid, order paid)", (await one("SELECT status FROM public.declutter_cart_items WHERE id = $1", [L(11)])).status === "paid"
+  && (await one("SELECT status FROM public.declutter_orders WHERE id = $1", [O(11)])).status === "paid");
+check("  the seller is told the payout waits for a check", (await noticesTo(SELLER, "Your sale is waiting for a check")).length === 1);
+// A test seller's flag holds the payout but alerts no admin (owner 2026-10-30).
+await db.query(`INSERT INTO public.test_subjects VALUES ($1)`, [BANNED]);
+await draft(12, BANNED, "unchecked");
+await call(BANNED, "SELECT public.declutter_publish_item($1) AS s", [I(12)]);
+await db.query(`UPDATE public.declutter_items SET status = 'sold' WHERE id = $1`, [I(12)]);
+await db.query(`INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status) VALUES ($1, $2, $3, 'paid')`, [O(12), B1, BANNED]);
+await db.query(`INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, order_id, status) VALUES ($1, $2, $3, $4, $5, 'paid')`, [L(12), I(12), B1, BANNED, O(12)]);
+r = await verdict(12, BANNED, "looks like a weapon");
+check("T20 a SOLD test listing's flag holds the payout, no admin bell", r.ok?.t != null
+  && !!(await one("SELECT 1 AS x FROM public.payout_holds WHERE helper_id = $1", [BANNED]))
+  && (await one("SELECT count(*)::int AS n FROM public.notifications WHERE type = 'admin_alert'")).n === 1, JSON.stringify(r));
 
 // ---- 4. Grants.
 const g = await one(`SELECT has_function_privilege('anon', 'public.declutter_hold_unchecked_listings()', 'EXECUTE') AS a,

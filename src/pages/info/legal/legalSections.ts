@@ -36,7 +36,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 // actually edited.
 export const LAST_UPDATED: Record<TabKey, string> = {
   terms: "Oct 2026", // 2026-10-23: no release without the poster's approval, payout 3 days after approval (owner; no version bump: it only adds protection). 2026-10-21: the Declutter section (Q2308; no version bump, owner #14)
-  community: "Oct 2026", // 2026-10-23: approval rules (no auto-release). 2026-10-21: the 1099 line made true (Stripe issues the 1099-K)
+  community: "Oct 2026", // 2026-10-30: a poster's cancel is a strike only inside 24 hours (owner; no version bump: it only makes the rule gentler). 2026-10-23: approval rules (no auto-release). 2026-10-21: the 1099 line made true (Stripe issues the 1099-K)
   privacy: "Oct 2026",
 };
 

@@ -191,7 +191,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
     // (2026-10-30: 26.) 20261030220537 (notices say no escrow) rewrites five functions in place; the count rose by two.
     // (2026-10-31: 25.) 20261031013445 (a Helpr who cancelled) re-created helper_cancel_booking as a plain CREATE.
-    expect(rewritten.length).toBe(25);
+    // (2026-10-31: 24.) 20261031015647 (JOBS-14) re-created poster_cancel_job from its effective body.
+    expect(rewritten.length).toBe(24);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

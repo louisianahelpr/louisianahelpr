@@ -3,11 +3,16 @@
  * that doesn't fit never shows a cut word: a tab the edge would cut waits unpainted, every tab stays reachable, and the
  * chevron brings the next one in. Layout is stubbed here (jsdom has none); the tester's screens at 360 and 375 are the proof of fit.
  *
- * @mutate src/components/sections/SectionTabs.tsx |         tab.toggleAttribute("data-tab-cut", cut && tab.getAttribute("aria-selected") !== "true");\n |
- * @mutate src/components/sections/SectionTabs.tsx | cut && tab.getAttribute("aria-selected") !== "true" | cut
+ * @mutate src/components/sections/SectionTabs.tsx |         tab.toggleAttribute("data-tab-cut", cut && (tab !== selected \|\| memberMoved.current));\n |
+ * @mutate src/components/sections/SectionTabs.tsx | cut && (tab !== selected \|\| memberMoved.current) | cut && tab !== selected
+ * @mutate src/components/sections/SectionTabs.tsx | if (t.right > box.right) list.scrollLeft += t.right - box.right; | if (t.right > box.right) list.scrollLeft += 0;
+ * @mutate src/components/sections/SectionTabs.tsx | else if (t.left < box.left) list.scrollLeft -= box.left - t.left; | else if (t.left < box.left) list.scrollLeft -= 0;
+ * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge |     const edge
  * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().right - edge; | if (next) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         onlySelected: searchOpen,\n |
+ * @mutate src/pages/home/Dashboard.tsx | { end: phoneBrowseEnd, onlySelected: phoneSearchOpen } | { end: phoneBrowseEnd }
+ * @mutate src/pages/jobs/JobsSection.tsx | onlySelected={browse?.onlySelected} |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -70,11 +75,41 @@ describe("a tab row that doesn't fit", () => {
     for (const t of ["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]) expect(screen.getByRole("tab", { name: t, hidden: true })).toBeInTheDocument();
   });
 
-  it("never hides the selected tab", () => {
+  it("on load the selected tab is scrolled whole, never left cut at the edge", () => {
     layOut();
     row("wanted");
+    // Wanted is the fifth, 232-282 in a 170px track.
+    expect(screen.getByRole("tablist").scrollLeft).toBe(282 - TRACK);
     expect(cut()).not.toContain("Wanted");
-    expect(cut()).toContain("Free");
+  });
+
+  it("a selected tab off the row's start comes back whole when a search closes", () => {
+    layOut();
+    const { rerender } = row("browse");
+    const list = screen.getByRole("tablist");
+    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    expect(list.scrollLeft).toBeGreaterThan(0);
+    rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} onlySelected /></MemoryRouter>);
+    rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} /></MemoryRouter>);
+    expect(list.scrollLeft).toBe(0);
+    expect(cut()).not.toContain("Browse");
+  });
+
+  it("after the chevron the selected tab is whole or not painted: never a lone letter", () => {
+    layOut();
+    row("browse");
+    const list = screen.getByRole("tablist");
+    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    act(() => { list.dispatchEvent(new Event("scroll")); });
+    // Browse is at -54..-4: the chevron moved it off, and the row does not pull it back.
+    expect(list.scrollLeft).toBe(54);
+    expect(cut()).toContain("Browse");
+    // Swiping too: a partly hidden selected tab isn't painted.
+    fireEvent.pointerDown(list);
+    list.scrollLeft = 20;
+    act(() => { list.dispatchEvent(new Event("scroll")); });
+    expect(list.scrollLeft).toBe(20);
+    expect(cut()).toContain("Browse");
   });
 
   it("with search open only the selected tab stays, whole, and no chevron", () => {
@@ -101,5 +136,13 @@ describe("Declutter Browse follows Jobs' row", () => {
     expect(browse).not.toContain("SectionSearchRow");
     expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).not.toContain("SectionSearchRow");
     expect(TABS.length).toBeGreaterThan(4);
+  });
+
+  it("Jobs and Declutter both give the row to an open search, with the slot held and the field filling it", () => {
+    for (const f of ["src/pages/home/Dashboard.tsx", "src/components/declutter/DeclutterBrowseView.tsx"]) {
+      expect(code(f), f).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);
+    }
+    expect(code("src/pages/home/Dashboard.tsx")).toContain("onlySelected: phoneSearchOpen");
+    expect(code("src/pages/jobs/JobsSection.tsx")).toContain("onlySelected={browse?.onlySelected}");
   });
 });

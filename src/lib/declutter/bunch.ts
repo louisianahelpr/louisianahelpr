@@ -953,7 +953,13 @@ export async function listBunch(
           return true;
         }
       };
-      const [, , keepUpFailed] = await Promise.all([sendPhotos(), settle(), keepUp()]);
+      // allSettled, never all: a setting refused first must not end this item while its photos are still being
+      // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All three
+      // finish, then the first failure is the item's.
+      const [sent, settled, kept] = await Promise.allSettled([sendPhotos(), settle(), keepUp()]);
+      const failed = [sent, settled, kept].find((r): r is PromiseRejectedResult => r.status === "rejected");
+      if (failed) throw failed.reason;
+      const keepUpFailed = kept.status === "fulfilled" && kept.value;
       prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.

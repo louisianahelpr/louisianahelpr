@@ -62,7 +62,7 @@ import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
-import { GotItSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
+import { GotItSheet, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
@@ -454,9 +454,14 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
   // D1-4: before the booked day the server refuses the photo (porch_day_not_yet), so the card says the day instead.
   // The same handover row and key PorchOutPhoto reads.
   const seller = order.side === "seller";
-  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: seller });
+  // BUY-5: the buyer's side reads it too (HandoverPanel already does, same key): the pickup photo waits like "I got it".
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
   const posted = seller && !!handoverRow.data?.set_out_at;
   const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day);
+  // BUY-5 (buying audit 10-30 #5): offered days early, it finished the sale. Same rule as HandoverPanel's porchReady.
+  const buyerWaits = !seller && !handoverRow.data?.set_out_at
+    && !(booking.pickup_day ? porchDayIsNow(booking.pickup_day) : !!booking.slot_start && Date.now() >= new Date(booking.slot_start).getTime());
+  const [shot, setShot] = useState<File | null>(null);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),
     onSuccess: () => { toast.success("Saved."); invalidate(qc, order.orderId); },
@@ -485,6 +490,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
     },
     onSuccess: (r) => {
       setPreview(null);
+      setShot(null);
       if (r.result === "set_out") toast.success(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
       else if (free) toast.success("Picked up. Enjoy it.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
@@ -509,7 +515,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
           </div>
         </>
       )}
-      {notYet ? (
+      {buyerWaits ? null : notYet ? (
         <p className="text-sm" data-porch-not-yet="">Put it out {onDay(booking.pickup_day as string)}.</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
@@ -517,7 +523,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } e.target.value = ""; }} />
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } e.target.value = ""; }} />
       <button type="button" className={order.side === "seller" && !posted ? primary : btn} disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
         {photo.isPending ? "Saving…" : order.side === "seller" ? (posted ? "Retake the porch photo" : "Take the porch photo") : "Take your pickup photo"}
@@ -526,6 +532,10 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         <p className="text-ds-12 text-muted-foreground">
           {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
         </p>
+      )}
+      {!seller && (
+        <PickedUpPhotoSheet file={shot} who={who} free={free} pending={photo.isPending}
+          onSend={(f) => photo.mutate({ file: f })} onRetake={() => document.getElementById(fileId)?.click()} onClose={() => setShot(null)} />
       )}
       {order.side === "seller" && (
         <PutItOutSheet

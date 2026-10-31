@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1050,
-    "files": 292,
-    "rendering": 969,
+    "calls": 1052,
+    "files": 293,
+    "rendering": 971,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 163,
-      "toast.error": 734,
+      "toast.error": 736,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 454,
+      "literal": 455,
       "template": 96,
-      "dynamic": 550,
+      "dynamic": 551,
       "jsx": 0
     }
   },
@@ -4362,7 +4362,7 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 36,
+      "line": 47,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4389,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 39,
+      "line": 50,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,27 +4399,7 @@
     },
     {
       "file": "src/components/declutter/BundleDiscountCard.tsx",
-      "line": 29,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "p ? `Saved: ${bundleLabel(p)}.` : \"Bundle discount off.\"",
-        "branches": [
-          {
-            "form": "template",
-            "text": "Saved: ${bundleLabel(p)}."
-          },
-          {
-            "form": "literal",
-            "text": "Bundle discount off."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/BundleDiscountCard.tsx",
-      "line": 33,
+      "line": 41,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4863,7 +4843,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 228,
+      "line": 229,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4883,7 +4863,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 231,
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4893,7 +4873,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 236,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4903,7 +4883,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 251,
+      "line": 252,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4913,7 +4893,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 254,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4923,7 +4903,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 136,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4933,7 +4913,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 86,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4943,7 +4923,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 89,
+      "line": 91,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4953,7 +4933,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 93,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6175,6 +6155,26 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/MeetupTimesCard.tsx",
+      "line": 33,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Meetup times saved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/MeetupTimesCard.tsx",
+      "line": 37,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
       "line": 64,
       "kind": "toast",
@@ -6236,7 +6236,17 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 147,
+      "line": 100,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "PLACE_HOURS_NOT_SAVED"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/SellPorchPlaces.tsx",
+      "line": 153,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6336,7 +6346,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 138,
+      "line": 161,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6356,7 +6366,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 141,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6381,7 +6391,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 265,
+      "line": 290,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6401,7 +6411,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 268,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

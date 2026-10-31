@@ -80,6 +80,9 @@ export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesT
         titleActions={rightSlot}
         phoneHidesTitle={phoneHidesTitle}
         stickyTitle={sticky}
+        // NIGHT-SET-Declutterse-7 (audit 10-31): a long tab title wraps, never "Declutter setti..." or "Account and
+        // secur..." at 375 and 360. One place for every Profile tab and AppPage sub-screen.
+        wrapTitle
         width="none"
         topInsetHandled
       />

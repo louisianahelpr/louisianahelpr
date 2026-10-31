@@ -45,7 +45,7 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
       return setOnline(true, { hours, radiusMiles: radius, where: point });
     },
     onSuccess: (_r, on) => {
-      toast.success(on ? "You're online. New deliveries near you are sent to you." : "You're offline.");
+      toast(on ? "You're online. New deliveries near you are sent to you." : "You're offline.");
       void qc.invalidateQueries({ queryKey: ["helpr-tasks", "online"] });
     },
     onError: (err) =>

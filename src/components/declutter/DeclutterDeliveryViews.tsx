@@ -125,7 +125,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
     onSettled: () => setAskGot(false),
     onSuccess: () => {
       markReviewPrompt(orderId);
-      toast.success("Delivery done. Enjoy your item.");
+      toast("Delivery done. Enjoy your item.");
       invalidateTasks(qc);
       void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
     },

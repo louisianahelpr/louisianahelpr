@@ -27,7 +27,7 @@ function SuggestionRow({ s, onTaken }: { s: RouteSuggestion; onTaken: () => void
   const take = useMutation({
     mutationFn: () => acceptTask(s.task_id, s.pickup_slot_start),
     onSuccess: () => {
-      toast.success(`Added to your route. Pick it up ${when(s.pickup_slot_start)}.`);
+      toast(`Added to your route. Pick it up ${when(s.pickup_slot_start)}.`);
       invalidateTasks(qc);
       onTaken();
       if (user?.id) void hiredPayout.offer(user.id);

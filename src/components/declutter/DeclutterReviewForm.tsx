@@ -93,7 +93,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
       rememberReviewed(orderId, side);
       setSent(true);
       setOpen(false);
-      toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
+      toast(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => {

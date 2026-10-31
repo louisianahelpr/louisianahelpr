@@ -17,7 +17,7 @@
  * opens its own bucket with no notice.
  *
  * @mutate src/components/job-card/JobListPage.tsx |       if (job && !jobIsUnfundedDraft(job)) { |       if (job) {
- * @mutate src/components/job-card/JobListPage.tsx |       toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`); |       void tab;
+ * @mutate src/components/job-card/JobListPage.tsx |       toast(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`); |       void tab;
  *
  * 2026-10-19 (Q2205): My Posts / My Jobs became Jobs > Posted / Working, which open
  * on EVERY group, so the open-on-the-first-bucket half (and its @mutate on the
@@ -29,7 +29,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const data = vi.hoisted(() => ({ postedJobs: [] as unknown[], appliedApps: [] as unknown[] }));
-const toastInfo = vi.hoisted(() => vi.fn());
+const toastShown = vi.hoisted(() => vi.fn());
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};
@@ -47,7 +47,7 @@ vi.mock("@/lib/pinnedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
 vi.mock("@/lib/archivedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: toastInfo } }));
+vi.mock("sonner", () => ({ toast: Object.assign(toastShown, { error: vi.fn(), success: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
@@ -103,7 +103,7 @@ function renderAt(path: string, tab: "posted" | "applied") {
 }
 
 beforeEach(() => {
-  toastInfo.mockClear();
+  toastShown.mockClear();
   data.postedJobs = [waitingJob, neverPaidJob];
   data.appliedApps = [];
 });
@@ -112,30 +112,30 @@ describe("Q1668: a ?job= link to a job not on the list", () => {
   it("a never-paid job: Posted says so and still lists the poster's job", async () => {
     renderAt("/posts?job=j-gone", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Posted.");
+    expect(toastShown).toHaveBeenCalledWith("That job is no longer in Posted.");
     expect(screen.queryByText(/No jobs in this view/)).toBeNull();
   });
 
   it("a job not in the list at all: the same", async () => {
     renderAt("/posts?job=not-mine", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Posted.");
+    expect(toastShown).toHaveBeenCalledWith("That job is no longer in Posted.");
   });
 
   it("Working says it with its own name", async () => {
     renderAt("/jobs?job=not-applied", "applied");
-    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job is no longer in Working."));
+    await waitFor(() => expect(toastShown).toHaveBeenCalledWith("That job is no longer in Working."));
   });
 
   it("a job that IS on the list opens its bucket with no notice", async () => {
     renderAt("/posts?job=j-open", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).not.toHaveBeenCalled();
+    expect(toastShown).not.toHaveBeenCalled();
   });
 
   it("a plain open lists every group, with no notice", async () => {
     renderAt("/posts", "posted");
     expect(await screen.findByTestId("posted-tab")).toHaveTextContent("j-open");
-    expect(toastInfo).not.toHaveBeenCalled();
+    expect(toastShown).not.toHaveBeenCalled();
   });
 });

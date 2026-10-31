@@ -86,7 +86,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         toast.error("We couldn't save your listing defaults yet. Try again in a little while.");
         return;
       }
-      toast.success("Listing defaults saved.");
+      toast("Listing defaults saved.");
       qc.setQueryData(["declutter", "seller-defaults", userId], draft);
       setEdits({});
     },

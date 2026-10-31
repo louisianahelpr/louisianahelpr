@@ -31,7 +31,7 @@ const state = {
   dropTags: false,
 };
 
-const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toasts = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast: toasts }));
 vi.mock("@/components/UserAvatar", () => ({ default: ({ name }: { name: string }) => <span data-avatar="">{name}</span> }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -71,7 +71,7 @@ beforeEach(() => {
   state.calls = [];
   state.fail = null;
   state.dropTags = false;
-  toasts.success.mockClear();
+  toasts.mockClear();
   localStorage.clear();
 });
 
@@ -121,14 +121,14 @@ describe("board 163: reviews after a sale", () => {
   });
 
   it("before the tags migration is live: the review is sent and the member is told the tags weren't", async () => {
-    // @mutate src/components/declutter/DeclutterReviewForm.tsx | toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`); | toast.success(`Thanks. ${REVIEW_SHOWS}`);
+    // @mutate src/components/declutter/DeclutterReviewForm.tsx | toast(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`); | toast.success(`Thanks. ${REVIEW_SHOWS}`);
     state.dropTags = true;
     renderIt("buyer");
     const sheet = await openSheet();
     fireEvent.click(within(sheet).getByRole("radio", { name: "5 stars" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Friendly" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
-    await waitFor(() => expect(toasts.success).toHaveBeenCalledWith(expect.stringContaining("Your tags couldn't be saved yet.")));
+    await waitFor(() => expect(toasts).toHaveBeenCalledWith(expect.stringContaining("Your tags couldn't be saved yet.")));
   });
 
   it("#16: once sent, the card never offers it again, even after a reload (a new mount)", async () => {

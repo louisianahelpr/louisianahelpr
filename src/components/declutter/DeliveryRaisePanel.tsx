@@ -38,7 +38,7 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
     mutationFn: (cents: number) => startDeliveryRaise(orderId, cents),
     onSuccess: async (res) => {
       if (res.paid || !res.url) {
-        toast.success("Your earlier raise went through.");
+        toast("Your earlier raise went through.");
         void qc.invalidateQueries({ queryKey: ["declutter", "delivery-raise", orderId] });
         return;
       }

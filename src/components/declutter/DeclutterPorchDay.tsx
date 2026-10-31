@@ -83,7 +83,7 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
   const book = useMutation({
     mutationFn: (day: string) => bookPorchDay(orderId, day),
     onSuccess: (r) => {
-      toast.success(r.result === "booked" ? "Pickup day booked." : "Pickup day changed.");
+      toast(r.result === "booked" ? "Pickup day booked." : "Pickup day changed.");
       setPick(null);
       setMoving(false);
       for (const key of [["declutter", "porch-days", orderId], ["declutter", "bookings"], ["declutter", "my-cart"], ["declutter", "handover", orderId]]) {

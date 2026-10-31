@@ -296,6 +296,12 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
             title={`${type === "before" ? "Before" : "After"} photos`}
           />
           <div className="space-y-3">
+            {/* JOBS3-52: this step blocks Start working and is the evidence in a dispute, and the sheet said neither. */}
+            {type === "before" && (
+              <p data-before-photo-guide="" className="font-sans text-ds-13 text-muted-foreground">
+                Show the job as you found it, before you start. These are your proof if there's ever a question.
+              </p>
+            )}
             {existingUrls.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">

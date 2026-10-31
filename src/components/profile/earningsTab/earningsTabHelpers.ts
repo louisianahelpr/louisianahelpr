@@ -229,6 +229,16 @@ export function earnedDollarsWithLedger(
   return paidOut + sumHelperTakeHomeDollars(rest, feeFallbackPercent, firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars));
 }
 
+/**
+ * Dollars that have really gone out: the transfer ledger alone, so a job still "Coming to you" counts for nothing
+ * (JOBS2-40: "You've crossed $1,000" on an account whose page said "$909.00 Coming to you. Add your payout account").
+ */
+export function paidOutDollars(ledger: LedgerRows): number {
+  let cents = 0;
+  for (const kept of transferredByJob(ledger).transferred.values()) cents += kept;
+  return cents / 100;
+}
+
 type LedgerRows = readonly (Pick<PayoutLedgerRow, "job_id" | "amount_cents" | "status"> & { metadata?: unknown })[] | null | undefined;
 
 /**

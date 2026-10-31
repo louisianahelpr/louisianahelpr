@@ -44,6 +44,7 @@ import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { GetHelpNow } from "@/components/jobs/GetHelpNow";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
@@ -128,6 +129,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    : isPoster && jobIsUnfundedDraft(job)
+    // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
+    ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
     : isPoster
     ? {
         label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",

@@ -351,7 +351,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           "Pick up your draft",
           draftCheckout === "open"
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-            : "Continue the request you saved earlier.",
+            : "Continue the request you saved earlier. A draft keeps your words, so add your photos and video again.",
           () => {
             // F25: a draft with its category picked opens at Details (4 of 7), as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);

@@ -233,13 +233,13 @@ export const RPC_ERROR_COPY = {
   rpc_group_member_on_the_way: {
     not_authenticated: "Sign in again to update your status.",
     not_on_this_crew: NO_LONGER_BOOKED_STATUS,
-    job_not_active: "You can head out once every spot on the crew is filled and the job is booked.",
+    job_not_active: "You can head out once the job is booked. At the start time it goes ahead with whoever's on the crew.",
     helper_not_confirmed: "Accept your spot first, then mark yourself on the way.",
   },
   rpc_group_member_mark_arrival: {
     not_authenticated: "Sign in again to check in.",
     not_on_this_crew: NO_LONGER_BOOKED_STATUS,
-    job_not_active: "You can check in once every spot on the crew is filled and the job is booked.",
+    job_not_active: "You can check in once the job is booked. At the start time it goes ahead with whoever's on the crew.",
     helper_not_confirmed: "Accept your spot first, then check in.",
   },
   rpc_group_member_mark_done: {
@@ -346,7 +346,7 @@ export const RPC_ERROR_COPY = {
   // ScheduleChangeControl — asking for a new date/time on a booked job (Q407 8).
   request_job_schedule_change: {
     not_authorized: "Only the two people on this job can ask to change its date or time.",
-    schedule_change_not_one_time: "A recurring series keeps its schedule; change its dates from the series instead.",
+    schedule_change_not_one_time: "A crew job or a recurring series keeps its schedule. A series' dates change from the series itself.",
     schedule_change_not_booked: "This job isn't booked any more, so its date or time can't be changed this way. Refresh and check.",
     schedule_change_too_late: "The job has already started, so its date or time can't be changed now.",
     schedule_change_in_past: "Pick a date and time that are still ahead.",

@@ -5,11 +5,12 @@ import { requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import type { HelperWait } from "@/components/job-card/jobStatusLine";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { doneFloorNote } from "@/lib/doneFloor";
 
 /** How long before the start the face offers "I'm on my way" (owner, 2026-10-23: 3 hours). */
 export const ON_MY_WAY_LEAD_MS = 3 * 60 * 60 * 1000;
 
-/** The card lines that say work has started (helperProgress' workUnderway): the next tap is Mark done. */
+/** The card lines that say work has started (helperProgress' workUnderway): the next tap is Mark job complete. */
 const WORK_UNDERWAY: ReadonlySet<string> = new Set<HelperWait>(["working", "after_photo", "overdue_unfinished", "overdue_after_photo"]);
 
 /** The tracker step the face can take directly, with the face's sentence-case label. */
@@ -66,7 +67,7 @@ export function helperFaceNextStep(
   // 2026-10-23). Without the line, the tracking row alone, as before.
   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working";
   if (!started) return { jobId: job.id, key: "working", label: "Start working" };
-  return { jobId: job.id, key: "done", label: "Mark done" };
+  return { jobId: job.id, key: "done", label: "Mark job complete" };
 }
 
 /**
@@ -80,6 +81,7 @@ export function helperFaceNextStep(
  *  - A live job with a next tracker step (helperFaceNextStep): that step, as the one
  *    filled button. It opens the card and asks the tracker to press the same step
  *    (helperStepRequest.ts), so the tracker's gates and Done's confirmation still apply.
+ *    Mark job complete inside its first 30 minutes is greyed, with the Working card's own sentence (owner, 2026-10-08).
  *  - Applied, waiting on the poster: "View application" (audit #48), which opens the application in place.
  *  - Everything else: "Manage job", which opens the card's live tracker and
  *    its step row (On my way, photos, Start working, Mark done, More) in place.
@@ -104,6 +106,8 @@ export function helperFaceAction(s: {
   jobId?: string;
   /** The dispute's timeline and evidence. */
   viewDispute?: () => void;
+  /** useDoneFloorMinutesLeft: above 0, Mark job complete is greyed and says when it turns on. */
+  doneFloorMinutes?: number;
   /** The poster, once this Helpr is on the job: a waiting card's one button messages them. */
   message?: { name: string; onClick: () => void };
 }): MineFaceAction | null {
@@ -117,6 +121,9 @@ export function helperFaceAction(s: {
   if (s.wait === "confirm_day" && jobId) return { label: "Confirm you'll be at the job", onClick: () => { requestFaceAction(jobId, "confirm"); (s.open ?? s.manage)(); }, tone: "primary", step: "confirm" };
   if ((s.wait === "dispute" || s.wait === "dispute_escalated") && s.viewDispute) return { label: "Open the dispute", onClick: s.viewDispute, tone: "secondary" };
   const step = s.step;
+  if (step?.key === "done" && (s.doneFloorMinutes ?? 0) > 0) {
+    return { label: step.label, onClick: () => {}, tone: "primary", step: step.key, disabled: true, note: doneFloorNote(s.doneFloorMinutes ?? 0) };
+  }
   if (step) {
     const ask = () => (step.key === "before_photo" ? requestPhotoCapture(step.jobId, "before") : step.key === "after_photo" ? requestPhotoCapture(step.jobId, "after") : requestHelperStep(step.jobId, step.key));
     return { label: step.label, onClick: () => { ask(); (s.open ?? s.manage)(); }, tone: "primary", step: step.key };

@@ -875,11 +875,13 @@ export function JobTracking({
       // gets the error haptic or an error toast. An unverified location is an
       // ordinary outcome (Location off, a wrong map pin, a bad fix), not a
       // fault of the Helpr's — treating it as one is the "accusation" the owner
-      // ruled out. `toast.info` for those, success only when something was
-      // actually settled.
+      // ruled out, so it is a neutral message. It goes through the bare `toast()`:
+      // `toast.info` renders nothing without an action (toastPolicy.ts), and the
+      // Helpr never learned the poster must confirm (owner, 2026-09-19: "they shoud
+      // be aware of this"). Settled, the tracker's next step already says so.
       const settled = v.verified || v.posterConfirmed;
       if (settled) hapticSuccess();
-      (settled ? toast.success : toast.info)(arrivalVerdictMessage(v), { duration: 9000 });
+      else toast(arrivalVerdictMessage(v), { duration: 9000 });
     }
 
     const now = now0;

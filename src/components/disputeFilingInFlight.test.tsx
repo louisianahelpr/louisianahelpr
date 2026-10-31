@@ -99,7 +99,7 @@ describe("DisputeDialog — board 54 layout", () => {
     expect(radios.length).toBe(disputeReasonsFor(side).length);
     expect(radios.length).toBeGreaterThan(3);
     expect(screen.getByText("Assemble a bookshelf")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Send to Helpr" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send to Helpr support" })).toBeTruthy();
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 });

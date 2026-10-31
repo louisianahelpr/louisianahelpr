@@ -126,9 +126,7 @@ function scanHardcodedHours(): Hit[] {
  *             source instead.
  */
 const EXPECTED: Array<{ file: string; kind: "escrow" | "dispute" | "remind"; count: number }> = [
-  // Q2362 (b90-dispute-held, 2026-10-30): DisputeDialog keeps one 72h literal and the poster's DisputedStep none
-  // (its countdown line was rewritten when an expired dispute became held for support instead of auto-paid).
-  { file: "src/components/DisputeDialog.tsx", kind: "dispute", count: 1 },
+  // DisputeDialog's last counted literal ("72 hours only") went with JOBS2-32, 2026-10-30.
   // The Help Center's remaining literal is the 72h DISPUTE window, not the
   // escrow clock. Its escrow answer used to be here under kind "escrow" with
   // the numbers 24/24 hand-typed; it now interpolates APPROVAL_WINDOW_HOURS

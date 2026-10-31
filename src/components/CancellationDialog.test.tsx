@@ -86,7 +86,9 @@ describe("CancellationDialog shows amounts, never fees", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);
     expect(screen.queryByText("For Marie's time")).not.toBeInTheDocument();
-    expect(screen.getByText(/Free cancellation/)).toBeInTheDocument();
+    // JOBS-14: poster_cancel_job files the strike on any committed booking (live: IF v_committed THEN); never "free".
+    expect(screen.getByText(/No charge for your Helpr's time.*A strike is still recorded/)).toBeInTheDocument();
+    expect(screen.queryByText(/Free cancellation/)).not.toBeInTheDocument();
     expect(shown()).not.toMatch(FEE_WORDS);
   });
 });

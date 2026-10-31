@@ -1,4 +1,5 @@
 import { ShieldCheck } from "lucide-react";
+import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useApplyTakeHome } from "./applyTakeHome";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
@@ -72,7 +73,7 @@ export function ApplyEarningsBreakdown({
       >
         <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ color: "hsl(var(--bark))" }} />
         <span className="font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          Held securely, released when the job is marked complete.
+          We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}.
         </span>
       </div>
     </div>

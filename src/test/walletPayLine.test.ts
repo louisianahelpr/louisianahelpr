@@ -30,7 +30,7 @@ describe("board 186: the pay line names only live wallets", () => {
     expect(form).toMatch(/submitLabel = "Review, then pay"/);
     // Q2399 card_hold_at_post (audit 2026-10-28 F3): the price screen follows the same flag the review
     // screen does; with it on, the card is charged at the hire, never "when you post".
-    expect(form).toMatch(/: form\.cardHoldOn \? "Your card isn't charged until you hire someone\. The money is then held until the job is done\." : "You're charged when you post/);
+    expect(form).toMatch(/: form\.cardHoldOn \? "Your card isn't charged until a Helpr accepts your offer\. The money is then held until the job is done\." : "You're charged when you post/);
     const review = blankComments(readFileSync("src/pages/post-job/CheckoutStepView.tsx", "utf8"));
     expect(review).toMatch(/You're charged when you post, and the money is held until the job is done\./);
   });

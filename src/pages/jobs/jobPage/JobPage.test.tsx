@@ -27,13 +27,12 @@
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""]; |     : HELD_LINE[job.payment_status ?? ""];
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire someone.", |
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |     showStreet && hasStreetAddress(job.location) ? job.location : job.location |     job.location
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     job.location ? getCity(job.location) : null, |     job.location,
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)) | go: () => void apply.flow.handleApplyRequest(job.id)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
@@ -394,7 +393,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
     renderPage();
-    expect(screen.getByText("Your card isn't charged until you hire someone.")).toBeTruthy();
+    expect(screen.getByText("Your card isn't charged until a Helpr accepts your offer.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Paid when you posted|You're charged when you post/);
   });
 

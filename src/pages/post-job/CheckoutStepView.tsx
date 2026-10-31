@@ -79,7 +79,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
             // A post a gift card covers in full charges $0: no "pay" line then.
             : form.totalCharge > 0
             ? cardHoldOn
-              ? "Check your job. Your card isn't charged until you hire someone. A bank payment is charged when you post."
+              ? "Check your job. Your card isn't charged until a Helpr accepts your offer. A bank payment is charged when you post."
               : "Check your job. You're charged when you post, and the money is held until the job is done."
             : "Check your job, then post it."
         }

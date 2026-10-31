@@ -88,7 +88,8 @@ describe("merge queue: nothing takes the push path by accident", () => {
     for (const s of branching) {
       expect(s.run, s.name).toMatch(/\$EVENT" = "merge_group"/);
       expect(s.env?.MG_BASE, s.name).toBe("${{ github.event.merge_group.base_sha }}");
-      expect(s.env?.MG_HEAD, s.name).toBe("${{ github.event.merge_group.head_sha }}");
+      // The head is the checked-out GITHUB_SHA. Naming the event's head_sha is what CodeQL flagged on #3841 (2026-10-30).
+      expect(s.env?.MG_HEAD, s.name).toBeUndefined();
     }
   });
 
@@ -97,7 +98,7 @@ describe("merge queue: nothing takes the push path by accident", () => {
     const queue = run.indexOf('"$EVENT" = "merge_group"');
     expect(queue).toBeGreaterThan(-1);
     expect(queue).toBeLessThan(run.indexOf("::warning::"));
-    expect(run.slice(queue, run.indexOf("::warning::"))).toContain("--attribute --head \"$MG_HEAD\" --base \"$MG_BASE\"");
+    expect(run.slice(queue, run.indexOf("::warning::"))).toContain("--attribute --head \"$GITHUB_SHA\" --base \"$MG_BASE\"");
   });
 
   it("the asset-weight check has the queue's base", () => {
@@ -108,7 +109,7 @@ describe("merge queue: nothing takes the push path by accident", () => {
   it("Vitest's first scope step diffs the queue entry and fails to the whole suite", () => {
     const scope = wf("vitest.yml").jobs["vitest-shard"].steps?.find((s) => s.id === "scope")?.run ?? "";
     expect(scope).toContain('elif [ "$EVENT" = "merge_group" ]');
-    expect(scope).toContain('git diff --no-renames --name-only "$MG_BASE" "$MG_HEAD"');
+    expect(scope).toContain('git diff --no-renames --name-only "$MG_BASE" "$GITHUB_SHA"');
     expect(scope).toMatch(/not readable: the whole suite runs"\n\s*echo '\{"docsOnly":false/);
   });
 

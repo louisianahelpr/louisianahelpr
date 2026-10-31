@@ -179,12 +179,13 @@ jobs:
         # checkout query from flagging every later step (#2057, 12 alerts).
         #   - merge_group: judged like a PR, or a queue entry that left an output
         #     stale would only warn. Its commit has no second parent (HEAD^2), so
-        #     the base and head come from the event.
+        #     the base comes from the event. The head is GITHUB_SHA, the commit
+        #     already checked out; naming the event's head_sha here is what
+        #     CodeQL's untrusted-checkout query flags on every later step.
         env:
           EVENT: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
           MG_BASE: ${{ github.event.merge_group.base_sha }}
-          MG_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |
           set +e
           npm run -s check:generated
@@ -193,9 +194,9 @@ jobs:
           [ "$rc" -eq 0 ] && exit 0
           [ "$rc" -ne 3 ] && exit "$rc"
           if [ "$EVENT" = "merge_group" ]; then
-            : "${MG_BASE:?merge_group event without a base sha}" "${MG_HEAD:?merge_group event without a head sha}"
-            git fetch --no-tags --depth=1 origin "$MG_HEAD" "$MG_BASE"
-            node scripts/check-generated-current.mjs --attribute --head "$MG_HEAD" --base "$MG_BASE"
+            : "${MG_BASE:?merge_group event without a base sha}"
+            git fetch --no-tags --depth=1 origin "$MG_BASE"
+            node scripts/check-generated-current.mjs --attribute --head "$GITHUB_SHA" --base "$MG_BASE"
             exit 0
           fi
           if [ "$EVENT" != "pull_request" ]; then
@@ -223,7 +224,6 @@ jobs:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           MG_BASE: ${{ github.event.merge_group.base_sha }}
-          MG_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
             git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
@@ -232,7 +232,7 @@ jobs:
           elif [ "$EVENT" = "merge_group" ]; then
             # Fails closed: an empty base would judge nothing and stay green.
             BASE="${MG_BASE:?merge_group event without a base sha}"
-            HEAD_SHA="${MG_HEAD:?merge_group event without a head sha}"
+            HEAD_SHA="$GITHUB_SHA"
           else
             BASE="$BEFORE"
             HEAD_SHA="$GITHUB_SHA"

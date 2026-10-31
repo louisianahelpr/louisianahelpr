@@ -14,8 +14,8 @@
 --      (buyers told, nothing charged) and tells the seller why. A clean result just records it.
 --      Review of 41771724f3 (2): a buyer can reserve or pay in the seconds before the check lands, so the check
 --      also judges a RESERVED or SOLD listing that went live with none. On a flag: not paid yet, the cart line
---      closes with no strike (as the buyer's own "remove", 20261028221904), its unpaid order is superseded (a late
---      payment on it is refunded in full by declutter_mark_order_paid), the buyer is told and the item is held
+--      closes with no strike (as the buyer's own "remove", 20261028221904), its unpaid order is superseded with
+--      close_reason 'not_payable' (a late payment on it is refunded in full by declutter_mark_order_paid), the buyer is told and the item is held
 --      for an admin; paid, the seller's payouts are held (payout_holds, the existing hold every payout path
 --      checks) and every admin is alerted: lift the hold to release, or refund the buyer through the existing
 --      refund path. An admin-approved listing is never re-judged by a late check.
@@ -24,6 +24,9 @@
 --      by cron ('declutter-unchecked-hold'). A late clean check puts it back live (record_ai_check's own
 --      pending_review branch: live_at is set). Review of 41771724f3 (1): a listing an admin approved since it
 --      went live (declutter_admin_review_item sets admin_approved_at, not ai_checked_at) is never held again.
+--      Review of 62f90f3368 (3): one a buyer reserved or paid for before any check came back is not taken down
+--      (the sale stands): the seller's payouts are held, every admin is alerted (not for a test account), the
+--      seller told, and the item marked judged so it runs once.
 --
 -- Not changed: the contact-leak trigger, the test-data marking, a listing an edit sends back for a check.
 -- Grants by role name: REVOKE ... FROM PUBLIC, anon. Replay-safe: CREATE OR REPLACE, cron unschedule first.
@@ -199,7 +202,9 @@ BEGIN
       UPDATE public.declutter_cart_items SET status = 'removed', closed_at = v_at
        WHERE id = v_line.id AND status = 'in_cart';
       IF v_line.order_id IS NOT NULL THEN
-        UPDATE public.declutter_orders SET status = 'superseded', close_reason = 'superseded', closed_at = v_at
+        -- 'not_payable', never 'superseded' (= the buyer restarted checkout, card fee kept): a payment that still
+        -- lands on this checkout is refunded in full, the card fee ours, as the buyer's notice below promises.
+        UPDATE public.declutter_orders SET status = 'superseded', close_reason = 'not_payable', closed_at = v_at
          WHERE id = v_line.order_id AND status = 'awaiting_payment';
         UPDATE public.declutter_cart_items SET order_id = NULL
          WHERE order_id = v_line.order_id AND status = 'in_cart';
@@ -281,6 +286,7 @@ AS $function$
 DECLARE
   v_n integer := 0;
   r record;
+  v_order uuid;
 BEGIN
   FOR r IN
     UPDATE public.declutter_items i
@@ -295,6 +301,51 @@ BEGIN
     v_n := v_n + 1;
     PERFORM public.declutter_notify(r.seller_id, 'declutter_listings', 'Your listing is waiting for a check',
       format('Our automatic check of "%s" didn''t finish, so someone from Louisiana Helpr will look at it. Buyers can''t see it until then.', r.title),
+      '/declutter?tab=selling', NULL);
+  END LOOP;
+
+  -- Review of 62f90f3368 (3): a buyer reserved or paid for it before any check came back, and none has 15 minutes
+  -- after it went live. The sale stands; the seller's payouts wait for an admin (payout_holds, which every payout
+  -- path checks) and every admin is alerted, as a late flag on a sold listing does (record_ai_check). The item is
+  -- marked judged ("didn't finish") so this runs once per item, and an admin's lift of the hold stays lifted; an
+  -- admin approval since it went live stands. Lock order as everywhere in Declutter: items first.
+  FOR r IN
+    SELECT i.id, i.seller_id, i.title
+      FROM public.declutter_items i
+     WHERE i.status IN ('reserved', 'sold')
+       AND i.live_at < now() - interval '15 minutes'
+       AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at)
+       AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL)
+     FOR UPDATE OF i SKIP LOCKED
+  LOOP
+    UPDATE public.declutter_item_private
+       SET ai_checked_at = now(), ai_flag_reason = 'The automatic check didn''t finish.', updated_at = now()
+     WHERE item_id = r.id AND ai_checked_at IS NULL;
+    CONTINUE WHEN NOT FOUND;
+    v_n := v_n + 1;
+    SELECT c.order_id INTO v_order
+      FROM public.declutter_cart_items c
+     WHERE c.item_id = r.id AND c.status IN ('in_cart', 'paid')
+     ORDER BY c.created_at DESC LIMIT 1;
+    INSERT INTO public.payout_holds (helper_id, reason, held_by, held_at)
+    VALUES (r.seller_id,
+            left(format('Declutter: the automatic check of "%s" didn''t finish before a buyer reserved or bought it (order %s). Lift this hold to pay the seller, or refund the buyer.',
+                        r.title, COALESCE(v_order::text, 'none')), 1000),
+            NULL, now())
+    ON CONFLICT (helper_id) DO NOTHING;
+    -- Every admin, never for a test account (owner 2026-10-30).
+    IF NOT public.is_test_subject(r.seller_id) THEN
+      INSERT INTO public.notifications (user_id, title, message, type, link)
+      SELECT ur.user_id,
+             'A sold Declutter listing was never checked',
+             left(format('The automatic check of "%s" didn''t finish before a buyer reserved or bought it. The seller''s payouts are on hold: look at the listing, then lift the hold to pay them, or refund the buyer.', r.title), 1000),
+             'admin_alert',
+             '/admin?view=payouts'
+        FROM public.user_roles ur
+       WHERE ur.role = 'admin';
+    END IF;
+    PERFORM public.declutter_notify(r.seller_id, 'declutter_listings', 'Your sale is waiting for a check',
+      format('Our automatic check of "%s" didn''t finish, so someone from Louisiana Helpr will look at it before you''re paid.', r.title),
       '/declutter?tab=selling', NULL);
   END LOOP;
   RETURN v_n;

@@ -33,7 +33,7 @@ export function StillAvailableSheet({ items }: { items: DeclutterItem[] | undefi
   const answer = useMutation({
     mutationFn: async ({ id, gone }: { id: string; gone: boolean }) => { await (gone ? markSoldElsewhere(id) : markStillAvailable(id)); },
     onSuccess: (_v, { gone }) => {
-      toast.success(gone ? "Thanks. It's off Declutter now." : "Thanks. We'll check again in 2 weeks.");
+      toast(gone ? "Thanks. It's off Declutter now." : "Thanks. We'll check again in 2 weeks.");
       setAsking(null);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },

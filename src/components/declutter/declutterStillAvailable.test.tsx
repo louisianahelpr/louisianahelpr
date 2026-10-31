@@ -5,6 +5,7 @@
  * @mutate src/components/declutter/DeclutterStillAvailable.tsx | await (gone ? markSoldElsewhere(id) : markStillAvailable(id)); | await markStillAvailable(id);
  * @mutate src/components/declutter/DeclutterStillAvailable.tsx |       next.delete("still"); |
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <StillAvailableSheet items={mine.data} /> |
+ * @mutate src/components/declutter/DeclutterStillAvailable.tsx |       toast(gone ? "Thanks. | toast.success(gone ? "Thanks.
  */
 import { readFileSync } from "node:fs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -62,6 +63,10 @@ describe("StillAvailableSheet", () => {
     renderIt([item(over as Partial<DeclutterItem>)]);
     await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("?tab=selling"));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("the thanks is shown: toastPolicy suppresses toast.success, the bare toast() renders", () => {
+    expect(readFileSync("src/components/declutter/DeclutterStillAvailable.tsx", "utf8")).toMatch(/\btoast\(gone \? "Thanks\./);
   });
 
   it("the selling screen mounts it", () => {

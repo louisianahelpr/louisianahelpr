@@ -3,18 +3,18 @@
   "summary": {
     "calls": 1053,
     "files": 288,
-    "rendering": 884,
-    "suppressedByPolicy": 169,
+    "rendering": 885,
+    "suppressedByPolicy": 168,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 73,
+      "toast": 74,
       "toast.error": 738,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 173,
+      "toast.success": 172,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -5782,7 +5782,7 @@
     {
       "file": "src/components/declutter/DeclutterStillAvailable.tsx",
       "line": 36,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "gone ? \"Thanks. It's off Declutter now.\" : \"Thanks. We'll check again in 2 weeks.\"",
@@ -5797,7 +5797,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterStillAvailable.tsx",

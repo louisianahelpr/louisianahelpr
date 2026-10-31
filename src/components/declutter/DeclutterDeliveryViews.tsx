@@ -167,6 +167,11 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
     line = "Delivered.";
   } else if (v.status === "unfilled") {
     line = "No Helpr took this delivery. What you paid for delivery was refunded.";
+  } else if (v.status === "failed") {
+    // BUY-45: the buyer read only "This delivery was closed" (declutter_admin_decide_delivery_damage: decided as damaged).
+    line = side === "buyer" ? "Louisiana Helpr decided this delivery as damaged on the way. What happens to your money shows on this order." : "Louisiana Helpr decided this delivery as damaged on the way.";
+  } else if (v.status === "cancelled") {
+    line = side === "buyer" ? "This delivery was cancelled. What happens to your money shows on this order." : "This delivery was cancelled.";
   } else {
     line = "This delivery was closed.";
   }

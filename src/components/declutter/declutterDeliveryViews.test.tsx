@@ -7,6 +7,9 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); |   const canConfirm = v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null);
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); | v.status === "picked_up");
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Tapping I got it finishes the sale: the Helpr and the seller are paid. | Tapping I got it pays the Helpr.
+ * BUY-45: a failed or cancelled delivery says which, never only "This delivery was closed."
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "failed") { |   } else if (v.status === "failed_never") {
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "cancelled") { |   } else if (v.status === "cancelled_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
@@ -146,6 +149,18 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(await screen.findByText(/Dana picks it up from the seller/)).toBeInTheDocument();
     expect(screen.queryByText("4821")).toBeNull();
     expect(screen.queryByText(/drop-off code/i)).toBeNull();
+  });
+
+  it("BUY-45: the buyer's failed or cancelled delivery says which, and where the money is", async () => {
+    state.view = { ...VIEW, status: "failed" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("Louisiana Helpr decided this delivery as damaged on the way. What happens to your money shows on this order.")).toBeInTheDocument();
+  });
+
+  it("BUY-45: a cancelled delivery says so", async () => {
+    state.view = { ...VIEW, status: "cancelled" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("This delivery was cancelled. What happens to your money shows on this order.")).toBeInTheDocument();
   });
 
   it("the seller sees progress only", async () => {

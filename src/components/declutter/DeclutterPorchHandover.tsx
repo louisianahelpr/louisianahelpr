@@ -136,20 +136,24 @@ export function PickupStatus({
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents, after }: {
+function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents, after, deliveryCents = 0 }: {
   side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+  /** AUD31-1: a seller who delivers is paid this on top of the items (declutter_complete_handover's v_rate). */
+  deliveryCents?: number;
 }) {
+  const sellerCents = itemsCents + Math.max(0, deliveryCents);
+  const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)` : "";
   const money = free ? null
     : side === "buyer"
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
         ? null
         : problemOpen
-          ? <>Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
+          ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
         // 10-30 rule and the server it describes (sellerPayoutRule): "I got it" pays 24 hours later; the seller's own
         // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
-        : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong>. {sellerPayoutRule(kind)}</>;
+        : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts}. {sellerPayoutRule(kind)}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).
   const goodNews = side === "seller" && !problemOpen;
@@ -188,7 +192,8 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
       <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
-      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
+      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
+        deliveryCents={b.data.delivery_cents ?? 0} />
     </div>
   );
 }

@@ -17,18 +17,13 @@ import { RadioCardList } from "@/components/ui/RadioCardList";
 import { dayStrip, TIME_CHIPS, timeChipOf } from "@/components/postjob/whenChoices";
 import { samePlace as sameAddress, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { formatPriceExact } from "@/lib/format";
-import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
+import { crewSmallestShare } from "@/components/postjob/crewSmallestShare";
 
 import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { SCHEDULE_TOO_SOON_COPY, TODAY_CLOSED_COPY } from "@/lib/jobScheduleCopy";
 import { useSameDayPick } from "@/components/postjob/useSameDayPick";
-
-/** The smallest of the N frozen crew shares of `budget`, in dollars. */
-function crewSmallestShare(budget: number, n: number): number {
-  return allocateCents(Math.round((Number.isFinite(budget) ? budget : 0) * 100), n, Math.max(0, n - 1)) / 100;
-}
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).

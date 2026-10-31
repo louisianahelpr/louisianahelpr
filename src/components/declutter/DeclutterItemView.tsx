@@ -50,8 +50,7 @@ import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
-import { ItemPickupTimes } from "./DeclutterPickupWindows";
-import { ItemPickupPlaces } from "./SellPorchPlaces";
+import { ItemHandoverTimes } from "./ItemHandoverTimes";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
@@ -124,7 +123,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // Audit 1030 DB-4: the Pickup block says pickup only when the seller offers one (ItemPickupWays reads the same key).
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId), enabled: validId });
   const way = noDeliveryWay(ways.data);
-  const porchOnly = way === "porch" && !(ways.data ?? []).includes("meetup");
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
@@ -307,11 +305,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
-            {/* BUY-18: a porch-only item is picked up on a DAY (the porch day, picked after paying from the seller's
-                porch days, which a buyer cannot read here), so the seller's hours are not its pickup times. */}
-            {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
-            {/* LEAD-POST-PLACES (owner 2026-10-31): every saved pickup place with its own days and hours, never an address. */}
-            {way !== "none" && forSale && user && <ItemPickupPlaces itemId={itemId} />}
+            {/* Lead's product call 2026-10-31 (LEAD-PLACE-TIMES review): pickup places for porch, pickup and delivery,
+                each with its own days and hours, never an address; the usual times only as Meetup times (or as the
+                pickup times of a seller with no place). Never both lists for the same way. BUY-18's porch day stays. */}
+            {forSale && user && <ItemHandoverTimes itemId={itemId} handovers={ways.data} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already

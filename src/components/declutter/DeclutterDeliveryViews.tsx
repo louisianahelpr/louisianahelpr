@@ -212,7 +212,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
       {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
       {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
-      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} />}
+      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} pickupAt={v.pickup_slot_start} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
         Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours.

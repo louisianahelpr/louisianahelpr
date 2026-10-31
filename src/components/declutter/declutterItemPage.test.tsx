@@ -286,7 +286,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
-  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} />} | canAsk={canAct && !preview} preview={preview} />}
+  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={ | canAsk={canAct && !preview} preview={preview} onMakeOffer={
   it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     const free = open();
@@ -296,7 +296,25 @@ describe("the photo-first Declutter item page", () => {
     free.unmount();
     state.item = { ...ITEM };
     open();
-    expect(await screen.findByText(/Want to make a deal\? Make an offer\./)).toBeInTheDocument();
+    expect((await screen.findByText(/Want to make a deal\?/)).textContent).toMatch(/Want to make a deal\? Make an offer\.$/);
+  });
+
+  // AUD31-15: the hint's "Make an offer" was plain words; it opens the offer box, as the panel's own button does.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (askSignal === 0 \|\| offersOff) return; |     return;
+  // @mutate src/components/declutter/DeclutterItemView.tsx | onMakeOffer={() => setOfferAsk((n) => n + 1)} | onMakeOffer={() => undefined}
+  it("the Questions hint's Make an offer opens the offer box", async () => {
+    state.item = { ...ITEM };
+    const { container } = open();
+    const hint = await waitFor(() => {
+      const b = container.querySelector<HTMLButtonElement>("[data-question-make-offer]");
+      expect(b).not.toBeNull();
+      return b!;
+    });
+    const panelButton = () => within(screen.getByRole("region", { name: "Buy or make an offer" })).getByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(panelButton()).toBeEnabled());
+    expect(panelButton()).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(hint);
+    await waitFor(() => expect(panelButton()).toHaveAttribute("aria-expanded", "true"));
   });
 
   it("one filled button on a buyer's item page: Buy now (Ask is an outline beside its question box)", async () => {
@@ -519,6 +537,10 @@ describe("the photo-first Declutter item page", () => {
     const name = row?.querySelector(".sticky-title-row-name");
     expect(name?.textContent).toBe("Blue mug");
     expect(name).toHaveAttribute("aria-hidden", "true");
+    // AUD31-15: a long title takes two lines on the pinned row, never "Oak rocking ..." at 375.
+    // @mutate src/components/PageHeader.tsx | sticky-title-row-name min-w-0 flex-1 line-clamp-2 break-words | sticky-title-row-name min-w-0 flex-1 truncate
+    expect(name?.className).toMatch(/(^|\s)line-clamp-2(\s|$)/);
+    expect(name?.className).not.toMatch(/(^|\s)truncate(\s|$)/);
     unmount();
     // Without it, every other AppPage is exactly as before.
     const plain = render(<MemoryRouter><RealAppPage title="Earnings"><p>body</p></RealAppPage></MemoryRouter>);

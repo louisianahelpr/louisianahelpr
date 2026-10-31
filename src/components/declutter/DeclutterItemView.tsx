@@ -49,7 +49,7 @@ import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
-import { DeclutterGuestJoin } from "./DeclutterGuest";
+import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
 import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
@@ -265,6 +265,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
           )}
 
           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
+          {!user && <DeclutterGuestSeller itemId={it.id} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses

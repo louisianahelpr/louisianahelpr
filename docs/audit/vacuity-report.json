@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T02:52:20.612Z",
-  "guards": 2844,
-  "registered": 2841,
+  "generated": "2026-10-31T04:26:30.846Z",
+  "guards": 2863,
+  "registered": 2860,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -10,17 +10,23 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
+    "src/components/declutter/declutterBunchTickCorner.test.tsx",
     "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
+    "src/components/declutter/declutterStillAvailable.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/components/messages/MessageText.test.tsx",
+    "src/components/reviewPanel/starRowKeys.test.tsx",
+    "src/lib/imageCompression.test.ts",
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/browseEmptySameSpot.test.tsx",
+    "src/test/crewHasNoJobLevelNoShow.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/instantReleaseSaysThreeDays.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
-    "src/test/vitestShardsGateTheCheck.test.ts"
+    "src/test/vitestShardsGateTheCheck.test.ts",
+    "src/test/wantedConfirmationsShow.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -51,6 +57,15 @@
       ],
       "parents": [
         "src/components/admin/AdminFraudDashboard.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/adminReports/WantedReportPanel.tsx",
+      "tests": [
+        "src/components/admin/adminReports/wantedReportPanel.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminReports.tsx"
       ]
     },
     {

@@ -23,12 +23,13 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { SmsPhonePrompt, SMS_PROMPT_ALL_SET_MS } from "./SmsPhonePrompt";
+import type { SmsConsent } from "@/lib/smsConsent";
 
-const OFF = { phone_e164: null, sms_opt_in: false, opted_in_at: null, opted_out_at: null, opt_out_source: null, pending_phone: null, pending_since: null };
-const ON = { ...OFF, phone_e164: "+13375550123", sms_opt_in: true, opted_in_at: "2026-10-31T15:00:00Z" };
+const OFF: SmsConsent = { phone_e164: null, sms_opt_in: false, opted_in_at: null, opted_out_at: null, opt_out_source: null, pending_phone: null, pending_since: null };
+const ON: SmsConsent = { ...OFF, phone_e164: "+13375550123", sms_opt_in: true, opted_in_at: "2026-10-31T15:00:00Z" };
 
 let due = true;
-let consent: typeof OFF = OFF;
+let consent: SmsConsent = OFF;
 beforeEach(() => {
   due = true;
   consent = OFF;

@@ -159,7 +159,11 @@ function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDel
   );
 }
 
-export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: string }) {
+export function OfferPanel({ item, userId, askSignal = 0 }: {
+  item: DeclutterItem; userId: string;
+  /** AUD31-15: the Questions hint's "Make an offer" counts up; each new count opens the offer box, as the button does. */
+  askSignal?: number;
+}) {
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
   const location = useLocation();
@@ -281,6 +285,14 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     if (card.data || card.isError) send.mutate();
     else setNeedCard("offer");
   };
+  // AUD31-15: "Make an offer" in the Questions hint opens the same box (or your offer's box) and brings it into view.
+  useEffect(() => {
+    if (askSignal === 0 || offersOff) return;
+    if (myOffer) setOpen(true);
+    else tap("offer");
+    showPanel();
+    // Only a new tap of the hint; `tap` and the offer reads change every render.
+  }, [askSignal]);
 
   // The action came back in the router state: drop it from history so a
   // reload or Back never replays it.

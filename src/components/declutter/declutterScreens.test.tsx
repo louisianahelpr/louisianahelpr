@@ -16,10 +16,10 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
- * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />)} | : null)}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -326,7 +326,8 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
     const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
-    expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    // AUD31-15: the Questions hint has its own "Make an offer"; this is the panel's.
+    expect(within(document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
     await waitFor(() => expect(buyNow).toBeEnabled());
     fireEvent.click(buyNow);

@@ -294,6 +294,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
         {list.map((item) => {
           const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
+          const statusLine = drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id));
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -310,9 +311,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
                   <p
                     data-listing-status={item.status}
+                    // The row opens the item, so a status cut at two lines keeps its words (truncatedActionLabel).
+                    title={statusLine}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
                   >
-                    {drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id))}
+                    {statusLine}
                   </p>
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />

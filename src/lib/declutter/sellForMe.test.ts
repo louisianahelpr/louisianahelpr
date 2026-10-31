@@ -34,8 +34,8 @@ describe("sell it for me", () => {
   });
 
   // POST-H15 (posting audit 10-30 #15): Continue went on with the template's three blanks empty.
-  // @mutate src/lib/declutter/sellForMe.ts | "How many items: [about how many]", | "How many items: about ",
-  // @mutate src/lib/declutter/sellForMe.ts | "Also handle pickups with buyers: [yes or no]", | "Also handle pickups with buyers (yes or no): ",
+  // @mutate src/lib/declutter/sellForMe.ts | label: "How many items", placeholder: "[about how many]" }, | label: "How many items", placeholder: "about " },
+  // @mutate src/lib/declutter/sellForMe.ts | placeholder: "[yes or no]", choices | placeholder: "", choices
   it("every blank in the template is a placeholder, so Details refuses it until each is filled", () => {
     const p = buildSellForMePrefill();
     const asks = p.description.split("\n").filter((l) => /^(How many items|Rough size|Also handle pickups)/.test(l));

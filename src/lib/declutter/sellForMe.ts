@@ -62,12 +62,37 @@ export const SELL_FOR_ME_PHOTO_LINE = "Photos you take on your phone: send them 
  * about " and nothing after it. Each blank is a [placeholder] now: Post a Job's details step refuses one left as it
  * is (detailsBlocker's "Replace the [placeholders] to continue") and the field says why.
  */
+/**
+ * POST-H15 (left part): the three blanks, each answered in its own field on Post a Job's details step
+ * (SellForMeBlanks), which writes the answer into its line of the description. The labels are the lines' own words.
+ */
+export const SELL_FOR_ME_BLANKS = [
+  { key: "count", label: "How many items", placeholder: "[about how many]" },
+  { key: "size", label: "Rough size", placeholder: "[small things, furniture or a mix]", choices: ["Small things", "Furniture", "A mix"] },
+  { key: "pickups", label: "Also handle pickups with buyers", placeholder: "[yes or no]", choices: ["Yes", "No"] },
+] as const;
+export type SellForMeBlank = (typeof SELL_FOR_ME_BLANKS)[number];
+
+const blankLine = (b: SellForMeBlank) => new RegExp(`^${b.label}:[ \\t]*(.*)$`, "m");
+
+/** The answer on the blank's line ("" while it is still the [placeholder]); null when the line is gone. */
+export function sellForMeBlankValue(description: string, b: SellForMeBlank): string | null {
+  const m = blankLine(b).exec(description);
+  if (!m) return null;
+  const v = m[1].trim();
+  return v === b.placeholder ? "" : v;
+}
+
+/** The description with the blank's line answered; an empty answer puts the [placeholder] back. Unchanged if the line is gone. */
+export function fillSellForMeBlank(description: string, b: SellForMeBlank, value: string): string {
+  const v = value.replace(/[\r\n]+/g, " ").trim();
+  return description.replace(blankLine(b), () => `${b.label}: ${v || b.placeholder}`);
+}
+
 const SELL_FOR_ME_DESCRIPTION = [
   "I'd like help selling things I no longer need on Declutter.",
   "",
-  "How many items: [about how many]",
-  "Rough size: [small things, furniture or a mix]",
-  "Also handle pickups with buyers: [yes or no]",
+  ...SELL_FOR_ME_BLANKS.map((b) => `${b.label}: ${b.placeholder}`),
   "",
   SELL_FOR_ME_PHOTO_LINE,
   SELL_FOR_ME_NO_ACCOUNT_LINE,

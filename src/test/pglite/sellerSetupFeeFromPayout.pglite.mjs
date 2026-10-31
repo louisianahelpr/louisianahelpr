@@ -36,7 +36,7 @@ function cutFn(file, name) {
 }
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED] = [1, 2, 3, 4, 5, 6, 7].map(id);
+const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED, REBOOK, REBOOK2] = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(id);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -99,12 +99,17 @@ const flip = (a) => db.exec(`UPDATE public.feature_switches SET audience='${a}' 
 await db.exec(cutFn("20261026154738_declutter_setup_fee_once.sql", "declutter_setup_fee_due_cents"));
 await db.exec(cutFn("20261027170717_declutter_free_section.sql", "declutter_setup_fee_before_list"));
 await db.exec(cutFn("20261028232338_declutter_damage_no_enjoy_notice.sql", "declutter_complete_handover"));
+await db.exec(`CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
+CREATE TABLE public.declutter_seller_fee_debts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, remaining_cents int NOT NULL DEFAULT 0);
+CREATE TABLE public.declutter_fee_debt_deductions (debt_id uuid, payout_ref text, deducted_cents int NOT NULL DEFAULT 0);`);
+await db.exec(cutFn("20261026155251_declutter_refund_requests.sql", "declutter_payout_unsent"));
+await db.exec(cutFn("20261027153244_declutter_seller_delivery.sql", "declutter_rebook_payout"));
 await db.exec(`CREATE TRIGGER trg_declutter_items_setup_fee_before_list BEFORE INSERT OR UPDATE OF status ON public.declutter_items
   FOR EACH ROW EXECUTE FUNCTION public.declutter_setup_fee_before_list();`);
 await db.exec(`
 INSERT INTO public.profiles (user_id, stripe_account_id, onboarding_fee_paid, is_seed) VALUES
  ('${BUYER}','a',true,false), ('${SELLER}','a',false,false), ('${PAID}','a',true,false), ('${ADMIN}','a',false,false), ('${TESTER}','a',false,true),
- ('${SMALL}','a',false,false), ('${TRIED}','a',false,false);
+ ('${SMALL}','a',false,false), ('${TRIED}','a',false,false), ('${REBOOK}','a',false,false), ('${REBOOK2}','a',false,false);
 INSERT INTO public.user_roles VALUES ('${ADMIN}','admin');
 INSERT INTO public.test_accounts VALUES ('${TESTER}');`);
 
@@ -186,6 +191,32 @@ ok("a row with a try used keeps its amount (its Stripe key was sent with it)", (
 const sent = await sale(TRIED, 1000);
 await db.exec(`UPDATE public.declutter_payouts SET status = 'succeeded', stripe_transfer_id = 'tr_1' WHERE id='${sent.id}'`);
 ok("a sent row is never lowered", (await take(sent.id)) === 1000);
+
+// A refund after the fee was claimed, before the send (a run that took the fee, then stopped short of markSending).
+const rebook = (order, cents) => one(`SELECT public.declutter_rebook_payout('${order}', ${cents}) r`);
+const payoutRow = (pid) => one(`SELECT amount_cents, debt_cents, setup_fee_cents, refunded_cents, status FROM public.declutter_payouts WHERE id='${pid}'`);
+const part = await sale(REBOOK, 1000);
+const taken = await take(part.id);
+ok("the fee is claimed", taken === 800 && (await flag(REBOOK)) === true, String(taken));
+await rebook(part.order_id, 300);
+let r1 = await payoutRow(part.id);
+ok("a part refund puts the fee back on the row", r1.setup_fee_cents === 0 && r1.debt_cents === 0 && r1.amount_cents === 700, JSON.stringify(r1));
+ok("and the account owes it again: paid flag off", (await flag(REBOOK)) === false);
+ok("the seller is told it was put back", (await notices(REBOOK, "%put back%")) === 1);
+const retaken = await take(part.id);
+r1 = await payoutRow(part.id);
+ok("the send takes it again, from what is left", retaken === 500 && r1.setup_fee_cents === 200 && r1.debt_cents === 200 && (await flag(REBOOK)) === true, JSON.stringify(r1));
+const whole = await sale(REBOOK2, 1000);
+await take(whole.id);
+await rebook(whole.order_id, 1000);
+const r2 = await payoutRow(whole.id);
+ok("a full refund: nothing due, no fee on the row, still owed for the next sale", r2.status === "nothing_due" && r2.setup_fee_cents === 0 && r2.amount_cents === 0 && (await flag(REBOOK2)) === false, JSON.stringify(r2));
+const next = await sale(REBOOK2, 1000);
+ok("the next sale collects it", (await take(next.id)) === 800 && (await flag(REBOOK2)) === true);
+// A row that never carried the fee: the flag is someone else's, never touched.
+const plainRow = await sale(PAID, 1000);
+await rebook(plainRow.order_id, 200);
+ok("a row with no fee on it never clears the flag", (await flag(PAID)) === true && (await payoutRow(plainRow.id)).amount_cents === 800);
 
 const acl = async (sig) => (await one(`SELECT has_function_privilege('authenticated', '${sig}', 'EXECUTE') a`)).a;
 if (!skip) {

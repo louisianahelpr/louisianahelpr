@@ -103,6 +103,69 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_payout_take_setup_fee(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_payout_take_setup_fee(uuid) TO service_role;
 
+-- A refund after the claim and before the send puts the fee back. Restated from 20261027153244, prod md5 of
+-- whitespace-normalised prosrc 9e0b1e34ef587cf7b58a4d622be75f77 on 2026-10-30.
+CREATE OR REPLACE FUNCTION public.declutter_rebook_payout(p_order_id uuid, p_refunded_cents integer)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  p public.declutter_payouts;
+  v_ref text := 'declutter_order_' || p_order_id::text;
+  v_debt integer;
+  v_fee integer;
+BEGIN
+  SELECT * INTO p FROM public.declutter_payouts WHERE order_id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'payout_missing' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_refunded_cents IS NULL OR p_refunded_cents < 0 OR p_refunded_cents > p.items_cents + p.delivery_cents THEN
+    RAISE EXCEPTION 'invalid_amount' USING ERRCODE = '22023';
+  END IF;
+  IF NOT public.declutter_payout_unsent(p_order_id) THEN
+    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000';
+  END IF;
+  -- A refund between the fee's claim and the send (declutter_payout_unsent says nothing has gone out). The debt below is
+  -- recomputed from fee debts alone, so the fee would drop out of debt_cents while setup_fee_cents and the paid flag
+  -- stayed: never collected. So it is put back whole: the row carries no fee, the account owes it again, and
+  -- declutter_payout_take_setup_fee takes it at the send if what is left still sends $1, else from a later sale.
+  -- Only a row carrying the fee clears the flag, and that row is what set it.
+  v_fee := p.setup_fee_cents;
+  IF v_fee > 0 AND p.seller_id IS NOT NULL THEN
+    UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL
+     WHERE user_id = p.seller_id;
+    PERFORM public.declutter_notify(p.seller_id, 'payment', 'One-time setup fee put back',
+      format('A refund changed your payout for %s, so we put back the one-time $%s account setup fee. It comes out of this payout or a later one instead, and it is only ever charged once.',
+             public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00')),
+      '/declutter?tab=selling', NULL);
+  END IF;
+  IF p.seller_id IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended('declutter_fee_debt:' || p.seller_id::text, 0));
+    UPDATE public.declutter_seller_fee_debts d
+       SET remaining_cents = d.remaining_cents + x.deducted_cents
+      FROM public.declutter_fee_debt_deductions x
+     WHERE x.debt_id = d.id AND x.payout_ref = v_ref AND d.seller_id = p.seller_id;
+    DELETE FROM public.declutter_fee_debt_deductions x
+     USING public.declutter_seller_fee_debts d
+     WHERE x.debt_id = d.id AND x.payout_ref = v_ref AND d.seller_id = p.seller_id;
+    v_debt := public.declutter_consume_fee_debt(p.seller_id, v_ref, p.items_cents + p.delivery_cents - p_refunded_cents);
+  ELSE
+    -- The seller's account is gone: nothing can be put back to them.
+    v_debt := least(p.debt_cents - v_fee, p.items_cents + p.delivery_cents - p_refunded_cents);
+  END IF;
+  UPDATE public.declutter_payouts
+     SET refunded_cents = p_refunded_cents, debt_cents = v_debt, setup_fee_cents = 0,
+         amount_cents = items_cents + delivery_cents - p_refunded_cents - v_debt,
+         status = CASE WHEN items_cents + delivery_cents - p_refunded_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END
+   WHERE id = p.id;
+  RETURN p.items_cents + p.delivery_cents - p_refunded_cents - v_debt;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_rebook_payout(uuid, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_rebook_payout(uuid, integer) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.declutter_setup_fee_before_list()
 RETURNS trigger
 LANGUAGE plpgsql

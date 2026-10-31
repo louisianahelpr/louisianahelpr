@@ -119,11 +119,11 @@ export const PUBLIC_PAGE_META = {
     // Partner" long suffix belongs to the landing page's title alone.
     title: "Contact support — Helpr",
     description:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
+      "Message the Louisiana Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: `${SITE_ORIGIN}/support`,
     ogTitle: "Contact support — Helpr",
     ogDescription:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
+      "Message the Louisiana Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
   },
 };
 

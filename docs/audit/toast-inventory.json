@@ -93,7 +93,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 266,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -103,27 +103,27 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 323,
-      "kind": "toast.warning",
-      "title": {
-        "form": "literal",
-        "text": "Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/CancellationDialog.tsx",
       "line": 325,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
-        "text": "Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review."
+        "text": "Cancellation warning (1 of 2) — cancelling again inside 24 hours of a start is a final warning."
       },
       "renders": true
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 370,
+      "line": 327,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Final warning — one more cancellation inside 24 hours of a start and your account is restricted for 7 days pending review."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 372,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -240,7 +240,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 384,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1218,7 +1218,7 @@
     },
     {
       "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 168,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6951,7 +6951,7 @@
                   "NO_SHOW_NEXT": [
                     {
                       "form": "literal",
-                      "text": "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded."
+                      "text": "To hire someone else, pick a new date on the job right away. Otherwise it's cancelled and most of your payment comes back."
                     }
                   ]
                 }
@@ -6963,7 +6963,7 @@
                   "NO_SHOW_NEXT": [
                     {
                       "form": "literal",
-                      "text": "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded."
+                      "text": "To hire someone else, pick a new date on the job right away. Otherwise it's cancelled and most of your payment comes back."
                     }
                   ]
                 }

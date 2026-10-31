@@ -55,7 +55,7 @@ describe("free items are asked for, not grabbed", () => {
     expect(selling).toContain('item.status === "live" && item.current_price_cents === 0 && freeAsks.data ?');
     expect(selling).toContain("Requests ({freeAsks.data.get(item.id) ?? 0})");
     const buying = src("src/components/declutter/DeclutterMineViews.tsx");
-    const dash = buying.slice(buying.indexOf("export function BuyingDash"), buying.indexOf("const LISTED"));
+    const dash = buying.slice(buying.indexOf("export function BuyingDash"), buying.indexOf("export function SellingDash"));
     expect(dash.length).toBeGreaterThan(200);
     for (const tag of ["<FreePauseLine />", "<MyFreeAsks />"]) expect(dash).toContain(tag);
     const terms = readFileSync("src/pages/info/legal/TermsSection.tsx", "utf8");

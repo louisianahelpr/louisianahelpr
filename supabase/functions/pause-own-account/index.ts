@@ -1,4 +1,4 @@
-// Board 120 "Pause my account" (owner 2026-10-25), behind the hidden switch 'account_pause'.
+// Board 120 "Pause my account" (owner 2026-10-25), on for everyone.
 //
 // POST {} as the signed-in member. Refuses (409) while the member has live work, by the SAME check
 // account deletion uses (_shared/accountPurge.ts findActiveWork), and while they have an open job
@@ -10,7 +10,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { findActiveWork } from "../_shared/accountPurge.ts";
-import { requireFeature } from "../_shared/featureSwitch.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -32,8 +31,6 @@ serve(async (req) => {
     const anon = createClient(Deno.env.get("SUPABASE_URL")!, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
     const { data: { user } } = await anon.auth.getUser(auth.replace("Bearer ", ""));
     if (!user) return json({ error: "Unauthorized" }, 401);
-    const off = await requireFeature(admin, "account_pause", user, corsHeaders);
-    if (off) return off;
 
     const active = await findActiveWork(admin, user.id);
     // Fail closed: if we can't prove there is no live work, don't pause.
@@ -46,6 +43,8 @@ serve(async (req) => {
 
     const { data, error } = await admin.rpc("account_pause_apply", { p_user_id: user.id });
     if (error) {
+      // account_pause_apply re-checks under a lock what may have started since (authz review).
+      if (/active_work/.test(error.message)) return json({ error: PAUSE_REFUSED.active, reason: "active" }, 409);
       console.error("[pause-own-account] apply failed:", error.message);
       return json({ error: "Couldn't pause your account just now. Try again." }, 500);
     }

@@ -3,7 +3,7 @@
  * shows what is true now (your email and how you sign in), ID shows only when
  * verified (no flow starts an ID check any more), and Delete account sits at
  * the foot of the group in --alert text, opening the existing delete dialog.
- * No "Pause my account": it does not exist (lead 2026-10-21).
+ * "Pause my account" has its own read and guard (src/test/youPauseAccountBoard120.test.tsx); stubbed here.
  *
  * @mutate src/components/profile/SettingsTab.tsx | {onRequestDelete && <Row testId="delete-account" | {false && <Row testId="delete-account"
  * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
@@ -15,6 +15,7 @@ import { MemoryRouter } from "react-router-dom";
 
 const user = vi.hoisted(() => ({ current: { id: "u1", email: "lexi@example.com", identities: [{ provider: "email" }, { provider: "google" }] } as unknown }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
+vi.mock("@/components/profile/settings/PauseAccount", () => ({ PauseAccount: () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: user.current, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));

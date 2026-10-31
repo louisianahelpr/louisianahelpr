@@ -60,7 +60,7 @@ const CONFIRM_PHRASE = "DELETE";
  * touches the member's payout account (it cancels only the membership
  * subscription). Board 120's money line (DeleteMoneyLine) therefore says the
  * delete waits until that money settles, never that it is lost; "Pause instead"
- * (PauseInsteadLink, switch account_pause) opens Settings' pause confirm.
+ * (PauseInsteadLink) opens Settings' pause confirm.
  *
  * Keep in sync with LIVE_STATUS_FILTER / findActiveWork. Guard:
  * src/test/deleteAccountCopyMatchesServer.test.ts.

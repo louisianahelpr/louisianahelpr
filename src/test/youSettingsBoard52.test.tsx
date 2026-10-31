@@ -18,6 +18,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const setHidden = vi.hoisted(() => vi.fn(() => true));
+// Pause my account has its own read and guard (src/test/youPauseAccountBoard120.test.tsx).
+vi.mock("@/components/profile/settings/PauseAccount", () => ({ PauseAccount: () => null }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).

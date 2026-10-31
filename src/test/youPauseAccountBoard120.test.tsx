@@ -1,9 +1,10 @@
 /**
- * BOARD 120's gaps (owner 2026-10-25: "build the gaps"), behind 'account_pause':
+ * BOARD 120's gaps (owner 2026-10-25: "build the gaps"), on for everyone:
  *  - "Pause my account" in You › Settings › Your account: the confirm says what happens; the
  *    pause-own-account edge function refuses while there is live work (the SAME findActiveWork as
- *    deletion) or an open job posted, then account_pause_apply takes the live listings down;
- *  - a paused member's profile reads "This member has paused their account" to everyone else;
+ *    deletion) or an open job posted, then account_pause_apply (re-checking under a lock) takes the
+ *    live listings down;
+ *  - a paused member's profile PAGE reads "This member has paused their account" to everyone else;
  *  - the delete sheet's money line ("Coming to you … · held for your jobs …") and "Pause instead".
  * Server behaviour: src/test/pglite/accountPause.pglite.mjs (3x replay).
  *
@@ -51,15 +52,15 @@ describe("board 120: pause my account", () => {
 
   it("the server refuses while there is live work or an open job, before anything changes", () => {
     const fn = readRoot("supabase/functions/pause-own-account/index.ts");
-    const feature = fn.indexOf('requireFeature(admin, "account_pause", user, corsHeaders)');
     const active = fn.indexOf("await findActiveWork(admin, user.id)");
     const open = fn.indexOf('.eq("customer_id", user.id).eq("status", "open")');
     const apply = fn.indexOf('admin.rpc("account_pause_apply", { p_user_id: user.id })');
-    expect(feature).toBeGreaterThan(0);
-    expect(active).toBeGreaterThan(feature);
+    expect(active).toBeGreaterThan(0);
+    expect(fn).not.toMatch(/requireFeature\(/);
     expect(open).toBeGreaterThan(active);
     expect(apply).toBeGreaterThan(open);
     expect(fn).toContain('if (!active.ok) return json({ error: "Couldn\'t check your account just now. Try again." }, 500);');
+    expect(fn).toMatch(/if \(\/active_work\/\.test\(error\.message\)\) return json\(\{ error: PAUSE_REFUSED\.active, reason: "active" \}, 409\);/);
   });
 
   it("Settings shows the row; a paused member's profile is hidden from others with its own words", () => {

@@ -1,6 +1,5 @@
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeature } from "@/hooks/useFeature";
 import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 
@@ -33,16 +32,15 @@ export function DeleteMoneyLine() {
   );
 }
 
-/** Board 120's "Pause instead" (switch account_pause), only on /profile: opens Settings' pause confirm. */
+/** Board 120's "Pause instead", only on /profile: opens Settings' pause confirm. */
 export function PauseInsteadLink({ onLeave }: { onLeave: () => void }) {
   return useInRouterContext() ? <PauseInsteadRouted onLeave={onLeave} /> : null;
 }
 
 function PauseInsteadRouted({ onLeave }: { onLeave: () => void }) {
-  const on = useFeature("account_pause");
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  if (!on || !pathname.startsWith("/profile")) return null;
+  if (!pathname.startsWith("/profile")) return null;
   return (
     <button
       type="button"

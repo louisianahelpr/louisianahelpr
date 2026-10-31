@@ -17,8 +17,8 @@
  * @mutate src/pages/search/SearchPage.tsx |       const rows = all.filter((it) => matchesSearch(q, it)); |       const rows = all;
  * @mutate src/lib/declutter/searchMatch.ts |     const loose = w.length >= 3 && w.endsWith("y") ? w.slice(0, -1) : w; |     const loose = w;
  * @mutate src/lib/declutter/searchMatch.ts |     return `or(title.ilike.*${loose}*,description.ilike.*${loose}*,category.ilike.*${loose}*)`; |     return `or(title.ilike.*${loose}*)`;
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |       AND public.declutter_search_matches(s.query, v_item.title, v_item.description, v_item.category) |       AND (s.query IS NULL OR strpos(lower(v_item.title), lower(btrim(s.query))) > 0)
- * @mutate supabase/migrations/20261031023451_saved_search_keeps_its_origin.sql |           AND public.declutter_search_matches(s.query, i.title, i.description, i.category) |           AND (s.query IS NULL OR strpos(lower(i.title), lower(btrim(s.query))) > 0)
+ * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND public.declutter_search_matches(s.query, v_item.title, v_item.description, v_item.category) |       AND (s.query IS NULL OR strpos(lower(v_item.title), lower(btrim(s.query))) > 0)
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |           AND public.declutter_search_matches(s.query, i.title, i.description, i.category) |           AND (s.query IS NULL OR strpos(lower(i.title), lower(btrim(s.query))) > 0)
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

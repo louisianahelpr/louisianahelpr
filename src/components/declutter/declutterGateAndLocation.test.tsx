@@ -342,7 +342,7 @@ describe("Declutter location ask", () => {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
     // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
     const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
     // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
     expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);

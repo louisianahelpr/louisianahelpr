@@ -25,10 +25,10 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchDropStates, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
+import { fetchDropStates, fetchDroppedIntoBudget, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
-import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
@@ -36,6 +36,7 @@ import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
+import { hasExtras } from "@/lib/savedSearches";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
@@ -156,9 +157,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const [start] = useState(() => browseStateFromParams(params));
   // BUY-53: from a saved search, the listings its "N new" counted wear the New tag.
   const [newSince] = useState(() => newSinceFromParams(params));
+  // BUY-52: and the ones whose price dropped into its top price since then (the count's same rule).
+  const [droppedAsk] = useState(() => droppedQueryFromParams(params));
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const [query, setQuery] = useState(start.query);
   const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
+  // BUY-13: what Save this search keeps beyond words, category, price and distance.
+  const saveExtras = useMemo(() => ({ freeOnly: filters.freeOnly, porchOnly: filters.porchOnly, dropsOnly: filters.dropsOnly, conditions: filters.conditions }),
+    [filters.freeOnly, filters.porchOnly, filters.dropsOnly, filters.conditions]);
   // Audit item 4 / BUY-35: the search stays in the URL (no new history entry), so Back from an item finds it. A short
   // wait, so typing doesn't re-render everything that reads the route on every key.
   useEffect(() => {
@@ -191,6 +197,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const { origin, askDevice, asked, asking, canAskAgain, deviceNote, zip } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
+  const droppedIn = useQuery({
+    queryKey: ["declutter", "dropped-into-budget", droppedAsk?.since, droppedAsk?.maxDollars],
+    queryFn: () => fetchDroppedIntoBudget(droppedAsk?.since ?? "", droppedAsk?.maxDollars ?? 0),
+    enabled: member && droppedAsk !== null,
+  });
   // More listings than a cold load's first answer holds (declutter_first_screen): its cards show while the full read
   // runs, ONLY when they are exactly the top of the final list, so nothing moves when the rest arrive. Searching,
   // filtering, a distance or another sort needs the whole list, so each of those waits for it.
@@ -342,12 +353,12 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
       <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}>
         {/* No chip row under "Search items" (owner 2026-10-21): category, porch pickup and price drops live only in
             the filter sheet. Guard: src/test/browseCategoryGroups.test.tsx. */}
-        {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
-        {/* Free can't be kept yet: saved without it, the search would alert on everything else in the category (BUY-13). */}
-        {member && !filters.freeOnly && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
+        {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
+            drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
+        {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (
           <SaveSearchButton
             userId={userId}
-            draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null }}
+            draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null, extras: saveExtras }}
           />
         )}
         {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}
@@ -383,7 +394,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
               <li key={item.id} className="min-w-0">
                 <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
                   firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
-                  tag={isNewSince(item, newSince) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
+                  tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={bundles.data?.has(item.seller_id) ?? false}
                   save={member ? {
                     on: watching.data?.has(item.id) ?? false,

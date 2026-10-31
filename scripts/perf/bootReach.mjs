@@ -226,3 +226,20 @@ export function guestBrowseOnlyModules(root) {
   const src = toPosix(path.join(root, "src")) + "/";
   return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse));
 }
+
+/**
+ * guestBrowseOnlyModules split by whether signed-in Home's first screen reaches the module (10-31, follow-up to
+ * LEAD-POSTS-BOOT-SHRINK): as one chunk it put all of guest /browse's map, filters and job-card code on /home's
+ * critical path (466 KB gz against a 441 budget). `homeShared` (the job price, notification panel, location,
+ * pull-to-refresh, ...) gets its own chunk that /home and /browse fetch; `browseOnly` only /browse and the pages
+ * that use it. Over-approximating Home's reach is harmless (a module moves to the chunk Home fetches).
+ */
+export function guestBrowseSplit(root) {
+  const all = guestBrowseOnlyModules(root);
+  const home = staticReach(root, homeFirstScreenRoots(root));
+  return {
+    browseOnly: new Set([...all].filter((f) => !home.has(f))),
+    homeShared: new Set([...all].filter((f) => home.has(f))),
+  };
+}
+

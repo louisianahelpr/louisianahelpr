@@ -91,6 +91,7 @@ const inert = (name: string) => {
 };
 
 export const AdminDigestEmail = inert("AdminDigestEmail");
+/** engagement-automations's daily summary template, reached through the harness rewrite (OPS-1). @public */
 export const OwnerDailySummaryEmail = inert("OwnerDailySummaryEmail");
 export const ReEngagementEmail = inert("ReEngagementEmail");
 export const WelcomeDripStep1Email = inert("WelcomeDripStep1Email");

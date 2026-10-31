@@ -25,7 +25,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. Louisiana Helpr holds it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""]; |     : HELD_LINE[job.payment_status ?? ""];
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
@@ -362,7 +362,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.applicants = { total: 3, pending: 2 };
     renderPage();
     expect(screen.getByText("Your budget")).toBeTruthy();
-    expect(screen.getByText("Paid when you posted. We hold it until the job is done.")).toBeTruthy();
+    expect(screen.getByText("Paid when you posted. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
@@ -383,12 +383,12 @@ describe("job page, poster side (boards 15, 168)", () => {
 
   // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line
   // never says "when you posted"; a job whose card is only held says it is not charged yet.
-  it("under the card hold: 'Paid. We hold it…', and a held card is not charged until the hire", () => {
+  it("under the card hold: 'Paid. Louisiana Helpr holds it…', and a held card is not charged until the hire", () => {
     state.cardHold = true;
     state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Paid. We hold it until the job is done.")).toBeTruthy();
+    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
     expect(document.body.textContent).not.toContain("when you posted");
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });

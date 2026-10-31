@@ -254,8 +254,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               <>The job was paid for when you posted it, so nothing new is charged now.</>
             )}{" "}
             {job?.is_group_job
-              ? `Helpr holds the money and pays each Helpr on the crew their share after the job is done.`
-              : `Helpr holds the money and releases it to ${them} after the job is done.`}
+              ? `Louisiana Helpr holds the money and pays each Helpr on the crew their share after the job is done.`
+              // A no or no answer reopens the job and leaves payment_status alone (decline_job_offer, expire_unanswered_offers).
+              : `Louisiana Helpr holds the money and releases it to ${them} after the job is done. If ${them} says no or doesn't answer, the job reopens and your payment stays on it.`}
           </p>
           )}
           <DialogBody>

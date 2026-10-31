@@ -62,7 +62,7 @@ describe("the poster's money after the release (F32)", () => {
     flags.cardHold = true;
     try {
       show(row({ status: "in_progress", payment_status: "escrow" }));
-      expect(document.querySelector("[data-poster-money]")!.textContent).toContain("Paid. We hold it until the job is done.");
+      expect(document.querySelector("[data-poster-money]")!.textContent).toContain("Paid. Louisiana Helpr holds it until the job is done.");
       document.body.innerHTML = "";
       show(row({ payout_scheduled_at: null }));
       expect(document.querySelector("[data-poster-money]")!.textContent).toContain("Paid and released to your Helpr.");

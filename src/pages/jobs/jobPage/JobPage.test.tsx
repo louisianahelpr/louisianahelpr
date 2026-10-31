@@ -878,6 +878,15 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : status === "cancelled" |       : false
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const draft = jobIsUnfundedDraft(job); |   const draft = false;
+  it("an unpaid draft (on no Posted list) offers Post this job again and no Edit or Cancel", () => {
+    state.job = row({ customer_id: ME, payment_status: "unpaid" });
+    renderPage();
+    expect(screen.getByRole("button", { name: "Post this job again" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Edit job" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
+  });
+
   it("a cancelled job: Post this job again", () => {
     state.job = row({ customer_id: ME, status: "cancelled" });
     renderPage();

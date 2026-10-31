@@ -17,6 +17,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
+import { manageLinkOpensJobPage } from "@/components/job-card/useManageDeepLink";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
@@ -99,6 +100,9 @@ const JobsSection = () => {
     </div>
   );
 
+  // An old Manage job link opens the job page, before the list mounts (manageLinkOpensJobPage).
+  const jobPage = tab === "posted" ? manageLinkOpensJobPage(params) : null;
+  if (jobPage) return <Navigate replace to={jobPage} />;
   // Board 141: the refund_requests switch, read once for every job card in the list.
   if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;
   if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;

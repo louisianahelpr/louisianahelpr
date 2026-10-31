@@ -379,7 +379,7 @@ export async function addProblemSide(problemId: string, note: string, photoPaths
 export interface OpenProblem {
   id: string;
   order_id: string;
-  reporter_side: "buyer" | "seller";
+  reporter_side: "buyer" | "seller" | "system";
   reason: ProblemReason;
 }
 

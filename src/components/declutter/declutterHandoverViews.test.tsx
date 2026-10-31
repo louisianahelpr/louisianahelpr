@@ -433,6 +433,31 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
+  // BUY-5 (buying audit 10-30 #5): the buyer's pickup photo was offered days early and finished the sale the
+  // moment a photo was chosen. It now waits like "I got it" and shows a preview with Retake before sending.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |      {buyerWaits ? null : notYet ? ( |      {notYet ? (
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (order.side === "seller") setPreview(f); else setShot(f); } | if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); }
+  it("BUY-5: before the pickup day and the porch photo, no pickup photo is offered", async () => {
+    state.bookings = [slot(-60 * 72)];
+    show([line({ handover: "porch" })]);
+    expect(await screen.findByText(/You can tap "I got it" once the seller puts it out, or on your pickup day/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take your pickup photo" })).toBeNull();
+    expect(screen.queryByLabelText(/this pays the seller/)).toBeNull();
+  });
+
+  it("BUY-5: the pickup photo shows first, Retake or Send; only Send uploads it", async () => {
+    state.bookings = [slot(60)];
+    show([line({ handover: "porch" })]);
+    const input = (await screen.findByLabelText(/this pays the seller/)) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "pick.jpg", { type: "image/jpeg" })] } });
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Picked up?");
+    expect(sheet).toHaveTextContent("They're paid 24 hours later, unless you report a problem.");
+    expect(state.calls.filter((c) => c[0] === "porch_photo")).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send photo · I have it" }));
+    await waitFor(() => expect(state.calls.filter((c) => c[0] === "porch_photo").length).toBe(1));
+  });
+
   it("\"They didn't show\" appears only 15 minutes after the booked time (row 94)", async () => {
     state.bookings = [slot(10)];
     const { unmount } = show([line()]);

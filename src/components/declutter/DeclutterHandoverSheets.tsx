@@ -97,6 +97,45 @@ export function PutItOutSheet({
   );
 }
 
+/**
+ * BUY-5 (buying audit 10-30 #5): the buyer's porch pickup photo uploaded the moment it was chosen and finished the
+ * sale, with no preview, retake or confirm (the seller's porch photo and "I got it" both ask). It now shows here first.
+ */
+export function PickedUpPhotoSheet({ file, who, free, pending, onSend, onRetake, onClose }: {
+  /** The photo just taken; null closes the sheet. */
+  file: File | null;
+  /** The seller's first name, or "the seller". */
+  who: string;
+  free: boolean;
+  pending: boolean;
+  onSend: (file: File) => void;
+  onRetake: () => void;
+  onClose: () => void;
+}) {
+  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const preview = safeBlobUrl(url);
+  return (
+    <Sheet open={!!file} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-picked-up-photo="">
+        <SheetHero title="Picked up?" />
+        {preview && preview.startsWith("blob:") && (
+          <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
+            <img src={preview} alt="Your pickup photo" className="h-full w-full object-cover" />
+          </div>
+        )}
+        <Note>{`This photo tells ${who} you have it${free ? "." : ". They're paid 24 hours later, unless you report a problem."}`}</Note>
+        <SheetFooter>
+          <SheetSecondaryAction onClick={onRetake} disabled={pending}>Retake</SheetSecondaryAction>
+          <SheetPrimaryAction onClick={() => file && onSend(file)} disabled={pending || !file}>
+            {pending ? "Sending…" : "Send photo · I have it"}
+          </SheetPrimaryAction>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 /** The seller's porch photo, read the same way PorchOutPhoto reads it (one cache). */
 function PorchPhotoThumb({ orderId }: { orderId: string }) {
   const h = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });

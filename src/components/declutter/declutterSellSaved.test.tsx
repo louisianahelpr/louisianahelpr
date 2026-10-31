@@ -24,6 +24,10 @@ const h = vi.hoisted(() => ({
   onDraft: [] as { id: string; storage_path: string }[],
   publishFails: false,
   draftRow: { id: "", status: "draft" } as { id: string; status: string } | null,
+  // LEAD-BUNCH-DROPS-IGNORED: the seller's saved Settings row, and what Post saved.
+  defaults: null as unknown,
+  drops: [] as number[],
+  floors: [] as [number, number][],
 }));
 
 vi.mock("idb-keyval", () => ({
@@ -52,7 +56,7 @@ vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.45
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
-vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => h.defaults, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [{ id: "pl", position: 1, label: "Home", address: "100 Main Street, Baton Rouge, LA 70802", area: "Mid-City, Baton Rouge", lat: 30.45, lng: -91.15, weekdays: [6] }] }));
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
@@ -64,8 +68,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => h.onDraft,
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
-  createDraft: async () => { h.calls.push("createDraft"); return NEW_ID; },
-  setDropPct: async (_id: string, pct: number) => pct,
+  createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { h.calls.push("createDraft"); h.floors.push([f.priceCents, f.floorPriceCents]); return NEW_ID; },
+  setDropPct: async (_id: string, pct: number) => { h.drops.push(pct); return pct; },
   fetchItemDropState: async () => null,
   updateDraft: async () => { h.calls.push("updateDraft"); return "ok"; },
   setPorchOk: async () => true,
@@ -130,6 +134,9 @@ describe("a new listing is kept on this device", () => {
     h.aiCalls = 0;
     h.publishFails = false;
     h.draftRow = { id: NEW_ID, status: "draft" };
+    h.defaults = null;
+    h.drops.length = 0;
+    h.floors.length = 0;
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
     URL.revokeObjectURL = vi.fn();
@@ -223,5 +230,26 @@ describe("a new listing is kept on this device", () => {
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(rowValue("title")).toBe("Add a title");
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
+  });
+  // LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31, prod c87b7de4): the owner turned price drops off in Settings at
+  // 14:38:20Z while a listing was kept on the phone with drops on; the kept listing was posted at 14:38:41Z with
+  // drop_pct 5 and a lowest price under the price, and the live sheet promised drops. Settings win over what was kept.
+  // @mutate src/components/declutter/useSellFlowState.ts | keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined | keptFor: undefined
+  it("LEAD-BUNCH-DROPS-IGNORED: a kept listing posts with the drops choice in Settings now, not the one it was kept with", async () => {
+    h.defaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"] };
+    await startAndEdit();
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening"));
+    cleanup();
+    // Settings: drops off. Then back to the kept listing.
+    h.defaults = { keepUp: true, drops: false, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"] };
+    open();
+    await screen.findByText("We kept your listing from last time.");
+    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off. It stays at $45 until you change it."));
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Selling tab");
+    // What the server stores: step 0 and the lowest price at the price, so it never drops and the live sheet says none.
+    expect(h.drops).toEqual([0]);
+    expect(h.floors).toEqual([[4500, 4500]]);
   });
 });

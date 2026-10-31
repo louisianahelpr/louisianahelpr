@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1052,
+    "calls": 1051,
     "files": 293,
-    "rendering": 971,
+    "rendering": 970,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 164,
-      "toast.error": 735,
+      "toast.error": 734,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -18,7 +18,7 @@
     },
     "copyPiecesByForm": {
       "literal": 455,
-      "template": 96,
+      "template": 95,
       "dynamic": 551,
       "jsx": 0
     }
@@ -6576,7 +6576,17 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 414,
+      "line": 416,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${declutterErrorMessage(err)} ${where}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useSellFlowState.ts",
+      "line": 423,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6586,27 +6596,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 443,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "${declutterErrorMessage(err)} You can turn on \"Keep it up\" from Manage listing."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 449,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 469,
+      "line": 472,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6616,7 +6606,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 473,
+      "line": 476,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6636,7 +6626,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 478,
+      "line": 481,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6646,7 +6636,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 484,
+      "line": 487,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

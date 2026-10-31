@@ -11,7 +11,7 @@
  * Remembered choices and the ON defaults (owner 2026-10-30; describe block at the bottom).
  * @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: false, drops: true, dropPct: 5,
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setWays(() => row.handovers); |       void 0;
- * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct })); |       setForm((f) => ({ ...f, dropPct: row.dropPct }));
+ * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setWays(() => row.handovers);\n    } else { |       setWays(() => row.handovers);\n      setForm((f) => ({ ...f, drops: true }));\n    } else {
  * A $1 listing: drops don't apply, no error, nothing remembered as off (lead 2026-10-30).
  * @mutate src/components/declutter/sellForm.ts |   const dropsApply = f.drops && !priceTooLowForDrops(f.price); |   const dropsApply = f.drops;
  * @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 0 };

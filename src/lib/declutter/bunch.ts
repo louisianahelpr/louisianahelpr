@@ -415,6 +415,25 @@ export function makeCover(items: BunchItem[], itemKey: string, photoKey: string)
   return items.map((it) => (it.key === itemKey && it.photoKeys.includes(photoKey) ? { ...it, photoKeys: [photoKey, ...it.photoKeys.filter((k) => k !== photoKey)] } : it));
 }
 
+/** A photo to just before another on its own item, or to the end (null). The first is the cover. */
+export function movePhotoWithin(items: BunchItem[], itemKey: string, photoKey: string, beforeKey: string | null): BunchItem[] {
+  return items.map((it) => {
+    if (it.key !== itemKey || !it.photoKeys.includes(photoKey) || photoKey === beforeKey) return it;
+    const rest = it.photoKeys.filter((k) => k !== photoKey);
+    const at = beforeKey ? rest.indexOf(beforeKey) : -1;
+    return { ...it, photoKeys: at < 0 ? [...rest, photoKey] : [...rest.slice(0, at), photoKey, ...rest.slice(at)] };
+  });
+}
+
+/**
+ * A photo dropped on another takes that photo's place, whichever way it travelled. movePhotoWithin inserts BEFORE a key,
+ * so a forward drag has to name what follows the target (nothing, when the target is last) or it lands one short.
+ */
+export function dropBeforeKey(keys: readonly string[], photoKey: string, targetKey: string): string | null {
+  const to = keys.indexOf(targetKey);
+  return keys.indexOf(photoKey) < to ? keys[to + 1] ?? null : targetKey;
+}
+
 /** New photos on the end of an item, without the photo tool. */
 export function addPhotosToItem(items: BunchItem[], itemKey: string, photoKeys: string[]): BunchItem[] {
   return items.map((it) => (it.key === itemKey ? { ...it, photoKeys: [...it.photoKeys, ...photoKeys] } : it));
@@ -541,6 +560,26 @@ export function bunchNeedsLine(items: BunchItem[]): string | null {
   }
   if (counts.size === 0) return null;
   return [...counts].map(([need, n]) => `${n} ${n === 1 ? "needs" : "need"} ${words[need]}`).join(", ");
+}
+
+/** What still needs something first, each group in its own order. Run on a tap, never while typing: a row must not jump under the keyboard. */
+export function unreadyFirst(items: BunchItem[]): BunchItem[] {
+  return [...items.filter((it) => bunchItemNeed(it)), ...items.filter((it) => !bunchItemNeed(it))];
+}
+
+/**
+ * The photos already on an item's draft that have to come off: moved to another item, or out of place now. Each photo
+ * takes the next place on the listing as it is sent, so a new cover or order only reaches the listing by sending those
+ * again. If one of those files is gone, the order stays as sent: a wrong order beats a lost photo.
+ */
+export function sentPhotosToTakeOff(it: Pick<BunchItem, "photoKeys" | "uploaded">, photos: ReadonlyMap<string, File>): string[] {
+  const sent = Object.keys(it.uploaded ?? {});
+  const stay = sent.filter((k) => it.photoKeys.includes(k));
+  let n = 0;
+  while (n < stay.length && it.photoKeys[n] === stay[n]) n += 1;
+  const outOfPlace = stay.slice(n);
+  const canSendAgain = outOfPlace.every((k) => photos.has(k));
+  return sent.filter((k) => !it.photoKeys.includes(k) || (canSendAgain && outOfPlace.includes(k)));
 }
 
 /**
@@ -715,7 +754,10 @@ export async function listBunch(
   onPhoto?: (progress: PhotoProgress) => void,
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
-  const photosToSend = items.reduce((n, it) => n + it.photoKeys.filter((k) => !(k in (it.uploaded ?? {}))).length, 0);
+  const photosToSend = items.reduce((n, it) => {
+    const off = sentPhotosToTakeOff(it, photos);
+    return n + it.photoKeys.filter((k) => !(k in (it.uploaded ?? {})) || off.includes(k)).length;
+  }, 0);
   let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
@@ -784,9 +826,9 @@ export async function listBunch(
       }
       const uploaded = { ...it.uploaded };
       // A photo moved off this item since its draft was made leaves the draft, or it would be listed with the wrong thing.
-      for (const [k, photoId] of Object.entries(uploaded)) {
-        if (it.photoKeys.includes(k)) continue;
-        await removeDraftPhoto(deps, photoId);
+      // One whose place changed comes off too, and goes back in its new place below.
+      for (const k of sentPhotosToTakeOff({ photoKeys: it.photoKeys, uploaded }, photos)) {
+        await removeDraftPhoto(deps, uploaded[k]);
         delete uploaded[k];
         onStep(it.key, { uploaded: { ...uploaded } });
       }

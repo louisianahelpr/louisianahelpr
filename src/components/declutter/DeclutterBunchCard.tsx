@@ -18,6 +18,7 @@ import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
 import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
+import { BuyerPreviewCard } from "./BuyerPreviewCard";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
@@ -37,6 +38,9 @@ interface BunchCardProps {
   onSplit: (photoKeys: string[]) => void;
   onRemovePhoto: (photoKey: string) => void;
   onCover: (photoKey: string) => void;
+  onReorder: (photoKey: string, beforeKey: string | null) => void;
+  /** False while a run is working on the list: nothing moves under it. */
+  canDrag: boolean;
   onAddPhotos: (files: FileList | null) => void;
   onMerge: (intoKey: string) => void;
   onDrop: () => void;
@@ -45,18 +49,26 @@ interface BunchCardProps {
   onRetryUpload?: () => void;
 }
 
+/** Typed dollars as cents, or null until it is a price a listing could have. */
+function parsedPriceCents(price: string): number | null {
+  const dollars = Number(price.trim());
+  return price.trim() && Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : null;
+}
+
 /** "Item 3" until it has a name. */
 export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
+export function BunchCard({ item, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
   const [mergeInto, setMergeInto] = useState("");
   const id = item.key;
   const problem = bunchItemProblem(item);
   const name = bunchItemName(item, index);
   const noWords = !item.title.trim() && !item.description.trim();
   const mergeTarget = item.mergeHint ? others.find((o) => o.key === item.mergeHint) : undefined;
+  const cents = item.free ? 0 : parsedPriceCents(item.price);
+  const cover = item.photoKeys[0] ? urls.get(item.photoKeys[0]) : undefined;
 
   return (
     <div className="space-y-3 p-4" data-bunch-card="">
@@ -83,7 +95,12 @@ export function BunchCard({ item, index, others, urls, files, at, rewriting, rew
         </p>
       )}
 
-      <BunchPhotos item={item} name={name} others={others} urls={urls} files={files} onMove={onMove} onSplit={onSplit} onRemove={onRemovePhoto} onCover={onCover} onAdd={onAddPhotos} />
+      <BunchPhotos item={item} name={name} others={others} urls={urls} files={files} onMove={onMove} onSplit={onSplit} onRemove={onRemovePhoto} onCover={onCover} onReorder={onReorder} canDrag={canDrag} onAdd={onAddPhotos} />
+
+      {item.title.trim() && cents != null && (
+        // Only a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern).
+        <BuyerPreviewCard src={cover?.startsWith("blob:") ? cover : null} title={item.title.trim()} cents={cents} />
+      )}
 
       {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-upload-failed="">

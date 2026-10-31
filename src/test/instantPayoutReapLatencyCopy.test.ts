@@ -45,3 +45,14 @@ describe("instant-payout reaper latency copy (ME-017 #5)", () => {
     }
   });
 });
+
+// JOBS3-55: "In your debit card in ~30 minutes" was awkward, and the note below it said the time again.
+// @mutate src/components/InstantPayoutDialog.tsx | Prefer to wait? Standard payouts are{" "} | Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
+describe("the instant payout dialog says the time once, in plain words", () => {
+  const dialog = readFileSync(resolve(root, "src/components/InstantPayoutDialog.tsx"), "utf8");
+  it("reads properly and does not repeat itself", () => {
+    expect(dialog).toContain("Goes to your debit card in about 30 minutes.");
+    expect(dialog).not.toContain("In your debit card");
+    expect(dialog).not.toContain("Arrives in ~30 minutes");
+  });
+});

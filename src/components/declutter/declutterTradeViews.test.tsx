@@ -16,10 +16,13 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => !!offerAmountFromState(location.state)); | useState(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | \|\| card.isLoading \|\| checkingCard} | }
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | variant={needCard === "offer" ? "outline" : undefined} | variant={undefined}
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) run(resume); |     if (false) run(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) { |     if (false) {
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState<AfterCardAction \| null>(() => afterCardFromState(location.state)); | useState<AfterCardAction \| null>(() => null);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     refetchInterval: resume ? CARD_POLL_MS : false, |     refetchInterval: false,
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n    }, CARD_WAIT_MS); |     }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel();\n    }, CARD_WAIT_MS); |       showPanel();\n    }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useEffect(() => { if (resume) showPanel(); }, [resume]); |   useEffect(() => {}, [resume]);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel(); |       setNeedCard(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         setCardSaved(true); |         setCardSaved(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
@@ -417,6 +420,60 @@ describe("Declutter slice 3 screens", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // NIGHT-BUYING0-1 (audit 1030 night, d-375-30-checking.png): back from the card page the panel sat below a phone's
+  // screen ("Checking for your card…" at y 990 of 812, the card step at y 962 after the wait). It is brought into view.
+  it("back from the card page: the panel is scrolled into view while checking, and again when the card step returns", async () => {
+    const seen: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this); });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      const panelEl = screen.getByRole("region", { name: "Buy or make an offer" });
+      await waitFor(() => expect(seen).toContain(panelEl));
+      const before = seen.filter((e) => e === panelEl).length;
+      await act(async () => {
+        vi.advanceTimersByTime(10_001);
+      });
+      expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+      expect(seen.filter((e) => e === panelEl).length).toBeGreaterThan(before);
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  // NIGHT-BUYING0-3 (audit 1030 night, e-375-41-offer-back.png): back with a card for an offer, the typed offer waited
+  // off screen, unsent, with nothing saying so.
+  it("back with a card for an offer: the panel comes into view and says the offer still needs Send", async () => {
+    const seen: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this); });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer", offerAmount: "30" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      expect(screen.queryByText("Card saved. Now send your offer.")).toBeNull();
+      state.card = { brand: "visa", last4: "4242" };
+      expect(await screen.findByText("Card saved. Now send your offer.", {}, { timeout: 4_000 })).toBeInTheDocument();
+      expect(seen).toContain(screen.getByRole("region", { name: "Buy or make an offer" }));
+      expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+      expect(state.sent).toEqual([]);
+      fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+      await waitFor(() => expect(state.sent).toEqual([{ itemId: "i1", cents: 3000 }]));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("no 'Card saved' line on a plain Make an offer (no trip to the card page)", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const offer = await screen.findByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(offer).toBeEnabled());
+    fireEvent.click(offer);
+    expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
+    expect(screen.queryByText("Card saved. Now send your offer.")).toBeNull();
   });
 
   it("under 18: buying is a plain block (row 53)", async () => {

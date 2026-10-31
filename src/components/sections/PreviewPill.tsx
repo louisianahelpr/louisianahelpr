@@ -1,3 +1,5 @@
+import { useLanguage } from "@/lib/i18n/language";
+
 /**
  * THE tester's mark (lead, 2026-10-21): a live section the viewer can open
  * ONLY because they are a tester (admin or test account), its switch not yet
@@ -16,11 +18,13 @@
  *            "Preview" pill had to shrink to fit (179px in a 175px box at full
  *            size), and "Coming soon" is longer.
  */
+// AUD31-52: the words come from the same i18n key as SoonPill (Spanish read "Casas · Coming soon" beside "Muy pronto").
 export function PreviewPill({ variant = "pill", className = "", ...rest }: { variant?: "pill" | "rail"; className?: string } & Record<`data-${string}`, string>) {
+  const { t } = useLanguage();
   if (variant === "rail") {
     return (
       <span {...rest} data-preview-pill="" className={`block text-ds-11 font-medium leading-tight ${className}`} style={{ color: "hsl(var(--bark))" }}>
-        Coming soon
+        {t("soon.full")}
       </span>
     );
   }
@@ -37,7 +41,7 @@ export function PreviewPill({ variant = "pill", className = "", ...rest }: { var
         backgroundImage: "linear-gradient(hsl(var(--bark) / 0.08), hsl(var(--bark) / 0.08))",
       }}
     >
-      Coming soon
+      {t("soon.full")}
     </span>
   );
 }

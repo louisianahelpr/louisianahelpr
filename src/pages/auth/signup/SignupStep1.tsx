@@ -274,7 +274,7 @@ export function SignupStep1({
               style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--ink-deep))" }}
             >
               <p>
-                {t("signup.didYouMean")} <span className="font-semibold break-all">{emailSuggestion}</span>{t("signup.didYouMeanEnd")}
+                {t("signup.didYouMean")} <span className="font-semibold [overflow-wrap:anywhere]">{emailSuggestion}</span>{t("signup.didYouMeanEnd")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => setEmail(emailSuggestion)}>

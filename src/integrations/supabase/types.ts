@@ -7751,16 +7751,19 @@ export type Database = {
       new_member_admin_notices: {
         Row: {
           notified_at: string
+          summarized_at: string | null
           user_id: string
           via: string
         }
         Insert: {
           notified_at?: string
+          summarized_at?: string | null
           user_id: string
           via: string
         }
         Update: {
           notified_at?: string
+          summarized_at?: string | null
           user_id?: string
           via?: string
         }
@@ -17379,6 +17382,7 @@ export type Database = {
         Args: { p_kind: string; p_reason: string; p_row: string; p_transfer: string }
         Returns: string
       }
+      new_member_summary_message: { Args: { p_ids: string[] }; Returns: string }
       notification_admin_full_names: {
         Args: {
           p_job_id: string
@@ -18573,6 +18577,7 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: number
       }
+      send_new_member_daily_summary: { Args: never; Returns: Json }
       send_ops_daily_digest: { Args: never; Returns: Json }
       send_team_reply: {
         Args: { p_client_id?: string; p_content: string }

@@ -10,6 +10,12 @@ import { useQueryClient, type Query, type QueryKey } from "@tanstack/react-query
 import { fetchMyItems, type DeclutterItem } from "@/lib/declutter/api";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 
+/**
+ * Listings that are history, not for sale: taken down, or sold elsewhere (A2-5). They live in Selling history; every
+ * other listing is a row under Your listings, and the Listed chip counts exactly those rows (NIGHT-SELL-Sellinglist-2).
+ */
+export const PAST_LISTING: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_elsewhere"]);
+
 const waiting = (q: Query<DeclutterItem[]>) => (q.state.data ?? []).some((i) => i.status === "pending_review");
 
 export function myItemsQuery(userId: string) {

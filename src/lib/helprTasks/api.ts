@@ -275,6 +275,16 @@ export async function markHandedOver(taskId: string): Promise<{ result: "handed_
     (e) => rpcErrorMessage("helpr_task_handed_over", e));
 }
 
+/**
+ * BUY-42 (20261031095846): the seller moves the booked Helpr's pickup, once per booking, to a time inside their own
+ * pickup times at least 2 hours away. The Helpr and the buyer are told.
+ */
+export async function moveHelprPickup(taskId: string, pickupSlotStartIso: string): Promise<{ result: "moved"; pickup_slot_start: string }> {
+  return data<{ result: "moved"; pickup_slot_start: string }>(
+    await supabase.rpc("helpr_task_seller_move_pickup", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }),
+    (e) => rpcErrorMessage("helpr_task_seller_move_pickup", e));
+}
+
 /** The drop-off: a photo at the door (no code: owner 2026-10-18); the customer's "I got it" or 24 h confirms it. */
 export async function markDelivered(
   taskId: string,

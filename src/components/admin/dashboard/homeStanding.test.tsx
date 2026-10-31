@@ -11,7 +11,7 @@
  * @mutate src/components/admin/dashboard/DashboardHome.tsx | {HOME_STANDING_LINE[standing]} | {hasAlerts ? HOME_STANDING_LINE.attention : HOME_STANDING_LINE.calm}
  * @mutate src/components/admin/dashboard/DashboardHome.tsx | {healthAlerts > 0 && ( | {false && (
  * @mutate src/pages/admin/Admin.tsx | seriousAlerts: seriousAlertCount,\n            dataError: | seriousAlerts: 0,\n            dataError:
- * @mutate src/components/admin/adminHealth/useOpenAlerts.ts | .in("severity", ["fatal", "critical", "error"]); | .in("severity", ["fatal"]);
+ * @mutate src/components/admin/adminHealth/useOpenAlerts.ts | .in("severity", ["fatal", "critical", "error"]) | .in("severity", ["fatal"])
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";

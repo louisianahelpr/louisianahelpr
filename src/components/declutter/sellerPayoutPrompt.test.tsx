@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   if (waiting.cents <= 0) return null; |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     if (l.my_side !== "seller" \|\| l.status !== "paid" \|\| !l.order_id \|\| l.price_cents <= 0) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | p.status === "pending" \|\| p.status === "failed" ? p.amount_cents : 0 | p.amount_cents
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("sold") && <SellerPayoutPrompt />} |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |     <SellerPayoutPrompt />\n |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     titles.push(...s.titles); |     if (!titles.length) titles.push(...s.titles);
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     s.titles.push(l.item_title); |     if (!s.titles.length) s.titles.push(l.item_title);
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`; |   return `${titles[0]}, ${titles[1]} and more`;

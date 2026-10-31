@@ -14,6 +14,7 @@
  * Browse join line keeps only its message there; and a guest's empty Browse says "Sign up to sell", not "Sell something".
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {guest ? ( |       {false ? (
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const wantedOn = useFeature("declutter_wanted") && member; |   const wantedOn = true;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={`/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}`}>Sign up to sell</Link> | <Link to="/signup">Sign up to sell</Link>
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
@@ -132,6 +133,9 @@ describe("BUY-16: guests browse Declutter", () => {
     const g = show(<DeclutterHome />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell?mode=choose")}`);
+    // No Wanted for a guest, so the line never offers to "say what you're looking for".
+    expect(screen.getByText("Be the first to sell something.")).toBeInTheDocument();
+    expect(screen.queryByText(/say what you're looking for/)).toBeNull();
     expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
     g.unmount();
     show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);

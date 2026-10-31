@@ -466,6 +466,16 @@ export async function fetchGuestSellerFirstName(itemId: string): Promise<string 
   return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
 }
 
+/**
+ * SS-5 (Watching under Buying): the hearted items the member can still read. An item RLS no longer shows (sold to
+ * someone else, taken down) is left out; the caller counts those from fetchWatching's ids.
+ */
+export async function fetchWatchedItems(ids: readonly string[]): Promise<DeclutterItem[]> {
+  if (ids.length === 0) return [];
+  const rows = await readItems((cols) => supabase.from("declutter_items").select(cols).in("id", [...ids]));
+  return (rows ?? []) as DeclutterItem[];
+}
+
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {
   return rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
 }

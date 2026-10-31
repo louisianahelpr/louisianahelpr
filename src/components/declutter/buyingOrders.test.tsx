@@ -346,7 +346,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     show();
     await waitFor(() => expect(within(card("porch0")).getByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument());
     const el = card("porch0");
-    expect(within(el).getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
+    expect(within(el).getByText("On hold until the problem is decided.")).toBeInTheDocument();
     expect(within(el).getByText(/Not as described, reported by you\./)).toBeInTheDocument();
     expect(within(el).queryByRole("button", { name: "Pick a pickup time" })).toBeNull();
     expect(el.textContent).not.toContain("Pick the day you'll come for it");

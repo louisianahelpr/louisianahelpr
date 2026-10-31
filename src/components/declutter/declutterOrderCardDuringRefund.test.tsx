@@ -108,7 +108,7 @@ describe("BUY-31: the order card agrees with a refund", () => {
     state.refund = "open";
     state.problems = [{ id: "p1", order_id: "o1", opener_side: "buyer" }];
     show();
-    expect(await screen.findByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
+    expect(await screen.findByText("On hold until the problem is decided.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
     expect(await screen.findByText("Review form (problem open)")).toBeInTheDocument();
     expect(await screen.findByText("Help panel (booked only)")).toBeInTheDocument();

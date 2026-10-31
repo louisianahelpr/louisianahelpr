@@ -657,6 +657,41 @@ describe("Declutter slice 4: paid-order cards", () => {
     }
   });
 
+  // NIGHT-BUYINGopenpr-8 (three near-same boxes, p-buyer-375-card3): the tracker said "On hold while Louisiana Helpr
+  // looks at the problem.", the note "Problem reported: Louisiana Helpr is looking. Damaged, reported by you.", and the
+  // sides box "You reported a problem: It's damaged." One layout now: the tracker says where the order stands, the note
+  // says what was reported and by whom (once), and the sides box shows each side's own words.
+  // @mutate src/components/declutter/DeclutterProblemSides.tsx | <span className="font-semibold">{whose} report:</span> | <span className="font-semibold">{whose} reported a problem: Damaged.</span>
+  // @mutate src/components/declutter/DeclutterProblemOpen.tsx | export const PROBLEM_ON_HOLD = "On hold until the problem is decided."; | export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the problem.";
+  // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : noShowByBuyer ? noShowWords(side, delivery)\n | \n
+  it("openpr-8: a held card says what was reported and by whom once, and Louisiana Helpr is looking once", async () => {
+    state.problems = [{ id: "p8", order_id: "o1", reporter_side: "buyer", reason: "damaged" }];
+    state.orderProblem = { id: "p8", reporter_side: "buyer", reason: "damaged", note: "The leg is cracked.", photo_paths: [], status: "open", created_at: "2026-10-20T14:00:00Z" };
+    try {
+      const v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+      await waitFor(() => expect(v.container.querySelector("[data-problem-sides]")).not.toBeNull());
+      const card = v.container.querySelector("article") as HTMLElement;
+      const text = card.textContent ?? "";
+      expect(text).toContain("On hold until the problem is decided.");
+      expect(text).toContain('The buyer\'s report: "The leg is cracked."');
+      expect(text.match(/damaged/gi)?.length).toBe(1);
+      expect(text.match(/reported (by|a problem)/gi)?.length).toBe(1);
+      // The seller's money line under the tracker ("Your $40 is held while ...") stays: it carries the amount.
+      expect(text.match(/Louisiana Helpr is looking/g)?.length).toBe(1);
+      expect(text).not.toContain("On hold while");
+      v.unmount();
+      // A buyer's no-show nobody answered yet: the note names who was said not to show (the sides box used to).
+      state.problems = [{ id: "p9", order_id: "o1", reporter_side: "buyer", reason: "no_show" }];
+      state.orderProblem = { id: "p9", reporter_side: "buyer", reason: "no_show", note: "Nobody came.", photo_paths: [], status: "open", created_at: "2026-10-20T14:00:00Z" };
+      const b = show([line({ handover: "pickup_home" })]);
+      expect(await b.findByText(/You reported the seller didn't show\. Nobody is paid until they decide\./)).toBeInTheDocument();
+      expect(b.queryByText(/Someone didn't show/)).toBeNull();
+    } finally {
+      state.problems = [];
+      state.orderProblem = null;
+    }
+  });
+
   it("DB-12: a sale Louisiana Helpr decided says what it decided on the card, for each side", async () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     state.problems = [];
@@ -1340,7 +1375,7 @@ describe("D2-2: an open problem shows on both cards", () => {
     show([line({ handover: "pickup_home" })]);
     expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
     expect(screen.getByText(/Damaged, reported by you\. Nobody is paid until they decide\./)).toBeInTheDocument();
-    expect(screen.getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
+    expect(screen.getByText("On hold until the problem is decided.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
     expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();

@@ -12,6 +12,7 @@
  * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
  * @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
+ * @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?view=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -66,7 +67,6 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_setup_fee_refunded: "cart",
   declutter_setup_job_fee_debt: "mine",
   declutter_take_item: "cart,selling",
-  declutter_withdraw_problem: "<dynamic>",
   declutter_withdraw_refund: "selling",
   helpr_task_close: "deliver",
   helpr_task_offer_online: "deliver",

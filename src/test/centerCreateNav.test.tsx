@@ -63,8 +63,11 @@ vi.mock("@/hooks/useFeature", () => ({
 vi.mock("sonner", () => ({
   toast: Object.assign((m: string) => { toasts.push(m); }, { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn(), message: vi.fn() }),
 }));
+const who = vi.hoisted(() => ({ guest: false }));
 vi.mock("@/hooks/useCurrentUser", () => ({
-  useCurrentUser: () => ({ user: { id: "u-create", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
+  useCurrentUser: () => who.guest
+    ? ({ user: null, profile: null, isLoading: false, isAdmin: false })
+    : ({ user: { id: "u-create", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 0, markAllRead: () => {} }) }));
 vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: 0, jobs: 0, shops: 0 }) }));
@@ -333,5 +336,23 @@ describe("a section's phone top bar (mock-up 6)", () => {
     expect(bar.querySelector('[data-testid="section-settings"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeTruthy();
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
+  });
+
+  // AUD31-74 (Guests on Declutter): a guest on Declutter Browse tapped the bell and got a panel stuck on "Loading
+  // notifications..." asking to turn on push. A guest has no notifications: no bell, as no photo.
+  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell">
+  it("a guest on Declutter gets no bell (and no photo); the chips stay", async () => {
+    vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    const { AppTopBar } = await import("@/components/sections/AppTopBar");
+    who.guest = true;
+    try {
+      renderAt(<AppTopBar title="Declutter" explore section="declutter" />, "/declutter");
+      const bar = screen.getByTestId("app-top-bar");
+      expect(bar.querySelector('[data-testid="explore-switcher"]')).toBeTruthy();
+      expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeNull();
+      expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeNull();
+    } finally {
+      who.guest = false;
+    }
   });
 });

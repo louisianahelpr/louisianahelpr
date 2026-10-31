@@ -1,26 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
-import { SECTIONS, type SectionDef, type SectionKey } from "@/components/sections/sectionsConfig";
+import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionIsOn, useSectionIsPreview } from "@/components/sections/ExploreSwitcher";
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
-import { SELL_CHOOSER_PATH, SELL_MOVE_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 
-/** The AI post-a-job path (EntryChoice opens its builder on `?start=ai`). */
-const DESCRIBE_IT_PATH = "/post-job?start=ai";
-
 interface CreateAction {
   label: string;
   path: string;
-  /** Post a job and "describe it" keep the under-18 gate their own entry points have. */
+  /** Post a job keeps the under-18 gate its own entry point has. */
   gated?: boolean;
 }
 
@@ -28,8 +24,8 @@ interface CreateAction {
  * The actions per section, only paths that EXIST today (measured 2026-10-20):
  * - Jobs: Post a job. "Get quotes" is a choice inside the post-job form with
  *   no entry route yet, so it is not offered here until one exists.
- * - Declutter: Sell an item (the "What do you want to sell?" chooser, owner 2026-10-30); Moving out sale only while 'declutter_moving_out'
- *   is on for the viewer (Sell a bunch with a move-out date).
+ * - Declutter: Sell an item (the "What do you want to sell?" chooser, owner 2026-10-30). Moving out sale is one of that
+ *   chooser's choices, so it has no button of its own here (owner 10-31, LEAD-CREATE-SHEET-TRIM).
  * - Shops: Open a shop, or, once the member has one, Add a product or service
  *   (both /shops/mine, whose items section adds them).
  * - Homes: List for rent (Owning's add property, the first step of a rent listing). "List for
@@ -38,17 +34,16 @@ interface CreateAction {
 function useCreateRows() {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
-  const movingOut = useFeature("declutter_moving_out");
   const shopsOn = useFeature("shops");
   const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId, enabled: shopsOn });
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
-    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, ...(movingOut ? [{ label: "Moving out sale", path: SELL_MOVE_PATH }] : [])],
+    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }],
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
     homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };
-  return { isOn, isPreview, actions, note: (s: SectionDef) => (s.key === "shops" && shopsOn && myShop.isSuccess && !hasShop ? "No shop yet" : null) };
+  return { isOn, isPreview, actions };
 }
 
 /**
@@ -57,16 +52,15 @@ function useCreateRows() {
  * Customize order: the section's icon and name, its main action (olive) and a
  * second action (outline) when one really exists. A section closed to the
  * viewer shows its row greyed with "Coming soon" and no actions; it never
- * routes into a closed section. "Or describe it" opens the AI job builder; it
- * is a Jobs action, so it sits INSIDE the Jobs row as a small link under "Post
- * a job" (owner 2026-10-21: it used to sit under the whole menu, below
- * Declutter, Shops and Homes). Guard: src/test/centerCreateNav.test.tsx.
+ * routes into a closed section. Owner 10-31 (LEAD-CREATE-SHEET-TRIM): each row keeps only its main button; no
+ * "Moving out sale" (Sell an item's chooser has it), no "No shop yet" beside Shops, no "or describe it" under Jobs
+ * (Post a job offers it). Guard: src/test/centerCreateNav.test.tsx.
  */
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
   const { visible, prefs, setHidden } = useSectionPrefs();
-  const { isOn, isPreview, actions, note } = useCreateRows();
+  const { isOn, isPreview, actions } = useCreateRows();
   // A3-C13: a member who hid every OPEN section (allowed before the rule
   // counted open sections) saw only "Coming soon" rows here, with no reason.
   // Say why, and offer to show them again.
@@ -106,7 +100,6 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
           {visible.map((s, i) => {
             const on = isOn(s);
             const Icon = s.icon;
-            const side = on ? note(s) : null;
             return (
               <li
                 key={s.key}
@@ -128,7 +121,6 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       <SoonPill />
                     </button>
                   )}
-                  {side && <span className="text-ds-13 text-muted-foreground shrink-0">{side}</span>}
                 </div>
                 {on && (
                   <div className="flex flex-col items-start gap-1">
@@ -150,19 +142,6 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       </button>
                     ))}
                   </div>
-                  {s.key === "jobs" && (
-                    <button
-                      type="button"
-                      data-testid="create-describe"
-                      onClick={gate.gate("post", () => go(DESCRIBE_IT_PATH))}
-                      {...gate.gatedProps("post")}
-                      className="btn-press min-h-11 -mb-2 inline-flex items-center gap-1.5 px-1 text-ds-13 font-semibold"
-                      style={{ color: "hsl(var(--bark))" }}
-                    >
-                      <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                      or describe it
-                    </button>
-                  )}
                   </div>
                 )}
               </li>

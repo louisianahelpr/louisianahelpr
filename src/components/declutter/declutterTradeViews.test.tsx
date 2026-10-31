@@ -1302,6 +1302,8 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText(/asked buyers to meet at their home for this order/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Porch pickup/)).toBeNull();
     expect(screen.getByLabelText(/Meet at the seller's home/)).toBeChecked();
+    // LEAD-PLACE-TIMES (20261031164337): a door pickup reads the seller's places too, so Pay waits for that read.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
   });

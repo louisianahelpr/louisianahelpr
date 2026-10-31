@@ -54,10 +54,16 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
-      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
+      "declutter_update_draft", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(6);
+    expect(names.length).toBeGreaterThan(5);
+    // declutter_create_item: LEAD-POST-SLOW (20261031160546) moved its body into declutter_create_item_with_id (the app
+    // picks the id so photos upload before Post); the wrapper keeps its gates. The free rule moved with the body.
+    expect(newestFunction("declutter_create_item").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(newestFunction("declutter_create_item_with_id").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(code("declutter_create_item")).toContain("RETURN public.declutter_create_item_with_id(");
+    expect(code("declutter_create_item_with_id")).toContain("IF p_price_cents = 0 THEN");
     // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
     expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");

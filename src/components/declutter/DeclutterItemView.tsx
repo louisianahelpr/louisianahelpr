@@ -102,6 +102,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const [params] = useSearchParams();
   const preview = ownListing && params.get("preview") === "buyer";
   const [previewPressed, setPreviewPressed] = useState(false);
+  // AUD31-15: the Questions hint's "Make an offer" opens the offer box (OfferPanel's askSignal).
+  const [offerAsk, setOfferAsk] = useState(0);
   const isSeller = ownListing && !preview;
   // A failed read hides the drop line (nothing is promised); the item itself still shows.
   const dropState = useQuery({
@@ -164,7 +166,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
     {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
     {canAct && !user && <DeclutterGuestJoin free={free} />}
   </>);
@@ -316,7 +318,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
           </section>
 
-          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} />}
+          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}

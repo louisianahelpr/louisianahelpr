@@ -23,10 +23,10 @@
  * dialog and the community rules say declining or not answering is no strike.
  *
  * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |   v_result := jsonb_build_object('action', 'none', 'reason', 'offer_free_to_decline'); |   v_result := public.apply_job_denial_consequence(v_app_helper, v_job_id, 'Declined job offer');
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_locked.helper_id, v_locked.id, 'expired');\n      v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_slot.helper_id, v_cjob.id, 'expired');\n      v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |                ELSE '" and it went back to everyone. No strike.' |                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
- * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_locked.helper_id, v_locked.id, 'expired');\n      v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_slot.helper_id, v_cjob.id, 'expired');\n      v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                ELSE '" and it went back to everyone. No strike.' |                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
+ * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
  * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Backing out now counts against your account."
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | "If you don't answer in time, the job reopens to everyone. No strike." | "No answer counts the same as declining, and the job reopens to everyone."
@@ -99,15 +99,18 @@ describe("an offer is free to refuse (Q1281)", () => {
 
   it("decline_job_offer and expire_unanswered_offers are the newest definitions and file no strike", () => {
     for (const fn of ["decline_job_offer", "expire_unanswered_offers"]) {
-      expect(now.get(fn)?.file, `${fn} was restated after ${FIX}: re-read it`).toBe(FIX);
+      // expire_unanswered_offers was restated once since, in words only (a failed payment says so; no strike).
+      const pinned = fn === "expire_unanswered_offers" ? "20261030232108_card_hold_capture_refused_offer_words.sql" : FIX;
+      expect(now.get(fn)?.file, `${fn} was restated after ${pinned}: re-read it`).toBe(pinned);
       expect(code(now.get(fn)!), `${fn} strikes a Helpr who never accepted`).not.toMatch(STRIKE);
     }
     expect(body("decline_job_offer")).toContain("v_result := jsonb_build_object('action', 'none', 'reason', 'offer_free_to_decline');");
     // Every Helpr-facing expiry sentence says it, on both passes.
     const expire = body("expire_unanswered_offers");
     const sentences = [...expire.matchAll(/(?:THEN|ELSE)\s+'"[^']*(?:''[^']*)*'/g)].map((m) => m[0]);
-    const helperLines = sentences.filter((s) => /went back to everyone|lost your spot/.test(s));
-    expect(helperLines.length, "the Helpr's sentences moved; re-read the sweep").toBe(6);
+    // 8 since 2026-10-30: one more per pass when the job's money is 'failed'.
+    const helperLines = sentences.filter((s) => /went back to everyone|lost your spot|the offer closed/.test(s));
+    expect(helperLines.length, "the Helpr's sentences moved; re-read the sweep").toBe(8);
     for (const s of helperLines) expect(s).toMatch(/No strike\./);
     expect(expire).not.toMatch(/counts the same as declining/);
   });

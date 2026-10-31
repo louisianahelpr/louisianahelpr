@@ -2081,9 +2081,35 @@ describe("stripe-webhook edge function", () => {
       );
     });
 
+    // A hold captured without its $2 setup fee: charge.amount stays the authorized $42
+    // (Stripe: amount_captured "can be less than the amount attribute"), so refunding the
+    // whole $40 is a FULL refund, and the job must say refunded.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   return captured > 0 ? captured : charge.amount; |   return charge.amount;
+    it("a full refund of a partly captured hold reads full, and a partial one stays partial", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_partial_capture",
+        type: "charge.refunded",
+        data: { object: { id: "ch_1", payment_intent: "pi_refunded", amount: 4200, amount_captured: 4000, amount_refunded: 4000 } },
+      });
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow" }] };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const flips = () => scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "refunded");
+      expect(flips()).toHaveLength(1);
+
+      scenario.writes.length = 0;
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_partial_capture_2",
+        type: "charge.refunded",
+        data: { object: { id: "ch_1", payment_intent: "pi_refunded", amount: 4200, amount_captured: 4000, amount_refunded: 3000 } },
+      });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(flips()).toHaveLength(0);
+    });
+
     // Q1355 (2): the event's charge.amount_refunded is a snapshot. A
     // redelivery after the refund FAILED still read "full" and closed the job.
-    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const isFullRefund = liveRefundedCents >= charge.amount; |   const isFullRefund = charge.amount_refunded >= charge.amount;
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const isFullRefund = liveRefundedCents >= capturedCentsOf(charge); |   const isFullRefund = charge.amount_refunded >= capturedCentsOf(charge);
     it("a redelivered 'full' refund whose refund has since FAILED does not close the job (Q1355 (2))", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

@@ -183,6 +183,12 @@ describe("PaymentSuccess", () => {
       await screen.findByText(/your card is on hold for \$126\. you're only charged when you hire someone/i);
       expect(screen.queryByText(/held securely/i)).toBeNull();
     });
+    it("a hold carrying the one-time setup fee explains it: included, and paid once", async () => {
+      jobsLookup = { data: { budget: 40, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
+      cardHoldRead = { data: [{ state: "authorized", amount_cents: 4200, onboarding_fee_cents: 200 }], error: null };
+      renderAt();
+      await screen.findByText(/your card is on hold for \$42, including the one-time \$2 setup fee\..*you pay the \$2 once: if it's already paid by then, you're charged \$40\./i);
+    });
     it("a far-out job's saved card says when the hold comes", async () => {
       jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
       cardHoldRead = { data: [{ state: "scheduled", amount_cents: 12600 }], error: null };

@@ -25,8 +25,8 @@
 // it was for the next try. A supabase error THROWS (the caller answers "try
 // again" / records a cron defect), so money that moved is never unrecorded.
 //
-// Copy names no fee (owner 2026-10-25: members see no fee but the one-time $2
-// setup fee); the amounts are the whole hold.
+// Copy names no fee but the one-time $2 setup fee (owner 2026-10-25); the amounts
+// are the whole hold.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -34,7 +34,7 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import type { StripeMode } from "../_shared/stripeMode.ts";
 import { CARD_HOLD_COPY } from "../_shared/cardHoldCopy.ts";
-import { DAY_MS, HOUR_MS, offSessionAllowed } from "../_shared/cardHoldPlan.ts";
+import { CARD_HOLD_PARTIAL_CAPTURE_API_VERSION, DAY_MS, HOUR_MS, offSessionAllowed, partialCaptureParams } from "../_shared/cardHoldPlan.ts";
 
 export { CARD_HOLD_COPY };
 export {
@@ -129,12 +129,14 @@ export async function updateHold(db: Db, jobId: string, patch: Record<string, un
  * so a caller that cannot retry records the miss (lh-silent-failure review #2)
  * and card-hold-sweep re-sends a missed one.
  */
-export async function notifyPosterOnce(db: Db, job: Pick<HoldJob, "id" | "customer_id" | "title">, hold: Pick<HoldRow, "notified_state" | "amount_cents">, state: HoldState): Promise<boolean> {
+export async function notifyPosterOnce(db: Db, job: Pick<HoldJob, "id" | "customer_id" | "title">, hold: Pick<HoldRow, "notified_state" | "amount_cents"> & Partial<Pick<HoldRow, "onboarding_fee_cents" | "failure_code">>, state: HoldState): Promise<boolean> {
   // An ownerless job (the poster deleted their account) has nobody to tell.
   if (!job.customer_id || hold.notified_state === state) return true;
   const title = job.title ?? "your job";
-  const copy = state === "authorized" ? { t: CARD_HOLD_COPY.heldTitle, m: CARD_HOLD_COPY.held(hold.amount_cents) }
-    : state === "scheduled" ? { t: CARD_HOLD_COPY.scheduledTitle, m: CARD_HOLD_COPY.scheduled(hold.amount_cents) }
+  const feeCents = Number(hold.onboarding_fee_cents ?? 0);
+  const copy = state === "authorized" ? { t: CARD_HOLD_COPY.heldTitle, m: CARD_HOLD_COPY.held(hold.amount_cents, feeCents) }
+    : state === "scheduled" ? { t: CARD_HOLD_COPY.scheduledTitle, m: CARD_HOLD_COPY.scheduled(hold.amount_cents, feeCents) }
+    : state === "failed" && String(hold.failure_code ?? "").startsWith(CAPTURE_REFUSED) ? { t: CARD_HOLD_COPY.captureRefusedTitle, m: CARD_HOLD_COPY.captureRefused(title) }
     : state === "released" ? { t: CARD_HOLD_COPY.releasedTitle, m: CARD_HOLD_COPY.released(title) }
     : state === "failed" ? { t: CARD_HOLD_COPY.failedTitle, m: CARD_HOLD_COPY.failed(title) }
     : state === "needs_action" ? { t: CARD_HOLD_COPY.confirmTitle, m: CARD_HOLD_COPY.confirm(title) }
@@ -197,11 +199,28 @@ function savedCardRefusal(e: unknown): { code: string; state: "failed" | "needs_
   return null;
 }
 
+/** failure_code prefix: Stripe refused the capture itself, with the authorization still live. */
+const CAPTURE_REFUSED = "capture_refused";
+
+/**
+ * Stripe's definite no to a CAPTURE of a hold still capturable: a card error or an
+ * invalid request, which the same request can never get past. Null: not a definite no
+ * (a timeout, a 5xx, a rate limit, a key in use), so it stays a retry. Without this a
+ * refusal read as "still capturable, try again", for ever (job 02a6e1b5, 2026-10-30).
+ */
+function captureRefusal(e: unknown): string | null {
+  const card = cardErrorCode(e);
+  if (card) return `${CAPTURE_REFUSED}_card_${card}`.slice(0, 100);
+  const err = e as { type?: string; code?: string } | null;
+  const invalid = err?.type === "StripeInvalidRequestError" || err?.type === "invalid_request_error";
+  return invalid && isDefinitiveStripeRefusal(e) ? `${CAPTURE_REFUSED}${err?.code ? `_${err.code}` : ""}`.slice(0, 100) : null;
+}
+
 /**
  * The one-time $2 setup fee rides inside a hold. It is CLAIMED on the profile
  * before the capture, so two holds captured at once never collect it twice:
- * the loser captures without it (a smaller capture releases the rest; nothing
- * is refunded). The claim is recorded on the hold
+ * the loser captures without it (partialCaptureParams: a smaller capture releases
+ * the rest; nothing is refunded). The claim is recorded on the hold
  * (onboarding_fee_claimed_at) and KEPT across a retry whose outcome Stripe did
  * not answer: the retry captures the same amount under the same key, never a
  * second charge (lh-silent-failure review #3). It is given back only on a
@@ -384,9 +403,13 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
   if (from === "authorized") {
     const piId = hold.payment_intent_id as string;
     try {
-      const pi = await stripe.paymentIntents.capture(piId, { amount_to_capture: amountCents }, {
-        idempotencyKey: `card-hold-capture-${piId}-a${hold.attempts}`,
-      });
+      // Under the hold's amount (the setup fee left out): the line items must match (cardHoldPlan).
+      // Its own key: the parameters differ from any capture already sent for this attempt.
+      const partial = amountCents < Number(hold.amount_cents);
+      const pi = await stripe.paymentIntents.capture(piId, partial ? partialCaptureParams(amountCents) : { amount_to_capture: amountCents }, {
+        idempotencyKey: `card-hold-capture-${piId}-a${hold.attempts}${partial ? "-partial" : ""}`,
+        ...(partial ? { apiVersion: CARD_HOLD_PARTIAL_CAPTURE_API_VERSION } : {}),
+      } as Stripe.RequestOptions);
       if (pi.status === "succeeded") capturedPi = pi.id;
       else { failState = "failed"; failCode = `capture_left_${pi.status}`; failMessage = `capture left the payment ${pi.status}`; }
     } catch (e) {
@@ -399,7 +422,11 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
       }
       if (now.status === "succeeded") capturedPi = now.id;
       else if (now.status === "canceled") { failState = "failed"; failCode = "hold_expired"; failMessage = `the hold is gone (${now.cancellation_reason ?? "canceled"}): ${why}`; }
-      else if (now.status === "requires_capture") return notDefinite(why, true);
+      else if (now.status === "requires_capture") {
+        const refused = captureRefusal(e);
+        if (!refused) return notDefinite(why, true);
+        failState = "failed"; failCode = refused; failMessage = why;
+      }
       else { failState = "failed"; failCode = `hold_${now.status}`; failMessage = why; }
     }
   } else {
@@ -515,6 +542,18 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
     return { ok: true, already: false };
   }
 
+  // Paged first, so nothing below can swallow it. A capture Stripe refused is logged (error_logs,
+  // through the alert); a hold that simply expired is not news.
+  if (from === "authorized" && failCode !== "hold_expired") {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: failCode.startsWith(`${CAPTURE_REFUSED}_card_`) ? "warning" : "critical",
+      title: "Stripe refused a card hold's capture at the hire",
+      message: "A Helpr's accept could not charge the poster's held card, and the same request can never succeed. Nobody was hired and nothing was charged: the hold is released and the poster is asked to pay again. Read the reason: anything but a card decline is a defect in the capture.",
+      fields: { job_id: jobId, payment_intent: String(hold.payment_intent_id), code: failCode, amount_cents: String(amountCents), hold_cents: String(hold.amount_cents), why: failMessage.slice(0, 300) },
+      seed: job.is_seed === true,
+    });
+  }
   // A definite no: the fee claim goes back, so the fee is owed again.
   await unclaimSetupFee(db, jobId, job.customer_id, feeAt);
   const after = await readJob(db, jobId);
@@ -661,7 +700,7 @@ export async function failHold(
   await updateHold(db, job.id, { state, failure_code: code.slice(0, 100), failure_message: message.slice(0, 500), attempts: Number(hold.attempts) + 1, capturing_from: null, capture_amount_cents: null }, [rowState]);
   await takeFailedHoldOffListing(db, job.id);
   // A missed notice is re-sent by card-hold-sweep (failed / needs_action, notified_state behind).
-  if (!(await notifyPosterOnce(db, job, hold, state))) console.error(`[cardHold] job ${job.id}: the poster was not told their hold ${state}; card-hold-sweep re-sends it`);
+  if (!(await notifyPosterOnce(db, job, { ...hold, failure_code: code }, state))) console.error(`[cardHold] job ${job.id}: the poster was not told their hold ${state}; card-hold-sweep re-sends it`);
 }
 
 /**

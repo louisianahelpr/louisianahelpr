@@ -43,17 +43,17 @@
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } }); | await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString() }).eq("id", app.job_id); report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
 // @mutate supabase/functions/auto-expire-jobs/index.ts | .update({ status: "open", helper_id: null }) | .update({ status: "open", helper_id: null, helper_confirmed_at: new Date().toISOString() })
 // Q1188.
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E offer |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E offer
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | 'expire_unanswered_offers' \|\| CASE WHEN v_job.seed THEN '-seed' ELSE '' END | 'expire_unanswered_offers'
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | jsonb_build_object('job_id', v_job.id, 'helper_id', v_job.helper_id, 'err', SQLERRM, 'sqlstate', SQLSTATE) | jsonb_build_object('err', SQLERRM)
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql | (coalesce(j.is_seed, false) OR coalesce(hp.is_seed, false)) AS seed | coalesce(j.is_seed, false) AS seed
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E offer |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E offer
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql | 'expire_unanswered_offers' \|\| CASE WHEN v_job.seed THEN '-seed' ELSE '' END | 'expire_unanswered_offers'
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql | jsonb_build_object('job_id', v_job.id, 'helper_id', v_job.helper_id, 'err', SQLERRM, 'sqlstate', SQLSTATE) | jsonb_build_object('err', SQLERRM)
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql | (coalesce(j.is_seed, false) OR coalesce(hp.is_seed, false)) AS seed | coalesce(j.is_seed, false) AS seed
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | OR coalesce(p_tags ->> 'source', p_tags ->> 'area', '') LIKE '%-seed' | OR false
 // Re-registered from acceptCompletesAfterStripeSetup.test.ts (its lines target 20261003193541, superseded here).
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501';\n  END IF;\n\n  v_awarding := |     RAISE NOTICE 'accept_required';\n  END IF;\n\n  v_awarding :=
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |       v_name \|\| ' accepted your offer', |       'Offer update',
-// @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); |       END; BEGIN v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time);
+// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); |       END; BEGIN v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time);
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text)\n  RETURNING |      AND true\n  RETURNING
 import { describe, it, expect } from "vitest";
 import { join, relative } from "node:path";

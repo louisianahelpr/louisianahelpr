@@ -7,6 +7,11 @@ import * as React from "react";
  *   corner ×. A surface without one keeps the × as its only way out.
  *   Never both. Never neither.
  *
+ * SHEETS ARE THE EXCEPTION (owner 10-31, LEAD-SHEET-X-ONLY: "every sheet has an
+ * X; no drag bar"): every sheet draws its X always, even beside a footer
+ * Cancel, and SheetSecondaryAction no longer registers here. This rule now
+ * covers dialogs and toasts. Guarded by src/test/everySheetHasAnX.test.tsx.
+ *
  * Both platforms this app lives beside agree and neither draws the second one:
  * Apple's UIAlertController has no close control at all — you dismiss by
  * choosing an action — and Material 3's basic dialog is actions only. The ×

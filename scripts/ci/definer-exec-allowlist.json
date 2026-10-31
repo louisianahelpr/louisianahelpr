@@ -529,7 +529,7 @@
     "declutter_delete_porch_place(uuid)": "client",
     "declutter_my_porch_places()": "client",
     "declutter_seller_porch_places(uuid)": "client",
-    "declutter_item_pickup_places(uuid)": "reviewed 2026-10-31: LEAD-POST-PLACES (20261031145652): Declutter read behind the hidden 'declutter' switch (require_feature first); (SELECT auth.uid()), refuses a NULL caller; only a live or reserved item whose seller is not hidden or out, or the seller's own item; refused across a block; returns label, area, weekdays and hours only, never an address or a point.",
+    "declutter_item_pickup_places(uuid)": "client",
     "declutter_set_porch_place(uuid, uuid)": "client",
     "declutter_order_place(uuid)": "client",
     "declutter_open_to_guests()": "policy",

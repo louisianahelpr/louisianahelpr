@@ -14327,6 +14327,10 @@ export type Database = {
         Args: { p_item_id: string; p_way: string }
         Returns: string[]
       }
+      declutter_delivery_still_in_hand: {
+        Args: { p_order_id: string; p_task: string }
+        Returns: Json
+      }
       declutter_handover_refused: {
         Args: { p_handover: string; p_lines: string[] }
         Returns: boolean

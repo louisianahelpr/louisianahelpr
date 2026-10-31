@@ -12,7 +12,7 @@
  *
  * Behaviour: src/test/pglite/shippingS2ShipHandover.pglite.mjs (sweep, booking, address, "I got it", fee rule).
  *
- * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
+ * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        WHEN NEW.handover = 'ship' THEN 'f1_ship' | WHEN NEW.handover = 'shipX' THEN 'f1_ship'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'ship') THEN | IF false THEN

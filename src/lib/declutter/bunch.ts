@@ -494,23 +494,6 @@ export function bulkEdit(items: BunchItem[], keys: ReadonlySet<string>, patch: P
   return items.map((it) => (keys.has(it.key) ? { ...it, ...patch } : it));
 }
 
-/** A percent off each item's own suggestion, to a whole dollar and never under $1. Free items and items with no suggestion are left alone. */
-export function percentOffSuggested(items: BunchItem[], keys: ReadonlySet<string>, pct: number): { items: BunchItem[]; changed: number; skipped: number } {
-  let changed = 0;
-  let skipped = 0;
-  const next = items.map((it) => {
-    if (!keys.has(it.key) || it.free) return it;
-    const was = Number(it.aiPrice);
-    if (!it.aiPrice || !Number.isFinite(was)) {
-      skipped += 1;
-      return it;
-    }
-    changed += 1;
-    return { ...it, price: String(Math.max(1, Math.round((was * (100 - pct)) / 100))) };
-  });
-  return { items: next, changed, skipped };
-}
-
 /**
  * Split the chosen photos off into a new item, right after this one. The new
  * item starts with no words (it is a different thing); it keeps the flag, so
@@ -746,7 +729,7 @@ interface BunchRun {
 let activeRun: BunchRun | null = null;
 
 /** The id a bunch item's draft is made with (crypto.randomUUID; the server checks its form). */
-export function newBunchItemId(): string {
+function newBunchItemId(): string {
   return crypto.randomUUID();
 }
 

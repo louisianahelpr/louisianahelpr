@@ -99,17 +99,19 @@ describe("a saved Declutter search keeps Free, porch, drops and condition (BUY-1
 
   it("the save sends them only when one is on; the list reads without them before they are deployed", async () => {
     await createSavedSearch("u1", { ...DRAFT, extras: { freeOnly: true, porchOnly: false, dropsOnly: false, conditions: [5, 4] } }, true);
-    expect(db.inserted.at(-1)).toMatchObject({ category: "furniture", free_only: true, porch_only: false, drops_only: false, conditions: [4, 5] });
+    expect(db.inserted[db.inserted.length - 1]).toMatchObject({ category: "furniture", free_only: true, porch_only: false, drops_only: false, conditions: [4, 5] });
     await createSavedSearch("u1", DRAFT, true);
-    expect(db.inserted.at(-1)).not.toHaveProperty("free_only");
+    expect(db.inserted[db.inserted.length - 1]).not.toHaveProperty("free_only");
     await createSavedSearch("u1", { ...DRAFT, section: "jobs", extras: { freeOnly: true, porchOnly: false, dropsOnly: false, conditions: [] } }, true);
-    expect(db.inserted.at(-1)).not.toHaveProperty("free_only");
+    expect(db.inserted[db.inserted.length - 1]).not.toHaveProperty("free_only");
 
     db.selects.length = 0;
     db.selectAnswers.push({ data: null, error: { code: "42703", message: "column saved_searches.free_only does not exist" } }, { data: [{ ...DRAFT, id: "s9" }], error: null });
     const rows = await fetchSavedSearches("u1");
     expect(db.selects[0]).toContain(",free_only,porch_only,drops_only,conditions");
     expect(db.selects[1]).not.toContain("free_only");
-    expect(rows.map((r) => r.id)).toEqual(["s9"]);
+    expect(db.selects[1]).toContain("notify_email");
+    // Read with the columns before BUY-13, not the oldest ones (which make every row a Jobs search).
+    expect(rows.map((r) => [r.id, r.section])).toEqual([["s9", "declutter"]]);
   });
 });

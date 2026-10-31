@@ -14670,6 +14670,19 @@ export type Database = {
       }
       declutter_donation_rules: { Args: never; Returns: Json }
       declutter_free_rules: { Args: never; Returns: Json }
+      declutter_record_wanted_ai_check: {
+        Args: {
+          p_flag_reason: string
+          p_judged_paths: string[]
+          p_user_id: string
+          p_wanted_id: string
+        }
+        Returns: string
+      }
+      declutter_wanted_hold_photos: {
+        Args: { p_paths: string[]; p_reason: string; p_wanted_id: string }
+        Returns: undefined
+      }
       declutter_edit_listing: {
         Args: {
           p_bought_for_personal_use: boolean

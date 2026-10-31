@@ -1285,8 +1285,8 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD : standing( | {false ? PROBLEM_ON_HOLD : standing(
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n        /> | />
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? PROBLEM_ON_HOLD : standing( | : false ? PROBLEM_ON_HOLD : standing(
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n          refunded={fullRefund}\n        /> | refunded={fullRefund}\n        />
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (problem_open).\n    if (anyProblem) return null;\n | (problem_open).\n
 
 describe("D2-2: an open problem shows on both cards", () => {

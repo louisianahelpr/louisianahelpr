@@ -156,7 +156,32 @@ export function signedInSplit(root) {
   const deep = new Set([...signedInOnly].filter((f) => !reach.has(f)));
   const others = staticReach(root, firstScreenRoots(root).filter((r) => !toPosix(r).endsWith(DECLUTTER_ROOT)));
   const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f)));
-  return { signedInOnly, firstScreen, deep, declutterOnly };
+  // `homeOff`: the rest of firstScreen that Home's own first screen never runs
+  // (AUD31-60/66). Every signed-in visitor lands on /home, and it downloaded the
+  // whole of signed-in-shared, though most of it is only the other first
+  // screens' (the job lists, Messages, You, Post a job). It gets its own chunk,
+  // which those screens fetch beside signed-in-shared in the same round.
+  const home = staticReach(root, homeFirstScreenRoots(root));
+  const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f)));
+  return { signedInOnly, firstScreen, deep, declutterOnly, homeOff };
+}
+
+/**
+ * What a signed-in cold load of /home runs before its first screen: main.tsx,
+ * the /home row of ENTRY_ROUTE_CHUNKS (its page and the ProtectedRoute gate),
+ * and EVERY_PAGE_ROOTS. Read from routePreload.ts, so a page moved there moves here.
+ */
+export function homeFirstScreenRoots(root) {
+  const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
+  const row = src.match(/"\/home":\s*\{[\s\S]*?signedIn:\s*\[([^\]]*)\]/)?.[1] ?? "";
+  const specs = [...row.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]);
+  const protectedSpec = row.includes("protectedRoute") ? src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1] : null;
+  if (protectedSpec) specs.push(protectedSpec);
+  const roots = specs.map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
+  if (roots.length < 2 || roots.some((r) => !r) || !protectedSpec) {
+    throw new Error(`bootReach: read ${roots.length} /home first-screen roots from routePreload.ts (expected its page and protectedRoute). Fix the scan.`);
+  }
+  return [path.join(root, "src/main.tsx"), ...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
 }
 
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */

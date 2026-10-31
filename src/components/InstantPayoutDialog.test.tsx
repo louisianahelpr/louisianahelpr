@@ -110,6 +110,31 @@ describe("InstantPayoutDialog", () => {
     expect(screen.getByRole("button", { name: /Cash Out \$77\.60/ })).toBeInTheDocument();
   });
 
+  // NIGHT-JOBSRE4-4 (night audit): a quote that failed to load said only "Couldn't load quote", with Cancel as the only
+  // way on. A load failure (no message from the server) now says what happened and offers Try again, which asks for a
+  // new quote; a refusal the server explained (the $25 floor) keeps its own words and no Try again.
+  // @mutate src/components/InstantPayoutDialog.tsx |       setQuoteRetry(!msg); |       setQuoteRetry(false);
+  it("NIGHT-JOBSRE4-4: a quote that failed to load says so and offers Try again; a refusal keeps its words", async () => {
+    let calls = 0;
+    invokeMock.mockImplementation(async (_fn: string, opts: { body?: { action?: string } }) => {
+      if (opts?.body?.action !== "quote") return { data: { ok: true }, error: null };
+      calls += 1;
+      return calls === 1 ? { data: null, error: new Error("network") } : { data: QUOTE, error: null };
+    });
+    render(<InstantPayoutDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
+    expect(await screen.findByText(/We couldn't get your cash-out amount/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  it("NIGHT-JOBSRE4-4: a refusal the server explained keeps its words and offers no Try again", async () => {
+    invokeMock.mockImplementation(async () => ({ data: { error: "Instant cash-out starts at $25." }, error: null }));
+    render(<InstantPayoutDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
+    expect(await screen.findByText("Instant cash-out starts at $25.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
   it("a passed confirmation executes the payout once", async () => {
     const { btn, onOpenChange, onSuccess } = await openWithQuote();
     fireEvent.click(btn);

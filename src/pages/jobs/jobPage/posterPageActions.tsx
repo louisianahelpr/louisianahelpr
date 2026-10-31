@@ -31,7 +31,7 @@ export type PagePrimary = { label: string; go: () => void; disabled?: boolean };
 /** The statuses a poster may still cancel from (the card's own check refuses one the Helpr already set off on). */
 const CANCELLABLE = new Set(["open", "accepted"]);
 /** A hired Helpr to talk to: booked, under way, being fixed, or done. */
-const HAS_HELPR = new Set(["accepted", "in_progress", "revision_requested", "completed", "disputed"]);
+export const HAS_HELPR: ReadonlySet<string> = new Set(["accepted", "in_progress", "revision_requested", "completed", "disputed"]);
 /** Statuses whose card carries steps this page does not draw yet (no-show, dispute, revision, tip and review). */
 const MORE_ON_CARD = new Set(["in_progress", "revision_requested", "completed", "disputed"]);
 

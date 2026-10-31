@@ -1035,6 +1035,9 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   declutter_checkout_free: {
+    // declutter_free_claim_gate (20261031211922), behind identity_check.
+    identity_required_to_claim: DC.identity_required_to_claim,
+    setup_fee_required_to_claim: DC.setup_fee_required_to_claim,
     account_restricted: DC.account_restricted,
     cart_empty: DC.cart_empty,
     checkout_page_open: DC.checkout_page_open,

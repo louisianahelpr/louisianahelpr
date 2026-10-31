@@ -54,7 +54,11 @@ describe("Declutter asks for Stripe Identity once, at the first purchase or list
     expect(triggers.length).toBeGreaterThan(100);
   });
 
-  it.each(["declutter_offers", "declutter_cart_items", "declutter_orders"])("a BEFORE INSERT trigger on %s judges the buyer", (table) => {
+  it("a cart never asks: adding to it buys nothing, and checkout's order insert is judged (owner 2026-10-30, 20261031220849)", () => {
+    expect(triggers.filter((x) => x.table === "declutter_cart_items" && x.text.includes("declutter_identity_before_buy()"))).toEqual([]);
+  });
+
+  it.each(["declutter_offers", "declutter_orders"])("a BEFORE INSERT trigger on %s judges the buyer", (table) => {
     const t = triggers.filter((x) => x.table === table && x.text.includes("declutter_identity_before_buy()") && /^BEFORE\s+INSERT/i.test(x.text));
     expect(t.length, `${table} has no identity trigger`).toBe(1);
     expect(t[0].text).toMatch(/^BEFORE\s+INSERT\s+ON/i);

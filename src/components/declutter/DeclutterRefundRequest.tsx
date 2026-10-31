@@ -63,6 +63,12 @@ export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
  * gap is said in plain words, with no figure, wherever the full-refund amount is shown to the buyer.
  */
 const FULL_REFUND_WHY = "That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.";
+/**
+ * AUD31-37: on a Helpr-delivery order the delivery a Helpr made stays paid, so the full refund is not "all you paid":
+ * it is what was paid for the item. Said the same way, still with no fee name or figure.
+ */
+const FULL_REFUND_WHY_ITEM = "That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.";
+const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY);
 
 const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -174,7 +180,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={ask.isPending} />}
         <p className="text-ds-12 text-muted-foreground">
           {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(reason === "not_received" ? v.never_got_it_refund_cents ?? v.full_refund_cents : v.full_refund_cents)} back to your card
-          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}.{reason === "not_received" ? "" : <> <span data-full-refund-why="">{FULL_REFUND_WHY}</span></>}{" "}
+          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}.{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "}
           {reason === "not_received" ? `Since you never got it, there's nothing to give back: if ${who} agrees, it is sent right away.` : `For a full refund you give the item back first; it is sent once ${who} confirms they have it.`}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -235,7 +241,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2" data-refund-returning="">
           <p className="text-sm">
-            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
+            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span>
             {r.return_way ? "" : ` Give the item back; message ${who} from your order.`} Your refund is sent as soon as {who} confirms they have it.
           </p>
           <DeclutterReturnBuyer v={v} who={who} />

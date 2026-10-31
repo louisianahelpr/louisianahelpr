@@ -29,6 +29,15 @@ CREATE INDEX IF NOT EXISTS declutter_item_price_drops_item_at ON public.declutte
 -- Read only through the definer functions below; no member reads the rows.
 ALTER TABLE public.declutter_item_price_drops ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.declutter_item_price_drops FROM PUBLIC, anon, authenticated;
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 GRANT ALL ON TABLE public.declutter_item_price_drops TO service_role;
 
 CREATE OR REPLACE FUNCTION public.saved_search_on_item_price_drop()

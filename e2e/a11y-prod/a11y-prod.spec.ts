@@ -59,6 +59,7 @@ import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "..
 import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta } from "../happy-path/sweepCore";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, rest, sessionsAvailable, type Session } from "../journeys/fixtures";
+import { abortProdWrites } from "./abortProdWrites";
 
 /**
  * Every job_status the database defines, from the generated types' own enum
@@ -95,6 +96,8 @@ const FIXTURE_ID = /10000000-0000-4000-8000-/;
  */
 async function sweepContext(browser: Browser, session: Session | null): Promise<BrowserContext> {
   const ctx = await browser.newContext({ serviceWorkers: "block" });
+  // Read-only by construction: every request that could write prod is aborted and logged.
+  await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR);
   await ctx.addInitScript(
     ({ key, val }) => {
       try {

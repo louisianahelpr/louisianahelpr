@@ -59,13 +59,16 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
   const marked = !!b.delivered_at;
   const started = booked && now >= Date.parse(b.slot_start!);
   const open = b.order_status === "paid";
+  const slotOver = booked && now >= Date.parse(b.slot_end ?? b.slot_start!);
   return {
     markDelivered: open && b.side === "seller" && started && !marked,
     // Deep audit 2026-10-28 B-7 (#7): "I got it" showed a day before the delivery and one tap finished the sale.
     // It now shows once the seller marked it delivered, or from the delivery day (Louisiana time); it still asks first.
     gotIt: open && b.side === "buyer" && (marked || (booked && laDay(now) >= laDay(Date.parse(b.slot_start!)))),
     notDelivered: open && b.side === "buyer" && booked && !marked && !!b.not_delivered_from && now >= Date.parse(b.not_delivered_from),
-    changeHandoff: open && b.side === "buyer" && !marked && (b.status === "booked" || b.status === "needs_time"),
+    // AUD31-38: door or hand is a choice for a delivery still to come; once its hour has passed it is not (the card is
+    // late, and It wasn't delivered / a new time lead). The panel also hides it during the seller's 24 hours to answer.
+    changeHandoff: open && b.side === "buyer" && !marked && (b.status === "needs_time" || (b.status === "booked" && !slotOver)),
     askNewTime: open && !marked && (b.status === "booked" || b.status === "needs_time") && b.proposals_left > 0 && !(b.proposed_by === b.side),
     answerProposal: open && !!b.proposed_start && b.proposed_by !== b.side,
     withdrawProposal: open && !!b.proposed_start && b.proposed_by === b.side,
@@ -141,7 +144,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours."}</p>}
       </div>
       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} mine={b.side === "seller"} />}
-      {can.changeHandoff && (
+      {can.changeHandoff && !noShowWaiting && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
           {(["leave", "hand"] as const).map((h) => (
             <ChoicePill key={h} selected={b.handoff === h} disabled={busy} onClick={() => b.handoff !== h && handoff.mutate(h)}>{HANDOFF_WORDS[h].title}</ChoicePill>

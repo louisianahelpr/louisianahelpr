@@ -6,8 +6,8 @@
  * @mutate src/lib/declutter/afterCard.ts |     sessionStorage.removeItem(KEY); |     void KEY;
  * @mutate src/lib/declutter/afterCard.ts | !UUID.test(v.itemId) | false
  * @mutate src/lib/declutter/afterCard.ts |   return typeof v === "string" && OFFER_AMOUNT.test(v) ? v : null; |   return typeof v === "string" ? v : null;
- * @mutate src/lib/declutter/afterCard.ts |   return next.offerAmount ? amount : null; |   return null;
- * @mutate src/lib/declutter/afterCard.ts |   return isAfterCardAction(a) ? a : null;\n} |   return a as AfterCardAction;\n}
+ * @mutate src/lib/declutter/afterCard.ts |   return { cardCancelled: next.action, ...amount }; |   return null;
+ * @mutate src/lib/declutter/afterCard.ts | (state as { afterCard?: unknown }).afterCard : null;\n  return isAfterCardAction(a) ? a : null; | (state as { afterCard?: unknown }).afterCard : null;\n  return a as AfterCardAction;
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { AFTER_CARD_TTL_MS, afterCardFromState, afterCardPath, afterCardReturnState, isAfterCardAction, offerAmountFromState, rememberAfterCard, takeAfterCard } from "./afterCard";
@@ -36,8 +36,9 @@ describe("afterCard", () => {
     expect(offerAmountFromState(null)).toBeNull();
     // Saved carries on with the action; cancelled brings only the amount back, and nothing at all when none was typed.
     expect(afterCardReturnState(true, { action: "offer", offerAmount: "30" })).toEqual({ afterCard: "offer", offerAmount: "30" });
-    expect(afterCardReturnState(false, { action: "offer", offerAmount: "30" })).toEqual({ offerAmount: "30" });
-    expect(afterCardReturnState(false, { action: "buy" })).toBeNull();
+    // NIGHT-BUYING0-7: cancelled brings the action back too, as cardCancelled (the step opens again), never afterCard.
+    expect(afterCardReturnState(false, { action: "offer", offerAmount: "30" })).toEqual({ cardCancelled: "offer", offerAmount: "30" });
+    expect(afterCardReturnState(false, { action: "buy" })).toEqual({ cardCancelled: "buy" });
   });
 
   it("drops a stale, future-dated or malformed intent", () => {

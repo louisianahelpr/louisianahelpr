@@ -72,13 +72,19 @@ export function afterCardPath(itemId: string): string {
 }
 
 /** The router state that carries the action and the typed amount back to the item (read once by OfferPanel). */
-export type AfterCardState = { afterCard?: AfterCardAction; offerAmount?: string };
+export type AfterCardState = { afterCard?: AfterCardAction; cardCancelled?: AfterCardAction; offerAmount?: string };
 
 /** Which state a return from Stripe's card page brings: the action only when the card was saved. */
 export function afterCardReturnState(saved: boolean, next: { action: AfterCardAction; offerAmount?: string }): AfterCardState | null {
   const amount = next.offerAmount ? { offerAmount: next.offerAmount } : {};
   if (saved) return { afterCard: next.action, ...amount };
-  return next.offerAmount ? amount : null;
+  // NIGHT-BUYING0-7: cancelled, the item opens the card step again for the same action, saying no card was saved.
+  return { cardCancelled: next.action, ...amount };
+}
+
+export function cardCancelledFromState(state: unknown): AfterCardAction | null {
+  const a = typeof state === "object" && state !== null ? (state as { cardCancelled?: unknown }).cardCancelled : null;
+  return isAfterCardAction(a) ? a : null;
 }
 
 export function afterCardFromState(state: unknown): AfterCardAction | null {

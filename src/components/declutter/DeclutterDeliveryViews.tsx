@@ -13,6 +13,7 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
+import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
@@ -286,7 +287,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
           Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.
         </p>
       </div>
-      <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
+      <p className="text-ds-12 text-muted-foreground">{DELIVERY_ADDRESSES_SHOW}</p>
       <div className="space-y-2">
         <p className="block text-ds-13 font-semibold">Pickup time</p>
         <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} enabled={!taken} />

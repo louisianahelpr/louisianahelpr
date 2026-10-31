@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 208 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1053 (across 293 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 33 |
+| Toast messages | **call site** | 1056 (across 294 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 34 |
 | Multi-step flows — probable | flow | 30 |
 | Back/next navigation only | flow | 58 |
 | Forms (submittable) | form | 90 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 173 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **708** |
-| **Copy surfaces** (strings a person may read) | mixed | **1101** |
-| **Total auditable surface** | mixed | **1809** |
+| **Navigable surfaces** (places a person can stand) | mixed | **709** |
+| **Copy surfaces** (strings a person may read) | mixed | **1104** |
+| **Total auditable surface** | mixed | **1813** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 208 | 130 | agree within method (script counts every menu instance) |
 | Forms | 90 | ~38 | agree |
-| Confirmed multi-step flows | 33 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 34 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -424,6 +424,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/helprs/FindHelprs.tsx` | compare, nav-handler |
 | `src/pages/home/DashboardGuest.tsx` | compare |
+| `src/pages/home/homeDashboard/PosterFirstJobCard.tsx` | step-array |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |

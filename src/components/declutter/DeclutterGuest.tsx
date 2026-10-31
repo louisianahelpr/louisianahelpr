@@ -41,3 +41,24 @@ export function DeclutterGuestJoin({ free }: { free: boolean }) {
     </section>
   );
 }
+
+/** Above a guest's Browse (BUY-16): one line and the two ways in, coming back to Browse after. */
+export function DeclutterGuestBrowseJoin() {
+  const location = useLocation();
+  return (
+    <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
+      <p className="min-w-0 flex-1 basis-48 text-sm">
+        <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
+        <span className="text-muted-foreground">It's free.</span>
+      </p>
+      <div className="flex shrink-0 gap-2">
+        <Button asChild size="sm" className="rounded-full">
+          <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+        </Button>
+        <Button asChild size="sm" variant="outline" className="rounded-full">
+          <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+        </Button>
+      </div>
+    </section>
+  );
+}

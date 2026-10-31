@@ -3,7 +3,7 @@
  * reads, so each is held by what it says.
  *
  * BUY-13: Free can't be saved, and a search saved without it would alert on everything else in the category.
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | {!filters.freeOnly && (q \|\| filters.category | {(q \|\| filters.category
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | {member && !filters.freeOnly && (q \|\| filters.category | {member && (q \|\| filters.category
  * BUY-14: the Buying tab is called Buying, and a meetup isn't a pickup.
  * @mutate src/components/declutter/DeclutterPaySettling.tsx | the order moves to Buying once | the order moves to Purchases once
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "Meeting" : "Pickup"}: <span | Pickup: <span

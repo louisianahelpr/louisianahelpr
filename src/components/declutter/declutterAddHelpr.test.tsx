@@ -15,7 +15,8 @@
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   const kinds = setupKindsFor(info.data.item_details, info.data.handover); |   const kinds = setupKindsFor(info.data.item_details, "pickup_home");
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx | {kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"} | {"Need a hand with it?"}
  * @mutate src/lib/declutter/setupHelpr.ts |   if (canMove && details.some((d) => d.delivery_size === "large" \|\| d.delivery_size === "xl")) fit.add("move"); |   if (canMove) fit.add("move");
- * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery"; |   const canMove = true;
+ * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery" && handover !== "seller_delivery"; |   const canMove = true;
+ * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery" && handover !== "seller_delivery"; |   const canMove = handover !== "delivery";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -161,9 +162,11 @@ describe("Declutter Add a Helpr panel", () => {
     expect(await screen.findByText("Post a job page")).toBeTruthy();
   });
 
-  it("no moving choice on a Helpr delivery (it is already brought) or for a small item", async () => {
+  it("no moving choice on a Helpr or seller delivery (it is already brought) or for a small item", async () => {
     const cases = [
       { handover: "delivery", details: [{ title: "Sectional sofa", category: "furniture", delivery_size: "xl" }] },
+      // AUD31-8: the seller delivers it.
+      { handover: "seller_delivery", details: [{ title: "Sectional sofa", category: "furniture", delivery_size: "xl" }] },
       { handover: "delivery", details: undefined },
       { handover: "porch", details: [{ title: "Desk lamp", category: "home_decor", delivery_size: "small" }] },
     ];

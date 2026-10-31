@@ -33,6 +33,8 @@ export function BundleDiscountCard() {
   if (!on || !user || rule.isError) return null;
   const current = rule.data ?? null;
   const chosen = pick ?? current;
+  // NIGHT-SET-Declutterse-2: pressing Off picks 0 (Save sends null); either way Off is the one shown selected.
+  const offChosen = chosen === null || chosen === 0;
   return (
     <section className="rounded-2xl border border-border bg-card" aria-label="Bundle discount" data-bundle-card="">
       <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
@@ -49,7 +51,7 @@ export function BundleDiscountCard() {
             When a buyer takes 2 or more of your items in one checkout, each one is this much off. Never below the lowest price you set for an item.
           </p>
           <div role="radiogroup" aria-label="Bundle discount" className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" role="radio" aria-checked={chosen === null} variant={chosen === null ? "primary" : "outline"} className="rounded-full" onClick={() => setPick(0)}>
+            <Button type="button" size="sm" role="radio" aria-checked={offChosen} variant={offChosen ? "primary" : "outline"} className="rounded-full" onClick={() => setPick(0)}>
               Off
             </Button>
             {BUNDLE_PERCENTS.map((p) => (

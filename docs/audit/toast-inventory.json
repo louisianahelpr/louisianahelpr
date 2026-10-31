@@ -67,7 +67,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 792,
+      "line": 767,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -80,7 +80,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 806,
+      "line": 781,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4916,7 +4916,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 127,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

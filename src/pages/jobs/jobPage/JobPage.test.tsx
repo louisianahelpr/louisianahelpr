@@ -464,6 +464,18 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     expect(callers.sort()).toEqual(["src/components/job-card/activityActions/useLifecycleHandlers.ts", "src/pages/jobs/jobPage/usePageConfirmArrival.ts"]);
   });
 
+  // AUD31-77: marked done, the page said "Check the work and approve" over a lone "Manage job".
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     : isPoster && posterWait === "approve" |     : isPoster && false
+  it("once the Helpr marked it done, the button is Approve and release: it asks for the approve and opens the card", () => {
+    state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", helper_completed_at: "2026-10-28T15:00:00Z" };
+    state.party = true;
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Approve and release" }));
+    expect(faceRequests).toEqual([[arrived().id, "approve"]]);
+    expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${arrived().id}&manage=1`);
+  });
+
   it("keeps Manage job while there is nothing to confirm yet (on the way)", () => {
     state.job = { ...arrived(), helper_arrived_at: null };
     state.party = true;

@@ -10,7 +10,7 @@
  * @mutate supabase/functions/_shared/stalledCompletion.ts | so your payment is still on hold. | so your payment is still in escrow.
  * @mutate supabase/functions/_shared/notification-templates.ts | title: "Arrival confirmed", | title: "✅ Arrival confirmed",
  * @mutate supabase/functions/auto-expire-jobs/index.ts | link: `/post-job?rebook=${job.id}`, | link: "/post-job",
- * @mutate supabase/functions/_shared/declutterSellerEmail.ts | /declutter?tab=selling` | /declutter?view=selling`
+ * @mutate supabase/functions/_shared/declutterSellerEmail.ts | path: "/declutter?tab=selling", | path: "/declutter?view=selling",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -17,6 +17,9 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | return [...new Set([...FLOOR_CHOICES, current])].sort | return [...FLOOR_CHOICES].sort
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       qc.setQueryData(["declutter", "seller-defaults", userId], draft);\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" \|\| sellerDeliveryOpen); | const shown = SELLER_WAYS;
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   useLeaveWarning(unsaved && !save.isPending);\n |
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |     if (pending.current) toast( |     if (false) toast(
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |     if (!unsaved) return;\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -210,5 +213,37 @@ describe("Declutter settings", () => {
     expect(toast).not.toHaveBeenCalled();
     expect(radio("How much each evening", "20%")).toHaveAttribute("aria-checked", "true");
     expect(button).toBeEnabled();
+  });
+
+  // NIGHT-SET-Declutterse-8: edits were lost without a word on leaving.
+  it("an edit not saved says so, a closing tab asks first, and leaving says it wasn't saved", async () => {
+    const view = open();
+    await save();
+    expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull();
+    const untouched = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(untouched);
+    expect(untouched.defaultPrevented).toBe(false);
+    fireEvent.click(radio("How much each evening", "20%"));
+    expect(screen.getByText("Not saved yet. Tap Save to keep these.")).toBeInTheDocument();
+    const closing = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(closing);
+    expect(closing.defaultPrevented).toBe(true);
+    view.unmount();
+    expect(toast).toHaveBeenCalledWith("Your changes to listing defaults weren't saved.");
+  });
+
+  it("saved, or never touched: leaving says nothing", async () => {
+    const first = open();
+    await save();
+    first.unmount();
+    expect(toast).not.toHaveBeenCalled();
+    const view = open();
+    const button = await save();
+    fireEvent.click(radio("How much each evening", "20%"));
+    fireEvent.click(button);
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
+    await vi.waitFor(() => expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull());
+    view.unmount();
+    expect(toast).toHaveBeenCalledTimes(1);
   });
 });

@@ -172,6 +172,19 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_active: "This delivery has no Helpr on it right now.",
     task_not_found: DC.task_not_found,
   },
+  // The seller's one move of a Helpr's pickup (BUY-42, 20261031095846).
+  helpr_task_seller_move_pickup: {
+    account_restricted: DC.account_restricted,
+    already_moved: "You can move a Helpr's pickup once. Message the Helpr if this time still doesn't work.",
+    feature_disabled: DC.feature_disabled,
+    invalid_slot: "Pick a new time at least 2 hours away, inside your pickup times.",
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    problem_open: DC.problem_open,
+    task_not_active: "This delivery has no Helpr booked to pick it up right now.",
+    task_not_found: DC.task_not_found,
+    too_late: "The pickup time has started. Message the Helpr instead.",
+  },
   helpr_task_pickup_no_show: {
     account_restricted: DC.account_restricted,
     location_required: DC.location_required,

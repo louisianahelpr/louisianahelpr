@@ -217,6 +217,7 @@ export const es: Record<MsgKey, string> = {
   "profileGate.checkLabel": "La revisión del perfil",
   "profileGate.saveLabel": "Guardar el perfil",
   "signup.notifySubtitle": "Regístrese para recibir un aviso cuando llegue trabajo pagado.",
+  "signup.itemSubtitle": "Regístrese y le llevaremos directamente de vuelta a este artículo.",
   "zip.unknown": "No reconocemos ese código postal como de Louisiana. Los trabajos se asignan por parroquia, así que revíselo; si no, el trabajo cercano no le llegará.",
 
   // Delete account dialog (Settings, Finish your profile, the suspended screen)

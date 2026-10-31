@@ -114,6 +114,30 @@ await db.exec(`insert into auth.users (id, email) values ('bbbbbbbb-bbbb-bbbb-bb
 await record("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "5045551234", "call-3375550000");
 const gus = await tryQ(`select source, campaign from public.member_signup_sources where user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'`);
 check(!gus.error && gus[0]?.source === "other" && gus[0]?.campaign === null, `[fix] a phone number in a word is never kept (${JSON.stringify(gus[0])})`);
+// Review 10-31: a phone number written with separators, and a link-encoded email (%40), are dropped too.
+const formatted = [
+  ["c1000000-0000-0000-0000-000000000001", "555-123-4567", "spring", "a dashed phone number"],
+  ["c1000000-0000-0000-0000-000000000002", "(555) 123-4567", "spring", "a phone number in brackets"],
+  ["c1000000-0000-0000-0000-000000000003", "+1 555 123 4567", "spring", "a phone number with spaces and +1"],
+  ["c1000000-0000-0000-0000-000000000004", "jo%40x.com", "spring", "a link-encoded email (%40)"],
+  ["c1000000-0000-0000-0000-000000000005", "fmtcamp", "555-123-4567", "a dashed phone number as the campaign"],
+  ["c1000000-0000-0000-0000-000000000006", "fmtcamp", "(555) 123-4567", "a bracketed phone number as the campaign"],
+  ["c1000000-0000-0000-0000-000000000007", "fmtcamp", "+1 555 123 4567", "a +1 phone number as the campaign"],
+  ["c1000000-0000-0000-0000-000000000008", "fmtcamp", "jo%40x.com", "a link-encoded email as the campaign"],
+];
+for (const [id, src, camp, what] of formatted) {
+  await db.exec(`insert into auth.users (id, email) values ('${id}', 'f${id.slice(-1)}@mail.la')`);
+  await record(id, src, camp);
+  const r = await tryQ(`select source, campaign from public.member_signup_sources where user_id = '${id}'`);
+  const sourceIsPhoneOrEmail = src !== "fmtcamp";
+  const ok = !r.error && r[0] && (sourceIsPhoneOrEmail ? r[0].source === "other" && r[0].campaign === "spring" : r[0].source === "fmtcamp" && r[0].campaign === null);
+  check(ok, `[fix] ${what} is never kept (${JSON.stringify(r[0] ?? r.error)})`);
+}
+await db.exec(`insert into auth.users (id, email) values ('c1000000-0000-0000-0000-000000000009', 'f9@mail.la')`);
+await record("c1000000-0000-0000-0000-000000000009", "fall-2026", "post-12-x");
+const fall = await tryQ(`select source, campaign from public.member_signup_sources where user_id = 'c1000000-0000-0000-0000-000000000009'`);
+check(!fall.error && fall[0]?.source === "fall-2026" && fall[0]?.campaign === "post-12-x",
+  `[keep] a word with a few digits (a year, a post number) is still kept (${JSON.stringify(fall[0])})`);
 
 const cols = await tryQ(`select column_name from information_schema.columns where table_schema = 'public' and table_name = 'member_signup_sources' order by 1`);
 check(!cols.error && cols.map((c) => c.column_name).join(",") === "campaign,recorded_at,source,user_id",

@@ -18,6 +18,11 @@
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | format('The delivery of "%s" was cancelled. You do not need to go.', t.title), '/declutter?tab=deliver', | 'A delivery you took was cancelled. You do not need to go.', '/declutter?tab=deliver',
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | t.title), '/declutter?tab=deliver', t.customer_id); | t.title), '/declutter?view=deliver', t.customer_id);
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |     'The buyer took back their refund request. Your payout goes ahead as usual.', |     'The buyer took back their refund request. You''re paid when the sale is final, 24 hours after the handover.',
+ * @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql |     '/declutter?tab=deliver', NULL); |     '/declutter?view=deliver', NULL);
+ * @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql |            public.declutter_order_items_named(o.id)), |            'the item'),
+ * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     '/declutter?tab=selling', v_uid); |     '/declutter?tab=selling', NULL);
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |   o := public.declutter_lock_order(v_order); |   SELECT * INTO o FROM public.declutter_orders WHERE id = v_order;
+ * @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql | '/declutter?tab=buying', o.seller_id);  -- AUD31-34 | '/declutter?tab=buying', NULL);  -- AUD31-34
  * @mutate supabase/migrations/20261030170443_declutter_question_kind.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
  */
 import { describe, it, expect } from "vitest";
@@ -95,6 +100,41 @@ describe("Declutter notices name the item: the sweep, the pickup email, the Help
     const call = wr.slice(at, wr.indexOf(";", at));
     expect(call).not.toMatch(/24 hours after the handover|sale is final/);
     expect(call).toMatch(/'\/declutter\?tab=selling'/);
+  });
+
+  it("every refund, problem and cancel notice to the buyer or seller follows a lock of its order and names the other side (AUD31-34)", () => {
+    // declutter_notify_strict names the item in front of the message (declutter_notice_names_item) only when the
+    // transaction recorded the order (declutter_lock_order, or a write to the order: trg_declutter_orders_a_notice_about)
+    // AND the notice's counterpart is the order's other party. Each sender the audit listed must give it both.
+    const SENDERS = ["declutter_ask_refund", "declutter_answer_refund", "declutter_accept_refund_with_return",
+      "declutter_report_problem", "declutter_admin_decide_problem", "declutter_admin_decide_delivery_damage",
+      "declutter_close_paid_order"];
+    const OTHER: Record<string, RegExp> = { "o.buyer_id": /^(?:o\.seller_id|v_uid)$/, "o.seller_id": /^(?:o\.buyer_id|v_uid)$/ };
+    const bad: string[] = [];
+    let checked = 0;
+    for (const fn of SENDERS) {
+      const body = code(fn);
+      for (const m of body.matchAll(/public\.declutter_notify(?:_strict)?\(/g)) {
+        const args = topArgs(body, m.index! + m[0].length - 1);
+        const want = OTHER[args[0]];
+        if (!want) continue; // a Helpr or admin notice: no buyer/seller pair to name the item from
+        checked++;
+        const before = body.slice(0, m.index!);
+        const recorded = /public\.declutter_lock_order\(/.test(before) || /UPDATE public\.declutter_orders\s+SET/.test(before);
+        if (!recorded || !want.test(args[5] ?? "")) bad.push(`${fn}: ${args[2]} to ${args[0]} (other ${args[5] ?? "none"}, order recorded ${recorded})`);
+      }
+    }
+    // Inventory floor: the seven senders write at least a dozen buyer/seller notices.
+    expect(checked).toBeGreaterThan(11);
+    expect(bad).toEqual([]);
+    // A Helpr notice has no buyer/seller pair, so the central rule never names it: the damage decision names it itself
+    // (20261031184929).
+    const dd = code("declutter_admin_decide_delivery_damage");
+    const at = dd.indexOf("'Delivery decided: damaged'");
+    expect(at).toBeGreaterThan(0);
+    const call = dd.slice(at, dd.indexOf(";", at));
+    expect(call).toMatch(/public\.declutter_order_items_named\(o\.id\)/);
+    expect(call).toMatch(/'\/declutter\?tab=deliver'/);
   });
 
   it("a notice whose title is built at run time still files under a Declutter kind (AUD31-22)", () => {

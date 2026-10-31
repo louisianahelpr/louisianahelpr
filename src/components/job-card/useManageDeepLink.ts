@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { jobIsUnfundedDraft } from "./activityFilters";
+import { hasFaceAction } from "./faceActionRequest";
 
 /** On Posted's list: everything but a never-paid draft (jobIsUnfundedDraft, Q1668). */
 export const onPostedList = (j: { payment_status?: string | null }): boolean => !jobIsUnfundedDraft(j);
@@ -50,7 +52,10 @@ export function useManageDeepLink(
   idFromUrl: string | null,
   postedJobs: ReadonlyArray<{ id: string }>,
   cards: { expandedJobIds: Set<string>; toggleExpandedJobId: (id: string) => void },
+  /** Posted's `&manage=1`: an old link opens the job page instead (useManageLinkOpensJobPage below). */
+  opts: { jobPageFirst?: boolean } = {},
 ): void {
+  useManageLinkOpensJobPage(opts.jobPageFirst ? idFromUrl : null);
   const [target, setTarget] = useState(idFromUrl);
   const done = useRef<string | null>(null);
   useEffect(() => {
@@ -76,4 +81,18 @@ export function useOpenWorkingDeepLink(
   const jobId = params?.get("open") === "1" ? params.get("job") : null;
   const refs = useMemo(() => appliedApps.map((a) => ({ id: a.job_id })), [appliedApps]);
   useManageDeepLink(jobId, refs, cards);
+}
+
+/**
+ * THE MANAGE JOB SCREEN IS GONE (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT): its actions are on the job page. An old
+ * `/posts?highlight=<id>&manage=1` link (a chat card, an email, a notification already on a phone) opens /jobs/<id>.
+ * Only a link the job page itself sent with a request for the card (approve, cancel, edit: faceActionRequest) still
+ * opens the card, whose own control answers it. Read once, on the first render, like the links above.
+ */
+export function useManageLinkOpensJobPage(idFromUrl: string | null): void {
+  const navigate = useNavigate();
+  const [target] = useState(() => (idFromUrl && !hasFaceAction(idFromUrl) ? idFromUrl : null));
+  useEffect(() => {
+    if (target) navigate(`/jobs/${encodeURIComponent(target)}`, { replace: true });
+  }, [target, navigate]);
 }

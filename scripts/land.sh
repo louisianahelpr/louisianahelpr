@@ -405,14 +405,17 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       ln -s "$MAIN_TREE/.env" .env
       echo "land: linked $MAIN_TREE/.env for the build."
     fi
-    # No .env anywhere (a cloud session): build with the values CI's own
-    # budget run uses (bundle-size.yml), so the measurement is the same one.
-    if [ ! -e .env ] && [ -z "${VITE_SUPABASE_URL:-}" ]; then
-      export VITE_SUPABASE_PROJECT_ID=fncmgoasalhdgfwzhsqa
-      export VITE_SUPABASE_URL=https://fncmgoasalhdgfwzhsqa.supabase.co
-      export VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test_key_for_e2e_only
-      echo "land: no .env; building with bundle-size.yml's env for the budget."
-    fi
+    # ALWAYS build with the values CI's own budget run uses (bundle-size.yml: three
+    # literals, MapKit unset), whatever .env holds (LEAD-POSTS-BOOT-SHRINK, 10-31). The
+    # main checkout's .env has a 208-character JWT and a MapKit token: about 0.15 KB gz
+    # more than CI on the same code, so a route at its edge went red here and green in
+    # CI. These win over .env (Vite never overwrites a variable already set); an empty
+    # MapKit token reads as none, as in CI.
+    export VITE_SUPABASE_PROJECT_ID=fncmgoasalhdgfwzhsqa
+    export VITE_SUPABASE_URL=https://fncmgoasalhdgfwzhsqa.supabase.co
+    export VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test_key_for_e2e_only
+    export VITE_APPLE_MAPKIT_TOKEN=
+    echo "land: building with bundle-size.yml's env for the budget (not .env's values)."
     echo "land: building the bundle for the critical-path budget (Q178)."
     BUILD_LOG=$(mktemp "${TMPDIR:-/tmp}/land-vite-build.XXXXXX")
     if ! npx vite build >"$BUILD_LOG" 2>&1; then

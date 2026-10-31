@@ -312,6 +312,25 @@ describe("Manage a listing (board 158)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save price" }));
     await waitFor(() => expect(calls).toContainEqual(["price", "i1", 2500, 2000]));
   });
+
+  // NIGHT-SELL-Sellinglist-6: under the lowest was only said on Save, and the seller had to find the other box.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |       {(touched \|\| underFloor) && problem && ( |       {touched && problem && (
+  // @mutate src/components/declutter/DeclutterManageListing.tsx | onClick={() => setFloor(price)}> | onClick={() => setFloor(floor)}>
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |         ? `${formatPrice(priceCents)} is under your lowest price, ${formatPrice(floorC)}.` |         ? "Your lowest price must be at least $1 and no more than your price."
+  it("a price typed under the lowest is said at once, with a one-tap Also set lowest", async () => {
+    sheet();
+    fireEvent.click(await screen.findByText("Change price or lowest price"));
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "20" } });
+    expect(screen.getByRole("alert").textContent).toBe("$20 is under your lowest price, $30.");
+    fireEvent.click(screen.getByRole("button", { name: "Also set lowest to $20" }));
+    expect((screen.getByLabelText("Lowest you'll take") as HTMLInputElement).value).toBe("20");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Also set lowest/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save price" }));
+    await waitFor(() => expect(calls).toContainEqual(["price", "i1", 2000, 2000]));
+    expect(calls.length).toBeGreaterThan(0);
+  });
 });
 
 describe("Never above the listed price (authz/money review, 2026-10-20)", () => {

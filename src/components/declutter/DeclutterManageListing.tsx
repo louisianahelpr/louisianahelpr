@@ -316,9 +316,14 @@ function PriceEditor({
       ? "The price must be between $1 and $1,000."
       : priceCents > item.price_cents
         ? `You can lower the price, or raise it back up to ${formatPrice(item.price_cents)}, the price you listed it at.`
+        : floorC != null && floorC >= 100 && floorC > priceCents
+        ? `${formatPrice(priceCents)} is under your lowest price, ${formatPrice(floorC)}.`
         : floorC == null || floorC < 100 || floorC > priceCents
         ? "Your lowest price must be at least $1 and no more than your price."
         : null;
+  // NIGHT-SELL-Sellinglist-6: a price typed under the lowest is said at once (not only on Save), with a one-tap fix,
+  // so the seller isn't left to find the second box they never touched.
+  const underFloor = priceCents != null && priceCents >= 100 && priceCents <= item.price_cents && floorC != null && floorC >= 100 && floorC > priceCents;
   const save = useListingAction(
     async () => {
       await setListingPrice(item.id, priceCents!, floorC!);
@@ -353,8 +358,13 @@ function PriceEditor({
         </div>
         <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it.</p>
       </div>
-      {touched && problem && (
+      {(touched || underFloor) && problem && (
         <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{problem}</p>
+      )}
+      {underFloor && (
+        <button type="button" className="min-h-11 text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}>
+          Also set lowest to {formatPrice(priceCents ?? 0)}
+        </button>
       )}
       <SheetFooter>
         <SheetSecondaryAction type="button" onClick={onBack} disabled={save.isPending}>

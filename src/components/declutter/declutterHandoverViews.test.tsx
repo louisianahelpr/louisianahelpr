@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
  * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
@@ -1454,6 +1454,34 @@ describe("DB-2: no I got it while a problem is open", () => {
       expect(screen.getByText(/^Pickup:/)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Move the pickup" })).toBeNull();
       expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
+      r.unmount();
+    }
+  });
+
+  // NIGHT-BUYINGopenpr-7: "Pick a daytime slot. Bring someone with you" showed under a held no-show order, both sides.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips | {order.handover === "pickup_home" && !problem && <DoorPickupTips
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips | {order.handover === "pickup_home" && !noShowWaiting && <DoorPickupTips
+  it("openpr-7: a held door-pickup order shows no pickup tips, on either side", async () => {
+    state.bookings = [slot(30)];
+    const before = show([line({ my_side: "buyer" })]);
+    expect(await screen.findByText("Pickup at the door")).toBeInTheDocument();
+    before.unmount();
+    // The seller's 24 hours after a no-show report (no problem row read yet).
+    state.handover = { no_show_reported_at: "2026-10-30T12:00:00Z", no_show_answer_by: "2026-10-31T12:00:00Z" };
+    for (const my_side of ["buyer", "seller"] as const) {
+      const r = show([line({ my_side })]);
+      await screen.findByText(/has until|^Answer by/);
+      expect(screen.queryByText("Pickup at the door")).toBeNull();
+      expect(screen.queryByText(/Bring someone with you|Have someone home with you/)).toBeNull();
+      r.unmount();
+    }
+    // A problem open, no no-show report.
+    state.handover = null;
+    state.problems = [damaged];
+    for (const my_side of ["buyer", "seller"] as const) {
+      const r = show([line({ my_side })]);
+      await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+      expect(screen.queryByText("Pickup at the door")).toBeNull();
       r.unmount();
     }
   });

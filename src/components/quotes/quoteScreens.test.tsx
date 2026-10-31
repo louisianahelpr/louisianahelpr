@@ -272,6 +272,25 @@ describe("the poster's quotes on a request", () => {
     });
   });
 
+  // AUD31-63: Decline ended the quote on one tap, with no ask first.
+  // @mutate src/components/quotes/QuoteAnswerControls.tsx | onClick={() => setConfirmDecline(true)} | onClick={() => answer.mutate("decline")}
+  it("Decline asks first; only the confirm sends it, and Keep it sends nothing", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [QUOTE];
+    state.rpc.respond_to_job_quote = "declined";
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    fireEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    expect(await screen.findByText("Decline $250?")).toBeInTheDocument();
+    expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Keep it" }));
+    await waitFor(() => expect(screen.queryByText("Decline $250?")).not.toBeInTheDocument());
+    expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Decline quote" }));
+    await waitFor(() => expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(true));
+    expect(state.calls.find((c) => c.fn === "respond_to_job_quote")?.args).toMatchObject({ p_action: "decline" });
+  });
+
   it("a counter sends whole dollars as cents; a price outside $10-$1,000 cannot be sent", async () => {
     state.rpc.get_my_quote_requests = [REQ];
     state.rpc.get_quotes_for_request = [QUOTE];

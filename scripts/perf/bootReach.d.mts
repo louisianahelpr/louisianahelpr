@@ -17,3 +17,4 @@ export function signedInSplit(root: string): {
   homeOff: Set<string>;
 };
 export function homeFirstScreenRoots(root: string): string[];
+export function guestBrowseOnlyModules(root: string): Set<string>;

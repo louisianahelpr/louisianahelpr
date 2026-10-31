@@ -20,6 +20,15 @@ const h = vi.hoisted(() => ({
   geocode: vi.fn(),
 }));
 
+// LEAD-BUNCH-34-SLOW: no early photo uploads here (they would reach prod storage); declutterBunchEarlyUpload.test.ts pins them.
+vi.mock("@/lib/declutter/bunchStage", () => ({
+  BunchStager: class {
+    idFor() { return undefined; }
+    path() { return Promise.resolve(null); }
+    used() {}
+    sync() {}
+  },
+}));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("idb-keyval", () => ({ get: async () => undefined, set: async () => {}, del: async () => {}, delMany: async () => {}, keys: async () => [], createStore: () => ({}) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));

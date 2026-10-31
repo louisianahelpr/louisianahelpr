@@ -38,7 +38,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |         {item.sizeUnknown && ( |         {true && (
  * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null; |   return null;
  * The moving sale:
- * @mutate src/lib/declutter/bunch.ts |         id = choices.moveOutOn\n          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n          : await deps.createDraft(fields); |         id = await deps.createDraft(fields);
+ * @mutate src/lib/declutter/bunch.ts |         id = choices.moveOutOn\n          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n          : await createWithEarlyId(deps, fields, early?.idFor(it.key)); |         id = await createWithEarlyId(deps, fields, early?.idFor(it.key));
  * @mutate src/components/declutter/DeclutterBunchView.tsx | { ...choices.choices, moveOutOn: moveDate \|\| null }, | choices.choices,
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const showMove = movingOpen && (moving \|\| !!moveDate); |   const showMove = false;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (moveDate ? moveDateProblem(moveDate, today) : null)\n |
@@ -60,6 +60,15 @@ const state = vi.hoisted(() => ({
   hold: null as Promise<void> | null,
 }));
 
+// LEAD-BUNCH-34-SLOW: no early photo uploads here (they would reach prod storage); declutterBunchEarlyUpload.test.ts pins them.
+vi.mock("@/lib/declutter/bunchStage", () => ({
+  BunchStager: class {
+    idFor() { return undefined; }
+    path() { return Promise.resolve(null); }
+    used() {}
+    sync() {}
+  },
+}));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));

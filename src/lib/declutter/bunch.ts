@@ -30,6 +30,7 @@ import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removeP
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
+import type { EarlyUploads } from "@/lib/declutter/bunchStage";
 import { priceChoiceToSave } from "@/components/declutter/sellForm";
 
 /** Photos per photo-tool call (the server's GROUP_MAX_PHOTOS). */
@@ -781,6 +782,24 @@ export function watchBunchRun(userId: string, watcher: BunchRunWatcher): { done:
  * failure is its own; the rest carry on. The pickup times and the
  * confirmations are the caller's (once for the batch, before this runs).
  */
+/** A turn each, in the order asked: the promise gives the function that ends the turn. */
+function oneAtATime(): () => Promise<() => void> {
+  let tail: Promise<void> = Promise.resolve();
+  return () => {
+    let end!: () => void;
+    const before = tail;
+    tail = new Promise<void>((r) => (end = r));
+    return before.then(() => end);
+  };
+}
+
+/** A new draft, with the id its photos already went up under when there is one. */
+const createWithEarlyId = (deps: ListDeps, fields: Parameters<typeof createDraft>[0], withId: string | undefined) =>
+  withId ? deps.createDraft(fields, withId) : deps.createDraft(fields);
+
+/** LEAD-BUNCH-34-SLOW: items made ready side by side, as many as publishMany lists at once. */
+export const PREPARE_AT_ONCE = 3;
+
 export async function listBunch(
   sellerId: string,
   items: BunchItem[],
@@ -794,6 +813,11 @@ export async function listBunch(
   choices: BunchChoices = NO_CHOICES,
   /** Each photo as it starts to go, and again if it is tried again. */
   onPhoto?: (progress: PhotoProgress) => void,
+  /**
+   * LEAD-BUNCH-34-SLOW: photos already sent while the seller sorted (BunchStager). A new draft is created with the id
+   * they went up under, and each such photo is only attached.
+   */
+  early?: EarlyUploads,
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
   const photosToSend = items.reduce((n, it) => {
@@ -802,7 +826,7 @@ export async function listBunch(
   }, 0);
   let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
-  const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
+  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
   const held = items.flatMap((it) => (it.draftId ? [it.draftId] : []));
   let statuses: Map<string, string> | null = null;
@@ -814,15 +838,20 @@ export async function listBunch(
       console.warn("[declutter] could not read the drafts' statuses before listing", err);
     }
   }
-  for (const [i, original] of items.entries()) {
+  let finished = 0;
+  // A photo sent whole goes one at a time across the run (the phone's upload is the limit, and the owner's photos timed
+  // out when they raced, 10-30); an item keeps the turn until its photos are done, so they go in order. Only attaching a
+  // photo already up (early) needs no turn.
+  const uploadTurn = oneAtATime();
+  const prepareOne = async (i: number, original: BunchItem): Promise<void> => {
     let it = original;
     if (it.draftId && statuses) {
       const status = statuses.get(it.draftId);
       if (status === "live" || status === "pending_review") {
         out.set(it.key, { key: it.key, title: it.title, status, id: it.draftId });
         onStep(it.key, null);
-        onProgress(i + 1, total);
-        continue;
+        onProgress(++finished, total);
+        return;
       }
       if (status === undefined) {
         // Its draft is gone (taken down under Selling). The seller still has it on the list, so it gets a new one.
@@ -831,8 +860,8 @@ export async function listBunch(
       } else if (status !== "draft") {
         out.set(it.key, { key: it.key, title: it.title, error: new Error("item_not_a_draft"), draftId: it.draftId });
         onStep(it.key, null);
-        onProgress(i + 1, total);
-        continue;
+        onProgress(++finished, total);
+        return;
       }
     }
     let id: string | null = it.draftId ?? null;
@@ -863,7 +892,7 @@ export async function listBunch(
       } else {
         id = choices.moveOutOn
           ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
-          : await deps.createDraft(fields);
+          : await createWithEarlyId(deps, fields, early?.idFor(it.key));
         onStep(it.key, { draftId: id });
       }
       const uploaded = { ...it.uploaded };
@@ -874,44 +903,74 @@ export async function listBunch(
         delete uploaded[k];
         onStep(it.key, { uploaded: { ...uploaded } });
       }
-      for (const k of it.photoKeys) {
-        if (k in uploaded) continue;
-        const f = photos.get(k);
-        if (!f) throw new Error("photo_not_uploaded");
-        photosStarted += 1;
-        const progress = { itemName: it.title.trim(), photo: photosStarted, of: photosToSend };
-        onPhoto?.({ ...progress, retrying: false });
+      const draftId = id;
+      const sendPhotos = async () => {
+        let endTurn: (() => void) | null = null;
         try {
-          // One at a time, in order: the phone's upload speed is the limit, so two at once finish no sooner, and each
-          // photo takes the next place on the listing. Out of tries, this item stops here, so a later photo never takes
-          // this one's place; the run goes on to the next item.
-          uploaded[k] = onPhoto ? await deps.addPhoto(sellerId, id, f, { onRetry: () => onPhoto({ ...progress, retrying: true }) }) : await deps.addPhoto(sellerId, id, f);
-        } catch (err) {
-          onStep(it.key, { failedPhoto: k });
-          throw err;
+          for (const k of it.photoKeys) {
+            if (k in uploaded) continue;
+            const f = photos.get(k);
+            if (!f) throw new Error("photo_not_uploaded");
+            // LEAD-BUNCH-34-SLOW: a photo already in this draft's folder is only attached (the id it went up under).
+            const uploadedPath = (await early?.path(draftId, k)) ?? undefined;
+            if (!uploadedPath && !endTurn) endTurn = await uploadTurn();
+            photosStarted += 1;
+            const progress = { itemName: it.title.trim(), photo: photosStarted, of: photosToSend };
+            onPhoto?.({ ...progress, retrying: false });
+            try {
+              // One at a time, in order (uploadTurn): the phone's upload speed is the limit, so two at once finish no sooner, and each
+              // photo takes the next place on the listing. Out of tries, this item stops here, so a later photo never takes
+              // this one's place; the run goes on to the next item.
+              const hooks = { ...(onPhoto ? { onRetry: () => onPhoto({ ...progress, retrying: true }) } : {}), ...(uploadedPath ? { uploadedPath } : {}) };
+              uploaded[k] = Object.keys(hooks).length > 0 ? await deps.addPhoto(sellerId, draftId, f, hooks) : await deps.addPhoto(sellerId, draftId, f);
+              early?.used(draftId, k);
+            } catch (err) {
+              // A try that failed may have removed that copy: the next try uploads the photo afresh.
+              early?.used(draftId, k);
+              onStep(it.key, { failedPhoto: k });
+              throw err;
+            }
+            onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) });
+          }
+        } finally {
+          endTurn?.();
         }
-        onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) });
-      }
-      // A free item is picked up from the porch only (the free checkout's one way).
-      await deps.setHandovers(id, it.free ? ["porch"] : ways);
-      if (!it.free) await deps.setDropPct(id, choice.dropPct);
-      let keepUpFailed = false;
-      if (choices.keepUp) {
+      };
+      // LEAD-BUNCH-34-SLOW: the draft's settings need none of its photos, so they go while the photos are attached.
+      const settle = async () => {
+        // A free item is picked up from the porch only (the free checkout's one way).
+        await deps.setHandovers(draftId, it.free ? ["porch"] : ways);
+        if (!it.free) await deps.setDropPct(draftId, choice.dropPct);
+      };
+      const keepUp = async () => {
+        if (!choices.keepUp) return false;
         try {
-          await deps.setKeepUp(id, true);
+          await deps.setKeepUp(draftId, true);
+          return false;
         } catch (err) {
           // Not a blocker, as on the single form: the item still lists, and the screen says this one wasn't turned on.
           console.warn("[declutter] could not turn on Keep it up", err);
-          keepUpFailed = true;
+          return true;
         }
-      }
-      prepared.push({ key: it.key, title: it.title, id, keepUpFailed });
+      };
+      const [, , keepUpFailed] = await Promise.all([sendPhotos(), settle(), keepUp()]);
+      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
     }
-    onProgress(i + 1, total);
-  }
+    onProgress(++finished, total);
+  };
+  // LEAD-BUNCH-34-SLOW: a few items get ready at once (each one's draft, photos and settings are its own), in order.
+  let nextItem = 0;
+  const readyWorker = async () => {
+    while (nextItem < items.length) {
+      const i = nextItem++;
+      await prepareOne(i, items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, items.length) }, readyWorker));
+  prepared.sort((a, b) => a.at - b.at);
   if (prepared.length > 0) {
     // LEAD-BUNCH-34-SLOW: listed a few at once, so they finish in any order; each one's own step is saved as it goes.
     const results = await deps.publishMany(prepared.map((p) => p.id), (done, _total, index) => {

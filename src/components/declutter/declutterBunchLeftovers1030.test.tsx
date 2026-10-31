@@ -26,6 +26,15 @@ const state = vi.hoisted(() => ({
   published: [] as string[][],
 }));
 
+// LEAD-BUNCH-34-SLOW: no early photo uploads here (they would reach prod storage); declutterBunchEarlyUpload.test.ts pins them.
+vi.mock("@/lib/declutter/bunchStage", () => ({
+  BunchStager: class {
+    idFor() { return undefined; }
+    path() { return Promise.resolve(null); }
+    used() {}
+    sync() {}
+  },
+}));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => state.desktop }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));

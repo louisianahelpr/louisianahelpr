@@ -273,6 +273,7 @@ const EXEMPT: Record<string, string> = {
   "execute-dispute-split/index.ts::stripe.charges.retrieve(charge)": REREAD,
   "execute-dispute-split/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
   "instant-payout/index.ts::stripe.accounts.retrieve()": PLATFORM,
+  "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })#2": REREAD,
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
   // Q1390: the crew block-fee charge link, read after the main loop has
   // already retrieved and classified this job's PaymentIntent.

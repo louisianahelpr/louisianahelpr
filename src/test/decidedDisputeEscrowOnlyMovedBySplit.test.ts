@@ -108,6 +108,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "pays out the Helpr's connected-account balance (money already transferred) and its fee",
   },
+  "supabase/functions/_shared/instantPayoutFeeReturn.ts": {
+    kind: "not-job-escrow",
+    why: "Jobs audit 54a: reverses only an instant cash-out's own fee transfer (metadata.instant_payout_id), money that left the Helpr's connected balance, never a job's escrow",
+  },
   "supabase/functions/cash-out-credits/index.ts": {
     kind: "not-job-escrow",
     why: "transfers from the credits ledger, not from a job's charge",

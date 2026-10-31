@@ -356,6 +356,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   payment_review: "This payment can't go through right now. Please contact support.",
   tip_helpr_no_payout: "This Helpr hasn't set up their payout account yet and cannot receive tips at this time.",
   tip_helpr_held: "This Helpr can't receive tips right now. Please try again later.",
+  tip_waits_on_identity: "This Helpr can receive tips once verified. Nothing was charged.",
   tip_check_failed: "Could not verify the Helpr's payout account. Please try again.",
   tip_not_sent: "Your tip couldn't be sent, so nothing was charged. Please try again later.",
   tip_already_paid: "This tip already went through. Thank you!",

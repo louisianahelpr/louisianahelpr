@@ -17,6 +17,8 @@ describe("Help's account answer follows the identity_check switch", () => {
   });
   it("on: the ID check is named", () => {
     setIdentityCheckOn(true);
-    expect(answer()).toMatch(/quick identity check through Stripe/);
+    // Owner 2026-10-30 (ID check details): once per person, at the moments it is asked (B49, ported 10-31).
+    expect(answer()).toMatch(/We ask for your ID once: when you post a job, when you're hired, or before your first payout/);
+    expect(answer()).toMatch(/claim a free item or take a delivery\.$/);
   });
 });

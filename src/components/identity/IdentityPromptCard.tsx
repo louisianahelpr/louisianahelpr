@@ -1,6 +1,6 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { ShieldCheck } from "lucide-react";
-import { identityView, needsIdentityCheck, openIdentityCheck, useMyIdentityProfile, type IdentityCheckReason } from "@/lib/identityCheck";
+import { identityView, openIdentityCheck, type IdentityCheckReason } from "@/lib/identityCheck";
 
 /** The prompt's line, honest about where the check stands (the sheet's states). */
 const LINE: Record<string, { title: string; body: string; cta: string | null }> = {
@@ -21,10 +21,10 @@ const LINE: Record<string, { title: string; body: string; cta: string | null }> 
 };
 
 /**
- * The Stripe Identity prompt (owner 2026-10-21) on Home and on a job card, for
- * a member who still needs the check and has a job in play. Callers decide
- * WHEN (needsIdentityCheck plus their own "has an active job"); this says where
- * the check stands and opens the one ID sheet. `compact` is the job-card line.
+ * The Stripe Identity line on a hired Helpr's job card (owner 2026-10-30: never
+ * on Home, a checklist or a posted job). The caller decides WHEN
+ * (needsIdentityCheck on an active hire); this says where the check stands and
+ * opens the one ID sheet.
  */
 export function IdentityPromptCard({
   idvStatus,
@@ -68,15 +68,4 @@ export function IdentityPromptCard({
       )}
     </section>
   );
-}
-
-/**
- * The poster's line on an ACTIVE posted job (open, booked or underway) while
- * they still need Stripe Identity: their next post waits on it (owner
- * 2026-10-21). Never anything on this job's own confirm or release.
- */
-export function PosterIdentityLine({ status }: { status: string }) {
-  const me = useMyIdentityProfile();
-  if (!["open", "accepted", "in_progress"].includes(status) || !needsIdentityCheck(me)) return null;
-  return <IdentityPromptCard compact reason="post" idvStatus={me?.idv_status} />;
 }

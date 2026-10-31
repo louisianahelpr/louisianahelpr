@@ -105,11 +105,11 @@ export const FEATURE_SWITCH_KEYS = [
   // update_onboarding / reset with 409 payout_setup_paused. An admin sets it
   // to Everyone to bring setup back.
   "payout_setup",
-  // ID verification (owner ruling 2026-10-23: "just remove the verify id
-  // entirely, we will move to paypal"). Created OFF by 20261023213857, and OFF
-  // means no ID check anywhere: identity_check_exempt() is true and
-  // helper_accept_missing() drops 'stripe_id'; the app shows no ID prompt
-  // (useIdentityCheckOn). An admin turns it back on for a new provider.
+  // ID verification (owner's rule 2026-10-30: Stripe Identity, once per person;
+  // payouts stay on Stripe). Created OFF by 20261023213857, and OFF means no ID
+  // check anywhere: identity_check_exempt() is true and helper_accept_missing()
+  // drops 'stripe_id'; the app shows no ID prompt (useIdentityCheckOn). An admin
+  // turns it on once one real check has worked.
   "identity_check",
   // PayPal payments, Plan A (owner 2026-10-23, after Stripe closed the platform
   // account; design ~/.lh-wt/paypal-design.md). Created OFF by 20261023223419.

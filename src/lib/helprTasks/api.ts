@@ -12,6 +12,7 @@
  * the server's code; screens word it with declutterErrorMessage (the codes are
  * listed in src/lib/declutter/errors.ts with the migration that raises them).
  */
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
@@ -255,7 +256,11 @@ export async function fetchSamePickupSlot(taskId: string): Promise<string | null
 
 /** Take a task with a 30-minute pickup time (inside the source's pickup times). */
 export async function acceptTask(taskId: string, pickupSlotStartIso: string): Promise<void> {
-  data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => rpcErrorMessage("helpr_task_accept", e));
+  data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => {
+    // A delivery Helpr verifies when taking a delivery (owner 2026-10-30): the one ID sheet, and the job stays open.
+    if (identityRefusal(e) === "deliver") openIdentityCheck("deliver");
+    return rpcErrorMessage("helpr_task_accept", e);
+  });
 }
 
 /** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike, unless the seller moved the time. */

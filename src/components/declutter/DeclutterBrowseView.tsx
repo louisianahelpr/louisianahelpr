@@ -133,8 +133,15 @@ function NothingForSaleActions() {
 
 const BROWSE_URL_WAIT_MS = 300;
 
-export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
+/**
+ * userId null: a guest (BUY-16, owner 10-30 "Guests see Declutter Browse and item pages; sign up to buy or offer"). A
+ * guest reads the listings, their photos and drop columns (the anon policies of 20261031060656); the hearts, saved
+ * searches, bundle chips and the map read member-only data (declutter_watchlist, saved searches, and the
+ * declutter_bundle_sellers / declutter_map_pins RPCs granted to authenticated only), so a guest gets none of them.
+ */
+export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
   const desktop = useIsWebDesktop();
+  const member = userId !== null;
   const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
@@ -153,12 +160,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
   // Phone: the list or the map (the sheet's View). Desktop: the map column shown or hidden.
   const [phoneView, setPhoneView] = useState<"list" | "map">("list");
-  const [mapVisible, setMapVisible] = useState<boolean>(() => safeStorage.getItem(MAP_KEY) !== "0");
+  const [mapChoice, setMapChoice] = useState<boolean>(() => safeStorage.getItem(MAP_KEY) !== "0");
+  // BUY-16: no map for a guest (its pins are a member-only read).
+  const mapVisible = member && mapChoice;
   const toggleMap = useCallback(() => {
-    const next = !mapVisible;
-    setMapVisible(next);
+    const next = !mapChoice;
+    setMapChoice(next);
     safeStorage.setItem(MAP_KEY, next ? "1" : "0");
-  }, [mapVisible]);
+  }, [mapChoice]);
   const fill = useFillHeight();
 
   // No location prompt on landing: miles come from what we already know, and the device is asked only from the
@@ -203,16 +212,16 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   });
   // D-NEW12: the sellers on this page with a bundle discount on (one read; no chip until it is deployed).
   const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
-  const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0, placeholderData: keepPreviousData });
+  const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, placeholderData: keepPreviousData });
   // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
   const qc = useQueryClient();
-  const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
+  const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId ?? ""), enabled: member });
   const toggleWatch = useMutation({
     mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const mapShown = desktop ? mapVisible : phoneView === "map";
+  const mapShown = desktop ? mapVisible : member && phoneView === "map";
   // The pins are read only while a map is on screen.
   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 });
 
@@ -245,7 +254,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
             <InlineListSearch value={query} onChange={setQuery} label="Search items" />
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
-            <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />
+            {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
         ),
       }
@@ -270,7 +279,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
       filterCount={filterCount}
       shown={rows.length}
       onClearAll={clearAll}
-      view={desktop ? undefined : { value: phoneView, set: setPhoneView }}
+      view={desktop || !member ? undefined : { value: phoneView, set: setPhoneView }}
     />
   );
 
@@ -295,7 +304,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
   } else if (listLoading) {
     // ONE PAINT: the origin line and the cards arrive together (Q?declutter-settle: CLS 0.0322 at 375 on prod).
     body = <DeclutterBrowseBones map={desktop && mapVisible} full={desktop && !mapVisible} />;
-  } else if (!desktop && phoneView === "map") {
+  } else if (!desktop && mapShown) {
     // DA-13: the map's way back is on the map, not only inside Filters > View (where the map itself stays, owner 2026-10-20).
     body = (
       <div className="space-y-2">
@@ -314,7 +323,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
             the filter sheet. Guard: src/test/browseCategoryGroups.test.tsx. */}
         {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
         {/* Free can't be kept yet: saved without it, the search would alert on everything else in the category (BUY-13). */}
-        {!filters.freeOnly && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
+        {member && !filters.freeOnly && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
           <SaveSearchButton
             userId={userId}
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}
@@ -355,11 +364,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
                   firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
                   tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={bundles.data?.has(item.seller_id) ?? false}
-                  save={{
+                  save={member ? {
                     on: watching.data?.has(item.id) ?? false,
                     toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
                     pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
-                  }}
+                  } : undefined}
                 />
               </li>
             ))}

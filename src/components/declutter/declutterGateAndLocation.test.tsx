@@ -406,7 +406,7 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |         count: listLoading \|\| preview \|\| items.isError ? undefined : rows.length, |         count: undefined,
     // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |     body = desktop && mapVisible ? ( |     body = false ? (
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop \|\| !member ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
     screenWidth.desktop = true;
     twoItems();
     try {
@@ -448,7 +448,7 @@ describe("Declutter location ask", () => {
 
   it("phone: search and filters end the tabs row, before the gear, with no row of their own; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && phoneView === "map") { |   } else if (false) {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
     // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     twoItems();
     pins.reads = 0;

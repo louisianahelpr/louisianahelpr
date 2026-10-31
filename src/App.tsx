@@ -272,7 +272,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

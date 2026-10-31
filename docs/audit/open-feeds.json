@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-31T22:36Z",
+  "measured_at": "2026-10-31T23:16Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 3802,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41248570296",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41251391375",
         "runTruncated": false
       },
       {
@@ -581,19 +581,19 @@
         "issue": null
       },
       {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
         "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -645,19 +645,19 @@
         "issue": null
       },
       {
-        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: payout_setup_incomplete",
-        "issue": null
-      },
-      {
         "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load deliveries.",
+        "issue": null
+      },
+      {
+        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: payout_setup_incomplete",
         "issue": null
       },
       {
@@ -749,19 +749,19 @@
         "issue": null
       },
       {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
         "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
         "issue": null
       },
       {

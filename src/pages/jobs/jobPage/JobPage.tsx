@@ -207,7 +207,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             </div>
           )}
           {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
-          {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status) && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
+          {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
         </div>
 
         <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5">

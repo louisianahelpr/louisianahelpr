@@ -159,6 +159,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // only addition is the new job-filled notice to the other applicants, linking the Browse feed filtered to
   // the job's category ('/jobs?tab=browse' || CASE ... '&cat=' ...).
   "20261030150630_applicant_nudges_and_filled_notice.sql::notify_on_application",
+  // New member summary (owner pop-up 2026-10-30, audit E4 M8): notify_admins_new_member stops writing a notice (its
+  // claim row is the queue), so its '/admin?view=people&user=<id>' link goes on purpose. The admins' link lives on in
+  // send_new_member_daily_summary's one daily notice, '/admin?view=people' (several members, so the People list).
+  "20261031152136_new_member_daily_summary.sql::notify_admins_new_member",
 ]);
 
 /**

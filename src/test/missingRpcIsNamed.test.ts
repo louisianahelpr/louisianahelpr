@@ -32,7 +32,11 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // 59 since boards 66/172 slice 2 (2026-10-21): CancellationDialog asks poster_cancel_job the old way when the
 // deployed function predates p_expected_fee_cents. That PGRST202 names poster_cancel_job in its hint (it exists with
 // other parameters), the one case isMissingRpcNamed rightly refuses, so it stays a raw comparison until 130723 is live.
-const RAW_PGRST202_SITES = 59;
+// 60 since the pickup-place hours (2026-10-31, 20261031145652): porchPlaces.ts saves a place with p_windows and, while
+// the deployed declutter_save_porch_place still has only 7 arguments, saves the days alone. Same case as above: that
+// PGRST202 names declutter_save_porch_place in its hint (it exists with other parameters), so it stays a raw comparison
+// until 145652 is live (then drop the fallback and this back to 59).
+const RAW_PGRST202_SITES = 60;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

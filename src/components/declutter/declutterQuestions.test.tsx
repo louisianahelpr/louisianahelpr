@@ -27,7 +27,7 @@ import { resolve } from "node:path";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null };
+const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null, answerRefusal: null as Error | null };
 const toasts = vi.hoisted(() => ({ error: [] as unknown[] }));
 vi.mock("sonner", () => ({ toast: { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } } }));
 const state = { questions: [] as unknown[], seller: { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null } as unknown };
@@ -36,7 +36,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchQuestions: async () => state.questions,
   fetchSellerCard: async () => state.seller,
   askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); if (calls.askRefusal) throw calls.askRefusal; return "q9"; },
-  answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); return "2026-10-20"; },
+  answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); if (calls.answerRefusal) throw calls.answerRefusal; return "2026-10-20"; },
 }));
 
 const suggest = { calls: [] as string[], result: { reply: "Yes, it fits with the back seats down.", needsSeller: false } as { reply: string; needsSeller: boolean } | Error };
@@ -50,6 +50,7 @@ vi.mock("@/lib/declutter/aiReply", () => ({
 }));
 
 import { DeclutterQuestions, askedWhen } from "./DeclutterQuestions";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 const TODAY = new Date().toISOString();
 const QS = [
@@ -72,6 +73,7 @@ beforeEach(() => {
   calls.answer = [];
   calls.ask = [];
   calls.askRefusal = null;
+  calls.answerRefusal = null;
   toasts.error = [];
   suggest.calls = [];
   suggest.result = { reply: "Yes, it fits with the back seats down.", needsSeller: false };
@@ -155,8 +157,37 @@ describe("board 162: public questions", () => {
     // Shown is not sent.
     await new Promise((r) => setTimeout(r, 20));
     expect(calls.answer).toEqual([]);
-    fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post this answer" }));
     await waitFor(() => expect(calls.answer).toEqual([["q2", "Yes, it fits with the back seats down."]]));
+  });
+
+  // AUD31-29 (audit 2026-10-31): two buttons that post publicly at once had two names ("Send" on the suggested reply,
+  // "Post answer" under the box). Both say Post now, and no "Send" is left in the sheet.
+  // @mutate src/components/declutter/DeclutterSuggestedReply.tsx |             Post this answer\n |             Send\n
+  it("the suggested reply's button and the sheet's button both say Post (AUD31-29)", async () => {
+    const sheet = await openAnswerSheet();
+    await within(sheet).findByText("Suggested reply");
+    const names = within(sheet).getAllByRole("button").map((b) => b.textContent ?? "");
+    expect(names).toEqual(expect.arrayContaining(["Post this answer", "Post answer"]));
+    expect(names.filter((n) => /\bSend\b/.test(n))).toEqual([]);
+  });
+
+  // AUD31-30 (audit 2026-10-31): a refused answer was a toast over the answer box and the draft at 375.
+  // @mutate src/components/declutter/DeclutterQuestions.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},
+  it("a refused answer is said under the box, the draft stays, and typing clears it (AUD31-30)", async () => {
+    calls.answerRefusal = Object.assign(new Error("A phone number in the answer. Keep contact details out."), { code: "23514" });
+    const sheet = await openAnswerSheet();
+    const box = within(sheet).getByLabelText("Your answer");
+    fireEvent.change(box, { target: { value: "Call me at 555" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post answer" }));
+    const said = await within(sheet).findByRole("alert");
+    expect(said.textContent).toBe(declutterErrorMessage(calls.answerRefusal));
+    expect(said.textContent!.length).toBeGreaterThan(10);
+    expect(box).toHaveValue("Call me at 555");
+    expect(box.getAttribute("aria-describedby")).toBe(said.id);
+    expect(toasts.error).toEqual([]);
+    fireEvent.change(box, { target: { value: "Yes, it fits." } });
+    expect(within(sheet).queryByRole("alert")).toBeNull();
   });
 
   it("suggested reply: Edit fills the answer box and sends nothing", async () => {
@@ -172,7 +203,7 @@ describe("board 162: public questions", () => {
     suggest.result = { reply: "It is about ___ inches wide.", needsSeller: true };
     const sheet = await openAnswerSheet();
     expect(await within(sheet).findByText("Your listing doesn't say this. Fill in the blank before you post.")).toBeInTheDocument();
-    expect(within(sheet).queryByRole("button", { name: "Send" })).toBeNull();
+    expect(within(sheet).queryByRole("button", { name: "Post this answer" })).toBeNull();
     expect(within(sheet).getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(calls.answer).toEqual([]);
   });

@@ -341,7 +341,6 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/admin/settings/DonationPartnersCard.tsx": "one line inside the admin's Declutter partner charities card when the list read fails (Q2428); the card and its add form stay; not a screen",
   "components/declutter/DeclutterDonate.tsx": "one line on the haul-away card when the donation receipts read fails (Q2428); the card and its buttons stay; not a screen",
   "components/shops/ShopOrderCard.tsx": "one line inside a buyer's accepted order card where the pickup address goes (the order list itself loaded), with a Try again button",
-  "components/InstantPayoutDialog.tsx": "an inline error line inside the payout dialog, not a screen",
   "components/admin/AdminNotifications.tsx": "one admin-only <p> under a settings card",
   "components/admin/adminPayoutBatches/HeldForReview.tsx": "one admin-only <p> inside the held-for-review card on the admin money page (the page itself loaded)",
   "components/admin/settings/DeclutterProblemCase.tsx": "admin-only lines where a handover or Helpr evidence photo would be (moved from DeclutterProblemsCard, AL-4; the problem card itself loaded); each photo read is a signed URL, not a page load",

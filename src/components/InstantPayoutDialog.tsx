@@ -34,6 +34,8 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // NIGHT-JOBSRE4-4: the quote failed to load (no word from the server), so asking again may work.
+  const [quoteRetry, setQuoteRetry] = useState(false);
   // Jobs audit 54a: a failed cash-out replaces the offer. The old screen kept
   // "You receive $77.60" and a live Cash Out under a toast that faded.
   const [failure, setFailure] = useState<{ message: string; canRetry: boolean } | null>(null);
@@ -41,6 +43,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   const loadQuote = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setQuoteRetry(false);
     setFailure(null);
     setQuote(null);
     const { data, error } = await supabase.functions.invoke("instant-payout", {
@@ -51,9 +54,9 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
       // On a non-2xx the SDK's error.message is generic and `data` is null —
       // recover the edge function's real message (e.g. the below-$25 floor
       // notice) from the response body. See functionErrorMessage.
-      setError(
-        data?.error || (error ? await functionErrorMessage(error, "Couldn't load quote") : "Couldn't load quote")
-      );
+      const msg = data?.error || (error ? await functionErrorMessage(error, "") : "");
+      setError(msg || "We couldn't get your cash-out amount. Check your connection, then tap Try again.");
+      setQuoteRetry(!msg);
       return;
     }
     setQuote(data);
@@ -156,6 +159,11 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             }}
           >
             {error}
+            {quoteRetry && (
+              <div className="mt-3">
+                <DialogSecondaryAction onClick={() => void loadQuote()}>Try again</DialogSecondaryAction>
+              </div>
+            )}
           </div>
         ) : quote ? (
           <div className="space-y-3">

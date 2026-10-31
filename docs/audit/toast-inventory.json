@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1056,
+    "calls": 1054,
     "files": 293,
-    "rendering": 975,
+    "rendering": 973,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 167,
-      "toast.error": 736,
+      "toast": 168,
+      "toast.error": 733,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
+      "literal": 457,
       "template": 96,
-      "dynamic": 552,
+      "dynamic": 551,
       "jsx": 0
     }
   },
@@ -8106,27 +8106,17 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 263,
-      "kind": "toast.error",
+      "line": 172,
+      "kind": "toast",
       "title": {
         "form": "literal",
-        "text": "That code didn't match. Check your app and try again."
+        "text": "Two-step is on."
       },
       "renders": true
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 388,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "That code didn't match. Check your app and try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 394,
+      "line": 414,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11791,17 +11781,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 214,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "refusal.toast"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 244,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11811,7 +11791,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 280,
+      "line": 282,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11821,7 +11801,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 308,
+      "line": 310,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11831,7 +11811,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 346,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11858,7 +11838,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 363,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11868,7 +11848,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 449,
+      "line": 451,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11878,7 +11858,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 508,
+      "line": 510,
       "kind": "toast.error",
       "title": {
         "form": "literal",

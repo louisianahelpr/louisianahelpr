@@ -39,6 +39,8 @@ const upload = {
   gate: null as Promise<void> | null,
   onDraft: [] as { id: string; storage_path: string }[],
 };
+/** LEAD-POST-SLOW (a): each photo's early upload, the id Post created with, and early objects Post didn't use. */
+const early = { staged: [] as string[], attached: [] as string[], createdWith: [] as (string | undefined)[], dropped: [] as string[], serverId: null as string | null };
 /** LEAD-POST-SLOW: holds for the photo check and the tax tick, to see what Post does while each is still out. */
 const post = { checkGate: null as Promise<void> | null, attestGate: null as Promise<void> | null, checksStarted: 0, attested: 0 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
@@ -101,7 +103,15 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => upload.onDraft,
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
-  createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { calls.push("createDraft"); drafts.push(f); return NEW_ID; },
+  // Before 20261031160546 is live the server picks its own id (early.serverId); after it, the one the app chose.
+  createDraft: async (f: { priceCents: number; floorPriceCents: number }, withId?: string) => {
+    calls.push("createDraft");
+    drafts.push(f);
+    early.createdWith.push(withId);
+    return early.serverId ?? withId ?? NEW_ID;
+  },
+  stageListingPhoto: async (_u: string, id: string, f: File) => { early.staged.push(`${id}:${f.name}`); return `u1/declutter/${id}/${f.name}`; },
+  dropStagedPhotos: async (paths: string[]) => { early.dropped.push(...paths); },
   setDropPct: async (id: string, pct: number) => { drops.push([id, pct]); return pct; },
   fetchItemDropState: async () => null,
   updateDraft: async () => "ok",
@@ -109,10 +119,11 @@ vi.mock("@/lib/declutter/api", () => ({
   setKeepUp: async () => true,
   setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
   fetchItemHandovers: async () => null,
-  addPhotoSteadily: async (_u: string, id: string, f: File) => {
+  addPhotoSteadily: async (_u: string, id: string, f: File, o?: { uploadedPath?: string }) => {
     await upload.gate;
     if (upload.failing.has(f.name)) throw new Error("photo_not_uploaded");
     calls.push(`addPhoto:${id}:${f.name}`);
+    if (o?.uploadedPath) early.attached.push(o.uploadedPath);
     upload.onDraft.push({ id: `p-${f.name}`, storage_path: f.name });
     return "p";
   },
@@ -180,6 +191,13 @@ describe("photo-first selling, one screen", () => {
     post.attestGate = null;
     post.checksStarted = 0;
     post.attested = 0;
+    early.staged.length = 0;
+    early.attached.length = 0;
+    early.createdWith.length = 0;
+    early.dropped.length = 0;
+    early.serverId = null;
+    // The id the app picks for a new listing at its first photo (LEAD-POST-SLOW (a)).
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(NEW_ID as ReturnType<typeof crypto.randomUUID>);
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
     URL.revokeObjectURL = vi.fn();
@@ -231,7 +249,7 @@ describe("photo-first selling, one screen", () => {
     expect(covers).toHaveLength(1);
     expect(covers[0].closest("[data-held-photo]")).toBe(document.querySelectorAll("[data-held-photo]")[0]);
     expect(await screen.findByText("We wrote your listing. Check it before you post")).toBeInTheDocument();
-    expect(calls).toEqual([]); // nothing uploaded before there is a draft
+    expect(calls).toEqual([]); // no draft yet: the photos go up into the folder of the id Post will create
 
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
@@ -247,6 +265,48 @@ describe("photo-first selling, one screen", () => {
     // @mutate src/components/declutter/useSellFlowState.ts |       if (!form.free) await setDropPct(id, choice.dropPct); |       void choice;
     expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 2000 })]);
     expect(drops).toEqual([[NEW_ID, 5]]);
+  });
+
+  // LEAD-POST-SLOW (a), owner 2026-10-31 ("nothing slow for users, under 2 s"): photos go up the moment they are added,
+  // into the folder of the id the app picked; Post creates the draft with that id and only attaches them.
+  // @mutate src/components/declutter/useSellFlowState.ts |       stage(ready); |       void ready;
+  // @mutate src/components/declutter/useSellFlowState.ts |       const id = await createDraft(fields, wanted ?? undefined); |       const id = await createDraft(fields);
+  it("photos upload when added, not on Post; Post creates the draft with their id and only attaches them", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await waitFor(() => expect(early.staged).toEqual([`${NEW_ID}:a.jpg`, `${NEW_ID}:b.jpg`]));
+    expect(calls).toEqual([]);
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(early.createdWith).toEqual([NEW_ID]);
+    // Attached from where they already are, in the seller's order; nothing uploaded twice, nothing thrown away.
+    expect(early.attached).toEqual([`u1/declutter/${NEW_ID}/a.jpg`, `u1/declutter/${NEW_ID}/b.jpg`]);
+    expect(early.staged).toHaveLength(2);
+    expect(early.dropped).toEqual([]);
+  });
+
+  it("a photo taken out before Post, or a server that picked another id, never leaves an early upload attached", async () => {
+    early.serverId = "11111111-2222-4333-8444-555555555555";
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await waitFor(() => expect(early.staged).toHaveLength(2));
+    fireEvent.click(await screen.findByRole("button", { name: "Remove photo 1" }));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    // The old server's id: b.jpg is uploaded again into the right folder, and both early objects are removed.
+    expect(calls).toContain(`addPhoto:${early.serverId}:b.jpg`);
+    expect(early.attached).toEqual([]);
+    await waitFor(() => expect(early.dropped.sort()).toEqual([`u1/declutter/${NEW_ID}/a.jpg`, `u1/declutter/${NEW_ID}/b.jpg`]));
   });
 
   // Board 31b: the drop strip follows the real rule (the seller's step, down to a whole dollar, never below the lowest).
@@ -478,6 +538,22 @@ describe("photo-first selling, one screen", () => {
   // Audit posting 1030 #5: a slow Post said only "Posting…".
   // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(`Uploading photo ${i + 1} of ${list.length}`); |       void i;
   it("a slow Post says which photo it is on", async () => {
+    let release = () => {};
+    upload.gate = new Promise<void>((r) => { release = r; });
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    // Already up since they were added (LEAD-POST-SLOW (a)): Post only attaches them.
+    expect(await screen.findByRole("button", { name: "Adding photo 1 of 2" })).toBeDisabled();
+    release();
+    await screen.findByTestId("landed");
+  });
+
+  it("a slow Post that must still upload a photo says so (the server picked another id)", async () => {
+    early.serverId = "11111111-2222-4333-8444-555555555555";
     let release = () => {};
     upload.gate = new Promise<void>((r) => { release = r; });
     open();

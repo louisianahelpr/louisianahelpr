@@ -2544,6 +2544,33 @@ export type Database = {
         }
         Relationships: []
       }
+      helpr_task_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_side: string
+          task_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side: string
+          task_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side?: string
+          task_id?: string
+        }
+        Relationships: []
+      }
       declutter_order_talk_messages: {
         Row: {
           body: string
@@ -14406,6 +14433,11 @@ export type Database = {
       }
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
+      helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_send_message: {
+        Args: { p_task_id: string; p_body: string }
+        Returns: string
+      }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
       declutter_pair_needs_talk: {
         Args: { p_buyer: string; p_seller: string }

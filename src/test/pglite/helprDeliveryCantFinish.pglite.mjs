@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261031021800_helpr_delivery_cant_finish.sql";
+const TALK_FILE = "20261031043609_helpr_delivery_talk.sql";
 const BASES = [
   "20261027171453_declutter_withdraw_refund_not_once_returning.sql",
   "20261027211754_declutter_bundle_discount.sql",
@@ -61,6 +62,8 @@ if (!skip) {
   for (let i = 0; i < 3; i++) {
     const r = await run(sql);
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+    const r2 = await run(readFileSync(process.env.TALK_PATH ?? `${MIG_DIR}${TALK_FILE}`, "utf8"));
+    ok(!r2?.error, `the chat's migration applies (run ${i + 1} of 3)${r2?.error ? `: ${r2.error}` : ""}`);
   }
 }
 
@@ -287,6 +290,36 @@ ok(one(await svc(`SELECT count(*)::int FROM public.cron_defects_seen WHERE fn = 
 // 9. BUY-44: the seller hears it was delivered (A was dropped off above).
 ok(/at the buyer's drop-off address/.test((await noteTo(SELLER, "Delivered")) ?? ""), "the seller is told it was delivered, once");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${SELLER}' AND title = 'Delivered' AND message LIKE '%Carried item 1%'`)) === 1, "  one notice, naming the item");
+
+// 10. The delivery chat: the three of them, nobody else, and it ends with the delivery.
+const L = await carried(30);
+const say = (who, words) => me(who, `SELECT public.helpr_task_send_message('${L.task}', '${words}') AS id`);
+const view = async (who) => (await me(who, `SELECT public.helpr_task_talk_view('${L.task}') AS r`))?.[0]?.r;
+ok(!(await say(HELPR, "I am at the gate."))?.error, "the Helpr can send");
+ok(!(await say(BUYER, "Coming down."))?.error && !(await say(SELLER, "Thanks."))?.error, "  the buyer and the seller can too");
+const vB = await view(BUYER);
+ok(vB?.side === "buyer" && vB?.open === true && vB?.messages?.length === 3 && vB.messages[0].side === "helpr" && vB.messages[0].mine === false && vB.messages[1].mine === true,
+  `  each reads all three, as sides (${short(vB)})`);
+ok(!JSON.stringify(vB).includes(HELPR) && !JSON.stringify(vB).includes(SELLER), "  no one's id in what they read");
+ok(refused(await say(OUTSIDER, "hello"), /task_not_found/), "a stranger can't send");
+ok(refused(await me(OUTSIDER, `SELECT public.helpr_task_talk_view('${L.task}')`), /task_not_found/), "  or read");
+ok(refused(await say(BUYER, "call me at 225-555-0123"), /contact|phone|Keep contact/i), "the contact filter runs");
+ok(refused(await me(BUYER, `SELECT * FROM public.helpr_task_talk_messages`), /permission denied/), "the table can't be read directly");
+const told = async (uid) => one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${uid}' AND title = 'New message about a delivery'`));
+const toldBuyer = await told(BUYER);
+ok(toldBuyer >= 1 && (await told(SELLER)) >= 1 && (await told(HELPR)) >= 1, "each is told");
+await say(HELPR, "Second message.");
+ok((await told(BUYER)) === toldBuyer, "  a second message within 15 minutes tells nobody again");
+const noWords = one(await svc(`SELECT count(*)::int FROM public.notifications WHERE title = 'New message about a delivery' AND message LIKE '%gate%'`));
+ok(noWords === 0, "  the notice never carries the words");
+await svc(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${SELLER}', '${HELPR}')`);
+ok(refused(await say(HELPR, "Blocked?"), /talk_blocked/), "a blocked pair can't reach each other here");
+await svc(`DELETE FROM public.user_blocks WHERE blocker_id = '${SELLER}' AND blocked_id = '${HELPR}'`);
+await svc(`UPDATE public.helpr_tasks SET status = 'confirmed' WHERE id = '${L.task}'`);
+ok(refused(await say(HELPR, "After."), /talk_closed/), "it ends with the delivery");
+ok((await view(BUYER))?.open === false && (await view(BUYER))?.messages?.length === 4, "  the history stays");
+const exp = await svc(`SELECT public.export_my_data('${HELPR}') AS d`);
+ok(Array.isArray(exp?.[0]?.d?.helpr_task_talk_messages) && exp[0].d.helpr_task_talk_messages.length === 2, `the Helpr's export carries what they wrote (${short(exp?.[0]?.d?.helpr_task_talk_messages)})`);
 
 console.log(`\n${pass} PASS / ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

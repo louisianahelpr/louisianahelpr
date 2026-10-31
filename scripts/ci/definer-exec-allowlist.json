@@ -382,6 +382,8 @@
     "helpr_task_photo_access(text, boolean)": "reviewed 2026-10-16 (Q14): storage policy helper for the private helpr-tasks bucket (20261017055505); reads the caller as auth.uid() and answers only for the caller's own folder (write) or a task they are a party to / an admin (read); NULL in = false",
     "helpr_task_handed_over(uuid)": "client",
     "helpr_task_cant_finish(uuid, text, text)": "client",
+    "helpr_task_send_message(uuid, text)": "client",
+    "helpr_task_talk_view(uuid)": "client",
     "helpr_task_buyer_fix(uuid, text, text, numeric, numeric)": "client",
     "helpr_task_buyer_choose(uuid, text, text)": "client",
     "helpr_task_returned(uuid, text, numeric, numeric)": "client",

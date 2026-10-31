@@ -13,6 +13,7 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useEffect, useState } from "react";
+import { DeliveryTalkButton } from "./DeliveryTalk";
 import { BuyerCantFinishPanel, buyerMayConfirm, cantFinishLine, HelprCantFinish, SellerReturnPanel } from "./DeliveryCantFinish";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
@@ -211,6 +212,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
           I got it
         </button>
       )}
+      {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={taskId} />}
       {side === "buyer" && v.status === "picked_up" && <BuyerCantFinishPanel taskId={taskId} view={v} who={who} />}
       {side === "seller" && v.status === "picked_up" && <SellerReturnPanel taskId={taskId} view={v} who={who} />}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
@@ -403,6 +405,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
             </>
           )}
           {v.status === "picked_up" && !v.stuck_stage && toRoute}
+          {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={t.task_id} />}
           {v.status === "picked_up" && <HelprCantFinish taskId={t.task_id} userId={userId} />}
           <TaskPhotos view={v} />
         </>

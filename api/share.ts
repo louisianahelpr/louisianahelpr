@@ -269,6 +269,8 @@ interface PublicJob {
   date_needed: string | null;
   pricing_mode: string | null;
   expires_at: string | null;
+  /** Public job-photos URLs (the guest page already shows them). Only whether one exists is used here. */
+  photos: string[] | null;
 }
 
 /**
@@ -294,7 +296,7 @@ type JobLookup =
 
 async function fetchPublicJob(id: string): Promise<JobLookup> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
-  const columns = "id,title,category,budget,location,date_needed,pricing_mode,expires_at";
+  const columns = "id,title,category,budget,location,date_needed,pricing_mode,expires_at,photos";
   const endpoint =
     `${SUPABASE_URL}/rest/v1/open_jobs_browse` +
     `?select=${encodeURIComponent(columns)}&id=eq.${encodeURIComponent(id)}&limit=1`;
@@ -642,6 +644,26 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
     url,
     // Same rationale as unavailableJobMeta above.
     robots: "noindex, follow",
+    image: jobImage(job, title),
+  };
+}
+
+/**
+ * GROW-6 (10-31): a job with a photo previews with ITS first photo, at exactly 1200x630, through shop-photo
+ * kind=job keyed by the JOB id (already in the shared URL). Never the photo's own URL: its storage path starts
+ * with the poster's user id, and this URL sits in third-party preview caches for good (the shop card's
+ * lh-authz-rls must-fix 1). shop-photo re-reads open_jobs_browse on every fetch, so a filled, expired or
+ * removed job stops serving its photo. No photo: no image block (the shell's own card image stays).
+ */
+function jobImage(job: PublicJob, title: string): Meta["image"] | undefined {
+  const first = Array.isArray(job.photos) ? job.photos.find((p) => typeof p === "string" && p.length > 0) : undefined;
+  if (!first || !UUID_RE.test(job.id) || !SUPABASE_URL) return undefined;
+  return {
+    url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${job.id}&kind=job&w=1200&og=1`,
+    type: "image/jpeg",
+    width: 1200,
+    height: 630,
+    alt: clean(`${title} on Louisiana Helpr`, 120),
   };
 }
 
@@ -699,12 +721,12 @@ function metaForSignup(ref: string | null): Meta {
 
 /**
  * The same two anon reads the signed-out /book page makes, and nothing else:
- * get_safe_profiles (masked "First L." name for anon, town) and
- * get_public_profile_stats (counts). Bio, skills and avatar are not put on
- * the card. No row = banned, deleted, unverified or a hidden test account:
+ * get_safe_profiles (masked "First L." name for anon, town, photo) and
+ * get_public_profile_stats (counts). Bio and skills are not put on the card;
+ * the photo is (GROW-6: the /book page already shows it to signed-out visitors). No row = banned, deleted, unverified or a hidden test account:
  * `absent`.
  */
-interface BookProfile { full_name: string | null; location: string | null }
+interface BookProfile { full_name: string | null; location: string | null; avatar_url?: string | null }
 interface BookStats { review_count: number | null; avg_rating: number | null; completed_jobs_as_helper: number | null }
 type BookLookup = { state: "found"; profile: BookProfile; stats: BookStats | null } | { state: "absent" } | { state: "unknown" };
 
@@ -785,7 +807,34 @@ async function metaForBook(id: string, url: string): Promise<Meta | null> {
     ),
     url,
     robots: BOOK_ROBOTS,
+    image: bookImage(lookup.profile.avatar_url, id, name),
     cdnCache: BOOK_CDN_CACHE,
+  };
+}
+
+/** Types storage keeps under format=origin; webp and gif are left off (link-card support not measured). */
+const AVATAR_TYPES: Record<string, string> = { jpg: "image/jpeg", png: "image/png" };
+
+/**
+ * GROW-6 (10-31): a Helpr's Book me link previews with their own photo, 630x630, cut square by the storage
+ * render endpoint (format=origin keeps the stored type, so og:image:type is true). Only an avatar this
+ * project stores in that Helpr's own avatars/<user id>/ folder (the user id is already in the /book URL);
+ * a social-login photo, another folder or an unknown type gives no image block.
+ */
+function bookImage(avatarUrl: string | null | undefined, userId: string, name: string): Meta["image"] | undefined {
+  if (typeof avatarUrl !== "string" || !SUPABASE_URL || !UUID_RE.test(userId)) return undefined;
+  const prefix = `${SUPABASE_URL}/storage/v1/object/public/avatars/${userId}/`;
+  if (!avatarUrl.startsWith(prefix)) return undefined;
+  const file = avatarUrl.slice(prefix.length).split(/[?#]/)[0];
+  const ext = /^avatar\.([a-z]+)$/.exec(file)?.[1];
+  const type = ext ? AVATAR_TYPES[ext] : undefined;
+  if (!type) return undefined;
+  return {
+    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=630&height=630&resize=cover&quality=80&format=origin`,
+    type,
+    width: 630,
+    height: 630,
+    alt: clean(`${name} on Louisiana Helpr`, 120),
   };
 }
 

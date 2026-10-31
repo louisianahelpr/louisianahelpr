@@ -86,6 +86,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
+    delivery_on_the_way: DC.delivery_on_the_way,
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,
     invalid_status: DC.invalid_status,

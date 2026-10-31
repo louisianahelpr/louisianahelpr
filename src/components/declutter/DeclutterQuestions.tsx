@@ -9,7 +9,7 @@
  * neighbor"); the seller's first name comes from the same public profile read
  * as the seller card, and falls back to "the seller".
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -183,6 +183,14 @@ export function DeclutterQuestions({
   });
   const askError = ask.isError ? declutterErrorMessage(ask.error) : null;
   const list = questions.data ?? [];
+  // AUD31-28: Selling's "Questions to answer" links here with #declutter-questions; once the questions are in, the
+  // page scrolls to them (the item page opened at its top, the question ~2 screens down at 375).
+  const loaded = questions.isSuccess;
+  useEffect(() => {
+    if (loaded && window.location.hash === "#declutter-questions") {
+      document.getElementById("declutter-questions")?.scrollIntoView({ block: "start" });
+    }
+  }, [loaded]);
   const text = question.trim();
 
   return (

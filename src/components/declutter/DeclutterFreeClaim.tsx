@@ -22,6 +22,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 
@@ -43,13 +45,14 @@ function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandove
  * DA-5 (Declutter audit 2026-10-30): the ask line named "their home or from their porch" whatever the giver ticked.
  * It now names only the ways this item offers (undefined = still loading: no way named yet).
  */
-function freeAskLine(offered: FreeHandover[] | undefined): string {
+function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = false): string {
   const how = offered === undefined ? "to choose a pickup"
     : offered.length === 2 ? "to choose a pickup at their home or from their porch"
     : offered[0] === "porch" ? "to choose a time to collect it from their porch"
     : offered[0] === "pickup_home" ? "to choose a time to pick it up at their home"
     : "to agree with them how you'll get it";
-  return `Free, nothing is charged. The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
+  // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
+  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -58,8 +61,10 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   // older behaviour (null: every free way), as there.
   const ticks = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
   const offered = ticks.isLoading ? undefined : freeWaysOffered(item.porch_ok !== false, Array.isArray(ticks.data) ? (ticks.data as Handover[]) : null);
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
   const { underAge } = useAgeGate();
+  const idCheckOn = useIdentityCheckOnStore();
+  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // Deep audit #3: a free item the member was picked for says so, with the way to choose a pickup.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
   const myHold = myHoldOn(cart.data, item.id);
@@ -115,7 +120,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={ask.isPending || asks.isLoading} onClick={() => ask.mutate()}>
         Ask for it
       </Button>
-      <p className="text-xs text-muted-foreground">{freeAskLine(offered)}</p>
+      <p className="text-xs text-muted-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
     </section>
   );
 }
@@ -215,6 +220,9 @@ const FREE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
   pickup_home: { title: "Meet at the giver's home", words: "Pick it up at their door. Address once you confirm." },
 };
 
+const FREE_CHECKOUT_LINE = "Free items are picked up only. Nothing is charged.";
+const FREE_CHECKOUT_FIRST_LINE = "Free items are picked up only. The item stays free. Your first claim has a one-time ID check next, and we'll show you the cost first.";
+
 /**
  * The cart for a seller whose waiting items are ALL free: no payment page and no fee. The buyer picks
  * porch pickup (only when every item allows it) or pickup at the giver's home; Helpr and seller delivery
@@ -227,6 +235,10 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   ways?: Handover[] | null;
 }) {
   const qc = useQueryClient();
+  // Same reading as the ask line: a first-timer's Confirm is one tap from the one-time fee, so "nothing is charged" would be false.
+  const { profile } = useCurrentUser();
+  const idCheckOn = useIdentityCheckOnStore();
+  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // An item made free on day 12 whose giver ticked only other ways offers nothing here: no fallback to the giver's
   // door (Q2462); NoWayWorks below opens the chat with them.
   const offered = freeWaysOffered(porchOk, ways);
@@ -248,7 +260,8 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       onDone();
     },
     onError: (err) => {
-      toast.error(declutterErrorMessage(err));
+      // A first-timer the giver picked: its own screen answers (FreeClaimFirstTime, the ID sheet), so no message as well.
+      if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
       if (atPlace) void porchPlaces.reread(err);
     },
@@ -275,7 +288,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
-      <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>
+      <p className="text-xs text-muted-foreground">{oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE}</p>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useVoiceRecorder } from "./useVoiceRecorder";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 class FakeRecorder {
   state = "inactive";

@@ -50,7 +50,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { asked: [] as unknown[], rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0, kase: null as unknown };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/helprTasks/photoUrl", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
 vi.mock("@/lib/declutter/handover", () => ({

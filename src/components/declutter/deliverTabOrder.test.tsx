@@ -26,7 +26,7 @@ const state = vi.hoisted(() => ({
   busy: [] as unknown[],
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({ useHiredPayoutPrompt: () => ({ open: false, offer: async () => true, close: () => {} }) }));
 vi.mock("@/components/busyAreas/BusyAreasCard", () => ({

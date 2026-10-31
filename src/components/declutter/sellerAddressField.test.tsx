@@ -40,7 +40,7 @@ vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => h.here
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => h.status }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => h.desktop }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { SellPorchPlaces } from "./SellPorchPlaces";
 import { areaFromAddress } from "./sellForm";

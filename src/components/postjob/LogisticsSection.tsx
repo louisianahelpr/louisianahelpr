@@ -506,7 +506,7 @@ export function LogisticsSection({
             label="Where"
             options={[
               { value: "saved", label: savedAddress.streetAddress, sub: `${savedAddress.city} · from your last job` },
-              { value: "else", label: "Somewhere else", sub: "Add an address" },
+              { value: "else", label: "Somewhere else", sub: !onSaved && streetAddress.trim() ? "Address below" : "Add an address" },
             ]}
             value={onSaved ? "saved" : "else"}
             onChange={(v) => chooseWhere(v)}

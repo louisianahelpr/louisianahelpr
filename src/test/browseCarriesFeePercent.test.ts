@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     helper_fee_flat_cents,\n    helper_fee_percent,\n |     helper_fee_flat_cents,\n
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n    -- Q2400: and the percent stamped with it (a 5% job is never priced at 10%).\n    j.helper_fee_percent\n |     j.helper_fee_flat_cents\n
  * @mutate src/lib/guestJobsQuery.ts | parish, helper_fee_flat_cents, helper_fee_percent"; | parish, helper_fee_flat_cents";
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | is_group_job, photos, helper_fee_flat_cents, helper_fee_percent";\nconst PARTY_COLUMNS | is_group_job, photos, helper_fee_flat_cents";\nconst PARTY_COLUMNS
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days | is_group_job, photos, helper_fee_flat_cents, recurrence_days
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }} | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
  * @mutate src/lib/jobColumns.ts | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url"] as const; | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["scope_video_url"] as const;
  * @mutate src/lib/jobColumns.ts | ...(browseView ? BROWSE_VIEW_COLUMNS_AHEAD_OF_DB : []) | ...BROWSE_VIEW_COLUMNS_AHEAD_OF_DB

@@ -78,7 +78,7 @@ interface ActivityDialogsProps {
   setDeadlineDialogApp: (app: DeadlineDialogApp | null) => void;
   onDeadlineConfirm: (hours: number, msg?: string) => Promise<void> | void;
   /** The job being hired into: the dialog states the answer-by cap at its start. */
-  deadlineJob?: Pick<Job, "date_needed" | "start_time"> & Partial<Pick<Job, "title" | "budget" | "is_group_job" | "urgent_fee" | "is_flexible_schedule" | "recurrence_days" | "recurrence_interval" | "recurrence_weeks" | "recurrence_end_date" | "payment_status">> | null;
+  deadlineJob?: Pick<Job, "date_needed" | "start_time"> & Partial<Pick<Job, "id" | "title" | "budget" | "is_group_job" | "urgent_fee" | "is_flexible_schedule" | "recurrence_days" | "recurrence_interval" | "recurrence_weeks" | "recurrence_end_date" | "payment_status">> | null;
   // Dispute
   disputeJob: Job | null;
   setDisputeJob: (job: Job | null) => void;

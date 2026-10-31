@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { formatPriceExact, seriesSummary } from "@/lib/format";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { Star } from "lucide-react";
+import { readCardHoldLine } from "@/lib/cardHoldRead";
 
 type Props = {
   open: boolean;
@@ -33,6 +34,7 @@ type Props = {
    *  (server rule, accept_application 20261005184940), so the line under the
    *  picker says so when the start comes first. */
   job?: {
+    id?: string | null;
     date_needed?: string | null;
     start_time?: string | null;
     title?: string | null;
@@ -122,6 +124,17 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   // tapped Send four times against the jobs_award_gate refusal with no visible
   // response at all. The dialog stays open and Send re-enables for a retry.
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // JOBS3-46: the amount on a held card is the hold's own (job_card_holds.amount_cents, what capture_hold charges,
+  // less a setup fee already paid elsewhere). Not on a crew: its total is not this one Helpr's. Unread: no amount.
+  const holdJobId = open && postedJob?.payment_status === "held" && !postedJob.is_group_job ? postedJob.id ?? null : null;
+  const [heldCents, setHeldCents] = useState<number | null>(null);
+  useEffect(() => {
+    setHeldCents(null);
+    if (!holdJobId) return;
+    let alive = true;
+    void readCardHoldLine(holdJobId).then((line) => { if (alive) setHeldCents(line.amountCents); });
+    return () => { alive = false; };
+  }, [holdJobId]);
   const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
   const selectedLabel =
     options.find((o) => o.value === hours)?.label ?? `${hours} hours`;
@@ -238,7 +251,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             // Q2399: the card is held (or, for a job more than 6 days out, only saved) and charged when the
             // hire completes (their accept); "on hold" would be false for a saved card (round 4, silent #8).
             <p className="rounded-ds-md px-3 py-2 font-sans text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-hire-card-held="">
-              Your card is charged when {them} accepts.
+              {heldCents !== null && heldCents > 0
+                ? <>Your card is charged <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceExact(heldCents / 100)}</strong> when {them} accepts.</>
+                : <>Your card is charged when {them} accepts.</>}
             </p>
           )}
           {funded && (

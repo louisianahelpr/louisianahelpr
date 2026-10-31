@@ -25,7 +25,7 @@ import type { CompletionPromptTarget } from "@/components/job-card/activityConst
  * (job_starts_too_soon), so "your job is open again, pick another applicant" could not happen on that date,
  * and auto-expire-jobs cancels the listing once it expires.
  */
-const NO_SHOW_NEXT = "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded.";
+const NO_SHOW_NEXT = "To hire someone else, pick a new date on the job right away. Otherwise it's cancelled and most of your payment comes back.";
 
 /**
  * Dependencies for the in-progress → completion → review lifecycle handlers,

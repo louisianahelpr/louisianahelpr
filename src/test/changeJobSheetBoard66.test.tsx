@@ -36,6 +36,8 @@ describe("board 66: change this job", () => {
     expect(screen.getByText(/Jolie gets the new time and says yes or no\. Nothing is charged/)).toBeInTheDocument();
     const days = screen.getAllByRole("button", { pressed: false }).filter((b) => /Oct|Nov/.test(b.textContent ?? ""));
     expect(screen.getByRole("group", { name: "New day" }).querySelectorAll("button")).toHaveLength(60); // JOBS-19: was 14
+    // The 44 px floor (min-h-11), not the shared chip's 40.
+    for (const b of screen.getByRole("group", { name: "New day" }).querySelectorAll("button")) expect(b.className.split(/\s+/)).toContain("min-h-11");
     const send = screen.getByRole("button", { name: "Send new time to Jolie" });
     expect(send).toBeDisabled();
     fireEvent.click(days[9]); // Oct 31

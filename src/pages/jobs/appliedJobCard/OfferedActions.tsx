@@ -10,6 +10,7 @@ import { pendingAcceptStatus } from "@/lib/awardGate";
 import { CountdownRows, jobStartTarget, type CountdownClock } from "@/components/job-card/CountdownRows";
 import type { Application, AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../../components/job-card/offerClock";
+import { seriesSummary } from "@/lib/format";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -79,6 +80,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // the offer is gone (expire_unanswered_offers acts on it).
   const { hardDeadline, derivedDeadline, isExpired } = offerClock(app, job);
   const deadline = isExpired ? null : (hardDeadline ?? derivedDeadline);
+  const seriesLine = seriesSummary(job); // JOBS-18: accepting a Repeats job takes on every visit.
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -89,6 +91,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           "radial-gradient(80% 100% at 50% 0%, hsl(var(--amber-tint) / 0.10) 0%, transparent 60%)",
       }}
     >
+      {seriesLine && <p data-offer-series="" className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>{seriesLine}</p>}
       {(app.offer_message || app.offer_message_flagged_hidden) && (
         <div
           className="rounded-ds-md p-3"

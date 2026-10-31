@@ -95,7 +95,7 @@ describe("BUY-29: accepting a reply to your Wanted post asks whether to close th
     expect(cases.length).toBeGreaterThan(3);
     for (const [row, answer] of cases) {
       document.body.innerHTML = "";
-      vi.mocked(toast.success).mockClear();
+      vi.mocked(toast).mockClear();
       state.offers = [row];
       state.answer = answer;
       if (row.my_side === "seller") {
@@ -103,8 +103,8 @@ describe("BUY-29: accepting a reply to your Wanted post asks whether to close th
         render(<QueryClientProvider client={qc}><MemoryRouter><OffersSection side="seller" /></MemoryRouter></QueryClientProvider>);
       } else show();
       await accept();
-      // Wait for the answer to land (its toast; toast.success until LEAD-TOAST3), not for an empty screen: onSuccess has then run, ask or no ask.
-      await waitFor(() => { expect(document.querySelector('[data-confirm-sheet="accept-offer"]')).toBeNull(); expect(toast.success).toHaveBeenCalled(); });
+      // Wait for the answer to land (its toast), not for an empty screen: onSuccess has then run, ask or no ask.
+      await waitFor(() => { expect(document.querySelector('[data-confirm-sheet="accept-offer"]')).toBeNull(); expect(toast).toHaveBeenCalled(); });
       expect(askSheet()).toBeNull();
     }
     expect(state.closed).toEqual([]);

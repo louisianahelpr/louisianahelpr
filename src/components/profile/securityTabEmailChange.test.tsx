@@ -8,7 +8,7 @@
  *
  * @mutate src/components/profile/SecurityTab.tsx |     if (email && trimmed.toLowerCase() === email.trim().toLowerCase()) { |     if (email && trimmed === "never-the-same") {
  * @mutate src/components/profile/SecurityTab.tsx |     setSentTo(trimmed);\n |
- * @mutate src/components/profile/SecurityTab.tsx |     select: (u) => u.new_email ?? null, |     select: () => null,
+ * @mutate src/components/profile/EmailChangeWaiting.tsx |     select: (u) => u.new_email ?? null, |     select: () => null,
  * @mutate src/components/profile/SecurityTab.tsx | {submitting ? "Sending…" : "Confirm change"} | {submitting ? "Sending…" : "Confirm Change"}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

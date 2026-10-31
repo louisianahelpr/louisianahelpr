@@ -166,7 +166,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else {
     line = "This delivery was closed.";
   }
-  const canConfirm = side === "buyer" && (v.status === "picked_up" || v.status === "delivered");
+  // BUY-39: never while it is on the road (it finished the sale with the item in the Helpr's car); from the drop-off,
+  // or once the Helpr has held it 24 hours without marking it delivered (BUY-37's "If you have it, tap I got it").
+  const canConfirm = side === "buyer" && (v.status === "delivered" || (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null));
   // Board 76: the one tracker, Booked -> Picked up -> Delivered, once a Helpr has it.
   const at = DELIVERY_STEP[v.status];
   // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
@@ -207,7 +209,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} who={who} handedOverAt={v.handed_over_at} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
-        Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours.
+        Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours.
       </ConfirmSheet>
     </div>
   );

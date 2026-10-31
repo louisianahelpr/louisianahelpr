@@ -13,6 +13,7 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
 import { readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
@@ -77,6 +78,8 @@ const SignupPending = () => {
     }
   });
   const [resending, setResending] = useState(false);
+  // AUD31-57 sibling: the ID-check promise below shows only while the identity_check switch is on.
+  const idCheckOn = useIdentityCheckOnStore();
   const turnstileRef = useRef<TurnstileHandle>(null);
   const [resent, setResent] = useState(false);
   // Counts down 60s after each successful resend so the button doesn't
@@ -325,7 +328,8 @@ const SignupPending = () => {
                   between "you're all set" and a promise we break later. */}
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Your profile is already done — you'll land straight in the app. Posting or accepting your first job adds a quick identity check.
+                Your profile is already done — you'll land straight in the app.
+                {idCheckOn ? " Posting or accepting your first job adds a quick identity check." : ""}
               </p>
             </div>
           </div>

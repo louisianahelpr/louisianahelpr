@@ -71,7 +71,7 @@ const NOT_GATED: Readonly<Record<string, string>> = {
 // Asks for, offers or promises an ID check. The last three alternatives are blanket claims about members
 // ("ID-verified Louisiana Helprs", "a verified Helpr", "identity verification ... is required"): the
 // trust-safety review found two that the first version of this list missed (2026-10-23).
-const COPY = /\bverify (?:your|my|their) (?:id|identity)\b|\bverif(?:y|ies) their id\b|\bphoto id\b|\bid[- ]verified (?:people|helprs?|louisiana|neighbors|members)\b|\bstripe identity\b|\bid check(?:ed)?\b|\bfinish your id check\b|\bverified (?:helprs?|neighbors|members)\b|\bidentity verification\b[^.\n]{0,40}\brequired\b/i;
+const COPY = /\bverify (?:your|my|their) (?:id|identity)\b|\bverif(?:y|ies) their id\b|\bphoto id\b|\bid[- ]verified (?:people|helprs?|louisiana|neighbors|members)\b|\bstripe identity\b|\bid check(?:ed)?\b|\bfinish your id check\b|\bverified (?:helprs?|neighbors|members)\b|\bidentity verification\b[^.\n]{0,40}\brequired\b|\bquick identity check\b|\bidentity check through stripe\b/i;
 const GATED = /\buseIdentityCheck(?:On|OnStore|Status)\s*\(\s*\)|\bidentityCheckOn\s*\(\s*\)|\bneedsIdentityCheck\s*\(/;
 
 export function clientCopyInventory(files: Iterable<[string, string]>): { entry: string[]; bad: string[] } {

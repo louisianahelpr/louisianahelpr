@@ -524,7 +524,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.
-  // @mutate src/components/declutter/useSellFlowState.ts |           await cleanListingPhoto(f);\n |           void cleanListingPhoto;\n
+  // @mutate src/components/declutter/useSellFlowState.ts |           ready.push([f, await cleanListingPhoto(f)]); |           ready.push([f, f]);
   it("a photo this device can't prepare is said when it is added, by name, and isn't counted", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -536,7 +536,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit posting 1030 #5: a slow Post said only "Posting…".
-  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(`Uploading photo ${i + 1} of ${list.length}`); |       void i;
+  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(early ? `Adding photo ${i + 1} of ${list.length}` : `Uploading photo ${i + 1} of ${list.length}`); |       void early;
   it("a slow Post says which photo it is on", async () => {
     let release = () => {};
     upload.gate = new Promise<void>((r) => { release = r; });

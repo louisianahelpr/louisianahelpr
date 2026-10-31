@@ -102,8 +102,18 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
+DECLARE
+  v_uid uuid;
 BEGIN
-  -- Every rule (switch, ban, member gates, price, place) is checked there, for auth.uid().
+  PERFORM public.require_feature('declutter');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.declutter_assert_member(true);
+  v_uid := (SELECT auth.uid());
+  -- The gates above are restated here so this client-callable RPC names them in its own body (the Q281 class check
+  -- and the live Q1284 rule read the RPC's body, not a helper's). Every rule (price, place, and the same gates
+  -- again) is checked in declutter_create_item_with_id, for auth.uid().
   RETURN public.declutter_create_item_with_id(
     gen_random_uuid(), p_title, p_description, p_category, p_condition_stars, p_delivery_size,
     p_price_cents, p_floor_price_cents, p_area_label, p_pickup_address, p_pickup_lat, p_pickup_lng);

@@ -14,6 +14,8 @@
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);
  * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error)); |   if (false) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => {
@@ -302,7 +304,11 @@ describe("publishMany", () => {
     await publishMany(["a", "b", "c"], () => {}, async (ms) => { waits.push(ms); now += ms; }, () => now, (p) => { after = p; });
     await after;
     expect(waits).toEqual([AI_CHECK_GAP_MS, AI_CHECK_GAP_MS]);
-    expect(Math.floor(60_000 / AI_CHECK_GAP_MS)).toBeLessThanOrEqual(6);
+    // LEAD-BUNCH-34-SLOW: the gap is the edge function's own per-minute limit, read from its source (12 a minute).
+    const edge = readFileSync(resolve(process.cwd(), "supabase/functions/declutter-ai-draft/index.ts"), "utf8");
+    const perMinute = Number(/windowMs: 60_000, maxRequests: (\d+), keyPrefix: "declutter-ai-draft"/.exec(edge)?.[1]);
+    expect(perMinute).toBe(12);
+    expect(Math.ceil(60_000 / AI_CHECK_GAP_MS)).toBeLessThanOrEqual(perMinute);
   });
 
   it("a failed photo check never stops a listing (the server's fail-safe); a refused publish is reported, the rest go on", async () => {

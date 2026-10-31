@@ -423,7 +423,7 @@ describe("finding 14: saved drafts are named, and one with no photos is linked, 
 
 describe("finding 16: progress talks about the seller's things", () => {
   it("sorting says what's found and how long is left, never batches", () => {
-    expect(sortProgressLine(2, 10, 5)).toBe("Found 5 items so far. About 1 minute left.");
+    expect(sortProgressLine(2, 14, 5)).toBe("Found 5 items so far. About 1 minute left.");
     expect(sortProgressLine(0, 1, 0)).toBe("Looking through your photos. Less than a minute left.");
     expect(sortProgressLine(0, 10, 0)).not.toMatch(/batch/);
   });

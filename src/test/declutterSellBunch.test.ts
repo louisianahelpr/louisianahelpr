@@ -26,6 +26,7 @@
  * @mutate src/lib/declutter/bunch.ts |       if (problem) throw Object.assign(new Error("bunch_item_not_ready"), { userMessage: problem }); |       void problem;
  * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true }); |       throw error;
  */
+import { AI_CHECK_GAP_MS } from "@/lib/declutter/moves";
 import { describe, expect, it, vi } from "vitest";
 import { ListingPhotoError } from "@/lib/declutter/errors";
 import {
@@ -67,7 +68,7 @@ describe("grouping keeps every photo", () => {
     const waits: number[] = [];
     const res = await groupPhotos(photos, () => {}, ask, async (ms) => { waits.push(ms); now += ms; }, () => now, async (f) => f);
     expect(ask.mock.calls.map((c) => c[0].length)).toEqual([8, 8, 8, 8, 1]);
-    expect(waits).toEqual([10_500, 5_000, 5_500, 20_000, 10_500]);
+    expect(waits).toEqual([AI_CHECK_GAP_MS, 5_000, AI_CHECK_GAP_MS - 5_000, 20_000, AI_CHECK_GAP_MS]);
     expect(res.failed).toEqual([{ photos: 8, error: new Error("ai_rate_limited") }]);
     expect(allPhotos(res.items)).toEqual(photos.map((p) => p.key).sort());
   });

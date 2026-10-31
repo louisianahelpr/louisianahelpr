@@ -493,7 +493,7 @@ function useSelectedTabInView(view: string) {
     if (!list || !tab) return;
     const l = list.getBoundingClientRect();
     const t = tab.getBoundingClientRect();
-    // 28: clear of the row's end fade (SectionTabs).
+    // 28: clear of the row's end, so the tab is whole (SectionTabs hides one it would cut).
     if (t.right > l.right - 28) list.scrollLeft += t.right - l.right + 28;
     else if (t.left < l.left) list.scrollLeft -= l.left - t.left;
   }, [view]);
@@ -548,14 +548,14 @@ export default function DeclutterHome() {
   }, [fromView, tabsReady, setParams, location.state]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
-  // Browse adds its count and (desktop) search, filters and map at the row's end, or (phone) its search row under
-  // the tabs: Jobs' layout (owner 2026-10-28, DeclutterBrowseView).
+  // Browse adds its search and filters at the row's end, and on desktop its count and map: Jobs' layout (owner 10-30,
+  // DeclutterBrowseView).
   const tabsFor = (browse?: DeclutterBrowseHeader) => (
-    <>
     <div ref={tabRowRef} className="contents">
     <SectionTabs
       label="Declutter view"
       browseCount={browse?.count}
+      onlySelected={browse?.onlySelected}
       // The gear is LAST at the row's right end on every tab and width, as in Jobs (owner 2026-10-30).
       end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
       value={view}
@@ -578,8 +578,6 @@ export default function DeclutterHome() {
       ]}
     />
     </div>
-    {browse?.below}
-    </>
   );
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;

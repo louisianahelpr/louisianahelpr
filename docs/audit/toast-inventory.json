@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1036,
+    "calls": 1035,
     "files": 287,
-    "rendering": 874,
+    "rendering": 873,
     "suppressedByPolicy": 162,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 729,
+      "toast.error": 728,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 450,
       "template": 96,
-      "dynamic": 540,
+      "dynamic": 539,
       "jsx": 0
     }
   },
@@ -4349,7 +4349,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 200,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6011,17 +6011,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 70,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 114,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6231,7 +6221,7 @@
     },
     {
       "file": "src/components/declutter/SellerSetup.tsx",
-      "line": 119,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -185,6 +185,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/dashboard/DashboardTitleBar.tsx",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx",
+  "components/declutter/DeclutterBrowseView.tsx",
   "components/job-card/embeddedActivity.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
@@ -540,6 +541,8 @@ const NOT_EXERCISED: Record<string, string> = {
     "the desktop feed strip's field (the phone title row that also swapped it in left with Q2205); its dismiss is pinned by the strip's describe block below and by e2e/prod-audit/search-x-off-center-press.spec.ts (browse-desktop-strip)",
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx":
     "trigger only — asserted by source for the data-search-trigger marker above",
+  "components/declutter/DeclutterBrowseView.tsx":
+    "the same InlineListSearch as Posted / Working, exercised above; its open row is pinned by declutterGateAndLocation.test.tsx (phone) and e2e/prod-audit/search-x-off-center-press.spec.ts",
   "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/info/Legal.tsx":

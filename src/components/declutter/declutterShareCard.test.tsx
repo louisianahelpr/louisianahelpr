@@ -18,7 +18,8 @@ const copied: string[] = [];
 const shared: unknown[] = [];
 let clipboardOk = true;
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// LEAD-TOAST3: "Link copied" is the bare toast(), so the mock must be callable.
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/authRedirects", () => ({ getPublicOrigin: () => "https://louisianahelpr.com" }));
 vi.mock("@/lib/nativeShare", () => ({
   copyToClipboard: async (t: string) => { copied.push(t); return clipboardOk; },
@@ -32,6 +33,7 @@ vi.mock("@/lib/declutter/api", () => ({
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
 }));
 
+import { toast } from "sonner";
 import { ListedWhatNext } from "./ListedWhatNext";
 
 function renderListed(itemId: string, status: string) {
@@ -63,6 +65,7 @@ describe("board 192: share after listing", () => {
     expect(card.textContent).not.toContain("Example St");
     fireEvent.click(within(screen.getByTestId("what-next-sheet")).getByRole("button", { name: "Copy link for local groups" }));
     await waitFor(() => expect(copied).toEqual(["https://louisianahelpr.com/declutter/item/a"]));
+    await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith("Link copied. Paste it in your local groups."));
     expect(shared).toEqual([]);
   });
 

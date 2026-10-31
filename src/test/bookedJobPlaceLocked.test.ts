@@ -24,14 +24,14 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * Behaviour (PATCH refused when booked, allowed when open, server write
  * passes, 3x replay, red on main): src/test/pglite/bookedJobLocked.pglite.mjs.
  *
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'scope_video_url',\n |     -- removed\n
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'estimated_hours',\n |     -- removed\n
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'latitude',\n |     -- removed\n
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'location',\n |     'location_x',\n
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'scope_video_url',\n |     -- removed\n
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'estimated_hours',\n |     -- removed\n
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'latitude',\n |     -- removed\n
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'location',\n |     'location_x',\n
  * @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |   NEW.created_at                  := now();\n |     -- removed\n
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'created_at',\n |     -- removed\n
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'created_at',\n |     -- removed\n
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
  * @mutate src/pages/posts/EditJobDialog.tsx | { materials_note: materialsNote.trim() \|\| null } | { materials_note: materialsNote.trim() \|\| null, is_urgent_x: false }
  */
 

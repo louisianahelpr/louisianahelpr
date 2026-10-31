@@ -309,10 +309,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                 <ListingThumb path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
-                  <p
-                    data-listing-status={item.status}
-                    // The row opens the item, so a status cut at two lines keeps its words (truncatedActionLabel).
-                    title={statusLine}
+                  <p data-listing-status={item.status} title={statusLine}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
                   >
                     {statusLine}

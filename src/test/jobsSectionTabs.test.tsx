@@ -124,7 +124,10 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(screen.getByTestId("feed")).toBeTruthy();
   });
 
-  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?q=fence"])("old My Jobs link %s lands on Working", (url) => {
+  // AUD31-49: QUOTE_HOMES.myQuotes (/jobs?quotes=1, where Send quote and old /quotes?view=mine land) opened Browse,
+  // where the sent quotes are not drawn. ?quotes= now names Working like the other My Jobs params.
+  // @mutate src/pages/jobs/JobsSection.tsx | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const; | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q"] as const;
+  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?q=fence", "/jobs?quotes=1"])("old My Jobs link %s lands on Working", (url) => {
     open(url);
     expect(screen.getByTestId("list-applied")).toBeTruthy();
     expect(screen.getByTestId("where").textContent).toContain("tab=working");

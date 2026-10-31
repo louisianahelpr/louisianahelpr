@@ -1507,6 +1507,16 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     expect(screen.getByText("Seller delivery panel")).toBeInTheDocument();
   });
 
+  // AUD31-1: the seller who delivers is paid the items AND the delivery; the note says both, once.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const sellerCents = itemsCents + Math.max(0, deliveryCents); |   const sellerCents = itemsCents;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         deliveryCents={b.data.delivery_cents ?? 0} /> |         />
+  it("AUD31-1: a seller-delivers sale's money note names the item price plus the delivery", async () => {
+    state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
+    const note = await screen.findByText(/^You get/);
+    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\)\. You're paid 24 hours after the buyer taps "I got it"/);
+  });
+
   it("delivered: step 3, and the seller is told the buyer confirms", async () => {
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: null, delivered_at: "2026-10-31T14:20:00Z" };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);

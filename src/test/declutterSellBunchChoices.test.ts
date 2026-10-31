@@ -4,12 +4,12 @@
  * Before this every bunch item was saved with its lowest price = its price (it never dropped) and without Keep it up,
  * and a price under $1 was refused, so nothing could be given away.
  *
- * @mutate src/lib/declutter/bunch.ts |       if (!it.free) await deps.setDropPct(id, choice.dropPct); |       void choice.dropPct;
- * @mutate src/lib/declutter/bunch.ts |       if (choices.keepUp) { |       if (false) {
- * @mutate src/lib/declutter/bunch.ts |       await deps.setHandovers(id, it.free ? ["porch"] : ways); |       await deps.setHandovers(id, ways);
+ * @mutate src/lib/declutter/bunch.ts |         if (!it.free) await deps.setDropPct(draftId, choice.dropPct); |         void choice.dropPct;
+ * @mutate src/lib/declutter/bunch.ts |         if (!choices.keepUp) return false; |         if (true) return false;
+ * @mutate src/lib/declutter/bunch.ts |         await deps.setHandovers(draftId, it.free ? ["porch"] : ways); |         await deps.setHandovers(draftId, ways);
  * @mutate src/lib/declutter/bunch.ts |   const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" }) |   const row = moveRowProblem({ title: it.title, price: it.price, floor: "" })
  * @mutate src/lib/declutter/bunch.ts | floor: floorFromPct(dollars, choices.floorPct) | floor: dollars
- * @mutate src/lib/declutter/bunch.ts |           keepUpFailed = true; |           keepUpFailed = false;
+ * @mutate src/lib/declutter/bunch.ts |           console.warn("[declutter] could not turn on Keep it up", err);\n          return true; |           console.warn("[declutter] could not turn on Keep it up", err);\n          return false;
  */
 import { describe, expect, it, vi } from "vitest";
 import { blankItem, bunchItemProblem, bunchListable, listBunch, type BunchChoices, type BunchItem, type ListDeps } from "@/lib/declutter/bunch";

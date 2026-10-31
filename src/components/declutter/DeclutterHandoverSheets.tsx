@@ -159,6 +159,21 @@ function PorchPhotoThumb({ orderId }: { orderId: string }) {
   );
 }
 
+/**
+ * BUY-17 (buying audit 10-30 #17): on the pickup day "I got it" opens before the seller's porch photo (A1-C2 keeps the
+ * day), so a slip would finish the sale on an item nobody put out. Before the photo, the sheet says so first.
+ */
+function PorchNoPhotoYet({ orderId, who }: { orderId: string; who: string }) {
+  const h = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
+  if (!h.data || h.data.set_out_at) return null;
+  const Who = who === "the seller" ? "The seller" : who;
+  return (
+    <p role="note" className="mt-3 text-ds-14 text-foreground" data-got-it-no-porch-photo="">
+      {Who} hasn't posted the porch photo yet. Tap I got it only if the item is in your hands.
+    </p>
+  );
+}
+
 export function GotItSheet({
   open,
   onOpenChange,
@@ -187,6 +202,7 @@ export function GotItSheet({
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-got-it-sheet="">
         <SheetHero title="Do you have it?" />
         {porch && <PorchPhotoThumb orderId={orderId} />}
+        {porch && <PorchNoPhotoYet orderId={orderId} who={who} />}
         <div className="mt-3">
           <Note>{free
             ? `Tap I got it once you have it. If something is wrong, tap Something's not right first.`

@@ -10,7 +10,13 @@
  *   4. One shared card: the chooser and Post a job's first step both draw ChoiceCard, neither hand-rolls one.
  *   5. Never says "Claude" (owner: say "we"); under 18 sees the Sell flow's notice, no choices.
  *   6. "Have a Helpr list it for me" is Post a job pre-filled with the owner's words.
+ *   7. POST-H17: the two "Other ways" cards are compact rows and every main card's line is at most 50 characters, so all
+ *      six reach a 375x812 screen (measured b18 10-31 in headless Chromium: Wanted's bottom 865px before, 807px after).
  *
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <ChoiceCard compact data-sell-choice="wanted" | <ChoiceCard data-sell-choice="wanted"
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <ChoiceCard compact data-sell-choice="helpr" | <ChoiceCard data-sell-choice="helpr"
+ * @mutate src/components/ui/ChoiceCard.tsx | data-compact={compact ? "" : undefined} {...rest}>\n        {body}\n      </Link> | {...rest}>\n        {body}\n      </Link>
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | line="Your move date groups everything as one sale." | line="Add photos of everything, and your move date groups them as one sale."
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />\n |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3> |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {movingOut && ( |             {true && (
@@ -160,6 +166,21 @@ describe("What do you want to sell?", () => {
     expect(sheet.textContent).not.toContain("Claude");
     fireEvent.click(within(sheet).getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("job form")).toBeTruthy();
+  });
+
+  // POST-H17 (b18 10-31): Wanted was below a 375x812 screen.
+  it("the two Other ways cards are compact and the main lines are short, so all six fit a phone", async () => {
+    state.switches = { declutter: true, declutter_moving_out: true, declutter_wanted: true };
+    at(SELL_CHOOSER_PATH);
+    await screen.findByRole("heading", { name: "What would you like to do?" });
+    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-sell-choice]"));
+    expect(cards.length).toBeGreaterThan(5);
+    const compact = cards.filter((c) => c.hasAttribute("data-compact")).map((c) => c.dataset.sellChoice);
+    expect(compact).toEqual(["helpr", "wanted"]);
+    for (const c of cards.filter((x) => !x.hasAttribute("data-compact"))) {
+      const line = c.querySelectorAll("span.block")[1]!.textContent!;
+      expect(line.length, `${c.dataset.sellChoice}: ${line}`).toBeLessThanOrEqual(50);
+    }
   });
 
   it("'Have a Helpr list it for me' is Post a job pre-filled with the owner's words", () => {

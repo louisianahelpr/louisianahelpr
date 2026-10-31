@@ -14563,6 +14563,7 @@ export type Database = {
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
+      declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }
         Returns: {
@@ -15108,6 +15109,10 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_payout_take_setup_fee: {
+        Args: { p_payout_id: string }
+        Returns: number
+      }
       declutter_payout_unsent: { Args: { p_order_id: string }; Returns: boolean }
       declutter_payouts_due: {
         Args: { p_limit: number }
@@ -15429,6 +15434,10 @@ export type Database = {
       declutter_setup_helpr: { Args: { p_order_id: string }; Returns: Json }
       declutter_claim_setup_fee: { Args: { p_order_id: string }; Returns: string }
       declutter_setup_fee_due_cents: { Args: { p_user: string }; Returns: number }
+      declutter_setup_fee_from_payout_cents: {
+        Args: { p_seller: string }
+        Returns: number
+      }
       declutter_setup_fee_refund_reversed: {
         Args: { p_order_id: string; p_stripe_refund_id: string }
         Returns: string
@@ -16865,6 +16874,10 @@ export type Database = {
         }[]
       }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
+      identity_notify_posters_before_start: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       identity_fingerprint: {
         Args: {
           p_dob: string

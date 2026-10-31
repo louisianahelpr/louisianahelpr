@@ -109,6 +109,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   withdraw_job_schedule_change: "withdraws a date/time request; request_job_schedule_change refuses group jobs (is_group_job), so no crew request exists to withdraw (board 66/172 slice 3)",
   save_weekly_availability: "matches helper_availability.helper_id (the caller's own weekly hours), not jobs: nothing crew-specific (re-read for Q728)",
   user_has_pending_application: "a pending application, not a hire",
+  get_closed_application_job_labels: "JOBS-12 (20261031021424): matches applications.helper_id (the caller's own application row), not jobs.helper_id, and returns only a title and date they already saw when applying; nothing about a hire, and a crew applicant has the same row",
 };
 
 describe("a crew has no lead (Q407)", () => {

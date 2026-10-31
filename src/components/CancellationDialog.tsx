@@ -3,7 +3,7 @@ import {
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
 import { crewCancellationFeeQuote } from "../../supabase/functions/_shared/crewShares";
-import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+import { CANCELLATION_LADDER_RUNGS, CANCEL_OVER_24H_NOT_A_STRIKE } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 // unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
@@ -477,7 +477,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-ds-11 text-primary font-medium">
-                    No charge for your Helpr's time — more than 24 hours until the job starts. No strike.
+                    No charge for your Helpr's time. {CANCEL_OVER_24H_NOT_A_STRIKE}
                   </span>
                 </div>
               )}

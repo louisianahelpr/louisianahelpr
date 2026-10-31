@@ -33,7 +33,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const THIS = "20261031015647_poster_cancel_strike_only_inside_24h.sql";
 const MIGRATION = readFileSync(DIR + THIS, "utf8");
-const BEFORE = process.argv.includes("--before");
+const BEFORE = process.argv.includes("--before") || process.env.NEW_MIGRATION === "skip";
 
 const BEFORE_DEFS = effectiveDefs(DIR, { before: THIS });
 function fnStmt(name) {

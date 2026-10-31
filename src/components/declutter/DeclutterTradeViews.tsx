@@ -18,7 +18,7 @@
  * Row 62: with the switch off, a member with an agreed sale still gets the
  * cart and their sales (FinishSalesView), nothing else.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
-import { fetchMyActiveStrikes, fetchMyCart, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
+import { fetchMyActiveStrikes, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
 import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -55,6 +55,7 @@ import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./DeclutterOffersSection";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
+import { firstPhotos } from "./DeclutterItemCard";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -198,7 +199,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             : null;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
-    <>
+    // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
+    // choices sit on the left and the bill with Pay beside them; a phone keeps the one column in the same order.
+    <div className="space-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start lg:gap-6 lg:space-y-0" data-checkout-columns="">
+    <div className="min-w-0 space-y-3" data-checkout-choices="">
       {/* Board 30: "How you'll get it" as radio cards; each price from the real rule (pickups are free; delivery is
           the server's quote, or "Get a price" until there is one). */}
       <fieldset className="space-y-2">
@@ -257,6 +261,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           )}
         </div>
       )}
+    </div>
+    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
       <div className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
       <dl className="space-y-1.5">
@@ -342,7 +348,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       </button>
       <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
       <AddHelprNote />
-    </>
+    </div>
+    </div>
   );
 }
 
@@ -372,11 +379,26 @@ export function FinishSalesView() {
   );
 }
 
+/** BUY-15: a cart line's small photo; a grey square while it loads, when the item has none, or when it fails. */
+function CartThumb({ path }: { path?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-cart-thumb="" aria-hidden="true">
+      {path && !failed && <img src={photoPublicUrl(path)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover" />}
+    </span>
+  );
+}
+
 /** The buyer's cart (rows 13, 20-22, 24, 38, 59): one checkout per seller. */
 export function CartView() {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   // B-1: back from the payment page, the cart is read again until the paid checkout leaves it; its Pay is off meanwhile.
   const settling = usePaySettling();
+  // BUY-15: each cart line shows its item's first photo (none at either width before).
+  const lineItemIds = useMemo(() => [...new Set((cart.data ?? []).filter((l) => l.my_side === "buyer" && l.status === "in_cart" && l.item_id)
+    .map((l) => l.item_id as string))].sort(), [cart.data]);
+  const photos = useQuery({ queryKey: ["declutter", "photos", lineItemIds.join(",")], queryFn: () => fetchPhotos(lineItemIds), enabled: lineItemIds.length > 0 });
+  const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your cart." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
@@ -405,11 +427,13 @@ export function CartView() {
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
               <CheckoutCardHead allFree={allFree} count={lines.length} />
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {lines.map((l) => (
-                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0">
+                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0" data-cart-line="">
+                    <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />
                     {l.item_id ? (
-                      <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
+                      // NIGHT-BUYINGpresse-3: the title link was 20 px tall on a phone; it is now a 44 px tap.
+                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">{l.item_title}</span></Link>
                     ) : (
                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
                     )}

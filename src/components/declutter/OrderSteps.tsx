@@ -6,7 +6,7 @@
  * with `orderBucket`: Needs you · Waiting · Upcoming · Done · Cancelled.
  *
  * Steps per handover (the same words on both sides; a free item's first step is "Claimed", never "Paid"):
- *   porch           Paid -> Day picked -> On the porch -> Picked up
+ *   porch           Paid -> Time booked -> On the porch -> Picked up (LEAD-PLACE-TIMES, 2026-10-31; was Day picked)
  *   pickup_home     Paid -> Time booked -> Picked up -> Done
  *   meetup          Paid -> Time booked -> Met -> Done
  *   seller_delivery Paid -> Time booked -> Delivered -> Done
@@ -60,7 +60,7 @@ export const ORDER_BUCKETS: readonly { key: OrderBucket; label: string }[] = [
 ];
 
 const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = {
-  porch: ["Paid", "Day picked", "On the porch", "Picked up"],
+  porch: ["Paid", "Time booked", "On the porch", "Picked up"],
   pickup_home: ["Paid", "Time booked", "Picked up", "Done"],
   meetup: ["Paid", "Time booked", "Met", "Done"],
   seller_delivery: ["Paid", "Time booked", "Delivered", "Done"],

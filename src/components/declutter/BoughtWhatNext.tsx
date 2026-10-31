@@ -43,8 +43,8 @@ function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextSt
         : [book("Pick a new delivery time", "In Buying, from the seller's times"), go("The seller brings it", "At the time you picked", false)];
     case "porch":
       return booked
-        ? [go("Pick it up from the porch", "On your pickup day, once the seller posts the porch photo", true)]
-        : [book("Pick a pickup day", "In Buying, from the seller's porch days"), go("Pick it up from the porch", "Once the seller posts the porch photo", false)];
+        ? [go("Pick it up from the porch", "At your pickup time, once the seller posts the porch photo", true)]
+        : [book("Pick a pickup time", "In Buying, inside the pickup place's hours"), go("Pick it up from the porch", "Once the seller posts the porch photo", false)];
     case "meetup":
       return booked
         ? [go("Meet at the safe spot", "At the time you booked", true)]

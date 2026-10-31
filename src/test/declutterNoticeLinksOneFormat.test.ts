@@ -8,8 +8,11 @@
  * and restating a sender to ?tab= must remove its entry. Behaviour: src/test/pglite/declutterNoticeLinksOneFormat.pglite.mjs
  * (3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |   v_link text := public.declutter_notice_link(p_link); |   v_link text := p_link;
- * @mutate supabase/migrations/20261030133115_declutter_notice_links_one_format.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
+ * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_order_link(p_user, p_other, p_link);
+ * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_link(p_link);
+ * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   SELECT CASE WHEN o.seller_id = p_user AND o.buyer_id = p_other THEN 'selling' | SELECT CASE WHEN o.seller_id = p_user THEN 'selling'
+ * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   IF v_tab IS NULL OR p_link <> '/declutter?tab=' \|\| v_tab THEN |   IF v_tab IS NULL THEN
+ * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
  * @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
  * @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?view=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
@@ -87,13 +90,23 @@ function viewLinks(): Record<string, string> {
 describe("Declutter notices link in one format (DC-17)", () => {
   it("the writer stores every notice under the rewritten link, never the raw one", () => {
     const body = blankSqlComments(newestFunction("declutter_notify_strict").body);
-    expect(body).toContain("v_link text := public.declutter_notice_link(p_link);");
+    // BUY-30 (20261031111949): the rewritten link, then the order it is about.
+    expect(body).toContain("v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link));");
     const insert = body.slice(body.indexOf("INSERT INTO public.notifications"));
     expect(insert.length).toBeGreaterThan(100);
     expect(insert).not.toMatch(/\bp_link\b/);
     expect(insert.match(/\bv_link\b/g)?.length).toBe(3);
     // declutter_notify still goes through it.
     expect(blankSqlComments(newestFunction("declutter_notify").body)).toContain("public.declutter_notify_strict(p_user, p_type, p_title, p_message, p_link, p_other)");
+  });
+
+  it("BUY-30: the order is added only to the member's own bare tab, for this order's two parties", () => {
+    const body = blankSqlComments(newestFunction("declutter_notice_order_link").body).replace(/\s+/g, " ");
+    expect(body).toContain("p_link !~ '^/declutter\\?tab=(selling|buying)$'");
+    expect(body).toContain("SELECT CASE WHEN o.seller_id = p_user AND o.buyer_id = p_other THEN 'selling' WHEN o.buyer_id = p_user AND o.seller_id = p_other THEN 'buying' END");
+    expect(body).toContain("IF v_tab IS NULL OR p_link <> '/declutter?tab=' || v_tab THEN RETURN p_link;");
+    expect(body).toContain("v_ref !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'");
+    expect(body).toContain("RETURN p_link || '&order=' || v_ref;");
   });
 
   it("the link helper rewrites exactly the six old seller/buyer addresses, keeping the rest of the link", () => {

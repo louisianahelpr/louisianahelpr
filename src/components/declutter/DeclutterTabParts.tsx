@@ -12,6 +12,7 @@ import { fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
+import { useLinkedOrder } from "./useLinkedOrder";
 
 /**
  * What needs the member on each side (the Buying / Selling badges), from the
@@ -72,10 +73,11 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   const lines = (cart.data ?? []).filter((l) => l.my_side === side);
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
+  const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
   // CartView / SalesWaiting on the same tab show this read's loading and error.
   if (!cart.data) return null;
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
-  if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id)))) return null;
+  if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id) || l.order_id === linked))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
     const buyer = side === "buyer";
     return (
@@ -103,7 +105,7 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
       {showDone ? "Hide finished sales" : `Show ${done.size} finished ${done.size === 1 ? "sale" : "sales"}`}
     </button>
   );
-  if (allDone && !showDone) {
+  if (allDone && !showDone && !(linked && done.has(linked))) {
     return (
       <section className="space-y-2" aria-label={sellerTitle}>
         <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
@@ -117,7 +119,7 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
     <PaidOrdersSection
       cart={lines}
       views={views}
-      show={done.size > 0 && !showDone ? (id) => !done.has(id) : show}
+      show={done.size > 0 && !showDone ? (id) => !done.has(id) || id === linked : show}
       label={side === "buyer" ? "Purchases" : sellerTitle}
       heading={
         side === "buyer"

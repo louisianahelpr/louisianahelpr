@@ -1473,3 +1473,41 @@ describe("Selling's sale cards: still to hand over first, refunded last (soldsta
     expect(order()).toEqual(["3", "5", "2", "4", "1"]);
   });
 });
+
+// BUY-30: a notice about one order links ?tab=...&order=<id> (migration 20261031111949); the card opens there.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | show(o.orderId) \|\| o.orderId === linked | show(o.orderId)
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true)); |
+// @mutate src/components/declutter/useLinkedOrder.ts |     ref.current.focus({ preventScroll: true }); |
+describe("BUY-30: a notice's ?order= opens that order's card", () => {
+  const A = "00000000-0000-4000-8000-00000000000a";
+  const B = "00000000-0000-4000-8000-00000000000b";
+  const at = (url: string, chip?: (id: string) => boolean) => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(<MemoryRouter initialEntries={[url]}><QueryClientProvider client={qc}><PaidOrdersSection cart={[
+      line({ line_id: "la", item_id: "ia", item_title: "Sale A", my_side: "seller", order_id: A }),
+      line({ line_id: "lb", item_id: "ib", item_title: "Sale B", my_side: "seller", order_id: B }),
+    ] as never} show={chip} /></QueryClientProvider></MemoryRouter>);
+  };
+  const card = (title: string) => screen.getByText(title).closest("article") as HTMLElement;
+
+  it("the linked card shows even outside the chosen chip, is scrolled to and takes focus", async () => {
+    state.bookings = [];
+    const scrolled: string[] = [];
+    const spy = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(function (this: HTMLElement) { scrolled.push(this.textContent ?? ""); });
+    at(`/declutter?tab=selling&order=${B}`, (id) => id === A);
+    expect(await screen.findByText("Sale B")).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(card("Sale B")));
+    expect(card("Sale B").hasAttribute("data-linked-order")).toBe(true);
+    expect(card("Sale A").hasAttribute("data-linked-order")).toBe(false);
+    expect(scrolled.some((t) => t.includes("Sale B"))).toBe(true);
+    spy.mockRestore();
+  });
+
+  it("a just-paid return (?paid=1&order=) is not a notice's order: the chip decides and nothing is linked", async () => {
+    state.bookings = [];
+    at(`/declutter?tab=selling&paid=1&order=${B}`, (id) => id === A);
+    expect(await screen.findByText("Sale A")).toBeInTheDocument();
+    expect(screen.queryByText("Sale B")).toBeNull();
+    expect(document.querySelector("[data-linked-order]")).toBeNull();
+  });
+});

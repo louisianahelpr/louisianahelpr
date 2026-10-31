@@ -123,6 +123,37 @@ describe("the seller's answer shows the buyer's photos", () => {
   });
 });
 
+// BUY-10 (buying audit 10-30 #10): Take $X and Ask Louisiana Helpr to decide were one tap and final.
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={offer.isPending} onClick={() => setAnswering("take")}> | disabled={offer.isPending} onClick={() => offer.mutate(true)}>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={offer.isPending} onClick={() => setAnswering("ask")}> | disabled={offer.isPending} onClick={() => offer.mutate(false)}>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |             onConfirm={() => offer.mutate(answering === "take", { onSettled: () => setAnswering(null) })} |             onConfirm={() => offer.mutate(true, { onSettled: () => setAnswering(null) })}
+describe("DeclutterRefundPanel: answering a part refund asks first (BUY-10)", () => {
+  const OFFERED = { ...REQ, status: "offered" as const, offer_cents: 1500, offer_answer_by: "2026-10-25T18:00:00Z" };
+  it("Take $15 opens a sheet saying what ends; Not now sends nothing; the sheet's button takes it", async () => {
+    show({ ...BASE, can_ask: false, request: OFFERED });
+    fireEvent.click(await screen.findByRole("button", { name: "Take $15" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take $15 back?");
+    expect(sheet).toHaveTextContent("$15 comes back to your card and you keep the item. This ends your refund request.");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.offers).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take $15" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take $15" }));
+    await waitFor(() => expect(state.offers).toEqual([["r1", true]]));
+  });
+
+  it("Ask Louisiana Helpr to decide says the offer ends, and sends a no only from the sheet", async () => {
+    show({ ...BASE, can_ask: false, request: OFFERED });
+    fireEvent.click(await screen.findByRole("button", { name: "Ask Louisiana Helpr to decide" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Nikki's offer of $15 ends, and Louisiana Helpr decides what, if anything, comes back to you.");
+    expect(state.offers).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Ask Louisiana Helpr" }));
+    await waitFor(() => expect(state.offers).toEqual([["r1", false]]));
+  });
+});
+
 describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
   it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
     show({ ...BASE, can_ask: false, request: REQ });
@@ -339,6 +370,8 @@ describe("DeclutterRefundPanel", () => {
   it("buyer: takes the seller's offer", async () => {
     show({ ...BASE, can_ask: false, request: { ...REQ, status: "offered", offer_cents: 1250, offer_answer_by: "2026-10-25T18:00:00Z" } });
     fireEvent.click(await screen.findByRole("button", { name: "Take $12.50" }));
+    // BUY-10: it asks first.
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take $12.50" }));
     await waitFor(() => expect(state.offers).toEqual([["r1", true]]));
   });
 

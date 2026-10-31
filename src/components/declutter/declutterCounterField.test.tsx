@@ -91,3 +91,27 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     expect(screen.getByLabelText("Your price")).not.toHaveAttribute("placeholder");
   });
 });
+
+// BUY-10 (buying audit 10-30 #10): "Take back my offer" ended the offer in one tap.
+// @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setWithdrawing(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |         {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`} |         {""}
+describe("Take back my offer asks first (BUY-10)", () => {
+  beforeEach(() => {
+    state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "seller" }];
+    state.responded = [];
+  });
+
+  it("opens a sheet naming the item and amount; Keep my offer sends nothing; the sheet's button withdraws", async () => {
+    show("buyer");
+    fireEvent.click(await screen.findByRole("button", { name: "Take back my offer" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take back your offer?");
+    expect(sheet).toHaveTextContent('"Blue enamel mug": your offer of $22 ends. Nothing is charged.');
+    fireEvent.click(within(sheet).getByRole("button", { name: "Keep my offer" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.responded).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take back my offer" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));
+    await waitFor(() => expect(state.responded).toEqual([["o1", "withdraw", null]]));
+  });
+});

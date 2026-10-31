@@ -195,7 +195,7 @@ export const TermsContent = () => {
         title="Identity verification"
         body={
           idOn ? <>
-            <p><strong className="text-foreground">Stripe Identity verifies a photo ID and a selfie before a member's first accepted or posted job</strong>, and before a Helpr heads out to a job. Helpr pays for this check; there is no charge to you. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
+            <p><strong className="text-foreground">We ask for a photo ID and a selfie through Stripe Identity once per person:</strong> when you post a job; when you're hired, and before you head out; or before your first payout. On Declutter, when you list, at your first purchase, or when you take a delivery. It counts everywhere on Louisiana Helpr. We never ask at sign-up or when you apply. Until it's done, your pay waits safely. The one-time {feeLabel ? `${feeLabel} ` : ""}setup fee covers this check. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>

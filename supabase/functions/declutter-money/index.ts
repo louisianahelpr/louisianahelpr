@@ -96,7 +96,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
 import { isTransientStripeError, peekConnectReadiness, readConnectReadiness, transferReady, type ConnectReadiness, type ReadinessCache } from "../_shared/connectReadiness.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
@@ -359,7 +359,7 @@ serve(async (req) => {
   await waitRpc("payout_held_check", {});
   type WaitCategory = "no_account" | "setup_unfinished" | "under_review" | "rejected" | "unusable"
     | "payee_deleted" | "mixed_parties" | "banned" | "data_defect" | "transient" | "record_failed" | "unreadable" | "held" | "ban_review"
-    | "suspended" | "needs_reconcile";
+    | "suspended" | "needs_reconcile" | "identity";
   type WaitKind = PayoutKind | "declutter_refund" | "delivery_refund";
   /**
    * Reasons that will not fix themselves: once the page goes out the row is HELD FOR REVIEW
@@ -383,6 +383,7 @@ serve(async (req) => {
     unreadable: "Stripe refuses our read of this payee's payout account",
     held: "an admin payout hold",
     ban_review: "a ban review",
+    identity: "the payee has not verified their ID",
   };
   /**
    * EVERY deferred payout is recorded (no defer is unbounded): payout_payee_wait_seen reminds the
@@ -571,6 +572,17 @@ serve(async (req) => {
     if (hold.kind === "held") {
       out.held++;
       await skipRow(kind, payoutId, payeeId, amountCents, 60, "held", "an admin payout hold placed during the run");
+      return false;
+    }
+    // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told.
+    const idHold = await checkIdentityHold(admin, payeeId);
+    if (idHold.kind === "error") {
+      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ID check read failed: ${idHold.message}`);
+      return false;
+    }
+    if (idHold.kind === "waits") {
+      out.held++;
+      await skipRow(kind, payoutId, payeeId, amountCents, 60, "identity", "ID check not finished");
       return false;
     }
     const { data: prof, error } = await admin.from("profiles").select("ban_status, auto_suspended_until").eq("user_id", payeeId).maybeSingle();

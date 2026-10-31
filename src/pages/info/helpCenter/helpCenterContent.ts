@@ -125,12 +125,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // "You'll need an account" understated the gate by two steps and sent
         // people into a flow they could not finish. A new account must also
         // confirm its email (ProtectedRoute.tsx holds it on /signup-pending)
-        // AND clear Stripe identity verification before posting or
-        // accepting (useJobSubmit.ts gates on it). Discovering that after
-        // writing a job post is the worst moment to learn it. There is no
+        // and verify their ID when posting (useJobSubmit.ts gates on it). Discovering
+        // that after writing a job post is the worst moment to learn it. There is no
         // approval from our team any more (Q193: every signup is
         // auto-approved), so the answer no longer promises one.
-        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early.",
+        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy or take a delivery.",
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",

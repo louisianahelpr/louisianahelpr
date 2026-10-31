@@ -32,7 +32,8 @@ const LEAD: Record<IdentityCheckReason, string> = {
   accept: "Before your first job is booked, Stripe checks a photo ID and a selfie.",
   buy: "Before your first Declutter purchase, Stripe checks a photo ID and a selfie.",
   list: "Before your first Declutter listing goes live, Stripe checks a photo ID and a selfie.",
-  general: "Stripe checks a photo ID and a selfie before a member's first accepted or posted job, or first Declutter purchase or listing.",
+  deliver: "Before you take a delivery, Stripe checks a photo ID and a selfie.",
+  general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first Declutter purchase, listing or delivery.",
 };
 
 const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string }> = {
@@ -79,7 +80,7 @@ const REVIEW_ONLY = {
  * reopens it on the honest state the webhook has written.
  */
 export function IdentityCheckHost() {
-  // The ID check switch (owner 2026-10-23: OFF, "we will move to paypal"). The
+  // The ID check switch (OFF until an admin turns it on, owner 2026-10-30). The
   // host publishes it for the plain functions (openIdentityCheck,
   // acceptMissingFromProfile...) and draws nothing while it is off.
   const { on: idOn, settled: idSettled } = useIdentityCheckStatus();

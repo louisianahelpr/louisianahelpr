@@ -71,7 +71,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
-import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable, noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
@@ -2567,7 +2567,13 @@ serve(async (req) => {
       if (qJob.is_group_job) return unquoted("crew", null);
       // THE ladder poster_cancel_job records and checks p_expected_fee_cents
       // against (_shared/cancellationFee.ts, cent for cent with the SQL).
-      const feeCents = Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
+      // Owner 2026-10-30: a hired Helpr who has not verified their ID and has not headed out carries
+      // no fee, exactly as poster_cancel_job records it. Unreadable: no amount quoted.
+      const { data: qIdWaits, error: qIdErr } = qJob.helper_id && !qJob.helper_on_the_way_at && !qJob.helper_arrived_at
+        ? await supabaseAdmin.rpc("payout_waits_on_identity", { p_user_id: qJob.helper_id })
+        : { data: false, error: null };
+      if (qIdErr && qIdErr.code !== "PGRST202") return unquoted("unreadable", null);
+      const feeCents = qIdWaits === true ? 0 : Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
       // Its tier, from the same ladder (0 when no fee is recorded).
       feePercent = feeCents > 0 && qJob.date_needed
         ? cancellationFeePercent(helperIsCommitted(qJob), hoursUntilJob(qJob.date_needed, nowIso, qJob.start_time ?? null))
@@ -6247,6 +6253,14 @@ async function transferToHelper(
   if (hold.kind === "held") {
     throw new PublicError("This Helpr's payouts are on hold. Release the hold in the Payout Queue first — no money was moved.");
   }
+  // No payout without a verified ID (owner 2026-10-30). Same place, same fail-closed rule:
+  // this path sends the transfer before it writes its ledger row.
+  const idHold = await checkIdentityHold(supabaseAdmin, helperId);
+  if (idHold.kind === "error") {
+    console.error(`[create-payment] transferToHelper — ID check read failed for ${helperId}: ${idHold.message}`);
+    throw new PublicError("Could not verify the Helpr's ID check — no money was moved. Try again.");
+  }
+  if (idHold.kind === "waits") throw new PublicError(IDENTITY_HOLD_MESSAGE);
   // Q1491: a JOB payout hold (an underfunded gift-card job). This path sends
   // the transfer before it writes its ledger row, so the payout_transfers
   // claim trigger cannot stop it; ask here, same place, same fail-closed rule.

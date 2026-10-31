@@ -1,4 +1,4 @@
-// @mutate supabase/functions/void-cancelled-payments/index.ts |         jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job); |         jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
+// @mutate supabase/functions/void-cancelled-payments/index.ts |         jobCancellationFee = sellerFault \|\| refundsSeriesVisitInFull(job) \|\| noFeeRecorded ? 0 : computeCancellationFee(job); |         jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
 // @mutate supabase/functions/_shared/posterCancelSplit.ts |     actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents, |     actualFeeCents: c.actualFeeCents,
 // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (faultErr && !notDeployed) { |         if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (sellerFault) { |           if (sellerFault && refundAmount > 0 && !alreadyRefunded) {

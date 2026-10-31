@@ -294,6 +294,22 @@ describe("DeliverView: a finished delivery that paid nothing promises no pay (AU
     expect(screen.getByText("Delivered and paid.")).toBeInTheDocument();
     expect(screen.getAllByText(/\$21 for you/)).toHaveLength(1);
   });
+
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {t.ended_at && <span className="text-muted-foreground" data-task-ended=""> {ENDED_DAY.format(new Date(t.ended_at))}</span>} |
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", | const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo",
+  it("AUD31-27: every finished row says the Louisiana day it ended; a row under way has none", async () => {
+    const row = { size: "small", pickup_area: "Mid-City", dropoff_area: "Baker, LA", trip_miles: 9, take_home_cents: 2100, pickup_slot_start: "2026-10-30T15:00:00Z" };
+    state.mine = [
+      { ...row, task_id: "t1", status: "cancelled", title: "Lamp", payout_status: null, ended_at: "2026-10-27T15:00:00Z" },
+      { ...row, task_id: "t2", status: "failed", title: "Mirror", payout_status: null, ended_at: "2026-10-28T15:00:00Z" },
+      // 04:30 UTC on Oct 30 is still Thu, Oct 29 in Louisiana.
+      { ...row, task_id: "t3", status: "confirmed", title: "Chair", payout_status: "succeeded", ended_at: "2026-10-30T04:30:00Z" },
+    ];
+    const { container } = show(<DeliverView />);
+    await screen.findByText(/^Closed\./);
+    const days = Array.from(container.querySelectorAll("[data-task-ended]")).map((e) => e.textContent?.trim());
+    expect(days).toEqual(["Tue, Oct 27", "Wed, Oct 28", "Thu, Oct 29"]);
+  });
 });
 
 describe("DeliverView (the Helpr's screen)", () => {

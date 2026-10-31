@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatFeeLabel, useOnboardingFeeCents } from "@/hooks/useOnboardingFee";
 import { openIdentityCheck } from "@/lib/identityCheck";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import {
   closeFreeClaimFirstTime,
   isFreeClaimFirstTimeOpen,
@@ -26,8 +27,10 @@ import {
 
 export function FreeClaimFirstTime() {
   const open = useSyncExternalStore(subscribeFreeClaimFirstTime, isFreeClaimFirstTimeOpen, isFreeClaimFirstTimeOpen);
+  // The host draws it only while identity_check is on; it reads the switch itself too, so it can never ask with it off.
+  const idOn = useIdentityCheckOnStore();
   // The host is mounted on every screen: the fee is read only once the screen opens, never for everyone else.
-  return open ? <FreeClaimFirstTimeOpen /> : null;
+  return open && idOn ? <FreeClaimFirstTimeOpen /> : null;
 }
 
 function FreeClaimFirstTimeOpen() {

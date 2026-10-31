@@ -16,6 +16,7 @@ import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { saveOrShareFile } from "@/lib/fileExport";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 
 interface AuditEntry {
   id: string;
@@ -27,6 +28,7 @@ interface AuditEntry {
   details: Json | null;
   created_at: string;
   admin_name?: string;
+  is_seed?: boolean;
 }
 
 /**
@@ -73,10 +75,16 @@ const AdminAuditLog = () => {
           .in("user_id", adminIds));
         for (const p of profiles ?? []) nameMap.set(p.user_id, p.full_name);
       }
-      return data.map((e) => ({
+      // NOID-23 test churn (owner 2026-10-27: "i should never see test stuff in my admin panel"): a row made by a test
+      // (is_seed) account, or about one, is left out like every other admin list (withoutTestRows).
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const aboutUser = (e: AuditEntry) => (e.target_type === "user" || e.target_type === "profile") && !!e.target_id && UUID.test(e.target_id);
+      const seedIds = await fetchSeedUserIds([...adminIds, ...data.filter(aboutUser).map((e) => e.target_id)]);
+      return withoutTestRows(data.map((e) => ({
         ...e,
         admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
-      }));
+        is_seed: (!!e.admin_id && seedIds.has(e.admin_id)) || (aboutUser(e) && seedIds.has(e.target_id!)),
+      })));
     },
   });
 

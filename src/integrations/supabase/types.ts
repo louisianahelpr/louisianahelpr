@@ -7594,6 +7594,27 @@ export type Database = {
           },
         ]
       }
+      member_signup_sources: {
+        Row: {
+          campaign: string | null
+          recorded_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          campaign?: string | null
+          recorded_at?: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          campaign?: string | null
+          recorded_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -14196,6 +14217,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_signup_source_report: {
+        Args: { p_days?: number }
+        Returns: {
+          campaign: string
+          first_posts: number
+          signups: number
+          source: string
+        }[]
+      }
       admin_sms_status: { Args: never; Returns: Json }
       admin_stalled_job_queue: {
         Args: { p_include_resolved?: boolean }
@@ -17702,6 +17732,10 @@ export type Database = {
         Returns: undefined
       }
       record_job_view: { Args: { p_job_id: string }; Returns: string }
+      record_my_signup_source: {
+        Args: { p_campaign?: string; p_source: string }
+        Returns: boolean
+      }
       record_profile_view: {
         Args: { p_viewed_user_id: string }
         Returns: boolean

@@ -5,6 +5,7 @@ import { useWebPushAskAfterJobAction, useWebPushBootSync } from "@/hooks/useWebP
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
 import { useCppVariantRouter } from "@/lib/cppRouting";
+import { useSignupSourceReport } from "@/lib/signupSource";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -71,6 +72,8 @@ export const SessionManager = () => {
   // after a job action, explain notifications in the in-app sheet (the browser
   // prompt only ever comes from its button). Both are no-ops in the native app.
   useWebPushBootSync(user?.id);
+  // OPS-5: where this member came from (two short words, no personal data), sent once per new account.
+  useSignupSourceReport(user?.id);
   useWebPushAskAfterJobAction();
   useEffect(() => {
     // null until the profile lands, so the cached account flag the first

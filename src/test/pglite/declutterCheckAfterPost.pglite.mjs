@@ -257,7 +257,11 @@ r = await verdict(10, SELLER, "looks like a weapon");
 check("T18 a flag on a RESERVED listing is recorded", r.ok?.t != null, JSON.stringify(r));
 const line10 = await one("SELECT status FROM public.declutter_cart_items WHERE id = $1", [L(10)]);
 check("  its cart line closes with no strike ('removed')", line10?.status === "removed", JSON.stringify(line10));
-check("  its unpaid order is superseded", (await one("SELECT status FROM public.declutter_orders WHERE id = $1", [O(10)])).status === "superseded");
+const o10 = await one("SELECT status, close_reason FROM public.declutter_orders WHERE id = $1", [O(10)]);
+check("  its unpaid order is superseded", o10.status === "superseded", JSON.stringify(o10));
+// Review of 62f90f3368 (2): 'superseded' as the reason means "the buyer restarted checkout" (card fee kept); a
+// payment still landing here must be refunded in full, as the buyer's notice promises.
+check("  ... as not payable, so a late payment is refunded in full", o10.close_reason === "not_payable", JSON.stringify(o10));
 check("  the item is held for an admin", (await status(10)) === "pending_review", await status(10));
 check("  the buyer is told it left their cart, nothing charged", (await noticesTo(B2, "Listing changed")).some((n) => n.message.includes("left your cart")));
 check("  no payout hold for an unpaid sale", (await one("SELECT count(*)::int AS n FROM public.payout_holds")).n === 0);
@@ -287,6 +291,48 @@ r = await verdict(12, BANNED, "looks like a weapon");
 check("T20 a SOLD test listing's flag holds the payout, no admin bell", r.ok?.t != null
   && !!(await one("SELECT 1 AS x FROM public.payout_holds WHERE helper_id = $1", [BANNED]))
   && (await one("SELECT count(*)::int AS n FROM public.notifications WHERE type = 'admin_alert'")).n === 1, JSON.stringify(r));
+
+// ---- 3d. Review of 62f90f3368 (3): reserved or sold with no check 15 minutes after going live. The sweep holds
+// the payout and alerts every admin (never for a test account), once; the sale stands.
+const S2 = "00000000-0000-4000-8000-0000000000a3";
+await db.query(`INSERT INTO public.profiles (user_id, ban_status) VALUES ($1, NULL)`, [S2]);
+await db.query(`INSERT INTO public.declutter_pickup_windows VALUES ($1)`, [S2]);
+const alertCount = async () => (await one("SELECT count(*)::int AS n FROM public.notifications WHERE type = 'admin_alert'")).n;
+const before = await alertCount();
+await draft(13, S2, "unchecked");
+await call(S2, "SELECT public.declutter_publish_item($1) AS s", [I(13)]);
+await db.query(`UPDATE public.declutter_items SET status = 'reserved', live_at = now() - interval '20 minutes' WHERE id = $1`, [I(13)]);
+await db.query(`INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status) VALUES ($1, $2, $3, 'awaiting_payment')`, [O(13), B1, S2]);
+await db.query(`INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, order_id, status) VALUES ($1, $2, $3, $4, $5, 'in_cart')`, [L(13), I(13), B1, S2, O(13)]);
+// Reserved only 5 minutes after going live: the check may still come back, so the sweep leaves it.
+await draft(14, S2, "unchecked");
+await call(S2, "SELECT public.declutter_publish_item($1) AS s", [I(14)]);
+await db.query(`UPDATE public.declutter_items SET status = 'reserved', live_at = now() - interval '5 minutes' WHERE id = $1`, [I(14)]);
+// A test seller's sold listing, never checked: held, no admin bell.
+const S3 = "00000000-0000-4000-8000-0000000000a4";
+await db.query(`INSERT INTO public.profiles (user_id, ban_status) VALUES ($1, NULL)`, [S3]);
+await db.query(`INSERT INTO public.declutter_pickup_windows VALUES ($1)`, [S3]);
+await db.query(`INSERT INTO public.test_subjects VALUES ($1)`, [S3]);
+await draft(15, S3, "unchecked");
+await call(S3, "SELECT public.declutter_publish_item($1) AS s", [I(15)]);
+await db.query(`UPDATE public.declutter_items SET status = 'sold', live_at = now() - interval '20 minutes' WHERE id = $1`, [I(15)]);
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+const hold13 = await one("SELECT reason FROM public.payout_holds WHERE helper_id = $1", [S2]);
+check("T21 a RESERVED listing never checked 15 minutes after going live: the seller's payouts are held, naming the order",
+  r.ok?.n === 2 && !!hold13?.reason?.includes(O(13)) && hold13.reason.includes("didn't finish"), `${JSON.stringify(r)} ${JSON.stringify(hold13)}`);
+const newAlerts = (await db.query("SELECT user_id, link, title FROM public.notifications WHERE type = 'admin_alert' AND title = 'A sold Declutter listing was never checked'")).rows;
+check("  every admin is alerted once, and not for the test seller", newAlerts.length === 1 && newAlerts[0].user_id === ADMIN && newAlerts[0].link === "/admin?view=payouts"
+  && (await alertCount()) === before + 1, JSON.stringify(newAlerts));
+check("  the sale stands (still reserved, its line in the cart)", (await status(13)) === "reserved"
+  && (await one("SELECT status FROM public.declutter_cart_items WHERE id = $1", [L(13)])).status === "in_cart", await status(13));
+check("  the seller is told", (await noticesTo(S2, "Your sale is waiting for a check")).length === 1);
+check("  the test seller's payouts are held too", !!(await one("SELECT 1 AS x FROM public.payout_holds WHERE helper_id = $1", [S3])));
+check("T22 a listing reserved 5 minutes after going live is left alone", (await one("SELECT ai_checked_at FROM public.declutter_item_private WHERE item_id = $1", [I(14)])).ai_checked_at === null);
+await db.query("DELETE FROM public.payout_holds WHERE helper_id = $1", [S2]); // the admin lifts the hold
+r = await call(null, "SELECT public.declutter_hold_unchecked_listings() AS n");
+check("T23 the next sweep does not hold or alert again (runs once per item; a lifted hold stays lifted)",
+  r.ok?.n === 0 && !(await one("SELECT 1 AS x FROM public.payout_holds WHERE helper_id = $1", [S2])) && (await alertCount()) === before + 1,
+  `${JSON.stringify(r)} ${await alertCount()}`);
 
 // ---- 4. Grants.
 const g = await one(`SELECT has_function_privilege('anon', 'public.declutter_hold_unchecked_listings()', 'EXECUTE') AS a,

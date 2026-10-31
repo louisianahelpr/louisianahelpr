@@ -3,7 +3,7 @@
  * the card fee (the buyer) with the server's sums. soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"
  * (only 15 minutes after the pickup time, behind a sheet) and the Helpr's answer box.
  *
- * @mutate src/components/declutter/DeclutterNoHelpr.tsx | The card fee, {formatPrice(c.card_fee_cents)}, isn't refunded: you pay it, because you chose to cancel. | The card fee is refunded.
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx | You get {formatPrice(c.refund_cents)} back. | You get {formatPrice(c.card_fee_cents)} back.
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx | onClick={() => setAsking(true)}>\n        Cancel and get a refund | onClick={() => cancel.mutate()}>\n        Cancel and get a refund
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |   if (false) return null;
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (!r \|\| r.settled_at) return null; |   if (!r) return null;
@@ -47,7 +47,9 @@ describe("BUY-2: the buyer's choice after no Helpr", () => {
     expect(screen.getByText(/The \$18 you paid for delivery is coming back to your card/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancel and get a refund" }));
     expect(state.calls).toEqual([]);
-    expect(await screen.findByText(/You get \$42\.87 back\. The card fee, \$2\.13, isn't refunded: you pay it, because you chose to cancel\./)).toBeTruthy();
+    expect(await screen.findByText(/You get \$42\.87 back\./)).toBeTruthy();
+    // membersSeeNoFeeWords (owner 2026-10-25): the amount only, no fee named.
+    expect(document.body.textContent ?? "").not.toMatch(/card fee/i);
     fireEvent.click(screen.getByRole("button", { name: "Cancel the sale" }));
     await waitFor(() => expect(state.calls).toEqual(["cancel:o1"]));
   });

@@ -11,8 +11,17 @@
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql |           PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,\n            'The seller said | PERFORM public.helpr_task_log(t.id, 'helpr_no_show', t.helpr_id,\n            'The seller said
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql | VALUES (o.id, v_uid, 'helpr', 'no_show', btrim(p_note), | VALUES (o.id, v_uid, 'seller', 'no_show', btrim(p_note),
  * LEAD-BUY44 (20261031140431): the seller is told Delivered. Behaviour: src/test/pglite/helprDeliverySellerToldDelivered.pglite.mjs.
- * @mutate supabase/migrations/20261031140431_helpr_delivery_seller_told_delivered.sql |     PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Delivered',
+ * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql |     PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Delivered',
+ * LEAD-NOHELPR-NOTICE (20261031170803): the two no-Helpr notices name BUY-2's cancel. Behaviour:
+ *   src/test/pglite/declutterNoHelprNoticeOffersRefund.pglite.mjs (3x; NEW_MIGRATION=skip red, 2 mutants red). No fee is
+ *   named anywhere (membersSeeNoFeeWords): the Buying card shows the amount that comes back.
+ * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql |  or cancel the sale for a refund. Buying shows how much comes back before you choose.', | .',
+ * AUD31-24 part: the Terms and the checkout's delivery line say the same.
+ * @mutate src/pages/info/legal/TermsSection.tsx | , or cancel the sale for a refund. Buying shows how much comes back before you choose.</p> | .</p>
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | , or cancel for a refund.</p> | .</p>
+ * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | The buyer can book a pickup at your home or cancel the sale. If they cancel, your item goes back on sale.' | The buyer will book a pickup at your home.'
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
 import { blankSqlComments } from "./helpers/blankNonCode";
@@ -58,8 +67,32 @@ describe("soldstates-5: the seller's 'The Helpr didn't come'", () => {
 
 describe("LEAD-BUY44: the seller hears a Helpr delivery was delivered", () => {
   it("the 'delivered' step tells the seller, naming the item, opening Selling", () => {
-    expect(newestFunction("declutter_delivery_on_task_event").file).toContain("20261031140431");
+    expect(newestFunction("declutter_delivery_on_task_event").file).toContain("20261031170803");
     expect(flat("declutter_delivery_on_task_event")).toContain(
       "PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', format('The Helpr left %s at the buyer''s address.");
+  });
+});
+
+describe("LEAD-NOHELPR-NOTICE: the no-Helpr notices offer BUY-2's cancel", () => {
+  it("the buyer is offered the cancel and pointed to the amount; the seller is told the buyer may cancel", () => {
+    const body = flat("declutter_delivery_on_task_event");
+    expect(body).toContain(
+      "Book a time to pick up at the seller''s home before your 7-day deadline, or cancel the sale for a refund. Buying shows how much comes back before you choose.'");
+    expect(body).toContain(
+      "The buyer can book a pickup at your home or cancel the sale. If they cancel, your item goes back on sale.'");
+    // The cancel the words promise exists, with the card fee kept (BUY-2 above).
+    expect(newestFunction("declutter_cancel_after_no_helpr").file).toContain("20261031133938");
+  });
+});
+
+describe("AUD31-24 part: the Terms and checkout say the buyer may cancel after no Helpr", () => {
+  const src = (p: string) => readFileSync(p, "utf8");
+  it("the Terms' Declutter line", () => {
+    expect(src("src/pages/info/legal/TermsSection.tsx")).toContain(
+      "everything you paid for delivery comes back to you. Then you pick it up at the seller&apos;s door, or cancel the sale for a refund. Buying shows how much comes back before you choose.</p>");
+  });
+  it("the checkout's Helpr delivery line", () => {
+    expect(src("src/components/declutter/DeclutterTradeViews.tsx")).toContain(
+      "what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>");
   });
 });

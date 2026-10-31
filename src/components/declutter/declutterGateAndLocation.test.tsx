@@ -482,13 +482,31 @@ describe("Declutter location ask", () => {
       await screen.findByRole("region", { name: "Map of items for sale" });
       expect(pins.reads).toBeGreaterThan(0);
       expect(screen.queryByText("Oak rocking chair")).toBeNull();
+      // NIGHT-BUYINGrealma-1: the choice is kept, so a reload opens the map again.
+      expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("map");
       // DA-13: the way back is on the map's own screen.
       // @mutate src/components/declutter/DeclutterBrowseView.tsx |  data-map-back="" onClick={() => setPhoneView("list")}> |  data-map-back="">
       fireEvent.click(screen.getByRole("button", { name: "Show list" }));
       expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
       expect(container.querySelector("[data-declutter-map]")).toBeNull();
+      expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("list");
     } finally {
       live.items = [];
+      localStorage.removeItem("helpr.declutterPhoneView");
+    }
+  });
+
+  it("NIGHT-BUYINGrealma-1: phone, a member who chose the map opens on the map after a reload", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | useState<"list" \| "map">(() => (safeStorage.getItem(PHONE_VIEW_KEY) === "map" ? "map" : "list")) | useState<"list" \| "map">(() => "list")
+    twoItems();
+    localStorage.setItem("helpr.declutterPhoneView", "map");
+    try {
+      at("/declutter", <DeclutterPage />);
+      expect(await screen.findByRole("region", { name: "Map of items for sale" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Show list" })).toBeInTheDocument();
+    } finally {
+      live.items = [];
+      localStorage.removeItem("helpr.declutterPhoneView");
     }
   });
 

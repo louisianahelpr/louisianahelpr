@@ -47,7 +47,7 @@ const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[])
 export function buyerOrderFacts(
   order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents">[] },
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
-    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> | null;
+    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by">> | null;
     task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
   now: number = Date.now(),
 ): OrderFacts {
@@ -68,7 +68,8 @@ export function buyerOrderFacts(
       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt };
     case "seller_delivery": {
       const sd = rows.sellerDelivery;
-      return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at };
+      return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at,
+        needsTime: sd?.status === "needs_time", moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller" };
     }
     case "delivery": {
       const t = rows.task;
@@ -95,6 +96,8 @@ export function buyerNextAction(f: OrderFacts): string | null {
   if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup time";
   if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
+  // AUD31-3: the seller-delivery panel's own button words.
+  if (f.handover === "seller_delivery" && !f.delivered) return f.needsTime ? "Pick a time" : f.moveAsked ? "Accept the new time" : "I got it";
   return "I got it";
 }
 

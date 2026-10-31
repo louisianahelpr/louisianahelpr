@@ -145,9 +145,10 @@ describe("every pop-up title is sentence case", () => {
     // 188: +2 the posting stack: "Your free listing is live" (ListedWhatNext) and "${itemName}, photo ${position}" (DeclutterBunchPhotos).
     // 191: +1 BUY-5 "Picked up?" (PickedUpPhotoSheet, the buyer's porch pickup photo preview).
     // 190: +2 batch 3: "Take this post down?" (WantedReportPanel) and "Is it still available?" (DeclutterStillAvailable).
+    // 194: +1 "You're all set" (SmsPhonePrompt, the phone prompt closes itself once texts are on, 8372dffb4d).
     // 193: +2 train l50 (2026-10-31): "Cash out didn't finish" (InstantPayoutDialog's failed cash-out screen) and
     // "Decline ${dollars(priceCents)}?" (QuoteAnswerControls, Decline asks before it ends a quote).
-    expect(all.length).toBe(193);
+    expect(all.length).toBe(194);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

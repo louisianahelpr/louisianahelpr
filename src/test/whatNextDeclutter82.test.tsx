@@ -79,7 +79,7 @@ describe("board 82: after buying", () => {
       return now[0].querySelector("p > span")?.textContent;
     };
     const cases: [string, boolean, string][] = [
-      ["porch", false, "Pick a pickup day"],
+      ["porch", false, "Pick a pickup time"],
       ["meetup", false, "Book a time to meet"],
       ["pickup_home", false, "Book a pickup time"],
       ["seller_delivery", false, "Pick a new delivery time"],

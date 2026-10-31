@@ -54,7 +54,8 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
   if (free && at === 0) return standing(handover, side, at, day).replace(/^Paid\./, "Claimed.");
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
-    if (at === 0) return side === "buyer" ? "Paid. Pick a day to collect it from the porch." : "Paid. The buyer picks a pickup day.";
+    // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
+    if (at === 0) return side === "buyer" ? "Paid. Pick a time to collect it from the porch." : "Paid. The buyer picks a pickup time.";
     if (at === 1) {
       if (side === "seller") return day ? `Put it out ${onDay(day)} and post the porch photo.` : "Paid. Put it out and take one photo where the buyer will find it.";
       return "Not out yet. We'll tell you when it's on the porch. Don't go before then.";

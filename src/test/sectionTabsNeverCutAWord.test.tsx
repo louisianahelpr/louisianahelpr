@@ -7,12 +7,17 @@
  * @mutate src/components/sections/SectionTabs.tsx | cut && (tab !== selected \|\| memberMoved.current) | cut && tab !== selected
  * @mutate src/components/sections/SectionTabs.tsx | if (t.right > box.right) list.scrollLeft += t.right - box.right; | if (t.right > box.right) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx | else if (t.left < box.left) list.scrollLeft -= box.left - t.left; | else if (t.left < box.left) list.scrollLeft -= 0;
- * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge |     const edge
+ * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge = list.getBoundingClientRect().right; |     const edge = list.getBoundingClientRect().right;
  * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().right - edge; | if (next) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         onlySelected: searchOpen,\n |
  * @mutate src/pages/home/Dashboard.tsx | { end: phoneBrowseEnd, onlySelected: phoneSearchOpen } | { end: phoneBrowseEnd }
  * @mutate src/pages/jobs/JobsSection.tsx | onlySelected={browse?.onlySelected} |
+ * T12: the way back, and room between the tab and an open search.
+ * @mutate src/components/sections/SectionTabs.tsx | {less && !onlySelected && ( | {false && (
+ * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0; | list.scrollLeft = list.scrollLeft;
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${searchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
+ * @mutate src/pages/home/Dashboard.tsx | ${phoneSearchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${phoneSearchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -112,11 +117,28 @@ describe("a tab row that doesn't fit", () => {
     expect(cut()).toContain("Browse");
   });
 
+  it("moved along, a left chevron brings back the tab before the edge, whole, and the selected one with it; none at the start", () => {
+    layOut();
+    row("browse");
+    const list = screen.getByRole("tablist");
+    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    act(() => { list.dispatchEvent(new Event("scroll")); });
+    expect(cut()).toContain("Browse");
+    // At 54 Browse is off (-54..-4), so it's the one brought back: the selected tab is one tap away.
+    fireEvent.click(screen.getByRole("button", { name: "Earlier tabs" }));
+    expect(list.scrollLeft).toBe(0);
+    act(() => { list.dispatchEvent(new Event("scroll")); });
+    expect(cut()).not.toContain("Browse");
+    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
+  });
+
   it("with search open only the selected tab stays, whole, and no chevron", () => {
     layOut();
     row("browse", true);
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse"]);
     expect(screen.queryByRole("button", { name: "More tabs" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
   });
 
   it("a row that fits has no chevron and hides nothing", () => {
@@ -144,5 +166,8 @@ describe("Declutter Browse follows Jobs' row", () => {
     }
     expect(code("src/pages/home/Dashboard.tsx")).toContain("onlySelected: phoneSearchOpen");
     expect(code("src/pages/jobs/JobsSection.tsx")).toContain("onlySelected={browse?.onlySelected}");
+    // The row's gap-1 is cancelled by -ml-1 when closed; open, the field keeps 8px from the tab.
+    expect(code("src/pages/home/Dashboard.tsx")).toContain('phoneSearchOpen ? "ml-2 min-w-0 flex-1"');
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toContain('searchOpen ? "ml-2 min-w-0 flex-1"');
   });
 });

@@ -18,9 +18,9 @@
  * @mutate src/lib/declutter/stillInHand.ts |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= STILL_IN_HAND_MS; |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= 0;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
  * AUD31-3: a seller delivery with no time set, or a move the seller asked, is the buyer's move (Needs you).
- * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| (!f.delivered && (!!f.needsTime \|\| !!f.moveAsked))); |      return buyer && !!f.delivered;
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| (!f.delivered && (!!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); |      return buyer && (!!f.delivered \|\| (!f.delivered && !!f.late));
  * @mutate src/components/declutter/BuyingOrders.tsx |         needsTime: sd?.status === "needs_time", moveAsked: | needsTime: false, moveAsked:
- * @mutate src/components/declutter/BuyingOrders.tsx | moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller" }; | moveAsked: !!sd?.proposed_start };
+ * @mutate src/components/declutter/BuyingOrders.tsx | moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller", | moveAsked: !!sd?.proposed_start,
  * AUD31-2: a seller delivery past its time and never marked delivered is late, under Needs you.
  * @mutate src/components/declutter/OrderSteps.tsx | !!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); | !!f.needsTime \|\| !!f.moveAsked)));
  * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1 && f.late) return | if (at === 1 && false) return

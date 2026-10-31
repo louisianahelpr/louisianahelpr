@@ -11,7 +11,7 @@
 // @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | 'link', public.declutter_notice_link(p_link)) | 'link', p_link)
 // @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Setup fee coming back', | PERFORM public.declutter_notify(o.seller_id, 'payment', 'Setup fee coming back',
 // @mutate supabase/functions/declutter-money/index.ts | const link = `${getAppUrl()}/declutter?tab=buying`; | const link = `${getAppUrl()}/declutter?view=cart`;
-// @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | const link = `${getAppUrl()}/declutter?tab=buying`; | const link = `${getAppUrl()}/declutter?view=cart`;
+// @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | path: "/declutter?tab=buying", actionLabel: "Open Buying", | path: "/declutter?view=cart", actionLabel: "Open Buying",
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

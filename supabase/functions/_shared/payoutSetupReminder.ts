@@ -20,6 +20,19 @@ const NUDGE_TITLE = "Finish payout setup to get paid";
 const NUDGE_BODY =
   "You have a job on Helpr. Finish your payout setup (Stripe ID check and bank, a few minutes) so your pay can reach you.";
 
+/** Owner 2026-10-30: payout account ready, ID outstanding: this notice asks for the ID alone. */
+export const IDENTITY_REMINDER_LINK = "/home?verify_id=1";
+export function identityReminderCopy(stage: PayoutSetupReminderStage, jobTitle: string | null): { title: string; message: string } {
+  const named = jobTitle?.trim() ? `"${jobTitle.trim()}"` : "your job";
+  if (stage === "money") {
+    return { title: "Verify your ID to get paid", message: `Your pay from ${named} is waiting. Verify your ID once with Stripe, about 2 minutes, and we send it.` };
+  }
+  return {
+    title: stage === "hired" ? "You're hired. Verify your ID before you head out." : "Verify your ID before you head out",
+    message: `You can't head out to ${named} until Stripe checks your ID. It takes about 2 minutes, once. Your pay waits for it too.`,
+  };
+}
+
 /** Title and message for one reminder. `jobTitle` names the job a 'money' reminder is about. */
 export function payoutSetupReminderCopy(stage: PayoutSetupReminderStage, jobTitle: string | null): { title: string; message: string } {
   if (stage === "hired") return { title: HIRED_TITLE, message: HIRED_BODY };

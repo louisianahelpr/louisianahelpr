@@ -25,7 +25,7 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
-import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 import { redriveInstantFeeReturns } from "../_shared/instantPayoutFeeReturn.ts";
@@ -1044,6 +1044,18 @@ serve(async (req) => {
       }
       if (hold.kind === "held") {
         console.warn(`[process-scheduled-payouts] helper ${helperId} is on a payout hold; job ${job.id} left payout_pending`);
+        results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
+        continue;
+      }
+      // No payout without a verified ID (owner 2026-10-30): the job stays payout_pending and
+      // this run asks again next time; claim_payout_setup_reminders tells the Helpr.
+      const idHold = await checkIdentityHold(supabaseAdmin, helperId);
+      if (idHold.kind === "error") {
+        results.push({ job_id: job.id, status: "payout_hold_check_error", error: idHold.message });
+        jobDefect(job.id, `ID check read ${job.id}: ${idHold.message}`);
+        continue;
+      }
+      if (idHold.kind === "waits") {
         results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
         continue;
       }

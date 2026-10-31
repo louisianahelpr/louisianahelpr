@@ -17,7 +17,7 @@ import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
-import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, IDENTITY_HOLD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 import { returnInstantFee, settleUnreturnedInstantFees, type FeeOutcome } from "../_shared/instantPayoutFeeReturn.ts";
 
@@ -140,6 +140,17 @@ serve(async (req) => {
     }
     if (hold.kind === "held") {
       return new Response(JSON.stringify({ error: "Payouts on your account are paused while we review it. Contact support if you have questions.", code: PAYOUT_HELD_CODE }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
+      });
+    }
+
+    // No payout without a verified ID (owner 2026-10-30), for BOTH quote and execute.
+    const idHold = await checkIdentityHold(supabaseAdmin, user.id);
+    if (idHold.kind === "error") {
+      throw new PublicError("Could not load your payout account right now. Please try again in a moment.");
+    }
+    if (idHold.kind === "waits") {
+      return new Response(JSON.stringify({ error: IDENTITY_HOLD_MESSAGE, code: PAYOUT_HELD_CODE }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
       });
     }

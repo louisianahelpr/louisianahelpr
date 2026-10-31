@@ -13,7 +13,8 @@
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |       else lines.push({ ...mine[0], amount_cents: bt.net }); |       else lines.push({ ...mine[0] });
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | if (mine.length > 1 && parts === bt.net) | if (mine.length > 1)
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   if (payout.automatic === false) { |   if (false) {
- * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     r.debt_cents > 0\n      ? [ |     false\n      ? [
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     if (owed <= 0 && setupFee <= 0) return [{ kind, label, amount_cents: 0, href }]; |     if (true) return [{ kind, label, amount_cents: 0, href }];
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     const owed = r.debt_cents - setupFee; |     const owed = r.debt_cents;
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const PAYOUT_ID = /^po_[A-Za-z0-9]{6,64}$/; | const PAYOUT_ID = /^po_/;
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)")
  * @mutate supabase/functions/stripe-payouts/index.ts |     if (!isPayoutId(payoutId)) { | if (false) {
@@ -109,7 +110,8 @@ describe("payoutDetail reads the caller's own account and ledgers", () => {
     const reads: [string, string, unknown][] = [];
     const rows: Record<string, unknown[]> = {
       payout_transfers: [{ stripe_transfer_id: "tr_job", job_id: "j1", jobs: { title: "Mow front and back yard" } }],
-      declutter_payouts: [{ stripe_transfer_id: "tr_sale", order_id: "o1", items_cents: 6400, debt_cents: 310, amount_cents: 6090 }],
+      // $3.10 owed plus the one-time $2 setup fee, which sits inside debt_cents.
+      declutter_payouts: [{ stripe_transfer_id: "tr_sale", order_id: "o1", items_cents: 6600, debt_cents: 510, setup_fee_cents: 200, amount_cents: 6090 }],
       declutter_cart_items: [{ order_id: "o1", declutter_items: { title: "Vintage film camera" } }],
     };
     const admin = {
@@ -128,8 +130,9 @@ describe("payoutDetail reads the caller's own account and ledgers", () => {
     // A sale that paid a fee back is two lines, the sale's items and the fee, from the payout row's own parts.
     expect(d.lines).toEqual([
       { kind: "job", label: "Mow front and back yard", amount_cents: 3255, href: "/jobs/j1" },
-      { kind: "sale", label: "Vintage film camera", amount_cents: 6400, href: "/declutter?tab=selling" },
+      { kind: "sale", label: "Vintage film camera", amount_cents: 6600, href: "/declutter?tab=selling" },
       { kind: "fee_owed", label: "Fee owed, paid back", amount_cents: -310, href: null },
+      { kind: "fee_owed", label: "One-time setup fee", amount_cents: -200, href: null },
     ]);
     expect(stripeCalls.map((c) => c[0])).toEqual(["payouts.retrieve", "balanceTransactions.list"]);
     expect(stripeCalls.length).toBeGreaterThan(1);

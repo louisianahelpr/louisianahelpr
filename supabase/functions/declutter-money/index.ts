@@ -96,7 +96,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
 import { isTransientStripeError, peekConnectReadiness, readConnectReadiness, transferReady, type ConnectReadiness, type ReadinessCache } from "../_shared/connectReadiness.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
@@ -359,7 +359,7 @@ serve(async (req) => {
   await waitRpc("payout_held_check", {});
   type WaitCategory = "no_account" | "setup_unfinished" | "under_review" | "rejected" | "unusable"
     | "payee_deleted" | "mixed_parties" | "banned" | "data_defect" | "transient" | "record_failed" | "unreadable" | "held" | "ban_review"
-    | "suspended" | "needs_reconcile";
+    | "suspended" | "needs_reconcile" | "identity";
   type WaitKind = PayoutKind | "declutter_refund" | "delivery_refund";
   /**
    * Reasons that will not fix themselves: once the page goes out the row is HELD FOR REVIEW
@@ -383,6 +383,7 @@ serve(async (req) => {
     unreadable: "Stripe refuses our read of this payee's payout account",
     held: "an admin payout hold",
     ban_review: "a ban review",
+    identity: "the payee has not verified their ID",
   };
   /**
    * EVERY deferred payout is recorded (no defer is unbounded): payout_payee_wait_seen reminds the
@@ -571,6 +572,17 @@ serve(async (req) => {
     if (hold.kind === "held") {
       out.held++;
       await skipRow(kind, payoutId, payeeId, amountCents, 60, "held", "an admin payout hold placed during the run");
+      return false;
+    }
+    // No payout without a verified ID (owner 2026-10-30): a wait, no try used, the payee told.
+    const idHold = await checkIdentityHold(admin, payeeId);
+    if (idHold.kind === "error") {
+      await skipRow(kind, payoutId, payeeId, amountCents, 15, "transient", `ID check read failed: ${idHold.message}`);
+      return false;
+    }
+    if (idHold.kind === "waits") {
+      out.held++;
+      await skipRow(kind, payoutId, payeeId, amountCents, 60, "identity", "ID check not finished");
       return false;
     }
     const { data: prof, error } = await admin.from("profiles").select("ban_status, auto_suspended_until").eq("user_id", payeeId).maybeSingle();
@@ -1040,6 +1052,21 @@ serve(async (req) => {
         const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
+        // Owner 2026-10-30: the seller's one-time setup fee comes out here, once the sale is final and the send is
+        // certain (0 while the identity_check switch is off). Never on a row a send may have started: its Stripe key
+        // was sent with the old amount. Fails closed: an unreadable answer sends nothing this run, no try used.
+        if (!maybeSent_declutter(p)) {
+          const { data: toSend, error: feeErr } = await admin.rpc("declutter_payout_take_setup_fee", { p_payout_id: p.payout_id });
+          if (feeErr) {
+            if ((feeErr as { code?: string }).code !== "PGRST202") {
+              defects.record(`payout ${p.payout_id}: setup fee read failed, not sent this run: ${feeErr.message}`.slice(0, 200));
+              await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);
+              continue;
+            }
+          } else if (typeof toSend === "number") {
+            p.amount_cents = toSend;
+          }
+        }
         if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         beforeSend = false;
         transfer = await stripe.transfers.create(
@@ -1206,6 +1233,24 @@ serve(async (req) => {
         }
         if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue;
         if (!(await stillPayableNow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
+        // Owner 2026-10-30: the delivery Helpr's one-time setup fee comes out here, once the send is certain (0 while the
+        // identity_check switch is off), from the order's part only: a raise and a held tip go whole from their own charge.
+        // Never on a row a send may have started: its Stripe key was sent with the old amount. Fails closed: an unreadable
+        // answer sends nothing this run, no try used.
+        if (!maybeSent_helpr_task(h)) {
+          const { data: toSend, error: feeErr } = await admin.rpc("helpr_task_payout_take_setup_fee", { p_payout_id: h.payout_id });
+          if (feeErr) {
+            if ((feeErr as { code?: string }).code !== "PGRST202") {
+              defects.record(`helpr payout ${h.payout_id}: setup fee read failed, not sent this run: ${feeErr.message}`.slice(0, 200));
+              await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);
+              continue;
+            }
+          } else if (typeof toSend === "number" && toSend !== h.amount_cents) {
+            const taken = h.amount_cents - toSend;
+            parts = parts.map((part) => (!part.raiseId && !part.tipId ? { ...part, amountCents: part.amountCents - taken } : part));
+            h.amount_cents = toSend;
+          }
+        }
         if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         beforeSend = false;
         for (const [i, part] of parts.entries()) {

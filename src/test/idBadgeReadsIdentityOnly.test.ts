@@ -20,7 +20,7 @@
  *        Connect sync writes it).
  *
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |     (p.idv_status IS NOT DISTINCT FROM 'verified') AS is_id_verified, |     public.identity_is_verified(p.idv_status, p.stripe_identity_verified) AS is_id_verified,
- * @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |     (t.idv_status IS NOT DISTINCT FROM 'verified'), |     (t.idv_status IS NOT DISTINCT FROM 'verified' OR t.stripe_identity_verified),
+ * @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |     (t.idv_status IS NOT DISTINCT FROM 'verified'), |     (t.idv_status IS NOT DISTINCT FROM 'verified' OR t.stripe_identity_verified),
  * @mutate src/components/profile/profileLanding/YouCard.tsx |   const verified = hasIdBadge(profile?.idv_status); |   const verified = hasIdBadge(profile?.idv_status) \|\| profile?.stripe_identity_verified === true;
  * @mutate src/components/admin/adminusers/AdminUserRow.tsx |             const hasIdv = hasIdBadge(p.idv_status); |             const hasIdv = isIdentityVerified({ connectIdentityVerified: p.stripe_identity_verified, idvStatus: p.idv_status });
  * @mutate src/lib/awardGate.ts |   return idvStatus === "verified"; |   return idvStatus === "verified" \|\| idvStatus === "pending";

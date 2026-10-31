@@ -190,6 +190,28 @@ describe("board 162: public questions", () => {
     expect(within(sheet).queryByRole("alert")).toBeNull();
   });
 
+  // AUD31-28 (audit 2026-10-31): Selling's "Questions to answer" links to the item with #declutter-questions; the
+  // item page scrolls to the questions once they are in (it opened at the top, the question 2 screens down at 375).
+  // @mutate src/components/declutter/DeclutterQuestions.tsx |     if (loaded && window.location.hash === "#declutter-questions") { |     if (false) {
+  it("opened with #declutter-questions, the page scrolls to the questions once they load; without it, it doesn't", async () => {
+    const seen: string[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this.id); });
+    try {
+      window.location.hash = "#declutter-questions";
+      renderIt({ isSeller: true, canAsk: false });
+      await screen.findByText("Will it fit in an SUV?");
+      await waitFor(() => expect(seen).toEqual(["declutter-questions"]));
+      window.location.hash = "";
+      seen.length = 0;
+      renderIt({ isSeller: true, canAsk: false });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(seen).toEqual([]);
+    } finally {
+      spy.mockRestore();
+      window.location.hash = "";
+    }
+  });
+
   it("suggested reply: Edit fills the answer box and sends nothing", async () => {
     const sheet = await openAnswerSheet();
     fireEvent.click(await within(sheet).findByRole("button", { name: "Edit" }));

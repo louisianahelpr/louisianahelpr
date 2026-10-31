@@ -56,12 +56,15 @@ const state = {
   payouts: [] as unknown[],
   /** Audit 1b D2-2: open problems on the seller's orders. */
   problems: [] as unknown[],
+  /** NIGHT-BUYINGopenpr-3: declutter_order_problem per order (the seller's side of each open report). */
+  problemRows: {} as Record<string, unknown>,
 };
 
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyPayouts: async () => state.payouts,
   fetchOpenProblems: async () => state.problems,
+  fetchOrderProblem: async (id: string) => state.problemRows[id] ?? null,
 }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
@@ -113,7 +116,12 @@ vi.mock("@/lib/declutter/haulAway", () => ({
   cancelHaulAway: async () => "live",
   HAUL_AWAY_CLIENT_ERROR_COPY: { haul_away_job_stuck: "stuck" },
 }));
-vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
+// The sale cards are their own tests; here each paid order the list would show is one marked row.
+vi.mock("./DeclutterHandoverViews", () => ({
+  PaidOrdersSection: ({ cart, show }: { cart: { order_id: string | null; status: string }[]; show?: (id: string) => boolean }) => (
+    <ul>{cart.filter((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id))).map((l) => <li key={l.order_id} data-paid-order={l.order_id} />)}</ul>
+  ),
+}));
 vi.mock("./DeclutterDeliveryViews", () => ({ DeliverView: () => null }));
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
 vi.mock("@/lib/declutter/donate", () => ({
@@ -592,6 +600,37 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
     await waitFor(() => expect(statusOf(container, "Floor lamp")).toBe("Sold · Held while Louisiana Helpr looks at a problem"));
     expect(statusOf(container, "Side table")).toBe("Sold · Paid 24 hours after the handover");
     state.problems = [];
+  });
+
+  // NIGHT-BUYINGopenpr-3 (lead 10-31): "To answer" was empty with a buyer's report waiting on the seller's side. It
+  // now counts each sale whose report waits on the seller and lists those sale cards (a chip never counts what it hides).
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}\n |
+  // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
+  // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && p.reporter_side !== "seller";
+  it("openpr-3: a buyer's report waiting on the seller counts under To answer and lists that sale there, only that one", async () => {
+    const sale = (id: string) => ({ line_id: `l-${id}`, item_id: `i-${id}`, item_title: `Sale ${id}`, my_side: "seller", seller_id: "u1", price_cents: 3000,
+      status: "paid", checkout_by: "2026-10-27T12:00:00Z", order_id: id, order_status: "paid", handover: "porch", premium_cents: 0, total_cents: 3000, porch_ok: true });
+    const open = (id: string, over: Record<string, unknown>) => ({ id: `p-${id}`, order_id: id, reporter_side: "buyer", reason: "damaged", note: "x",
+      photo_paths: [], status: "open", created_at: "2026-10-30T12:00:00Z", other_side_note: null, ...over });
+    state.mine = [ITEM];
+    state.payouts = [];
+    // o1: the buyer's report, no side from me yet (mine to answer). o2: I answered. o3: I reported it. o4: no problem.
+    state.cart = ["o1", "o2", "o3", "o4"].map(sale);
+    state.problems = ["o1", "o2", "o3"].map((id) => ({ id: `p-${id}`, order_id: id, reporter_side: id === "o3" ? "seller" : "buyer", reason: "damaged" }));
+    state.problemRows = { o1: open("o1", {}), o2: open("o2", { other_side_note: "It left here fine." }), o3: open("o3", { reporter_side: "seller" }) };
+    try {
+      const { container } = at("/declutter?tab=selling");
+      const chip = () => container.querySelector('[data-status-box="offers"]') as HTMLElement;
+      await waitFor(() => expect(chip().textContent).toBe("To answer · 1"));
+      fireEvent.click(chip());
+      await waitFor(() => expect(Array.from(container.querySelectorAll("[data-paid-order]")).map((e) => e.getAttribute("data-paid-order"))).toEqual(["o1"]));
+      expect(screen.queryByText("Nothing to answer right now.")).toBeNull();
+    } finally {
+      state.cart = [];
+      state.problems = [];
+      state.problemRows = {};
+    }
   });
 
   it("every payout status has words; a free item or an unread sale has none", async () => {

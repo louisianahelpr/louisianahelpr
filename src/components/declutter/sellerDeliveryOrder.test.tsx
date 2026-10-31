@@ -120,13 +120,15 @@ describe("seller-delivery order: the money moments ask in the app", () => {
   // Audit 2026-10-30 DB-8: the notice said the seller took a photo; neither side's card showed it.
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto | {false && b.delivered_photo_path && <DeliveredPhoto
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {url.isSuccess && !url.data && <p className="text-xs" role="alert"> |       {false && <p className="text-xs" role="alert">
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx | mine={b.side === "seller"} /> | mine={false} />
   it("DB-8: once delivered, both sides see the seller's photo from the buyer's door, and a link that fails says so", async () => {
-    for (const side of ["buyer", "seller"] as const) {
+    // AUD31-5: the seller's own card says "Your photo"; the buyer's names the seller.
+    for (const [side, words] of [["buyer", "The seller's photo of where it was left"], ["seller", "Your photo of where you left it"]] as const) {
       state.booking = { ...BASE, side, delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
       const { unmount } = show();
-      const img = await screen.findByAltText("The seller's photo of where it was left");
+      const img = await screen.findByAltText(words);
       expect(img).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o/door.jpg");
-      expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(/^The seller's photo of where it was left, taken \w{3}, \w{3} \d+, \d+:\d{2} (AM|PM)$/);
+      expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(new RegExp(`^${words}, taken \\w{3}, \\w{3} \\d+, \\d+:\\d{2} (AM|PM)$`));
       unmount();
     }
     state.booking = { ...BASE, handoff: "hand", delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };

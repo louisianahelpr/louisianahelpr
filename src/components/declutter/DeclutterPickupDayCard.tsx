@@ -39,8 +39,8 @@ function OnMyWayButton({ orderId, sent }: { orderId: string; sent: boolean }) {
   );
 }
 
-export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[]; bookings: MyBooking[] | undefined }) {
-  const today = pickupsToday(orders, bookings ?? []);
+export function PickupDayCard({ orders, bookings, held }: { orders: PickupOrderLike[]; bookings: MyBooking[] | undefined; held?: ReadonlySet<string> }) {
+  const today = pickupsToday(orders, bookings ?? [], new Date(), held);
   // The first line's address stands for the order's stop; an order with lines at two addresses also lists them on its own card.
   const places = useQueries({
     queries: today.map((p) => p.order.handover === "meetup"

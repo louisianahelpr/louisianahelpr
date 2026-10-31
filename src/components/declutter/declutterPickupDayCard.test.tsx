@@ -76,6 +76,15 @@ describe("which orders are today's pickups", () => {
     expect(got.length).toBeGreaterThan(2);
   });
 
+  // NIGHT-BUYINGopenpr-1 (night audit 10-30): an order on hold never says "set off".
+  // @mutate src/lib/declutter/pickupDay.ts |     if (held.has(order.orderId)) continue; |
+  it("an order on hold (open problem) is left out", () => {
+    const orders = [order("held", "pickup_home"), order("fine", "pickup_home")];
+    const bookings = [booked("held", { slot_start: at(10) }), booked("fine", { slot_start: at(11) })];
+    expect(pickupsToday(orders, bookings).map((p) => p.order.orderId)).toEqual(["held", "fine"]);
+    expect(pickupsToday(orders, bookings, new Date(), new Set(["held"])).map((p) => p.order.orderId)).toEqual(["fine"]);
+  });
+
   it("said yesterday is not said today", () => {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString();
     const [p] = pickupsToday([order("a", "pickup_home")], [booked("a", { buyer_on_way_at: yesterday })]);

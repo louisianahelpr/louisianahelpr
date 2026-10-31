@@ -6,7 +6,7 @@ import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT } from '../_shared/resend.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { scanAll, scanDefect } from '../_shared/paginate.ts'
-import { AdminDigestEmail } from '../_shared/email-templates/lifecycle.tsx'
+import { AdminDigestEmail, OwnerDailySummaryEmail, type OwnerDailyStats } from '../_shared/email-templates/lifecycle.tsx'
 import {
   ReEngagementEmail,
   WelcomeDripStep1Email,
@@ -96,6 +96,57 @@ async function adminDigestEmail(stats: {
       adminUrl: `${getAppUrl()}/admin`,
       weekOf: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
     }),
+  )
+  return { subject, html, text }
+}
+
+/**
+ * OPS-1: who gets the owner's ops mail (the daily summary and the weekly digest). Admins only, and never a test
+ * account (owner rule: test data never shows; an admin test login is test data too). public.is_test_subject is the
+ * one test rule (test_accounts, is_seed, fixture logins); only an answer of `false` counts as real, so a failed or
+ * empty check skips that admin and records why. Suppressed addresses are skipped as everywhere in this file.
+ */
+async function opsMailRecipients(
+  supabase: { from: (t: string) => any; rpc: (n: string, a?: unknown) => any },
+  suppressedSet: Set<string>,
+  results: { errors: string[] },
+  label: string,
+): Promise<string[]> {
+  const { data: roles, error: rolesErr } = await supabase.from('user_roles').select('user_id').eq('role', 'admin')
+  if (rolesErr) {
+    results.errors.push(`${label} recipient query failed: ${rolesErr.message}`)
+    return []
+  }
+  const out: string[] = []
+  for (const role of (roles || []) as Array<{ user_id: string }>) {
+    // `.single()` errors with PGRST116 on zero rows; dropping it would skip an admin silently.
+    const { data: adminProfile, error: adminProfileErr } = await supabase
+      .from('profiles')
+      .select('email, full_name, is_seed')
+      .eq('user_id', role.user_id)
+      .single()
+    if (adminProfileErr) {
+      results.errors.push(`${label} profile read failed for ${role.user_id}: ${adminProfileErr.message}`)
+      continue
+    }
+    if (!adminProfile?.email || adminProfile.is_seed === true) continue
+    const { data: isTest, error: testErr } = await supabase.rpc('is_test_subject', { p_user_id: role.user_id })
+    if (testErr) {
+      results.errors.push(`${label} test-account check failed for ${role.user_id}: ${testErr.message}`)
+      continue
+    }
+    if (isTest !== false) continue
+    if (suppressedSet.has(String(adminProfile.email).toLowerCase())) continue
+    out.push(adminProfile.email)
+  }
+  return out
+}
+
+async function ownerDailyEmail(stats: OwnerDailyStats): Promise<RenderedEmail> {
+  const dayOf = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })
+  const subject = `Louisiana Helpr daily summary: ${stats.newUsers} sign-ups, ${stats.itemsSold} items sold`
+  const { html, text } = await renderEmail(
+    React.createElement(OwnerDailySummaryEmail, { stats, adminUrl: `${getAppUrl()}/admin`, dayOf }),
   )
   return { subject, html, text }
 }
@@ -223,7 +274,7 @@ serve(async (_req) => {
   const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(supabaseUrl, supabaseKey, { global: { fetch: boundedFetch() } })
 
-  const results = { drip: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
+  const results = { drip: 0, reEngagement: 0, adminDigest: 0, ownerDaily: 0, errors: [] as string[] }
 
   try {
     // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
@@ -818,7 +869,7 @@ serve(async (_req) => {
     } else {
     const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
-    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
+    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes] = await Promise.all([
       // Real members and real jobs only (owner rule: test data never shows to the owner; OPS-1 area, b29 10-31).
       // Revenue below already read is_seed = false; the three counts did not, so a test run's sign-ups and jobs
       // were counted in the admins' digest.
@@ -829,7 +880,6 @@ serve(async (_req) => {
       // Real money only: a test job's fee was paid on the Stripe TEST key
       // (owner 2026-10-12, test mode for test accounts) and is not revenue.
       supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
-      supabase.from('user_roles').select('user_id').eq('role', 'admin'),
     ])
 
     // A FAILED STAT READ MUST NOT BECOME A NUMBER IN AN EMAIL.
@@ -871,52 +921,16 @@ serve(async (_req) => {
       revenue,
     }
 
-    // Send digest to all admins.
-    //
-    // NOT paged, and that is a judgement rather than an oversight: `user_roles`
-    // filtered to `role = 'admin'` is a handful of rows on any plausible day,
-    // three orders of magnitude below the 1000-row cap, and a scan here would
-    // buy nothing. The `error` IS checked, because an errored read returns
-    // `undefined` and would silently skip the whole digest while reporting a
-    // clean run — the same shape of bug as an unbounded read, one line earlier.
-    if (adminRolesRes.error) {
-      results.errors.push(`admin digest recipient query failed: ${adminRolesRes.error.message}`)
-    }
-    for (const adminRole of adminRolesRes.data || []) {
-      // `.single()` errors with PGRST116 on zero rows, and dropping that error
-      // made `data` null, `continue` fire, and that admin's digest silently
-      // never exist — with `results.adminDigest` and the defect count both
-      // reporting clean. Same shape as the read one line above, which is why
-      // it gets the same treatment.
-      const { data: adminProfile, error: adminProfileErr } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('user_id', adminRole.user_id)
-        .single()
-
-      if (adminProfileErr) {
-        results.errors.push(
-          `admin digest profile read failed for ${adminRole.user_id}: ${adminProfileErr.message}`,
-        )
-        continue
-      }
-      if (!adminProfile?.email) continue
-
-      // The hard suppression list applies to EVERY send in this file, and the
-      // header two hundred lines up says so in as many words: "it applies to
-      // EVERY send below, transactional included, because continuing to mail a
-      // hard-bounced address is how a sending domain dies." The drip and
-      // win-back loops both honour it; this one did not, so a bounced or
-      // complained admin address was mailed weekly forever while the run
-      // reported clean. An admin is not exempt from a mailbox provider.
-      if (suppressedSet.has(adminProfile.email.toLowerCase())) continue
-
+    // Send digest to every admin who is not a test account (OPS-1 helper: the same recipients as the daily
+    // summary; a failed role, profile or test check is recorded, never a silent skip).
+    const digestTo = await opsMailRecipients(supabase, suppressedSet, results, 'admin digest')
+    for (const adminEmail of digestTo) {
       const { subject, html, text } = await adminDigestEmail(stats)
       const messageId = crypto.randomUUID()
 
       await logSend(
         supabase,
-        { message_id: messageId, template_name: 'admin_weekly_digest', recipient_email: adminProfile.email, status: 'pending' },
+        { message_id: messageId, template_name: 'admin_weekly_digest', recipient_email: adminEmail, status: 'pending' },
         results,
       )
 
@@ -928,7 +942,7 @@ serve(async (_req) => {
         payload: {
           run_id: crypto.randomUUID(),
           message_id: messageId,
-          to: adminProfile.email,
+          to: adminEmail,
           from: FROM_DEFAULT,
           subject,
           html,
@@ -962,6 +976,123 @@ serve(async (_req) => {
     }
     } // end stat-read guard
     } // end Monday check
+
+    // ─── 4. Owner daily summary (INTERNAL, every run; OPS-1, owner 10-29) ──
+    // The last 24 hours for the owner: sign-ups, posts, sales, what is stuck and the errors real members hit.
+    // Built like the weekly digest above: real members and real items only (is_seed = false; test accounts never
+    // show), a failed read skips the send instead of mailing a zero, and it goes only to admins who are not test
+    // accounts (opsMailRecipients).
+    {
+      const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      const [dUsers, dJobs, dItems, dDone, dReports, dPayouts] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', since),
+        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', since),
+        supabase.from('declutter_items').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('live_at', since),
+        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', since),
+        supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('declutter_payouts').select('id', { count: 'exact', head: true }).eq('status', 'failed').eq('is_seed', false),
+      ])
+      const salesScan = await scanAll<{ total_cents: number | null }>(
+        'declutter sales',
+        (countOpt) =>
+          supabase.from('declutter_orders').select('total_cents', countOpt).eq('is_seed', false).gte('paid_at', since).order('id', { ascending: true }),
+      )
+      const errScan = await scanAll<{ user_id: string | null; tags: unknown }>(
+        'member errors',
+        (countOpt) =>
+          supabase.from('error_logs').select('user_id, tags', countOpt).gte('created_at', since)
+            .in('severity', ['error', 'fatal']).not('user_id', 'is', null).order('id', { ascending: true }),
+      )
+      const dailyFailures = ([
+        ['sign-ups', dUsers], ['jobs posted', dJobs], ['items posted', dItems], ['jobs completed', dDone],
+        ['open reports', dReports], ['failed payouts', dPayouts],
+      ] as Array<[string, { error: { message: string } | null }]>)
+        .filter(([, r]) => r.error)
+        .map(([name, r]) => `${name} (${r.error!.message})`)
+      if (salesScan.error || !salesScan.complete) dailyFailures.push(`sales (${salesScan.shortfall ?? salesScan.error?.message})`)
+      if (errScan.error || !errScan.complete) dailyFailures.push(`member errors (${errScan.shortfall ?? errScan.error?.message})`)
+
+      // Errors from test runs never count: a seed-tagged row (error_log_is_seed's rule: tags.seed = true or a
+      // source ending in '-seed'), or a member who is a seed profile or a test account.
+      const isSeedTag = (t: unknown) => {
+        if (!t || typeof t !== 'object' || Array.isArray(t)) return false
+        const o = t as Record<string, unknown>
+        return String(o.seed ?? '') === 'true' || String(o.source ?? o.area ?? '').endsWith('-seed')
+      }
+      const errRows = (errScan.rows || []).filter((r) => r.user_id && !isSeedTag(r.tags))
+      const errIds = [...new Set(errRows.map((r) => r.user_id as string))]
+      const realIds = new Set<string>()
+      for (let i = 0; i < errIds.length && !dailyFailures.length; i += 200) {
+        const chunk = errIds.slice(i, i + 200)
+        const [realRes, testRes] = await Promise.all([
+          supabase.from('profiles').select('user_id, is_seed').in('user_id', chunk).eq('is_seed', false),
+          supabase.from('test_accounts').select('user_id').in('user_id', chunk),
+        ])
+        if (realRes.error || testRes.error) {
+          dailyFailures.push(`member errors (${(realRes.error ?? testRes.error)!.message})`)
+          break
+        }
+        const testIds = new Set(((testRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id))
+        const asked = new Set(chunk)
+        for (const r of (realRes.data || []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !testIds.has(r.user_id)) realIds.add(r.user_id)
+      }
+
+      if (dailyFailures.length) {
+        results.errors.push(
+          `owner daily summary NOT sent — these stats could not be read: ${dailyFailures.join(', ')}. A zero from a failed read tells the owner nothing is wrong.`,
+        )
+      } else {
+        const dailyStats: OwnerDailyStats = {
+          newUsers: dUsers.count || 0,
+          jobsPosted: dJobs.count || 0,
+          itemsPosted: dItems.count || 0,
+          jobsCompleted: dDone.count || 0,
+          itemsSold: salesScan.rows.length,
+          salesCents: salesScan.rows.reduce((sum, o) => sum + (o.total_cents || 0), 0),
+          openReports: dReports.count || 0,
+          failedPayouts: dPayouts.count || 0,
+          memberErrors: errRows.filter((r) => realIds.has(r.user_id as string)).length,
+          membersWithErrors: realIds.size,
+        }
+        const dailyTo = await opsMailRecipients(supabase, suppressedSet, results, 'owner daily summary')
+        for (const to of dailyTo) {
+          const { subject, html, text } = await ownerDailyEmail(dailyStats)
+          const messageId = crypto.randomUUID()
+          await logSend(
+            supabase,
+            { message_id: messageId, template_name: 'owner_daily_summary', recipient_email: to, status: 'pending' },
+            results,
+          )
+          const { error: dailyEnqueueError } = await supabase.rpc('enqueue_email', {
+            queue_name: 'transactional_emails',
+            payload: {
+              run_id: crypto.randomUUID(),
+              message_id: messageId,
+              to,
+              from: FROM_DEFAULT,
+              subject,
+              html,
+              text,
+              purpose: 'internal',
+              label: 'owner_daily_summary',
+              queued_at: now.toISOString(),
+            },
+          })
+          if (dailyEnqueueError) {
+            results.errors.push(`owner daily summary enqueue: ${dailyEnqueueError.message}`)
+            const { error: stampErr } = await supabase.from('email_send_log')
+              .update({ status: 'failed', error_message: dailyEnqueueError.message.slice(0, 1000) })
+              .eq('message_id', messageId)
+              .select('message_id')
+            if (stampErr) {
+              results.errors.push(`email_send_log failure stamp did not write for ${messageId} (${stampErr.message})`)
+            }
+          } else {
+            results.ownerDaily++
+          }
+        }
+      }
+    }
   } catch (err) {
     // `catch` binds `unknown`; a non-Error throw here would replace the recorded
     // reason with a second exception and lose the run's whole error report.

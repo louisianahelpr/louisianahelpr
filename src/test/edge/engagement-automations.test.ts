@@ -430,6 +430,8 @@ describe("engagement-automations edge function", () => {
         includes: "email, full_name",
         result: { rows: [{ email, full_name: "Admin" }] },
       });
+      // OPS-1: ops mail goes only to an admin who is not a test account.
+      scenario.rpc.is_test_subject = false;
     }
 
     it("sends the digest to an admin", async () => {
@@ -460,7 +462,7 @@ describe("engagement-automations edge function", () => {
     // read real members and real jobs only, like its revenue line.
     // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
     // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
-    // @mutate supabase/functions/engagement-automations/index.ts | .select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false) | .select('id', { count: 'exact', head: true }).eq('status', 'completed')
+    // @mutate supabase/functions/engagement-automations/index.ts | .select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday) | .select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', yesterday)
     it("the digest's sign-up, posted and completed counts leave out test accounts and test jobs", async () => {
       const fn = await loadConfigured();
       seedAdmin();
@@ -468,7 +470,8 @@ describe("engagement-automations edge function", () => {
       await fn.fetch(cronRequest(fn));
 
       const counts = (scenario.readQueries ?? []).filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
-      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "profiles"]);
+      // Three for the weekly digest and the same three for the daily summary (OPS-1), which runs every day.
+      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "jobs", "jobs", "profiles", "profiles"]);
       for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
     });
 
@@ -511,6 +514,169 @@ describe("engagement-automations edge function", () => {
       expect(b.adminDigest).toBe(0);
       expect(String(b.defectReasons)).toContain("admin digest NOT sent");
       expect(String(b.defectReasons)).toContain("open reports");
+    });
+  });
+
+  // ─── OPS-1 (owner 10-29): the owner's daily summary email ─────────────────
+  // Every run (the cron is daily), built on the weekly digest: real members and real items only, a failed read
+  // never becomes a zero, and it goes ONLY to admins who are not test accounts.
+  // @mutate supabase/functions/engagement-automations/index.ts |     if (isTest !== false) continue |     if (isTest === true) continue
+  // @mutate supabase/functions/engagement-automations/index.ts |     if (!adminProfile?.email \|\| adminProfile.is_seed === true) continue |     if (!adminProfile?.email) continue
+  // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('declutter_items').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('live_at', since), | supabase.from('declutter_items').select('id', { count: 'exact', head: true }).gte('live_at', since),
+  // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('declutter_orders').select('total_cents', countOpt).eq('is_seed', false) | supabase.from('declutter_orders').select('total_cents', countOpt)
+  // @mutate supabase/functions/engagement-automations/index.ts | .eq('status', 'failed').eq('is_seed', false), | .eq('status', 'failed'),
+  // @mutate supabase/functions/engagement-automations/index.ts | const errRows = (errScan.rows \|\| []).filter((r) => r.user_id && !isSeedTag(r.tags)) | const errRows = (errScan.rows \|\| []).filter((r) => r.user_id)
+  // @mutate supabase/functions/engagement-automations/index.ts |         for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !testIds.has(r.user_id)) realIds.add(r.user_id) |         for (const r of (realRes.data \|\| []) as Array<{ user_id: string }>) if (asked.has(r.user_id)) realIds.add(r.user_id)
+  // @mutate supabase/functions/engagement-automations/index.ts |       if (dailyFailures.length) { |       if (false) {
+  describe("the owner's daily summary (OPS-1)", () => {
+    /** A Tuesday: the weekly digest does not run, the daily summary does. */
+    const A_TUESDAY = new Date("2026-09-01T16:22:00Z");
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(A_TUESDAY);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function seedOwner(email = "owner@louisianahelpr.com", profile: Record<string, unknown> = {}) {
+      seedOneDripRecipient();
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.profiles.selectOverrides!.push({
+        includes: "email, full_name",
+        result: { rows: [{ email, full_name: "Owner", is_seed: false, ...profile }] },
+      });
+      scenario.reads.declutter_items = { rows: [] };
+      scenario.reads.declutter_orders = { rows: [{ total_cents: 2500 }, { total_cents: 1250 }] };
+      scenario.reads.declutter_payouts = { rows: [] };
+      scenario.reads.error_logs = { rows: [] };
+      scenario.reads.test_accounts = { rows: [] };
+      scenario.rpc.is_test_subject = false;
+    }
+
+    const dailySends = () =>
+      queued().filter((c) => (c.args as { payload?: { label?: string } })?.payload?.label === "owner_daily_summary");
+    const dailyStats = () =>
+      (emailRenders as Array<{ type: { name: string }; props: { stats: Record<string, number> } }>)
+        .find((e) => e.type.name === "OwnerDailySummaryEmail")?.props.stats;
+
+    it("sends the daily summary to the owner on a day that is not Monday, with the sales added up", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(1);
+      expect(b.adminDigest).toBe(0);
+      expect(dailySends()).toHaveLength(1);
+      expect((dailySends()[0].args as { payload: { to: string; purpose: string } }).payload).toMatchObject({
+        to: "owner@louisianahelpr.com",
+        purpose: "internal",
+      });
+      expect(dailyStats()).toMatchObject({ itemsSold: 2, salesCents: 3750 });
+    });
+
+    it("never goes to a test account, even one with the admin role", async () => {
+      const fn = await loadConfigured();
+      seedOwner("admin-e2e@louisianahelpr.com");
+      scenario.rpc.is_test_subject = true;
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+    });
+
+    it("an empty test-account answer is not taken as real (only a plain no counts)", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.rpc.is_test_subject = null;
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+    });
+
+    it("never goes to a seed profile with the admin role", async () => {
+      const fn = await loadConfigured();
+      seedOwner("seed-admin@louisianahelpr.com", { is_seed: true });
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+    });
+
+    it("a failed test-account check skips that admin and says so (never mails on a guess)", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.rpcErrors = { is_test_subject: { message: "timeout" } };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      expect(String(b.defectReasons)).toContain("owner daily summary test-account check failed");
+    });
+
+    it("every count reads real members and real items only", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+
+      await fn.fetch(cronRequest(fn));
+
+      const reads = scenario.readQueries ?? [];
+      for (const table of ["declutter_items", "declutter_orders", "declutter_payouts"]) {
+        const q = reads.find((r) => r.table === table);
+        expect(q, `${table} read`).toBeDefined();
+        expect(q!.filters, `${table} read`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+      }
+      const counts = reads.filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
+      expect(counts).toHaveLength(3);
+      for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+    });
+
+    it("member errors leave out seed-tagged errors and test accounts", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.error_logs = {
+        rows: [
+          { user_id: "m1", tags: { source: "app" } },
+          { user_id: "m1", tags: {} },
+          { user_id: "t1", tags: {} },
+          { user_id: "m2", tags: { seed: true } },
+          { user_id: "m3", tags: { source: "checkout-seed" } },
+        ],
+      };
+      scenario.reads.profiles.selectOverrides!.push({
+        includes: "user_id, is_seed",
+        // m2 and m3 are real members: their errors still do not count, because the error itself is a test run's.
+        result: { rows: [{ user_id: "m1" }, { user_id: "t1" }, { user_id: "m2" }, { user_id: "m3" }] },
+      });
+      scenario.reads.test_accounts = { rows: [{ user_id: "t1" }] };
+
+      const b = await body(await fn.fetch(cronRequest(fn)));
+
+      expect(b.ownerDaily).toBe(1);
+      expect(dailyStats()).toMatchObject({ memberErrors: 2, membersWithErrors: 1 });
+    });
+
+    it("does NOT mail a stat derived from a failed read", async () => {
+      const fn = await loadConfigured();
+      seedOwner();
+      scenario.reads.declutter_payouts = { error: { message: "statement timeout" } };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(res.status).toBe(500);
+      expect(b.ownerDaily).toBe(0);
+      expect(dailySends()).toHaveLength(0);
+      expect(String(b.defectReasons)).toContain("owner daily summary NOT sent");
+      expect(String(b.defectReasons)).toContain("failed payouts");
     });
   });
 

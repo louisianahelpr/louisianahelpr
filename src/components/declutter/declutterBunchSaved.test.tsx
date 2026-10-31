@@ -15,6 +15,9 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}. | with their photos and prices.
  * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx |   const continueTo = kept.data?.bunch && kept.data.one ? { to: undefined } : kept.data?.bunch ? { to: bunchTo } |   const continueTo = kept.data?.bunch && kept.data.one ? { to: bunchTo } : kept.data?.bunch ? { to: bunchTo }
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | onClick={continueTo.to ? undefined : () => setChoosingKept(true)} | onClick={undefined}
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <ChoiceCard compact data-kept-choice="one" to={SELL_ONE_PATH} | <ChoiceCard compact data-kept-choice="one" to={SELL_BUNCH_PATH}
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -239,9 +242,19 @@ describe("Sell a bunch survives leaving", () => {
     moving.unmount();
     h.disk.set("lh-sell-one-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
     h.disk.set(META, { ...(h.disk.get(META) as object), userId: "someone-else" });
+    const one = chooser();
+    expect((await screen.findByText("Continue where you left off")).closest("a")).toHaveAttribute("href", "/declutter/sell");
+    one.unmount();
+    // LEAD chooser fit (10-31): both kinds kept is still ONE row (the chooser must fit 375x812); it opens a small choice.
+    h.disk.set(META, { ...(h.disk.get(META) as object), userId: "u1" });
     chooser();
-    expect((await screen.findByText("Continue your listing")).closest("a")).toHaveAttribute("href", "/declutter/sell");
-    expect(screen.queryByText("Continue where you left off")).toBeNull();
+    const row = await screen.findByText("Continue where you left off");
+    expect(screen.getAllByText("Continue where you left off")).toHaveLength(1);
+    expect(document.querySelectorAll('[data-sell-choice^="continue"]')).toHaveLength(1);
+    expect(row.closest("a")).toBeNull();
+    fireEvent.click(row.closest("button")!);
+    const sheet = await waitFor(() => { const el = document.querySelector("[data-kept-work]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect([...sheet.querySelectorAll("[data-kept-choice]")].map((a) => a.getAttribute("href"))).toEqual(["/declutter/sell?mode=moving", "/declutter/sell"]);
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {

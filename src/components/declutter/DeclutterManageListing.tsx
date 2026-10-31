@@ -56,6 +56,7 @@ import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { DeclutterEditListing } from "./DeclutterEditListing";
 import { DROPS_SWITCH_LABEL } from "./sellForm";
 import { focusSheetItself } from "./focusSheetItself";
+import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
 type View = "menu" | "price" | "sold" | "delete" | "edit";
 
@@ -239,7 +240,7 @@ export function ManageListingSheet({
             <p className="text-ds-15">
               {view === "sold"
                 ? "We'll take it off sale and keep it in your selling history. There's no fee, and anyone with an open offer is told nothing was charged."
-                : "Its photos are removed and open offers close. Nothing is charged. This can't be undone."}
+                : TAKE_DOWN_WORDS}
             </p>
             <SheetFooter>
               <SheetSecondaryAction onClick={() => setView("menu")} disabled={takeDown.isPending}>

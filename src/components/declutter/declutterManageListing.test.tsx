@@ -282,7 +282,9 @@ describe("Manage a listing (board 158)", () => {
     sheet();
     fireEvent.click(await screen.findByText("Delete listing"));
     expect(calls).toEqual([]);
-    expect(screen.getByText(/This can't be undone/)).toBeTruthy();
+    // Sellinglist-1: Relist is in History, so never "can't be undone"; the photos are said to go.
+    expect(screen.getByText("Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.")).toBeTruthy();
+    expect(screen.queryByText(/can't be undone/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Delete listing" }));
     await waitFor(() => expect(calls).toContainEqual(["withdraw", "i1"]));
   });

@@ -214,6 +214,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
+          typed={address} onTyped={(a) => { setAddress(a); setQuote(null); }}
           onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
       )}
       {delivering && (

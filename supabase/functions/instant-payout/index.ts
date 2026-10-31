@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import {
   computeInstantPayoutFeeCents,
   INSTANT_PAYOUT_MIN_CENTS,
@@ -306,7 +307,7 @@ serve(async (req) => {
     // since finished: read again, so a fee is never worked out on stale money.
     const recheck = await stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })
       .catch((recheckErr: unknown) => {
-        console.error(`[instant-payout] balance re-read failed for ${record.id}:`, recheckErr instanceof Error ? recheckErr.message : String(recheckErr));
+        console.error(`[instant-payout] balance re-read failed for ${record.id}:`, caughtMessage(recheckErr));
         return null;
       });
     const recheckedCents = recheck?.instant_available?.find((b) => b.currency === "usd")?.amount ?? 0;
@@ -635,7 +636,7 @@ serve(async (req) => {
           }, profile.stripe_account_id);
         } catch (returnErr) {
           feeOutcome = "pending";
-          const returnMsg = returnErr instanceof Error ? returnErr.message : String(returnErr);
+          const returnMsg = caughtMessage(returnErr);
           console.error(`[instant-payout] fee return failed for ${record.id}: ${returnMsg}`);
           await postSlackOpsAlert({
             seed,

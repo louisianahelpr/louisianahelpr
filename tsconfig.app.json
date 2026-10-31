@@ -210,6 +210,7 @@
     // Its one-retry-on-busy wrapper, imported by
     // src/test/declutterAiModelRetry.test.ts.
     "supabase/functions/declutter-ai-draft/modelRetry.ts",
+    "supabase/functions/declutter-ai-draft/priceLookup.ts",
     // Shop items' AI answer sanitizer and the shared type list (Shops slice
     // 2): dependency-free, imported by src/lib/shops/items.ts and
     // src/test/shopsItems.test.ts.

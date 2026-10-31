@@ -31,9 +31,14 @@ export function endedOnPrefix(closedAt: string | null | undefined): string {
 /** What happened to an ended sale, from the seller's side. No amounts (the notices carry them); no fee words. */
 function endedSaleWords(l: Pick<CartLine, "status" | "order_status" | "price_cents">): string {
   const free = l.price_cents === 0;
+  // BUY-46 (audit 10-30): the line does not say WHY a paid order closed. declutter_close_paid_order sets 'missed' for
+  // every close that is not the seller's fault (a buyer no-show, but also no Helpr in time) and 'cancelled_by_seller'
+  // for the seller's (seller_no_show, not_as_described, seller_backed_out); a paid sale can't be called off by the
+  // seller (declutter_seller_cancel_sale refuses). So the words name only what the status proves. Its own notice says
+  // "Your item is back on sale" when the seller is not at fault.
   if (l.order_status === "refunded") {
-    if (l.status === "missed") return "Cancelled. The buyer missed the pickup.";
-    return free ? "You cancelled this free pickup." : "You cancelled this sale after the buyer paid. They were refunded.";
+    if (l.status === "missed") return free ? "Cancelled after it was claimed. Your item is back up." : "Cancelled after the buyer paid. They were refunded, and your item is back on sale.";
+    return free ? "Cancelled on your side after it was claimed." : "Cancelled on your side after the buyer paid. They were refunded.";
   }
   if (l.status === "missed") return free ? "The buyer didn't pick a pickup in 48 hours." : "The buyer didn't check out in 48 hours. Nothing was charged.";
   return "You called off the sale. Nothing was charged.";

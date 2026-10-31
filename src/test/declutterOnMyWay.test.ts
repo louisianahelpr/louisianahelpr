@@ -6,7 +6,7 @@
 // @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql |   IF o.buyer_id IS DISTINCT FROM v_uid THEN | IF false THEN
 // @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql |   IF v_day <> v_today THEN |   IF false THEN
 // @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql | REVOKE ALL ON FUNCTION public.declutter_on_my_way(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_on_my_way(uuid) FROM PUBLIC;
-// @mutate src/components/declutter/DeclutterMineViews.tsx |       <PickupDayCard orders={t.live} bookings={t.bookings} /> |
+// @mutate src/components/declutter/DeclutterMineViews.tsx |       <PickupDayCard orders={t.live} bookings={t.bookings} held= | <p data-x="" held=
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -33,6 +33,6 @@ describe("I'm on my way", () => {
   });
   it("the card is on Buying", () => {
     const mine = blankComments(readFileSync(resolve(__dirname, "../components/declutter/DeclutterMineViews.tsx"), "utf8"));
-    expect(mine).toContain("<PickupDayCard orders={t.live} bookings={t.bookings} />");
+    expect(mine).toContain("<PickupDayCard orders={t.live} bookings={t.bookings} held=");
   });
 });

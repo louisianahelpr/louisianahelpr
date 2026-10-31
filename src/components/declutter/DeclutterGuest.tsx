@@ -12,6 +12,9 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { HelprMark } from "@/components/HelprMark";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
+import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);
@@ -22,7 +25,7 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
   const location = useLocation();
   const { open, settled } = useSectionsOpen(true);
   if (!settled) return <>{skeleton}</>;
-  if (open?.has("declutter")) return <>{children}</>;
+  if (open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>;
   return <Navigate to={`/login?redirect=${here(location)}`} replace />;
 }
 
@@ -35,6 +38,40 @@ function GuestBrand() {
     <span data-guest-brand="" className="inline-flex shrink-0">
       <HelprMark to="/" size="sm" />
     </span>
+  );
+}
+
+/**
+ * AUD31-67, the rest: at desktop width AppShell keeps the top bar's band (DESKTOP_BAR_H, src/lib/desktopBar.ts) on
+ * every page, but that bar (DesktopTopNav) is drawn only for a member, so a guest saw an empty 70px band above
+ * "Declutter" with no header. A guest gets a slim bar in that band instead: the H logo (home) at the left, Log in and
+ * Sign up at the right, both coming back to this page. Same height as the member's bar (its top pad plus an h-14
+ * row). Phone widths keep no band, so nothing is drawn there.
+ * Guard: src/components/declutter/declutterGuestTopBar.test.tsx.
+ */
+function DeclutterGuestTopBar() {
+  const isWebDesktop = useIsWebDesktop();
+  const location = useLocation();
+  const bannerOffset = useOfflineBannerOffset();
+  if (!isWebDesktop) return null;
+  return (
+    <header
+      data-guest-top-bar=""
+      className="fixed left-0 right-0 z-50 glass-nav"
+      style={{ paddingTop: DESKTOP_BAR_PAD_TOP, top: bannerOffset || 0, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+    >
+      <div className="w-full flex h-14 items-center justify-between gap-3 px-6">
+        <HelprMark to="/" size="md" emblemOnly />
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="ghost" className="rounded-full px-3">
+            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          </Button>
+          <Button asChild size="sm" className="rounded-full px-4">
+            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+          </Button>
+        </div>
+      </div>
+    </header>
   );
 }
 

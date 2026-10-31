@@ -429,7 +429,8 @@ export function tableFacts(): TableFacts {
   const clientGranted = new Map<string, string[]>();
   for (const f of migrationFiles()) {
     const t = sqlCode(fs.readFileSync(f, "utf8"));
-    for (const m of t.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?"?([a-z_0-9]+)"?/gi)) {
+    for (const m of t.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?(?!IF\s)"?([a-z_0-9]+)"?(?![a-z_0-9.])/gi)) {
+      // The lookaheads: "private.x" is not a public table named "private", and backing off that must not read "IF" as a name.
       if (!created.has(m[1])) created.set(m[1], rel(f));
     }
     for (const m of t.matchAll(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:public\.)?"?([a-z_0-9]+)"?/gi)) dropped.add(m[1]);

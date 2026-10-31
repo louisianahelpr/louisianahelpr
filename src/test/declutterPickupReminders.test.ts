@@ -14,9 +14,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND b.slot_start <= now() + interval '60 minutes' |        AND b.slot_start <= now() + interval '6 hours'
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND b.reminded_slot_start IS DISTINCT FROM b.slot_start\n |
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |    VALUES ('error', 'declutter pickup reminder failed for one booking', |    VALUES ('info', 'declutter pickup reminder failed for one booking',
-// @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |   IF EXISTS (SELECT 1 FROM public.profiles o WHERE o.user_id = p_other AND o.is_seed) |   IF false
+// @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   IF EXISTS (SELECT 1 FROM public.profiles o WHERE o.user_id = p_other AND o.is_seed) |   IF false
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND o.status = 'paid'\n |
-// @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'declutter_pickups', 'link', public.declutter_notice_link(p_link)) |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'system_alert', 'link', public.declutter_notice_link(p_link))
+// @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |         'type', 'declutter_pickups', 'link', public.declutter_notice_link(p_link)) |         'type', 'system_alert', 'link', public.declutter_notice_link(p_link))
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |     PERFORM cron.schedule('declutter-pickup-reminders', '4-59/5 * * * *', |     PERFORM cron.schedule('declutter-pickup-reminders', '0 * * * *',
 
 const ROOT = resolve(__dirname, "..", "..");

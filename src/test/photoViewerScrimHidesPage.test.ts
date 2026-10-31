@@ -9,8 +9,13 @@
  * `backdropFilter` in the same style object, in every non-test .tsx under src/ (comments blanked). Each one's alpha
  * must be at least MIN_ALPHA. Sites still below it are an EXACT per-file baseline (two-way): a new one fails, and
  * fixing one fails until its count here is lowered.
- * @mutate src/components/dashboard/PhotoLightbox.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.86)", | backgroundColor: "hsla(38, 18%, 12%, 0.55)",
- * @mutate src/components/MessageAttachment.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.86)", | backgroundColor: "hsla(38, 18%, 12%, 0.55)",
+ *
+ * NIGHT-BUYINGpresse-2 (night audit 10-30, m5-375-13-viewer-photo2.png): at 0.86 the item page's Share and heart still
+ * read through behind "View all". Measured in WebKit with the blur not painting (~/.lh-shots/b30/scrim.mjs, a dark
+ * icon on a white button under the scrim): icon-to-button step 30.1 at 0.86, 13.0 at 0.94, 8.1 at 0.96. Both viewers
+ * are now 0.96, and so is the floor.
+ * @mutate src/components/dashboard/PhotoLightbox.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.96)", | backgroundColor: "hsla(38, 18%, 12%, 0.86)",
+ * @mutate src/components/MessageAttachment.tsx | backgroundColor: "hsla(38, 18%, 12%, 0.96)", | backgroundColor: "hsla(38, 18%, 12%, 0.86)",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,11 +24,11 @@ import { blankComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
 
 const ROOT = resolve(__dirname, "../..");
-const MIN_ALPHA = 0.85;
+const MIN_ALPHA = 0.96;
 
 /**
  * Below MIN_ALPHA. Empty: MessageAttachment's chat-photo viewer, baselined at 0.55 with DA-2, now uses the same
- * 0.86 tint (lead decision 2026-10-30: the two viewers stay consistent).
+ * tint (lead decision 2026-10-30: the two viewers stay consistent; 0.96 since presse-2).
  */
 const BELOW: Record<string, number> = {};
 
@@ -43,7 +48,7 @@ describe("a full-screen viewer's scrim hides the page with its tint alone (DA-2)
     expect(scrims.some((s) => s.file === "src/components/MessageAttachment.tsx")).toBe(true);
   });
 
-  it("every scrim's tint is at least 0.85 opaque, except the exact baseline", () => {
+  it("every scrim's tint is at least 0.96 opaque, except the exact baseline", () => {
     const below: Record<string, number> = {};
     for (const s of scrims) if (!(s.alpha >= MIN_ALPHA)) below[s.file] = (below[s.file] ?? 0) + 1;
     expect(below).toEqual(BELOW);

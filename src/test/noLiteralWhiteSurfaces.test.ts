@@ -38,7 +38,7 @@ const BASELINE: Record<string, number> = {
   // the dark page, not a pale block (screenshot of / at 375, dark and light).
   "src/components/Footer.tsx": 1,
   // Judged 2026-09-26 (Q277): all five sit on the lightbox's own scrim,
-  // hsla(38, 18%, 12%, 0.86 since DA-2 2026-10-30), which is dark in BOTH themes, so a white wash is
+  // hsla(38, 18%, 12%, 0.96 since presse-2 2026-10-31; 0.86 from DA-2), which is dark in BOTH themes, so a white wash is
   // right in both.
   "src/components/dashboard/PhotoLightbox.tsx": 3,
 };

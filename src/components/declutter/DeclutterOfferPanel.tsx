@@ -241,10 +241,19 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     if (card.data) {
       setNeedCard(null);
       run(action);
-    } else {
-      setOpen(false);
-      setNeedCard(action);
+      return;
     }
+    // NIGHT-BUYING0-2: a card Stripe's webhook filed after the CARD_WAIT_MS wait was never noticed (polling had
+    // stopped), so Buy now kept asking for a card. With no card in the last answer, read it again before asking.
+    void card.refetch().then((r) => {
+      if (r.data) {
+        setNeedCard(null);
+        run(action);
+      } else {
+        setOpen(false);
+        setNeedCard(action);
+      }
+    });
   };
   // DA-11: Send with no saved card asks for one here and keeps the typed amount. A failed card read does not block:
   // the server checks the card itself and says so.

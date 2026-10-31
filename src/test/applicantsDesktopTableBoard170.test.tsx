@@ -154,14 +154,14 @@ describe("board 170: the Applicants panel picks one layout by width", () => {
     setWide(true);
     const region = renderPanel([app("a", "Andre Lafleur"), app("b", "Deon Wells")]);
     expect(within(region).getByRole("table")).toBeInTheDocument();
-    expect(within(region).getAllByRole("button", { name: /^Select / })).toHaveLength(2);
+    expect(within(region).getAllByRole("button", { name: /^Hire / })).toHaveLength(2);
   });
 
   it("below 1280px: the phone cards, and no table", () => {
     setWide(false);
     const region = renderPanel([app("a", "Andre Lafleur"), app("b", "Deon Wells")]);
     expect(within(region).queryByRole("table")).toBeNull();
-    expect(within(region).getAllByRole("button", { name: /^Select / })).toHaveLength(2);
+    expect(within(region).getAllByRole("button", { name: /^Hire / })).toHaveLength(2);
   });
 
   it("owner: the job name and date sit under the Applicants title", () => {
@@ -197,7 +197,7 @@ describe("board 170: the desktop table", () => {
     const onBlock = vi.fn();
     const apps = [app("a", "Andre Lafleur"), app("b", "Deon Wells")];
     renderTable(apps, { onHire, onDecline, onReport, onBlock });
-    fireEvent.click(screen.getByRole("button", { name: "Select Deon W." }));
+    fireEvent.click(screen.getByRole("button", { name: "Hire Deon W." }));
     expect(onHire).toHaveBeenCalledWith(apps[1]);
     fireEvent.click(screen.getByRole("button", { name: "Decline Andre L." }));
     expect(onDecline).toHaveBeenCalledWith(apps[0]);

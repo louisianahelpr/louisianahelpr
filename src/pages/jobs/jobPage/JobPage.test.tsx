@@ -23,7 +23,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && job.location && ( |             {false && job.location && (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: () => void apply.flow.handleApplyRequest(job.id) } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""]; |     : HELD_LINE[job.payment_status ?? ""];
@@ -34,7 +34,8 @@
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     showStreet && hasStreetAddress(job.location) ? job.location : job.location |     job.location
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? "")); |   const meta = metaLine(job, !isPoster);
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     job.location ? getCity(job.location) : null, |     job.location,
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)) | go: () => void apply.flow.handleApplyRequest(job.id)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew }); | myApplication: myApplication.data, posterFirst });
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
@@ -267,6 +268,25 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(applyRequests).toEqual([row().id]);
     // F8 on this path: the sheet names the poster the way the page's poster card does, never "a neighbor".
     expect(sheet.textContent).toBe(`${row().title} · Rhonda D.`);
+  });
+
+  // JOBS-17: a member under 18 got a live Apply here, filled the sheet, uploaded, and only then read the refusal.
+  it("under 18: Apply is greyed and a tap does not open the sheet", async () => {
+    const { queryClient } = await import("@/lib/queryClient");
+    const key = ["currentUser", "under-18-apply"];
+    queryClient.setQueryData(key, { profile: { date_of_birth: "2015-01-01" } });
+    try {
+      state.job = row();
+      renderPage();
+      const apply = screen.getByRole("button", { name: "Apply" });
+      expect(apply.getAttribute("data-age-gated")).toBe("apply");
+      expect(apply.getAttribute("aria-disabled")).toBe("true");
+      fireEvent.click(apply);
+      expect(applyRequests).toEqual([]);
+      expect(screen.queryByTestId("apply-sheet")).toBeNull();
+    } finally {
+      queryClient.removeQueries({ queryKey: key });
+    }
   });
 
   it("an unstamped (older) job shows the take-home at the viewer's own tier rate", () => {
@@ -545,7 +565,8 @@ describe("job page, the street address follows the Working card", () => {
     state.party = true;
     renderPage();
     expect(document.querySelector("[data-viewer-status]")?.textContent).toMatch(/offered you this job$/);
-    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · 123 Main St, Delcambre, LA 70528`);
+    expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
+    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
@@ -553,7 +574,8 @@ describe("job page, the street address follows the Working card", () => {
     state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     renderPage();
-    expect(document.querySelector("[data-job-meta]")?.textContent).toContain("123 Main St");
+    expect(document.querySelector("[data-job-address]")?.textContent).toContain("123 Main St");
+    expect(document.querySelector("[data-job-meta]")?.textContent).not.toContain("123 Main St");
   });
 
   it("an applicant sees the city only, with the line saying the street comes with an offer", async () => {
@@ -654,7 +676,7 @@ describe("a crew member's own job page (A2-B8)", () => {
     renderPage();
     expect(await screen.findByRole("button", { name: "Open in working" })).toBeTruthy();
     expect(screen.queryByText("This job is no longer available")).toBeNull();
-    expect(document.querySelector("[data-job-meta]")?.textContent).toContain("4412 Highland Rd");
+    expect(document.querySelector("[data-job-address]")?.textContent).toContain("4412 Highland Rd");
     expect(screen.queryByText(/street address is shared once/)).toBeNull();
     expect(document.querySelector("[data-job-tracker]")).not.toBeNull();
   });

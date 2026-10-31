@@ -90,6 +90,9 @@ const CARD_STATUSES = new Set<string>(Object.keys(JOB_STATUS_LABELS));
 
 const LIVE = new Set(["accepted", "in_progress", "revision_requested"]);
 
+/** The Helpr's card lines for a job they are at but have not started. */
+const HELPR_NOT_STARTED = new Set<string>(["start_working", "before_photo"]);
+
 /** "Wed 9:00 AM" in Louisiana time. */
 function when(ms: number): string {
   return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -169,7 +172,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     tone: bar.tone,
     ...(bar.label ? { label: bar.label } : {}),
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
-    next: sameStep || offPath ? base.next : card.line.detail,
+    // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
+    next: (sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id) ? base.next : card.line.detail,
   };
 }
 

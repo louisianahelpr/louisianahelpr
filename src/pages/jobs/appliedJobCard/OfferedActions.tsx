@@ -294,7 +294,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           // decline_job_offer files no strike (Q1281, 20261012184444).
           text: "The job goes back to everyone. This can’t be undone.",
         }}
-        primaryLabel="Decline the Job"
+        primaryLabel="Decline job"
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => {

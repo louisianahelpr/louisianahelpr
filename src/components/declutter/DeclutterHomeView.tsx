@@ -117,8 +117,7 @@ function ListingsSkeleton() {
  */
 const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   draft: "Not listed yet. Finish it to sell it.",
-  // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner), and an edit's check takes seconds;
-  // "Waiting for a review" read as a person and a long wait. True for both: a check, and a notice when it is done.
+  // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner); "Waiting for a review" read as a person.
   pending_review: "Being checked. We'll send you a notice when it's done.",
   paused: "Paused. Hidden from buyers.",
   rejected: "Not approved. Open it to see why.",
@@ -298,13 +297,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {/* NIGHT-SELL-Sellinglist-4 (night audit 2026-10-30, list-375-01-top.png): at 375 the title was cut on one line
-                  while three buttons wrapped to two rows. The title takes two lines, and the row itself opens the item
-                  (a draft's opens Finish listing), so View is only a button from sm up. */}
+              {/* NIGHT-SELL-Sellinglist-4 (night audit 10-30): at 375 the title takes two lines and the row itself opens the
+                  item (a draft's opens Finish listing), so View is only a button from sm up. */}
               <Link
                 to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                data-listing-open=""
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-listing-open=""
               >
                 <ListingThumb path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">

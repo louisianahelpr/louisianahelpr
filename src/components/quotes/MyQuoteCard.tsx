@@ -22,7 +22,7 @@ export function MyQuoteCard({ quote }: { quote: MyJobQuote }) {
   const withdraw = useMutation({
     mutationFn: () => withdrawJobQuote(quote.id),
     onSuccess: () => {
-      toast.success("Quote withdrawn");
+      toast("Quote withdrawn");
       void qc.invalidateQueries({ queryKey: MINE_KEY });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),

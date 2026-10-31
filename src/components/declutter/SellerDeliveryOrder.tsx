@@ -101,7 +101,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   };
   const act = <T, V = void>(fn: (v: V) => Promise<T>, done: string | ((r: T) => string)) =>
-    ({ mutationFn: fn, onSuccess: (r: T) => { toast.success(typeof done === "string" ? done : done(r)); refresh(); },
+    ({ mutationFn: fn, onSuccess: (r: T) => { toast(typeof done === "string" ? done : done(r)); refresh(); },
        onError: (err: unknown) => toast.error(sellerDeliveryErrorMessage(err)) });
   const b = booking.data;
   // A photo is taken at the buyer's door (20261028235709): the position first, so a refusal uploads nothing.
@@ -215,7 +215,7 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
   const shown = days.find((d) => d.day === day) ?? days[0];
   const propose = useMutation({
     mutationFn: () => proposeDeliveryTime(orderId, slot!),
-    onSuccess: (r) => { toast.success(r === "booked" ? "Delivery booked." : "Asked. The other side accepts or keeps the current time."); onDone(); },
+    onSuccess: (r) => { toast(r === "booked" ? "Delivery booked." : "Asked. The other side accepts or keeps the current time."); onDone(); },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
   });
   if (times.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading open times…</p>;

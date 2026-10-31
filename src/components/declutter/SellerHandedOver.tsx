@@ -22,7 +22,7 @@ export function SellerHandedOver({ taskId, orderId, who, handedOverAt }: { taskI
     mutationFn: () => markHandedOver(taskId),
     onSettled: () => setAsk(false),
     onSuccess: () => {
-      toast.success("Thanks. The Helpr can mark it picked up now.");
+      toast("Thanks. The Helpr can mark it picked up now.");
       invalidateTasks(qc);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

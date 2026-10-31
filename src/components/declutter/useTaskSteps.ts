@@ -17,7 +17,7 @@ export function invalidateTasks(qc: ReturnType<typeof useQueryClient>) {
 
 export function useTaskSteps(taskId: string, userId: string, onDelivered?: () => void) {
   const qc = useQueryClient();
-  const done = (msg: string) => { toast.success(msg); invalidateTasks(qc); };
+  const done = (msg: string) => { toast(msg); invalidateTasks(qc); };
   // BUY-40: location first (a refusal uploads nothing), then the photo once per file (a retry reuses it).
   const pickedUpPhoto = useRef<{ file: File; path: string } | null>(null);
   const pickedUp = useMutation({

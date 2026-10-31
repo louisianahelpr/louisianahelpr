@@ -35,7 +35,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   requestAiCheckWithRetry: async (id: string) => { calls.push(`check:${id}`); return { checked: true, flagged: false }; },
   fetchItem: async () => ({ status: "live" }),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 // The porch-day chips read the seller's own setting; they have their own test (sellPorchDays.test.tsx).
@@ -126,7 +126,7 @@ describe("DC-8: a live listing's photos", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(calls).toEqual(["edit", "add:i1:b.jpg", "check:i1"]);
-    expect(toast.success).toHaveBeenCalledWith(EDIT_SAVED.live_again);
+    expect(toast).toHaveBeenCalledWith(EDIT_SAVED.live_again);
   });
 
   it("swapping the only photo: the new one goes up BEFORE the old one comes off", async () => {

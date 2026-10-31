@@ -36,7 +36,7 @@ export function recheckUnverifiedArrival(appliedApps: AppliedApps, uid: string, 
     // thing worth interrupting for is the win.
     if (res.outcome === "upgraded") {
       hapticSuccess();
-      toast.success("GPS confirmed you were at the job.", { duration: 6000 });
+      toast("GPS confirmed you were at the job.", { duration: 6000 });
       void refresh();
     }
   });

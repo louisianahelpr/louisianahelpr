@@ -27,8 +27,8 @@ const FILES = [
 ];
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
-/** Suppressed (renders:false) toasts app-wide on 10-31 after LEAD-TOAST2 and SS-2. Never raise it. */
-const SUPPRESSED_CEILING = 140;
+/** Suppressed (renders:false) toasts app-wide on 10-31 after LEAD-TOAST2, SS-2 and LEAD-TOAST3 (81). Never raise it. */
+const SUPPRESSED_CEILING = 81;
 
 describe("Declutter handover, problem and refund confirmations are shown", () => {
   it("reads the screens (floor: they raise toasts)", () => {
@@ -39,13 +39,13 @@ describe("Declutter handover, problem and refund confirmations are shown", () =>
     expect(code(f).match(/\btoast\.(success|info|message)\(/g) ?? []).toEqual([]);
   });
 
-  it("the app-wide count of suppressed toasts never goes up", () => {
+  it("the app-wide count of suppressed toasts is exactly the recorded one (it only goes down)", () => {
     const inv = JSON.parse(readFileSync(resolve(ROOT, "docs/audit/toast-inventory.json"), "utf8")) as {
       toasts: { file: string; renders: boolean }[];
     };
     expect(inv.toasts.length).toBeGreaterThan(500);
     const suppressed = inv.toasts.filter((t) => t.renders === false);
     expect(suppressed.filter((t) => FILES.includes(t.file))).toEqual([]);
-    expect(suppressed.length).toBeLessThanOrEqual(SUPPRESSED_CEILING);
+    expect(suppressed.length).toBe(SUPPRESSED_CEILING); // exact: lower it in the commit that converts more
   });
 });

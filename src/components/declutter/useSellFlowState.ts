@@ -356,6 +356,15 @@ export function useSellFlowState(urlItemId: string | null) {
       if (!form.free) await setDropPct(id, choice.dropPct);
       return id;
     } catch (err) {
+      // LEAD-RESUME-REPOSTS: this listing was already posted (kept work brought back, or a Post whose answer was lost).
+      // Nothing is made again: the kept work is cleared and the posted listing opens.
+      const posted = err as { message?: unknown; itemId?: unknown; userMessage?: unknown } | null;
+      if (posted?.message === "already_posted" && typeof posted.itemId === "string") {
+        void keptWork.finish();
+        toast(String(posted.userMessage ?? "Already posted."));
+        navigate(`/declutter/item/${posted.itemId}`);
+        return null;
+      }
       toast.error(declutterErrorMessage(err));
       return null;
     } finally {

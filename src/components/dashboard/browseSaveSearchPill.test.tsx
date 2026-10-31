@@ -51,7 +51,7 @@ describe("Jobs Browse: Save this search (SS-4)", () => {
   it("shows with words and a top price, and saves them as a Jobs search", () => {
     show({ searchQuery: " lawn ", maxBudget: "200" });
     expect(screen.getByRole("button", { name: "Save this search" })).toBeInTheDocument();
-    expect(seen.drafts.at(-1)).toEqual({ section: "jobs", query: "lawn", category: null, minDollars: null, maxDollars: 200, radiusMiles: null });
+    expect(seen.drafts[seen.drafts.length - 1]).toEqual({ section: "jobs", query: "lawn", category: null, minDollars: null, maxDollars: 200, radiusMiles: null });
   });
 
   it("each kept filter alone shows it; a category, a low price and a distance are carried", () => {
@@ -64,7 +64,7 @@ describe("Jobs Browse: Save this search (SS-4)", () => {
     }
     expect(shown).toBeGreaterThan(2);
     show({ selectedCategory: "cleaning", minBudget: "40", nearbyMiles: 10, locationFilter: "nearby:10" });
-    expect(seen.drafts.at(-1)).toEqual({ section: "jobs", query: "", category: "cleaning", minDollars: 40, maxDollars: null, radiusMiles: 10 });
+    expect(seen.drafts[seen.drafts.length - 1]).toEqual({ section: "jobs", query: "", category: "cleaning", minDollars: 40, maxDollars: null, radiusMiles: 10 });
   });
 
   it("not with no filter, not for a guest, and a distance that could not run is not saved as one", () => {
@@ -79,6 +79,6 @@ describe("Jobs Browse: Save this search (SS-4)", () => {
     expect(screen.queryByRole("button", { name: "Save this search" })).toBeNull();
     v.unmount();
     show({ nearbyMiles: 10, locationFilter: "nearby:10", nearbyUnavailable: true, searchQuery: "lawn" });
-    expect(seen.drafts.at(-1)).toMatchObject({ query: "lawn", radiusMiles: null });
+    expect(seen.drafts[seen.drafts.length - 1]).toMatchObject({ query: "lawn", radiusMiles: null });
   });
 });

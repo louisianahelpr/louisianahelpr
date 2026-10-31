@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { HelprMark } from "@/components/HelprMark";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 
 function here(location: { pathname: string; search: string }): string {
@@ -25,6 +26,18 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
   return <Navigate to={`/login?redirect=${here(location)}`} replace />;
 }
 
+/**
+ * AUD31-67 (Guests on Declutter): a guest who opened a shared Declutter link had no brand and no way to the rest of
+ * Louisiana Helpr. The H mark, a link to the landing page, sits in each guest join panel (Browse and item).
+ */
+function GuestBrand() {
+  return (
+    <span data-guest-brand="" className="inline-flex shrink-0">
+      <HelprMark to="/" size="sm" />
+    </span>
+  );
+}
+
 /** In place of Buy now / Make an offer (or Ask for it) for a guest: sign up, or log in, and come back to this item.
  *  AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer. */
 export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; offers?: boolean }) {
@@ -32,7 +45,10 @@ export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; off
   const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
   return (
     <section data-guest-join="" aria-label={label} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."}</p>
+        <GuestBrand />
+      </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button asChild size="wrap" className="w-full rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
@@ -51,6 +67,7 @@ export function DeclutterGuestBrowseJoin() {
   const location = useLocation();
   return (
     <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
+      <GuestBrand />
       <p className="min-w-0 flex-1 basis-48 text-sm">
         <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
         <span className="text-muted-foreground">It's free.</span>

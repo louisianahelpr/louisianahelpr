@@ -211,7 +211,9 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_active: DC.task_not_active,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
-    already_picked_up: DC.already_picked_up,
+    // AUD31-9: the Helpr pressing Back out after the pickup (a stale page) has the item; the buyer picked up nothing.
+    // The server's own hint (helpr_task_release, 20261031102758).
+    already_picked_up: "You already have the item. Deliver it, or report a problem.",
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,

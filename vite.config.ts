@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
+import { guestBrowseOnlyModules, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -165,6 +165,7 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
+const browseOnly = guestBrowseOnlyModules(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -884,6 +885,18 @@ export default defineConfig(({ mode }) => ({
               // (utils, the Supabase client, react-router, ...), and the chunk
               // then holds boot code too, so boot imports it and nothing moves.
               includeDependenciesRecursively: false,
+            },
+            // Shared code a public cold load reaches only through guest /browse (bootReach.mjs
+            // guestBrowseOnlyModules: its map, filters and job-card helpers, shared with signed-in
+            // pages). It rode in app-shared, so /posts, /, /login and /signup each downloaded it
+            // (LEAD-POSTS-BOOT-SHRINK, 10-31). Above app-shared's priority so it wins those modules.
+            {
+              name: "browse-first-screen",
+              test: (id: string) => browseOnly.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 12,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
             {
               name: "app-shared",

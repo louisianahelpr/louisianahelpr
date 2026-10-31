@@ -164,7 +164,7 @@ function restartOnDependencyChange(): Plugin {
 }
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
-const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd());
+const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -858,6 +858,20 @@ export default defineConfig(({ mode }) => ({
               minSize: 0,
               // As signed-in-shared below (no trailing comma: that group's @mutate
               // in src/test/bootReach.test.ts matches its own line).
+              includeDependenciesRecursively: false
+            },
+            // The signed-in first-screen code /home never runs (bootReach.mjs
+            // signedInSplit homeOff: the job lists', Messages', You's and Post a
+            // job's). It rode in signed-in-shared, so every signed-in visitor's
+            // Home downloaded it (AUD31-60/66). Those screens fetch this chunk
+            // beside signed-in-shared, in the same round; Home does not fetch it.
+            // src/test/homeSkipsOtherScreensCode.test.ts reads the built graph.
+            {
+              name: "signed-in-pages",
+              test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 15.5,
+              minSize: 0,
               includeDependenciesRecursively: false
             },
             {

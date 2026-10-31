@@ -46,9 +46,8 @@ export const RichMessageInput = ({
   // and "which words are the problem" is the only question the blocked sender
   // actually has.
   const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
-  // The attach picker sheet — bottom-sheet with three tabs (Camera /
-  // Library / Files) so the user picks the source explicitly instead
-  // of hoping the OS file picker happens to default to the right one.
+  // The attach picker sheet — bottom-sheet with three tabs (Camera / Library / Files) so the user picks the
+  // source explicitly instead of hoping the OS file picker happens to default to the right one.
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
   // One hidden <input type="file"> per source so each can carry its
   // own `accept` / `capture` attributes — iOS Safari + Capacitor
@@ -164,9 +163,8 @@ export const RichMessageInput = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset the input regardless of selection so re-picking the same
-    // file fires onChange next time. Each of the three source inputs
-    // resets only its own value.
+    // Reset the input regardless of selection so re-picking the same file fires onChange next time.
+    // Each of the three source inputs resets only its own value.
     if (e.target) e.target.value = "";
     if (!file) return;
     stageFile(file);

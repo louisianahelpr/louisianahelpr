@@ -197,9 +197,8 @@ export function ChatView({
   }, [embedded, activeConvo.jobId, activeConvo.otherUserId]);
   // Open the snooze picker for the active thread.
   const [muteSheetOpen, setMuteSheetOpen] = useState(false);
-  // Single-photo lightbox for tapped chat images — keeps the photo inside
-  // the app's frosted viewer instead of punting to a system browser tab
-  // (window.open in a Capacitor WebView leaves the app).
+  // Single-photo lightbox for tapped chat images — keeps the photo inside the app's frosted viewer instead of
+  // punting to a system browser tab (window.open in a Capacitor WebView leaves the app).
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   // Message whose long-press action sheet is open (null = closed). One
   // shared sheet for the whole thread, mirroring JobQuickActionSheet.

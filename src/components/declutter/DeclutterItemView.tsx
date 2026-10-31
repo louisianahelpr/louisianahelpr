@@ -45,6 +45,7 @@ import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
+import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
@@ -261,6 +262,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           )}
 
           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses
               a seller's own listing anyway). Capture: no click or submit reaches the real panels. */}

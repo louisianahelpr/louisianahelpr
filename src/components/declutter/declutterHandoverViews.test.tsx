@@ -480,8 +480,14 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("What went wrong?"), { target: { value: "not_received" } });
+    // BUY-35: the shared pick-one list, and one letter isn't a report.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | disabled={send.isPending \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !note.trim()} onClick={() => send.mutate()}>Send
+    fireEvent.click(screen.getByRole("radio", { name: "I didn't get it" }));
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "x" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(document.querySelector("[data-problem-note-short]")).not.toBeNull();
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Nobody was there" } });
+    expect(document.querySelector("[data-problem-note-short]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_received", "Nobody was there", []]));
   });
@@ -1088,7 +1094,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
     state.handover = null;
     state.porchDays = null;
   });
-  const options = () => [...(screen.getByLabelText("What went wrong?") as HTMLSelectElement).options].map((o) => o.textContent);
+  const options = () => within(screen.getByRole("radiogroup", { name: "What went wrong?" })).getAllByRole("radio").map((o) => o.textContent);
 
   it("after the booked time, nothing handed over: the buyer's reasons start with I didn't get it, no damage words", async () => {
     state.bookings = [slot(20)];

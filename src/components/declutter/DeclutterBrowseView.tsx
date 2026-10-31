@@ -28,7 +28,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { fetchDropStates, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
-import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
@@ -129,13 +129,24 @@ function NothingForSaleActions() {
   );
 }
 
+const BROWSE_URL_WAIT_MS = 300;
+
 export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
   const desktop = useIsWebDesktop();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const [query, setQuery] = useState(start.query);
   const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
+  // Audit item 4 / BUY-35: the search stays in the URL (no new history entry), so Back from an item finds it. A short
+  // wait, so typing doesn't re-render everything that reads the route on every key.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = browseStateInParams(params, { query, filters, maxMiles });
+      if (next.toString() !== params.toString()) setParams(next, { replace: true, preventScrollReset: true });
+    }, BROWSE_URL_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [query, filters, maxMiles, params, setParams]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
   // Phone: the list or the map (the sheet's View). Desktop: the map column shown or hidden.

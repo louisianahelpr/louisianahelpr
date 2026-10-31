@@ -83,17 +83,49 @@ function positive(v: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 
+const SORTS: readonly DeclutterSort[] = ["closest", "newest", "price_low"];
+
+export type BrowseState = { query: string; filters: DeclutterFilters; maxMiles: number | null };
+
 /**
- * Browse's starting state from the URL a saved search opens (Q2275:
- * /declutter?q=&cat=&min=&max=&mi=, src/lib/savedSearches.ts resultsPath).
+ * Browse's starting state from the URL: the one a saved search opens (Q2275:
+ * /declutter?q=&cat=&min=&max=&mi=, src/lib/savedSearches.ts resultsPath), or the one Browse itself keeps up to date
+ * (browseStateInParams), so Back from an item finds the search again.
  */
-export function browseStateFromParams(p: URLSearchParams): { query: string; filters: DeclutterFilters; maxMiles: number | null } {
+export function browseStateFromParams(p: URLSearchParams): BrowseState {
+  const sort = p.get("sort") as DeclutterSort | null;
   return {
     query: p.get("q") ?? "",
     filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")),
-      freeOnly: p.get("free") === "1" },
+      freeOnly: p.get("free") === "1", porchOnly: p.get("porch") === "1", dropsOnly: p.get("drops") === "1",
+      sort: sort && SORTS.includes(sort) ? sort : NO_FILTERS.sort,
+      conditions: (p.get("cond") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 5) },
     maxMiles: positive(p.get("mi")),
   };
+}
+
+/**
+ * Audit item 4 / BUY-35: Back from an item lost the search, because Browse read the URL once and never wrote it (Jobs
+ * keeps its search in the URL, useDashboardFilters). A copy of `current` with Browse's state in it; a default is left
+ * out, and every other param (tab, card and so on) is kept.
+ */
+export function browseStateInParams(current: URLSearchParams, s: BrowseState): URLSearchParams {
+  const next = new URLSearchParams(current);
+  const put = (key: string, value: string | number | null) => {
+    if (value === null || value === "") next.delete(key);
+    else next.set(key, String(value));
+  };
+  put("q", s.query.trim() === "" ? null : s.query);
+  put("cat", s.filters.category);
+  put("min", s.filters.minDollars);
+  put("max", s.filters.maxDollars);
+  put("mi", s.maxMiles);
+  put("free", s.filters.freeOnly ? "1" : null);
+  put("porch", s.filters.porchOnly ? "1" : null);
+  put("drops", s.filters.dropsOnly ? "1" : null);
+  put("sort", s.filters.sort === NO_FILTERS.sort ? null : s.filters.sort);
+  put("cond", s.filters.conditions.length ? s.filters.conditions.join(",") : null);
+  return next;
 }
 
 /** How many filters (beyond the sort) are on: the filter button's count dot. */

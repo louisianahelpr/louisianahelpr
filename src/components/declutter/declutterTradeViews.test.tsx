@@ -637,6 +637,9 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent).toMatch(/You pay\$10\.05/);
     expect(document.querySelector("[data-checkout-setup-fee]")?.textContent).toBe("Includes the one-time $2 account setup fee.");
     expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+    // BUY-34: a <dl> holds only its rows (axe definition-list); the notes sit beside it.
+    expect(bill.querySelector("dl")?.querySelector("p")).toBeNull();
+    expect(bill.querySelector("dl dd")).not.toBeNull();
     // Every priced line above "You pay" is something bought (items, a discount, a delivery), never a fee.
     const rows = Array.from(bill.querySelectorAll("dt")).map((dt) => dt.textContent ?? "");
     expect(rows).toEqual(["2 items", "You pay"]);

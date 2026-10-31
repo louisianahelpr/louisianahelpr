@@ -12,22 +12,15 @@
  * and reads the spies through `import { toast } from "sonner"` (`expect(toast).toHaveBeenCalledWith(...)`,
  * `vi.mocked(toast.error)`).
  */
-import { vi } from "vitest";
+import { vi, type Mock } from "vitest";
 
-export function callableToast() {
-  return Object.assign(vi.fn(), {
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-    message: vi.fn(),
-    loading: vi.fn(),
-    dismiss: vi.fn(),
-    promise: vi.fn(),
-    custom: vi.fn(),
-  });
+const METHODS = ["success", "error", "info", "warning", "message", "loading", "dismiss", "promise", "custom"] as const;
+export type CallableToast = Mock & Record<(typeof METHODS)[number], Mock>;
+
+export function callableToast(): CallableToast {
+  return Object.assign(vi.fn(), Object.fromEntries(METHODS.map((m) => [m, vi.fn()]))) as unknown as CallableToast;
 }
 
-export function sonnerMock() {
+export function sonnerMock(): { toast: CallableToast; Toaster: () => null } {
   return { toast: callableToast(), Toaster: () => null };
 }

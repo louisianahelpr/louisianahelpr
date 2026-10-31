@@ -169,7 +169,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$63\.55\s*across 2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled late", "Tipped job"]);
     expect(text()).toMatch(/Cancelled late\s*Oct 2 · Cancelled · \$45\.00 refunded\s*\$15\.00/);
-    expect(text()).toMatch(/Tipped job\s*Sep 1 · includes \$8\.00 tip \+ \$0\.55 card fee\s*\$48\.55/);
+    expect(text()).toMatch(/Tipped job\s*Sep 1 · includes \$8\.00 tip\s*\$48\.55/);
     expect(text()).not.toMatch(/Cancelled free/);
     // The cancellation is dated when it was cancelled: inside this week's range.
     await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This week" })); });

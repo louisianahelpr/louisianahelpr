@@ -223,8 +223,9 @@ export function spentRows<J extends PosterSpendJob>(
 /**
  * AUD31-55: the words after a Spent / Receipts row's date, one rule for both lists. A cancelled job says so; a job
  * with money back says how much came back (" · $25.00 refunded"), so the amount shown is not read as the price; a
- * tip is named apart from its card fee (" · includes $20.00 tip + $0.91 card fee"), since the row's tip cents are what
- * the card paid (tip + card fee, tipChargeBreakdown), not the tip the Helpr got.
+ * tip is named at what the Helpr got (" · includes $20.00 tip"), not at what the card paid for it (tipCents is tip +
+ * card cost, tipChargeBreakdown). No fee is named (owner 2026-10-25, membersSeeNoFeeWords): the amount column still
+ * shows everything the card paid.
  */
 export function spentRowNote(
   r: Pick<SpentRow<{ status?: string | null }>, "job" | "tipCents" | "tipFeeCents" | "refundedCents">,
@@ -233,11 +234,7 @@ export function spentRowNote(
   if (!r.job) return "";
   return (r.job.status === "cancelled" ? " · Cancelled" : "")
     + (r.refundedCents > 0 ? ` · ${money(r.refundedCents)} refunded` : "")
-    + (r.tipCents > 0
-      ? r.tipFeeCents > 0
-        ? ` · includes ${money(r.tipCents - r.tipFeeCents)} tip + ${money(r.tipFeeCents)} card fee`
-        : ` · includes ${money(r.tipCents)} tip`
-      : "");
+    + (r.tipCents > 0 ? ` · includes ${money(r.tipCents - r.tipFeeCents)} tip` : "");
 }
 
 /**

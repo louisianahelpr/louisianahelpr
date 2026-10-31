@@ -25,7 +25,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"} | text-[hsl(var(--burnt-sienna))]
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (source === "device") return "Measured from where you are now (a rough area, never your address)."; |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |       toast.success(openReplies > 0 | toast.success(false
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |       toast(openReplies > 0 | toast(false
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p> | <p data-wanted-near-empty="" />
  * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" /> | groups={CATEGORY_PICKER_GROUPS} />
@@ -54,7 +54,7 @@ const posted: unknown[] = [];
 const near = { rows: [] as WantedNear[] };
 const mine = { rows: [] as WantedPost[] };
 const photoCalls: unknown[][] = [];
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 const closed: string[] = [];
 const edits: unknown[][] = [];
 const lifecycle: unknown[][] = [];
@@ -172,11 +172,11 @@ describe("the Wanted hub", () => {
   it("Close with an open answer says it stays in Buying", async () => {
     mine.rows = [POST];
     closed.length = 0;
-    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast).mockClear();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Close" }));
     await waitFor(() => expect(closed).toEqual(["w9"]));
-    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith(
+    await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith(
       "Closed. No more alerts or answers. The answer you already have stays in Buying until you accept or decline."));
   });
 

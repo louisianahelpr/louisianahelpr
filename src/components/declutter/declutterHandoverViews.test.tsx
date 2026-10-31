@@ -124,8 +124,9 @@ vi.mock("./DeclutterReviewForm", () => ({
 
 // Slice 5: the delivery card has its own test (declutterDeliveryViews.test.tsx).
 vi.mock("./DeclutterDeliveryViews", () => ({
-  OrderDeliveryPanel: ({ taskId, side, tipOnly }: { taskId: string; side: string; tipOnly?: boolean }) =>
-    <p>{tipOnly ? `Tip panel ${taskId}` : `Delivery card ${taskId}`} for the {side}</p>,
+  // BUY-22: the real panel shows "Report a problem" once the Helpr has it (deliveryProblemWaits.test.tsx); here, a task that has.
+  OrderDeliveryPanel: ({ taskId, side, tipOnly, problemForm }: { taskId: string; side: string; tipOnly?: boolean; problemForm?: boolean }) =>
+    <><p>{tipOnly ? `Tip panel ${taskId}` : `Delivery card ${taskId}`} for the {side}</p>{problemForm && <button type="button">Report a problem</button>}</>,
 }));
 
 // Seller delivery's own panel has its own test (sellerDeliveryOrder.test.tsx); this stub keeps its one

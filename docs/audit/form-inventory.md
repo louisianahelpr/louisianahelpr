@@ -106,6 +106,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |
 | `src/components/declutter/DeclutterOrderTalk.tsx` | textarea×1 |  | 1000 | Messages |
+| `src/components/declutter/DeclutterProblemForm.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterProblemPhotos.tsx` | input×1 | file |  | Photos |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | Photos · wanted-reply-pick · wanted-reply-price · wanted-near-title |
 | `src/components/declutter/DeclutterWantedViews.tsx` | input×3 | text, file | 60 | What are you looking for? · wanted-what · Kids bike · wanted-what-problem · wanted-category · Pick one · wanted-category-problem · wanted-max |
@@ -138,7 +139,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterPorchPlaces.tsx` | input×1 | radio |  |  |
-| `src/components/declutter/DeclutterProblemForm.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterRefundRequest.tsx` | input×1, textarea×1 | text | 1000 |  |
 | `src/components/declutter/DeclutterRefundReturn.tsx` | input×4, select×1, date/calendar×1 | datetime-local, file, text | 300 |  |

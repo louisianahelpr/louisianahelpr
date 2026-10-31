@@ -34,6 +34,7 @@ import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
+import { fetchMyLastDropoff } from "@/lib/declutter/lastDropoff";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
@@ -163,6 +164,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
+  // BUY-9: the last drop-off this buyer sent (theirs only) fills "Deliver to" once, while the box is still empty and
+  // untouched; asked only when a way that delivers is chosen.
+  const lastDropoff = useQuery({ queryKey: ["declutter", "last-dropoff", me?.id], queryFn: () => fetchMyLastDropoff(me!.id),
+    enabled: !!me?.id && (delivering || sellerDelivering), staleTime: 5 * 60_000 });
+  const [addressTouched, setAddressTouched] = useState(false);
+  useEffect(() => {
+    if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data);
+  }, [addressTouched, lastDropoff.data, address]);
   const meetingUp = chosen === "meetup";
   const meetupReady = !meetingUp || spotsNear.some((s) => s.chosen);
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
@@ -222,7 +231,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
-          typed={address} onTyped={(a) => { setAddress(a); setQuote(null); }}
+          typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
           onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
       )}
       {delivering && (
@@ -231,7 +240,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           <div className="flex gap-2">
             <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               autoComplete="street-address" maxLength={300} value={address}
-              onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+              onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} />
             <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
               disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate()}>
               {priceIt.isPending ? "Pricing…" : "Get price"}

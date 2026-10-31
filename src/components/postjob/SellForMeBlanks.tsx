@@ -6,10 +6,8 @@
  * left as its [placeholder] (detailsBlocker). Shown only while the description still has the three lines.
  */
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
+import { Input } from "@/components/ui/input";
 import { SELL_FOR_ME_BLANKS, fillSellForMeBlank, sellForMeBlankValue } from "@/lib/declutter/sellForMe";
-
-const FIELD =
-  "w-full min-w-0 rounded-2xl border border-input bg-card px-4 py-3 text-ds-15 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function SellForMeBlanks({ description, setDescription }: { description: string; setDescription: (v: string) => void }) {
   const values = SELL_FOR_ME_BLANKS.map((b) => sellForMeBlankValue(description, b));
@@ -22,8 +20,10 @@ export function SellForMeBlanks({ description, setDescription }: { description: 
         if (!("choices" in b)) {
           return (
             <div key={b.key} className="space-y-1.5">
-              <label htmlFor={id} className="block text-ds-15 font-semibold">{b.label}</label>
-              <input id={id} className={FIELD} inputMode="numeric" maxLength={40} placeholder="About how many?" value={value}
+              {/* Screen check b18 10-31 (375): the form's own Input, so this box matches Job title's below it; asked as a
+                  question like the two chip rows. */}
+              <label htmlFor={id} className="block text-ds-15 font-semibold">{b.label}?</label>
+              <Input id={id} inputMode="numeric" maxLength={40} placeholder="About how many?" value={value}
                 onChange={(e) => setDescription(fillSellForMeBlank(description, b, e.target.value))} />
             </div>
           );

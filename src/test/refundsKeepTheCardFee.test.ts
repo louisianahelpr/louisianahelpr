@@ -561,7 +561,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_record_refund: "20261029232103_declutter_refund_debt_notice.sql 5198c482b12f0611",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
-      declutter_withdraw_problem: "20261030134109_declutter_take_back_problem_report.sql 8b0c8f5aa12ed43a",
+      // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
+      declutter_withdraw_problem: "20261031004529_declutter_handover_both_confirm.sql 697f519bfab88400",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -569,7 +570,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow): the same refunds and fee policies;
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
       // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
-      declutter_refund_after_handover: "20261029224147_declutter_admin_decision_closes_refund_request.sql d1b59b54d43cf573",
+      // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
+      declutter_refund_after_handover: "20261031010243_declutter_never_got_it_no_return.sql 9789b5c5095d8eff",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",
@@ -579,7 +581,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D2-5 (20261029224147): + admin_decided (the request ended with an admin decision); still reads the settled refund row's amount and status only.
       // D2-3 (20261029225634): + the request's photo_paths; still reads the settled refund row's amount and status only.
       // Returns (20261030071818) add the return fields (way, day, time, collect address, drop-off time); still no write.
-      declutter_refund_request_view: "20261030071818_declutter_returns.sql 45d58a5152dd88ba",
+      declutter_refund_request_view: "20261031010243_declutter_never_got_it_no_return.sql 45e59b8f95a4e7f1",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
       declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
       // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).

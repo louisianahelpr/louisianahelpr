@@ -14,14 +14,16 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 
 const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://signed.test/s1/declutter/handover/o/door.jpg" as string | null };
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
+const handoverRow = vi.hoisted(() => ({ reported: null as string | null, reads: 0 }));
 vi.mock("@/lib/declutter/handover", () => ({
+  fetchMyHandover: async () => { handoverRow.reads++; return { no_show_reported_at: handoverRow.reported }; },
   confirmHandover: async () => { state.calls.push("got_it"); },
   uploadHandoverPhoto: async () => "p.jpg",
   handoverPhotoUrl: async () => state.photoUrl,
@@ -189,14 +191,63 @@ describe("DB-2: a problem is open on the delivery", () => {
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 
-  it("seller, delivered: not told they are paid in 24 hours while a problem is open, and no second report", async () => {
+  it("seller, delivered: not told they are paid in about 48 hours while a problem is open, and no second report", async () => {
     state.booking = { ...BASE, side: "seller", handoff: "hand", delivered_at: iso(-HOUR), dropoff_address: "500 Drop Rd" };
     const before = show(false);
-    expect(await screen.findByText(/You're paid when the buyer confirms, or in 24 hours/)).toBeInTheDocument();
+    expect(await screen.findByText(/You're paid when the buyer confirms, or in about 48 hours/)).toBeInTheDocument();
     before.unmount();
     show(true);
     expect(await screen.findByText("Handed over.")).toBeInTheDocument();
     expect(screen.queryByText(/You're paid when the buyer confirms/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("review of 7496d29c8b #2: during the 24 hours after 'It wasn't delivered' nobody can ask for or accept a new time", async () => {
+    state.booking = { ...BASE, side: "buyer", proposed_start: iso(96 * HOUR), proposed_by: "seller" };
+    handoverRow.reported = null;
+    const before = show();
+    expect(await screen.findByRole("button", { name: "Accept the new time" })).toBeInTheDocument();
+    before.unmount();
+    handoverRow.reported = "2026-10-30T12:00:00Z";
+    handoverRow.reads = 0;
+    show();
+    expect(await screen.findByRole("button", { name: "Keep the current time" })).toBeInTheDocument();
+    await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("button", { name: "Accept the new time" })).toBeNull();
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+  });
+
+  it("during the seller's 24 hours, It wasn't delivered and the seller's Delivered are gone; both show without a report", async () => {
+    const pastDue = { slot_start: iso(-3 * HOUR), slot_end: iso(-2 * HOUR), not_delivered_from: iso(-HOUR) };
+    const frozenAfterRead = async () => {
+      handoverRow.reads = 0;
+      handoverRow.reported = "2026-10-30T12:00:00Z";
+      const view = show();
+      await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+      await act(async () => { await Promise.resolve(); });
+      return view;
+    };
+
+    state.booking = { ...BASE, ...pastDue, side: "buyer" };
+    handoverRow.reported = null;
+    const buyerBefore = show();
+    expect(await screen.findByRole("button", { name: "It wasn't delivered" })).toBeInTheDocument();
+    buyerBefore.unmount();
+    const buyerDuring = await frozenAfterRead();
+    expect(screen.queryByRole("button", { name: "It wasn't delivered" })).toBeNull();
+    buyerDuring.unmount();
+
+    state.booking = { ...BASE, ...pastDue, side: "seller" };
+    handoverRow.reported = null;
+    const sellerBefore = show();
+    expect(await screen.findByRole("button", { name: "Delivered" })).toBeInTheDocument();
+    sellerBefore.unmount();
+    await frozenAfterRead();
+    expect(screen.queryByRole("button", { name: "Delivered" })).toBeNull();
+
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
   });
 });

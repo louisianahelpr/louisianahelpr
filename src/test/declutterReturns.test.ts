@@ -13,13 +13,13 @@
  *   - the return RPCs and return copy appear only in the refund components and their lib.
  * Behaviour per account: src/test/pglite/declutterReturns.pglite.mjs.
  *
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   IF public.declutter_order_side(o.buyer_id, o.seller_id, v_uid) IS DISTINCT FROM 'seller' THEN\n    RAISE EXCEPTION 'refund_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;\n  IF r.status <> 'open' THEN | IF false THEN\n  END IF;\n  SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;\n  IF r.status <> 'open' THEN
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   IF p_way IS NULL OR p_way NOT IN ('drop_off', 'collect') THEN | IF p_way IS NULL THEN
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   IF public.declutter_order_side(o.buyer_id, o.seller_id, v_uid) IS DISTINCT FROM 'seller' THEN\n    RAISE EXCEPTION 'refund_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;\n  IF r.status <> 'open' THEN\n    RAISE EXCEPTION 'refund_already_answered' USING ERRCODE = '55000';\n  END IF;\n  IF now() >= r.answer_by THEN\n    RAISE EXCEPTION 'refund_answer_late' USING ERRCODE = '55000',\n      HINT = 'The 24 hours to answer are over, so Louisiana Helpr decides this one.';\n  END IF;\n  -- CHANGED (BUY-25 | IF false THEN\n  END IF;\n  SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;\n  IF r.status <> 'open' THEN\n    RAISE EXCEPTION 'refund_already_answered' USING ERRCODE = '55000';\n  END IF;\n  IF now() >= r.answer_by THEN\n    RAISE EXCEPTION 'refund_answer_late' USING ERRCODE = '55000',\n      HINT = 'The 24 hours to answer are over, so Louisiana Helpr decides this one.';\n  END IF;\n  -- CHANGED (BUY-25
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   IF p_way IS NULL OR p_way NOT IN ('drop_off', 'collect') THEN | IF p_way IS NULL THEN
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF (now() AT TIME ZONE 'America/Chicago')::date < r.return_day THEN | IF false THEN
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF NOT public.handover_photo_is_fresh('declutter-handover', p_photo_path) THEN\n    RAISE EXCEPTION 'photo_too_old' USING ERRCODE = '22023',\n      HINT = 'Take a new photo now: a handover photo must be taken in the last 10 minutes.';\n  END IF;\n  -- At the address | IF false THEN\n    RAISE EXCEPTION 'photo_too_old' USING ERRCODE = '22023';\n  END IF;\n  -- At the address
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.'; |   IF false THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023';
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   IF r.status <> 'returning' OR r.return_way IS DISTINCT FROM 'collect' THEN | IF r.status <> 'returning' THEN
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   v_show_address := COALESCE(r.status = 'returning' AND r.return_way = 'collect', false); |   v_show_address := true;
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   v_show_address := COALESCE(r.status = 'returning' AND r.return_way = 'collect', false); |   v_show_address := true;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   SELECT greatest(r.return_by, |   SELECT least(r.return_by,
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text)
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | acceptRefundWithReturn(r.id, | answerRefund(r.id,
@@ -56,7 +56,7 @@ describe("Declutter returns: the two free ways, one atomic answer, one money pat
     expect(a).not.toMatch(/declutter_refund_after_handover/);
     // The panel sends "Refund in full" through it, never as a second call after declutter_answer_refund.
     const panel = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterRefundRequest.tsx"), "utf8"));
-    expect(panel).toMatch(/choice === "full" && pickArgs\) return acceptRefundWithReturn\(r\.id, pick\.way, pickArgs\.day, pickArgs\.atIso\)/);
+    expect(panel).toMatch(/choice === "full" && pickArgs && !neverGotIt\) return acceptRefundWithReturn\(r\.id, pick\.way, pickArgs\.day, pickArgs\.atIso\)/);
   });
 
   it("only drop_off and collect: the CHECK ties each way to its fields", () => {

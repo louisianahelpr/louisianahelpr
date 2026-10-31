@@ -12,6 +12,7 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
+ * @mutate supabase/migrations/20261031160546_declutter_create_item_with_id.sql |     p_floor_price_cents := 0;\n  ELSIF p_price_cents IS NULL | ELSIF p_price_cents IS NULL
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
@@ -53,10 +54,16 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
-      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
+      "declutter_update_draft", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(6);
+    expect(names.length).toBeGreaterThan(5);
+    // declutter_create_item: the owner's "Post it" change (20261031160546) made it a wrapper of
+    // declutter_create_item_with_id, which now holds the insert and the free rule (price 0, floor 0).
+    expect(newestFunction("declutter_create_item").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(newestFunction("declutter_create_item_with_id").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(code("declutter_create_item_with_id")).toContain(
+      "IF p_price_cents = 0 THEN IF COALESCE(p_floor_price_cents, 0) <> 0 THEN RAISE EXCEPTION 'invalid_floor_price' USING ERRCODE = '22023', HINT = 'A free item has no lowest price.'; END IF; p_floor_price_cents := 0;");
     // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
     expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");

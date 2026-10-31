@@ -65,6 +65,11 @@ vi.mock("@/lib/declutter/problemPhotos", () => ({
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.features.includes(key) }));
 // Board 141's refund panel has its own test; here a stub says whether the card offers it.
 // It renders the problem form the card hands it, so the card's choice to hand one (D2-2) is visible here.
+// NIGHT-SELL-soldstates-7: a handed-over card reads the refund request (refundedInFull) on both sides.
+vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
+  fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "seller", handed_over: true, full_refund_cents: 0, request: null }),
+}));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: ({ problemForm }: { problemForm: import("react").ReactNode }) => <div><p>Refund panel</p>{problemForm}</div> }));
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.

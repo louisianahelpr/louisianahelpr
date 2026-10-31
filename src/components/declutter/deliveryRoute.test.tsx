@@ -16,7 +16,8 @@ import type { RouteStop } from "@/lib/helprTasks/api";
 
 const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as string[] };
 
-vi.mock("sonner", () => ({ toast: { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() } }));
+// useTaskSteps calls the bare toast() (toast.success renders nothing in this app), so the mock must be callable.
+vi.mock("sonner", () => ({ toast: Object.assign((m: string) => { state.toasts.push(m); }, { error: vi.fn() }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
@@ -57,6 +58,7 @@ const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg"
 beforeEach(() => {
   state.route = ROUTE;
   state.calls = [];
+  state.toasts = [];
 });
 
 describe("My route", () => {

@@ -107,7 +107,8 @@ describe("BUY-16: guests browse Declutter", () => {
     show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);
     expect(await screen.findByRole("button", { name: "Watch Thing 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /the map/ })).toBeInTheDocument();
-    expect(screen.getByText("THE MAP")).toBeInTheDocument();
+    // The map is a lazy chunk: on a loaded CI runner it can land after the first heart (#3864 shard 1).
+    expect(await screen.findByText("THE MAP")).toBeInTheDocument();
     expect(reads).toEqual(expect.arrayContaining(["watching", "bundles"]));
   });
 });

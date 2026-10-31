@@ -24,7 +24,8 @@ const PARISHES = [
 const AdminMarketing = () => {
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState(
-    `<p>Hey {{name}},</p>\n<p>We've got something new for you on Helpr…</p>\n<p>— The Helpr team</p>`
+    // AUD31-46: the site is Louisiana Helpr (the composer said "on Helpr" and "The Helpr team").
+    `<p>Hey {{name}},</p>\n<p>We've got something new for you on Louisiana Helpr…</p>\n<p>— The Louisiana Helpr team</p>`
   );
   const [segment, setSegment] = useState<Segment>("all");
   const [parish, setParish] = useState("");

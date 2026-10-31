@@ -183,6 +183,16 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(order().length).toBeGreaterThan(4);
   });
 
+  // T13, BUY-37: past 24 hours the closed card's head stopped being true; the new line was only inside Details.
+  it("BUY-37: the closed card says on its way until 24 hours after pickup, then the still-in-hand line", async () => {
+    const hd = (id: string, hours: number): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { accepted_at: iso(-hours - 1), picked_up_at: iso(-hours), helpr_first_name: "Hank" }, step: 2, bucket: "waiting", action: null });
+    load([hd("fresh", 23), hd("late", 25)]);
+    show();
+    await waitFor(() => expect(card("fresh")).toHaveTextContent("Picked up. On its way to you."));
+    await waitFor(() => expect(card("late")).toHaveTextContent(/Hank picked it up .* and hasn't marked it delivered\./));
+    expect(card("late")).not.toHaveTextContent("On its way");
+  });
+
   it("collapsed, each card has the tracker at its step and at most one primary button: its next action", async () => {
     load(CASES);
     show();

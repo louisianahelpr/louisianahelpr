@@ -22,7 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // The card's side reads (tracking row, pets, realtime) return empty; this file
 // is about what the card says from the job row alone.

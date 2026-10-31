@@ -9,7 +9,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const sent: unknown[][] = [];
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => (
     <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />

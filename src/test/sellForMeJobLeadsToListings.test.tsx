@@ -18,7 +18,7 @@ import type { ReactElement } from "react";
 import { buildSellForMePrefill, isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH, SELL_FOR_ME_PHOTO_LINE } from "@/lib/declutter/sellForMe";
 import { openMore } from "./helpers/openMore";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

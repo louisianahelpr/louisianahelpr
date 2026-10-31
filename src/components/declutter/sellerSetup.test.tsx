@@ -39,7 +39,7 @@ vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>) }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => state.lookup }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => state.here }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => state.last }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
   ...(await orig<object>()),

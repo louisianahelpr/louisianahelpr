@@ -26,7 +26,7 @@ vi.mock("@/lib/scheduleChange", () => ({
   respondScheduleChange: vi.fn(),
   withdrawScheduleChange: vi.fn(async (id: string) => { state.withdrawn.push(id); return "withdrawn"; }),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
 

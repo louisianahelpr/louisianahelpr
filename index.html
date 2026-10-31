@@ -799,6 +799,37 @@
       [data-theme="dark"] #boot-loader .boot-progress-fill {
         background: hsl(72 22% 52%);
       }
+      /* The app's name and its Privacy / Terms links, as real visible text in
+         the static HTML (LEAD-GOOGLE-NAME, 2026-10-31): Google's OAuth branding
+         check reads the home page before JavaScript runs and refused because
+         the body held only the H mark. Pinned to the bottom so the H stays
+         centred exactly where the native splash put it; visible at once (no
+         fade), small so it never becomes the page's largest paint. */
+      #boot-loader .boot-foot {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        text-align: center;
+        font: 600 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: hsl(70 20% 26%);
+      }
+      #boot-loader .boot-foot p {
+        margin: 0;
+      }
+      #boot-loader .boot-links {
+        margin-top: 4px;
+        font-weight: 500;
+        font-size: 13px;
+      }
+      #boot-loader .boot-links a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      [data-theme="dark"] #boot-loader .boot-foot {
+        color: hsl(40 18% 82%);
+      }
       @keyframes boot-progress-in {
         to { opacity: 1; }
       }
@@ -813,48 +844,18 @@
         }
       }
     </style>
+    <!--
+      #root's boot shell (below, in <body>; its history lives here so crawlers
+      do not read it as page text): brand ground, the H as a filter-free CSS
+      background over a progress bar fading in after 600 ms (Q651; an <img>
+      mark once became LCP and its filter shadow drew a clipped square on
+      iPhone), and the app's name with Privacy / Terms links as plain visible
+      text (LEAD-GOOGLE-NAME). The accessible name is on #boot-loader
+      (role="status"). React's createRoot().render() clears #root's children
+      on its first commit, so this markup is gone the instant the app paints.
+    -->
   </head>
   <body>
-    <!--
-      Inline FCP shell — brand ground + the real wrought-iron Helpr mark
-      (LH-50). History, because this spot has been wrong three ways:
-
-        1. A 580x580 splash <img> became Lighthouse's LCP element (the LCP
-           timer does not reset when React replaces the splash), so the score
-           waited on the splash to paint.
-        2. Stripped back to a bare background — a blank screen for ~2-3s on a
-           cold connection while the bundle parsed.
-        3. A generic 34px CSS ring spinner. Painted fast, but it is precisely
-           the "looks identical to every other React app" loader that
-           src/components/ui/HelprSpinner.tsx was written to abolish — and it
-           sat on the FIRST screen anyone sees.
-
-      Now: the actual brand mark ALONE, the same asset HelprMark and
-      HelprSpinner render. No wordmark — the mark carries the screen by
-      itself, and the app name is already on the home screen the user just
-      tapped. 256 source at 72px display, because 72 CSS px on a 3x phone is
-      216 device px and the 96 asset would upscale and go soft.
-
-      The accessible name lives on #boot-loader (role="status"
-      aria-label="Loading Helpr"), so removing the visible word costs nothing
-      to a screen reader; the <img> stays aria-hidden as pure decoration.
-
-      LCP: this IS an <img>, so it IS an LCP candidate — but LCP tracks the
-      LARGEST contentful paint, not the first, and the Bodoni hero H1 dwarfs a
-      72px mark and supersedes it. That is the difference from mistake 1: a
-      580x580 image stayed the largest thing on screen. Keep this small. If it
-      ever needs to grow past roughly a quarter of the viewport, re-measure LCP
-      before shipping it.
-
-      PATH: `./src/assets/...` is RELATIVE and Vite rewrites it to the hashed
-      asset (verified — it emits /assets/helpr-logo-256-<hash>.webp). Do NOT
-      write `/src/assets/...` with a leading slash: that reads as a public-dir
-      path, Vite cannot rewrite it, and it 404s in the build. That exact
-      mistake is recorded in the preload comment further up this file.
-
-      React's createRoot().render() clears #root's children on its first
-      commit, so this markup is removed the instant the app paints.
-    -->
     <div id="root" style="background:linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%);background-color:#F4F2EE;min-height:100vh;">
       <div
         id="boot-loader"
@@ -862,16 +863,11 @@
         aria-label="Loading Helpr"
         style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%);background-color:#F4F2EE;"
       >
-        <!-- Owner, 2026-09-23: nothing but the page background while the
-             bundle loads (no H mark then: on iPhone its filter shadow rendered
-             as a clipped square). The element stays for its role/label and the
-             boot-failure fallback, which keys off #boot-loader.
-             Owner, 2026-10-04 (Q651): the H back on top of a CSS-only,
-             filter-free progress bar, the pair fading in after 600 ms (styles
-             and the clipped-square history in #boot-theme above). -->
         <div class="boot-stack" aria-hidden="true"><div class="boot-h"></div><div class="boot-progress"><div class="boot-progress-fill"></div></div></div>
+        <div class="boot-foot"><p class="boot-name">Louisiana Helpr</p><p class="boot-links"><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p></div>
       </div>
     </div>
+    <noscript><p style="text-align:center;font:600 15px/1.5 system-ui,-apple-system,sans-serif;color:#4B4F33;padding:24px 16px">Louisiana Helpr needs JavaScript to run. <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p></noscript>
     <script type="module" src="/src/entry.ts"></script>
   </body>
 </html>

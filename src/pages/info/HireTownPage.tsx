@@ -2,7 +2,7 @@
  * OPS-4 (owner approved 10-29): a town + service page for Google, /hire/<service>/<town> ("Handyman in Baton Rouge").
  * What Louisiana Helpr does for that job in that town, in the landing's own true words, one way to post the job, and
  * links to the same service in the other towns and the other services in this town. No counts, so nothing reads "0"
- * in a town with no Helprs yet (lead 10-31: nothing shown at zero). Data: src/lib/townPages.ts.
+ * in a town with no Helprs yet (lead 10-31: nothing shown at zero). Data: src/lib/townPages.mjs.
  * Guard: src/pages/info/hireTownPage.test.tsx.
  */
 import { Link, useParams } from "react-router-dom";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import NotFound from "@/pages/info/NotFound";
-import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages";
+import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
 const STEPS = [
   { title: "You name the price", body: "Say what you need done and what you'll pay." },

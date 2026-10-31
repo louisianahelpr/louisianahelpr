@@ -11,7 +11,6 @@ import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGr
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { LAST_UPDATED } from "./legalSections";
 // The approval window and the payout schedule are the platform's binding
 // promises about when money moves; derive them from the same config the cron
@@ -56,8 +55,6 @@ export const TermsContent = () => {
   // surface still calling it an "onboarding fee". Null while loading or on
   // failure, in which case the row simply does not quote a number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
-  // Owner 2026-10-30: with the ID check on, a seller pays from their payout and a free claim counts as a first purchase.
-  const idCheckOn = useIdentityCheckOnStore();
   return (
   <div className="space-y-3">
     <TldrCard
@@ -159,7 +156,7 @@ export const TermsContent = () => {
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
-            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. {idCheckOn
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. {idOn
               ? "A Helpr or a Declutter seller pays it out of their first payout; if you post a job, buy on Declutter or claim a free item on Declutter before your first payout, it is charged then instead. It is never charged twice."
               : "A Helpr pays it out of their first payout; if you post a job, buy on Declutter or list on Declutter before your first payout, it is charged then instead. It is never charged twice."}</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the service fee above.</p>
@@ -188,7 +185,7 @@ export const TermsContent = () => {
         title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter {idCheckOn ? "purchase or free claim" : "purchase or listing"}, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter {idOn ? "purchase or free claim" : "purchase or listing"}, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
             <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
             <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>

@@ -1,25 +1,26 @@
--- A free Declutter claim counts as a first purchase (owner 2026-10-30: "Free claim fee: claimer pays $2 first, then
--- verifies, once ever. First-timers must be told plainly why it's required, once and never again. Item stays free.").
+-- A free Declutter claim counts as a first purchase (owner 2026-10-30, ruled again that evening: asking for a free item is
+-- free. "The first-timer pays $2 and verifies only once the seller picks them, on the same one-time screen. If they
+-- don't complete it, the seller can pick someone else; nothing auto-cancels without telling both." Item stays free.)
 --
--- BEHIND THE SWITCH `identity_check`, which stays OFF: identity_check_exempt() is TRUE while it is off, so landing this
--- changes nothing for anyone.
+-- BEHIND THE SWITCH `identity_check`, which stays OFF: landing this changes nothing for anyone.
 --
--- With it on, for an ordinary member, the order is the owner's: the fee, then the ID.
---   1. declutter_free_claim_gate refuses with setup_fee_required_to_claim until profiles.onboarding_fee_paid is true.
---      The app opens the one short screen, and pays through pay-onboarding-fee: the existing page, whose payment the
---      stripe-webhook claims with the one-winner write every other path uses. Nothing is charged here.
---   2. It then refuses with identity_required_to_claim until the ID is verified. The app opens the ID sheet.
---   3. Later claims and purchases pass: once ever, for the fee and the check alike.
+-- With it on, for an ordinary member:
+--   * declutter_request_free is NOT touched: asking asks for nothing.
+--   * The giver picks them. declutter_checkout_free, where the address opens, runs declutter_free_claim_gate: first
+--     setup_fee_required_to_claim until profiles.onboarding_fee_paid is true (the app opens the one short screen and
+--     pays through pay-onboarding-fee, the existing page and its one-winner webhook write; nothing is charged here), then
+--     identity_required_to_claim until the ID is verified (the app opens the ID sheet). Later claims pass: once ever.
+--   * Not completed: declutter_deadline_sweep, UNCHANGED, already puts the item back up at 48 hours with no strike and
+--     tells both people. declutter_seller_cancel_sale, UNCHANGED, lets the giver end it sooner, no strike, and tells them.
+--   * New here: picking closed everyone else's ask, so with the item back up the giver had nobody to pick. The asks the
+--     pick closed reopen, and the giver and those people are told. An asker who is out of Declutter, blocked, paused or
+--     already at 3 free items is left closed. Reopened only while the switch is on for the giver.
 -- The item stays free: the order's own amounts are untouched, still $0.
+-- Admins and enrolled test accounts are never asked.
 --
--- Asked at both doors. declutter_request_free (and declutter_claim_free, which calls it) is the claim. The giver only ever
--- picks someone who asked; declutter_checkout_free, where the address opens, catches a member who asked BEFORE the check
--- went on. Admins and enrolled test accounts are never asked.
---
--- Restated from their newest definitions, each matching prod's md5 of whitespace-normalised prosrc on 2026-10-30:
---   declutter_request_free  80d627c26d0405a67da70c964477d87e (20261030064021)
+-- Restated from its newest definition, matching prod's md5 of whitespace-normalised prosrc on 2026-10-30:
 --   declutter_checkout_free 755c1521757fad4f7c44457ea5c4407a (20261030164712)
--- Replay-safe: CREATE OR REPLACE, grants restated.
+-- Replay-safe: CREATE OR REPLACE, DROP TRIGGER IF EXISTS, grants restated.
 -- Proof: src/test/pglite/freeClaimFeeThenId.pglite.mjs (applied 3x; NEW_MIGRATION=skip is red).
 
 CREATE OR REPLACE FUNCTION public.declutter_free_claim_gate(p_member uuid)
@@ -47,92 +48,6 @@ BEGIN
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_free_claim_gate(uuid) FROM PUBLIC, anon, authenticated;
-
-CREATE OR REPLACE FUNCTION public.declutter_request_free(p_item_id uuid)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-DECLARE
-  v_uid uuid;
-  v_seller uuid;
-  v_price integer;
-  v_status text;
-  v_mode text;
-  v_seed boolean;
-  v_title text;
-  v_open integer;
-  v_until timestamptz;
-  v_id uuid;
-BEGIN
-  PERFORM public.require_feature('declutter');
-  IF public.is_caller_banned() THEN
-    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
-  END IF;
-  v_uid := public.declutter_assert_member(true);
-  SELECT i.seller_id, i.current_price_cents, i.status, i.sale_mode, i.is_seed, i.title
-    INTO v_seller, v_price, v_status, v_mode, v_seed, v_title
-    FROM public.declutter_items i WHERE i.id = p_item_id FOR UPDATE;
-  IF NOT FOUND OR v_status NOT IN ('live', 'reserved')
-     OR public.are_users_blocked(v_seller, v_uid)
-     OR public.declutter_seller_out(v_seller)
-     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN
-    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
-  END IF;
-  IF v_seller = v_uid THEN
-    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';
-  END IF;
-  IF v_mode <> 'offers' THEN
-    RAISE EXCEPTION 'sale_mode_unavailable' USING ERRCODE = '22023';
-  END IF;
-  IF v_price <> 0 THEN
-    RAISE EXCEPTION 'not_free' USING ERRCODE = '22023', HINT = 'This item is not free any more. Check its price.';
-  END IF;
-  IF v_status <> 'live' THEN
-    RAISE EXCEPTION 'item_not_available' USING ERRCODE = '55000', HINT = 'Someone else got this item first.';
-  END IF;
-  -- The 30-day pause after a missed free pickup (owner 2026-10-29).
-  SELECT p.free_blocked_until INTO v_until FROM public.declutter_free_pauses p
-   WHERE p.user_id = v_uid AND p.free_blocked_until > now();
-  IF FOUND THEN
-    RAISE EXCEPTION 'free_paused' USING ERRCODE = '42501',
-      HINT = format('You can ask for free items again on %s.',
-                    to_char(v_until AT TIME ZONE 'America/Chicago', 'FMMonth FMDD'));
-  END IF;
-  -- Owner 2026-10-30: a first claim pays the one-time fee first, then verifies. Off while identity_check is off.
-  PERFORM public.declutter_free_claim_gate(v_uid);
-  -- Serialised per member: the same advisory lock the old claim used.
-  PERFORM pg_advisory_xact_lock(hashtextextended('declutter_free_claims:' || v_uid::text, 0));
-  SELECT r.id INTO v_id FROM public.declutter_free_requests r
-   WHERE r.item_id = p_item_id AND r.requester_id = v_uid AND r.status = 'open';
-  IF FOUND THEN
-    RETURN v_id;
-  END IF;
-  -- At most 3 at a time: open asks + free lines still waiting for a pickup choice + free pickups not done yet.
-  SELECT (SELECT count(*) FROM public.declutter_free_requests r WHERE r.requester_id = v_uid AND r.status = 'open')
-       + (SELECT count(*) FROM public.declutter_cart_items c
-           WHERE c.buyer_id = v_uid AND c.price_cents = 0 AND c.status = 'in_cart' AND c.checkout_by > now())
-       + (SELECT count(*) FROM public.declutter_cart_items c JOIN public.declutter_orders o ON o.id = c.order_id
-           WHERE c.buyer_id = v_uid AND c.status = 'paid' AND o.status = 'paid' AND o.paid_with = 'free')
-    INTO v_open;
-  IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN
-    RAISE EXCEPTION 'free_claim_limit' USING ERRCODE = '54000',
-      HINT = 'You have 3 free items asked for or waiting. Pick those up or take back an ask first.';
-  END IF;
-  INSERT INTO public.declutter_free_requests (item_id, requester_id, seller_id)
-  VALUES (p_item_id, v_uid, v_seller)
-  RETURNING id INTO v_id;
-  -- Named, never "Someone" (owner 2026-10-21): the giver sees who asked on the item page anyway.
-  PERFORM public.declutter_notify(v_seller, 'declutter_offers', 'New request for your free item',
-    format('%s asked for "%s". Open it to see who asked and pick who gets it.',
-           COALESCE((SELECT public.member_display_name(p.full_name, 'A neighbor') FROM public.profiles p WHERE p.id = v_uid), 'A neighbor'), v_title),
-    '/declutter/item/' || p_item_id::text, v_uid);
-  RETURN v_id;
-END;
-$function$;
-REVOKE ALL ON FUNCTION public.declutter_request_free(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.declutter_request_free(uuid) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.declutter_checkout_free(p_seller_id uuid, p_handover text)
 RETURNS uuid
@@ -189,7 +104,7 @@ BEGIN
   IF public.declutter_seller_out(p_seller_id) OR public.are_users_blocked(p_seller_id, v_uid) THEN
     RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
   END IF;
-  -- Owner 2026-10-30: a member who asked before the check went on is asked here, before the address opens.
+  -- Owner 2026-10-30: a first-timer the giver picked pays the one-time fee, then verifies, before the address opens.
   PERFORM public.declutter_free_claim_gate(v_uid);
   IF p_handover = 'porch' AND EXISTS (
        SELECT 1 FROM public.declutter_cart_items c JOIN public.declutter_items i ON i.id = c.item_id
@@ -261,3 +176,62 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_checkout_free(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_checkout_free(uuid, text) TO authenticated, service_role;
+
+-- A picked person did not complete it and the item is back up: the giver can pick someone else who asked.
+CREATE OR REPLACE FUNCTION public.declutter_free_asks_reopen_on_back_up()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  r record;
+  v_reopened integer := 0;
+  v_limit integer := (public.declutter_free_rules() ->> 'max_open_claims')::integer;
+BEGIN
+  IF NOT public.feature_enabled_for_user('identity_check', NEW.seller_id) THEN
+    RETURN NULL;
+  END IF;
+  FOR r IN
+    SELECT q.id, q.requester_id
+      FROM public.declutter_free_requests q
+     WHERE q.item_id = NEW.id AND q.status = 'not_picked'
+       AND NOT public.declutter_member_out(q.requester_id)
+       AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
+                        WHERE (b.blocker_id = NEW.seller_id AND b.blocked_id = q.requester_id)
+                           OR (b.blocker_id = q.requester_id AND b.blocked_id = NEW.seller_id))
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_free_pauses p
+                        WHERE p.user_id = q.requester_id AND p.free_blocked_until > now())
+       AND NOT EXISTS (SELECT 1 FROM public.declutter_free_requests o
+                        WHERE o.item_id = NEW.id AND o.requester_id = q.requester_id AND o.status = 'open')
+     ORDER BY q.created_at
+  LOOP
+    -- The same 3 the ask itself counts.
+    IF (SELECT count(*) FROM public.declutter_free_requests o WHERE o.requester_id = r.requester_id AND o.status = 'open')
+       + (SELECT count(*) FROM public.declutter_cart_items c
+           WHERE c.buyer_id = r.requester_id AND c.price_cents = 0 AND c.status = 'in_cart' AND c.checkout_by > now())
+       + (SELECT count(*) FROM public.declutter_cart_items c JOIN public.declutter_orders o ON o.id = c.order_id
+           WHERE c.buyer_id = r.requester_id AND c.status = 'paid' AND o.status = 'paid' AND o.paid_with = 'free') >= v_limit THEN
+      CONTINUE;
+    END IF;
+    UPDATE public.declutter_free_requests SET status = 'open', closed_at = NULL WHERE id = r.id;
+    v_reopened := v_reopened + 1;
+    PERFORM public.declutter_notify(r.requester_id, 'declutter_offers', 'Free item is open again',
+      format('"%s" is free again and your ask still stands. The giver can pick you now.', NEW.title),
+      '/declutter/item/' || NEW.id::text, NEW.seller_id);
+  END LOOP;
+  IF v_reopened > 0 THEN
+    PERFORM public.declutter_notify(NEW.seller_id, 'declutter_offers', 'Pick someone else',
+      format('Others still want "%s". Open it to pick someone else.', NEW.title),
+      '/declutter/item/' || NEW.id::text);
+  END IF;
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_free_asks_reopen_on_back_up() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS declutter_free_asks_reopen_on_back_up ON public.declutter_items;
+CREATE TRIGGER declutter_free_asks_reopen_on_back_up
+  AFTER UPDATE OF status ON public.declutter_items
+  FOR EACH ROW
+  WHEN (OLD.status = 'reserved' AND NEW.status = 'live' AND NEW.current_price_cents = 0)
+  EXECUTE FUNCTION public.declutter_free_asks_reopen_on_back_up();

@@ -1,13 +1,15 @@
 /**
- * CLASS GUARD: a first free Declutter claim (owner 2026-10-30): the claimer pays the one-time fee FIRST, then verifies,
- * once ever, and is told plainly why on one short screen. Behaviour of the server is proven by
+ * CLASS GUARD: a first free Declutter claim (owner 2026-10-30): asking is free. Once the giver picks them, a first-timer
+ * pays the one-time fee FIRST, then verifies, once ever, and is told plainly why on one short screen. If they don't
+ * complete it the giver can pick someone else. Behaviour of the server is proven by
  * src/test/pglite/freeClaimFeeThenId.pglite.mjs (the migration 3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |   -- Owner 2026-10-30: a first claim pays the one-time fee first, then verifies. Off while identity_check is off.\n  PERFORM public.declutter_free_claim_gate(v_uid); |
+ * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |   PERFORM public.declutter_free_claim_gate(v_uid);\n  IF p_handover = 'porch' AND EXISTS ( |   IF p_handover = 'porch' AND EXISTS (
+ * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |  WHERE q.item_id = NEW.id AND q.status = 'not_picked' |  WHERE q.item_id = NEW.id AND q.status = 'never'
  * @mutate src/lib/declutter/api.ts |   else if (freeClaimFeeRefusal(err)) openFreeClaimFirstTime(); |
  * @mutate src/components/identity/FreeClaimFirstTime.tsx |             A claim shares a real person's address, so we check ID once to keep members safe. |             Verify your ID.
  * @mutate src/components/identity/IdentityCheckSheet.tsx |     <FreeClaimFirstTime />\n |
- * @mutate supabase/functions/pay-onboarding-fee/index.ts | ? buildRedirectUrl("/declutter?verify_id=1&verify_reason=claim", isNative) | ? buildRedirectUrl("/declutter", isNative)
+ * @mutate supabase/functions/pay-onboarding-fee/index.ts | ? buildRedirectUrl("/declutter?tab=buying&verify_id=1&verify_reason=claim", isNative) | ? buildRedirectUrl("/declutter?tab=buying", isNative)
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -78,7 +80,7 @@ describe("a first free claim", () => {
     await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
     expect(invoke.mock.calls[0][0]).toBe("pay-onboarding-fee");
     expect(invoke.mock.calls[0][1].body.return_to).toBe("declutter_free_claim");
-    expect(read("supabase/functions/pay-onboarding-fee/index.ts")).toContain('buildRedirectUrl("/declutter?verify_id=1&verify_reason=claim", isNative)');
+    expect(read("supabase/functions/pay-onboarding-fee/index.ts")).toContain('buildRedirectUrl("/declutter?tab=buying&verify_id=1&verify_reason=claim", isNative)');
   });
 
   it("the two refusals are told apart, and each is read by name", () => {
@@ -91,14 +93,13 @@ describe("a first free claim", () => {
     expect(DECLUTTER_ERROR_COPY.identity_required_to_claim).toMatch(/once/);
   });
 
-  it("the server asks at both doors, the fee before the ID, and only with the switch on", () => {
+  it("asking is free; the server asks at the free checkout, the fee before the ID, and only with the switch on", () => {
     const gate = blankSqlComments(newestFunction("declutter_free_claim_gate").body);
     expect(gate).toMatch(/public\.identity_check_exempt\(p_member\)/);
     expect(gate.indexOf("setup_fee_required_to_claim")).toBeGreaterThan(0);
     expect(gate.indexOf("setup_fee_required_to_claim")).toBeLessThan(gate.indexOf("identity_required_to_claim"));
-    for (const fn of ["declutter_request_free", "declutter_checkout_free"]) {
-      expect(blankSqlComments(newestFunction(fn).body), fn).toMatch(/PERFORM public\.declutter_free_claim_gate\(v_uid\)/);
-    }
+    expect(blankSqlComments(newestFunction("declutter_checkout_free").body)).toMatch(/PERFORM public\.declutter_free_claim_gate\(v_uid\)/);
+    expect(blankSqlComments(newestFunction("declutter_request_free").body)).not.toMatch(/declutter_free_claim_gate/);
   });
 
   it("the screen is mounted in the one host, behind the switch", () => {

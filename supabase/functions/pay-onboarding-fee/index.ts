@@ -83,8 +83,8 @@ serve(async (req) => {
     // every redirect target is a literal route): "declutter_selling" = their Declutter listings, when the first
     // listing asked for the fee; anything else = Payments.
     const toDeclutter = (rawBody as { return_to?: unknown })?.return_to === "declutter_selling";
-    // Owner 2026-10-30: a first free claim pays first, then verifies: "declutter_free_claim" lands on Declutter with
-    // the ID check open (IdentityCheckHost reads verify_id).
+    // Owner 2026-10-30: a first free claim pays first, then verifies: "declutter_free_claim" lands on Buying, where their
+    // picked item waits, with the ID check open (IdentityCheckHost reads verify_id).
     const toFreeClaim = (rawBody as { return_to?: unknown })?.return_to === "declutter_free_claim";
 
     // Fail CLOSED on a read fault. A dropped error here would let someone who
@@ -173,12 +173,12 @@ serve(async (req) => {
         mode: "payment",
         payment_intent_data: { metadata },
         success_url: toFreeClaim
-          ? buildRedirectUrl("/declutter?verify_id=1&verify_reason=claim", isNative)
+          ? buildRedirectUrl("/declutter?tab=buying&verify_id=1&verify_reason=claim", isNative)
           : toDeclutter
             ? buildRedirectUrl("/declutter?view=selling", isNative)
             : buildRedirectUrl("/profile?tab=payment&setup_fee=paid", isNative),
         cancel_url: toFreeClaim
-          ? buildRedirectUrl("/declutter", isNative)
+          ? buildRedirectUrl("/declutter?tab=buying", isNative)
           : toDeclutter
             ? buildRedirectUrl("/declutter?view=selling", isNative)
             : buildRedirectUrl("/profile?tab=payment", isNative),

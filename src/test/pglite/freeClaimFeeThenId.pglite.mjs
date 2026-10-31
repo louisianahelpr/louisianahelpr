@@ -8,11 +8,12 @@
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR). The migration runs verbatim against
  * stubs of what it reads, on the REAL older bodies of the two functions it restates, cut from their migrations.
  * Proves, for an ordinary member:
- *   - Switch OFF (prod today): an ask and a free checkout go through, nothing is asked.
- *   - Switch ON: the fee FIRST (the ID alone does not pass), then the ID, then the ask goes through.
+ *   - Switch OFF (prod today): an ask and a free checkout go through, nothing is asked, and no ask reopens.
+ *   - Switch ON: asking is free. Picked, the fee FIRST (the ID alone does not pass), then the ID, then the checkout.
  *   - Once ever: a later claim asks for nothing. A member who paid the fee elsewhere is asked only for the ID.
- *   - A member who asked before the check went on is stopped at the free checkout, where the address opens.
  *   - The order stays $0. Admins and enrolled test accounts are never asked. Members cannot call the gate.
+ *   - Not completed: with the item back up, the asks the pick closed reopen and both sides are told. Someone paused,
+ *     blocked, out, or at 3 free items stays closed. The picked person's own ask stays closed.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -33,7 +34,7 @@ function cutFn(file, name) {
 }
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const [GIVER, FIRST, PAID_ELSEWHERE, ADMIN, TESTER, EARLY] = [1, 2, 3, 4, 5, 6].map(id);
+const [GIVER, FIRST, PAID_ELSEWHERE, ADMIN, TESTER, EARLY, OTHER1, PAUSED, BLOCKED, FULL, OUT] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(id);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -72,6 +73,8 @@ CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE AS
 CREATE FUNCTION public.declutter_assert_member(boolean) RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT auth.uid() $$;
 CREATE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE FUNCTION public.declutter_seller_out(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE FUNCTION public.declutter_member_out(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT $1 = '00000000-0000-0000-0000-000000000011'::uuid $$;
+CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE FUNCTION public.seed_hidden_for(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE FUNCTION public.declutter_free_rules() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT '{"max_open_claims": 3}'::jsonb $$;
 CREATE FUNCTION public.member_display_name(text, text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT COALESCE($1, $2) $$;
@@ -126,36 +129,73 @@ const clearAsks = () => db.exec(`DELETE FROM public.declutter_free_requests`);
 
 // ── OFF: nothing is asked ──────────────────────────────────────────────────
 ok("OFF: a first ask goes through", (await ask(EARLY)) === null);
-await waiting(EARLY);
 await clearAsks();
 await waiting(FIRST);
 ok("OFF: a free checkout goes through", (await checkout(FIRST)) === null);
 await db.exec(`DELETE FROM public.declutter_orders; DELETE FROM public.declutter_cart_items WHERE buyer_id='${FIRST}'; UPDATE public.declutter_items SET status='live'`);
 
+/** The giver picked one person: their ask 'picked', the others 'not_picked', the item reserved. */
+const picked = async (pick, others) => {
+  const i = (await one(`INSERT INTO public.declutter_items (seller_id, status) VALUES ('${GIVER}','reserved') RETURNING id`)).id;
+  await db.exec(`INSERT INTO public.declutter_free_requests (item_id, requester_id, seller_id, status) VALUES ('${i}','${pick}','${GIVER}','picked');`);
+  for (const o of others) await db.exec(`INSERT INTO public.declutter_free_requests (item_id, requester_id, seller_id, status) VALUES ('${i}','${o}','${GIVER}','not_picked');`);
+  return i;
+};
+const backUp = (i) => db.exec(`UPDATE public.declutter_items SET status='live' WHERE id='${i}'`);
+const askStatus = async (i, u) => (await one(`SELECT status FROM public.declutter_free_requests WHERE item_id='${i}' AND requester_id='${u}'`)).status;
+const told = async (u, title) => (await one(`SELECT count(*)::int c FROM public.notifications WHERE user_id='${u}' AND title='${title}'`)).c;
+
+const offItem = await picked(FIRST, [OTHER1]);
+await backUp(offItem);
+ok("OFF: back up, no ask reopens", (await askStatus(offItem, OTHER1)) === "not_picked" && (await told(GIVER, "Pick someone else")) === 0);
+await db.exec(`DELETE FROM public.declutter_free_requests; UPDATE public.declutter_items SET status='ended'`);
+
 // ── ON ─────────────────────────────────────────────────────────────────────
 await flip("everyone");
-ok("ON: the first claim asks for the fee", /setup_fee_required_to_claim/.test((await ask(FIRST)) ?? ""));
-ok("ON: the old build's call asks the same", /setup_fee_required_to_claim/.test((await ask(FIRST, "declutter_claim_free")) ?? ""));
-ok("ON: nothing was recorded", (await one(`SELECT count(*)::int c FROM public.declutter_free_requests WHERE requester_id='${FIRST}'`)).c === 0);
+ok("ON: asking is free: a first-timer's ask goes through", (await ask(FIRST)) === null);
+ok("ON: so does the old build's call", (await ask(FIRST, "declutter_claim_free")) === null);
+await clearAsks();
+await waiting(FIRST);
+ok("ON: picked, the fee first", /setup_fee_required_to_claim/.test((await checkout(FIRST)) ?? ""));
+ok("and no order was made", (await one(`SELECT count(*)::int c FROM public.declutter_orders WHERE buyer_id='${FIRST}'`)).c === 0);
 await db.exec(`UPDATE public.profiles SET idv_status='verified' WHERE user_id='${FIRST}'`);
-ok("the fee FIRST: an ID alone does not pass", /setup_fee_required_to_claim/.test((await ask(FIRST)) ?? ""));
+ok("the fee FIRST: an ID alone does not pass", /setup_fee_required_to_claim/.test((await checkout(FIRST)) ?? ""));
 await db.exec(`UPDATE public.profiles SET idv_status='not_started', onboarding_fee_paid=true WHERE user_id='${FIRST}'`);
-ok("then the ID: the fee paid, it asks for the check", /identity_required_to_claim/.test((await ask(FIRST)) ?? ""));
+ok("then the ID: the fee paid, it asks for the check", /identity_required_to_claim/.test((await checkout(FIRST)) ?? ""));
 await db.exec(`UPDATE public.profiles SET idv_status='verified' WHERE user_id='${FIRST}'`);
-ok("both done: the ask goes through", (await ask(FIRST)) === null);
-ok("once ever: a later claim asks nothing", (await ask(FIRST)) === null);
-
-ok("paid elsewhere: asked only for the ID", /identity_required_to_claim/.test((await ask(PAID_ELSEWHERE)) ?? ""));
-ok("an admin is never asked", (await ask(ADMIN)) === null);
-ok("an enrolled test account is never asked", (await ask(TESTER)) === null);
-
-// Asked before the check went on, then picked.
-ok("asked before it went on: stopped where the address opens", /setup_fee_required_to_claim/.test((await checkout(EARLY)) ?? ""));
-ok("and no order was made", (await one(`SELECT count(*)::int c FROM public.declutter_orders WHERE buyer_id='${EARLY}'`)).c === 0);
-await db.exec(`UPDATE public.profiles SET idv_status='verified', onboarding_fee_paid=true WHERE user_id='${EARLY}'`);
-ok("both done: the checkout goes through", (await checkout(EARLY)) === null);
-const order = await one(`SELECT items_cents, premium_cents, total_cents, setup_fee_cents, paid_with FROM public.declutter_orders WHERE buyer_id='${EARLY}'`);
+ok("both done: the checkout goes through", (await checkout(FIRST)) === null);
+const order = await one(`SELECT total_cents, setup_fee_cents, paid_with FROM public.declutter_orders WHERE buyer_id='${FIRST}'`);
 ok("the item stays free: the order is $0", order?.total_cents === 0 && order?.setup_fee_cents === 0 && order?.paid_with === "free", JSON.stringify(order));
+await waiting(FIRST);
+ok("once ever: the next claim asks nothing", (await checkout(FIRST)) === null);
+
+await waiting(PAID_ELSEWHERE);
+ok("paid elsewhere: asked only for the ID", /identity_required_to_claim/.test((await checkout(PAID_ELSEWHERE)) ?? ""));
+await waiting(ADMIN);
+ok("an admin is never asked", (await checkout(ADMIN)) === null);
+await waiting(TESTER);
+ok("an enrolled test account is never asked", (await checkout(TESTER)) === null);
+
+// Not completed: the giver can pick someone else.
+await db.exec(`DELETE FROM public.notifications; DELETE FROM public.declutter_free_requests; DELETE FROM public.declutter_cart_items;`);
+await db.exec(`INSERT INTO public.declutter_free_pauses VALUES ('${PAUSED}', now() + interval '10 days');
+  INSERT INTO public.user_blocks VALUES ('${GIVER}','${BLOCKED}');`);
+for (let n = 0; n < 3; n++) await db.exec(`INSERT INTO public.declutter_free_requests (item_id, requester_id, seller_id) VALUES (gen_random_uuid(),'${FULL}','${GIVER}')`);
+const item1 = await picked(EARLY, [OTHER1, PAUSED, BLOCKED, FULL, OUT]);
+await db.exec(`UPDATE public.declutter_items SET title='Lamp' WHERE id='${item1}'`);
+await backUp(item1);
+ok("back up: someone else who asked is open again, for the giver to pick", (await askStatus(item1, OTHER1)) === "open");
+ok("they are told", (await told(OTHER1, "Free item is open again")) === 1);
+ok("the giver is told", (await told(GIVER, "Pick someone else")) === 1);
+ok("the picked person's own ask stays closed", (await askStatus(item1, EARLY)) === "picked");
+ok("paused stays closed", (await askStatus(item1, PAUSED)) === "not_picked");
+ok("blocked stays closed", (await askStatus(item1, BLOCKED)) === "not_picked");
+ok("at 3 free items stays closed", (await askStatus(item1, FULL)) === "not_picked");
+ok("out of Declutter stays closed", (await askStatus(item1, OUT)) === "not_picked");
+const alone = await picked(EARLY, []);
+await db.exec(`DELETE FROM public.notifications`);
+await backUp(alone);
+ok("nobody else asked: the giver gets no extra notice", (await told(GIVER, "Pick someone else")) === 0);
 
 if (!skip) {
   const can = async (role) => (await one(`SELECT has_function_privilege('${role}', 'public.declutter_free_claim_gate(uuid)', 'EXECUTE') a`)).a;

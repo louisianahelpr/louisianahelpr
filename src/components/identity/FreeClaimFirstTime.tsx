@@ -1,8 +1,8 @@
 /**
  * The one short screen a first-time claimer reads (owner 2026-10-30: "First-timers must be told plainly why it's
- * required, once and never again. Item stays free."). A free claim counts as a first purchase: they pay the one-time
- * fee FIRST, then verify, once ever. The server decides (declutter_free_claim_gate, refusal
- * setup_fee_required_to_claim); this screen only answers that refusal, so it can never show to a member who has paid.
+ * required, once and never again. Item stays free."). Asking is free; once the giver picks them, a first-timer pays
+ * the one-time fee FIRST, then verifies, once ever. The server decides at the free checkout (declutter_free_claim_gate,
+ * refusal setup_fee_required_to_claim); this screen only answers that refusal, so it can never show to a member who has paid.
  * It is where the pay button lives, so someone who backs out meets it again next time and never after paying.
  * Mounted once, inside IdentityCheckHost: nothing draws while the ID check switch is off.
  */

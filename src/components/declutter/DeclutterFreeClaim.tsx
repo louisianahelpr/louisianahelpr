@@ -51,8 +51,8 @@ function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = fa
     : offered[0] === "porch" ? "to choose a time to collect it from their porch"
     : offered[0] === "pickup_home" ? "to choose a time to pick it up at their home"
     : "to agree with them how you'll get it";
-  // "Nothing is charged" would be untrue for a member whose first claim carries the one-time ID check (owner 2026-10-30).
-  return `${oneTimeCheckAhead ? "The item is free." : "Free, nothing is charged."} The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
+  // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
+  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -81,8 +81,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       toast.success("Asked. The giver picks who gets it, and we'll tell you.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
-    // A first claim's refusal opens its own screen (FreeClaimFirstTime, the ID sheet), so no message as well.
-    onError: (err) => { if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err)); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
@@ -249,6 +248,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       onDone();
     },
     onError: (err) => {
+      // A first-timer the giver picked: its own screen answers (FreeClaimFirstTime, the ID sheet), so no message as well.
       if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
       if (chosen === "porch") void porchPlaces.reread(err);

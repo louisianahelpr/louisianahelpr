@@ -15,6 +15,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
  * @mutate supabase/functions/stripe-idv-start/index.ts | if (stored.status === "verified" && stored.metadata?.user_id === user.id) { | if (stored.status === "verified") {
  * @mutate src/pages/info/legal/TermsSection.tsx | setup fee covers this check. | Helpr pays for this check.
+ * @mutate src/pages/info/legal/TermsSection.tsx |           idOn ? <>\n            <p><strong className="text-foreground">We ask for a photo ID |           true ? <>\n            <p><strong className="text-foreground">We ask for a photo ID
  * @mutate supabase/functions/create-payment/index.ts | const tipIdHold = await checkIdentityHold(supabaseAdmin, helperId); | const tipIdHold = { kind: "clear" as const };
  * @mutate supabase/functions/auto-tip-charge/index.ts | const tipIdHold = await checkIdentityHold(supabase, c.helper_id as string); | const tipIdHold = { kind: "clear" as const };
  * @mutate supabase/functions/declutter-checkout/index.ts | const tipIdHold = await checkIdentityHold(admin, helprId); | const tipIdHold = { kind: "clear" as const };
@@ -110,6 +111,8 @@ describe("the ID check's timing", () => {
     const terms = code("src/pages/info/legal/TermsSection.tsx");
     expect(terms).not.toMatch(/Helpr pays for this check|there is no charge to you/i);
     expect(terms).toMatch(/setup fee covers this check/);
+    // The ID paragraph waits for the switch, like Help and Privacy (owner 2026-10-30).
+    expect(terms).toMatch(/idOn \? <>\s*<p><strong className="text-foreground">We ask for a photo ID/);
     expect(code("src/components/identity/IdentityCheckSheet.tsx")).not.toMatch(/\bfree\b|no charge/i);
   });
 

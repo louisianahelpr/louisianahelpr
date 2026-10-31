@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1060,
-    "files": 287,
+    "files": 288,
     "rendering": 888,
     "suppressedByPolicy": 172,
     "byKind": {
@@ -1058,44 +1058,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 143,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "\"${f.name}\" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PhotoProof.tsx",
-      "line": 145,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
-        "from": "src/lib/uploadTypes.ts",
-        "branches": [
-          {
-            "form": "template",
-            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PhotoProof.tsx",
-      "line": 149,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "LISTING_PHOTO_UNCLEANABLE"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PhotoProof.tsx",
-      "line": 157,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1105,7 +1068,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 174,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1115,7 +1078,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 185,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1125,7 +1088,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 234,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1145,7 +1108,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 243,
+      "line": 226,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1155,7 +1118,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 254,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7542,6 +7505,43 @@
       "title": {
         "form": "literal",
         "text": "Louisiana Helpr is available in Louisiana only."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/prepareProofPhotos.ts",
+      "line": 15,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "\"${f.name}\" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/prepareProofPhotos.ts",
+      "line": 17,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/prepareProofPhotos.ts",
+      "line": 21,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "LISTING_PHOTO_UNCLEANABLE"
       },
       "renders": true
     },

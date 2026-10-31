@@ -1,8 +1,6 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
-import { heicToJpeg, isHeicFile } from "@/lib/heicToJpeg";
-import { cleanProofPhoto } from "@/lib/cleanProofPhoto";
-import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
+import { prepareProofPhotos } from "@/components/prepareProofPhotos";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { useEffect, useRef, useState } from "react";
 import { takePhotoCapture } from "@/components/job-card/photoCaptureRequest";
@@ -22,7 +20,6 @@ import {
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { toast } from "sonner";
-import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -131,27 +128,8 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   const [converting, setConverting] = useState(false);
 
   const addFiles = async (picked: File[]) => {
-    // A HEIC becomes a JPEG here, so every browser can draw it later. One this browser can't read is refused
-    // out loud and left where it is on the device: stored as it was, the poster's browser may show nothing.
-    // Then every photo loses its EXIF, GPS included. One that can't be cleaned is refused, never uploaded as it is.
-    const selected: File[] = [];
     setConverting(true);
-    try {
-      for (const f of picked) {
-        const ready = isHeicFile(f) ? await heicToJpeg(f) : f;
-        if (!ready) {
-          toast.error(`"${f.name}" is a HEIC photo this browser can't read. Save it as a JPG, or take the photo on your phone in the Helpr app.`);
-        } else if (!isAllowedUploadType(ready, PROOF_PHOTO_TYPES)) {
-          toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
-        } else {
-          const clean = await cleanProofPhoto(ready);
-          if (clean) selected.push(clean);
-          else toast.error(LISTING_PHOTO_UNCLEANABLE);
-        }
-      }
-    } finally {
-      setConverting(false);
-    }
+    const selected = await prepareProofPhotos(picked).finally(() => setConverting(false));
     if (selected.length === 0) return;
     const current = filesRef.current;
     if (current.length + selected.length > 5) { toast.error("Max 5 photos."); return; }

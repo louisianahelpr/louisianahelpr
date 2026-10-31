@@ -17,8 +17,7 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
-import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
+import { JobCardShell } from "../../components/job-card/JobCardShell"; import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
 import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
@@ -306,8 +305,7 @@ function PostedJobCardInner({
             <BackoutBanner job={job} />{/* someone backed out: until Got It (Q1575) */}
             <PosterIdentityLine status={job.status} />{/* Stripe Identity before the next post (2026-10-21) */}
             <MineJobFace
-              jobId={job.id}
-              title={job.title}
+              jobId={job.id} title={job.title}
               category={job.category}
               photo={job.photos?.[0] ?? null}
               when={isExpanded ? "" : mineFaceWhen(job)} // open, the meta row below says it
@@ -325,8 +323,7 @@ function PostedJobCardInner({
                   helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
                 />
               )}
-              // The Helpr's photos, as soon as they're submitted; opening them releases nothing.
-              extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />}
+              extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />} // opening them releases nothing
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
               progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction } })} /* the 8 steps on the card (owner, 2026-10-22) */
             />

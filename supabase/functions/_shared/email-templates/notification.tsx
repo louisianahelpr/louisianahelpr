@@ -16,6 +16,7 @@
 import * as React from 'npm:react@18.3.1'
 import { Heading, Link, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, text as textStyle } from './styles.ts'
+import { NOTICE_SIGNOFF, keepNumberUnitsTogether } from './notificationAction.ts'
 import { BaseLayout, BrandButton, MarketingFooter, TransactionalFooter } from './components.tsx'
 
 export interface NotificationEmailProps {
@@ -44,10 +45,12 @@ export interface NotificationEmailProps {
    * URL, and the sender additionally sets the List-Unsubscribe headers.
    */
   unsubscribeUrl?: string
+  /** The button's words, naming where it goes (notificationActionLabel). */
+  actionLabel?: string
 }
 
 /** Body sign-off. NOT a sender identity — the From header is FROM_DEFAULT. */
-const SIGNOFF = 'The Helpr Team'
+const SIGNOFF = NOTICE_SIGNOFF
 
 export const NotificationEmail = ({
   title,
@@ -57,9 +60,10 @@ export const NotificationEmail = ({
   prefsUrl,
   host,
   unsubscribeUrl,
+  actionLabel = 'Open Louisiana Helpr',
 }: NotificationEmailProps) => (
   <BaseLayout
-    preheader={`${title} — open Helpr for the details.`}
+    preheader={`${title} — open Louisiana Helpr for the details.`}
     footer={
       unsubscribeUrl ? (
         <MarketingFooter unsubscribeUrl={unsubscribeUrl} />
@@ -85,9 +89,9 @@ export const NotificationEmail = ({
       Hey {userName || 'there'},
     </Text>
     <Text className="e-text" style={textStyle}>
-      {message}
+      {keepNumberUnitsTogether(message)}
     </Text>
-    <BrandButton href={actionUrl} label="View Details" widthPx={190} />
+    <BrandButton href={actionUrl} label={actionLabel} widthPx={230} />
     <Text className="e-text" style={{ ...textStyle, fontSize: '14px', margin: '28px 0 4px' }}>
       — {SIGNOFF}
     </Text>

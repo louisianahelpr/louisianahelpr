@@ -138,7 +138,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         )}
         {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours."}</p>}
       </div>
-      {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} />}
+      {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} mine={b.side === "seller"} />}
       {can.changeHandoff && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
           {(["leave", "hand"] as const).map((h) => (
@@ -194,9 +194,12 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
  * seller took at the buyer's address (declutter_seller_delivery_booking's delivered_photo_path, the order's handover
  * photo), for both sides; the private bucket lets the two sides of the order read it (declutter_handover_photo_access).
  */
-function DeliveredPhoto({ path, hand, at }: { path: string; hand: boolean; at: string }) {
+function DeliveredPhoto({ path, hand, at, mine }: { path: string; hand: boolean; at: string; mine: boolean }) {
   const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
-  const label = hand ? "The seller's photo of the handover" : "The seller's photo of where it was left";
+  // AUD31-5: the seller's own card says "Your photo"; the buyer's names the seller.
+  const label = mine
+    ? hand ? "Your photo of the handover" : "Your photo of where you left it"
+    : hand ? "The seller's photo of the handover" : "The seller's photo of where it was left";
   return (
     <figure className="space-y-1.5" data-delivered-photo="">
       <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">

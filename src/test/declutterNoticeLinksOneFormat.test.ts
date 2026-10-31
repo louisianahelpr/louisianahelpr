@@ -32,7 +32,6 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_accept_refund_with_return: "buying,selling",
   declutter_add_handover: "cart",
-  declutter_admin_decide_delivery_damage: "cart,deliver",
   declutter_admin_decide_problem: "cart,selling",
   declutter_answer_delivery_time: "<dynamic>",
   declutter_answer_refund: "buying,cart,selling",

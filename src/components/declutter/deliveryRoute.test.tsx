@@ -58,6 +58,7 @@ const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg"
 beforeEach(() => {
   state.route = ROUTE;
   state.calls = [];
+  state.toasts = [];
 });
 
 describe("My route", () => {

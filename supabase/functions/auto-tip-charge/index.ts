@@ -16,9 +16,11 @@
 // tip. The Helpr gets 100%; the poster covers the card fee.
 //
 // Safety properties, in order of how much they matter:
-//   1. At most ONE automatic tip per job, enforced by a UNIQUE index, not by
-//      this function's bookkeeping. Overlapping ticks or a slow Stripe call
-//      cannot double-charge.
+//   1. At most ONE automatic tip per (job, Helpr), enforced by a UNIQUE index
+//      (tips_one_auto_per_job_member, 20260925154606), not by this function's
+//      bookkeeping. A single-Helpr job therefore gets one; a crew job gets one
+//      per hired member. Overlapping ticks or a slow Stripe call cannot
+//      double-charge.
 //   2. The tips row is written BEFORE the charge. A row with no payment is
 //      recoverable and visible; a payment with no row is money nobody can
 //      account for.

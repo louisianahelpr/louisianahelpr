@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T14:09:02.277Z",
-  "guards": 2913,
-  "registered": 2910,
+  "generated": "2026-10-31T14:47:58.847Z",
+  "guards": 2914,
+  "registered": 2911,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",

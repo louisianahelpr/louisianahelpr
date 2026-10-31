@@ -28,7 +28,7 @@ const ALLOWED: Record<string, number> = {
   "DeclutterBunchPile.tsx": 1, // a blob: preview of a photo not sorted yet
   "DeclutterSellPhotos.tsx": 2, // the seller's own photos while listing: an uploaded one, and a blob: preview
   "DeclutterSellView.tsx": 1, // the seller's own draft cover while listing
-  "DeclutterHandoverSheets.tsx": 2, // the porch photo preview (object URL) and the signed "where it was left" photo
+  "DeclutterHandoverSheets.tsx": 3, // the porch photo and buyer pickup photo previews (object URLs, BUY-5) and the signed "where it was left" photo
   "DeclutterPorchHandover.tsx": 1, // the signed "where it was left" photo (evidence)
   "DeclutterDeliveryViews.tsx": 1, // the signed delivery proof photo (evidence)
 };

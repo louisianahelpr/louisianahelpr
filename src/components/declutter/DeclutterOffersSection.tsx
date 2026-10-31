@@ -181,10 +181,12 @@ function OfferRow({ o }: { o: MyOffer }) {
         </button>
       )}
       <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
-        title={o.my_side === "seller" ? `Sell it for ${formatPrice(o.amount_cents)}?` : `Buy it for ${formatPrice(o.amount_cents)}?`}
+        // NIGHT-SELL-offers,sale-1: accepting sells at the lower of the offer and today's price (declutter_respond_offer,
+        // B28: least(amount, current_price)), so the title names that figure, never an offer above a dropped price.
+        title={o.my_side === "seller" ? `Sell it for ${formatPrice(takeCents)}?` : `Buy it for ${formatPrice(takeCents)}?`}
         confirmLabel="Accept" testId="accept-offer">
         {o.my_side === "seller"
-          ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
+          ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
           : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
       </ConfirmSheet>
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}

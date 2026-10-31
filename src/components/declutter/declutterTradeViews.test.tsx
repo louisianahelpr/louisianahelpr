@@ -619,6 +619,36 @@ describe("Declutter slice 3 screens", () => {
     expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.');
   });
 
+  // NIGHT-SELL-offers,sale-1 (audit 10-30 night, High): after a price drop to $40 a $48 offer's Accept asked "Sell it for
+  // $48?" while the card said "you keep the whole $40"; declutter_respond_offer sells at least(offer, price now).
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Sell it for ${formatPrice(takeCents)}?` | `Sell it for ${formatPrice(o.amount_cents)}?`
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Buy it for ${formatPrice(takeCents)}?` | `Buy it for ${formatPrice(o.amount_cents)}?`
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | ${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""} |
+  it("NIGHT-SELL-offers,sale-1: Accept on an offer above a dropped price names the price it sells at", async () => {
+    state.offers = [{ ...OFFER, amount_cents: 4800, current_price_cents: 4000, floor_price_cents: null }];
+    const seller = show(<OffersSection side="seller" />);
+    expect(await screen.findByText(/you keep the whole/)).toHaveTextContent("you keep the whole $40.");
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    let sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Sell it for $40?");
+    expect(sheet).not.toHaveTextContent("Sell it for $48?");
+    expect(sheet).toHaveTextContent("Their $48 offer is above your price now, so it sells at $40.");
+    seller.unmount();
+    state.offers = [{ ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 4800, current_price_cents: 4000, floor_price_cents: null, counter_count: 1 }];
+    const buyer = show(<OffersSection side="buyer" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Buy it for $40?");
+    buyer.unmount();
+    // An offer under the price: as before, no extra words.
+    state.offers = [{ ...OFFER, amount_cents: 2500, current_price_cents: 4000, floor_price_cents: null }];
+    show(<OffersSection side="seller" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Sell it for $25?");
+    expect(sheet).not.toHaveTextContent(/above your price/);
+  });
+
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
   // "You pay", exactly as declutter-checkout charges it; an account that paid it sees neither.
   // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Board 161: the bill is the items

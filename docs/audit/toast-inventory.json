@@ -838,7 +838,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 884,
+      "line": 881,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -943,7 +943,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 955,
+      "line": 952,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -953,7 +953,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 968,
+      "line": 965,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -963,7 +963,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 995,
+      "line": 992,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -973,7 +973,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1046,
+      "line": 1043,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -983,7 +983,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1090,
+      "line": 1087,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -993,7 +993,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1149,
+      "line": 1146,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1003,7 +1003,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1208,
+      "line": 1205,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1163,7 +1163,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 140,
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1173,7 +1173,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 158,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1183,7 +1183,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 170,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1193,7 +1193,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 229,
+      "line": 230,
       "kind": "toast.warning",
       "title": {
         "form": "template",

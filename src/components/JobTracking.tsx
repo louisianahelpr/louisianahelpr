@@ -871,14 +871,11 @@ export function JobTracking({
       }
       setArrivalRefusal(null);
       applyArrivalVerdict(v);
-      // The check-in SUCCEEDED in every one of these branches, so none of them
-      // gets the error haptic or an error toast. An unverified location is an
-      // ordinary outcome (Location off, a wrong map pin, a bad fix), not a
-      // fault of the Helpr's — treating it as one is the "accusation" the owner
-      // ruled out, so it is a neutral message. It goes through the bare `toast()`:
-      // `toast.info` renders nothing without an action (toastPolicy.ts), and the
-      // Helpr never learned the poster must confirm (owner, 2026-09-19: "they shoud
-      // be aware of this"). Settled, the tracker's next step already says so.
+      // The check-in SUCCEEDED in every one of these branches, so none gets the error haptic or an error toast. An
+      // unverified location is an ordinary outcome (Location off, a wrong map pin, a bad fix), not the Helpr's fault:
+      // treating it as one is the "accusation" the owner ruled out. Unsettled goes through the bare `toast()` (`toast.info`
+      // renders nothing without an action, toastPolicy.ts) so the Helpr learns the poster must confirm (owner,
+      // 2026-09-19: "they shoud be aware of this"). Settled, the tracker's next step already says so.
       const settled = v.verified || v.posterConfirmed;
       if (settled) hapticSuccess();
       else toast(arrivalVerdictMessage(v), { duration: 9000 });

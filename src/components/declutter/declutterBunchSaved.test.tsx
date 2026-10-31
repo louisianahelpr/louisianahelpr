@@ -41,7 +41,7 @@ vi.mock("@/lib/declutter/bunchStage", () => ({
     idFor() { return undefined; }
     path() { return Promise.resolve(null); }
     used() {}
-    sync() {}
+    sync() { return new Map(); }
   },
 }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));

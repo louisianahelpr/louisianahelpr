@@ -17116,6 +17116,7 @@ export type Database = {
         Args: never
         Returns: {
           dropoff_area: string
+          ended_at: string | null
           payout_status: string | null
           pickup_area: string
           pickup_slot_start: string | null

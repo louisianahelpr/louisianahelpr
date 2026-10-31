@@ -32,7 +32,7 @@ interface NoHelprChoice {
 export async function fetchNoHelprChoice(orderId: string): Promise<NoHelprChoice | null> {
   const res = await supabase.rpc("declutter_no_helpr_choice", { p_order_id: orderId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_no_helpr_choice")) return null;
-  return (withWords(res, (e) => rpcErrorMessage("declutter_no_helpr_choice", e)) as unknown as NoHelprChoice | null) ?? null;
+  return (withWords(res, () => null) as unknown as NoHelprChoice | null) ?? null;
 }
 
 export async function cancelAfterNoHelpr(orderId: string): Promise<{ result: string }> {
@@ -54,7 +54,7 @@ interface HelprNoShowReport {
 export async function fetchHelprNoShowReport(taskId: string): Promise<HelprNoShowReport | null> {
   const res = await supabase.rpc("helpr_task_no_show_report", { p_task_id: taskId });
   if (res.error && isMissingRpcNamed(res.error, "helpr_task_no_show_report")) return null;
-  return (withWords(res, (e) => rpcErrorMessage("helpr_task_no_show_report", e)) as unknown as HelprNoShowReport | null) ?? null;
+  return (withWords(res, () => null) as unknown as HelprNoShowReport | null) ?? null;
 }
 
 /** The Helpr's answer, within 24 hours: their words (and a photo from their task folder, when they have one). */

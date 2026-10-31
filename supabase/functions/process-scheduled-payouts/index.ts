@@ -28,6 +28,7 @@ import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewSh
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
+import { redriveInstantFeeReturns } from "../_shared/instantPayoutFeeReturn.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRead.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
@@ -2154,7 +2155,21 @@ serve(async (req) => {
     for (const d of clawbackRedrive.defects) defects.record(d);
     const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin, redriveStripeFor);
     for (const d of tipRedrive.defects) defects.record(d);
+    // Review of 9c498193ff #1: an instant cash-out's fee owed back (its payout
+    // failed or the bank returned it) goes back here every hour, not only when
+    // the Helpr next opens cash-out. Money goes back where it was taken, so the
+    // Helpr's own mode ("refund": a test-looking account is never refused).
+    // A test account's stuck fee is a seed defect: the digest, not a page.
+    const feeRedrive = await redriveInstantFeeReturns(supabaseAdmin, async (helperId) => {
+      const c = await stripes.clientForParties([helperId], "refund");
+      return { stripe: c.stripe, seed: c.mode === "test" };
+    });
+    for (const d of feeRedrive.defects) defects.record(d);
+    seedDefects.push(...feeRedrive.seedDefects);
     const heldRedrive = {
+      instant_fees_returned: feeRedrive.returned,
+      instant_fees_kept: feeRedrive.kept,
+      instant_fees_owed: feeRedrive.owed,
       clawback_disputes: clawbackRedrive.disputes,
       clawback_repaid_cents: clawbackRedrive.repaidCents,
       clawback_waiting: clawbackRedrive.waiting,
@@ -2164,7 +2179,7 @@ serve(async (req) => {
     };
 
     // Seed jobs' defects: reported in the body and to the digest, never paged
-    // and never counted (Q91). Only reachable on an `?include_seed=1` run.
+    // and never counted (Q91). Reachable on an `?include_seed=1` run, or by a test account's instant fee still owed.
     if (seedDefects.length) {
       await postSlackOpsAlert({
         kind: "payout_failed",

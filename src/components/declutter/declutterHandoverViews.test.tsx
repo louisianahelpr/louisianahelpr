@@ -347,6 +347,44 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
   });
 
+  // Night audit sold states #3 (door-card-375.png): past the booked time the seller still had "Move the pickup", the
+  // door tips told the seller to "Pick a daytime slot" (the buyer's step), and a porch card said "Put it out <day>" twice.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker |         <FoldedTimePicker
+  // @mutate src/components/declutter/DeclutterOrderBits.tsx |         {side === "buyer" && <li>Pick a daytime slot.</li>} |         <li>Pick a daytime slot.</li>
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-porch-not-yet="">You can take the porch photo {onDay( | data-porch-not-yet="">Put it out {onDay(
+  it("sold states #3: no Move once the seller's time has started, seller door tips are the seller's, the porch day is said once", async () => {
+    // Before the time: the seller can still move it once.
+    state.bookings = [{ ...slot(-60), buyer_reschedules: 0, seller_reschedules: 0 }];
+    let v = show([line({ my_side: "seller" })]);
+    expect(await screen.findByRole("button", { name: "Move the pickup" })).toBeInTheDocument();
+    v.unmount();
+    // The time has started: Picked up is the step; no Move. The buyer keeps theirs (the rule named the seller's card).
+    state.bookings = [{ ...slot(5), buyer_reschedules: 0, seller_reschedules: 0 }];
+    v = show([line({ my_side: "seller" })]);
+    expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move the pickup" })).toBeNull();
+    const tips = screen.getByText("Pickup at the door").parentElement!;
+    expect(tips.textContent).not.toMatch(/Pick a daytime slot/);
+    expect(tips.textContent).toMatch(/Have someone home with you\./);
+    v.unmount();
+    v = show([line()]);
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
+    const buyerTips = screen.getByText("Pickup at the door").parentElement!;
+    expect(buyerTips.textContent).toMatch(/Pick a daytime slot\./);
+    expect(buyerTips.textContent).toMatch(/Bring someone with you\./);
+    v.unmount();
+    // Porch, booked for tomorrow: "Put it out tomorrow" is said once (the status line), not again under it.
+    const today = new Date();
+    const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const tomorrow = key(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    state.porchDays = [tomorrow];
+    state.bookings = [{ ...slot(-60 * 24), pickup_day: tomorrow }];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText("You can take the porch photo tomorrow.")).toBeInTheDocument();
+    expect(document.body.textContent!.match(/Put it out tomorrow/g)).toHaveLength(1);
+  });
+
   // Deep audit #32 (44-seller-sold-p2/p3-390): a booked porch card stacked two full date-and-time pickers and 5 buttons (audit 2026-10-28).
   // @mutate src/components/declutter/DeclutterFoldedTime.tsx |   const [open, setOpen] = useState(false); |   const [open, setOpen] = useState(true);
   it("#32: a booked porch card shows no picker until one is asked for; Out until a time opens one and sends it", async () => {
@@ -667,7 +705,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [{ ...slot(-60 * 24), pickup_day: tomorrow }];
     state.handover = { side: "seller" };
     let v = seller();
-    expect(await screen.findByText("Put it out tomorrow.")).toBeInTheDocument();
+    expect(await screen.findByText("You can take the porch photo tomorrow.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
     v.unmount();
     // 2. On the day, not out yet: the photo is asked for.

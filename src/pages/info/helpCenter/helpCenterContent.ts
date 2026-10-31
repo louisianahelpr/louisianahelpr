@@ -137,7 +137,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // subscribes (useIdentityCheckOnStore) so the getter is re-read.
         get a() {
           return identityCheckOn()
-            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early."
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. The first time you hire someone or get paid, there's a one-time quick identity check through Stripe."
             : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
         },
       },

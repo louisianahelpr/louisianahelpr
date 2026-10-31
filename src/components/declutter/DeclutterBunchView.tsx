@@ -57,7 +57,7 @@ import { BunchBar, type BunchUndo } from "./DeclutterBunchBar";
 import { BunchListStep } from "./DeclutterBunchListStep";
 import { BunchSection } from "./DeclutterBunchSection";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { useBunchThumbs } from "./useBunchThumbs";
+import { useSortingThumbs } from "./useBunchThumbs";
 import { BunchIntake } from "./DeclutterBunchIntake";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
@@ -107,24 +107,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   // LEAD-BUNCH-34-SLOW: while sorting, each photo's thumbnail is its small copy, shown the moment it is made (no second
   // decode of the full photo); "Adding N of M" counts them. The preview maker fills in the rest once sorting is done.
   const [adding, setAdding] = useState<{ ready: number; total: number } | null>(null);
-  const [copyUrls, setCopyUrls] = useState<ReadonlyMap<string, string>>(() => new Map());
-  const made = useBunchThumbs(photos, { paused: !!sorting, ready: copyUrls });
-  const thumbs = useMemo(() => new Map([...copyUrls, ...made]), [copyUrls, made]);
-  useEffect(() => {
-    const now = new Set(photos.map((p) => p.key));
-    if (![...copyUrls.keys()].some((k) => !now.has(k))) return;
-    setCopyUrls((m) => {
-      const kept = new Map<string, string>();
-      for (const [k, url] of m) {
-        if (now.has(k)) kept.set(k, url);
-        else URL.revokeObjectURL(url);
-      }
-      return kept;
-    });
-  }, [photos, copyUrls]);
-  const copyUrlsNow = useRef(copyUrls);
-  copyUrlsNow.current = copyUrls;
-  useEffect(() => () => copyUrlsNow.current.forEach((url) => URL.revokeObjectURL(url)), []);
+  const [thumbs, setCopyUrls] = useSortingThumbs(photos, !!sorting);
   // Photos of listed and dropped items stop counting toward the cap. Not mid-sort: a batch's photos aren't in an item yet.
   useEffect(() => {
     if (!sorting) setPhotos((ps) => photosInItems(ps, items));

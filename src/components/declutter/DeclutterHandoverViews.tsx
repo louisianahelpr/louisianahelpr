@@ -67,7 +67,7 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem } from "@/lib/declutter/refundRequests";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
+import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
@@ -307,13 +307,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
-          {sellerNextFirst && (
-            <div className="space-y-3" data-seller-after-actions="">
-              <PickupStatus orderId={order.orderId} handover={order.handover as "porch" | "pickup_home" | "meetup"} side="seller" slot={booking?.slot_start ?? null}
-                day={booking?.pickup_day ?? null} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} part="money" />
-              <OrderTalkButton orderId={order.orderId} side={order.side} />
-            </div>
-          )}
+          {sellerNextFirst && <SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}

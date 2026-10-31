@@ -6,8 +6,11 @@
  *
  * Deep audit 2026-10-28 B-5 (#5): the full refund is less than the payment (the card network keeps its part); the buyer
  * is told why in words wherever that amount is shown, with no fee name or figure (membersSeeNoFeeWords scans the copy).
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{FULL_REFUND_WHY}</span></>}{" "} | .{" "}
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "} | .{" "}
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "} | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{FULL_REFUND_WHY}</span></>}{" "}
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY); | const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY : FULL_REFUND_WHY);
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice ?? "decline", offerCents);
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
@@ -397,6 +400,22 @@ describe("DeclutterRefundPanel", () => {
     expect(document.querySelector('[data-confirm-sheet="refund-item-back"]')).toHaveTextContent("It can't be undone.");
     fireEvent.click(await screen.findByRole("button", { name: "Yes, send the refund" }));
     await waitFor(() => expect(state.returned).toEqual([["r1", null]]));
+  });
+
+  it("AUD31-37: on a Helpr-delivery order (the delivery stays paid) the form never says the refund is all you paid", async () => {
+    show({ ...BASE, delivery_kept_cents: 1500 });
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Damaged" }));
+    expect(screen.getByText(/the delivery stays paid: the Helpr made the trip/)).toBeTruthy();
+    const why = document.querySelector("[data-full-refund-why]")!;
+    expect(why.textContent).toBe("That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.");
+    expect(why.textContent).not.toMatch(/\$|\d|fee/i);
+  });
+
+  it("AUD31-37: the item going back on a Helpr-delivery order says the same", async () => {
+    show({ ...BASE, delivery_kept_cents: 1500, can_ask: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });
+    await screen.findByText(/Your refund is sent as soon as Nikki confirms they have it\./);
+    expect(document.querySelector("[data-full-refund-why]")?.textContent).toMatch(/^That's what you paid for the item, less the small part/);
   });
 
   it("buyer: while the item goes back, the refund is promised on the seller's confirmation, with no button to press", async () => {

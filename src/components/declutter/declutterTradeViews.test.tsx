@@ -727,6 +727,7 @@ describe("Declutter slice 3 screens", () => {
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span> |         <span>{allFree ? "Reserved for you" : "Reserved for you"}</span>
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |             <Link to={`/user/${sellerId}`} data-cart-bundle-more="" |             <Link to="/declutter" data-cart-bundle-more=""
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20.5 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line];
@@ -739,7 +740,9 @@ describe("Declutter slice 3 screens", () => {
     first.unmount();
     state.bundleRule = 10;
     show(<CartView />);
-    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\.$/));
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\. See their other items$/));
+    // BUY-12: the hint links to the seller's other items (their profile's "Selling now").
+    expect(screen.getByRole("link", { name: "See their other items" })).toHaveAttribute("href", "/user/s2");
   });
 
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.

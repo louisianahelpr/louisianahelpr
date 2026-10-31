@@ -40,6 +40,8 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
+import { MineFaceNote } from "@/components/job-card/MineJobFace";
+import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { GetHelpNow } from "@/components/jobs/GetHelpNow";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
@@ -69,6 +71,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
+  // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
+  const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
 
   if (q.isPending) {
     return (
@@ -125,7 +129,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The hired Helpr (F26): the Working card's own next-step button, plus Message and the street address.
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, open: () => navigate(highlight), message: messagePoster })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: () => navigate(highlight), message: messagePoster })
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
@@ -225,6 +229,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               {primary.label}
             </Button>
           )}
+          {!isPoster && <MineFaceNote note={hiredFace?.note} />}
           {hiredFace && (
             <div data-hired-actions="" className="flex flex-wrap gap-2">
               {/* Message the poster, unless the main button already is that (a waiting card's one button). */}

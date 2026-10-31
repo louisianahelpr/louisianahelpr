@@ -9,7 +9,8 @@
  *
  * @mutate src/lib/doneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx |     const workingStart = doneFloorStart(job.poster_confirmed_working_at, job.helper_arrived_at); |     const workingStart = job.poster_confirmed_working_at ?? job.helper_arrived_at;
- * @mutate src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx | 30 minutes after you arrived, to ensure quality. | 30 minutes after work started, to ensure quality.
+ * @mutate src/lib/doneFloor.ts | 30 minutes after you arrived, to ensure quality. | 30 minutes after work started, to ensure quality.
+ * @mutate src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx | {doneFloorNote(minutesLeft)} | Available in {minutesLeft} min, 30 minutes after work started, to ensure quality.
  * @mutate src/lib/lifecycleErrors.ts |     completion_min_work_time: "You can mark it done 30 minutes after you arrived.", |     completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
  */
 import { describe, expect, it } from "vitest";
@@ -49,7 +50,8 @@ describe("the done floor counts from the arrival (F12)", () => {
   });
 
   it("the unlock lines and the refusal copy name the arrival", () => {
-    expect(code("src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx")).toContain("30 minutes after you arrived, to ensure quality.");
+    expect(code("src/lib/doneFloor.ts")).toContain("30 minutes after you arrived, to ensure quality.");
+    expect(code("src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx")).toContain("{doneFloorNote(minutesLeft)}");
     expect(code("src/pages/jobs/appliedJobCard/CrewMemberSection.tsx")).toContain("30 minutes after you arrived, to ensure quality.");
     expect(rpcErrorMessage("rpc_helper_mark_done", { message: "completion_min_work_time" })).toBe("You can mark it done 30 minutes after you arrived.");
     expect(code("src/lib/crewLifecycle.ts")).toContain("You can mark your part done 30 minutes after you arrived.");

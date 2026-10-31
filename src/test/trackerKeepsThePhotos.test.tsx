@@ -78,9 +78,9 @@ describe("the tracker keeps the before and after photos (owner 2026-10-23)", () 
     }
   });
 
-  it("1b. with no photo owed the steps are unchanged (Start working, Mark done)", () => {
+  it("1b. with no photo owed the steps are unchanged (Start working, Mark job complete)", () => {
     expect(helperFaceNextStep(job, { status: "arrived" } as never, "start_working")?.label).toBe("Start working");
-    expect(helperFaceNextStep(job, { status: "working" } as never, "working")?.label).toBe("Mark done");
+    expect(helperFaceNextStep(job, { status: "working" } as never, "working")?.label).toBe("Mark job complete");
   });
 
   it("2. the tap asks the card's photo control to open, not the tracker to press a step", () => {

@@ -29,6 +29,18 @@ export interface MineFaceAction {
   /** A waiting card's quiet second control, drawn as a small text link ("Manage job"). */
   also?: { label: string; onClick: () => void };
   disabled?: boolean;
+  /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark job complete). */
+  note?: string;
+}
+
+/** The line under a greyed face button: the card's face and the job page draw one note. */
+export function MineFaceNote({ note, className = "" }: { note?: string; className?: string }) {
+  if (!note) return null;
+  return (
+    <p data-mine-face-note="" className={`font-sans text-center text-ds-11 ${className}`} style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      {note}
+    </p>
+  );
 }
 
 /** "Sat, Oct 31 · 9:00 AM": only the parts the job really has (no street address on a list). */
@@ -215,6 +227,7 @@ export function MineJobFace({
           {action.label}
         </Button>
       )}
+      <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}
       {/* A2-L19 (2026-10-29): no bar for a cancelled (or refunded) card. Its "cancelled" tone is eight empty grey

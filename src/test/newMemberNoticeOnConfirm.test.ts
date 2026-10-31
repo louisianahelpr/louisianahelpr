@@ -32,7 +32,7 @@
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |            OR NOT EXISTS (SELECT 1 FROM public.profiles p | OR false AND NOT EXISTS (SELECT 1 FROM public.profiles p
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |        AND (public.is_test_subject(n.user_id) |        AND (false
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |    WHERE user_id = ANY (v_ids); |    WHERE false;
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | '0 13 * * *' | '0 * * * *'
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | '7 13 * * *' | '7 * * * *'
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
@@ -116,7 +116,7 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     expect(c).toMatch(/p\.anonymized_at\s+IS\s+NULL/);
     expect(c).toMatch(/IF\s+v_count\s*=\s*0\s+THEN/);
     expect(c).toMatch(/WHERE\s+user_id\s*=\s*ANY\s*\(v_ids\)/);
-    expect(migrationSql).toMatch(/cron\.schedule\('new-member-daily-summary',\s*'0 13 \* \* \*'/);
+    expect(migrationSql).toMatch(/cron\.schedule\('new-member-daily-summary',\s*'7 13 \* \* \*'/);
     expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.send_new_member_daily_summary\(\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
   });
 

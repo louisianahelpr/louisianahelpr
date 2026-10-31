@@ -7,6 +7,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
  * and never rises over those: it stops at the top of the room it has. No page passes an offset.
  *
  * The caller's column must let this fill it (flex-1 down from the scroller). Guard: src/test/browseEmptySameSpot.test.tsx.
+ *
+ * Audit SS-9: moved up, this layer's empty top still covers what sits above the room ("Save this search" could not be
+ * pressed on no results). So the layer and the card take no press; only the card's content does.
  */
 export function browseEmptyShift(room: { top: number; height: number }, contentHeight: number, screenMid: number): number {
   if (room.height <= 0) return 0;
@@ -23,6 +26,9 @@ export function browseEmptyShift(room: { top: number; height: number }, contentH
 export function browseEmptyScreenMid(innerHeight: number, nav: { top: number; height: number } | null | undefined): number {
   return (nav && nav.height > 0 ? nav.top : innerHeight) / 2;
 }
+
+/** The moved layer: presses pass through its empty parts to whatever it has moved over (the card's content keeps them). */
+export const SHIFTED_LAYER = "pointer-events-none flex min-h-0 min-w-0 flex-1 [&_[data-empty-state]>*]:pointer-events-auto";
 
 export function BrowseEmptyState({ icon, illustration, title, body, action, footnote, surfaceStyle, bodyLines }: Omit<ComponentProps<typeof EmptyState>, "variant" | "align">) {
   const room = useRef<HTMLDivElement>(null);
@@ -50,7 +56,7 @@ export function BrowseEmptyState({ icon, illustration, title, body, action, foot
   }, []);
   return (
     <div ref={room} data-browse-empty="" className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex min-h-0 min-w-0 flex-1" style={shift ? { transform: `translateY(${shift}px)` } : undefined}>
+      <div className={SHIFTED_LAYER} style={shift ? { transform: `translateY(${shift}px)` } : undefined}>
         <EmptyState icon={icon} illustration={illustration} title={title} body={body} action={action} footnote={footnote} surfaceStyle={surfaceStyle} bodyLines={bodyLines} variant="bare" />
       </div>
     </div>

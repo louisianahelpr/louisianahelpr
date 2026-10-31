@@ -169,7 +169,7 @@ describe("fetchDeliveryQuote", () => {
 
   it("an answer that is not a quote is never shown as a price", async () => {
     h.queue.push(ok({ quote: { delivery_cents: "40" } }));
-    await expect(fetchDeliveryQuote("s", "1 Main St, Baker")).rejects.toThrow("payment_unavailable");
+    await expect(fetchDeliveryQuote("s", "1 Main St, Baker")).rejects.toThrow("delivery_check_unavailable");
   });
 });
 

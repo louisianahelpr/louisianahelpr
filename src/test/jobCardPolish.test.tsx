@@ -79,7 +79,7 @@ describe("job card polish (owner 2026-10-23)", () => {
     expect(takeFaceAction("k", "confirm")).toBe(false);
     vi.setSystemTime(NOW);
     // The control that owns the confirm opens its own dialog on the request.
-    expect(code("src/components/JobConfirmation.tsx")).toMatch(/if \(owed && takeFaceAction\(jobId, "confirm"\)\) setShowConfirmDialog\(true\);/);
+    expect(code("src/components/JobConfirmation.tsx")).toMatch(/if \(owed && \(openNow \|\| takeFaceAction\(jobId, "confirm"\)\)\) setShowConfirmDialog\(true\);/);
   });
 
   it("2: past the day the line's own action; 15: a dispute opens the dispute", () => {

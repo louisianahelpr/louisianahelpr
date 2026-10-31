@@ -17,6 +17,7 @@ import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/
 import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
+import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { backoutNoticeApplies, useBackoutNotices } from "@/lib/backoutNotices";
 import { fetchScheduleChangesAskedOf } from "@/lib/scheduleChange";
@@ -561,9 +562,11 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     const appliedSeries = await fetchJobSeriesState(
       [...jobMap.values()].filter((j) => !j.parent_job_id && (j.recurrence_days?.length ?? 0) > 0).map((j) => j.id),
     );
+    // JOBS-12: a job closed to this Helpr has no row above; its title and date come from their own applications.
+    const closedLabels = await fetchClosedJobLabels(apps.some((a) => !jobMap.has(a.job_id)));
     appliedApps = apps.map((a) => {
       const job = jobMap.get(a.job_id);
-      return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null };
+      return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null, closed_job_label: job ? null : closedLabels.get(a.job_id) ?? null };
     });
   }
 

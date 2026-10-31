@@ -11,7 +11,7 @@
  * Remembered choices and the ON defaults (owner 2026-10-30; describe block at the bottom).
  * @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: false, drops: true, dropPct: 5,
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setWays(() => row.handovers); |       void 0;
- * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct })); |       setForm((f) => ({ ...f, dropPct: row.dropPct }));
+ * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |       setWays(() => row.handovers);\n    } else { |       setWays(() => row.handovers);\n      setForm((f) => ({ ...f, drops: true }));\n    } else {
  * A $1 listing: drops don't apply, no error, nothing remembered as off (lead 2026-10-30).
  * @mutate src/components/declutter/sellForm.ts |   const dropsApply = f.drops && !priceTooLowForDrops(f.price); |   const dropsApply = f.drops;
  * @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 0 };
@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/useSellFlowState.ts | useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY)) | useState<FormState>(EMPTY)
  */
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
@@ -145,7 +145,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     geocode.mockClear();
     places.value = [];
     last.value = LAST;
-    remembered.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    remembered.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
   });
   afterEach(() => {
     places.value = [];
@@ -166,7 +166,7 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
   });
 
   it("drops saved off: the line before Post says off", async () => {
-    remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toMatch(/Price drops: off\. It stays at \$\d+/));
@@ -239,13 +239,13 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));
-    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] });
+    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true });
     expect(drafts[0]).toMatchObject({ priceCents: 4500, floorPriceCents: 2300 });
   });
 
   it("a saved row sets the step, the lowest price's share, free-after and the ways", async () => {
     places.value = [PLACE];
-    remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"] };
+    remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 15% each evening, never below $27."));
@@ -310,6 +310,20 @@ describe("Give it away free (?free=1)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(drafts).toHaveLength(1));
     expect(drafts[0]).toMatchObject({ priceCents: 0 });
+  });
+
+  // LEAD-FREE-MOVE (owner 2026-10-31): free is picked on the chooser's first screen, never ticked on the Price row.
+  // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
+  it("the one screen has no Give it away free tick; a free listing can still go back to a price", async () => {
+    open("/declutter/sell");
+    await addPhotoAndWait();
+    expect(document.querySelector("[data-sell-free]")).toBeNull();
+    expect(screen.queryByText("Give it away free")).toBeNull();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await addPhotoAndWait();
+    expect(document.querySelector("[data-sell-free]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Charge for it" })).toBeTruthy();
   });
 
   it("a saved draft (?item=) is never switched to Free by the param", () => {

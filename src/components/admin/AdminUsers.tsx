@@ -365,7 +365,7 @@ const AdminUsers = () => {
           <Input
             type="search"
             aria-label="Search users by name, email, phone, or job UUID"
-            placeholder="Search name, email, phone or job ID…"
+            placeholder="Name, email, phone, job ID"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-9 text-ds-13 w-full pl-9 pr-10"

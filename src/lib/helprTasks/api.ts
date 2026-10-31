@@ -105,6 +105,8 @@ export interface MyTask {
   take_home_cents: number;
   pickup_slot_start: string | null;
   payout_status: "pending" | "succeeded" | "failed" | "nothing_due" | null;
+  /** AUD31-27 (20261031202929): when a finished task ended; null while it is under way. Absent before that migration. */
+  ended_at?: string | null;
 }
 
 export interface MyVehicle {
@@ -272,7 +274,7 @@ export async function acceptTask(taskId: string, pickupSlotStartIso: string): Pr
   data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => rpcErrorMessage("helpr_task_accept", e));
 }
 
-/** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike. */
+/** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike, unless the seller moved the time. */
 export async function releaseTask(taskId: string): Promise<{ result: string; strike: boolean }> {
   return data<{ result: string; strike: boolean }>(await supabase.rpc("helpr_task_release", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_release", e));
 }
@@ -289,6 +291,16 @@ export async function markPickedUp(taskId: string, photoPath: string, where: { l
 export async function markHandedOver(taskId: string): Promise<{ result: "handed_over" | "already_handed_over" }> {
   return data<{ result: "handed_over" | "already_handed_over" }>(await supabase.rpc("helpr_task_handed_over", { p_task_id: taskId }),
     (e) => rpcErrorMessage("helpr_task_handed_over", e));
+}
+
+/**
+ * BUY-42 (20261031095846): the seller moves the booked Helpr's pickup, once per booking, to a time inside their own
+ * pickup times at least 2 hours away. The Helpr and the buyer are told.
+ */
+export async function moveHelprPickup(taskId: string, pickupSlotStartIso: string): Promise<{ result: "moved"; pickup_slot_start: string }> {
+  return data<{ result: "moved"; pickup_slot_start: string }>(
+    await supabase.rpc("helpr_task_seller_move_pickup", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }),
+    (e) => rpcErrorMessage("helpr_task_seller_move_pickup", e));
 }
 
 /** The drop-off: a photo at the door (no code: owner 2026-10-18); the customer's "I got it" or 24 h confirms it. */

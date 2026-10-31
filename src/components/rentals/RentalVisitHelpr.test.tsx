@@ -24,7 +24,7 @@ vi.mock("@/lib/rentals/api", () => ({
   fetchVisitForJob: vi.fn(async () => state.visit),
   proposeVisit: vi.fn(async () => undefined),
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import RentalVisitHelpr from "./RentalVisitHelpr";
 import { fetchVisitForJob, proposeVisit } from "@/lib/rentals/api";

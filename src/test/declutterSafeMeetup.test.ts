@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |           AND public.declutter_miles_between(i.area_lat, i.area_lng, s.lat, s.lng)\n              > (public.declutter_meetup_rules() ->> 'max_miles')::numeric); |           AND false);
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF v_uid IS NULL OR NOT COALESCE(public.has_role(v_uid, 'admin'::public.app_role), false) THEN\n    RAISE EXCEPTION 'admin_only' |   IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'admin_only'
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |   IF false THEN
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN |     THEN
+ * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN |     THEN
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (!chosen) return json({ error: "meetup_spot_needed" }, 400); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     spotChanged = frozenSpot !== pickedSpot; |     spotChanged = false; void pickedSpot;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <MeetupSpotsCard />\n |
@@ -30,8 +30,8 @@ describe("Q2425 safe meetup spots: the server", () => {
   it("reads the newest definitions (floor)", () => {
     const names = ["declutter_meetup_spots_near", "declutter_set_meetup_spot", "declutter_meetup_here", "admin_declutter_save_meetup_spot",
       "declutter_meetup_spot_near_lines", "declutter_seller_picked_up"];
-    // declutter_address_access: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql) with the meetup exclusion kept (asserted below).
-    expect(newestFunction("declutter_address_access").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
+    // declutter_address_access: restated by handover money (20261031004529_declutter_handover_both_confirm.sql) with the meetup exclusion kept (asserted below).
+    expect(newestFunction("declutter_address_access").file).toContain("20261031004529_declutter_handover_both_confirm.sql");
     // declutter_start_checkout: restated again by Q2427 (20261027211754) with the meetup lines kept (asserted below).
     expect(newestFunction("declutter_start_checkout").file >= FILE).toBe(true);
     // declutter_seller_picked_up: restated by anti-lying #1 (20261028235709, its photo taken at the spot) with the

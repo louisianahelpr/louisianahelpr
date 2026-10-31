@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { MessageText } from "./MessageText";
@@ -322,14 +324,14 @@ export function MessageBubble({
             type="button"
             onClick={() => m.clientId && retryMessage(m.clientId)}
             className="flex items-center gap-1 text-destructive-ink font-medium hover:underline"
-            title="Retry sending"
+            title={t("chat.retry")}
           >
             <RotateCw className="w-2.5 h-2.5" />
             {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"}
           </button>
         ) : isRefused ? (
           <span className="text-destructive-ink font-medium">
-            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Conversation Closed"}
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — conversation closed"}
           </span>
         ) : (
           <>
@@ -366,8 +368,8 @@ export function MessageBubble({
                 // before:-inset-3 grows the tap target to 44px without
                 // changing the 20px visual footprint.
                 className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive-ink transition-opacity flex items-center justify-center w-5 h-5 rounded-full relative before:absolute before:-inset-3 before:content-['']"
-                title="Delete"
-                aria-label="Delete message"
+                title={t("chat.delete")}
+                aria-label={t("chat.deleteMessage")}
               >
                 <Trash2 className="w-2.5 h-2.5" />
               </button>

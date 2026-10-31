@@ -3,13 +3,14 @@
  * (side="seller", the Selling tab) and "Your offers" (side="buyer", the Buying tab), each offer a card with
  * accept / decline / counter. Every rule is enforced by the server (20261014210518); the app only explains it.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
 import { fetchItemHandovers, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { closeWanted } from "@/lib/declutter/wanted";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dollarsInputToCents } from "@/lib/declutter/money";
@@ -35,6 +36,24 @@ const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
 const counterExample = (o: MyOffer) =>
   o.my_side === "seller" ? String(Math.round((Math.min(o.amount_cents, o.current_price_cents) + o.current_price_cents) / 200)) : undefined;
 
+/**
+ * NIGHT-SELL-offers,sale-4: the counter box took any number ($1 and $99 on a $45 item) and said nothing. The range is
+ * the server's (declutter_respond_offer, 20261029162620): at least $1 and at most the price now; a buyer's at least half
+ * the price now; never the amount already on the table (that is Accept).
+ */
+function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents">): { min: number; max: number } {
+  return { min: o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100, max: o.current_price_cents };
+}
+
+/** Why a typed counter can't be sent, in words; null when it can. */
+function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
+  if (!cents) return null;
+  const { min, max } = counterRange(o);
+  if (cents < min || cents > max) return `Your price has to be between ${formatPrice(min)} and ${formatPrice(max)}.`;
+  if (cents === o.amount_cents) return `${formatPrice(cents)} is the offer already on the table. To agree to it, tap Accept.`;
+  return null;
+}
+
 const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
   open: "Waiting",
   accepted: "Accepted",
@@ -48,24 +67,41 @@ function OfferRow({ o }: { o: MyOffer }) {
   const qc = useQueryClient();
   const [counter, setCounter] = useState("");
   const [countering, setCountering] = useState(false);
+  // NIGHT-SELL-offers,sale-4: opening the box puts the cursor in it (no second tap for the keyboard).
+  const counterBox = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (countering) counterBox.current?.focus(); }, [countering]);
   const counterCents = dollarsInputToCents(counter);
+  const counterBad = counterProblem(o, counterCents);
   // Accept asks in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
   const [accepting, setAccepting] = useState(false);
   // Audit 1d D4-9: "Say no" asks first too; it ends the offer for good.
   const [declining, setDeclining] = useState(false);
+  // BUY-10 (buying audit 10-30 #10): "Take back my offer" ended it in one tap; it asks first, like Say no.
+  const [withdrawing, setWithdrawing] = useState(false);
+  // BUY-29 (lead decision 10-31): after accepting a reply to their Wanted post, the buyer is asked whether to close it
+  // (the owner prefers asking over a silent change). Only the poster's own row carries the open post's id (20261031095146).
+  const [askClose, setAskClose] = useState(false);
+  const wantedId = o.my_side === "buyer" ? o.open_wanted_id ?? null : null;
+  const close = useMutation({
+    mutationFn: (id: string) => closeWanted(id),
+    onSettled: () => setAskClose(false),
+    onSuccess: () => { toast("Your Wanted post is closed."); invalidateTrades(qc); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const act = useMutation({
     mutationFn: (v: { action: "accept" | "decline" | "counter" | "withdraw"; cents?: number }) => respondOffer(o.offer_id, v.action, v.cents ?? null),
-    onSettled: () => { setAccepting(false); setDeclining(false); },
+    onSettled: () => { setAccepting(false); setDeclining(false); setWithdrawing(false); },
     onSuccess: (res) => {
       setCountering(false);
       setCounter("");
-      toast.success(
+      toast(
         res === "accepted" ? (o.my_side === "buyer" ? "Accepted. Check out within 48 hours." : "Accepted. The buyer has 48 hours to pay.")
           : res === "countered" ? "Sent. They have 48 hours to answer."
             : res === "withdrawn" ? "Offer taken back."
               : "Declined.",
       );
       invalidateTrades(qc);
+      if (res === "accepted" && wantedId) setAskClose(true);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -152,7 +188,7 @@ function OfferRow({ o }: { o: MyOffer }) {
           className="space-y-1"
           onSubmit={(e) => {
             e.preventDefault();
-            if (counterCents) act.mutate({ action: "counter", cents: counterCents });
+            if (counterCents && !counterBad) act.mutate({ action: "counter", cents: counterCents });
           }}
         >
           {/* A shown label and a "$" in the field (deep audit #47: no "$" and no label). */}
@@ -167,26 +203,44 @@ function OfferRow({ o }: { o: MyOffer }) {
                 value={counter}
                 onChange={(e) => setCounter(e.target.value)}
                 placeholder={counterExample(o)}
+                aria-describedby={`counter-range-${o.offer_id}`}
+                aria-invalid={counterBad ? true : undefined}
+                ref={counterBox}
               />
             </div>
-            <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents}>
+            <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents || !!counterBad}>
               Send
             </button>
           </div>
+          <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
+            {counterBad ?? `Between ${formatPrice(counterRange(o).min)} and ${formatPrice(counterRange(o).max)}.`}
+          </p>
         </form>
       )}
       {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
-        <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
+        <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
           Take back my offer
         </button>
       )}
       <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
-        title={o.my_side === "seller" ? `Sell it for ${formatPrice(o.amount_cents)}?` : `Buy it for ${formatPrice(o.amount_cents)}?`}
+        // NIGHT-SELL-offers,sale-1: accepting sells at the lower of the offer and today's price (declutter_respond_offer,
+        // B28: least(amount, current_price)), so the title names that figure, never an offer above a dropped price.
+        title={o.my_side === "seller" ? `Sell it for ${formatPrice(takeCents)}?` : `Buy it for ${formatPrice(takeCents)}?`}
         confirmLabel="Accept" testId="accept-offer">
         {o.my_side === "seller"
-          ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
-          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay; nothing is charged until you do.`}</>}
+          ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
+          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
       </ConfirmSheet>
+      <ConfirmSheet open={withdrawing} pending={act.isPending} onConfirm={() => act.mutate({ action: "withdraw" })} onClose={() => setWithdrawing(false)}
+        title="Take back your offer?" confirmLabel="Take it back" cancelLabel="Keep my offer" testId="withdraw-offer">
+        {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`}
+      </ConfirmSheet>
+      {wantedId && (
+        <ConfirmSheet open={askClose} pending={close.isPending} onConfirm={() => close.mutate(wantedId)} onClose={() => setAskClose(false)}
+          title="Close your Wanted post?" confirmLabel="Close it" cancelLabel="Keep it open" testId="close-wanted-after-accept">
+          {`You're getting "${o.item_title}". Closing your Wanted post stops new matches and replies. You can post it again any time from Wanted.`}
+        </ConfirmSheet>
+      )}
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}
         title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">
         {o.my_side === "seller"

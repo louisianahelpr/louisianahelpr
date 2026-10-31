@@ -44,6 +44,8 @@ function originWords(o: OriginAsk): string | null {
     return `Miles are counted from ${from}.`;
   }
   if (origin.status === "none" && origin.zipOnFile) return "We couldn't find the area for the ZIP code on your profile, so items show without miles for now.";
+  // AUD31-75: a guest has no profile; their location is the one way to miles.
+  if (o.guest) return o.asked ? "Without your location, items show without miles." : "Use your location to see how far each item is.";
   return o.asked ? "Add your ZIP code in your profile to see how far each item is." : "Use your location, or add your ZIP code in your profile, to see how far each item is.";
 }
 

@@ -69,12 +69,14 @@ export interface JobPageRow {
   recurrence_interval?: string | null;
   recurrence_end_date?: string | null;
   recurring_helper_id?: string | null;
+  /** A pending direct offer on this job (party read only); whether it is to the viewer is useOfferedToMe's answer. */
+  direct_offer_status?: string | null;
 }
 
 const BASE_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -149,6 +151,23 @@ async function fetchTrackingStatus(jobId: string): Promise<string | null> {
     await supabase.from("job_tracking").select("status").eq("job_id", jobId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ) as { status: string | null } | null;
   return row?.status ?? null;
+}
+
+/**
+ * JOBS-18: this direct offer is to the viewer. offered_to_helper_id is not readable by a client, and a row can reach
+ * the party read for other reasons, so the viewer's own offers list answers. Asked only when an offer is pending.
+ */
+export function useOfferedToMe(jobId: string | undefined, enabled: boolean): boolean {
+  const q = useQuery({
+    queryKey: [...queryKeys.jobs.all, "page-offered-to-me", jobId ?? ""],
+    queryFn: async () => {
+      const rows = unwrap<Array<{ id: string }> | null>(await supabase.rpc("get_my_pending_direct_offers").eq("id", jobId!).select("id"));
+      return (rows ?? []).length > 0;
+    },
+    enabled: enabled && !!jobId,
+    staleTime: 30 * 1000,
+  });
+  return q.data === true;
 }
 
 export function useJobPage(id: string | undefined, userId: string | undefined) {

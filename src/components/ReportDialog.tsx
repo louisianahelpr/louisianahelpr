@@ -277,7 +277,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 person cannot read the row; the insert triggers only rate-limit,
                 notify ADMINS at 3+ reporters, and write the ops ledger. */}
             <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
-              The Helpr team reviews every report. We never tell the other person who reported them.
+              The Louisiana Helpr team reviews every report. We never tell the other person who reported them.
             </p>
 
             <DialogFooter>

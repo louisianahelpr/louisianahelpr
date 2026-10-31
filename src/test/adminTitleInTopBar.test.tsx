@@ -16,6 +16,10 @@
  *
  * @mutate src/pages/admin/AdminFrame.tsx |         {!isWebDesktop && <AdminTopBar titleRow={header} />} |         {!isWebDesktop && <AdminTopBar />}
  * @mutate src/pages/admin/AdminFrame.tsx |           {isWebDesktop && header} |           {header}
+ * AUD31-48 (audit 10-31, 375): "License & insur…" and "Exception que…" were cut in the phone bar. Those views take
+ * a short phone title (ADMIN_PHONE_TITLES); the desktop bar keeps the full name.
+ * @mutate src/pages/admin/AdminFrame.tsx | phoneTitle={ADMIN_PHONE_TITLES[view]} | phoneTitle={undefined}
+ * @mutate src/components/admin/AdminSectionHeader.tsx |             {phoneTitle ?? title} |             {title}
  * @mutate src/components/admin/AdminTopBar.tsx |         {titleRow ? <div className="min-w-0 flex-1">{titleRow}</div> : <HelprMark to="/home" size="sm" emblemOnly />} |         <HelprMark to="/home" size="sm" emblemOnly />
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -41,6 +45,7 @@ const VIEWS = ["support", "reports", "disputes", "stalled", "people", "settings"
 const LABELS: Record<string, string> = {
   home: "Dashboard", support: "Support", reports: "Reports", disputes: "Disputes",
   stalled: "Stuck Jobs", people: "Users", settings: "Settings",
+  credentials: "License & insurance", exceptions: "Exception queue",
 };
 
 function renderFrame(view: string, isWebDesktop: boolean) {
@@ -109,6 +114,20 @@ describe("every admin view's title sits in the top bar's row (owner 2026-10-27)"
       expect(container.querySelector("[data-admin-scroll] h1")).toBeNull();
     });
   }
+
+  it("AUD31-48: the phone bar uses the short title where the full one was cut; the desktop bar keeps the full name", () => {
+    for (const [view, short] of [["credentials", "Licenses"], ["exceptions", "Exceptions"]] as const) {
+      desktop.on = false;
+      const phone = renderFrame(view, false);
+      expect(phone.container.querySelector("header h1")?.textContent).toBe(short);
+      cleanup();
+      desktop.on = true;
+      const wide = renderFrame(view, true);
+      expect(wide.container.querySelector("[data-desktop-title-slot] h1")?.textContent).toBe(LABELS[view]);
+      cleanup();
+      registerDesktopTitleSlot(null);
+    }
+  });
 
   it("the Dashboard draws no title row in either bar (its greeting card is the page's heading)", () => {
     desktop.on = false;

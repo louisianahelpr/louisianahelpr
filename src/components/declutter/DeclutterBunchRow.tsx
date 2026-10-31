@@ -2,28 +2,31 @@
  * One item on Sell a bunch's review list, as a compact row (audit 10-30, finding 2: a full form per item was 913 px at
  * 375, so List sat 8,266 px down with six items). Its picture, name, one line of category and condition, and its price
  * in place, so a seller can go down the list pricing with the keyboard's Next. Tap to open the whole form.
- * A flagged item starts open, so its notice is read.
+ * A flagged item starts open, so its notice is read. A photo dragged from another item (desktop width) can drop anywhere on it.
  */
+import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
 import { CATEGORY_LABEL, CONDITION_LABEL } from "./declutterUi";
 import { bunchItemName } from "./DeclutterBunchCard";
 import { FallbackImg } from "./FallbackImg";
+import { bunchPhotoDrag } from "./bunchPhotoDrag";
 
-export function BunchRow({ item, index, url, open, chosen, nextPriceId, onToggleOpen, onToggleChosen, onPrice, children }: {
+export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggleOpen, onPrice, onPhotoDrop, children }: {
   item: BunchItem;
   index: number;
   url: string | undefined;
   open: boolean;
-  chosen: boolean;
   /** Where Next on the keyboard goes: the next item's price. */
   nextPriceId: string | null;
+  /** False while a run is working on the list: nothing moves under it. */
+  canDrop: boolean;
   onToggleOpen: () => void;
-  onToggleChosen: (on: boolean) => void;
   onPrice: (price: string) => void;
+  onPhotoDrop: (photoKey: string) => void;
   children: React.ReactNode;
 }) {
+  const [dropOn, setDropOn] = useState(false);
   const name = bunchItemName(item, index);
   const problem = bunchItemProblem(item);
   const nameId = `row-name-${item.key}`;
@@ -34,9 +37,27 @@ export function BunchRow({ item, index, url, open, chosen, nextPriceId, onToggle
     else e.currentTarget.blur();
   };
   return (
-    <li className="rounded-[20px] border border-border bg-card" data-bunch-item="" data-bunch-row={item.key} data-flagged={item.flagged ? "" : undefined}>
+    <li className={`rounded-[20px] border bg-card ${dropOn ? "border-[hsl(var(--bark))] ring-2 ring-[hsl(var(--bark))]" : "border-border"}`} data-bunch-item="" data-bunch-row={item.key} data-flagged={item.flagged ? "" : undefined} data-bunch-drop-on={dropOn ? "" : undefined}
+      onDragOver={(e) => {
+        const from = bunchPhotoDrag.current();
+        // Only our own photo from another item: a file dragged in from the computer is left to the browser.
+        if (!canDrop || !from || from.item === item.key) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setDropOn(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropOn(false);
+      }}
+      onDrop={(e) => {
+        setDropOn(false);
+        const from = bunchPhotoDrag.current();
+        if (!canDrop || !from || from.item === item.key) return;
+        e.preventDefault();
+        bunchPhotoDrag.end();
+        onPhotoDrop(from.photo);
+      }}>
       <div className="flex items-center gap-2 p-2">
-        <Checkbox className="ml-1 shrink-0" checked={chosen} onCheckedChange={(v) => onToggleChosen(v === true)} aria-label={`Choose ${name}`} />
         <button type="button" onClick={onToggleOpen} aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
           className="flex min-h-14 min-w-0 flex-1 items-center gap-2 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">

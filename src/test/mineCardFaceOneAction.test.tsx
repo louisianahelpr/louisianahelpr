@@ -16,6 +16,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : faceAction} | action={faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | h.confirmingArrival ? "Confirming…" : "Confirm they've arrived", | h.confirmingArrival ? "Confirming…" : "Confirm arrival",
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id);\n      setCompletionRequest | void 0;\n      setCompletionRequest
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" }; | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
@@ -138,7 +139,7 @@ describe("the Posted card face (board 14)", () => {
   it("Confirm arrival runs the poster's real arrival handler", () => {
     const h = renderCard(base);
     const [btn] = faceButtons();
-    expect(btn.textContent).toBe("Confirm arrival");
+    expect(btn.textContent).toBe("Confirm they've arrived");
     fireEvent.click(btn);
     expect(h.onConfirmArrival).toHaveBeenCalledWith("job-1");
   });

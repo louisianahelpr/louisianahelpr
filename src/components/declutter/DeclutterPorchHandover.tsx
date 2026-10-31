@@ -19,13 +19,15 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
-import { fetchSellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
+import { fetchSellerDeliveryBooking, slotLabel } from "@/lib/declutter/sellerDelivery";
 import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
+import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
+import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -53,7 +55,8 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
   if (free && at === 0) return standing(handover, side, at, day).replace(/^Paid\./, "Claimed.");
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
-    if (at === 0) return side === "buyer" ? "Paid. Pick a day to collect it from the porch." : "Paid. The buyer picks a pickup day.";
+    // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
+    if (at === 0) return side === "buyer" ? "Paid. Pick a time to collect it from the porch." : "Paid. The buyer picks a pickup time.";
     if (at === 1) {
       if (side === "seller") return day ? `Put it out ${onDay(day)} and post the porch photo.` : "Paid. Put it out and take one photo where the buyer will find it.";
       return "Not out yet. We'll tell you when it's on the porch. Don't go before then.";
@@ -91,6 +94,8 @@ export function PickupStatus({
   day = null,
   itemsCents,
   problemOpen = false,
+  refunded = false,
+  part = "all",
 }: {
   orderId: string;
   handover: Pickup;
@@ -103,6 +108,11 @@ export function PickupStatus({
   itemsCents: number;
   /** Audit 1b D2-2: a problem is open, so the order is on hold and the money is held until Louisiana Helpr decides. */
   problemOpen?: boolean;
+  /** NIGHT-SELL-soldstates-7: the sale was refunded in full after the handover (refundedInFull). */
+  refunded?: boolean;
+  /** NIGHT-SELL-soldstates-3: the seller's open sale shows the tracker and its line first ("status") and the money
+   *  note below the next action ("money"); every other card shows all three together. */
+  part?: "all" | "status" | "money";
 }) {
   const h = useMyHandover(orderId);
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
@@ -120,29 +130,36 @@ export function PickupStatus({
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
+  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />;
+  if (part === "money") return money;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
-      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
+      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
+      {part === "all" && money}
     </div>
   );
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, free, done, problemOpen, itemsCents, totalCents, after }: {
-  side: "buyer" | "seller"; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents, after, deliveryCents = 0 }: {
+  side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+  /** AUD31-1: a seller who delivers is paid this on top of the items (declutter_complete_handover's v_rate). */
+  deliveryCents?: number;
 }) {
+  const sellerCents = itemsCents + Math.max(0, deliveryCents);
+  const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)` : "";
   const money = free ? null
     : side === "buyer"
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
         ? null
         : problemOpen
-          ? <>Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
-        // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
-        // after the handover, with no refund request open; 20261026155251). It holds for every handover kind.
-        : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
+          ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
+        // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
+        // 10-30 rule and the server it describes (sellerPayoutRule): "I got it" pays 24 hours later; the seller's own
+        // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
+        : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts}. {sellerPayoutRule(kind)}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).
   const goodNews = side === "seller" && !problemOpen;
@@ -162,8 +179,8 @@ function MoneyNote({ side, free, done, problemOpen, itemsCents, totalCents, afte
  * come from the delivery booking (the same row and query key SellerDeliveryOrderPanel reads): booked with a time,
  * delivered_at, and the order's handed_over.
  */
-export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = false }: {
-  orderId: string; side: "buyer" | "seller"; itemsCents: number; problemOpen?: boolean;
+export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = false, refunded = false }: {
+  orderId: string; side: "buyer" | "seller"; itemsCents: number; problemOpen?: boolean; refunded?: boolean;
 }) {
   const b = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId) });
   const free = itemsCents === 0;
@@ -177,12 +194,51 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
+  // AUD31-3 (the other side): a move the OTHER party asked for waits on this viewer's answer; the sentence says so
+  // instead of "Booked" (the panel below has Accept the new time / Keep the current time).
+  const p = b.data;
+  const moveAskedOfMe = !done && !facts.delivered && p.proposed_start && p.proposed_by && p.proposed_by !== side
+    ? `The ${p.proposed_by} asked to move it to ${slotLabel(p.proposed_start)}. Accept the new time or keep it, below.`
+    : null;
   return (
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
-      <MoneyNote side={side} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it" />
+      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : moveAskedOfMe ?? deliveryStanding(side, at, free)}</p>
+      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
+        deliveryCents={b.data.delivery_cents ?? 0} />
     </div>
+  );
+}
+
+/**
+ * NIGHT-SELL-soldstates-7: a finished Helpr delivery on the seller's card had no tracker, only "Handed over." (the
+ * delivery panel with its tracker leaves the card once the sale is done). The one tracker at its end, and one line.
+ */
+export function DeliveryDoneStatus({ free, refunded = false }: { free: boolean; refunded?: boolean }) {
+  const facts: OrderFacts = { handover: "delivery", side: "seller", free, booked: true, pickedUp: true, delivered: true, done: true };
+  return (
+    <div className="space-y-2" data-pickup-status={orderStepAt(facts)} data-delivery-done="">
+      <OrderSteps facts={facts} />
+      <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller : "Handed over."}</p>
+    </div>
+  );
+}
+
+/**
+ * NIGHT-SELL-soldstates-7: a Helpr delivery's seller card said nothing of the money until the drop-off (every other
+ * kind's card shows "You get $X" from the start). The amount, in the same good-news note; the delivery panel's own
+ * line gives the payout rule once the Helpr has left it.
+ */
+export function SellerDeliveryMoney({ itemsCents, problemOpen = false }: { itemsCents: number; problemOpen?: boolean }) {
+  if (itemsCents === 0) return null;
+  return problemOpen ? (
+    <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-money-note="">
+      Your <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> is held while Louisiana Helpr looks at the problem.
+    </p>
+  ) : (
+    <p className={GOOD_NEWS_NOTE} data-money-note="" data-tone="good">
+      You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the buyer has it.
+    </p>
   );
 }
 

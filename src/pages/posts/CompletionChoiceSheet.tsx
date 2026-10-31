@@ -255,7 +255,7 @@ export function CompletionChoiceSheet({
         { data: jobRows, error: jobErr },
         {
           action: "request this revision",
-          rejectedMessage: "This revision couldn't be requested — the job may have already been completed or cancelled. Pull to refresh.",
+          rejectedMessage: "This revision couldn't be requested — the job may have already been completed or cancelled. Refresh the page.",
           context: { jobId },
         },
       );

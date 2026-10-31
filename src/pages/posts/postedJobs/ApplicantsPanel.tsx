@@ -24,7 +24,7 @@ import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
-import { ApplicantTrustLine, helperInitialsFrom, isImageAttachment, TopHelprChip } from "./applicantsPanel/applicantsPanelHelpers";
+import { ApplicantNewTag, ApplicantTrustLine, helperInitialsFrom, isImageAttachment, TopHelprChip } from "./applicantsPanel/applicantsPanelHelpers";
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
@@ -402,6 +402,7 @@ export function ApplicantsPanel({
                               >
                                 {helperName}
                               </a>
+                              <ApplicantNewTag helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
                               {/* ONE derived pill. Two hard-coded blocks
                                   (elite, pro) meant a Plus helper's name
                                   carried no plan at all on the hiring surface
@@ -449,6 +450,13 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </div>
+                            {/* Distance right under the name (owner 2026-10-31, LEAD-APPLICANT-TAG), not at the card's bottom. */}
+                            {distanceBand && (
+                              <span className="mt-0.5 inline-flex items-center gap-1 text-ds-11 font-sans font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
+                                <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
+                                {distanceBand.label}
+                              </span>
+                            )}
                           </div>
 
                           <div className={app.status === "pending"
@@ -521,17 +529,6 @@ export function ApplicantsPanel({
                                   Helpr's setup step) sits LEFT of the distance on
                                   one wrapping line (owner, 2026-10-08: "so the box
                                   isn't so big"); it had a row of its own. */}
-                              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                                {distanceBand && (
-                                  <span
-                                    className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold"
-                                    style={{ color: "hsl(var(--olivewood))" }}
-                                  >
-                                    <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
-                                    {distanceBand.label}
-                                  </span>
-                                )}
-                              </span>
                               {/* Owner 2026-10-27: no ID / payout badges and no proof line on applicant cards ("it doesn't make any sense"). */}
                               {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
                               <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />

@@ -819,9 +819,12 @@ serve(async (_req) => {
     const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
     const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', yesterday),
+      // Real members and real jobs only (owner rule: test data never shows to the owner; OPS-1 area, b29 10-31).
+      // Revenue below already read is_seed = false; the three counts did not, so a test run's sign-ups and jobs
+      // were counted in the admins' digest.
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday),
+      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday),
+      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
       supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       // Real money only: a test job's fee was paid on the Stripe TEST key
       // (owner 2026-10-12, test mode for test accounts) and is not revenue.

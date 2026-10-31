@@ -20,12 +20,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs module, no declaration file
-import { itemOriginKey } from "../../scripts/lib/openQueue.mjs";
+import { itemOriginKey, queueText } from "../../scripts/lib/openQueue.mjs";
 import { isFeedMirrored } from "../../scripts/lib/openFeeds.mjs";
 
 // @mutate scripts/lib/openFeeds.mjs | export const isFeedMirrored = (text) => tagsOf(text).length > 0; | export const isFeedMirrored = (text) => false;
 // @mutate scripts/lib/openQueue.mjs |   if (f) return `finding ${f[1].toLowerCase()}`; |   if (f) return null;
 // @mutate src/test/reviewFindingsCarryATag.test.ts | !TAGGED.test(l) && !isFeedMirror(l) && !isFeedMirrored(l);\n} | !TAGGED.test(l);\n}
+// @mutate src/test/reviewFindingsCarryATag.test.ts | return entries.filter((q) => !all.includes(q));\n} | return [];\n}
+// @mutate src/test/reviewFindingsCarryATag.test.ts | const wholeQueue = queueText(process.cwd());\n | const wholeQueue = "";\n
 
 const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n");
 const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b(?!:(?:record|report)\b)/i; // `npm run review:record` / `review:report` are script names, not a review
@@ -40,7 +42,8 @@ const TAGGED = /\bfinding: [a-z0-9-]+@[0-9a-f]{7,40}#\d+/i;
 // are filed under the rule and must carry a tag.
 const LAST_UNTAGGED = 1373;
 
-const ITEMS = OPEN.filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l));
+const ITEM_LINE = /^- \[[ x~]\] \*\*Q\d+/;
+const ITEMS = OPEN.filter((l) => ITEM_LINE.test(l));
 const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
 /**
  * Items that say "review" but were NOT filed from a review (an owner decision
@@ -88,6 +91,18 @@ function untaggedNewAll(): string[] {
 function untaggedNew(): string[] {
   return untaggedNewAll().filter((q) => !(q in NOT_FROM_A_REVIEW));
 }
+/**
+ * The entries that are not an untagged review-worded item ANYWHERE in the queue
+ * (docs/OPEN.md + the done archives). Reading OPEN.md alone turned every bot PR
+ * red that ticked a listed item: open-auto-tick moves the line to an archive and
+ * may only change docs paths, so it cannot edit this file (Q2476, PR #3820,
+ * 2026-10-31). A ticked entry exempts nothing, because untaggedNew reads OPEN.md
+ * only, and whoever next edits this list may drop it.
+ */
+function staleExemptions(entries: string[], queueLines: string[]): string[] {
+  const all = queueLines.filter((l) => ITEM_LINE.test(l) && num(l) > LAST_UNTAGGED && isUntaggedReviewItem(l)).map((l) => `Q${num(l)}`);
+  return entries.filter((q) => !all.includes(q));
+}
 
 describe("review findings carry one stable tag, so a finding cannot be filed twice", () => {
   it("every review item filed after the rule carries a finding tag", () => {
@@ -96,8 +111,19 @@ describe("review findings carry one stable tag, so a finding cannot be filed twi
   });
 
   it("NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded", () => {
-    const all = untaggedNewAll();
-    expect(Object.keys(NOT_FROM_A_REVIEW).filter((q) => !all.includes(q))).toEqual([]);
+    const wholeQueue = queueText(process.cwd());
+    expect(staleExemptions(Object.keys(NOT_FROM_A_REVIEW), wholeQueue.split("\n"))).toEqual([]);
+  });
+
+  it("an entry the bot ticked into an archive is not stale; a number nowhere, or a line now tagged or not review-worded, is (bot PR #3820)", () => {
+    const worded = (n: number, s: string, tail = "") => `- [${s}] **Q${n} MEDIUM back to review on save.**${tail}`;
+    // open, or ticked by the bot and moved to the archive: the queue holds both
+    expect(staleExemptions(["Q2000", "Q2001"], [worded(2000, "~"), "", worded(2001, "x", " DONE (auto-tick).")])).toEqual([]);
+    expect(staleExemptions(["Q2002"], [worded(2000, "~")])).toEqual(["Q2002"]);
+    expect(staleExemptions(["Q2000"], [worded(2000, "x", " finding: lh-money-escrow@abc1234#3")])).toEqual(["Q2000"]);
+    expect(staleExemptions(["Q2000"], ["- [x] **Q2000 MEDIUM a copy fix.** DONE."])).toEqual(["Q2000"]);
+    // below the rule's first number an entry exempts nothing
+    expect(staleExemptions(["Q1000"], [worded(1000, "x")])).toEqual(["Q1000"]);
   });
   it("a feed-mirrored item is not a review finding; a hand-filed review line still is (#2705)", () => {
     const mirrored =

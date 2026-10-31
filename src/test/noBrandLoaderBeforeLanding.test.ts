@@ -10,7 +10,7 @@
  *    route skeleton (a guest saw skeleton -> landing, which read as a jump);
  *  - HelprSpinner sizes the 96x82 mark by height with width auto.
  */
-// @mutate index.html |       <!-- Owner, 2026-09-23: nothing but the page background |       <img class="boot-mark" src="./src/assets/helpr-logo-256.webp" alt="" />\n        <!-- Owner, 2026-09-23: nothing but the page background
+// @mutate index.html |         <div class="boot-stack" aria-hidden="true"> |         <img class="boot-mark" src="./src/assets/helpr-logo-256.webp" alt="" />\n        <div class="boot-stack" aria-hidden="true">
 // @mutate src/App.tsx | <PageTransition><Index /></PageTransition>, <LandingPlainFallback />) | <PageTransition><Index /></PageTransition>)
 // @mutate src/components/ui/HelprSpinner.tsx |           width: "auto", |           width: size,
 import { describe, it, expect } from "vitest";

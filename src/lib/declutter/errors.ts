@@ -114,6 +114,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Porch places (D-NEW14, 20261030164712).
   invalid_porch_place: "Give the place a name and its full address.",
   porch_places_full: "You can save up to 5 pickup places.",
+  // Place hours (LEAD-PLACE-TIMES, 20261031145652).
+  invalid_place_hours: "Each pickup time must end at least 30 minutes after it starts.",
   porch_place_not_found: "We couldn't find that pickup place. It may have been removed.",
   porch_place_unavailable: "That pickup place isn't available. Pick another.",
   porch_place_needed: "Pick which of the seller's pickup places you'll use.",
@@ -163,6 +165,22 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   porch_day_not_yet: "Put it out on the day the buyer picked. You can post the porch photo from that day.",
   already_picked_up: "The buyer already picked up this item.",
   seller_set_out: "The seller set the item out. If it isn't there, report a problem.",
+  seller_confirmed: "The seller says it was handed over. If you don't have it, report a problem.",
+  already_confirmed: "You said it was handed over. If that's wrong, report a problem.",
+  no_show_reported: "The buyer says you didn't show. Answer that report on this order.",
+  no_show_not_reported: "The buyer hasn't reported anything on this order.",
+  no_show_waiting: "A no-show report on this order is waiting for an answer, so the time can't move.",
+  no_show_answer_late: "The 24 hours to answer are over.",
+  // BUY-2 (20261031133938): the buyer's cancel after no Helpr took the delivery.
+  pickup_booked: "You booked a pickup time, so this sale goes ahead. If something is wrong, report a problem.",
+  not_a_no_helpr_order: "This sale can't be cancelled here.",
+  // soldstates-5 (20261031134217): the seller's "The Helpr didn't come" and the Helpr's answer.
+  not_a_helpr_delivery: "This sale isn't a Helpr delivery.",
+  no_helpr_booked: "No Helpr is booked for this pickup now.",
+  already_handed_over: "You said you handed it over to this Helpr. If something is wrong, report a problem.",
+  already_answered: "You already answered. Louisiana Helpr looks at both sides and tells you what it decides.",
+  no_return_needed: "The buyer says they never got it, so there is nothing to bring back.",
+  drop_off_not_offered: "Your address stays private on this sale, so you pick it up from the buyer.",
   too_early: "You can report a no-show 15 minutes after the booked time, or for a porch pickup day, once that day is over.",
   // 141d (20261026155251): a handed-over sale is final once its 24-hour window is over.
   sale_final: "The time to report a problem is over, so this sale is final.",
@@ -249,6 +267,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   delivery_unavailable: "Helpr delivery isn't available for this order. Choose pickup.",
   delivery_order: "A Helpr is delivering this order and picks the pickup time.",
   delivery_not_done: "The Helpr hasn't picked the item up yet.",
+  // BUY-39 (20261031082308): the buyer's I got it while the Helpr is still bringing it.
+  delivery_on_the_way: "The Helpr is still bringing it. Tap I got it once it's dropped off.",
   invalid_address: "Enter the full drop-off address: street number, street, and town.",
   order_handover_frozen: "How you get this order can't be changed after checkout.",
   order_amounts_frozen: "The amounts of this order can't be changed after checkout.",
@@ -315,6 +335,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   ai_timed_out: "The photo tool took too long. Try again, or fill in the details yourself.",
   // declutter-card / declutter-checkout (slice 3b) when no code came back.
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
+  // The delivery price and address checks (delivery.ts, sellerDelivery.ts): no payment page is involved.
+  delivery_check_unavailable: "We couldn't check delivery for that address. Please try again. Nothing was charged.",
   // declutter-ai-draft room mode (moving-out mode).
   room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
   // setDropPct before 20261028160637 reaches prod (PGRST202): only the old 5% step exists.

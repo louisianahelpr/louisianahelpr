@@ -29,9 +29,11 @@ import {
   openHandoverTalk,
   sendHandoverMessage,
 } from "@/lib/declutter/handoverTalk";
+import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
 
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+// AUD31-12: the weekday alone only within 6 days; older lines carry their date.
+const when = (iso: string) => talkTime(iso);
 
 /** Puts ?talk=<id> on the current address (the Declutter page opens the chat from it). */
 function useOpenTalk() {
@@ -188,7 +190,7 @@ function AddPorchPickup({ sellerId, buyerId }: { sellerId: string; buyerId: stri
   const items = useQuery({ queryKey: key, queryFn: () => fetchTalkItems(sellerId, buyerId) });
   const add = useMutation({
     mutationFn: (itemId: string) => addHandover(itemId, "porch"),
-    onSuccess: () => { toast.success("Porch pickup added. The buyer is told and has at least a day to check out."); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
+    onSuccess: () => { toast("Porch pickup added. The buyer is told and has at least a day to check out."); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (items.isError) {

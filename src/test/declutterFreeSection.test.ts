@@ -12,13 +12,13 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
+ * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
- * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />) | <OfferPanel item={it} userId={user.id} />
+ * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />) | <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |               {allFree ? ( |               {false ? (
  * @mutate src/lib/declutter/distance.ts |   return cents === 0 ? "Free" : formatPrice(cents); |   return formatPrice(cents);
  * @mutate src/lib/declutter/browseFilters.ts |     if (f.freeOnly && item.current_price_cents !== 0) return false; |
@@ -44,7 +44,8 @@ describe("the Declutter Free section", () => {
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).
-    expect(newestFunction("declutter_checkout_free").file).toContain("20261030164712_declutter_porch_places.sql");
+    // Then LEAD-PLACE-TIMES (20261031164337: a door pickup reads the place too, one condition).
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261031164337_declutter_door_pickup_uses_places.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
@@ -53,10 +54,16 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
-      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
+      "declutter_update_draft", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(6);
+    expect(names.length).toBeGreaterThan(5);
+    // declutter_create_item: LEAD-POST-SLOW (20261031160546) moved its body into declutter_create_item_with_id (the app
+    // picks the id so photos upload before Post); the wrapper keeps its gates. The free rule moved with the body.
+    expect(newestFunction("declutter_create_item").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(newestFunction("declutter_create_item_with_id").file).toContain("20261031160546_declutter_create_item_with_id.sql");
+    expect(code("declutter_create_item")).toContain("RETURN public.declutter_create_item_with_id(");
+    expect(code("declutter_create_item_with_id")).toContain("IF p_price_cents = 0 THEN");
     // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
     expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");
@@ -98,8 +105,8 @@ describe("the Declutter Free section", () => {
     expect(itemPriceLabel(0)).toBe("Free");
     expect(itemPriceLabel(4050)).toBe("$40.50");
     const view = read("src/components/declutter/DeclutterItemView.tsx");
-    expect(view).toContain("(free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)");
-    expect(view).toContain("{!free && <PriceHint");
+    expect(view).toContain("(free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)");
+    expect(view).toContain("{!free && user && <PriceHint");
     const cart = read("src/components/declutter/DeclutterTradeViews.tsx");
     expect(cart).toContain("const allFree = lines.every((l) => l.price_cents === 0);");
     expect(cart).toContain("{allFree ? ( <FreeCheckoutForSeller");

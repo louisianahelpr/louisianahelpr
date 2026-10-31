@@ -19,7 +19,7 @@ import { StrictMode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const data = vi.hoisted(() => ({ postedJobs: [] as unknown[], appliedApps: [] as unknown[] }));
-const toastInfo = vi.hoisted(() => vi.fn());
+const toastShown = vi.hoisted(() => vi.fn());
 const loadApplications = vi.hoisted(() => vi.fn());
 // One stable object, as the real hook's memoised actions: the deep-link effect depends on its fields.
 const actions = vi.hoisted(() => ({
@@ -43,7 +43,7 @@ vi.mock("@/lib/pinnedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
 vi.mock("@/lib/archivedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: toastInfo } }));
+vi.mock("sonner", () => ({ toast: Object.assign(toastShown, { error: vi.fn(), success: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
@@ -102,7 +102,7 @@ function renderAt(path: string, tab: "posted" | "applied") {
 }
 
 beforeEach(() => {
-  toastInfo.mockClear();
+  toastShown.mockClear();
   loadApplications.mockClear();
   data.postedJobs = [waitingJob, unpaidWithApplicant];
   data.appliedApps = [];
@@ -115,7 +115,7 @@ describe("Review N applicants opens the applicants (boards 22 / 170)", () => {
     expect(loadApplications.mock.calls[0][0]).toMatchObject({ id: "j-open" });
     rerender(<div />);
     expect(loadApplications).toHaveBeenCalledTimes(1);
-    expect(toastInfo).not.toHaveBeenCalled();
+    expect(toastShown).not.toHaveBeenCalled();
   });
 
   it("a plain highlight (no applicants=1) still only marks the card", async () => {
@@ -126,7 +126,7 @@ describe("Review N applicants opens the applicants (boards 22 / 170)", () => {
 
   it("a never-paid job (the audit's test jobs) opens nothing and says why", async () => {
     renderAt("/posts?highlight=j-draft&applicants=1", "posted");
-    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job isn't paid yet, so it isn't on Posted. Open it to pay for it."));
+    await waitFor(() => expect(toastShown).toHaveBeenCalledWith("That job isn't paid yet, so it isn't on Posted. Open it to pay for it."));
     expect(loadApplications).not.toHaveBeenCalled();
   });
 });

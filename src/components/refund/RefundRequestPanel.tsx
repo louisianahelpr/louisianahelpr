@@ -63,7 +63,7 @@ function RefundRequestPanelOpen({
     setWithdrawing(true);
     try {
       await withdrawRefundRequest(request.id);
-      toast.success("Withdrawn. Nothing changes on the payment.");
+      toast("Withdrawn. Nothing changes on the payment.");
       try {
         await queryClient.invalidateQueries({ queryKey: ["refund-request", job.id] });
       } catch (refreshErr) {

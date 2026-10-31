@@ -5,8 +5,9 @@
  * off, booked pickup times kept), with what to do at each stop, the in-app map (DeliveryRouteMap:
  * numbered pins, the driving line, the next turn) and Open in Maps for voice turn-by-turn.
  *
- * Addresses follow helpr_task_view's rule: both, once the delivery is theirs (the drop-off from accept:
- * owner decided 2026-10-27), so the map and Open in Maps carry every stop from the start. No pay or fee figure is shown here (members never see fee numbers).
+ * Addresses follow helpr_task_view's rule: the pickup once the delivery is theirs; the drop-off by
+ * helpr_task_dropoff_shows_at (owner 2026-10-27, issue #3684: at once for a Helpr with a finished delivery, else 2 hours
+ * before the booked pickup or after Picked up; BUY-38). No pay or fee figure is shown here (members never see fee numbers).
  */
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";

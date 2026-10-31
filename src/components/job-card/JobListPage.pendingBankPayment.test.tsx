@@ -38,7 +38,7 @@ vi.mock("@/lib/pinnedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
 vi.mock("@/lib/archivedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),

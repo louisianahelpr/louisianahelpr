@@ -29,6 +29,7 @@ import { acceptRefundWithReturn } from "@/lib/declutter/refundReturns";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
+import { ProblemPhotos } from "./DeclutterProblemSides";
 import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
@@ -62,6 +63,12 @@ export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
  * gap is said in plain words, with no figure, wherever the full-refund amount is shown to the buyer.
  */
 const FULL_REFUND_WHY = "That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.";
+/**
+ * AUD31-37: on a Helpr-delivery order the delivery a Helpr made stays paid, so the full refund is not "all you paid":
+ * it is what was paid for the item. Said the same way, still with no fee name or figure.
+ */
+const FULL_REFUND_WHY_ITEM = "That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.";
+const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY);
 
 const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -126,22 +133,25 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       const paths = REFUND_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(v.order_id, photos) : [];
       return askRefund(v.order_id, reason, note.trim(), paths);
     },
-    onSuccess: () => { toast.success(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); setPhotos([]); refresh(); },
+    onSuccess: () => { toast(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); setPhotos([]); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const offer = useMutation({
     mutationFn: (accept: boolean) => answerRefundOffer(v.request?.id ?? "", accept),
-    onSuccess: (r) => { toast.success(r.result === "refunded" ? "Done. Your refund is on its way." : "Sent to Louisiana Helpr to decide."); refresh(); },
+    onSuccess: (r) => { toast(r.result === "refunded" ? "Done. Your refund is on its way." : "Sent to Louisiana Helpr to decide."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const withdraw = useMutation({
     mutationFn: () => withdrawRefund(v.request?.id ?? ""),
-    onSuccess: () => { toast.success("Refund request taken back."); refresh(); },
+    onSuccess: () => { toast("Refund request taken back."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Audit 2026-10-30 DB-11: "Take it back" ended the request in one tap. It asks first, in Declutter's one confirm
   // style, and says what follows: declutter_ask_refund refuses a second request on the same sale (measured live).
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  // BUY-10 (buying audit 10-30 #10): taking a part refund, or turning it down for Louisiana Helpr to decide, was one
+  // tap and final. Each asks first and says what ends.
+  const [answering, setAnswering] = useState<null | "take" | "ask">(null);
   const r = v.request;
   if (!r) {
     if (!v.can_ask) return null;
@@ -169,9 +179,9 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={ask.isPending} />}
         <p className="text-ds-12 text-muted-foreground">
-          {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(v.full_refund_cents)} back to your card
-          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund
-          you give the item back first; it is sent once {who} confirms they have it.
+          {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(reason === "not_received" ? v.never_got_it_refund_cents ?? v.full_refund_cents : v.full_refund_cents)} back to your card
+          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}.{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "}
+          {reason === "not_received" ? `Since you never got it, there's nothing to give back: if ${who} agrees, it is sent right away.` : `For a full refund you give the item back first; it is sent once ${who} confirms they have it.`}
         </p>
         <div className="flex flex-wrap gap-2">
           <button type="button" className={primary} disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</button>
@@ -205,11 +215,25 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <div className="space-y-2" data-refund-offer="">
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={primary} disabled={offer.isPending} onClick={() => offer.mutate(true)}>
+            <button type="button" className={primary} disabled={offer.isPending} onClick={() => setAnswering("take")}>
               Take {refundDollars(r.offer_cents ?? 0)}
             </button>
-            <button type="button" className={btn} disabled={offer.isPending} onClick={() => offer.mutate(false)}>Ask Louisiana Helpr to decide</button>
+            <button type="button" className={btn} disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</button>
           </div>
+          <ConfirmSheet
+            open={answering !== null}
+            pending={offer.isPending}
+            title={answering === "ask" ? "Ask Louisiana Helpr to decide?" : `Take ${refundDollars(r.offer_cents ?? 0)} back?`}
+            confirmLabel={answering === "ask" ? "Ask Louisiana Helpr" : `Take ${refundDollars(r.offer_cents ?? 0)}`}
+            cancelLabel="Not now"
+            onConfirm={() => offer.mutate(answering === "take", { onSettled: () => setAnswering(null) })}
+            onClose={() => setAnswering(null)}
+            testId="refund-offer-answer"
+          >
+            {answering === "ask"
+              ? `${cap(who)}'s offer of ${refundDollars(r.offer_cents ?? 0)} ends, and Louisiana Helpr decides what, if anything, comes back to you.`
+              : `${refundDollars(r.offer_cents ?? 0)} comes back to your card and you keep the item. This ends your refund request.`}
+          </ConfirmSheet>
           {r.offer_answer_by && <p className="text-ds-12 text-muted-foreground">Answer by {at(r.offer_answer_by)}, or Louisiana Helpr decides.</p>}
         </div>
       );
@@ -217,7 +241,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2" data-refund-returning="">
           <p className="text-sm">
-            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
+            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span>
             {r.return_way ? "" : ` Give the item back; message ${who} from your order.`} Your refund is sent as soon as {who} confirms they have it.
           </p>
           <DeclutterReturnBuyer v={v} who={who} />
@@ -248,21 +272,28 @@ type Answer = "full" | "part" | "decline";
 
 function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }) {
   const refresh = useRefresh(v.order_id);
-  const [choice, setChoice] = useState<Answer>("full");
+  // BUY-26: nothing is picked for the seller, and sending asks once, naming the money.
+  const [choice, setChoice] = useState<Answer | null>(null);
+  const [askingSend, setAskingSend] = useState(false);
+  const neverGotIt = v.request?.reason === "not_received";
+  const neverGotItCents = v.never_got_it_refund_cents ?? v.full_refund_cents;
+  const canDropOff = v.can_drop_off !== false;
   // Owner 2026-10-21: the amount starts EMPTY.
   const [amount, setAmount] = useState("");
   const offerCents = offerCentsFromInput(amount);
   // Declutter returns: the way back is picked with "Refund in full" and sent in the same call.
-  const [pick, setPick] = useState(emptyReturnPick);
+  const [pick, setPick] = useState(() => emptyReturnPick(canDropOff));
   const pickArgs = returnPickArgs(pick);
   const send = useMutation({
     mutationFn: (): Promise<{ result: string }> => {
       const r = v.request;
-      if (r && choice === "full" && pickArgs) return acceptRefundWithReturn(r.id, pick.way, pickArgs.day, pickArgs.atIso);
-      return answerRefund(r?.id ?? "", choice, choice === "part" ? offerCents : null);
+      // BUY-25: on "never got it" there is no way back to pick, and the refund goes at once.
+      if (r && choice === "full" && pickArgs && !neverGotIt) return acceptRefundWithReturn(r.id, pick.way, pickArgs.day, pickArgs.atIso);
+      return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null);
     },
     onSuccess: (r) => {
-      toast.success(r.result === "returning" ? "Agreed. Tap I got it back once you have the item." : r.result === "offered" ? "Offer sent." : "Answer sent.");
+      toast(r.result === "returning" ? "Agreed. Tap I got it back once you have the item." : r.result === "refunded" ? "Refund sent. The buyer is told." : r.result === "offered" ? "Offer sent." : "Answer sent.");
+      setAskingSend(false);
       refresh();
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -272,7 +303,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   const { user } = useAuthReady();
   const back = useMutation({
     mutationFn: async () => confirmItemReturned(v.request?.id ?? "", await sellerReturnPhotoPath(user?.id, v.order_id, backPhoto)),
-    onSuccess: () => { toast.success("Refund sent. The buyer is told."); refresh(); },
+    onSuccess: () => { toast("Refund sent. The buyer is told."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const r = v.request;
@@ -315,6 +346,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
       <p className="text-sm">
         <span className="font-medium">{REFUND_REASON_WORDS[r.reason]}.</span> {cap(who)} says: "{r.note}"
       </p>
+      <ProblemPhotos paths={r.photo_paths ?? []} />
       {/* D2-15: the app's one "pick one" list, not browser radios. */}
       <RadioCardList
         label="Your answer"
@@ -323,24 +355,41 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
           {
             value: "full",
             label: "Refund in full",
-            sub: `${cap(who)} gives the item back, then gets ${refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.`,
+            sub: neverGotIt
+              ? `${cap(who)} gets ${refundDollars(neverGotItCents)} back now. There's nothing to bring back. You get no payout for this sale, and what the card network kept for the payment comes out of your next sale's payout.`
+              : `${cap(who)} gives the item back, then gets ${refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.`,
           },
           { value: "part", label: "Offer part of it", sub: `${cap(who)} keeps the item; the amount comes out of your payout.` },
           { value: "decline", label: "I don't agree", sub: `${cap(who)} can ask Louisiana Helpr to decide.` },
         ]}
-        value={choice}
+        value={choice ?? ""}
         onChange={(c, via) => { if (via === "click") hapticLight(); setChoice(c as Answer); }}
       />
-      {choice === "full" && <DeclutterReturnWayPicker id={id} who={who} value={pick} onChange={setPick} />}
+      {choice === "full" && !neverGotIt && <DeclutterReturnWayPicker id={id} who={who} canDropOff={canDropOff} value={pick} onChange={setPick} />}
       {choice === "part" && (
         <div>
           <label htmlFor={`${id}-amount`} className="block text-xs font-medium">How much back? (less than {refundDollars(v.items_cents)})</label>
           <input id={`${id}-amount`} className={amountInput} inputMode="decimal" value={amount} placeholder="$" onChange={(e) => setAmount(e.target.value)} />
         </div>
       )}
-      <button type="button" className={primary} disabled={send.isPending || (choice === "part" && offerCents === null) || (choice === "full" && !pickArgs)} onClick={() => send.mutate()}>
+      <button type="button" className={primary} disabled={send.isPending || !choice || (choice === "part" && offerCents === null) || (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}>
         Send answer
       </button>
+      <ConfirmSheet
+        open={askingSend}
+        pending={send.isPending}
+        title={choice === "full" ? "Refund in full?" : choice === "part" ? "Send this offer?" : "Say no to the refund?"}
+        confirmLabel={send.isPending ? "Sending…" : "Send answer"}
+        cancelLabel="Not yet"
+        onConfirm={() => send.mutate(undefined, { onSettled: () => setAskingSend(false) })}
+        onClose={() => setAskingSend(false)}
+        testId="refund-answer"
+      >
+        {choice === "full"
+          ? (neverGotIt ? `This sends ${refundDollars(neverGotItCents)} back to ${who} now, and you get no payout for this sale. What the card network kept for the payment comes out of your next sale's payout. It can't be undone.` : `Once you have the item back, ${who} gets ${refundDollars(v.full_refund_cents)} and you get no payout for this sale.`)
+          : choice === "part" ? `${cap(who)} can take ${refundDollars(offerCents ?? 0)}, which comes out of your payout, or ask Louisiana Helpr to decide.`
+          : `${cap(who)} can still ask Louisiana Helpr to decide. Your payout waits until then.`}
+      </ConfirmSheet>
       <p className="text-ds-12 text-muted-foreground">Answer by {at(r.answer_by)} or Louisiana Helpr decides. Your payout waits until then.</p>
     </fieldset>
   );

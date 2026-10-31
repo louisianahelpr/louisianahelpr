@@ -143,9 +143,22 @@ function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: stri
   return j.status === "cancelled" && !!j.poster_marked_done_at;
 }
 
-export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
+/**
+ * NIGHT-JOBSLO6-1: a job with a start time is never overdue sooner than this after its start, so one that starts late in
+ * the evening is not "Late" at midnight. Only a start after 9 PM is touched; a job's day passing is otherwise the rule
+ * (a multi-day job is overdue the next day by design; `stalled` is its scheduled end + 2 h).
+ */
+export const LATE_AFTER_START_HOURS = 3;
+
+export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null; start_time?: string | null }): boolean {
   if (j.status === "completed" || j.status === "cancelled") return false;
-  return isPastDue(j.date_needed);
+  if (!isPastDue(j.date_needed)) return false;
+  // NIGHT-JOBSLO6-1: an 11 PM job was "Late" at midnight while the Helpr was on time. With a start time, the day
+  // passing is not enough: LATE_AFTER_START_HOURS from the start must have passed too. No start time (or Flexible):
+  // jobStartDateTime gives the day's midnight, so the day passing decides, as before.
+  const start = jobStartDateTime(j.date_needed, j.start_time);
+  if (!start) return true;
+  return Date.now() >= start.getTime() + LATE_AFTER_START_HOURS * 3_600_000;
 }
 
 
@@ -380,7 +393,7 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
     // Underway, day gone, nothing submitted — the helpr's move. Mirrors the
     // poster side so the same job never reads "Scheduled" to one party and
     // overdue to the other.
-    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    if (jobIsOverdue({ ...app.job, status: jobStatus })) return "needs_you";
     // ARRIVED, WAITING ON THE POSTER'S CONFIRM (item 10): Start working is locked on the arrival rule and the card
     // says "Waiting on <name> to confirm you arrived", so it is filed under Waiting, not Needs you. An owed before
     // photo is still this Helpr's move.
@@ -395,7 +408,7 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   }
   if (app.status === "accepted") {
     // A booking whose day has passed and which never even started.
-    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    if (jobIsOverdue({ ...app.job, status: jobStatus })) return "needs_you";
     // The day is here and they accepted it — today is theirs to turn up for.
     return agreedJobStage({ ...app.job, status: jobStatus }, "helper") === "scheduled" ? "scheduled" : "needs_you";
   }

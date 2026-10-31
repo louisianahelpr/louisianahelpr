@@ -20,7 +20,7 @@ import { PLACE_CARD_EDGE, SellPorchPlaces } from "./SellPorchPlaces";
 
 export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
   porch: { title: "Porch pickup", words: "You leave it out and the buyer picks it up. You don't have to meet.", icon: DoorOpen },
-  seller_delivery: { title: "I'll deliver", words: "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under \"I can deliver\" in Declutter settings.", icon: Truck },
+  seller_delivery: { title: "I'll deliver", words: "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under it in Declutter settings.", icon: Truck },
   meetup: { title: "Safe meeting spot", words: "Meet at a public spot near you, like a police station lobby. Your address stays private.", icon: Users },
   delivery: { title: "Helpr delivery", words: "A local Helpr picks it up and brings it to the buyer, who pays for it.", icon: MapPin },
 };
@@ -40,8 +40,8 @@ export function handoverSummary(ways: SellerHandover[]): string {
   return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
 }
 
-/** On Declutter settings itself the "I can deliver" card is further down the same page, so the tile doesn't send them to it. */
-const DELIVER_WORDS_ON_SETTINGS = "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under \"I can deliver\" below.";
+/** On Declutter settings the price and times open under this tile once it is ticked (LEAD-DELIVER-TWICE), so no pointer. */
+const DELIVER_WORDS_ON_SETTINGS = "You bring it to the buyer for your delivery price, at a time they pick.";
 
 /**
  * The tick tiles themselves, shared by this step and the listing defaults in Declutter settings. `fixed`: ticked and

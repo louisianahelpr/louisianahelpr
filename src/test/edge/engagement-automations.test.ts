@@ -456,6 +456,22 @@ describe("engagement-automations edge function", () => {
       expect(revenueRead!.filters).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
     });
 
+    // Owner rule (test data never shows to the owner), b29 10-31: the digest's sign-up, posted and completed counts
+    // read real members and real jobs only, like its revenue line.
+    // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
+    // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
+    // @mutate supabase/functions/engagement-automations/index.ts | .select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false) | .select('id', { count: 'exact', head: true }).eq('status', 'completed')
+    it("the digest's sign-up, posted and completed counts leave out test accounts and test jobs", async () => {
+      const fn = await loadConfigured();
+      seedAdmin();
+
+      await fn.fetch(cronRequest(fn));
+
+      const counts = (scenario.readQueries ?? []).filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
+      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "profiles"]);
+      for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+    });
+
     it("HONOURS the suppression list for the admin digest too", async () => {
       // The file's own header says the hard list "applies to EVERY send below,
       // transactional included, because continuing to mail a hard-bounced

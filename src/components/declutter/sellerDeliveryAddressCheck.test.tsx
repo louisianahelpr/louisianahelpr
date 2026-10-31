@@ -9,7 +9,12 @@
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onError: (err) => setFailed(sellerDeliveryErrorMessage(err)), |     onError: () => undefined,
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onChecked(null); },
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onSlot(null); },
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onChange={(e) => { setAddress(e.target.value); setFailed(null); if (checked | onChange={(e) => { setAddress(e.target.value); if (checked
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); setFailed(null); if (checked | onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); if (checked
+ * BUY-9 (buying audit 10-30 #9): switching between Seller delivers and Helpr delivery showed an empty Deliver to box
+ * again. Both boxes now carry what the buyer typed in this checkout (it still has to be checked / priced).
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx |   const [address, setAddress] = useState(checked ?? typed); |   const [address, setAddress] = useState(checked ?? "");
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx | setAddress(e.target.value); onTyped?.(e.target.value); | setAddress(e.target.value);
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |           typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }} |
  */
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -18,7 +23,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 
 const state = { fail: true };
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
   quoteSellerDelivery: async () => {
@@ -28,6 +33,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
 }));
 
 import { SellerDeliveryPicker } from "./SellerDeliveryChoice";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 const SLOT = "2026-11-03T15:00:00.000Z";
 const OFFER: SellerDeliveryOffer = {
@@ -97,5 +105,27 @@ describe("a failed delivery address check is said, and never lets checkout throu
     fireEvent.click(screen.getByRole("button", { name: "Check" }));
     await screen.findByRole("alert");
     expect(screen.queryByRole("radiogroup", { name: "Delivery time" })).toBeNull();
+  });
+});
+
+describe("BUY-9: the Deliver to address is typed once per checkout", () => {
+  it("the seller-delivery box opens with what was typed in the Helpr box, and reports its own typing back", () => {
+    const onTyped = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <SellerDeliveryPicker sellerId="s1" offer={OFFER} state="address" slot={null} onSlot={() => undefined} onOffer={() => undefined}
+          handoff={null} onHandoff={() => undefined} checked={null} onChecked={() => undefined} typed="9 Elm St, Lafayette" onTyped={onTyped} />
+      </QueryClientProvider>,
+    );
+    const box = screen.getByLabelText(/Deliver to/) as HTMLInputElement;
+    expect(box.value).toBe("9 Elm St, Lafayette");
+    fireEvent.change(box, { target: { value: "12 Oak St, Lafayette" } });
+    expect(onTyped).toHaveBeenLastCalledWith("12 Oak St, Lafayette");
+  });
+
+  it("the cart hands the one typed address to the seller-delivery box and takes its typing back (source)", () => {
+    const cart = blankComments(readFileSync(resolve(__dirname, "DeclutterTradeViews.tsx"), "utf8"));
+    expect(cart).toContain("typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}");
   });
 });

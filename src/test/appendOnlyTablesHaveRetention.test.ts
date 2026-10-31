@@ -54,6 +54,7 @@ const sql = `${outsideFunctions}\n${liveFunctionBodies}`;
 const NO_AGE_PRUNE: Record<string, string> = {
   helpr_task_events: "The step history of a Helpr delivery (taken, picked up, wrong code, delivered, confirmed): the evidence an admin decides a delivery problem or damage with, and the record of money owed to a Helpr; rows go with their task (ON DELETE CASCADE), 20261017055505.",
   declutter_offer_events: "The step history of a Declutter offer (offer, counters, accept/decline): the record of a money agreement between two members; rows go with their offer (ON DELETE CASCADE), 20261014210518.",
+  account_deletion_log: "Timestamps only, no person and no account id (20261031205315): the count of deleted accounts the daily member summary reports. Kept like admin_audit_log as the platform's deletion record; lander 10, 10-31, flagged to the lead.",
   admin_audit_log: "The record of what admins did to accounts and money; kept for the life of the platform.",
   paypal_webhook_events: "The verified record of what PayPal told us about money (captures, refunds, payouts, disputes), 20261023223419: reconciliation and dispute evidence read it, and its event-id key is what makes a redelivery a no-op. Kept like admin_audit_log.",
   str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync import the checkout (and notify the host) again. Rows go with their connection (ON DELETE CASCADE).",

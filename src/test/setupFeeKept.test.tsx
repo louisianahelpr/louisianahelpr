@@ -26,7 +26,7 @@ import { setupFeeReceiptNote, spentRows } from "@/lib/posterSpend";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { blankComments } from "./helpers/blankNonCode";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

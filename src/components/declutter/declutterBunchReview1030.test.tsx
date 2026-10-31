@@ -7,8 +7,6 @@
  * @mutate src/components/declutter/DeclutterBunchRow.tsx |       {open && <div className="border-t border-border">{children}</div>} |       <div className="border-t border-border">{children}</div>
  * @mutate src/components/declutter/DeclutterBunchRow.tsx |     if (nextPriceId) document.getElementById(nextPriceId)?.focus(); |     void nextPriceId;
  * @mutate src/components/declutter/DeclutterBunchRow.tsx | inputMode="decimal" enterKeyHint="next" | inputMode="decimal"
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     return new Set(live.length > 0 ? live : sortedItems.map((it) => it.key)); |     return new Set(sortedItems.map((it) => it.key));
- * @mutate src/lib/declutter/bunch.ts |     if (!it.aiPrice \|\| !Number.isFinite(was)) { |     if (false) {
  * Finding 3, photos:
  * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | onClick={() => setBig(k)} data-bunch-photo={k} | onClick={() => toggle(k)} data-bunch-photo={k}
  * @mutate src/lib/declutter/bunch.ts | { ...it, photoKeys: [photoKey, ...it.photoKeys.filter((k) => k !== photoKey)] } | it
@@ -38,7 +36,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |         {item.sizeUnknown && ( |         {true && (
  * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null; |   return null;
  * The moving sale:
- * @mutate src/lib/declutter/bunch.ts |         id = choices.moveOutOn\n          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n          : await deps.createDraft(fields); |         id = await deps.createDraft(fields);
+ * @mutate src/lib/declutter/bunch.ts |           id = choices.moveOutOn\n            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n            : await deps.createDraft(fields, appId); |           id = await deps.createDraft(fields, appId);
  * @mutate src/components/declutter/DeclutterBunchView.tsx | { ...choices.choices, moveOutOn: moveDate \|\| null }, | choices.choices,
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const showMove = movingOpen && (moving \|\| !!moveDate); |   const showMove = false;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (moveDate ? moveDateProblem(moveDate, today) : null)\n |
@@ -60,6 +58,15 @@ const state = vi.hoisted(() => ({
   hold: null as Promise<void> | null,
 }));
 
+// LEAD-BUNCH-34-SLOW: no early photo uploads here (they would reach prod storage); declutterBunchEarlyUpload.test.ts pins them.
+vi.mock("@/lib/declutter/bunchStage", () => ({
+  BunchStager: class {
+    idFor() { return undefined; }
+    path() { return Promise.resolve(null); }
+    used() {}
+    sync() { return new Map(); }
+  },
+}));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -125,7 +132,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 });
 
 import BunchFlow from "./DeclutterBunchView";
-import { addPhotosToItem, blankItem, bulkEdit, bunchItemNeed, bunchItemProblem, bunchNeedsLine, editBunchItem, itemsFromAnswer, listingProgressLine, makeCover, mergeItems, mergePriceClash, percentOffSuggested, sortProgressLine, takePhotoOff } from "@/lib/declutter/bunch";
+import { addPhotosToItem, blankItem, bulkEdit, bunchItemNeed, bunchItemProblem, bunchNeedsLine, editBunchItem, itemsFromAnswer, listingProgressLine, makeCover, mergeItems, mergePriceClash, sortProgressLine, takePhotoOff } from "@/lib/declutter/bunch";
 
 const realListBunch = async () => (await vi.importActual<typeof import("@/lib/declutter/bunch")>("@/lib/declutter/bunch")).listBunch;
 
@@ -168,7 +175,7 @@ async function listNow() {
   fireEvent.click(list);
 }
 
-describe("finding 2: compact rows, and changes for many at once", () => {
+describe("finding 2: compact rows, each edited on its own", () => {
   it("a closed row has its picture, name, category and condition, price in place, and no form until it's tapped", async () => {
     await open();
     expect(rows()).toHaveLength(3);
@@ -190,46 +197,22 @@ describe("finding 2: compact rows, and changes for many at once", () => {
     expect(document.activeElement).toBe(second);
   });
 
-  it("with nothing chosen a change is for every item, and says so; with some chosen, only those", async () => {
+  // LEAD-BUNCH-REMOVE-PCT (owner 2026-10-31): no bulk-edit box and no per-item choose boxes; each item is edited on its
+  // own (tap to open, the price on its row). The bulk helper stays only for a merge's "use the other price".
+  // @mutate src/components/declutter/DeclutterBunchRow.tsx |       <div className="flex items-center gap-2 p-2">\n | <div className="flex items-center gap-2 p-2"><input type="checkbox" aria-label={`Choose ${name}`} />\n
+  it("there is no bulk-edit box and no choose boxes: each item is edited on its own", async () => {
     await open();
-    const bulk = document.querySelector("[data-bunch-bulk]") as HTMLElement;
-    expect(bulk.textContent).toContain("These change all 3.");
-    fireEvent.click(within(bulk).getByRole("button", { name: "Make free" }));
-    expect(rows().every((r) => r.querySelector("[data-bunch-row-free]"))).toBe(true);
-    undo();
-    expect(rows().some((r) => r.querySelector("[data-bunch-row-free]"))).toBe(false);
-
-    fireEvent.click(within(row("i2")).getByRole("checkbox", { name: "Choose Brass lamp" }));
-    expect(bulk.textContent).toContain("These change the 1 you chose.");
-    fireEvent.click(within(bulk).getByRole("button", { name: "Set price" }));
-    fireEvent.change(within(bulk).getByLabelText("Price for these items ($)"), { target: { value: "25" } });
-    fireEvent.click(within(bulk).getByRole("button", { name: "Apply" }));
-    expect((row("i2").querySelector("input[aria-label='Price ($)']") as HTMLInputElement).value).toBe("25");
-    expect((row("i1").querySelector("input[aria-label='Price ($)']") as HTMLInputElement).value).toBe("40");
+    expect(document.querySelector("[data-bunch-bulk]")).toBeNull();
+    expect(screen.queryByText(/These change all|Choose all|% off suggested|Price below our suggestion/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Set price|Make free|Set condition)$/ })).toBeNull();
+    expect(screen.queryAllByRole("checkbox", { name: /^Choose / })).toHaveLength(0);
+    expect(rows().length).toBeGreaterThan(1);
   });
 
-  it("percent off works from each suggestion, says what it left alone, and a condition reaches every row", async () => {
-    await open();
-    const bulk = document.querySelector("[data-bunch-bulk]") as HTMLElement;
-    fireEvent.click(within(bulk).getByRole("button", { name: "% off suggested" }));
-    fireEvent.change(within(bulk).getByLabelText("Percent off our suggested prices"), { target: { value: "50" } });
-    fireEvent.click(within(bulk).getByRole("button", { name: "Apply" }));
-    expect((row("i1").querySelector("input[aria-label='Price ($)']") as HTMLInputElement).value).toBe("20");
-    expect((row("i2").querySelector("input[aria-label='Price ($)']") as HTMLInputElement).value).toBe("");
-    expect(undoBar()!.textContent).toContain("Took 50% off 2 items. 1 with no suggestion was left alone.");
-    fireEvent.click(within(bulk).getByRole("button", { name: "Set condition" }));
-    fireEvent.change(within(bulk).getByLabelText("Condition for these items"), { target: { value: "2" } });
-    fireEvent.click(within(bulk).getByRole("button", { name: "Apply" }));
-    expect(state.listed).toEqual([]);
-    expect(row("i1").textContent).not.toContain("Like new");
-  });
-
-  it("bulk helpers: only those items, a whole dollar, never under $1, and free ones untouched", () => {
+  it("bulkEdit: only those items", () => {
     const a = { ...blankItem(["a"]), key: "a", price: "3", aiPrice: "3" };
     const b = { ...blankItem(["b"]), key: "b", price: "9", aiPrice: "9", free: true };
     expect(bulkEdit([a, b], new Set(["a"]), { conditionStars: 1 })[1].conditionStars).toBe(3);
-    const off = percentOffSuggested([a, b], new Set(["a", "b"]), 90);
-    expect([off.items[0].price, off.items[1].price, off.changed, off.skipped]).toEqual(["1", "9", 1, 0]);
   });
 });
 
@@ -420,7 +403,7 @@ describe("finding 14: saved drafts are named, and one with no photos is linked, 
 
 describe("finding 16: progress talks about the seller's things", () => {
   it("sorting says what's found and how long is left, never batches", () => {
-    expect(sortProgressLine(2, 10, 5)).toBe("Found 5 items so far. About 1 minute left.");
+    expect(sortProgressLine(2, 14, 5)).toBe("Found 5 items so far. About 1 minute left.");
     expect(sortProgressLine(0, 1, 0)).toBe("Looking through your photos. Less than a minute left.");
     expect(sortProgressLine(0, 10, 0)).not.toMatch(/batch/);
   });

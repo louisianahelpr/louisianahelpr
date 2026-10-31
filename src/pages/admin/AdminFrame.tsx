@@ -4,6 +4,7 @@ import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import AdminSectionHeader from "@/components/admin/AdminSectionHeader";
+import { ADMIN_PHONE_TITLES } from "@/components/admin/adminNavGroups";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 
@@ -46,7 +47,7 @@ export function AdminFrame({
   // be a row of its own inside the scroll container, ~100px under the bar.
   // Guard: src/test/adminTitleInTopBar.test.tsx.
   const header = view !== "home"
-    ? <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />
+    ? <AdminSectionHeader title={viewLabels[view]} phoneTitle={ADMIN_PHONE_TITLES[view]} onBack={() => handleViewChange("home")} />
     : null;
   return (
     <>

@@ -41,7 +41,7 @@ vi.mock("@/integrations/supabase/client", () => {
   };
   return { supabase: { from: (t: string) => chain(t), rpc } };
 });
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 
 import { SeriesDatesPanel } from "./SeriesDatesPanel";
 import { fetchSeriesDates, foldSeriesDates } from "@/lib/seriesDates";
@@ -147,7 +147,7 @@ describe("SeriesDatesPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: /A date opened up — pick it up/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
     fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("That date is already yours."));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("That date is already yours."));
     expect(toast.error).not.toHaveBeenCalled();
   });
 

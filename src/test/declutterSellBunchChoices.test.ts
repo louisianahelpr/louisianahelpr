@@ -4,12 +4,12 @@
  * Before this every bunch item was saved with its lowest price = its price (it never dropped) and without Keep it up,
  * and a price under $1 was refused, so nothing could be given away.
  *
- * @mutate src/lib/declutter/bunch.ts |       if (!it.free) await deps.setDropPct(id, choice.dropPct); |       void choice.dropPct;
- * @mutate src/lib/declutter/bunch.ts |       if (choices.keepUp) { |       if (false) {
- * @mutate src/lib/declutter/bunch.ts |       await deps.setHandovers(id, it.free ? ["porch"] : ways); |       await deps.setHandovers(id, ways);
+ * @mutate src/lib/declutter/bunch.ts |         if (!it.free) await deps.setDropPct(draftId, choice.dropPct); |         void choice.dropPct;
+ * @mutate src/lib/declutter/bunch.ts |         if (!choices.keepUp) return false; |         if (true) return false;
+ * @mutate src/lib/declutter/bunch.ts |         await deps.setHandovers(draftId, it.free ? ["porch"] : ways); |         await deps.setHandovers(draftId, ways);
  * @mutate src/lib/declutter/bunch.ts |   const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" }) |   const row = moveRowProblem({ title: it.title, price: it.price, floor: "" })
  * @mutate src/lib/declutter/bunch.ts | floor: floorFromPct(dollars, choices.floorPct) | floor: dollars
- * @mutate src/lib/declutter/bunch.ts |           keepUpFailed = true; |           keepUpFailed = false;
+ * @mutate src/lib/declutter/bunch.ts |           console.warn("[declutter] could not turn on Keep it up", err);\n          return true; |           console.warn("[declutter] could not turn on Keep it up", err);\n          return false;
  */
 import { describe, expect, it, vi } from "vitest";
 import { blankItem, bunchItemProblem, bunchListable, listBunch, type BunchChoices, type BunchItem, type ListDeps } from "@/lib/declutter/bunch";
@@ -34,6 +34,7 @@ function deps(over: Partial<ListDeps> = {}): ListDeps {
     setHandovers: vi.fn(async (_id, w) => w),
     setDropPct: vi.fn(async (_id, p) => p),
     setKeepUp: vi.fn(async (_id, on) => on),
+    setOfferRules: vi.fn(async () => {}),
     publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
     ...over,
   };
@@ -57,21 +58,21 @@ describe("Sell a bunch: the batch's choices reach each item", () => {
   it("drops on: the lowest price is the seller's share of the price, and the step is saved", async () => {
     const d = deps();
     await run([item({ price: "$1,000" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100_000, floorPriceCents: 50_000 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100_000, floorPriceCents: 50_000 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 10);
   });
 
   it("drops off: the lowest price is the price, and the step is 0", async () => {
     const d = deps();
     await run([item({})], d, OFF);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
   });
 
   it("a $1 item has nothing lower to drop to: it lists with no drops", async () => {
     const d = deps();
     const out = await run([item({ price: "1" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100, floorPriceCents: 100 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 100, floorPriceCents: 100 }), expect.any(String));
     expect(d.setDropPct).toHaveBeenCalledWith("id1", 0);
     expect(out[0]).toMatchObject({ status: "live" });
   });
@@ -96,7 +97,7 @@ describe("Sell a bunch: the batch's choices reach each item", () => {
   it("a free item: price and lowest price 0, porch pickup only, no drop step, still lists", async () => {
     const d = deps();
     const out = await run([item({ free: true, price: "" })], d, ON);
-    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 0, floorPriceCents: 0 }));
+    expect(d.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 0, floorPriceCents: 0 }), expect.any(String));
     expect(d.setHandovers).toHaveBeenCalledWith("id1", ["porch"]);
     expect(d.setDropPct).not.toHaveBeenCalled();
     expect(out[0]).toMatchObject({ status: "live" });

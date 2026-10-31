@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
@@ -7,6 +7,10 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
+
+// SS-4's pill loads on demand: a static import here split SaveSearchButton and its sheet into chunks of their own
+// and put both names in the entry chunk's preload list (entry 5.8 KB gz, over the 5.5 KB budget; Q178).
+const SaveSearchButton = lazy(() => import("@/components/savedSearches/SaveSearchButton").then((m) => ({ default: m.SaveSearchButton })));
 
 /**
  * BrowseTasksToolbar — the Browse feed's control strip: the
@@ -154,6 +158,25 @@ export function BrowseTasksToolbar({
           screen has no visible title by design ("home will not have a
           title just the H logo"). */}
       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}
+
+      {/* NIGHT-SAVEDS1-SS-4: the Saved searches empty state says "Search in Jobs or Declutter, then tap Save this
+          search", and Jobs Browse had no such pill (only the named dialog in Filters). The same pill as Declutter's,
+          shown when a filter a saved search keeps is on: words, category, price, distance. The dialog stays. */}
+      {user && (filters.searchQuery.trim() || filters.selectedCategory || filters.minBudget || filters.maxBudget || (filters.nearbyMiles !== null && !filters.nearbyUnavailable)) && (
+        <Suspense fallback={null}>
+        <SaveSearchButton
+          userId={user.id}
+          draft={{
+            section: "jobs",
+            query: filters.searchQuery.trim(),
+            category: filters.selectedCategory,
+            minDollars: filters.minBudget ? Number(filters.minBudget) : null,
+            maxDollars: filters.maxBudget ? Number(filters.maxBudget) : null,
+            radiusMiles: filters.nearbyUnavailable ? null : filters.nearbyMiles,
+          }}
+        />
+        </Suspense>
+      )}
 
       {/* NO category chip row under "Search jobs" (owner 2026-10-21: "remove
           the category chip row ... categories live only in the filter

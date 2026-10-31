@@ -28,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => {
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data: latestRow, error: null }));
   return { supabase: { ...chain, rpc: (...a: unknown[]) => rpc(...a) } };
 });
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn(), hapticLight: vi.fn() }));
 // The switch is on for this viewer; the provider is what reads it.

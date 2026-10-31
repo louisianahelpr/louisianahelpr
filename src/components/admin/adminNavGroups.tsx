@@ -42,6 +42,16 @@ import {
  * Every `id` is a `?view=` value that /admin already deep-links on, so the side
  * panel links straight to `/admin?view=<id>` with no new routing.
  */
+/**
+ * AUD31-48 (audit 10-31, 375): a phone's admin top bar has room for about "Notification logs"; "License & insur…"
+ * and "Exception que…" were cut. These views take a shorter title in that bar only; the desktop bar, the rail and
+ * the tab title keep the full name.
+ */
+export const ADMIN_PHONE_TITLES: Readonly<Record<string, string>> = {
+  credentials: "Licenses",
+  exceptions: "Exceptions",
+};
+
 export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Overview",

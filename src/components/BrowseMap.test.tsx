@@ -223,6 +223,53 @@ describe("BrowseMap pins", () => {
   });
 });
 
+// NIGHT-JOBSMA5-1 (audit 10-30 night, High): get_open_jobs_for_map rounds points to 2 decimals, so two jobs in one
+// rounded square share a coordinate; pressing their cluster only zoomed, and the bubble stayed "2" at street level.
+// A cluster no zoom can split now lists its jobs, each opening the job; one that can split still zooms.
+// @mutate src/components/browseMap/ClusterList.tsx |   const lists = clusterCannotSplit(coords); |   const lists = false;
+// @mutate src/components/browseMap/mapMarkers.ts |   return Math.max(...lats) - Math.min(...lats) < CLUSTER_SPLIT_DEG && | return false && Math.max(...lats) - Math.min(...lats) < CLUSTER_SPLIT_DEG &&
+// @mutate src/components/BrowseMap.tsx | onOpen={(id) => { setClusterJobIds(null); onJobAction?.(id); }} | onOpen={() => setClusterJobIds(null)}
+describe("BrowseMap clusters that can't be split (NIGHT-JOBSMA5-1)", () => {
+  type Ann = { coordinate: unknown; factory: () => HTMLElement; options?: { data?: unknown } };
+  async function pressCluster(onJobAction = vi.fn()) {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap onJobAction={onJobAction} />);
+    await waitFor(() => expect(mapInstances.length).toBeGreaterThan(0));
+    const map = mapInstances[mapInstances.length - 1] as unknown as (typeof mapInstances)[number] & { annotationForCluster?: (c: unknown) => Ann };
+    await waitFor(() => expect(map.addAnnotations).toHaveBeenCalled());
+    const calls = map.addAnnotations.mock.calls;
+    const pins = calls[calls.length - 1]?.[0] as Ann[];
+    const cluster = map.annotationForCluster!({ coordinate: pins[0].coordinate, memberAnnotations: pins.map((a) => ({ coordinate: a.coordinate, data: a.options?.data })) });
+    const el = cluster.factory();
+    document.body.appendChild(el);
+    const zoomsBefore = map.setRegionAnimated.mock.calls.length;
+    fireEvent.click(el);
+    return { el, map, zoomsBefore, onJobAction };
+  }
+
+  it("jobs on one rounded point: the press lists them, each opens its job, and nothing zooms", async () => {
+    rpcResolver.value = [makeJob(1, { latitude: 30.45, longitude: -91.17 }), makeJob(2, { latitude: 30.45, longitude: -91.17, title: "Mow the back lawn" })];
+    const { el, map, zoomsBefore, onJobAction } = await pressCluster();
+    expect(el.getAttribute("aria-label")).toBe("2 jobs in this area — show them");
+    const list = await screen.findByTestId("browse-map-cluster-list");
+    expect(list).toHaveAccessibleName("2 jobs in this area");
+    expect(map.setRegionAnimated.mock.calls.length).toBe(zoomsBefore);
+    fireEvent.click(screen.getByRole("button", { name: /Mow the back lawn/ }));
+    expect(onJobAction).toHaveBeenCalledWith("job-2");
+    expect(screen.queryByTestId("browse-map-cluster-list")).toBeNull();
+    el.remove();
+  });
+
+  it("jobs that zooming can separate: the press zooms, as before, and lists nothing", async () => {
+    rpcResolver.value = [makeJob(1), makeJob(2)];
+    const { el, map, zoomsBefore } = await pressCluster();
+    expect(el.getAttribute("aria-label")).toBe("2 jobs in this area — zoom in to see them");
+    expect(map.setRegionAnimated.mock.calls.length).toBe(zoomsBefore + 1);
+    expect(screen.queryByTestId("browse-map-cluster-list")).toBeNull();
+    el.remove();
+  });
+});
+
 // B1/B3 (owner live-QA 2026-09-15): the list feed hides jobs the viewer has
 // applied to, but the map kept their pins — so an applied job pinned the map
 // and its detail dialog still offered "Apply now." The map now drops applied

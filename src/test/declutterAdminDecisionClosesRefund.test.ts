@@ -16,9 +16,9 @@
  * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |      WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin'; |      WHERE false;
  * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |        SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
  * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |           refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.'\n | \n
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.'\n | \n
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
+ * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

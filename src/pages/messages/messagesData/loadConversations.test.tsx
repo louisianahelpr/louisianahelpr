@@ -39,7 +39,7 @@ vi.mock("@/lib/threadMutes", () => ({
   getMutedThreadMap: async () => new Map(),
   threadMuteKey: (jobId: string, otherUserId: string) => `${jobId}_${otherUserId}`,
 }));
-vi.mock("sonner", () => ({ toast: { warning: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { fetchConversations, buildDeepLinkPlaceholder } from "./loadConversations";

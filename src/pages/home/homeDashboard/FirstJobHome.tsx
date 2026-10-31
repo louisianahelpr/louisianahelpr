@@ -1,4 +1,3 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
@@ -6,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { hasIdBadge } from "@/lib/awardGate";
-import { openIdentityCheck } from "@/lib/identityCheck";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { JobPrice } from "@/components/dashboard/JobPrice";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -110,40 +107,22 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
   const payoutsDone = profile?.stripe_payouts_enabled === true;
   // Not while the profile is still loading (null is not "not set up").
   const payoutStepPaused = setupPaused && !!profile && !payoutsDone;
-  // The ID step only while the ID check is on (switch `identity_check`, owner 2026-10-23: off).
-  const idOn = useIdentityCheckOnStore();
+  // AUD31-65: no ID step. Owner rule: the ID check happens once, at hire or first payout, never at sign-up, post,
+  // buy or list (the hire and payout doors ask for it themselves).
   const allSteps = [
-    { key: "id", label: "Verify your ID", done: hasIdBadge(profile?.idv_status), go: () => openIdentityCheck("general") },
     { key: "skills", label: skills ? `Pick what you do: ${skills}` : "Pick what you do", done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
     { key: "about", label: "Add a photo and a line about you", done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
     { key: "payouts", label: "Add your payout bank", done: payoutsDone, go: () => navigate("/profile?tab=payment") },
     { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
   ];
-  const steps = allSteps.filter((st) => (st.key !== "payouts" || !payoutStepPaused) && (st.key !== "id" || idOn));
+  const steps = allSteps.filter((st) => st.key !== "payouts" || !payoutStepPaused);
   const jobs = near.data ?? [];
 
   return (
     <div className="flex flex-col gap-section" data-testid="first-job-home">
       <section aria-label="Get your first job" className="liquid-glass p-card flex flex-col gap-1">
         <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Get your first job</h2>
-        <ul className="flex flex-col">
-          {steps.map((s) => (
-            <li key={s.key}>
-              <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
-                <span
-                  className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
-                  aria-hidden
-                >
-                  {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                </span>
-                <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
-                  {s.label}
-                  <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ChecklistSteps steps={steps} />
         {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
       </section>
 
@@ -198,5 +177,30 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
         </p>
       </section>
     </div>
+  );
+}
+
+/** One checklist row per step: a tick when done, the label, and the whole row goes to where the step is done. Shared by
+ *  the first-job card and the poster's first-job card (UX-5) so the two look alike. */
+export function ChecklistSteps({ steps }: { steps: { key: string; label: string; done: boolean; go: () => void }[] }) {
+  return (
+    <ul className="flex flex-col">
+      {steps.map((s) => (
+        <li key={s.key}>
+          <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
+            <span
+              className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
+              aria-hidden
+            >
+              {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+            </span>
+            <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
+              {s.label}
+              <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

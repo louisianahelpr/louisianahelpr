@@ -101,10 +101,12 @@ export function ActiveJobSection({
     payoutUnlocksAt != null &&
     now < payoutUnlocksAt;
   useEffect(() => {
-    if (!payoutGateClosed) return;
+    if (!payoutGateClosed || payoutUnlocksAt == null) return;
     const interval = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(interval);
-  }, [payoutGateClosed]);
+    // AUD31-78: also wake AT the unlock, or "Available in 1 min" outlives the button turning on by up to a minute.
+    const atUnlock = setTimeout(() => setNow(Date.now()), Math.max(0, payoutUnlocksAt - Date.now()) + 50);
+    return () => { clearInterval(interval); clearTimeout(atUnlock); };
+  }, [payoutGateClosed, payoutUnlocksAt]);
 
   // ── The sanctioned exit, and the point at which it stops being offered ──
   //

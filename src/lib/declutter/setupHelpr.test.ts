@@ -15,7 +15,8 @@
  * @mutate src/lib/declutter/setupHelpr.ts |     title: fitWords(`${k.titleVerb} ${items[0]}`, 32), |     title: `${k.titleVerb} ${items[0]}`,
  * @mutate src/lib/declutter/setupHelpr.ts |       if (msg && Object.isExtensible(e)) e.userMessage = msg; |       if (false) e.userMessage = msg;
  * @mutate src/lib/declutter/setupHelpr.ts |   return data === true; |   return data !== false;
- * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" ? "porch" : "pickup_home",
+ * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" ? "porch" : "pickup_home",
+ * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" ? raw.handover : "pickup_home",
  * @mutate src/lib/declutter/setupHelpr.ts |     const msg = rpcErrorMessage("declutter_link_setup_job", error); |     const msg = null;
  * @mutate src/lib/lifecycleErrors.ts |     job_already_funded: DC.job_already_funded,\n | \n
  * @mutate src/lib/lifecycleErrors.ts |   declutter_link_setup_job: {\n    account_restricted: DC.account_restricted,\n |   declutter_link_setup_job: {\n
@@ -128,12 +129,13 @@ describe("RPC calls", () => {
   });
 
   it("a delivery order's handover is passed through, not read as a home pickup (money review of a98e0049d6)", async () => {
-    const answers = ["delivery", "porch", "pickup_home", "something_new"];
+    // AUD31-8: a seller delivery is passed through too (it hides "Move it", setupKindsFor).
+    const answers = ["delivery", "porch", "pickup_home", "something_new", "seller_delivery"];
     expect(answers.length).toBeGreaterThan(3);
     for (const handover of answers) h.queue.push({ data: { order_id: "o1", status: "paid", handover, items: [], pickup_at: null, jobs: [] }, error: null });
     const got = [];
     for (let i = 0; i < answers.length; i++) got.push((await fetchSetupHelpr("o1")).handover);
-    expect(got).toEqual(["delivery", "porch", "pickup_home", "pickup_home"]);
+    expect(got).toEqual(["delivery", "porch", "pickup_home", "pickup_home", "seller_delivery"]);
   });
 
   it("a link refusal carries its plain words: banned, switch off, already paid for", async () => {

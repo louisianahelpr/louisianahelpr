@@ -32,6 +32,7 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
   const live = listed.filter((r) => r.status === "live").length;
   const review = listed.length - live;
   const keepUpFailed = listed.filter((r) => r.keepUpFailed).length;
+  const offersFailed = listed.filter((r) => r.offersFailed).length;
   const shareable = live > 0;
   return (
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="bunch-done" data-bunch-results="">
@@ -69,6 +70,11 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
       {keepUpFailed > 0 && (
         <p className="text-sm" data-bunch-keepup-failed="">
           "Keep it up" didn't turn on for {keepUpFailed} {keepUpFailed === 1 ? "item" : "items"}. You can turn it on from Manage listing.
+        </p>
+      )}
+      {offersFailed > 0 && (
+        <p className="text-sm" data-bunch-offers-failed="">
+          Offers are still on for {offersFailed} {offersFailed === 1 ? "item" : "items"}. You can turn them off from Manage listing.
         </p>
       )}
       <div className="flex flex-wrap gap-2">

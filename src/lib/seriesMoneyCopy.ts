@@ -7,7 +7,19 @@ import { formatPriceExact } from "@/lib/format";
  * FUND_LEAD_DAYS = 3 days ahead. Never "charged now": under card_hold_at_post (on for everyone, 20261027185147) a
  * card is only held at posting and charged at the hire.
  */
-export const SERIES_LATER_VISITS_CHARGED = "each later visit is charged to your saved card about 3 days before it";
+const SERIES_LATER_VISITS_CHARGED = "each later visit is charged to your saved card about 3 days before it";
+
+/**
+ * JOBS-28 (Jobs audit 10-30): a taxable category's later visits are charged their Louisiana sales tax too
+ * (charge-recurring-visits runs the same Stripe tax calculation for each visit when isLaborTaxable), and the line
+ * said nothing about it. Untaxed categories keep the plain words.
+ */
+const SERIES_LATER_VISITS_CHARGED_TAXED = "each later visit, plus its sales tax, is charged to your saved card about 3 days before it";
+
+/** The later-visits clause for this job: with "plus its sales tax" only when the category's labor is taxed. */
+export function seriesLaterVisitsCharged(taxable: boolean): string {
+  return taxable ? SERIES_LATER_VISITS_CHARGED_TAXED : SERIES_LATER_VISITS_CHARGED;
+}
 
 /** "a visit · 4 visits": what follows the per-visit amount. */
 export function seriesVisitsSuffix(visitCount: number): string {
@@ -15,7 +27,7 @@ export function seriesVisitsSuffix(visitCount: number): string {
 }
 
 /** "$40 a visit · 4 visits. Each later visit is charged to your saved card about 3 days before it." */
-export function seriesMoneySentence(budget: number, visitCount: number): string {
-  const later = SERIES_LATER_VISITS_CHARGED;
+export function seriesMoneySentence(budget: number, visitCount: number, taxable = false): string {
+  const later = seriesLaterVisitsCharged(taxable);
   return `$${formatPriceExact(budget)}${seriesVisitsSuffix(visitCount)}. ${later.charAt(0).toUpperCase()}${later.slice(1)}.`;
 }

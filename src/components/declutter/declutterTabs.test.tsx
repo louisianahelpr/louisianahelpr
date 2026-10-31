@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions /> : |               false ? <NothingForSaleActions /> :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
@@ -79,7 +79,7 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
 });
 vi.mock("@/hooks/useFeature", () => ({
   // Every switch on except seller delivery, which this suite does not cover (its own tests do:
-  // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); with it on, porch reads "Porch or safe place".
+  // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); porch reads "Porch pickup" either way (BUY-14).
   // 'declutter_wanted' follows state.wantedOn (the Wanted tab and Browse's "Can't find it?" link, owner 2026-10-28).
   useFeature: (key: string) => key !== "declutter_seller_delivery" && (key !== "declutter_wanted" || state.wantedOn),
   useFeatureStatus: (key: string) => ({ on: key !== "declutter_wanted" || state.wantedOn, settled: true }),
@@ -188,6 +188,12 @@ vi.mock("@/lib/declutter/api", () => ({
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { toast } from "sonner";
+// LEAD-TOAST3: member confirmations are the bare toast(), which vi.spyOn cannot wrap; a callable mock that
+// still shows the real toast (and keeps toast.success/error) lets a test read what was said.
+vi.mock("sonner", async (importOriginal) => {
+  const m = await importOriginal<typeof import("sonner")>();
+  return { ...m, toast: Object.assign(vi.fn((...a: Parameters<typeof m.toast>) => m.toast(...a)), m.toast) };
+});
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
 vi.mock("@/lib/declutter/donate", () => ({
   fetchDonationPartnersNear: vi.fn(async () => []),
@@ -256,7 +262,7 @@ function everything() {
  */
 const BEFORE_ACTIONS = {
   selling: [
-    { role: "link", name: /^View\b/ },
+    { role: "link", name: /^Preview\b/ },
     { role: "button", name: /^Finish listing\b/ },
     { role: "button", name: /^Delete\b/ },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
@@ -404,6 +410,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const empty = at("/declutter");
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByText("Opens soon")).toBeNull();
+    // With Wanted on, the line names both ways (b29: it says only "Be the first to sell something." without it).
+    expect(screen.getByText("Be the first to sell something, or say what you're looking for.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     empty.unmount();
@@ -477,11 +485,11 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(sheet).toHaveTextContent("No strike for a free item.");
     expect(sheet).toHaveTextContent("it goes back up so others can ask for it.");
     expect(sheet).not.toHaveTextContent(/Declutter strike|comes down/);
-    const said = vi.spyOn(toast, "success");
+    const said = vi.mocked(toast);
+    said.mockClear();
     fireEvent.click(within(sheet).getByRole("button", { name: "Cancel claim" }));
     await vi.waitFor(() => expect(state.calls).toContainEqual(["cancel_sale", "if1"]));
     await vi.waitFor(() => expect(said).toHaveBeenCalledWith("Claim cancelled. It's back up."));
-    said.mockRestore();
     unmount();
 
     // A paid sale waiting beside the free claim keeps the sale words; the chip names both.
@@ -505,9 +513,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=buying");
     expect(await screen.findByRole("heading", { name: /^Your cart/ })).toBeInTheDocument();
-    // Lead 2026-10-28 (shot 05): no "Search all sections" row on a buyer's own lists (nor on Selling: sellingDash.test.tsx).
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()} | globalSearch={view !== "selling"} tabs={tabsFor()}
-    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
+    // LEAD-DECL-SEARCHBAR (2026-10-31): no "Search all sections" bar; LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the
+    // search is the icon by the gear on Buying too, matching Jobs (the icon and its place: sellingDash.test.tsx).
+    expect(screen.getByRole("link", { name: "Search all sections" })).toHaveAttribute("href", "/search");
     for (const a of BEFORE_ACTIONS.buying) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const sent = screen.getByRole("region", { name: "Your offers" });
     // A seller's counter waits on the buyer: Accept / Answer with a price / Say no, here.
@@ -626,8 +634,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=selling");
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
-    // Owner 2026-10-28 (Selling polish): no "Search all sections" row on Selling either.
-    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
+    // LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the search icon is on Selling too.
+    expect(screen.getByRole("link", { name: "Search all sections" })).toHaveAttribute("href", "/search");
     for (const a of BEFORE_ACTIONS.selling) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const onMine = screen.getByRole("region", { name: "Offers on your items" });
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();
@@ -687,6 +695,18 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const row = document.querySelector("[data-selling-sell]")!;
     expect(within(row as HTMLElement).getByRole("link", { name: "Sell an item" })).toHaveAttribute("href", "/declutter/sell");
     expect(within(row as HTMLElement).getByRole("link", { name: "Free, a bunch, or moving out?" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+  });
+
+  // LEAD-SELLING-NO-SELL-BTN-PHONE (owner 2026-10-31): on a phone the + covers it, so the row is off below sm (640px)
+  // and the filter chips move up; from sm to the desktop header (lg, 900px) it shows; the header has its own from lg.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+  it("the Sell an item row is not on a phone, only from sm until the desktop header", async () => {
+    state.mine = [ITEM];
+    at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    const cls = (document.querySelector("[data-selling-sell]") as HTMLElement).className.split(/\s+/);
+    expect(cls).toEqual(expect.arrayContaining(["hidden", "sm:flex", "lg:hidden"]));
+    expect(cls).not.toContain("flex");
   });
 
   it("old link ?view=mine opens Selling and the address becomes ?tab=selling", async () => {
@@ -757,11 +777,13 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9: "To answer" left out unanswered questions and showed buyer-turn offers and the settings. It counts
   // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count; |   const toAnswer = todo?.sellerOffers ?? 0;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | const ASKABLE = new Set(["live", "paused"]); | const ASKABLE = new Set(["live", "paused", "draft", "sold"]);
+  // AUD31-28 (audit 2026-10-31): the Answer row opens the item at its questions, not at the top.
+  // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | <Link to={`/declutter/item/${r.item_id}#declutter-questions`} | <Link to={`/declutter/item/${r.item_id}`}
   it("DC-9: To answer counts and shows the offers waiting on the seller and the unanswered questions, nothing else", async () => {
     state.mine = [ITEM, { ...ITEM, id: "i2", title: "Desk" }, { ...ITEM, id: "i3", status: "draft", title: "Draft lamp" }];
     state.offers = [OFFER, { ...OFFER, offer_id: "o9", item_id: "i2", item_title: "Desk", awaiting: "buyer" }];
@@ -773,7 +795,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const { container } = at("/declutter?tab=selling&status=offers");
     const qs = await screen.findByRole("region", { name: "Questions to answer" });
     expect(within(qs).getByText("Does the desk come apart?")).toBeInTheDocument();
-    expect(within(qs).getByRole("link", { name: /Does the desk come apart/ })).toHaveAttribute("href", "/declutter/item/i2");
+    expect(within(qs).getByRole("link", { name: /Does the desk come apart/ })).toHaveAttribute("href", "/declutter/item/i2#declutter-questions");
     expect(within(qs).queryByText("Still have it?")).toBeNull();
     const box = container.querySelector('[data-status-box="offers"]') as HTMLElement;
     await vi.waitFor(() => expect(box.textContent).toBe("To answer · 2"));

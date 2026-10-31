@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
+import { FieldError } from "@/components/ui/FieldError";
+import { PhotoProofAddFace } from "./PhotoProofAddFace";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -120,6 +122,9 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // A failed upload says so inside the sheet: at 375 a toast sat over the photo it was about (the sheet stays open to retry).
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  useEffect(() => { if (!open) setUploadError(null); }, [open]);
   // Stored values are storage PATHS; the ticket is minted here, for this open
   // dialog, and lives ten minutes.
   const existingSrcs = useProofPhotoUrls(existingUrls);
@@ -137,6 +142,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     const newFiles = [...current, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
+    setUploadError(null);
   };
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,11 +164,13 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     const newFiles = files.filter((_, idx) => idx !== i);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
+    setUploadError(null);
   };
 
   const upload = async () => {
     if (files.length === 0) { toast.error("Add at least one photo."); return; }
     setUploading(true);
+    setUploadError(null);
     const urls: string[] = [...existingUrls];
     // Track failures per-file. A `continue` on upload error used to be the
     // ONLY handling: if every file failed, `urls` stayed exactly equal to
@@ -210,7 +218,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
       // policy mismatch (fixed 2026-08-31) — a permanent server-side failure
       // that no amount of retrying or better signal would ever clear, while
       // this told the user to check their connection.
-      toast.error(
+      setUploadError(
         files.length === 1
           ? "That photo didn't upload. Try again — if it keeps failing, contact support."
           : "None of those photos uploaded. Try again — if it keeps failing, contact support.",
@@ -230,7 +238,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
       if (!isWriteRejected(updateError)) {
         report(updateError, { tags: { source: crew ? "PhotoProof.saveCrew" : "PhotoProof.save" } });
       }
-      toast.error(
+      setUploadError(
         (crew ? rpcErrorMessage("rpc_group_member_set_proof", updateError) : null) ??
           mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
       );
@@ -296,10 +304,14 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
             title={`${type === "before" ? "Before" : "After"} photos`}
           />
           <div className="space-y-3">
-            {/* JOBS3-52: this step blocks Start working and is the evidence in a dispute, and the sheet said neither. */}
             {type === "before" && (
               <p data-before-photo-guide="" className="font-sans text-ds-13 text-muted-foreground">
                 Show the job as you found it, before you start. These are your proof if there's ever a question.
+              </p>
+            )}
+            {type === "after" && (
+              <p data-after-photo-guide="" className="font-sans text-ds-13 text-muted-foreground">
+                Show the finished job, before you mark it complete. These are your proof if there's ever a question.
               </p>
             )}
             {existingUrls.length > 0 && (
@@ -357,13 +369,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
-                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                    <span
-                      className="font-sans font-semibold mt-1 text-ds-10"
-                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
-                    >
-                      Add photo
-                    </span>
+                    <PhotoProofAddFace />
                   </button>
                 ) : (
                   <label
@@ -373,18 +379,13 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
-                    <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-                    <span
-                      className="font-sans font-semibold mt-1 text-ds-10"
-                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
-                    >
-                      Add photo
-                    </span>
+                    <PhotoProofAddFace />
                     <input type="file" accept="image/*" multiple className="sr-only" onChange={handleSelect} />
                   </label>
                 )
               )}
             </div>
+            <FieldError>{uploadError}</FieldError>
           </div>
           <DialogFooter>
             <DialogSecondaryAction onClick={() => setOpen(false)}>Cancel</DialogSecondaryAction>

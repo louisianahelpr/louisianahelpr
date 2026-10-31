@@ -31,7 +31,7 @@ function PickupAddress({ orderId }: { orderId: string }) {
     );
   }
   const a = q.data;
-  if (!a) return <p className="text-sm text-muted-foreground">The pickup address isn't available right now. Pull to refresh in a minute.</p>;
+  if (!a) return <p className="text-sm text-muted-foreground">The pickup address isn't available right now. Refresh the page in a minute.</p>;
   return (
     <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-pickup-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

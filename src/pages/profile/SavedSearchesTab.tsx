@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
-import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetSecondaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
@@ -56,7 +56,7 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
     mutationFn: () => deleteSavedSearch(userId, search!.id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
-      onClose();
+      close();
     },
     onError: (err) => {
       report(err, { tags: { source: "SavedSearchesTab.remove" } });
@@ -65,8 +65,11 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
     },
   });
   const busy = change.isPending || remove.isPending;
+  // Deleting can't be undone, so it asks once, here in the sheet.
+  const [asking, setAsking] = useState(false);
+  const close = () => { setAsking(false); onClose(); };
   return (
-    <Sheet open={!!search} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={!!search} onOpenChange={(o) => !o && close()}>
       <SheetContent side="bottom" floor data-testid="saved-search-sheet" onOpenAutoFocus={(e) => e.preventDefault()}>
         {search && (
           <>
@@ -88,9 +91,19 @@ function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; 
               </label>
             </div>
             <SheetFooter className="mt-4">
-              <SheetDestructiveAction onClick={() => remove.mutate()} disabled={busy} aria-busy={remove.isPending}>
-                Delete search
-              </SheetDestructiveAction>
+              {asking ? (
+                <>
+                  <p className="font-sans text-ds-13 text-muted-foreground">Delete this search? Its alerts stop, and it can't be brought back.</p>
+                  <SheetSecondaryAction disabled={busy} onClick={() => setAsking(false)}>Keep it</SheetSecondaryAction>
+                  <SheetDestructiveAction onClick={() => remove.mutate()} disabled={busy} aria-busy={remove.isPending}>
+                    Yes, delete it
+                  </SheetDestructiveAction>
+                </>
+              ) : (
+                <SheetDestructiveAction onClick={() => setAsking(true)} disabled={busy}>
+                  Delete search
+                </SheetDestructiveAction>
+              )}
             </SheetFooter>
           </>
         )}
@@ -166,7 +179,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                         <span className="font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }} title={s.name}>{s.name}</span>
                         <NewPill n={counts.data?.get(s.id) ?? 0} />
                       </span>
-                      <span className="block font-sans text-ds-13 text-muted-foreground truncate" title={rowSummary(s)}>{rowSummary(s)}</span>
+                      <span className="block font-sans text-ds-13 text-muted-foreground truncate" title={rowSummary(s, !!paused.data)}>{rowSummary(s, !!paused.data)}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                   </button>

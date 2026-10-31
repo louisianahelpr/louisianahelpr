@@ -18,7 +18,7 @@
  * @mutate supabase/functions/declutter-ai-draft/sanitize.ts |     if (total > GROUP_MAX_TOTAL_BYTES) return null; |     if (false) return null;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { error: gateErr } = await anon.rpc("declutter_assert_can_draft_from_photos");\n  if (gateErr) {\n    const code = MEMBER_GATE_CODES.find((c) => gateErr.message?.includes(c));\n    if (!code) console.error("[declutter-ai-draft] group gate failed:", gateErr.message); |   const gateErr = null as { message?: string } \| null;\n  if (gateErr) {\n    const code = MEMBER_GATE_CODES.find((c) => gateErr.message?.includes(c));\n    if (!code) console.error("[declutter-ai-draft] group gate failed:", gateErr.message);
  * @mutate supabase/functions/declutter-ai-draft/index.ts | windowMs: 3_600_000, maxRequests: 20, keyPrefix: "declutter-ai-group" | windowMs: 3_600_000, maxRequests: 2000, keyPrefix: "declutter-ai-group"
- * @mutate supabase/functions/declutter-ai-draft/index.ts |     const { flagReason: _reason, ...d } = await groundWithOurSales(anon, draft, body); |     const { flagReason: _reason, ...d } = draft;
+ * @mutate supabase/functions/declutter-ai-draft/index.ts |     const { flagReason: _reason, ...d } = await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body); |     const { flagReason: _reason, ...d } = await priceDraftFromLookup(ANTHROPIC_API_KEY, draft);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -79,7 +79,7 @@ const at = (s: string) => GROUP.indexOf(s);
 
 describe("mode 'group' suggested prices (audit finding 4)", () => {
   it("each item's price is held to our sold prices near the point sent, as one item's draft is", () => {
-    expect(GROUP).toContain("await groundWithOurSales(anon, draft, body)");
+    expect(GROUP).toContain("await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)");
     expect(GROUP).toContain("flagReason: _reason");
     expect(GROUP).toContain("return json({ items: grounded, leftover });");
   });

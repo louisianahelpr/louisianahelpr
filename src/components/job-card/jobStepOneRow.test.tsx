@@ -32,7 +32,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  * form (it IS the ask, opened from the row), and dialogs (portalled, closed).
  */
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
@@ -515,7 +515,7 @@ const CASES: Array<{
   // ── /posts, poster ──
   {
     name: "Posts · Open (Share · Boost · Edit · Cancel)",
-    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />),
+    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null, date_needed: "2099-01-01" }))} />),
     minControls: 4,
     primary: [],
   },
@@ -928,7 +928,7 @@ describe("V2/V3 — the green primary trails, the destructive one never does", (
   });
 
   it("does not leave the destructive chip in the poster's right-most slot", async () => {
-    const { container } = wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />);
+    const { container } = wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null, date_needed: "2099-01-01" }))} />);
     await act(async () => { await Promise.resolve(); });
 
     // Since 2026-10-08 Cancel lives under More (with every other chip), in the

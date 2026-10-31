@@ -26,10 +26,12 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, setOfferRules, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
+import type { EarlyUploads } from "@/lib/declutter/bunchStage";
 import { priceChoiceToSave } from "@/components/declutter/sellForm";
 
 /** Photos per photo-tool call (the server's GROUP_MAX_PHOTOS). */
@@ -38,6 +40,42 @@ export const GROUP_BATCH = 8;
 export const BUNCH_MAX_PHOTOS = 80;
 /** The grouping call sorts up to 8 photos and writes several listings, so it gets longer than one item's minute. */
 const GROUP_TIMEOUT_MS = 100_000;
+/**
+ * LEAD-BUNCH-34-SLOW (owner 10-31, 34 photos on an iPhone "takes ages, like it's not even accepting the pictures"):
+ * photos are made ready (decoded, shrunk, location data removed) this many at a time, all of them from the first tap,
+ * instead of one after another inside each batch's turn. A few at once, never all: a phone decodes each full photo whole.
+ */
+export const PHOTO_WORK_AT_ONCE = 4;
+
+/** Each photo's small copy, or why it couldn't be made, started at once for every photo, PHOTO_WORK_AT_ONCE at a time, in order. */
+export function cleanAhead(
+  photos: readonly BunchPhoto[],
+  clean: (file: File) => Promise<File>,
+  onEach?: (key: string, copy: File | null, error?: unknown) => void,
+  atOnce = PHOTO_WORK_AT_ONCE,
+): Promise<{ copy: File } | { error: unknown }>[] {
+  const done: ((r: { copy: File } | { error: unknown }) => void)[] = [];
+  const out = photos.map(() => new Promise<{ copy: File } | { error: unknown }>((resolve) => { done.push(resolve); }));
+  let next = 0;
+  const worker = async () => {
+    while (next < photos.length) {
+      const i = next++;
+      const p = photos[i];
+      try {
+        const copy = await clean(p.file);
+        onEach?.(p.key, copy);
+        done[i]({ copy });
+      } catch (error) {
+        // Not swallowed: the caller names this photo and says why (unusablePhotosNote), and the screen offers it again.
+        onEach?.(p.key, null, error);
+        done[i]({ error });
+      }
+    }
+  };
+  for (let w = 0; w < Math.min(atOnce, photos.length); w++) void worker();
+  return out;
+}
+
 /** The waits before a batch's further tries. A phone that drops one request usually sends the next. */
 const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
 
@@ -69,6 +107,12 @@ export interface BunchItem {
   sizeUnknown?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
+  /**
+   * LEAD-RESUME-REPOSTS: the id its draft is made with, picked and saved before the draft is asked for. A run cut off
+   * before its draft id was saved, or work brought back from an older save, asks with the same id again: the server
+   * says it is already posted, so it is never listed twice.
+   */
+  appId?: string;
   /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
   uploaded?: Record<string, string>;
   /** Photos waiting to be sorted, kept together with why: not an item yet, so it can't be listed. The screen offers Sort again. */
@@ -77,6 +121,8 @@ export interface BunchItem {
   failedPhoto?: string;
   /** Why they aren't sorted, in the seller's words. */
   sortReason?: string;
+  /** LEAD-OFFERS-CHOICE part (2): this item's own "Accept offers"; unset, it follows the seller's saved default. */
+  acceptsOffers?: boolean;
   /** The item this may be the same thing as, when the check across two batches couldn't run. The screen offers to merge. */
   mergeHint?: string;
 }
@@ -199,6 +245,8 @@ export interface SortExtras {
   onRetry?: () => void;
   /** A batch's first item was the same thing as the last batch's last: its photos joined that item. */
   onJoined?: (intoKey: string, from: BunchItem) => void;
+  /** LEAD-BUNCH-34-SLOW: each photo's small copy as soon as it is made (null when it couldn't be), for its thumbnail and the "Adding N of M" count. */
+  onCleaned?: (key: string, copy: File | null) => void;
 }
 
 /** Too much to send in one go on this connection, or the server said so: half as many may go through. A limit or a busy tool answers the same. */
@@ -228,7 +276,9 @@ export async function groupPhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
   extras: SortExtras = {},
 ): Promise<GroupResult> {
-  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined } = extras;
+  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined, onCleaned } = extras;
+  // LEAD-BUNCH-34-SLOW: every photo starts being made ready now, a few at a time, so a batch's copies are waiting when its turn comes.
+  const ahead = cleanAhead(photos, clean, onCleaned ? (key, copy) => onCleaned(key, copy) : undefined);
   const batches: BunchPhoto[][] = [];
   for (let i = 0; i < photos.length; i += GROUP_BATCH) batches.push(photos.slice(i, i + GROUP_BATCH));
   const items: BunchItem[] = [];
@@ -256,13 +306,14 @@ export async function groupPhotos(
   for (const [i, batch] of batches.entries()) {
     const good: BunchPhoto[] = [];
     const cleaned: File[] = [];
-    for (const p of batch) {
-      try {
-        cleaned.push(await clean(p.file));
+    for (const [n, p] of batch.entries()) {
+      const made = await ahead[i * GROUP_BATCH + n];
+      if ("copy" in made) {
+        cleaned.push(made.copy);
         good.push(p);
-      } catch (error) {
-        // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-        unusable.push({ key: p.key, name: p.file.name, error });
+      } else {
+        // The screen names this photo and says why (unusablePhotosNote).
+        unusable.push({ key: p.key, name: p.file.name, error: made.error });
       }
     }
     let made: BunchItem[] = [];
@@ -333,20 +384,21 @@ export async function keepCleanablePhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
 ): Promise<{ photos: BunchPhoto[]; unusable: GroupResult["unusable"] }> {
   const held = new Set(items.flatMap((it) => it.photoKeys));
+  // LEAD-BUNCH-34-SLOW: a few at a time, as a live sort does (34 photos brought back mid-sort were read one by one first).
+  const loose = photos.filter((p) => !held.has(p.key));
+  const checks = new Map(cleanAhead(loose, clean).map((c, i) => [loose[i].key, c] as const));
   const kept: BunchPhoto[] = [];
   const unusable: GroupResult["unusable"] = [];
   for (const p of photos) {
-    if (held.has(p.key)) {
+    const check = checks.get(p.key);
+    if (!check) {
       kept.push(p);
       continue;
     }
-    try {
-      await clean(p.file);
-      kept.push(p);
-    } catch (error) {
-      // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-      unusable.push({ key: p.key, name: p.file.name, error });
-    }
+    const r = await check;
+    if ("copy" in r) kept.push(p);
+    // The screen names this photo and says why (unusablePhotosNote).
+    else unusable.push({ key: p.key, name: p.file.name, error: r.error });
   }
   return { photos: kept, unusable };
 }
@@ -415,6 +467,25 @@ export function makeCover(items: BunchItem[], itemKey: string, photoKey: string)
   return items.map((it) => (it.key === itemKey && it.photoKeys.includes(photoKey) ? { ...it, photoKeys: [photoKey, ...it.photoKeys.filter((k) => k !== photoKey)] } : it));
 }
 
+/** A photo to just before another on its own item, or to the end (null). The first is the cover. */
+export function movePhotoWithin(items: BunchItem[], itemKey: string, photoKey: string, beforeKey: string | null): BunchItem[] {
+  return items.map((it) => {
+    if (it.key !== itemKey || !it.photoKeys.includes(photoKey) || photoKey === beforeKey) return it;
+    const rest = it.photoKeys.filter((k) => k !== photoKey);
+    const at = beforeKey ? rest.indexOf(beforeKey) : -1;
+    return { ...it, photoKeys: at < 0 ? [...rest, photoKey] : [...rest.slice(0, at), photoKey, ...rest.slice(at)] };
+  });
+}
+
+/**
+ * A photo dropped on another takes that photo's place, whichever way it travelled. movePhotoWithin inserts BEFORE a key,
+ * so a forward drag has to name what follows the target (nothing, when the target is last) or it lands one short.
+ */
+export function dropBeforeKey(keys: readonly string[], photoKey: string, targetKey: string): string | null {
+  const to = keys.indexOf(targetKey);
+  return keys.indexOf(photoKey) < to ? keys[to + 1] ?? null : targetKey;
+}
+
 /** New photos on the end of an item, without the photo tool. */
 export function addPhotosToItem(items: BunchItem[], itemKey: string, photoKeys: string[]): BunchItem[] {
   return items.map((it) => (it.key === itemKey ? { ...it, photoKeys: [...it.photoKeys, ...photoKeys] } : it));
@@ -425,23 +496,6 @@ export function addPhotosToItem(items: BunchItem[], itemKey: string, photoKeys: 
 /** The same change on these items. Not the words, so it never clears a flag. */
 export function bulkEdit(items: BunchItem[], keys: ReadonlySet<string>, patch: Partial<Pick<BunchItem, "price" | "free" | "conditionStars">>): BunchItem[] {
   return items.map((it) => (keys.has(it.key) ? { ...it, ...patch } : it));
-}
-
-/** A percent off each item's own suggestion, to a whole dollar and never under $1. Free items and items with no suggestion are left alone. */
-export function percentOffSuggested(items: BunchItem[], keys: ReadonlySet<string>, pct: number): { items: BunchItem[]; changed: number; skipped: number } {
-  let changed = 0;
-  let skipped = 0;
-  const next = items.map((it) => {
-    if (!keys.has(it.key) || it.free) return it;
-    const was = Number(it.aiPrice);
-    if (!it.aiPrice || !Number.isFinite(was)) {
-      skipped += 1;
-      return it;
-    }
-    changed += 1;
-    return { ...it, price: String(Math.max(1, Math.round((was * (100 - pct)) / 100))) };
-  });
-  return { items: next, changed, skipped };
 }
 
 /**
@@ -543,6 +597,26 @@ export function bunchNeedsLine(items: BunchItem[]): string | null {
   return [...counts].map(([need, n]) => `${n} ${n === 1 ? "needs" : "need"} ${words[need]}`).join(", ");
 }
 
+/** What still needs something first, each group in its own order. Run on a tap, never while typing: a row must not jump under the keyboard. */
+export function unreadyFirst(items: BunchItem[]): BunchItem[] {
+  return [...items.filter((it) => bunchItemNeed(it)), ...items.filter((it) => !bunchItemNeed(it))];
+}
+
+/**
+ * The photos already on an item's draft that have to come off: moved to another item, or out of place now. Each photo
+ * takes the next place on the listing as it is sent, so a new cover or order only reaches the listing by sending those
+ * again. If one of those files is gone, the order stays as sent: a wrong order beats a lost photo.
+ */
+export function sentPhotosToTakeOff(it: Pick<BunchItem, "photoKeys" | "uploaded">, photos: ReadonlyMap<string, File>): string[] {
+  const sent = Object.keys(it.uploaded ?? {});
+  const stay = sent.filter((k) => it.photoKeys.includes(k));
+  let n = 0;
+  while (n < stay.length && it.photoKeys[n] === stay[n]) n += 1;
+  const outOfPlace = stay.slice(n);
+  const canSendAgain = outOfPlace.every((k) => photos.has(k));
+  return sent.filter((k) => !it.photoKeys.includes(k) || (canSendAgain && outOfPlace.includes(k)));
+}
+
 /**
  * The items a listing run takes. While the setup fee is due, only the free ones: declutter_setup_fee_before_list asks
  * no fee at price 0. The server stays the protection; this only keeps a priced item from being refused after its work.
@@ -584,8 +658,9 @@ export function listingProgressLine(done: number, total: number, names: readonly
 }
 
 export type BunchOutcome =
+  /** `offersFailed`: listed, but taking offers although the seller turned them off (they can, from Manage listing). */
   /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). `id`: its listing. */
-  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; id?: string }
+  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; offersFailed?: boolean; id?: string }
   /**
    * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
    * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
@@ -614,10 +689,11 @@ export interface ListDeps {
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
-  publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
+  setOfferRules: typeof setOfferRules;
+  publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setOfferRules, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -628,6 +704,13 @@ export interface BunchChoices {
   floorPct: number;
   /** The move-out date (YYYY-MM-DD): new drafts join the seller's moving sale. Blank or absent: ordinary listings. */
   moveOutOn?: string | null;
+  /** The seller's saved "Accept offers" (Settings): an item with no choice of its own follows it. Absent: on. */
+  acceptsOffers?: boolean;
+}
+
+/** Whether this item goes up taking offers: its own switch, else the saved default. A free item is claimed, never offered on. */
+export function bunchItemTakesOffers(it: Pick<BunchItem, "free" | "acceptsOffers">, choices: Pick<BunchChoices, "acceptsOffers">): boolean {
+  return !it.free && (it.acceptsOffers ?? choices.acceptsOffers ?? true);
 }
 
 /** Taking a photo off a draft. Already gone (a run cut off after this step, before it was saved) is what was asked for. */
@@ -657,6 +740,34 @@ interface BunchRun {
 }
 
 let activeRun: BunchRun | null = null;
+
+/** The id a bunch item's draft is made with (crypto.randomUUID; the server checks its form). */
+function newBunchItemId(): string {
+  return crypto.randomUUID();
+}
+
+/**
+ * LEAD-RESUME-REPOSTS (owner 2026-10-31: "Continue where you left off" offered Sell a bunch items she had already
+ * posted, and posting them made duplicates). Work brought back from the device, against what the server says of its
+ * ids: an item whose draft or app id is already posted (any status but draft) is left out, with the photos only it
+ * held, so it is never offered again; an item whose draft is gone keeps its place and gets a new draft at listing.
+ * `statuses` null (the read failed): nothing is left out here, and listing asks again.
+ */
+export function withoutPosted<T extends { key: string }>(items: BunchItem[], photos: T[], statuses: Map<string, string> | null): { items: BunchItem[]; photos: T[]; posted: number } {
+  if (!statuses) return { items, photos, posted: 0 };
+  const isPosted = (id?: string) => !!id && statuses.has(id) && statuses.get(id) !== "draft";
+  const kept = items.filter((it) => !isPosted(it.draftId) && !isPosted(it.appId));
+  const posted = items.length - kept.length;
+  if (posted === 0) return { items, photos, posted };
+  const held = new Set(kept.flatMap((it) => it.photoKeys));
+  const goneOnly = new Set(items.filter((it) => !kept.includes(it)).flatMap((it) => it.photoKeys).filter((k) => !held.has(k)));
+  return { items: kept, photos: photos.filter((p) => !goneOnly.has(p.key)), posted };
+}
+
+/** Every id the server may know a kept item by: its draft and its app id. */
+export function keptItemIds(items: BunchItem[]): string[] {
+  return [...new Set(items.flatMap((it) => [it.draftId, it.appId].filter((x): x is string => !!x)))];
+}
 
 /**
  * One listing run at a time on this device. A run outlives its screen (the back link), and the screen brought back holds
@@ -700,6 +811,20 @@ export function watchBunchRun(userId: string, watcher: BunchRunWatcher): { done:
  * failure is its own; the rest carry on. The pickup times and the
  * confirmations are the caller's (once for the batch, before this runs).
  */
+/** A turn each, in the order asked: the promise gives the function that ends the turn. */
+function oneAtATime(): () => Promise<() => void> {
+  let tail: Promise<void> = Promise.resolve();
+  return () => {
+    let end!: () => void;
+    const before = tail;
+    tail = new Promise<void>((r) => (end = r));
+    return before.then(() => end);
+  };
+}
+
+/** LEAD-BUNCH-34-SLOW: items made ready side by side, as many as publishMany lists at once. */
+const PREPARE_AT_ONCE = 3;
+
 export async function listBunch(
   sellerId: string,
   items: BunchItem[],
@@ -713,14 +838,22 @@ export async function listBunch(
   choices: BunchChoices = NO_CHOICES,
   /** Each photo as it starts to go, and again if it is tried again. */
   onPhoto?: (progress: PhotoProgress) => void,
+  /**
+   * LEAD-BUNCH-34-SLOW: photos already sent while the seller sorted (BunchStager). A new draft is created with the id
+   * they went up under, and each such photo is only attached.
+   */
+  early?: EarlyUploads,
 ): Promise<BunchOutcome[]> {
   const total = items.length * 2;
-  const photosToSend = items.reduce((n, it) => n + it.photoKeys.filter((k) => !(k in (it.uploaded ?? {}))).length, 0);
+  const photosToSend = items.reduce((n, it) => {
+    const off = sentPhotosToTakeOff(it, photos);
+    return n + it.photoKeys.filter((k) => !(k in (it.uploaded ?? {})) || off.includes(k)).length;
+  }, 0);
   let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
-  const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
+  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean; offersAfter: boolean; offersFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
-  const held = items.flatMap((it) => (it.draftId ? [it.draftId] : []));
+  const held = keptItemIds(items);
   let statuses: Map<string, string> | null = null;
   if (held.length > 0) {
     try {
@@ -730,15 +863,27 @@ export async function listBunch(
       console.warn("[declutter] could not read the drafts' statuses before listing", err);
     }
   }
-  for (const [i, original] of items.entries()) {
+  let finished = 0;
+  // A photo sent whole goes one at a time across the run (the phone's upload is the limit, and the owner's photos timed
+  // out when they raced, 10-30); an item keeps the turn until its photos are done, so they go in order. Only attaching a
+  // photo already up (early) needs no turn.
+  const uploadTurn = oneAtATime();
+  /** "already_posted": its app id is the seller's posted listing; the caller counts it done and clears it from the list. */
+  const prepareOne = async (i: number, original: BunchItem): Promise<"already_posted" | void> => {
     let it = original;
+    // Its app id is already one of the seller's items (a run cut off before its draft id was saved): that is its draft.
+    const byAppId = !it.draftId && it.appId && statuses ? statuses.get(it.appId) : undefined;
+    if (byAppId !== undefined && it.appId) {
+      it = { ...it, draftId: it.appId };
+      onStep(it.key, { draftId: it.appId });
+    }
     if (it.draftId && statuses) {
       const status = statuses.get(it.draftId);
       if (status === "live" || status === "pending_review") {
         out.set(it.key, { key: it.key, title: it.title, status, id: it.draftId });
         onStep(it.key, null);
-        onProgress(i + 1, total);
-        continue;
+        onProgress(++finished, total);
+        return;
       }
       if (status === undefined) {
         // Its draft is gone (taken down under Selling). The seller still has it on the list, so it gets a new one.
@@ -747,8 +892,8 @@ export async function listBunch(
       } else if (status !== "draft") {
         out.set(it.key, { key: it.key, title: it.title, error: new Error("item_not_a_draft"), draftId: it.draftId });
         onStep(it.key, null);
-        onProgress(i + 1, total);
-        continue;
+        onProgress(++finished, total);
+        return;
       }
     }
     let id: string | null = it.draftId ?? null;
@@ -777,67 +922,149 @@ export async function listBunch(
         // Its draft exists from an earlier try: the seller's edits go onto it.
         await deps.updateDraft(id, fields);
       } else {
-        id = choices.moveOutOn
-          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
-          : await deps.createDraft(fields);
+        // ONE id per item (lead, 10-31): its saved app id (LEAD-RESUME-REPOSTS) is the id the draft is made with AND the
+        // folder its photos went up into early (LEAD-BUNCH-34-SLOW, BunchStager). Picked here only when it has none yet,
+        // and saved before the draft is asked for, so a cut-off run asks with the same id and never makes a second.
+        const appId = it.appId ?? early?.idFor(it.key) ?? newBunchItemId();
+        if (!it.appId) onStep(it.key, { appId });
+        try {
+          id = choices.moveOutOn
+            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
+            : await deps.createDraft(fields, appId);
+        } catch (err) {
+          // LEAD-RESUME-REPOSTS: that id is already the seller's posted listing. Never a second copy: it leaves the list.
+          if (err instanceof AlreadyPosted) {
+            out.set(it.key, { key: it.key, title: it.title, error: err, draftId: err.itemId });
+            return "already_posted";
+          }
+          throw err;
+        }
         onStep(it.key, { draftId: id });
       }
       const uploaded = { ...it.uploaded };
       // A photo moved off this item since its draft was made leaves the draft, or it would be listed with the wrong thing.
-      for (const [k, photoId] of Object.entries(uploaded)) {
-        if (it.photoKeys.includes(k)) continue;
-        await removeDraftPhoto(deps, photoId);
+      // One whose place changed comes off too, and goes back in its new place below.
+      for (const k of sentPhotosToTakeOff({ photoKeys: it.photoKeys, uploaded }, photos)) {
+        await removeDraftPhoto(deps, uploaded[k]);
         delete uploaded[k];
         onStep(it.key, { uploaded: { ...uploaded } });
       }
-      for (const k of it.photoKeys) {
-        if (k in uploaded) continue;
-        const f = photos.get(k);
-        if (!f) throw new Error("photo_not_uploaded");
-        photosStarted += 1;
-        const progress = { itemName: it.title.trim(), photo: photosStarted, of: photosToSend };
-        onPhoto?.({ ...progress, retrying: false });
+      const draftId = id;
+      const sendPhotos = async () => {
+        let endTurn: (() => void) | null = null;
         try {
-          // One at a time, in order: the phone's upload speed is the limit, so two at once finish no sooner, and each
-          // photo takes the next place on the listing. Out of tries, this item stops here, so a later photo never takes
-          // this one's place; the run goes on to the next item.
-          uploaded[k] = onPhoto ? await deps.addPhoto(sellerId, id, f, { onRetry: () => onPhoto({ ...progress, retrying: true }) }) : await deps.addPhoto(sellerId, id, f);
-        } catch (err) {
-          onStep(it.key, { failedPhoto: k });
-          throw err;
+          for (const k of it.photoKeys) {
+            if (k in uploaded) continue;
+            const f = photos.get(k);
+            if (!f) throw new Error("photo_not_uploaded");
+            // LEAD-BUNCH-34-SLOW: a photo already in this draft's folder is only attached (the id it went up under).
+            const uploadedPath = (await early?.path(draftId, k)) ?? undefined;
+            if (!uploadedPath && !endTurn) endTurn = await uploadTurn();
+            photosStarted += 1;
+            const progress = { itemName: it.title.trim(), photo: photosStarted, of: photosToSend };
+            onPhoto?.({ ...progress, retrying: false });
+            try {
+              // One at a time, in order (uploadTurn): the phone's upload speed is the limit, so two at once finish no sooner, and each
+              // photo takes the next place on the listing. Out of tries, this item stops here, so a later photo never takes
+              // this one's place; the run goes on to the next item.
+              const hooks = { ...(onPhoto ? { onRetry: () => onPhoto({ ...progress, retrying: true }) } : {}), ...(uploadedPath ? { uploadedPath } : {}) };
+              uploaded[k] = Object.keys(hooks).length > 0 ? await deps.addPhoto(sellerId, draftId, f, hooks) : await deps.addPhoto(sellerId, draftId, f);
+              early?.used(draftId, k);
+            } catch (err) {
+              // A try that failed may have removed that copy: the next try uploads the photo afresh.
+              early?.used(draftId, k);
+              onStep(it.key, { failedPhoto: k });
+              throw err;
+            }
+            onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) });
+          }
+        } finally {
+          endTurn?.();
         }
-        onStep(it.key, { uploaded: { ...uploaded }, ...(it.failedPhoto ? { failedPhoto: undefined } : {}) });
-      }
-      // A free item is picked up from the porch only (the free checkout's one way).
-      await deps.setHandovers(id, it.free ? ["porch"] : ways);
-      if (!it.free) await deps.setDropPct(id, choice.dropPct);
-      let keepUpFailed = false;
-      if (choices.keepUp) {
+      };
+      // LEAD-BUNCH-34-SLOW: the draft's settings need none of its photos, so they go while the photos are attached.
+      const settle = async () => {
+        // A free item is picked up from the porch only (the free checkout's one way).
+        await deps.setHandovers(draftId, it.free ? ["porch"] : ways);
+        if (!it.free) await deps.setDropPct(draftId, choice.dropPct);
+      };
+      const keepUp = async () => {
+        if (!choices.keepUp) return false;
         try {
-          await deps.setKeepUp(id, true);
+          await deps.setKeepUp(draftId, true);
+          return false;
         } catch (err) {
           // Not a blocker, as on the single form: the item still lists, and the screen says this one wasn't turned on.
           console.warn("[declutter] could not turn on Keep it up", err);
-          keepUpFailed = true;
+          return true;
         }
-      }
-      prepared.push({ key: it.key, title: it.title, id, keepUpFailed });
+      };
+      // "Accept offers" off (LEAD-OFFERS-CHOICE) goes on the draft beside the other settings, so it never goes live
+      // taking offers and waits for nothing. Not a blocker: "after" sends it again once the item is up.
+      const offersOff = async (): Promise<"done" | "after" | "failed"> => {
+        // A free item is claimed, never offered on: nothing to turn off.
+        if (it.free || bunchItemTakesOffers(it, choices)) return "done";
+        try {
+          return await offersOffOnDraft(draftId, deps.setOfferRules);
+        } catch (err) {
+          console.warn("[declutter] could not turn offers off", err);
+          return "failed";
+        }
+      };
+      // allSettled, never all: a setting refused first must not end this item while its photos are still being
+      // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All of them
+      // finish, then the first failure is the item's.
+      const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff()]);
+      const failed = [sent, settled, kept, offers].find((r): r is PromiseRejectedResult => r.status === "rejected");
+      if (failed) throw failed.reason;
+      const keepUpFailed = kept.status === "fulfilled" && kept.value;
+      const offersAfter = offers.status === "fulfilled" && offers.value === "after";
+      const offersFailed = offers.status === "fulfilled" && offers.value === "failed";
+      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed, offersAfter, offersFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
     }
-    onProgress(i + 1, total);
-  }
+    onProgress(++finished, total);
+  };
+  // LEAD-BUNCH-34-SLOW: a few items get ready at once (each one's draft, photos and settings are its own), in order.
+  let nextItem = 0;
+  const readyWorker = async () => {
+    while (nextItem < items.length) {
+      const i = nextItem++;
+      if ((await prepareOne(i, items[i])) === "already_posted") {
+        onStep(items[i].key, null);
+        onProgress(++finished, total);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, items.length) }, readyWorker));
+  prepared.sort((a, b) => a.at - b.at);
   if (prepared.length > 0) {
-    const results = await deps.publishMany(prepared.map((p) => p.id), (done) => {
+    // LEAD-BUNCH-34-SLOW: listed a few at once, so they finish in any order; each one's own step is saved as it goes.
+    const results = await deps.publishMany(prepared.map((p) => p.id), (done, _total, index) => {
       onProgress(items.length + done, total);
-      const p = prepared[done - 1];
+      const p = prepared[index];
       if (p) onStep(p.key, null);
     });
-    results.forEach((r, i) => {
+    for (const [i, r] of results.entries()) {
       const p = prepared[i];
-      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}) });
-    });
+      if ("error" in r) {
+        out.set(p.key, { key: p.key, title: p.title, error: r.error, draftId: p.id });
+        continue;
+      }
+      let offersFailed = p.offersFailed;
+      if (p.offersAfter) {
+        // A server without 20261031201036 refuses a draft: sent again now that it is up.
+        try {
+          await offersOffAfterPublish(p.id, r.status, deps.setOfferRules);
+        } catch (err) {
+          console.warn("[declutter] could not turn offers off after listing", err);
+          offersFailed = true;
+        }
+      }
+      out.set(p.key, { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}), ...(offersFailed ? { offersFailed: true } : {}) });
+    }
   }
   onProgress(total, total);
   return items.map((it) => out.get(it.key)!).filter(Boolean);

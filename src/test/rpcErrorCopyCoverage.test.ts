@@ -71,6 +71,14 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // LEAD-POST-SLOW (a), 20261031160546: these make their item through declutter_create_item_with_id with a fresh
+  // gen_random_uuid(), never an id from the caller, so its item_id_taken (an id already used) can't happen.
+  declutter_create_item: {
+    item_id_taken: { reason: "declutter_create_item passes gen_random_uuid() to declutter_create_item_with_id; a fresh v4 id never collides." },
+  },
+  declutter_create_move_drafts: {
+    item_id_taken: { reason: "each draft is made by declutter_create_item, which passes gen_random_uuid(); a fresh v4 id never collides." },
+  },
   // OPS-3 job drafts (20261030223154): saveDraftToAccount and clearDraftOnAccount (src/lib/jobPostDraftAccount.ts)
   // run in the background while typing and after posting. Any error goes to the console and the device keeps its copy; no message exists.
   save_my_job_post_draft: {
@@ -474,7 +482,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
       if (error) {
         toast.error(
           /not_abortable/.test(error.message)
-            ? "This job has already moved on — pull to refresh and take another look."
+            ? "This job has already moved on. Refresh the page and take another look."
             : "We couldn’t send that — check your connection and try again.",
         );
       }
@@ -483,7 +491,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
   it("an RPC code with no copy and no allowlist entry is reported", () => {
     const withoutCompleted: CopyTable = {
       ...COPY,
-      helper_abort_job: { not_abortable: "This job has already moved on — pull to refresh and take another look." },
+      helper_abort_job: { not_abortable: "This job has already moved on. Refresh the page and take another look." },
     };
     const onlyAbort = new Map([["helper_abort_job", inventory.get("helper_abort_job")!]]);
     expect(findUnmapped(onlyAbort, withoutCompleted, UNREACHABLE)).toContain(

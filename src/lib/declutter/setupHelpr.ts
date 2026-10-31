@@ -48,11 +48,12 @@ const KINDS_BY_CATEGORY: Record<string, readonly SetupKind[]> = {
 
 /**
  * The choices an order's items fit, in SETUP_KINDS order; with no item details (an older server) every choice.
- * "Move it" (GROW-5) is offered only when the buyer collects the item themselves (any handover but Helpr
- * delivery, which already brings it) and something in the order is too big for a car (large or xl).
+ * "Move it" (GROW-5) is offered only when the buyer collects the item themselves (any handover but Helpr or seller
+ * delivery, which already bring it) and something in the order is too big for a car (large or xl).
  */
 export function setupKindsFor(details: SetupItemDetail[] | undefined, handover?: SetupHelprInfo["handover"]): SetupKind[] {
-  const canMove = handover !== "delivery";
+  // AUD31-8: a seller who delivers brings it too, so no "Move it" there either.
+  const canMove = handover !== "delivery" && handover !== "seller_delivery";
   if (!details || details.length === 0) return SETUP_KINDS.filter((k) => k !== "move" || canMove);
   const fit = new Set<SetupKind>();
   if (canMove && details.some((d) => d.delivery_size === "large" || d.delivery_size === "xl")) fit.add("move");
@@ -78,8 +79,9 @@ export interface SetupJob {
 export interface SetupHelprInfo {
   order_id: string;
   status: "paid" | "handed_over";
-  /** How the item reaches the buyer: pickup at the seller's home, porch pickup, or Helpr delivery (20261017055505). */
-  handover: "pickup_home" | "porch" | "delivery";
+  /** How the item reaches the buyer: pickup at the seller's home, porch pickup, Helpr delivery (20261017055505) or
+   *  the seller's own delivery (20261027153244). */
+  handover: "pickup_home" | "porch" | "delivery" | "seller_delivery";
   items: string[];
   /** Each item's category and size, in the order of items (20261028 setup-Helpr item details); absent on an older server. */
   item_details?: SetupItemDetail[];
@@ -168,7 +170,7 @@ export async function fetchSetupHelpr(orderId: string): Promise<SetupHelprInfo> 
     // Pass every handover the server has through as it is (money review of
     // a98e0049d6: 'delivery' was read as 'pickup_home'). An unknown value is
     // read as the plain seller's-home pickup, the original handover.
-    handover: raw.handover === "porch" || raw.handover === "delivery" ? raw.handover : "pickup_home",
+    handover: raw.handover === "porch" || raw.handover === "delivery" || raw.handover === "seller_delivery" ? raw.handover : "pickup_home",
     items: Array.isArray(raw.items) ? raw.items : [],
     item_details: Array.isArray(raw.item_details) ? raw.item_details : undefined,
     pickup_at: raw.pickup_at ?? null,

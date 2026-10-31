@@ -14,11 +14,12 @@
  * Neither side can cancel a paid order (owner 2026-10-29, Q2477: "once they pay it can only be
  * rescheduled once. never cancelled."; migration 20261030002630 makes both cancel RPCs refuse).
  */
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
-import { confirmHandover, handoverPhotoUrl, uploadHandoverPhoto } from "@/lib/declutter/handover";
+import { confirmHandover, fetchMyHandover, handoverPhotoUrl, uploadHandoverPhoto } from "@/lib/declutter/handover";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import {
   answerDeliveryTime,
@@ -58,13 +59,16 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
   const marked = !!b.delivered_at;
   const started = booked && now >= Date.parse(b.slot_start!);
   const open = b.order_status === "paid";
+  const slotOver = booked && now >= Date.parse(b.slot_end ?? b.slot_start!);
   return {
     markDelivered: open && b.side === "seller" && started && !marked,
     // Deep audit 2026-10-28 B-7 (#7): "I got it" showed a day before the delivery and one tap finished the sale.
     // It now shows once the seller marked it delivered, or from the delivery day (Louisiana time); it still asks first.
     gotIt: open && b.side === "buyer" && (marked || (booked && laDay(now) >= laDay(Date.parse(b.slot_start!)))),
     notDelivered: open && b.side === "buyer" && booked && !marked && !!b.not_delivered_from && now >= Date.parse(b.not_delivered_from),
-    changeHandoff: open && b.side === "buyer" && !marked && (b.status === "booked" || b.status === "needs_time"),
+    // AUD31-38: door or hand is a choice for a delivery still to come; once its hour has passed it is not (the card is
+    // late, and It wasn't delivered / a new time lead). The panel also hides it during the seller's 24 hours to answer.
+    changeHandoff: open && b.side === "buyer" && !marked && (b.status === "needs_time" || (b.status === "booked" && !slotOver)),
     askNewTime: open && !marked && (b.status === "booked" || b.status === "needs_time") && b.proposals_left > 0 && !(b.proposed_by === b.side),
     answerProposal: open && !!b.proposed_start && b.proposed_by !== b.side,
     withdrawProposal: open && !!b.proposed_start && b.proposed_by === b.side,
@@ -74,7 +78,7 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
 /** What each money moment says before it runs (the words window.confirm used to carry, plus "I got it", which had none). */
 const ASK = {
   gotIt: { title: "Do you have it?", confirm: "I got it", cancel: "Not now", words: "Tapping I got it finishes the sale and the seller is paid. You can still ask for a refund within 24 hours if something is wrong." },
-  notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "You get everything back, delivery included." },
+  notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "We tell the seller now, and they have 24 hours to answer. If they don't, you get everything back, delivery included. If they say they delivered it, Louisiana Helpr looks at both sides." },
 } as const;
 
 /**
@@ -86,6 +90,9 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
+  // Review of 7496d29c8b #2: during "It wasn't delivered"'s 24 hours the time stands (the server refuses a move: no_show_waiting).
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
+  const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
   const [moving, setMoving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   // The money moments ask in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
@@ -97,7 +104,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   };
   const act = <T, V = void>(fn: (v: V) => Promise<T>, done: string | ((r: T) => string)) =>
-    ({ mutationFn: fn, onSuccess: (r: T) => { toast.success(typeof done === "string" ? done : done(r)); refresh(); },
+    ({ mutationFn: fn, onSuccess: (r: T) => { toast(typeof done === "string" ? done : done(r)); refresh(); },
        onError: (err: unknown) => toast.error(sellerDeliveryErrorMessage(err)) });
   const b = booking.data;
   // A photo is taken at the buyer's door (20261028235709): the position first, so a refusal uploads nothing.
@@ -105,9 +112,10 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     const where = photo ? await deliveryPhotoPosition() : null;
     return markDelivered(orderId, photo ? await uploadHandoverPhoto(userId, orderId, photo) : "", where);
   },
-    b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in 24 hours." : "Marked delivered. You're paid when the buyer confirms, or in 24 hours."));
+    // LEAD-DOOR-PAYLINE: "paid when the buyer confirms" was a day early (the buyer's 24 hours to ask for a refund follow).
+    b?.handoff === "hand" ? "Marked handed over. We asked the buyer to confirm." : "Marked delivered. We asked the buyer to confirm."));
   const gotIt = useMutation(act(async () => { const r = await confirmHandover(orderId); markReviewPrompt(orderId); return r; }, "Handover done. Enjoy your item."));
-  const notDelivered = useMutation(act(() => reportNotDelivered(orderId), "Sorry it didn't come. Everything you paid is coming back to your card."));
+  const notDelivered = useMutation(act(async () => { await reportNotDelivered(orderId); void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] }); }, "We told the seller. They have 24 hours to answer."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));
   const answer = useMutation(act((accept: boolean) => answerDeliveryTime(orderId, accept),
     (r) => (r === "moved" ? "Delivery time changed." : r === "slot_taken" ? "That time was just taken, so the delivery keeps its time." : "The delivery keeps its time.")));
@@ -117,6 +125,8 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     return <ErrorState variant="inline" title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} />;
   }
   const can = sellerDeliveryActions(b);
+  // AUD31-2: late = the buyer may say it wasn't delivered (past not_delivered_from, never marked delivered).
+  const late = can.notDelivered && !noShowWaiting;
   const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || handoff.isPending || answer.isPending;
   const fileId = `sd-photo-${orderId}`;
   return (
@@ -131,10 +141,10 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
           <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
         )}
-        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
+        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours."}</p>}
       </div>
-      {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} />}
-      {can.changeHandoff && (
+      {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} mine={b.side === "seller"} />}
+      {can.changeHandoff && !noShowWaiting && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
           {(["leave", "hand"] as const).map((h) => (
             <ChoicePill key={h} selected={b.handoff === h} disabled={busy} onClick={() => b.handoff !== h && handoff.mutate(h)}>{HANDOFF_WORDS[h].title}</ChoicePill>
@@ -145,31 +155,29 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         <div className="rounded-xl border border-border px-3 py-2 text-sm space-y-2" role="status">
           <p>{b.proposed_by === b.side ? `You asked to move it to ${slotLabel(b.proposed_start)}.` : `The ${b.proposed_by} asked to move it to ${slotLabel(b.proposed_start)}.`}</p>
           <div className="flex flex-wrap gap-2">
-            {can.answerProposal && <button type="button" className={primary} disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</button>}
+            {can.answerProposal && !noShowWaiting && <button type="button" className={primary} disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</button>}
             <button type="button" className={btn} disabled={busy} onClick={() => answer.mutate(false)}>{can.withdrawProposal ? "Take back my request" : "Keep the current time"}</button>
           </div>
         </div>
       )}
-      {can.markDelivered && (
+      {can.markDelivered && !noShowWaiting && (
         <div className="space-y-2">
           <label htmlFor={fileId} className="block text-xs font-medium">
             {b.handoff === "leave" ? "Photo of the items at the buyer's door (needed, taken there)" : "Photo of the handover (optional, taken at the buyer's address)"}
           </label>
-          <input id={fileId} type="file" accept="image/*" capture="environment" disabled={busy} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+          <PhotoPickButton id={fileId} picked={photo} disabled={busy} onPick={setPhoto} />
           <button type="button" className={primary} disabled={busy || (b.handoff === "leave" && !photo)} onClick={() => delivered.mutate(undefined)}>
             {b.handoff === "hand" ? "Handed over" : "Delivered"}
           </button>
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
-        {can.gotIt && !problemOpen && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
-        {can.askNewTime && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
-        {can.notDelivered && (
-          <button type="button" className={btn} disabled={busy}
-            onClick={() => setAsk("notDelivered")}>
-            It wasn't delivered
-          </button>
-        )}
+      <div className="flex flex-wrap gap-2" data-seller-delivery-actions="">
+        {/* AUD31-2: past its window and never marked delivered, the delivery is late: "It wasn't delivered" leads (the
+            main button) and "Ask for a new time" follows; "I got it" stays, after them, as an ordinary button. */}
+        {late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>}
+        {can.gotIt && !problemOpen && !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
+        {can.askNewTime && !noShowWaiting && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
+        {can.gotIt && !problemOpen && late && <button type="button" className={btn} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {!problemOpen && <button type="button" className={btn} onClick={onProblem}>Report a problem</button>}
       </div>
       {ask && (
@@ -189,9 +197,12 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
  * seller took at the buyer's address (declutter_seller_delivery_booking's delivered_photo_path, the order's handover
  * photo), for both sides; the private bucket lets the two sides of the order read it (declutter_handover_photo_access).
  */
-function DeliveredPhoto({ path, hand, at }: { path: string; hand: boolean; at: string }) {
+function DeliveredPhoto({ path, hand, at, mine }: { path: string; hand: boolean; at: string; mine: boolean }) {
   const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
-  const label = hand ? "The seller's photo of the handover" : "The seller's photo of where it was left";
+  // AUD31-5: the seller's own card says "Your photo"; the buyer's names the seller.
+  const label = mine
+    ? hand ? "Your photo of the handover" : "Your photo of where you left it"
+    : hand ? "The seller's photo of the handover" : "The seller's photo of where it was left";
   return (
     <figure className="space-y-1.5" data-delivered-photo="">
       <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
@@ -211,7 +222,7 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
   const shown = days.find((d) => d.day === day) ?? days[0];
   const propose = useMutation({
     mutationFn: () => proposeDeliveryTime(orderId, slot!),
-    onSuccess: (r) => { toast.success(r === "booked" ? "Delivery booked." : "Asked. The other side accepts or keeps the current time."); onDone(); },
+    onSuccess: (r) => { toast(r === "booked" ? "Delivery booked." : "Asked. The other side accepts or keeps the current time."); onDone(); },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
   });
   if (times.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading open times…</p>;

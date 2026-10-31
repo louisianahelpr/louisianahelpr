@@ -22,6 +22,7 @@ const ROOT = join(__dirname, "..", "..");
 
 /** Interpolations whose value can never end in "." (so a literal period after them is the only one). EXACT. */
 const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
+  "src/components/declutter/DeclutterNoShowAnswer.tsx::{delivery ? \"it wasn't delivered\" : \"the seller didn't show\"}.": "fixed words, no name",
   "src/components/admin/AdminPayoutBatches.tsx::${batch.helper_name}.": "an admin view; helper_name is the Helpr's full legal name from the payout row, not First L.",
   "src/components/admin/AdminSettings.tsx::${confirmRemove?.name || \"this user\"}.": "an admin's full name from the admin list (admins see full names, Q2365)",
   "src/components/admin/AdminReports.tsx::{messageTarget?.name}.": "an admin view; the reported member's full name",
@@ -30,7 +31,6 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/admin/adminJobs/RemoveJobDialog.tsx::{detailJob?.helper_id ? \" and assigned Helpr\" : \"\"}.": "two string literals, neither ends in a period",
   "src/components/declutter/DeclutterOffersSection.tsx::${o.my_side === \"buyer\" ? \"seller\" : \"buyer\"}.": "a role word (\"seller\" or \"buyer\"), never a person's name",
   "src/components/declutter/DeclutterBundleRow.tsx::{name}.": "the seller's FIRST name only (formatName(...).split(\" \")[0]) or \"this seller\"",
-  "src/components/declutter/DeclutterOrderBits.tsx::{side === \"seller\" ? \", or have someone home\" : \"\"}.": "two string literals, neither ends in a period",
   "src/components/refund/RefundRequestDialog.tsx::${first}.": "firstNameOf(): the first name only",
   "src/lib/jobSystemEvents.ts::${who === \"poster\" ? \"the person who posted it\" : \"the Helpr\"}.": "two string literals, neither ends in a period",
   "src/pages/auth/Unsubscribe.tsx::${who}.": "an email address or \"this address\"",

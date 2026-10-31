@@ -10,13 +10,19 @@ interface Props {
   /** The olive-circle icon (an emoji span or a lucide icon at h-5 w-5). */
   icon: ReactNode;
   title: string;
-  /** The one line under the title. */
-  line: string;
+  /** The one line under the title (none on a `slim` row). */
+  line?: string;
   /** A link (react-router path) or a button (onClick): exactly one. */
   to?: string;
   onClick?: () => void;
   /** Anything under the line (a note, a warning). */
   extra?: ReactNode;
+  /** A smaller row (60px, smaller icon) for options under an "Other ways" heading (POST-H17: all of Sell's choices reach
+   *  a 375x812 screen). */
+  compact?: boolean;
+  /** The slimmest row (48px, title only), for a shortcut above a flow's choices (the Sell chooser's one "Continue
+   *  where you left off", 10-31: kept work must not push Sell's choices off a 375x812 screen). */
+  slim?: boolean;
   /** data-* hooks, passed through to the card. */
   [attr: `data-${string}`]: string | undefined;
 }
@@ -27,15 +33,18 @@ interface Props {
  * One shared look so the two first steps match; a flow never hand-rolls its own option card.
  * Guard: src/components/declutter/declutterSellChooser.test.tsx.
  */
-export function ChoiceCard({ icon, title, line, to, onClick, extra, ...rest }: Props) {
+export function ChoiceCard({ icon, title, line, to, onClick, extra, compact: compactProp, slim, ...rest }: Props) {
+  const compact = compactProp || slim;
+  const cls = slim ? `${CARD} !gap-3 !py-1.5` : compact ? `${CARD} !gap-3 !py-2.5` : CARD;
+  const style = { minHeight: slim ? "48px" : compact ? "60px" : "104px" };
   const body = (
     <>
-      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
+      <span className={`inline-flex ${slim ? "h-8 w-8" : compact ? "h-9 w-9" : "h-11 w-11"} shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]`} aria-hidden>
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-sans text-ds-17 font-bold text-foreground">{title}</span>
-        <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">{line}</span>
+        <span className={`block font-sans ${compact ? "text-ds-15" : "text-ds-17"} font-bold text-foreground`}>{title}</span>
+        {line && <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">{line}</span>}
         {extra}
       </span>
       <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -43,13 +52,13 @@ export function ChoiceCard({ icon, title, line, to, onClick, extra, ...rest }: P
   );
   if (to) {
     return (
-      <Link to={to} onClick={onClick} className={CARD} style={{ minHeight: "104px" }} {...rest}>
+      <Link to={to} onClick={onClick} className={cls} style={style} data-compact={compact ? "" : undefined} {...rest}>
         {body}
       </Link>
     );
   }
   return (
-    <button type="button" onClick={onClick} className={CARD} style={{ minHeight: "104px" }} {...rest}>
+    <button type="button" onClick={onClick} className={cls} style={style} data-compact={compact ? "" : undefined} {...rest}>
       {body}
     </button>
   );

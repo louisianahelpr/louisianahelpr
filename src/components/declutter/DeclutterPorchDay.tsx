@@ -83,7 +83,7 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
   const book = useMutation({
     mutationFn: (day: string) => bookPorchDay(orderId, day),
     onSuccess: (r) => {
-      toast.success(r.result === "booked" ? "Pickup day booked." : "Pickup day changed.");
+      toast(r.result === "booked" ? "Pickup day booked." : "Pickup day changed.");
       setPick(null);
       setMoving(false);
       for (const key of [["declutter", "porch-days", orderId], ["declutter", "bookings"], ["declutter", "my-cart"], ["declutter", "handover", orderId]]) {
@@ -101,6 +101,8 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
   if (days.data === null) return <>{fallback}</>;
   const movedAlready = side === "buyer" ? (booking?.buyer_reschedules ?? 0) >= 1 : (booking?.seller_reschedules ?? 0) >= 1;
   const choosing = (!booked && side === "buyer") || moving;
+  // The days on offer: never the one already booked (with only that day left, the card says none are left).
+  const otherDays = (days.data ?? []).filter((d) => d !== booked);
   return (
     <div className="space-y-2" data-porch-day={booked ?? ""}>
       {booked ? (
@@ -119,14 +121,19 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
       {choosing && (
         <fieldset className="space-y-2">
           <legend className="text-xs font-medium">{booked ? "Pick another day" : "Pick a pickup day"}</legend>
-          {(days.data ?? []).length === 0 ? (
+          {otherDays.length === 0 ? (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">The seller has no pickup days left before your 7-day pickup deadline. Report a problem and we'll sort it out.</p>
+              {/* Night audit sold states #8: the seller read the buyer's line about "the seller". */}
+              <p className="text-sm text-muted-foreground">
+                {side === "seller"
+                  ? "You have no pickup days left before the buyer's 7-day pickup deadline."
+                  : "The seller has no pickup days left before your 7-day pickup deadline. Report a problem and we'll sort it out."}
+              </p>
               {side === "buyer" && !booked && noDays}
             </div>
           ) : (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup days">
-              {(days.data ?? []).filter((d) => d !== booked).map((d) => (
+              {otherDays.map((d) => (
                 <button key={d} type="button" aria-pressed={pick === d} onClick={() => setPick(d)}
                   className={`min-h-11 rounded-full px-4 text-sm font-semibold ${pick === d ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
                   {porchDayWords(d)}

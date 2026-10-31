@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
-import { GuaranteePromise } from "@/components/guarantee/GuaranteePromise";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -146,7 +145,7 @@ const HowItWorksSection = () => {
           {STEPS[side].map((step, i) => (
             <div
               key={i}
-              className="landing-card h-full flex flex-col p-6 lg:p-7"
+              className="landing-card h-full min-w-0 flex flex-col p-6 lg:p-7"
               style={{
                 // Never an opacity of 0 (Q2228): the steps are readable in every state.
                   opacity: 1,
@@ -180,9 +179,8 @@ const HowItWorksSection = () => {
           ))}
         </div>
 
-        {/* "First job, easy yes" (B59): the Helpr Guarantee for people hiring, from one shared constant. */}
-        {side === "hire" && <GuaranteePromise className="w-full max-w-xl self-center sm:self-start text-left" />}
-
+        {/* No Helpr Guarantee box here (owner, 2026-10-31: "it doesn't fit there"). The
+            promise stays where it is offered: first post's Review and /book/<id>. */}
         {side === "hire" && (
           <Link
             to={POST_JOB_SIGNED_OUT}

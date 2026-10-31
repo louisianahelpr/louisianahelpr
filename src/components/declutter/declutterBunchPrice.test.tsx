@@ -5,7 +5,7 @@
  * @mutate src/lib/declutter/bunch.ts |     const price = suggestedPrice(it.priceDollars); |     const price = "";
  * @mutate src/lib/declutter/bunch.ts |   const theirs = it.price.trim() !== "" && it.price !== it.aiPrice; |   const theirs = false;
  * @mutate src/lib/declutter/bunch.ts | invokeAiBody(at ? { mode: "group", photos, at } : { mode: "group", photos }, GROUP_TIMEOUT_MS) | invokeAiBody({ mode: "group", photos }, GROUP_TIMEOUT_MS)
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       }, (cleaned) => askGroup(cleaned, at), undefined | }, (cleaned) => askGroup(cleaned, null), undefined
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       }, async (cleaned) => askGroup(cleaned, await at), undefined | }, async (cleaned) => askGroup(cleaned, null), undefined
  * @mutate src/components/declutter/DeclutterBunchView.tsx | .filter(Boolean), point), { delays: [4_000] }); | .filter(Boolean)), { delays: [4_000] });
  * @mutate src/components/declutter/DeclutterBunchView.tsx | flagged: d.flagged !== false, ...rewrittenPrice(x, d.priceDollars) } | flagged: d.flagged !== false }
  */
@@ -20,6 +20,15 @@ const h = vi.hoisted(() => ({
   geocode: vi.fn(),
 }));
 
+// LEAD-BUNCH-34-SLOW: no early photo uploads here (they would reach prod storage); declutterBunchEarlyUpload.test.ts pins them.
+vi.mock("@/lib/declutter/bunchStage", () => ({
+  BunchStager: class {
+    idFor() { return undefined; }
+    path() { return Promise.resolve(null); }
+    used() {}
+    sync() { return new Map(); }
+  },
+}));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("idb-keyval", () => ({ get: async () => undefined, set: async () => {}, del: async () => {}, delMany: async () => {}, keys: async () => [], createStore: () => ({}) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));

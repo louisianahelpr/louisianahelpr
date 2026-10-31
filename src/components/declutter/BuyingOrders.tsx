@@ -13,17 +13,20 @@
 import { useEffect } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
-import { fetchMyBookings, fetchMyHandover, type MyBooking, type MyHandover } from "@/lib/declutter/handover";
+import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
+import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
+import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundRequests";
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
+import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
-import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
+import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
 export type BuyerOrderView = {
@@ -45,8 +48,10 @@ const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[])
 export function buyerOrderFacts(
   order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents">[] },
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
-    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> | null;
+    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at">
+      & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by" | "not_delivered_from">> | null;
     task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
+  now: number = Date.now(),
 ): OrderFacts {
   const handover = kindOf(order.handover);
   const base: OrderFacts = {
@@ -65,28 +70,46 @@ export function buyerOrderFacts(
       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt };
     case "seller_delivery": {
       const sd = rows.sellerDelivery;
-      return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at };
+      return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at,
+        needsTime: sd?.status === "needs_time", moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller",
+        // AUD31-2: the panel's own "It wasn't delivered" rule (SellerDeliveryOrder can.notDelivered).
+        late: sd?.status === "booked" && !sd.delivered_at && !!sd.not_delivered_from && now >= Date.parse(sd.not_delivered_from) };
     }
     case "delivery": {
       const t = rows.task;
-      return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
+      return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at,
+        inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) };
     }
     default:
-      return { ...base, booked: !!rows.slotStart, pickedUp: tookIt };
+      return { ...base, booked: !!rows.slotStart, pickedUp: tookIt, gotItOpen: gotItOpen(rows.slotStart, now) };
   }
+}
+
+/**
+ * NIGHT-BUYINGopenpr-2: an open problem the buyer did not report and has not answered yet. The order card's "Add your
+ * side" (DeclutterProblemSides) is then the buyer's move. Null (still loading or no problem): not theirs.
+ */
+function problemAwaitsBuyer(p: Pick<OrderProblem, "status" | "reporter_side" | "other_side_note"> | null): boolean {
+  return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note;
 }
 
 /** The buyer's one next move, named as the control that does it. Null when the order does not wait on the buyer. */
 export function buyerNextAction(f: OrderFacts): string | null {
+  if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side";
   if (!orderWaitsOnYou(f)) return null;
-  if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup day";
-  if (f.handover === "pickup_home") return "Book a pickup time";
-  if (f.handover === "meetup") return "Book a time to meet";
+  if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup time";
+  if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
+  if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
+  // AUD31-3: the seller-delivery panel's own button words.
+  if (f.handover === "seller_delivery" && !f.delivered) {
+    return f.needsTime ? "Pick a time" : f.moveAsked ? "Accept the new time" : f.late ? "It wasn't delivered" : "I got it";
+  }
   return "I got it";
 }
 
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null): string {
+function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
+  taskStatus: string | null = null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
   if (f.problem) return PROBLEM_ON_HOLD;
   if (f.done) return "Handed over. It's yours.";
@@ -102,22 +125,41 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
     case "meetup":
       return at === 0 ? "Book a time to meet at the safe spot." : at === 1 ? `Meeting booked${when ? ` for ${when}` : ""}.` : "Met.";
     case "seller_delivery":
+      // AUD31-2: past its time and not marked delivered, it says it is late, never "booked".
+      if (at === 1 && f.late) return `Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`;
       return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
     case "delivery":
+      // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so
+      // under Details: DeclutterDeliveryViews' own lines).
+      if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded.";
+      if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed.";
       // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
       // never "on the way" days before it.
       return at === 0 ? "Finding a Helpr to bring it."
         : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`
-          : at === 2 ? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
+          : at === 2 ? stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt) ?? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
   }
 }
+
+/** The Helpr task statuses of a delivery still under way or done (helpr_tasks.status); any other one is closed. */
+const LIVE_TASK = new Set(["open", "accepted", "picked_up", "delivered", "confirmed"]);
 
 /**
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
  * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
  */
-export function refundStanding(status: string | null | undefined): string | null {
+export function refundStanding(status: string | null | undefined, inFull = false, request?: RefundTookItBack | null): string | null {
+  // AUD31-36, checked before soldstates-7's inFull (merged by Lander 9): a full refund with the item given back ends
+  // "agreed" with returned_at set (20261030071818); the order stays handed_over, so without this line the card read
+  // "Handed over. It's yours." over a returned item.
+  if (refundTookItBack(request)) {
+    const back = request!.refund_cents ? formatPrice(request!.refund_cents) : null;
+    if (!back) return "Returned for a refund.";
+    return request!.refund_status === "succeeded" ? `Returned. You got ${back} back.` : `Returned. ${back} is on its way back to your card.`;
+  }
   switch (status) {
+    // NIGHT-SELL-soldstates-7: a full refund undid the sale (refundedInFull); a part refund leaves it handed over.
+    case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null;
     case "open": return "Handed over. You asked for a refund.";
     case "offered": return "Handed over. You have a refund offer to answer.";
     case "returning": return "Going back for a refund.";
@@ -180,6 +222,9 @@ export function useBuyingTracker(): BuyingTracker {
   const paidCents = useMyPaidCents(ids);
   // Audit 1b D2-2: an open problem puts the order on hold (the same key the order card reads).
   const problems = useOpenProblems(ids);
+  // NIGHT-BUYINGopenpr-2: whether this buyer still owes their side of each open problem (the card reads the same key).
+  const problemIds = ids.filter((id) => problems.has(id));
+  const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
@@ -210,6 +255,7 @@ export function useBuyingTracker(): BuyingTracker {
         task,
       }),
       problem: problems.has(o.orderId),
+      problemAwaitsYou: problemAwaitsBuyer(problemRows[problemIds.indexOf(o.orderId)]?.data ?? null),
     };
     const bucket = orderBucket(facts);
     counts[bucket]++;
@@ -224,7 +270,8 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null),
+      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+        o.handover === "delivery" ? task?.status ?? null : null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });

@@ -9,11 +9,12 @@
  * Behaviour (22 checks, 3x replay, migration skipped = RED, server check
  * planted off = RED, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
  *
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
+ * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
- * @mutate supabase/migrations/20261029205908_declutter_edit_listing.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft'\n     AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE)\n     AND NOT (OLD.status = 'live' AND current_setting('declutter.editing_listing', true) = OLD.id::text) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261031182255_declutter_handovers_guard_fails_closed.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft'\n     AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE)\n     AND NOT (OLD.status = 'live' AND COALESCE(current_setting('declutter.editing_listing', true), '') = OLD.id::text) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261031182255_declutter_handovers_guard_fails_closed.sql | AND NOT (OLD.status = 'live' AND COALESCE(current_setting('declutter.editing_listing', true), '') = OLD.id::text) THEN\n    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023',\n      HINT = 'Porch | AND NOT (OLD.status = 'live' AND current_setting('declutter.editing_listing', true) = OLD.id::text) THEN\n    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023',\n      HINT = 'Porch
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home", | const order: Handover[] = (["pickup_home", "porch",
  */
 import { describe, expect, it } from "vitest";
@@ -64,10 +65,11 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
   // Q2462 (20261028235249): a listed item may GAIN porch pickup (declutter_add_handover, the seller's way out of a
   // handover chat); turning it off once listed is still refused.
   // Audit 1028 D1-1 (owner 2026-10-29): the one exception is declutter_edit_listing on a LIVE item (no order exists),
-  // which names the item in a transaction-local flag (PGlite T11 in declutterHandoverChoices.pglite.mjs).
+  // which names the item in a transaction-local flag (PGlite T11 in declutterHandoverChoices.pglite.mjs). A flag never
+  // set in the session compares as '' and is refused (20261031182255, declutterHandoversGuardFailsClosed.pglite.mjs).
   it("the table itself refuses turning porch off once the item left draft (lh-authz-rls review nit #3)", () => {
     expect(flat(body("declutter_items_porch_frozen"))).toContain(
-      "IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE) AND NOT (OLD.status = 'live' AND current_setting('declutter.editing_listing', true) = OLD.id::text) THEN RAISE EXCEPTION 'item_not_editable'");
+      "IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE) AND NOT (OLD.status = 'live' AND COALESCE(current_setting('declutter.editing_listing', true), '') = OLD.id::text) THEN RAISE EXCEPTION 'item_not_editable'");
     expect(flat(MIG)).toContain("BEFORE UPDATE OF porch_ok ON public.declutter_items FOR EACH ROW EXECUTE FUNCTION public.declutter_items_porch_frozen();");
   });
 

@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {side === "buyer" ? "Message the seller" : "Message the buyer"} | {"Message the seller"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {m.mine ? "You" : `The ${other}`} | {m.mine ? `The ${other}` : "You"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     mutationFn: () => sendOrderMessage(orderId, draft.trim()), |     mutationFn: () => sendOrderMessage(orderId, draft),
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => toast.error(declutterErrorMessage(err)), |     onError: () => toast.error("Something went wrong."),
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |           {open && (\n            <SheetPrimaryAction |           {(\n            <SheetPrimaryAction
  */
@@ -31,9 +31,11 @@ const state = {
   open: true,
   sent: [] as string[],
   sendError: null as unknown,
+  openUntil: null as string | null,
+  title: "Oak rocking chair" as string | null,
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/lib/declutter/orderTalk", () => ({
   MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],
@@ -41,12 +43,13 @@ vi.mock("@/lib/declutter/orderTalk", () => ({
     order_id: id,
     side: state.side,
     open: state.open,
-    open_until: null,
+    open_until: state.openUntil,
     messages: [
       { id: "m1", mine: true, body: "Is Saturday ok?", created_at: "2026-10-29T10:00:00Z" },
       { id: "m2", mine: false, body: "Yes, after 9.", created_at: "2026-10-29T10:05:00Z" },
     ],
   }),
+  fetchMyOrderTalks: async () => [{ order_id: ORDER, side: state.side, title: state.title, last_at: "2026-10-29T10:05:00Z", last_mine: false, open: state.open }],
   sendOrderMessage: async (_id: string, body: string) => {
     if (state.sendError) throw state.sendError;
     state.sent.push(body);
@@ -76,6 +79,8 @@ beforeEach(() => {
   state.open = true;
   state.sent = [];
   state.sendError = null;
+  state.openUntil = null;
+  state.title = "Oak rocking chair";
   vi.mocked(toast.error).mockClear();
 });
 
@@ -109,7 +114,37 @@ describe("D2-1: the paid-order chat", () => {
     state.sendError = Object.assign(new Error("A phone number in the message. Keep contact details and payment out of the chat."), { code: "23514" });
     fireEvent.change(screen.getByLabelText("Message"), { target: { value: "call me" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("phone number")));
+    // AUD31-11: said under the box (the draft stays), never a toast over it.
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toContain("phone number");
+    expect(screen.getByLabelText("Message")).toHaveValue("call me");
+    expect(screen.getByLabelText("Message").getAttribute("aria-describedby")).toBe(said.id);
+    expect(toast.error).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "see you at 10" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  // AUD31-13 (audit 2026-10-31): the sheet said only "Message the seller", not which item.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},
+  it("the chat names the item it is about; with no title known it says nothing extra", async () => {
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    expect((await screen.findByText(/About “Oak rocking chair”/)).getAttribute("data-order-talk-item")).toBe("");
+    expect(screen.getByRole("heading", { name: "Message the seller" })).toBeTruthy();
+  });
+
+  // AUD31-31 (audit 2026-10-31): an ended chat was still titled "Message the seller", with "This chat has ended."
+  // tacked onto the rules box and no date, reason or next step.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | open ? `Message the ${other}` : `Your chat with the ${other}` | `Message the ${other}`
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | `This chat ended ${when(endedAt)}, 48 hours after the handover.` | "This chat has ended."
+  it("an ended chat is titled as a record, and says when it ended, why, and where to go for a problem", async () => {
+    state.open = false;
+    state.openUntil = "2026-10-29T12:00:00Z";
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    expect(await screen.findByRole("heading", { name: "Your chat with the seller" })).toBeTruthy();
+    const ended = document.querySelector("[data-order-talk-ended]")!;
+    expect(ended.textContent).toMatch(/^This chat ended .+, 48 hours after the handover\. You can still read it\. For a problem with this order, use Report a problem on its card\.$/);
+    expect(screen.queryByRole("heading", { name: "Message the seller" })).toBeNull();
   });
 
   it("an ended chat keeps its history with no box and no Send", async () => {

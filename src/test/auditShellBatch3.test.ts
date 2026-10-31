@@ -4,7 +4,7 @@
  * ("Browse jobs"). Empty-state titles keep Montserrat (lead ruling on #61).
  *
  * @mutate src/components/profile/ReviewsTab.tsx |               review{reviewCount !== 1 ? "s" : ""} |               completed job{reviewCount !== 1 ? "s" : ""}
- * @mutate src/components/messages/ConversationList.tsx |                     Browse jobs\n |                     Browse Jobs\n
+ * @mutate src/lib/i18n/enScreens.ts | "chat.browseJobs": "Browse jobs" | "chat.browseJobs": "Browse Jobs"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,7 +21,7 @@ describe("audit batch 3 SHELL fixes", () => {
     expect(s).not.toMatch(/Based on|completed job\{/);
   });
   it("#61 'Browse jobs' is sentence case wherever it is a control or title", () => {
-    for (const f of ["src/components/messages/ConversationList.tsx", "src/pages/home/DashboardGuest.tsx", "src/components/GuestBrowseSkeleton.tsx"]) {
+    for (const f of ["src/components/messages/ConversationList.tsx", "src/lib/i18n/enScreens.ts", "src/pages/home/DashboardGuest.tsx", "src/components/GuestBrowseSkeleton.tsx"]) {
       expect(read(f), f).not.toMatch(/Browse Jobs/);
     }
   });

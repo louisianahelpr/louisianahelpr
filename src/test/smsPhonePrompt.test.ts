@@ -15,8 +15,8 @@
  * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql | WHERE p.id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.id = v_uid);
  * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {<Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
  * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={SMS_PHONE_PROMPT_TITLE}
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |           <SmsAlertsCard /> |           <p>Text alerts</p>
+ * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
+ * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |           <SmsAlertsCard inPrompt onAllSet={onAllSet} /> |           <p>Text alerts</p>
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     void supabase.rpc("dismiss_sms_phone_prompt") |     void Promise.resolve({ data: 1, error: null })
  * @mutate src/pages/post-job/PaymentSuccess.tsx | <SmsPhonePrompt moment="first_job" /> | <span />
  * @mutate src/components/job-card/ActivityOfferDialogs.tsx |           <SmsPhonePrompt moment="first_hire" /> |           <span />
@@ -62,11 +62,11 @@ describe("the one-time add-your-phone prompt", () => {
 
   it("the client: the existing opt-in card inside, the switch read, every close dismisses", () => {
     const prompt = read("src/components/notificationPreferences/SmsPhonePrompt.tsx");
-    expect(prompt).toContain("<SmsAlertsCard />");
+    expect(prompt).toContain("<SmsAlertsCard inPrompt onAllSet={onAllSet} />");
     expect(prompt).toContain('const enabled = useFeature("sms_alerts");');
     expect(prompt).toContain('void supabase.rpc("dismiss_sms_phone_prompt")');
     expect(prompt).toContain('<Dialog open onOpenChange={(o) => { if (!o) close(); }}>');
-    expect(prompt).toContain('<DialogSecondaryAction onClick={close}>Not now</DialogSecondaryAction>');
+    expect(prompt).toContain('<DialogSecondaryAction onClick={close}>{allSet ? "Close" : "Not now"}</DialogSecondaryAction>');
   });
 
   it("on Home for members who already gave a phone: worded as turning texts on, never over the first-run tour", () => {
@@ -75,7 +75,7 @@ describe("the one-time add-your-phone prompt", () => {
     expect(home).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
     expect(home).toContain("const [firstRunActive, setFirstRunActive] = useState(true);");
     const prompt = read("src/components/notificationPreferences/SmsPhonePrompt.tsx");
-    expect(prompt).toContain('title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE}');
+    expect(prompt).toContain('title={allSet ? "You\'re all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE}');
     expect(prompt).toContain('export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don\'t miss updates";');
   });
 

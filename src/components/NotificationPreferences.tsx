@@ -562,7 +562,7 @@ const NotificationPreferences = () => {
             // `toggle()` names its spinner after the column it writes, so the
             // id has to follow which path toggleEmailMaster took.
             savingId={emailMasterColumn ? "email_enabled" : "email_master"}
-            title="Mutes every email below. Your per-category choices are kept."
+            title="Off mutes every email below. Your per-category choices are kept."
           />
         </div>
       </div>
@@ -689,10 +689,6 @@ const NotificationPreferences = () => {
       ))}
       {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={(key) => columns[key]} onToggle={(key) => void toggle(key)} />}
 
-      {/* The Declutter group (owner 2026-10-28, via the lead): only once its
-          columns are deployed (a switch for a missing column could not save). */}
-      {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}
-
       {/* Saved-Helpr availability nudges: a STANDALONE opt-in (owner 2026-09-15), OFF by default, not a
           type-routed category row; the saved-helper-availability-push cron reads this column directly. Push-only. */}
       <div
@@ -756,6 +752,10 @@ const NotificationPreferences = () => {
         dimmed={!emailMasterEnabled}
         saving={saving}
       />
+
+      {/* The Declutter group (owner 2026-10-28): once its columns are deployed (a missing column could not save). Last,
+          after the Jobs rows, so nothing that is not Declutter sits under it (NIGHT-SET-Declutterse-4). */}
+      {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}
 
       {/* Test button — proves push + email + in-app end-to-end (see
           sendTestPush above). Zero registered push devices no longer

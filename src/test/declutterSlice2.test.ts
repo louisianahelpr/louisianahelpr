@@ -8,7 +8,7 @@
  * (66 PASS; NEW_MIGRATION=skip 52 FAIL; 19 planted defects each caught,
  * measured 2026-10-14).
  *
- * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
+ * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos p WHERE p.storage_path = objects.name)\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND (storage.foldername(name))[2] = 'declutter'\n | \n
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF v_seller = v_uid THEN | IF false THEN
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
- * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
+ * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     NEW.is_seed := true;\n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller | \n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller
  */
 import { describe, expect, it } from "vitest";
@@ -66,11 +66,14 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
     expect(body("declutter_admin_review_item")).toContain("INSERT INTO public.admin_audit_log");
   });
 
-  it("publish keeps an unchecked or AI-flagged listing for an admin (row 34, B19)", () => {
+  it("publish keeps an AI-flagged listing for an admin; an unchecked one is held by the sweep (row 34, B19)", () => {
     // Item B (owner 2026-10-29, 20261030071816): the "first 3 listings" rule (row 33) is gone; only the check holds.
+    // LEAD-POST-SLOW (owner 2026-10-31, 20261031152545): the check runs right after Post, so publish holds only a
+    // flag it already has; a check that never comes back is held after 15 minutes (declutter_hold_unchecked_listings).
     expect(flat(body("declutter_publish_item"))).toContain(
-      "v_status := CASE WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;",
+      "v_status := CASE WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;",
     );
+    expect(flat(body("declutter_hold_unchecked_listings"))).toContain("SET status = 'pending_review'");
     expect(flat(MIG)).toContain("AFTER INSERT OR DELETE ON public.declutter_item_photos FOR EACH ROW EXECUTE FUNCTION public.declutter_photos_void_ai_check()");
   });
 
@@ -88,8 +91,12 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
     );
     const rec = flat(body("declutter_record_ai_check"));
     // A draft, or (item B) a listing an edit sent back whose check was cleared; never one already judged.
+    expect(rec).toContain("AND (i.status = 'draft'");
+    // LEAD-POST-SLOW: a live listing only while it has no check yet; also one a buyer reserved or paid for before the
+    // check landed, never one an admin approved since it went live (review of 41771724f3).
+    expect(rec).toContain("OR (i.status IN ('live', 'reserved', 'sold') AND i.live_at IS NOT NULL AND (i.admin_approved_at IS NULL OR i.admin_approved_at < i.live_at) AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))");
     expect(rec).toContain(
-      "AND (i.status = 'draft' OR (i.status = 'pending_review' AND i.live_at IS NOT NULL AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))) FOR UPDATE",
+      "OR (i.status = 'pending_review' AND i.live_at IS NOT NULL AND EXISTS (SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))) FOR UPDATE",
     );
     expect(rec).toContain("RAISE EXCEPTION 'ai_check_stale'");
     expect(MIG).toMatch(/GRANT EXECUTE ON FUNCTION public\.declutter_record_ai_check\([^)]*\) TO service_role;/);
@@ -97,7 +104,8 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
   });
 
   it("create and edit refuse an address in the public area label", () => {
-    for (const fn of ["declutter_create_item", "declutter_update_draft"]) {
+    // declutter_create_item makes its item through declutter_create_item_with_id (LEAD-POST-SLOW a), which checks it.
+    for (const fn of ["declutter_create_item_with_id", "declutter_update_draft"]) {
       expect(body(fn), fn).toContain("IF public.declutter_area_label_problem(p_area_label, p_pickup_address) IS NOT NULL THEN");
     }
   });

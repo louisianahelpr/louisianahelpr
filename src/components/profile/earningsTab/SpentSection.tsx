@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatShortDate } from "@/lib/format";
-import { setupFeeReceiptNote, spentRows, spentTotalCents, type SpentRow } from "@/lib/posterSpend";
+import { refundedReceiptNote, setupFeeReceiptNote, spentRows, spentTotalCents, type SpentRow } from "@/lib/posterSpend";
 import { usePosterSpendData, type SpentJobRow } from "./usePosterSpendData";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
 import { formatCents } from "./earningsTabHelpers";
@@ -141,7 +141,8 @@ export function SpentSection() {
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatShortDate(new Date(rowMs(r)))}
                   {r.job?.status === "cancelled" ? " · Cancelled" : ""}
-                  {r.job && r.tipCents > 0 ? ` · includes ${formatCents(r.tipCents)} tip` : ""}
+                  {refundedReceiptNote(r)}
+                  {r.job && r.tipGivenCents > 0 ? ` · includes ${formatCents(r.tipGivenCents)} tip` : ""}
                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""}
                 </p>
               </div>

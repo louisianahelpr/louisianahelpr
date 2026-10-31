@@ -5,16 +5,22 @@ import { DESCRIPTION_MAX } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 
+/** One id for the placeholder line: it is the red error after Continue, else the neutral hint (never both). */
+const PLACEHOLDERS_ID = "description-placeholders";
+
 interface DescriptionFieldProps {
   description: string;
   setDescription: (v: string) => void;
   category: string;
+  /** Continue was pressed with a [placeholder] still in (POST-H15): only then is it an error. */
+  placeholdersRefused?: boolean;
 }
 
 export function DescriptionField({
   description,
   setDescription,
   category,
+  placeholdersRefused = false,
 }: DescriptionFieldProps) {
   // Checklist/placeholder helpers only — the inline "Use <category>
   // template" link that used to sit in the label row is gone. Templates are
@@ -25,6 +31,8 @@ export function DescriptionField({
   const descTrimmed = description.trim();
   // Same server rule as the title: contact details are rejected on insert.
   const leak = contactLeakFieldError(description, "job description");
+  const placeholders = hasUnfilledPlaceholders(description);
+  const placeholderError = placeholders && placeholdersRefused;
 
   return (
     <div className="space-y-2.5">
@@ -40,18 +48,22 @@ export function DescriptionField({
         rows={4}
         maxLength={DESCRIPTION_MAX}
         autoCapitalize="sentences"
-        aria-invalid={!!leak || undefined}
-        aria-describedby={leak ? "description-contact-leak" : undefined}
+        aria-invalid={!!leak || placeholderError || undefined}
+        aria-describedby={[leak && "description-contact-leak", placeholders && PLACEHOLDERS_ID].filter(Boolean).join(" ") || undefined}
       />
       {leak && <FieldError id="description-contact-leak">{leak}</FieldError>}
-      {/* Placeholder guard — a template starter still carries "[…]"
-          fill-ins. Flag them inline so the poster swaps in real details
-          before the (now-disabled) submit button unlocks (LH-23). */}
-      {hasUnfilledPlaceholders(description) && (
-        <FieldError>
+      {/* Placeholder guard (LH-23; POST-H15 lead 10-31): a template starter still carries "[…]" fill-ins. A neutral
+          hint says so while the poster is still filling in; only once they press Continue with one left is it the red
+          error (and Continue focuses the first one, focusFirstPlaceholder). */}
+      {placeholderError ? (
+        <FieldError id={PLACEHOLDERS_ID}>
           Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
         </FieldError>
-      )}
+      ) : placeholders ? (
+        <p id={PLACEHOLDERS_ID} className="text-ds-13 text-muted-foreground" data-placeholder-hint="">
+          Fill in the [bracketed] parts with your own details.
+        </p>
+      ) : null}
       {/* A generic category prompt used to render here as a SECOND serif-italic
           hint ("Add anything a Helpr needs to quote accurately — access,
           timing, and supplies.") directly above the adaptive "Tip:" line

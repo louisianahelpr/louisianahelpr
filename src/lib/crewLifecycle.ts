@@ -220,7 +220,7 @@ export interface CrewDoneResult {
  * (rpcErrorCopyCoverage.test.ts) cannot see them; their words live here.
  */
 const CREW_DONE_GATE_COPY: Record<string, string> = {
-  job_not_completable: "This job isn't active any more, so your part can't be marked done. Pull to refresh.",
+  job_not_completable: "This job isn't active any more, so your part can't be marked done. Refresh the page.",
   completion_requires_confirmed_arrival:
     `The person who posted this job has to tap "Confirm they've arrived" for you before you can mark your part done.`,
   completion_requires_proof_photos: "Add before and after photos of your part before marking it done.",

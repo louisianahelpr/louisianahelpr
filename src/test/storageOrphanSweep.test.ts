@@ -38,6 +38,7 @@ type World = {
   jobIds: Set<string>;
   attachmentRefs: string[];
   deletedSeedJobs?: Map<string, { from: number | null; until: number }>;
+  declutterItemIds?: Set<string>;
 };
 function world(over: Partial<World> = {}): World {
   return {
@@ -82,6 +83,45 @@ describe("orphanReason — path schemes", () => {
     const path = `${J_LIVE}/${U_LIVE}/signed.png`;
     const w2 = world({ attachmentRefs: [`https://x.supabase.co/storage/v1/object/sign/message-attachments/${path}?token=abc`] });
     expect(orphanReason("message-attachments", path, w2)).toBeNull();
+  });
+});
+
+// LEAD-DRAFT-PHOTO-SWEEP: a new listing's photos upload before the listing exists; one never posted leaves
+// <uid>/declutter/<itemId>/ with no declutter_items row. Swept only with a read of declutter_items, under the
+// same 7-day and two-read rules.
+// @mutate scripts/lib/storageOrphans.mjs |       return world.declutterItemIds.has(seg[2]) ? null : "listing gone"; |       return null;
+// @mutate scripts/lib/storageOrphans.mjs | seg.length < 4 \|\| !(world.declutterItemIds instanceof Set)) return null; | seg.length < 4) return "listing gone";
+// @mutate scripts/storage-orphan-sweep.mjs |     declutterItemIds,\n    deletedSeedJobs: new Map( |     deletedSeedJobs: new Map(
+describe("Declutter listing photos (LEAD-DRAFT-PHOTO-SWEEP)", () => {
+  const I_LIVE = "c0ffee00-1111-4111-8111-111111111111";
+  const I_GONE = "c0ffee00-2222-4222-8222-222222222222";
+  const items = new Set([I_LIVE]);
+  it.each([
+    [`${U_LIVE}/declutter/${I_GONE}/p1.jpg`, items, "listing gone"],
+    [`${U_GONE}/declutter/${I_GONE}/p1.jpg`, items, "listing gone"],
+    [`${U_LIVE}/declutter/${I_LIVE}/p1.jpg`, items, null],
+    // A seller's account gone, the listing kept (a sale outlives its party): its photos stay.
+    [`${U_GONE}/declutter/${I_LIVE}/p1.jpg`, items, null],
+    // No read of declutter_items: never an orphan.
+    [`${U_LIVE}/declutter/${I_GONE}/p1.jpg`, undefined, null],
+    // Not a listing-photo shape.
+    [`${U_LIVE}/declutter/not-an-id/p1.jpg`, items, null],
+    [`${U_LIVE}/declutter/${I_GONE}`, items, null],
+  ])("job-photos %s -> %s", (name, declutterItemIds, expected) => {
+    expect(orphanReason("job-photos", name, world({ declutterItemIds }))).toBe(expected);
+  });
+
+  it("two reads, 7 days: an old photo of a listing never posted goes; a new one waits", () => {
+    const objects = [obj("job-photos", `${U_LIVE}/declutter/${I_GONE}/old.jpg`), obj("job-photos", `${U_LIVE}/declutter/${I_GONE}/new.jpg`, new Date(NOW - 2 * DAY).toISOString())];
+    const r = selectOrphans({ objects, first: world({ declutterItemIds: items }), second: world({ readAt: NOW, declutterItemIds: items }), now: NOW });
+    expect(r.orphans.map((o: { name: string }) => o.name)).toEqual([`${U_LIVE}/declutter/${I_GONE}/old.jpg`]);
+  });
+
+  it("the sweep reads declutter_items for its world and re-reads the one listing before a delete", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/storage-orphan-sweep.mjs"), "utf8"));
+    expect(src).toContain('await restAll("declutter_items", "id")');
+    expect(src).toContain("/rest/v1/declutter_items?select=id&id=in.${inList}");
+    expect(src.match(/declutterItemIds,/g)?.length).toBeGreaterThan(1);
   });
 });
 

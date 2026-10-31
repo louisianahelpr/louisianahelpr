@@ -39,6 +39,8 @@ export const ROUTES = [
   { path: "/signup", chunk: "Signup" },
   // Signed-in representative (PD-020): useProfile + the job-list page's shared graph.
   { path: "/posts", chunk: "PostsPage" },
+  // Where every signed-in visitor lands (AUD31-60/66): Home's own first screen.
+  { path: "/home", chunk: "HomeDashboard" },
 ];
 
 function die(msg) {

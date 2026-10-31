@@ -37,7 +37,7 @@ export function useKeepUp(itemId: string | null) {
   const flip = useMutation({
     mutationFn: (on: boolean) => setKeepUp(itemId!, on),
     onSuccess: (on) => {
-      toast.success(on ? "It renews every 30 days until it sells." : "It's up for 30 days at a time again, up to 4 times.");
+      toast(on ? "It renews every 30 days until it sells." : "It's up for 30 days at a time again, up to 4 times.");
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

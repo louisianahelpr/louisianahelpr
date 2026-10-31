@@ -9,6 +9,8 @@ import { lazy } from "react";
 import { AdminFrame } from "./AdminFrame";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
+import { homeStanding } from "@/components/admin/dashboard/homeStanding";
+import { useSeriousOpenAlertCount } from "@/components/admin/adminHealth/useOpenAlerts";
 import type { Stats, DateRange } from "@/components/admin/dashboard/types";
 import { RANGE_PRESETS } from "@/components/admin/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -151,6 +153,7 @@ const Admin = () => {
   // nav's red counts on every page and the Dashboard's Priority Alerts below.
   const pendingCounts = useAdminPendingCounts(!loading);
   const openQueues = pendingCounts.data;
+  const { data: seriousAlertCount, isError: seriousAlertsFailed } = useSeriousOpenAlertCount(!loading);
   const qc = useQueryClient();
 
   const loadUnreadCounts = useCallback(async () => {
@@ -490,6 +493,7 @@ const Admin = () => {
   const viewLabels = VIEW_LABELS;
 
   const renderContent = () => {
+    const homeDataError = statsLoadError || unreadCountsError || pendingCounts.isError || seriousAlertsFailed;
     switch (view) {
       case "analytics": return <AdminAnalytics />;
       case "people": return <AdminUsers />;
@@ -541,7 +545,13 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
-          dataError={statsLoadError || unreadCountsError || pendingCounts.isError}
+          dataError={homeDataError}
+          seriousAlerts={seriousAlertCount}
+          standing={homeStanding({
+            queues: openQueues,
+            seriousAlerts: seriousAlertCount,
+            dataError: homeDataError,
+          })}
         />
       );
     }

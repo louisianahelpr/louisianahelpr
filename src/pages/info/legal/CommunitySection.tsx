@@ -130,12 +130,12 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={CheckCircle}
         title="24+ hours before job — free cancellation"
-        body={<p>Nothing is charged. The Helpr can fill the slot.</p>}
+        body={<p>Nothing is charged and it isn&apos;t a strike. The Helpr can fill the slot.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}
         title="Less than 24 hours before — part goes to the Helpr"
-        body={<p><strong className="text-foreground">Part of the job goes to the Helpr</strong> for the time they set aside, and the rest comes back to you. The cancel screen shows the exact amount before you confirm.</p>}
+        body={<p><strong className="text-foreground">Part of the job goes to the Helpr</strong> for the time they set aside, and the rest comes back to you. The cancel screen shows the exact amount before you confirm. It also counts as a strike.</p>}
       />
       <PolicyRowItem
         icon={XCircle}
@@ -295,6 +295,7 @@ export const CommunityContent = () => (
               <li key={rung}>{rung}</li>
             ))}
             <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (the timing rules above still apply).</li>
+            <li>Cancelling 24 or more hours before the start does <strong>not</strong> count toward strikes. Inside 24 hours, or after the start, it does.</li>
           </ul>
         }
       />

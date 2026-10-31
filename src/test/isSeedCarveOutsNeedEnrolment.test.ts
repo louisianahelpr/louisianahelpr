@@ -82,6 +82,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   declutter_seller_sold_count: "hides",
+  declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
   // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.
@@ -108,6 +109,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sweep_job_post_drafts: "alerts", // 20261030223154: a test or seed member never gets the draft reminder
   declutter_free_still_available_sweep: "alerts", // 20261030232231: a test listing or seller is never asked
   declutter_move_reminder_sweep: "alerts", // 20261030221156: a test listing or seller never gets the reminder
+  declutter_answer_no_show: "alerts", // 20261031004529: a test sale's answer reaches no admin; the answer itself still works
+  declutter_helpr_answer_no_show: "alerts", // 20261031134217 (soldstates-5): a test sale's or test Helpr's answer reaches no admin; the answer itself still works
+  declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; every other step of the sweep still runs on it
   helpr_task_sweep: "alerts", // 20261031014011: a test task or member never gets the still-not-delivered nudge
   declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
   declutter_refund_cancels_setup_jobs: "alerts",
@@ -175,12 +179,15 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   jobs_address_in_louisiana: "safety-skip",
   jobs_seed_from_poster: "tags",
   list_open_quote_requests: "hides",
+  // OPS-DEL (20261031205315): a deleted test account is never counted in the daily summary.
+  log_account_deletion: "hides",
   log_deleted_job: "tags",
   notification_crosses_seed_boundary: "hides",
   notify_admins_new_member: "hides",
   notify_admins_support_ticket: "hides",
   notify_owner_support_text: "hides",
   sms_claim_owner_support: "hides",
+  send_new_member_daily_summary: "hides",
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",
@@ -257,6 +264,9 @@ const EDGE_READERS: Record<string, Kind> = {
   "ship-rates/index.ts": "tags",
   "stalled-completion-reminder/index.ts": "alerts",
   "stripe-connect/index.ts": "alerts",
+  // SEED-ALERTS: a test job's, order's or gift donor's refund alert goes to the digest; both files only route alerts and an admin notice.
+  "stripe-webhook/handlers/_giftCardRefund.ts": "alerts",
+  "stripe-webhook/handlers/chargeRefunded.ts": "alerts",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentSucceeded.ts": "alerts",

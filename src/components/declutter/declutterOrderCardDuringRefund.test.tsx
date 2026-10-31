@@ -3,10 +3,14 @@
  * Louisiana Helpr, it still said "Handed over. It's yours.", offered "Need help moving it?" and "Leave a review"; a
  * delivery printed "Handed over." twice.
  *
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus)} | standing={null}
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus)} | bookedOnly={false}
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     enabled: !!view && done && refundRequests && items > 0, |     enabled: false,
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <p | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <p
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} | standing={null}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} | standing={problem ? null : refundStanding(refundStatus, fullRefund)}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={false}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| fullRefund}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     enabled: done && refundRequests && items > 0, |     enabled: false,
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <DeliveryDoneStatus | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <DeliveryDoneStatus
+ * @mutate src/lib/declutter/refundRequests.ts |   return request?.status === "agreed" && !!request.returned_at; |   return request?.status === "agreed";
+ * @mutate src/components/declutter/BuyingOrders.tsx | `Returned. You got ${back} back.` | `Handed over. It's yours.`
  * @mutate src/components/declutter/BuyingOrders.tsx | {standing ?? view.standing} | {view.standing}
  * @mutate src/lib/declutter/refundRequests.ts |   return status === "returning" \|\| status === "to_admin"; |   return false;
  */
@@ -18,11 +22,12 @@ import { MemoryRouter } from "react-router-dom";
 const state = vi.hoisted(() => ({
   cart: [] as Record<string, unknown>[],
   refund: null as string | null,
+  refundExtra: {} as Record<string, unknown>,
   refundReads: 0,
   problems: [] as Record<string, unknown>[],
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests" }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
@@ -31,7 +36,7 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
   fetchRefundRequestView: async (orderId: string) => {
     state.refundReads++;
-    return { order_id: orderId, side: "buyer", handed_over: true, request: state.refund ? { id: "r1", status: state.refund } : null };
+    return { order_id: orderId, side: "buyer", handed_over: true, request: state.refund ? { id: "r1", status: state.refund, ...state.refundExtra } : null };
   },
 }));
 vi.mock("@/lib/declutter/handover", () => ({
@@ -77,6 +82,7 @@ const line = (over: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   state.cart = [line()];
   state.refund = null;
+  state.refundExtra = {};
   state.refundReads = 0;
   state.problems = [];
 });
@@ -102,6 +108,28 @@ describe("BUY-31: the order card agrees with a refund", () => {
     expect(container.textContent).not.toContain("It's yours");
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
     expect(await screen.findByText(`Help panel (${help})`)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["succeeded", "Returned. You got $43.34 back."],
+    ["pending", "Returned. $43.34 is on its way back to your card."],
+  ])("AUD31-36: a full refund with the item given back (agreed, returned_at; refund %s) says Returned, never that it's yours, and offers no help moving it", async (refundStatus, words) => {
+    state.refund = "agreed";
+    state.refundExtra = { returned_at: "2026-10-22T15:00:00Z", refund_cents: 4334, refund_status: refundStatus };
+    const { container } = show();
+    expect(await screen.findByText(words)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("It's yours");
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(await screen.findByText("Help panel (booked only)")).toBeInTheDocument();
+  });
+
+  it("AUD31-36: a part refund (agreed, no return: the buyer keeps it) still reads as theirs, with the help offer", async () => {
+    state.refund = "agreed";
+    state.refundExtra = { returned_at: null, refund_cents: 2000, refund_status: "succeeded" };
+    show();
+    expect(await screen.findByText("Handed over. It's yours.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(await screen.findByText("Help panel (offers)")).toBeInTheDocument();
   });
 
   it("a problem open: the card's on-hold line stands, no new help offer, and the review form hears of it", async () => {

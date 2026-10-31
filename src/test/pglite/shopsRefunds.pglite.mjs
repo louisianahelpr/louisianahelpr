@@ -92,7 +92,7 @@ CREATE POLICY "Admins can view audit log" ON public.admin_audit_log FOR SELECT T
 GRANT ALL ON public.admin_audit_log TO authenticated;
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
   stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
-  ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
+  ban_status text DEFAULT 'active', auto_suspended_until timestamptz, under_13_blocked_at timestamptz,
   idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false,
   email_verified boolean NOT NULL DEFAULT true, background_check_status text);
 CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
@@ -100,9 +100,10 @@ CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_u
 CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, reviewer_id uuid, reviewee_id uuid NOT NULL,
   rating integer NOT NULL, status text NOT NULL DEFAULT 'published', feedback_visible_at timestamptz);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid, status text NOT NULL,
-  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false);
+  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false, is_seed boolean DEFAULT false);
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_arrived_at timestamptz);
-CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz,
+  is_seed boolean NOT NULL DEFAULT false); -- read by get_public_profile_stats (newest), loaded before the ALTER below
 CREATE TABLE public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL, reviewer_id uuid,
   reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false);
 CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
@@ -112,6 +113,7 @@ INSERT INTO public.platform_settings (feature_flags) VALUES ('{}'::jsonb);
 CREATE TABLE public.cron_defects (fn text, ref text, msg text);
 CREATE FUNCTION public.log_cron_defect(f text, r text, m text, c jsonb DEFAULT NULL) RETURNS void LANGUAGE sql AS $f$ INSERT INTO public.cron_defects VALUES (f, r, m) $f$;
 CREATE FUNCTION public.seed_review_hidden(uuid, uuid, uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE FUNCTION public.is_test_member(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 `;
 
 const U = (n) => `00000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
@@ -165,6 +167,12 @@ const ok = (cond, label) => {
 // --- what M1 builds on, once (as prod will have it)
 await db.exec(`CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
   type text NOT NULL, title text NOT NULL, message text NOT NULL, link text, created_at timestamptz NOT NULL DEFAULT now());`);
+// Stubbed, and said so: declutter_notify_strict (the newest declutter_notify wraps it, 20261028162048) writes the bell
+// row only. Its link and preference helpers are not what this proof checks; without it every notice here was swallowed
+// into cron_defects and the facilitator alert counted 0 notices.
+await db.exec(`CREATE FUNCTION public.declutter_notify_strict(p_user uuid, p_type text, p_title text, p_message text, p_link text,
+  p_other uuid DEFAULT NULL) RETURNS void LANGUAGE sql AS $f$
+  INSERT INTO public.notifications (user_id, type, title, message, link) VALUES (p_user, p_type, p_title, p_message, p_link) $f$;`);
 for (const name of ["declutter_buyer_fee_cents", "declutter_card_fee_estimate", "declutter_notify"]) {
   await db.exec(newestDefinition(name).stmt);
 }
@@ -192,7 +200,7 @@ await db.exec(`CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, rea
   held_at timestamptz NOT NULL DEFAULT now(), denied_reason text, denied_by uuid, denied_at timestamptz);`);
 // Declutter's item total and seed flag (20261014210518), read by the facilitator counter.
 await db.exec(`ALTER TABLE public.declutter_orders ADD COLUMN items_cents integer NOT NULL DEFAULT 100,
-  ADD COLUMN is_seed boolean NOT NULL DEFAULT false;`);
+  ADD COLUMN IF NOT EXISTS is_seed boolean NOT NULL DEFAULT false;`);
 // Payout readiness (20261019070737), as prod has it under this migration: a shop payout can be
 // held for review (only an admin moves it on).
 await db.exec(`ALTER TABLE public.shop_payouts DROP CONSTRAINT IF EXISTS shop_payouts_status_check;

@@ -5,7 +5,7 @@
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (!job.helper_dayof_confirmed_at \|\| job.helper_completed_at) return null; |   if (job.helper_completed_at) return null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (job.status === "revision_requested" \|\| job.status === "disputed") return null; |
  * @mutate src/components/job-card/helperStepRequest.ts |   return req.step === step && Date.now() - req.at < REQUEST_TTL_MS; |   return Date.now() - req.at < REQUEST_TTL_MS;
- * @mutate src/components/JobTracking.tsx |         if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext); |         if (takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);
+ * @mutate src/components/JobTracking.tsx |         if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext); |         if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);
  * @mutate src/pages/jobs/AppliedJobCard.tsx | open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); }, | open: () => toggleExpandedJobId(app.job_id),
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (wait === "arrival_unconfirmed" \|\| wait === "overdue_arrival_unconfirmed") return null; |
  */
@@ -28,7 +28,7 @@ describe("Helpr face: the real next step, taken through the tracker", () => {
     const arrived = { ...base, helper_on_the_way_at: T, helper_arrived_at: T };
     expect(helperFaceNextStep(arrived, null)?.label).toBe("Start working");
     const tr = { id: "t", status: "working", latitude: null, longitude: null, eta_minutes: null, updated_at: T };
-    expect(helperFaceNextStep(arrived, tr)?.label).toBe("Mark done");
+    expect(helperFaceNextStep(arrived, tr)?.label).toBe("Mark job complete");
     expect(helperFaceNextStep({ ...arrived, helper_completed_at: T }, tr)).toBeNull();
   });
 
@@ -57,7 +57,7 @@ describe("Helpr face: the real next step, taken through the tracker", () => {
 
   it("the tracker presses its own button only when that button is enabled", () => {
     const src = code("src/components/JobTracking.tsx");
-    expect(src).toMatch(/if \(takeHelperStepRequest\(jobId, nextStatus\.key\) && !ctaDisabled\) queueMicrotask\(runNext\);/);
+    expect(src).toMatch(/if \(trackingSettled && takeHelperStepRequest\(jobId, nextStatus\.key\) && !ctaDisabled\) queueMicrotask\(runNext\);/);
     expect(src).toMatch(/onClick=\{runNext\}/);
     expect(src).toMatch(/disabled=\{ctaDisabled\}/);
     expect(code("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/open: \(\) => \{ if \(!isExpanded\) toggleExpandedJobId\(app\.job_id\); \}/);

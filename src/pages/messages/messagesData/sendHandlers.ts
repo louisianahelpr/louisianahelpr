@@ -211,7 +211,9 @@ export function createSendHandlers({
       // the bubble is non-retryable. src/lib/messageSendRefusal.ts.
       const refusal = classifySendRefusal(error as { code?: string; message?: string } | null);
       if (refusal) {
-        toast.error(refusal.toast);
+        // AUD31-42: no toast. At 375 the bottom toast sat on the refused bubble
+        // and its label; the bubble's own sentence-case label (REFUSAL_BUBBLE_LABEL)
+        // says why, right where the member is looking.
         setMessages((prev) =>
           prev.map((m) =>
             m.clientId === optimistic.clientId

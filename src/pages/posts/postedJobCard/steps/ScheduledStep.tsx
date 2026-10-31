@@ -90,6 +90,7 @@ export function ScheduledStep({
           <JobConfirmation
             variant="inline"
             hideNotYetOpen
+            jobTitle={job.title}
             jobId={job.id}
             isOwner={true}
             isHelper={false}

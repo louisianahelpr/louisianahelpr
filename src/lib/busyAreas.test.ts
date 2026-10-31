@@ -48,6 +48,8 @@ describe("busy areas (Q2435)", () => {
     expect(parishForAreaLabel("New Iberia, LA")).toBe("Iberia");
     expect(parishForAreaLabel("Vermilion Parish")).toBe("Vermilion");
     expect(parishForAreaLabel("Mid City")).toBeNull();
+    // AUD31-10: two towns joined by "&" (a prod pickup area, 10-31) place by the last one the lookup knows.
+    expect(parishForAreaLabel("New Iberia & Delcambre")).not.toBeNull();
     expect(parishForAreaLabel("")).toBeNull();
   });
 

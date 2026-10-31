@@ -13,7 +13,7 @@
  *
  * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |     WHEN p_category::text IN ('yard_work') THEN 'yard' |     WHEN p_category::text IN ('yard_work') THEN 'home'
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       AND public.saved_search_category_matches(s.category, NEW.category) |       AND (s.category IS NULL OR s.category = NEW.category::text)
- * @mutate supabase/migrations/20261030071817_declutter_search_words.sql |            AND public.saved_search_category_matches(s.category, j.category) |            AND (s.category IS NULL OR s.category = j.category::text)
+ * @mutate supabase/migrations/20261031023451_saved_search_keeps_its_origin.sql |            AND public.saved_search_category_matches(s.category, j.category) |            AND (s.category IS NULL OR s.category = j.category::text)
  * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       OR p_search_category = public.job_category_group(p_category) |       OR false
  */
 import { describe, expect, it } from "vitest";

@@ -6,7 +6,7 @@
  * no more arguments than A supplies. Inventory: every public function in the
  * live write-contract snapshot.
  *
- * @mutate scripts/audit/write-contract.snapshot.json |     "nargdefaults": 2,\n    "nargs": 3\n   }\n  ],\n  "claim_marketing_content" |     "nargdefaults": 2,\n    "nargs": 3\n   },\n   {"anon": false, "args": ["p_user_id", "p_max_attempts"], "authenticated": false, "nargdefaults": 1, "nargs": 2}\n  ],\n  "claim_marketing_content"
+ * @mutate scripts/audit/write-contract.snapshot.json |     "nargdefaults": 3,\n    "nargs": 4\n   }\n  ],\n  "claim_marketing_content" |     "nargdefaults": 3,\n    "nargs": 4\n   },\n   {"anon": false, "args": ["p_user_id", "p_max_attempts"], "authenticated": false, "nargdefaults": 1, "nargs": 2}\n  ],\n  "claim_marketing_content"
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

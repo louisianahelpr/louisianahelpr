@@ -27,13 +27,18 @@ export function buyerOnWayToday(booking: Pick<MyBooking, "buyer_on_way_at"> | nu
   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now);
 }
 
-export function pickupsToday<O extends PickupOrderLike>(orders: O[], bookings: MyBooking[], now = new Date()): PickupToday<O>[] {
+/**
+ * `held`: orders on hold (an open problem, the order card's "On hold"). They never tell the buyer to set off (night
+ * audit 10-30, NIGHT-BUYINGopenpr-1: "I'm on my way" topped Buying over a card that said On hold).
+ */
+export function pickupsToday<O extends PickupOrderLike>(orders: O[], bookings: MyBooking[], now = new Date(), held: ReadonlySet<string> = new Set()): PickupToday<O>[] {
   const today = ymd(now);
   const byOrder = new Map(bookings.map((b) => [b.order_id, b]));
   const out: PickupToday<O>[] = [];
   for (const order of orders) {
     const booking = byOrder.get(order.orderId);
     if (!booking || order.status !== "paid" || !PICKUP_KINDS.has(order.handover ?? "")) continue;
+    if (held.has(order.orderId)) continue;
     const day = booking.pickup_day ?? (booking.slot_start ? ymd(new Date(booking.slot_start)) : null);
     if (day !== today) continue;
     const said = booking.buyer_on_way_at ? ymd(new Date(booking.buyer_on_way_at)) === today : false;

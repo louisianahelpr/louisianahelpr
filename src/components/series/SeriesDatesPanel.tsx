@@ -122,7 +122,7 @@ export function SeriesDatesPanel({
   const run = async (action: () => Promise<string>) => {
     setBusy(true);
     try {
-      toast.success(await action());
+      toast(await action());
       await refresh();
     } catch (err) {
       hapticError();

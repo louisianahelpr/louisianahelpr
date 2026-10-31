@@ -34,6 +34,10 @@ const ROOT = process.cwd();
 
 /** SQL functions that may write "Someone" for a person. name -> why. Exact and two-way. */
 const SQL_SOMEONE_OK: Record<string, string> = {
+  declutter_hold_unchecked_listings:
+    "'Someone from Louisiana Helpr will look at it': the seller's held-listing notice; no person is known yet (an admin picks it up later), so there is no actor to name (20261031152545)",
+  declutter_record_ai_check:
+    "'Someone from Louisiana Helpr will look at it': the seller's flagged-listing notice; no person is known yet (an admin picks it up later), so there is no actor to name (20261031152545)",
   declutter_request_free:
     "HINT 'Someone else got this item first.': the same error as declutter_take_item's, on an ask for a free item the giver already gave (moved from declutter_claim_free, which now only calls this, Q2487)",
   declutter_question_notice:

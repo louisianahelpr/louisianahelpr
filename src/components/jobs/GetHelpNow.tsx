@@ -1,27 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { helpOrderSubject, helpSupportSubject } from "@/lib/supportSubject";
+import { helpOrderSubject } from "@/lib/supportSubject";
 import { SUPPORT_REPLY_PROMISE } from "@/lib/supportTopics";
 
-/** Active jobs: hired and not yet done (a disputed job too: the dispute is still open). */
-export const GET_HELP_NOW_STATUSES: ReadonlySet<string> = new Set(["accepted", "in_progress", "revision_requested", "disputed"]);
-
-/**
- * "Get help now" (owner decided 2026-10-29, Q2478 part 3; audit page CMP-3): one tap from an active job to
- * Louisiana Helpr. It opens /support with "Talk to a real person" chosen and the job named in the subject
- * (its title and short id, the way the dispute chips do it: helpSupportSubject), so the message lands in the
- * admin support queue, the support inbox and Slack (contact-support) with the job attached. It promises the
- * shared SUPPORT_REPLY_PROMISE, "We usually answer within a few hours."
- *
- * Shown to both sides of the job (never role-based); nothing on an open, done or cancelled job.
- * Guard: src/test/getHelpNow.test.tsx.
- */
-export function GetHelpNow({ job }: { job: { id: string; title?: string | null; status?: string | null } }) {
-  if (!GET_HELP_NOW_STATUSES.has(job.status ?? "")) return null;
-  return <GetHelpButton subject={helpSupportSubject(job)} />;
-}
-
+/* The job page's "Get help now" came off (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT: help is the top-right icon, PageHeader's
+   HelpEntry on every back-arrow screen). Declutter orders keep their button below. */
 /**
  * The same one tap on a Declutter order (CMP-3; both sides of the order, never role-based). Only while the order
  * needs help: paid and not yet handed over, or handed over with a problem still open. Named as a list of what shows,

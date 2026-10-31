@@ -132,73 +132,9 @@ export { STATUS_IDX, deriveCurrentStatusIdx } from "@/lib/jobProgressIndex";
 import { STATUS_IDX, deriveCurrentStatusIdx } from "@/lib/jobProgressIndex";
 
 export { trackingProofCaption } from "./trackingProofCaption";
+export { shouldShowTrackingMap } from "./trackingMapGate";
+import { shouldShowTrackingMap } from "./trackingMapGate";
 
-/**
- * The tracking-row steps the map is drawn on.
- *
- * KEEP THE MAP UNTIL DONE (owner, 2026-09-14, VN-20 pop-up: "Keep map until
- * done"). This reverses the map being en-route only ("this should show map
- * tracker when they're on the way"): it now stays from On the way through
- * Arrived and Working, so the arrival label on its job pin is actually seen,
- * and hides once the job is marked done.
- */
-const MAP_TRACKING_STATUSES = new Set(["on_the_way", "arrived", "working"]);
-
-/**
- * THE CONTESTED SET (owner, 2026-09-16: "the tracker shoudl not go away for a
- * dispute ir revisio").
- *
- * A job in `revision_requested` or `disputed` has already been submitted, so
- * its tracking row carries `done` — which is why keeping the map for those two
- * statuses needs BOTH halves: `markedDone` has to stop hiding it, and `done`
- * has to be an allowed tracking status. With only the first half the map
- * stayed hidden and the fix would have measured as a no-op.
- *
- * Deliberately NOT a change to the plain path: a normally-completed job still
- * loses its map on the same terms as before.
- */
-const CONTESTED_MAP_TRACKING_STATUSES = new Set([...MAP_TRACKING_STATUSES, "done"]);
-
-/**
- * Whether the map mounts. Shared by the render and by the arrival-label
- * placement (VN-20) so "the map shows the arrival" and "the map is on screen"
- * can never be two different answers.
- *
- * DRAWING THE MAP STARTS NO TRACKING. After On the way the helper pin is the
- * last position already on the `job_tracking` row; the position watch
- * (`startEnRouteWatch`, the effect gated on `tracking.status === "on_the_way"`)
- * still stops at arrival exactly as before.
- *
- * `markedDone` hides it once completion is submitted or settled — the helper's
- * Done, the poster's approval, a completed job.
- *
- * EXCEPT WHEN THE WORK IS CONTESTED (`contested`, owner 2026-09-16: "the
- * tracker shoudl not go away for a dispute ir revisio"). This reverses the
- * earlier reading that a job sent back for revision or disputed after
- * submission should lose its map with every other done job. It should not: a
- * revision or a dispute is the one moment where where the Helpr actually WENT
- * is the evidence under discussion, and the rail is deliberately clamped to
- * Working for exactly the same reason. The map goes with it.
- */
-export function shouldShowTrackingMap(
-  tracking: Pick<TrackingData, "status" | "latitude" | "longitude"> | null | undefined,
-  jobLatitude: number | null | undefined,
-  jobLongitude: number | null | undefined,
-  markedDone = false,
-  /** `jobStatus` is `revision_requested` or `disputed` — see above. Scoped to
-   *  those two statuses so a plainly-completed job is untouched. */
-  contested = false,
-): boolean {
-  return (
-    (contested || !markedDone) &&
-    !!tracking &&
-    (contested ? CONTESTED_MAP_TRACKING_STATUSES : MAP_TRACKING_STATUSES).has(tracking.status) &&
-    tracking.latitude != null &&
-    tracking.longitude != null &&
-    jobLatitude != null &&
-    jobLongitude != null
-  );
-}
 
 /**
  * How to phrase the assigned helper's name for the step the job is on.
@@ -353,6 +289,9 @@ export function JobTracking({
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
+  // AUD31-79: whether the tracking row has been read (handed in by the list, or this card's own read answered). Until
+  // then the tracker draws from the job row alone, which can name an earlier step than the row will.
+  const [trackingSettled, setTrackingSettled] = useState(initialTracking !== undefined);
   const [updating, setUpdating] = useState(false);
   /** Which tier of en-route tracking the RUNTIME actually established — never
    *  what we hoped for. `null` means no watch is running. Drives both the
@@ -409,7 +348,10 @@ export function JobTracking({
   // the parent refetches its batched job_tracking rows, the new value flows
   // back into the card (e.g. cache invalidation after a write).
   useEffect(() => {
-    if (initialTracking !== undefined) setTracking(initialTracking);
+    if (initialTracking !== undefined) {
+      setTracking(initialTracking);
+      setTrackingSettled(true);
+    }
   }, [initialTracking]);
 
   const loadTracking = useCallback(async () => {
@@ -420,6 +362,7 @@ export function JobTracking({
       .eq("job_id", jobId)
       .order("created_at", { ascending: false })
       .limit(1);
+    setTrackingSettled(true);
     if (error) {
       console.error("[JobTracking] failed to load tracking:", error);
       report(error, { severity: "warning", tags: { source: "JobTracking.load" } });
@@ -871,15 +814,14 @@ export function JobTracking({
       }
       setArrivalRefusal(null);
       applyArrivalVerdict(v);
-      // The check-in SUCCEEDED in every one of these branches, so none of them
-      // gets the error haptic or an error toast. An unverified location is an
-      // ordinary outcome (Location off, a wrong map pin, a bad fix), not a
-      // fault of the Helpr's — treating it as one is the "accusation" the owner
-      // ruled out. `toast.info` for those, success only when something was
-      // actually settled.
+      // The check-in SUCCEEDED in every one of these branches, so none gets the error haptic or an error toast. An
+      // unverified location is an ordinary outcome (Location off, a wrong map pin, a bad fix), not the Helpr's fault:
+      // treating it as one is the "accusation" the owner ruled out. Unsettled goes through the bare `toast()` (`toast.info`
+      // renders nothing without an action, toastPolicy.ts) so the Helpr learns the poster must confirm (owner,
+      // 2026-09-19: "they shoud be aware of this"). Settled, the tracker's next step already says so.
       const settled = v.verified || v.posterConfirmed;
       if (settled) hapticSuccess();
-      (settled ? toast.success : toast.info)(arrivalVerdictMessage(v), { duration: 9000 });
+      else toast(arrivalVerdictMessage(v), { duration: 9000 });
     }
 
     const now = now0;
@@ -940,7 +882,7 @@ export function JobTracking({
               .select("id, poster_completed_at"),
             {
               action: "mark the job complete",
-              rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
+              rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Refresh the page.",
               context: { jobId },
             },
           );
@@ -990,7 +932,7 @@ export function JobTracking({
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });
-          toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Pull to refresh.", { duration: 8000 });
+          toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page.", { duration: 8000 });
         } else {
           // Analytics (Q222): the Helpr's Done finished a job the poster had
           // already approved. Once per job.
@@ -1076,7 +1018,7 @@ export function JobTracking({
             }).select("id"),
         {
           action: "update your status",
-          rejectedMessage: "We couldn't update your status — this job may have been cancelled. Pull to refresh.",
+          rejectedMessage: "We couldn't update your status — this job may have been cancelled. Refresh the page.",
           context: { jobId, newStatus },
         },
       );
@@ -1804,7 +1746,8 @@ export function JobTracking({
         const runNext = () => { if (isDoneStep) setConfirmDoneOpen(true); else void updateStatus(nextStatus.key); };
         const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly;
         // Boards 62/64: the Working card's face asked for THIS step (helperStepRequest.ts); press it once, gates intact.
-        if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
+        // AUD31-79: only once the tracking row has settled; a first draw from the job row alone dropped the request.
+        if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
         const ctaEl = (
           <JobStepPrimaryButton
             icon={nextStatus.icon}
@@ -1839,7 +1782,7 @@ export function JobTracking({
                 open={confirmDoneOpen}
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
                 title="Mark this job complete?"
-                description="This tells the person who posted this job that the work is finished and starts the clock on your payment."
+                description="This tells the person who posted this job the work is finished, so they can approve it."
                 primaryLabel="Mark job complete"
                 primaryTone="bark"
                 primaryDisabled={updating}

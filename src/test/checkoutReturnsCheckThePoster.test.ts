@@ -29,6 +29,7 @@
  *
  * @mutate src/pages/post-job/PaymentSuccess.tsx | if (!isJobPoster(data.customer_id, viewerId)) { | if (!data.customer_id) {
  * @mutate src/pages/home/useBoostReturn.ts | } else if (!isJobPoster(data?.customer_id, userId)) { | } else if (!data) {
+ * @mutate src/components/declutter/useLinkedOrder.ts |   if (params.get("paid")) return null;\n |
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -63,8 +64,10 @@ for (const f of edgeFiles) {
 
 /** The ownership check a page must make in code before it claims a payment for the id in this param. */
 const OWNER_CHECK: Record<string, RegExp> = {
-  // A declutter order: resolved only among the viewer's own buyer lines (justPaidOrder).
-  order: /my_side === "buyer"/,
+  // A declutter order: resolved only among the viewer's own buyer lines (justPaidOrder). BUY-30's notice link
+  // (useLinkedOrder, ?tab=...&order=) is not a checkout return: it reads nothing when ?paid= is there, and only
+  // ever picks among the viewer's own order cards, so it makes no payment claim.
+  order: /my_side === "buyer"|if \(params\.get\("paid"\)\) return null;/,
 };
 const ownerCheck = (param: string) => OWNER_CHECK[param] ?? /\bisJobPoster\(/;
 

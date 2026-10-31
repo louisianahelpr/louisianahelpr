@@ -12,7 +12,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx |   return MY_JOBS_LINK_PARAMS.some((k) => params.has(k)) ? "working" : "browse"; |   return "browse";
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;
  * @mutate src/components/sections/StatusBoxes.tsx | aria-pressed={on} | aria-pressed={false}
- * @mutate src/components/sections/StatusBoxes.tsx | {(!onlyLit \|\| value === null) && chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
+ * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
  * @mutate src/components/job-card/embeddedActivity.tsx | label={tab === "posted" ? "Search posted jobs" | label={tab === "posted" ? "Search all sections"
@@ -22,6 +22,10 @@ import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@te
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
+import { resultsPath } from "@/lib/savedSearches";
 
 vi.mock("@/pages/home/Dashboard", () => ({
   default: ({ embeddedHeader }: { embeddedHeader: () => ReactNode }) => <div data-testid="feed">{embeddedHeader()}</div>,
@@ -30,8 +34,8 @@ vi.mock("@/components/job-card/JobListPage", async (orig) => {
   const real = await orig<typeof import("@/components/job-card/JobListPage")>();
   return {
     ...real,
-    default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader?: ReactNode }) => (
-      <div data-testid={`list-${defaultTab}`}>{embeddedHeader}</div>
+    default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader: () => ReactNode }) => (
+      <div data-testid={`list-${defaultTab}`}>{embeddedHeader()}</div>
     ),
   };
 });
@@ -72,7 +76,7 @@ const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("
 afterEach(cleanup);
 
 describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
-  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon in their status chip row (owner 2026-10-25 / 2026-10-27, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
+  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon beside the gear (owner 2026-10-25 / 2026-10-27 / 2026-10-31, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
     let n = 0;
     for (const url of ["/jobs", "/jobs?tab=posted", "/jobs?tab=working"]) {
       open(url);
@@ -81,7 +85,7 @@ describe("one search bar per screen (owner 2026-10-21: two were stacked on Brows
       cleanup();
     }
     expect(n).toBe(3);
-    const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={null} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
+    const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={(row) => <div>{row?.end}</div>} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
     expect(icon.getAttribute("aria-label")).toBe("Search posted jobs");
@@ -120,7 +124,10 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(screen.getByTestId("feed")).toBeTruthy();
   });
 
-  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?q=fence"])("old My Jobs link %s lands on Working", (url) => {
+  // AUD31-49: QUOTE_HOMES.myQuotes (/jobs?quotes=1, where Send quote and old /quotes?view=mine land) opened Browse,
+  // where the sent quotes are not drawn. ?quotes= now names Working like the other My Jobs params.
+  // @mutate src/pages/jobs/JobsSection.tsx | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const; | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q"] as const;
+  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?q=fence", "/jobs?quotes=1"])("old My Jobs link %s lands on Working", (url) => {
     open(url);
     expect(screen.getByTestId("list-applied")).toBeTruthy();
     expect(screen.getByTestId("where").textContent).toContain("tab=working");
@@ -157,6 +164,30 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(screen.getByTestId("where").textContent).toBe("/jobs?q=f");
     expect(screen.getByTestId("feed")).toBeTruthy();
     expect(screen.queryByTestId("list-applied")).toBeNull();
+  });
+
+  // Audit SS-1: a Jobs saved search with words opened Working and cleared its "new" count; Search's link was the same.
+  // @mutate src/lib/savedSearches.ts |   return `/jobs?${new URLSearchParams([["tab", "browse"], ...p]).toString()}`; |   return `/jobs?${p.toString()}`;
+  it.each([
+    ["with words and filters", { query: "lawn", max_budget: 200, radius_miles: 25 }],
+    ["with words only", { query: "lawn" }],
+    ["with no words", { category: "yard_work" }],
+  ])("a Jobs saved search %s opens Browse", (_n, s) => {
+    open(resultsPath({ id: "s", name: "", section: "jobs", query: null, category: null, min_budget: null, max_budget: null, radius_miles: null, parish: null, location_keyword: null, notify_enabled: true, notify_email: true, last_seen_at: null, created_at: "", ...s }));
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("list-applied")).toBeNull();
+  });
+
+  // @mutate src/pages/search/SearchPage.tsx | <Link to={`/jobs?tab=browse&${qs}`} | <Link to={`/jobs?${qs}`}
+  it("Search's See all in Jobs names its tab and opens Browse", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../pages/search/SearchPage.tsx"), "utf8"));
+    const links = src.match(/\/jobs\?[^`"']*\$\{qs\}/g) ?? [];
+    expect(links.length).toBeGreaterThan(0);
+    for (const l of links) {
+      open(l.replace("${qs}", "q=lawn"));
+      expect(screen.getAllByTestId("feed").length).toBeGreaterThan(0);
+      expect(screen.queryByTestId("list-applied")).toBeNull();
+    }
   });
 
   it("/jobs?tab=posted (where /posts redirects) lands on Posted", () => {

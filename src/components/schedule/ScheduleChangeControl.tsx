@@ -62,7 +62,7 @@ export function useScheduleChangeAct(jobId: string, userId: string) {
     setBusy(true);
     try {
       const out = await fn();
-      if (typeof out === "string") toast.success(out);
+      if (typeof out === "string") toast(out);
       else toast.warning(out.warn, { duration: 10_000 });
       await settle();
     } catch (err) {

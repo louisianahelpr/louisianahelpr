@@ -24,7 +24,7 @@ const rpc = vi.fn(async (fn: string, args?: { p_include_test?: boolean; p_keys?:
 });
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (fn: string, args?: never) => rpc(fn, args) } }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "admin-1" }, isReady: true }) }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { DeclutterReviewCard } from "./DeclutterReviewCard";
 

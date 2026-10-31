@@ -52,7 +52,7 @@ vi.mock("@/integrations/supabase/client", () => {
     },
   };
 });
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn() }));
 
 import { TipDialog } from "@/components/TipDialog";

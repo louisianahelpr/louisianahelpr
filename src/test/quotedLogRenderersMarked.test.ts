@@ -104,6 +104,8 @@ describe("stored error text is marked data-quoted-log where it renders (Q101)", 
         continue;
       }
       for (const hook of hooks) {
+        // Returns a number from a head-only count: no stored text reaches a render.
+        if (hook === "useSeriousOpenAlertCount") continue;
         const consumers = files.filter((f) => f !== reader && f.endsWith(".tsx") && new RegExp(`\\b${hook}\\(`).test(code.get(f)!));
         if (!consumers.length) problems.push(`${hook} (${rel(reader)}) has no .tsx consumer; nothing to check`);
         for (const c of consumers) {

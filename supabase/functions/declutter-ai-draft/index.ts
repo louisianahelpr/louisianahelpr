@@ -67,6 +67,7 @@ import {
   sanitizeDraft, sanitizeGroups, sanitizeRoom, type DeclutterDraft, type SoldRange,
 } from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
+import { priceDraftFromLookup } from "./priceLookup.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
 
@@ -204,7 +205,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const { allowed, retryAfter } = await checkRateLimit(req, {
-    windowMs: 60_000, maxRequests: 6, keyPrefix: "declutter-ai-draft",
+    // LEAD-BUNCH-34-SLOW (owner 10-31): 12 a minute (was 6), so Sell a bunch's sorting calls go every 5.25 s
+    // (AI_CHECK_GAP_MS). Cost stays capped by each mode's hourly limit below (group: 20 calls an hour).
+    windowMs: 60_000, maxRequests: 12, keyPrefix: "declutter-ai-draft",
   });
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 
@@ -240,7 +243,11 @@ serve(async (req) => {
     // The caller's own DRAFT only (a stranger is never told it exists). Item B (owner 2026-10-29): a `check` may
     // also judge a Declutter listing an edit sent back (pending_review); declutter_record_ai_check decides
     // whether that one may be judged (it was live and its check was cleared) and refuses anything else.
-    const declutterStatuses = mode === "check" ? ["draft", "pending_review"] : ["draft"];
+    // LEAD-POST-SLOW (owner 2026-10-31, 20261031152545): Post publishes at once and the check runs right after, on
+    // the LIVE listing; declutter_record_ai_check judges a live one only while it has no check yet.
+    // Review of 41771724f3: a buyer can reserve (or pay for) it in the seconds before the check lands, so a check also
+    // reaches a reserved or sold listing that went live with none; record_ai_check holds the payout on a flag.
+    const declutterStatuses = mode === "check" ? ["draft", "live", "pending_review", "reserved", "sold"] : ["draft"];
     const { data: item, error: itemErr } = shopItem
       ? await admin.from("shop_items").select("id, kind, subtype, title, description")
           .eq("id", itemId).eq("owner_id", userId).eq("status", "draft").maybeSingle()
@@ -356,7 +363,7 @@ serve(async (req) => {
       return json({ checked: true, flagged: draft.flagged });
     }
 
-    return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
+    return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));
   } catch (e) {
     console.error("[declutter-ai-draft] error:", caughtMessage(e));
     return json({ error: "ai_unavailable" }, 500);
@@ -575,7 +582,7 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
   }
   const draft = answer.parsed ? sanitizeDraft(answer.parsed, photos.length) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
-  return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
+  return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));
 }
 
 /**
@@ -643,8 +650,10 @@ The photos below may show SEVERAL different items. They are numbered from 0 in t
   // Everything sanitizeDraft returns except the flag's reason (never shown to the seller), so a field it
   // gains later (builder 25's suggested price) reaches this mode too without a second list here. Each suggested
   // price is held to our own sold prices near body.at, as one item's draft is (no point: it stays as it is).
+  // LEAD-PRICE-LOOKUP: every item's used-price lookup runs at once, each in its own time box, so a bunch adds
+  // about one lookup's time, not one per item.
   const grounded = await Promise.all(items.map(async ({ photos: held, ...draft }) => {
-    const { flagReason: _reason, ...d } = await groundWithOurSales(anon, draft, body);
+    const { flagReason: _reason, ...d } = await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body);
     return { ...d, photos: held };
   }));
   return json({ items: grounded, leftover });

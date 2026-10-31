@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
+import { doneFloorNote } from "@/lib/doneFloor";
 
 /**
  * The ONE primary action of a live job: "Mark job complete" (owner,
@@ -74,7 +75,7 @@ export function PayoutUnlockNote({
   return (
     <JobStepRowSlot slot="note">
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Available in {minutesLeft} min — 30 minutes after you arrived, to ensure quality.
+        {doneFloorNote(minutesLeft)}
       </p>
     </JobStepRowSlot>
   );

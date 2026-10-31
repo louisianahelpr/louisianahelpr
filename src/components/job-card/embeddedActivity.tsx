@@ -31,7 +31,13 @@ export function nextBoxFilter(current: string, tapped: string): string {
   return current === tapped ? "all" : tapped;
 }
 
-/** The section's top bar + tabs, then the status boxes that filter the list. */
+/**
+ * The section's top bar + tabs. Jobs hands a function (JobsSection's makeHeader) so the tab's search can ride in the
+ * tabs row; a plain node (component tests) is drawn as is, with no search in it.
+ */
+export type EmbeddedHeader = ReactNode | ((row?: { end?: ReactNode; onlySelected?: boolean }) => ReactNode);
+
+/** The section's top bar + tabs (with this tab's search icon beside the gear), then the status boxes that filter the list. */
 export function EmbeddedActivityHeader({
   header,
   tab,
@@ -41,7 +47,7 @@ export function EmbeddedActivityHeader({
   search,
   onSearch,
 }: {
-  header: ReactNode;
+  header: EmbeddedHeader;
   tab: "posted" | "applied";
   statusFilter: string;
   counts: Record<string, number>;
@@ -51,14 +57,25 @@ export function EmbeddedActivityHeader({
   onSearch: (next: string) => void;
 }) {
   const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
-  // While the search field is open on a phone the chip row keeps only its lit chip and the field takes the rest
-  // (lead 2026-10-28, audit F20: the open field left a sliver of cut chips, "Ne" / "Waitir"). Desktop has room.
+  // While the search field is open on a phone the TABS row keeps only its selected tab and the field takes the rest
+  // (Browse's rule, Dashboard's phoneBrowseEnd; audit F20 was the same squeeze in the old chip-row place). Desktop has room.
   const desktop = useIsWebDesktop();
   const [searchOpen, setSearchOpen] = useState(false);
   const value = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;
+  // THE SEARCH SITS BESIDE THE GEAR (owner 2026-10-31, Jobs > Posted at 375: "move it up into the tab row next to the
+  // gear"): the icon ends the tabs row before the gear, as on Browse (owner 2026-10-28: "search and filter should be
+  // next to gear"), and still opens IN PLACE, leftward (owner 2026-10-27). While the field is open the magnifier's 40px
+  // box is HELD after it (src/test/searchDismissAndOverlay.test.tsx), so a tap on the X never lands on the trigger.
+  // Guards: src/test/jobsSearchIsAnIcon.test.tsx, src/test/searchKeepsLitChip.test.tsx.
+  const searchEnd = (
+    <div data-activity-search-controls="" className={`flex items-center gap-0 self-center ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"}`}>
+      <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill />
+      {searchOpen && <SearchTriggerSlot width="40px" />}
+    </div>
+  );
   return (
     <div className="flex flex-col gap-4">
-      {header}
+      {typeof header === "function" ? header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header}
       {/* The same row box as Browse's "N jobs" row (jobsToolbar.ts, owner 2026-10-27). */}
       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
         <div className="min-w-0 flex-1">
@@ -68,18 +85,7 @@ export function EmbeddedActivityHeader({
             onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
             // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
             allCount={counts.all}
-            onlyLit={searchOpen && !desktop}
-            // Search is an ICON at the row's end, like Browse's (owner 2026-10-25: "i prefer the search not expanded"),
-            // and it opens IN PLACE, leftward out of the icon (owner 2026-10-27: "search should just open where its at").
-            // While the field is open the magnifier's 40px box (the trigger's h-10 w-10) is HELD at the row's end, as on every
-            // other expanding search (src/test/searchDismissAndOverlay.test.tsx): the field's X then sits beside the box the
-            // magnifier comes back to, never on it, so one tap on the X can never land on the reopened trigger.
-            end={
-              <>
-                <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill />
-                {searchOpen && <SearchTriggerSlot width="40px" />}
-              </>
-            }
+            emptyLine={false}
           />
         </div>
       </div>
@@ -88,6 +94,6 @@ export function EmbeddedActivityHeader({
 }
 
 /** While the list loads, the section's top bar + tabs stay put over status-box and card bones (JobsSectionSkeleton). */
-export function EmbeddedActivityLoading({ header, tab }: { header: ReactNode; tab: "posted" | "applied" }) {
-  return <JobsListLoadingFrame header={header} tab={tab} />;
+export function EmbeddedActivityLoading({ header, tab }: { header: EmbeddedHeader; tab: "posted" | "applied" }) {
+  return <JobsListLoadingFrame header={typeof header === "function" ? header() : header} tab={tab} />;
 }

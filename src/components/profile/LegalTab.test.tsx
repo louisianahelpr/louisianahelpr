@@ -14,7 +14,7 @@ import { toast } from "sonner";
 // it is in the Privacy panel only. These tests stop that move from quietly
 // breaking the export, and pin one "contact support" link per document.
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // `hapticLight` is pulled in by the shared <Tabs> primitive (ui/tabs.tsx fires
 // a tick on every real selection change). Without it in this factory the mock

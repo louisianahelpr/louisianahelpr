@@ -81,9 +81,9 @@ export async function fetchDeliveryQuote(sellerId: string, address: string): Pro
           return null;
         })
       : null;
-    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "delivery_check_unavailable");
   }
   const quote = (data as { quote?: unknown } | null)?.quote;
-  if (!isQuote(quote)) throw new Error("payment_unavailable");
+  if (!isQuote(quote)) throw new Error("delivery_check_unavailable");
   return quote;
 }

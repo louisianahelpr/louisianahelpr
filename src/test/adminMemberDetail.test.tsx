@@ -36,7 +36,7 @@ const { getUserMock } = vi.hoisted(() => ({ getUserMock: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: vi.fn(), auth: { getUser: () => getUserMock() } },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/admin/AdminUserNotes", () => ({ default: () => null }));
 vi.mock("@/components/admin/UserVerificationHistory", () => ({ default: () => null }));
 

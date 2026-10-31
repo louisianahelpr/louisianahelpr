@@ -16,7 +16,9 @@ export const FilterChipGroup = ({ label, value, onChange, options }: {
   onChange: (next: string) => void;
   options: { id: string; label: string }[];
 }) => (
-  <div className="flex items-center gap-1.5 flex-wrap">
+  // AUD31-45: the label always sits above its control. In one wrapping row a short group ("Filed by") stayed beside
+  // its label while longer ones dropped below theirs, so the three groups were laid out two ways.
+  <div className="flex flex-col items-start gap-1.5">
     <span className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
       {label}
     </span>

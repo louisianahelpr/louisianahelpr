@@ -31,6 +31,9 @@ import {
   type MySellerDelivery,
 } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { dayOffAllowed, dayOffBounds, dayOffLabel } from "@/lib/declutter/daysOff";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
 const KEY = ["declutter", "my-seller-delivery"] as const;
@@ -58,7 +61,9 @@ export function SellerDeliveryCard() {
   const on = useFeature("declutter_seller_delivery");
   const mine = useMySellerDelivery(on);
   const [open, setOpen] = useState(false);
-  if (!on || mine.isError) return null;
+  if (!on) return null;
+  // NIGHT-SET-Declutterse-1: a failed read says so, with Try again.
+  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your delivery setting." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   return (
     <section className="rounded-2xl border border-border bg-card" aria-label="Your delivery" data-seller-delivery-card="">
       <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open}
@@ -75,10 +80,33 @@ export function SellerDeliveryCard() {
   );
 }
 
-function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; onDone: () => void }) {
+/**
+ * LEAD-DELIVER-TWICE (owner 2026-10-31): on Declutter settings the one delivery control is the "I'll deliver" tick in
+ * Listing defaults; while it is ticked, the price, distance, times and days off open right under it (this), with no
+ * second "I can deliver" row or on/off switch of its own: saving it turns delivery on with those terms.
+ * Guard: src/components/declutter/declutterSettings.test.tsx.
+ */
+export function SellerDeliveryDetails() {
+  const on = useFeature("declutter_seller_delivery");
+  const mine = useMySellerDelivery(on);
+  if (!on) return null;
+  // The card's own retry line (NIGHT-SET-Declutterse-1), for this read too.
+  const readFailed = mine.isError;
+  if (readFailed) return <ErrorState variant="inline" title="We couldn't load your delivery setting." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
+  if (!mine.data) return <p role="status" className="text-ds-13 text-muted-foreground">Loading…</p>;
+  return (
+    <div role="group" aria-label="Your delivery price and times" data-seller-delivery-details=""
+      className="rounded-[16px] border border-border bg-card">
+      <SellerDeliveryForm current={mine.data} onDone={() => undefined} embedded />
+    </div>
+  );
+}
+
+function SellerDeliveryForm({ current, onDone, embedded = false }: { current: MySellerDelivery; onDone: () => void; embedded?: boolean }) {
   const qc = useQueryClient();
   const rules = current.rules ?? SELLER_DELIVERY_RULES;
-  const [enabled, setEnabled] = useState(current.enabled);
+  // Embedded under the ticked "I'll deliver": delivery is what the tick means, so there is no switch to turn it on.
+  const [enabled, setEnabled] = useState(embedded ? true : current.enabled);
   // Free delivery, or a set price (owner 2026-10-27). A set price may be free on bigger orders.
   const [priceMode, setPriceMode] = useState<"free" | "paid">(current.rate_cents === 0 ? "free" : "paid");
   const [rate, setRate] = useState(current.rate_cents ? String(current.rate_cents / 100) : "");
@@ -130,18 +158,20 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
     },
     onSuccess: (s) => {
       qc.setQueryData(KEY, s);
-      toast.success(s.enabled ? "Delivery is on. Buyers near you can pick a time at checkout." : "Delivery is off.");
+      toast(s.enabled ? "Delivery is on. Buyers near you can pick a time at checkout." : "Delivery is off.");
       onDone();
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
   });
   const canSave = !enabled || formOk;
   return (
-    <form className="space-y-5 border-t border-border px-4 py-4" onSubmit={(e) => { e.preventDefault(); if (canSave) save.mutate(); }}>
+    <form className={`space-y-5 px-4 py-4 ${embedded ? "" : "border-t border-border"}`} onSubmit={(e) => { e.preventDefault(); if (canSave) save.mutate(); }}>
+      {!embedded && (
       <div className="flex items-center justify-between gap-3">
         <label htmlFor="sd-enabled" className="text-sm font-medium">Offer delivery to buyers</label>
         <Switch id="sd-enabled" checked={enabled} onCheckedChange={setEnabled} />
       </div>
+      )}
       {/* Audit #35: the price, distance and times appear once delivery is switched on. */}
       {enabled ? (
       <>
@@ -209,7 +239,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
           <ul className="flex flex-wrap gap-2">
             {daysOff.map((d) => (
               <li key={d} className="flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs">
-                {new Date(`${d}T12:00:00`).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                {dayOffLabel(d)}
                 <button type="button" className="min-h-0 px-1 underline" aria-label={`Remove ${d}`} onClick={() => setDaysOff((xs) => xs.filter((x) => x !== d))}>
                   Remove
                 </button>
@@ -219,8 +249,8 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
         )}
         <div className="flex gap-2">
           <input id="sd-day-off" type="date" className="min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            value={newDay} onChange={(e) => setNewDay(e.target.value)} />
-          <Button type="button" variant="outline" size="sm" disabled={!newDay || daysOff.includes(newDay) || daysOff.length >= 60}
+            min={dayOffBounds().min} max={dayOffBounds().max} value={newDay} onChange={(e) => setNewDay(e.target.value)} />
+          <Button type="button" variant="outline" size="sm" disabled={!dayOffAllowed(newDay) || daysOff.includes(newDay) || daysOff.length >= 60}
             onClick={() => { setDaysOff((xs) => [...xs, newDay].sort()); setNewDay(""); }}>
             Add day off
           </Button>
@@ -239,7 +269,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
       {missing && <p className="text-xs text-destructive-ink" role="status" data-sd-missing="">{missing}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={!canSave || save.isPending}>{save.isPending ? "Saving…" : "Save delivery"}</Button>
-        <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>Cancel</Button>
+        {!embedded && <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>Cancel</Button>}
       </div>
     </form>
   );
@@ -257,7 +287,7 @@ export function ItemDeliveryRow({ itemId, rowClassName }: { itemId: string; rowC
   const set = useMutation({
     mutationFn: (deliver: boolean) => setItemSellerDelivery(itemId, deliver),
     onSuccess: (deliver) => {
-      toast.success(deliver ? "You'll offer delivery for this item." : "No delivery for this item.");
+      toast(deliver ? "You'll offer delivery for this item." : "No delivery for this item.");
       void qc.invalidateQueries({ queryKey: KEY });
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),

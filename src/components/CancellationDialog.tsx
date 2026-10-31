@@ -3,7 +3,7 @@ import {
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
 import { crewCancellationFeeQuote } from "../../supabase/functions/_shared/crewShares";
-import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+import { CANCELLATION_LADDER_RUNGS, CANCEL_OVER_24H_NOT_A_STRIKE } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 // unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
@@ -210,6 +210,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A legacy job moved to the flat Helpr fee keeps its poster's service fee
   // on a cancel (owner 2026-10-21): cancelRefundIsLessCardFee says which copy.
   const flatModel = cancelRefundIsLessCardFee(feeStamp, posterFee);
+  // JOBS-14 (owner 10-30): the strike is poster_cancel_job's v_late, the fee ladder's own window.
+  const strikeApplies = hasHelper && cancellationFeePercent > 0;
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -320,9 +322,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // can no longer cancel someone's job without telling them.
 
       if (result.action === "warning") {
-        toast.warning("Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning.");
+        toast.warning("Cancellation warning (1 of 2) — cancelling again inside 24 hours of a start is a final warning.");
       } else if (result.action === "final_warning") {
-        toast.warning("Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review.");
+        toast.warning("Final warning — one more cancellation inside 24 hours of a start and your account is restricted for 7 days pending review.");
       } else if (result.action === "pending_ban_review") {
         // A restriction is the most consequential message this product can
         // send, and a toast auto-dismisses. Route to the page that reads the
@@ -445,14 +447,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     {hasHelper && <span className="text-ds-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside; you see the exact amount here before you confirm.
+                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; you see the exact amount here before you confirm.
                   </p>
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span className="text-ds-11 text-foreground font-medium">
-                        {cancellationFee > 0 ? `$${formatPrice(cancellationFee)} for your Helpr's time` : "Nothing for your Helpr's time"} · Strike recorded
+                        {cancellationFee > 0 ? `$${formatPrice(cancellationFee)} for your Helpr's time` : "Nothing for your Helpr's time"} · {strikeApplies ? "Strike recorded" : "No strike"}
                       </span>
                     </div>
                   )}
@@ -475,7 +477,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-ds-11 text-primary font-medium">
-                    No charge for your Helpr's time — more than 24 hours until the job starts. A strike is still recorded.
+                    No charge for your Helpr's time. {CANCEL_OVER_24H_NOT_A_STRIKE}
                   </span>
                 </div>
               )}
@@ -483,9 +485,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           </div>
 
           {/* Strike system — always visible */}
-          <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive-ink" : "text-muted-foreground"}`}>
-              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when Helpr is selected)
+          <div className={`rounded-ds-md border p-4 space-y-3 ${strikeApplies ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
+            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${strikeApplies ? "text-destructive-ink" : "text-muted-foreground"}`}>
+              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies inside 24 hours of the start, once a Helpr is selected)
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
@@ -497,6 +499,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
             {!hasHelper && (
               <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
+            )}
+            {hasHelper && !strikeApplies && (
+              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to this cancel — the job is 24 or more hours away.</p>
             )}
           </div>
 

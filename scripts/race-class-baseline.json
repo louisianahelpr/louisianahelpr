@@ -1,7 +1,7 @@
 {
   "_doc": "Grandfathered hits of scripts/check-race-class.mjs, as of 2026-09-12. May only SHRINK: a key that stops matching fails src/test/raceClassGuard.test.ts until deleted here. Never add a key to get green \u2014 lock the read or add the status predicate instead.",
   "allow": {
-    "client:src/components/JobConfirmation.tsx::opaque:{ [field]: new Date().toISOStr": "Computed-key day-of confirmation stamp; field set is helper_dayof/poster confirmations. Not yet re-audited under this class.",
+    "client:src/components/JobConfirmation.tsx::opaque:{ [field]: confirmedAt } as ne": "Computed-key day-of confirmation stamp; field set is helper_dayof/poster confirmations (the same write; e97738ac53 moved its timestamp into confirmedAt so the cached copies get the same value). Not yet re-audited under this class.",
     "client:src/components/JobTracking.tsx::opaque:patch": "stampJob(patch) helper for poster tracker stamps; payload typed TablesUpdate<\"jobs\">. Not yet re-audited under this class.",
     "client:src/components/PhotoProof.tsx::opaque:updateField": "Payload is proof_before_urls / proof_after_urls only (not lifecycle); opaque to the parser because it is a variable.",
     "client:src/components/admin/AdminDisputes.tsx::status": "Admin-only dispute close; admin is the arbiter of that job's status. Not yet re-audited under this class.",

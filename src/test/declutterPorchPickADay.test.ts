@@ -11,9 +11,9 @@ import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
-// @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
-// @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
-// @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |   v_from := CASE WHEN b.pickup_day IS NOT NULL THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day) |   v_from := CASE WHEN false THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day)
+// @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
+// @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
+// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   v_from := CASE WHEN b.pickup_day IS NOT NULL THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day) |   v_from := CASE WHEN false THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day)
 // @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC;
 // @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF o.handover <> 'porch' THEN |   IF false THEN
@@ -35,7 +35,7 @@ describe("Declutter porch pickup is a DAY (owner 2026-10-28)", () => {
     expect(anchored.length).toBe(2);
     expect(sweep).not.toMatch(/b\.slot_start \+ interval '24 hours' <= now\(\)/);
     // Porch still needs the porch photo before any auto-pay (owner 2026-10-18).
-    expect(sweep).toMatch(/o2\.handover <> 'porch' OR EXISTS \(SELECT 1 FROM public\.declutter_handovers h\s+WHERE h\.order_id = o2\.id AND h\.set_out_photo_path IS NOT NULL\)/);
+    expect(sweep).toMatch(/o2\.handover <> 'porch' OR EXISTS \(SELECT 1 FROM public\.declutter_handovers h\s+WHERE h\.order_id = o2\.id AND h\.set_out_photo_path IS NOT NULL/);
     const anchor = body("declutter_pickup_anchor");
     expect(anchor).toMatch(/WHEN p_pickup_day IS NOT NULL\s+THEN \(\(p_pickup_day \+ 1\)::timestamp AT TIME ZONE 'America\/Chicago'\)\s+ELSE p_slot_start END/);
   });

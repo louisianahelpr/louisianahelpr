@@ -57,6 +57,9 @@ export interface SignupStep1Props {
   subtitle?: string;
   /** The page's security box (<TurnstileField>), placed right above Continue as on Login (A3-C1). */
   captchaSlot?: ReactNode;
+  /** The server refused the password (GoTrue weak_password, e.g. a leaked one) after step 2 (AUD31-53): shown under
+   *  the field, in place of a toast on another step. The parent clears it when the password changes. */
+  serverPasswordError?: string | null;
 }
 
 
@@ -69,6 +72,7 @@ export function SignupStep1({
   setEmail,
   password,
   setPassword,
+  serverPasswordError = null,
   showPassword,
   setShowPassword,
   acceptedPolicies,
@@ -120,7 +124,7 @@ export function SignupStep1({
   // Shared by the field border and the message below it, so a field can never
   // show one without the other.
   const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
-  const passwordError = (password.length > 0 && !passwordValid) || (attempted && !password);
+  const passwordError = (password.length > 0 && !passwordValid) || (attempted && !password) || !!serverPasswordError;
   const firstNameError = attempted && !firstName.trim();
   const lastNameError = attempted && !lastName.trim();
 
@@ -270,7 +274,7 @@ export function SignupStep1({
               style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--ink-deep))" }}
             >
               <p>
-                {t("signup.didYouMean")} <span className="font-semibold break-all">{emailSuggestion}</span>{t("signup.didYouMeanEnd")}
+                {t("signup.didYouMean")} <span className="font-semibold [overflow-wrap:anywhere]">{emailSuggestion}</span>{t("signup.didYouMeanEnd")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => setEmail(emailSuggestion)}>
@@ -311,7 +315,7 @@ export function SignupStep1({
           {passwordError && (
             <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
-              {password ? passwordProblem(password) : t("signup.passwordMissing")}
+              {serverPasswordError ?? (password ? passwordProblem(password) : t("signup.passwordMissing"))}
             </p>
           )}
           {/* The one shared strength meter (also on Reset password). */}

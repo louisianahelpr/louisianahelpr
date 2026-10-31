@@ -31,7 +31,7 @@
 // dropping the kind tag from ErrorState reds the ErrorState + ProtectedRoute
 // renders; removing <ReportErrorScreen> from ChatTimeline reds the inventory.
 // @mutate src/components/ui/ErrorState.tsx | kind: USER_ERROR_SCREEN, screen: currentScreen(), title | screen: currentScreen(), title
-// @mutate src/components/messages/chatView/ChatTimeline.tsx | <ReportErrorScreen source="ChatTimeline" title="Couldn't load this conversation." /> | {null}
+// @mutate src/components/messages/chatView/ChatTimeline.tsx | <ReportErrorScreen source="ChatTimeline" title={t("chat.conversationFailed")} /> | {null}
 // @mutate src/components/RouteErrorBoundary.tsx | kind: USER_ERROR_SCREEN, route: | route:
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";

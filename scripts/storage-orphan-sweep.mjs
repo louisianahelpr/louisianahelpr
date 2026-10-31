@@ -168,6 +168,15 @@ async function readWorld() {
   } catch (e) {
     console.error(`::warning::deleted_jobs_log read failed (${String(e?.message || e).slice(0, 160)}); no deleted-seed exemption this run`);
   }
+  // LEAD-DRAFT-PHOTO-SWEEP: the listings that own <uid>/declutter/<itemId>/ photos. A failed or empty read leaves it
+  // unset, so no listing photo is an orphan this run (it fails toward deleting less).
+  let declutterItemIds;
+  try {
+    const items = await restAll("declutter_items", "id");
+    if (items.length > 0) declutterItemIds = new Set(items.map((i) => i.id));
+  } catch (e) {
+    console.error(`::warning::declutter_items read failed (${String(e?.message || e).slice(0, 160)}); no listing photo is swept this run`);
+  }
   const authUserIds = new Set();
   for (let page = 1; ; page++) {
     if (page > 200) throw new Error("auth user read exceeded 200 pages");
@@ -187,6 +196,7 @@ async function readWorld() {
     authUserIds,
     jobIds: new Set(jobs.map((j) => j.id)),
     attachmentRefs: msgs.map((m) => m.attachment_url).filter(Boolean),
+    declutterItemIds,
     deletedSeedJobs: new Map(
       deletedSeed.map((r) => [r.job_id, { from: r.job_created_at ? Date.parse(r.job_created_at) : null, until: Date.parse(r.deleted_at) }]),
     ),
@@ -210,11 +220,16 @@ async function stillOrphan(o) {
     const rows = await req("GET", `/rest/v1/messages?select=attachment_url&attachment_url=like.${encodeURIComponent(`*${o.name}*`)}`);
     attachmentRefs = rows.map((r) => r.attachment_url);
   }
+  // A listing photo is re-read against its own declutter_items row (LEAD-DRAFT-PHOTO-SWEEP).
+  const declutterItemIds = o.bucket === "job-photos" && seg[1] === "declutter" && ids.length
+    ? new Set((await req("GET", `/rest/v1/declutter_items?select=id&id=in.${inList}`)).map((r) => r.id))
+    : undefined;
   const world = {
     profileUserIds: new Set(profiles.map((p) => p.user_id)),
     authUserIds,
     jobIds: new Set(jobs.map((j) => j.id)),
     attachmentRefs,
+    declutterItemIds,
   };
   return orphanReason(o.bucket, o.name, world);
 }

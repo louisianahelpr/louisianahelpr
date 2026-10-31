@@ -79,7 +79,7 @@ vi.mock("@/hooks/useProfileTabData", () => {
 vi.mock("@/lib/parishLookup", () => ({ lookupParishByZip: () => Promise.resolve("Lafayette") }));
 vi.mock("@/lib/requireOnline", () => ({ requireOnline: () => true }));
 vi.mock("@/lib/haptics", () => ({ hapticSuccess: vi.fn(), hapticError: vi.fn(), hapticLight: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/hooks/useDeleteAccount", () => {
   const value = { isOpen: false, requestDelete: () => {}, dialogProps: {} };

@@ -11,8 +11,23 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |     const total = paidCents?.get(o.orderId) ?? null; |     const total = o.lines[0]?.total_cents ?? null;
  *
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt }; |       return { ...base, booked: !!rows.slotStart, out: !!rows.slotStart, pickedUp: tookIt };
- * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at }; |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
+ * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at, |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at,
+ * LEAD-GOTIT30H: a Helpr delivery held 24 hours undelivered puts "I got it" on the card (Needs you), as its line says.
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| !!f.inHandLong); |      return buyer && !!f.delivered;
+ * @mutate src/components/declutter/BuyingOrders.tsx |         inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) }; |         inHandLong: false };
+ * @mutate src/lib/declutter/stillInHand.ts |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= STILL_IN_HAND_MS; |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= 0;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
+ * AUD31-3: a seller delivery with no time set, or a move the seller asked, is the buyer's move (Needs you).
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| (!f.delivered && (!!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); |      return buyer && (!!f.delivered \|\| (!f.delivered && !!f.late));
+ * @mutate src/components/declutter/BuyingOrders.tsx |         needsTime: sd?.status === "needs_time", moveAsked: | needsTime: false, moveAsked:
+ * @mutate src/components/declutter/BuyingOrders.tsx | moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller", | moveAsked: !!sd?.proposed_start,
+ * AUD31-2: a seller delivery past its time and never marked delivered is late, under Needs you.
+ * @mutate src/components/declutter/OrderSteps.tsx | !!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); | !!f.needsTime \|\| !!f.moveAsked)));
+ * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1 && f.late) return | if (at === 1 && false) return
+ * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
+ * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
+ * @mutate src/components/declutter/OrderSteps.tsx |   return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000; |   return Number.isFinite(t) && now >= t;
  * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? "Free." : total != null |       money: total != null
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const body = !view \|\| open; |   const body = true;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!view && (order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && ( |       {(order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && (
@@ -35,6 +50,8 @@ const state = {
   raiseReads: [] as string[],
   /** Audit 1b D2-2: open problems (declutter_problems, status open). */
   problems: [] as Record<string, unknown>[],
+  /** NIGHT-BUYINGopenpr-2: declutter_order_problem per order (the other side's words included). */
+  problem: {} as Record<string, Record<string, unknown>>,
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -42,7 +59,7 @@ vi.mock("@/components/DateTimeField", () => ({
     <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
@@ -53,6 +70,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
   fetchOpenProblems: async () => state.problems,
+  fetchOrderProblem: async (orderId: string) => state.problem[orderId] ?? null,
   fetchOrderPickupWindows: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null,
     set_out_photo_path: null, picked_up_at: null, ...state.handovers[orderId] }),
@@ -120,7 +138,7 @@ type Case = { id: string; line: Record<string, unknown>; slot?: string; handover
 
 /** Every handover kind through its states, as the rows fill in. */
 const CASES: Case[] = [
-  { id: "porch0", line: { handover: "porch" }, step: 0, bucket: "needs_you", action: "Pick a pickup day" },
+  { id: "porch0", line: { handover: "porch" }, step: 0, bucket: "needs_you", action: "Pick a pickup time" },
   { id: "porch1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null },
   { id: "porch2", line: { handover: "porch" }, slot: iso(2), handover: { set_out_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
   { id: "porch3", line: { handover: "porch" }, slot: iso(-1), handover: { set_out_at: iso(-3), picked_up_at: iso(-1) }, step: 3, bucket: "waiting", action: null },
@@ -129,16 +147,30 @@ const CASES: Case[] = [
   { id: "home2", line: {}, slot: iso(-1), handover: { confirmed_at: iso(-0.5) }, step: 2, bucket: "waiting", action: null },
   { id: "meet0", line: { handover: "meetup" }, step: 0, bucket: "needs_you", action: "Book a time to meet" },
   { id: "meet1", line: { handover: "meetup" }, slot: iso(5), step: 1, bucket: "upcoming", action: null },
-  { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "waiting", action: null },
+  // BUY-7: within the hour before (and after) the booked time, "I got it" is on the card.
+  { id: "home1near", line: {}, slot: iso(0.5), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "meet1near", line: { handover: "meetup" }, slot: iso(0.75), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "meet1late", line: { handover: "meetup" }, slot: iso(-0.5), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "home1early", line: {}, slot: iso(1.25), step: 1, bucket: "upcoming", action: null },
+  // AUD31-3: no time set yet: only the buyer can pick one (Needs you); a move the seller asked: only the buyer accepts.
+  { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "needs_you", action: "Pick a time" },
+  { id: "sd1move", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "seller" }, step: 1, bucket: "needs_you", action: "Accept the new time" },
+  // AUD31-2: past the window and never marked delivered: late, Needs you, "It wasn't delivered" first.
+  { id: "sd1late", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-3), not_delivered_from: iso(-1) }, step: 1, bucket: "needs_you", action: "It wasn't delivered" },
+  { id: "sd1soon", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-0.5), not_delivered_from: iso(1) }, step: 1, bucket: "upcoming", action: null },
+  { id: "sd1mine", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "buyer" }, step: 1, bucket: "upcoming", action: null },
   { id: "sd1", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26) }, step: 1, bucket: "upcoming", action: null },
   { id: "sd2", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-2), delivered_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
   { id: "hd0", line: { handover: "delivery", delivery_task_id: "t-hd0" }, step: 0, bucket: "waiting", action: null },
   { id: "hd1", line: { handover: "delivery", delivery_task_id: "t-hd1" }, task: { accepted_at: iso(-2) }, step: 1, bucket: "upcoming", action: null },
   { id: "hd2", line: { handover: "delivery", delivery_task_id: "t-hd2" }, task: { accepted_at: iso(-2), picked_up_at: iso(-1) }, step: 2, bucket: "waiting", action: null },
+  // LEAD-GOTIT30H: 24 hours after pickup with no drop-off, the card's line says tap "I got it"; the button is on the card.
+  { id: "hd2held", line: { handover: "delivery", delivery_task_id: "t-hd2held" }, task: { accepted_at: iso(-26), picked_up_at: iso(-25) }, step: 2, bucket: "needs_you", action: "I got it" },
+  { id: "hd2day", line: { handover: "delivery", delivery_task_id: "t-hd2day" }, task: { accepted_at: iso(-24), picked_up_at: iso(-23.5) }, step: 2, bucket: "waiting", action: null },
   { id: "hd3", line: { handover: "delivery", delivery_task_id: "t-hd3" }, task: { accepted_at: iso(-3), picked_up_at: iso(-2), delivered_at: iso(-1) }, step: 3, bucket: "needs_you", action: "I got it" },
   { id: "done", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "done", action: null },
   { id: "refunded", line: { order_status: "refunded" }, step: 0, bucket: "cancelled", action: null },
-  { id: "free", line: { handover: "porch", price_cents: 0, premium_cents: 0, total_cents: 0 }, step: 0, bucket: "needs_you", action: "Pick a pickup day" },
+  { id: "free", line: { handover: "porch", price_cents: 0, premium_cents: 0, total_cents: 0 }, step: 0, bucket: "needs_you", action: "Pick a pickup time" },
 ];
 
 function load(cases: Case[]) {
@@ -172,7 +204,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // Audit DB-6 (2026-10-30): Buying showed history above action (cart order). Needs you first, Done and Cancelled last.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const shown = views ? byBucket(chosen, views) : chosen; |   const shown = chosen;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen); |   const shown = liveSalesFirst(chosen);
   // @mutate src/components/declutter/BuyingOrders.tsx |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.r - b.r \|\| a.i - b.i).map((x) => x.o); |   return orders.map((o, i) => ({ o, i, r: rank(o) })).sort((a, b) => a.i - b.i).map((x) => x.o);
   it("DB-6: orders run Needs you, Waiting, Upcoming, Done, Cancelled, whatever the cart order", async () => {
     const pick = (ids: string[]) => ids.map((id) => CASES.find((c) => c.id === id)!);
@@ -181,6 +213,38 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const order = () => Array.from(document.querySelectorAll("article")).map((a) => /Item ([a-z0-9]+)/.exec(a.textContent ?? "")?.[1]);
     await waitFor(() => expect(order()).toEqual(["porch0", "porch3", "home1", "done", "refunded"]));
     expect(order().length).toBeGreaterThan(4);
+  });
+
+  // T13, BUY-37: past 24 hours the closed card's head stopped being true; the new line was only inside Details.
+  it("BUY-37: the closed card says on its way until 24 hours after pickup, then the still-in-hand line", async () => {
+    const hd = (id: string, hours: number): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { accepted_at: iso(-hours - 1), picked_up_at: iso(-hours), helpr_first_name: "Hank" }, step: 2, bucket: "waiting", action: null });
+    load([hd("fresh", 23), hd("late", 25)]);
+    show();
+    await waitFor(() => expect(card("fresh")).toHaveTextContent("Picked up. On its way to you."));
+    await waitFor(() => expect(card("late")).toHaveTextContent(/Hank picked it up .* and hasn't marked it delivered\./));
+    expect(card("late")).not.toHaveTextContent("On its way");
+  });
+
+  // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
+    load([CASES.find((c) => c.id === "sd1late")!]);
+    show();
+    await waitFor(() => expect(card("sd1late")).toHaveTextContent(/Late: it was due .* and the seller hasn't marked it delivered\./));
+    expect(card("sd1late")).not.toHaveTextContent("Delivery booked");
+  });
+
+  it("AUD31-7: a delivery nobody took, or one closed, never says Finding a Helpr; an open one still does", async () => {
+    const hd = (id: string, status: string): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { status }, step: 0, bucket: "waiting", action: null });
+    load([hd("unfilled", "unfilled"), hd("closed", "cancelled"), hd("open", "open")]);
+    show();
+    await waitFor(() => expect(card("unfilled")).toHaveTextContent("No Helpr took this delivery. What you paid for delivery was refunded."));
+    await waitFor(() => expect(card("closed")).toHaveTextContent("This delivery was closed."));
+    await waitFor(() => expect(card("open")).toHaveTextContent("Finding a Helpr to bring it."));
+    expect(card("unfilled")).not.toHaveTextContent("Finding a Helpr");
+    expect(card("closed")).not.toHaveTextContent("Finding a Helpr");
   });
 
   it("collapsed, each card has the tracker at its step and at most one primary button: its next action", async () => {
@@ -273,7 +337,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // Audit 1b D2-2 (1b-problem-after-375): after "Report a problem" the collapsed porch card still said "Pick the day
-  // you'll come for it" with "Pick a pickup day" as its next action. Now it says the problem is open and asks nothing.
+  // you'll come for it" with "Pick a pickup time" as its next action. Now it says the problem is open and asks nothing.
   // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
   // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return PROBLEM_ON_HOLD; |
   it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
@@ -284,11 +348,40 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const el = card("porch0");
     expect(within(el).getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
     expect(within(el).getByText(/Not as described, reported by you\./)).toBeInTheDocument();
-    expect(within(el).queryByRole("button", { name: "Pick a pickup day" })).toBeNull();
+    expect(within(el).queryByRole("button", { name: "Pick a pickup time" })).toBeNull();
     expect(el.textContent).not.toContain("Pick the day you'll come for it");
     // The other order is untouched.
     expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();
     state.problems = [];
+  });
+
+  // NIGHT-BUYINGopenpr-2: a handed-over order the seller reported was filed under Done with nothing asked; the
+  // buyer's "Add your side" waited unseen under Details. Answered, it waits on Louisiana Helpr.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       problemAwaitsYou: problemAwaitsBuyer( |       problemAwaitsYou: false && problemAwaitsBuyer(
+  // @mutate src/components/declutter/BuyingOrders.tsx |   return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side"; |
+  it("openpr-2: a handed-over order with the seller's open report is Needs you with Add your side, then Waiting once answered", async () => {
+    load([
+      { id: "rep", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "needs_you", action: "Add your side" },
+      { id: "mine", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "waiting", action: null },
+      { id: "ans", line: { order_status: "handed_over" }, step: 3, bucket: "waiting", action: null },
+    ]);
+    state.problems = ["rep", "mine", "ans"].map((id) => ({ id: `p-${id}`, order_id: id, reporter_side: id === "mine" ? "buyer" : "seller", reason: "no_show" }));
+    const base = { reason: "no_show", note: "They never came.", photo_paths: [], status: "open", created_at: iso(-1) };
+    state.problem = {
+      rep: { ...base, id: "p-rep", reporter_side: "seller", other_side_note: null },
+      mine: { ...base, id: "p-mine", reporter_side: "buyer", other_side_note: null },
+      ans: { ...base, id: "p-ans", reporter_side: "seller", other_side_note: "I was there at 3." },
+    };
+    show();
+    await waitFor(() => expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("needs_you"));
+    expect(within(card("rep")).getByRole("button", { name: "Add your side" })).toBeInTheDocument();
+    for (const id of ["mine", "ans"]) {
+      expect(card(id).querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
+      expect(within(card(id)).queryByRole("button", { name: "Add your side" })).toBeNull();
+    }
+    state.problems = [];
+    state.problem = {};
   });
 
   // Audit 1c D3-3 (1c-b3-buying-p1-375): two days before the booked pickup the buyer's card said "A Helpr is on the way

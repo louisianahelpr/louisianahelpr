@@ -122,6 +122,21 @@ export function notifySignupSubtitle(reason: string | null | undefined): string 
   return reason === "notify" ? t("signup.notifySubtitle") : undefined;
 }
 
+/** English, for tests: Signup's line for a guest who came from a Declutter item (AUD31-69). */
+export const ITEM_SIGNUP_SUBTITLE = enCore["signup.itemSubtitle"];
+
+/**
+ * Signup's step-1 subtitle: the notify line, or (AUD31-69, Guests on Declutter) for a guest who pressed Sign up on a
+ * Declutter item, that they come back to it after; the item's panel promised it and Signup said nothing.
+ */
+export function signupSubtitle(reason: string | null | undefined, redirect: string | null | undefined): string | undefined {
+  const notify = notifySignupSubtitle(reason);
+  if (notify) return notify;
+  const safe = safeInternalRedirect(redirect);
+  if (safe && new URL(safe, "https://x.invalid").pathname.startsWith("/declutter/item/")) return t("signup.itemSubtitle");
+  return undefined;
+}
+
 
 /**
  * "…and I wanted it SAVED, not just seen."

@@ -26,18 +26,20 @@
  * defects each caught, measured 2026-10-14).
  */
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql | BEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  PERFORM public.declutter_assert_member(false);\n  v_uid := (SELECT auth.uid());\n\n  IF p_watch | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  PERFORM public.declutter_assert_member(false);\n  v_uid := (SELECT auth.uid());\n\n  IF p_watch
-// @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   PERFORM public.declutter_assert_member(true);\n  v_uid := (SELECT auth.uid());\n\n  -- Free (20261027170717, owner |   PERFORM public.declutter_assert_member(true);\n  v_uid := public.declutter_assert_member(true);\n\n  -- Free (20261027170717, owner
+// @mutate supabase/migrations/20261031160546_declutter_create_item_with_id.sql |   PERFORM public.declutter_assert_member(true);\n  v_uid := (SELECT auth.uid());\n  -- The gates above |   PERFORM public.declutter_assert_member(true);\n  v_uid := public.declutter_assert_member(true);\n  -- The gates above
+// @mutate supabase/migrations/20261031160546_declutter_create_item_with_id.sql |   v_uid := (SELECT auth.uid());\n\n  IF p_item_id IS NULL THEN |   v_uid := public.declutter_assert_member(true);\n\n  IF p_item_id IS NULL THEN
+// @mutate supabase/migrations/20261031160546_declutter_create_item_with_id.sql |     gen_random_uuid(), p_title, | p_title, p_title,
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |   IF NOT FOUND OR public.are_users_blocked(v_seller, v_uid)\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One |   IF NOT FOUND\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF p_selling IS NOT FALSE AND public.member_under_18(v_uid) THEN |   IF false THEN
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN |   IF public.declutter_active_strike_count(v_uid) >= 4 THEN
-// @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   -- Row 23 (payout setup before the first listing) is dropped (owner |   PERFORM public.helper_award_block_reason(v_uid); -- Row 23 (owner
-// @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
-// @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     ELSE 'live'\n  END;\n\n  UPDATE public.declutter_items | ELSE 'pending_review'\n  END;\n\n  UPDATE public.declutter_items
+// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   -- Row 23 (payout setup before the first listing) is dropped (owner |   PERFORM public.helper_award_block_reason(v_uid); -- Row 23 (owner
+// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     ELSE 'live'\n  END;\n\n  UPDATE public.declutter_items | ELSE 'pending_review'\n  END;\n\n  UPDATE public.declutter_items
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | GRANT ALL ON TABLE public.declutter_item_private TO service_role; | GRANT ALL ON TABLE public.declutter_item_private TO service_role, authenticated;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   area_label text NOT NULL CHECK | floor_price_cents integer, area_label text NOT NULL CHECK
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | VALUES ('declutter', 'off', | VALUES ('declutter', 'testers',
-// @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
+// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -114,6 +116,11 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
     expect(body("declutter_ask_question")).toContain("pg_advisory_xact_lock(hashtext('declutter_ask:' || v_uid::text))");
     expect(body("declutter_add_item_photo")).toContain("AND o.metadata ->> 'mimetype' IN ('image/jpeg', 'image/png', 'image/webp')");
     for (const fn of BUYER_RPCS) expect(body(fn), fn).toMatch(/declutter_assert_member\(false\)/);
+    // LEAD-POST-SLOW (a): declutter_create_item makes its item through declutter_create_item_with_id (the app's own
+    // id), which runs every gate itself too, for auth.uid().
+    const withId = body("declutter_create_item_with_id");
+    expect(withId).toMatch(/\bBEGIN\s+PERFORM\s+public\.require_feature\('declutter'\);/);
+    for (const must of ["public.is_caller_banned()", "PERFORM public.declutter_assert_member(true);", "v_uid := (SELECT auth.uid());"]) expect(withId, must).toContain(must);
   });
 
   it("3. the gates themselves", () => {
@@ -133,9 +140,10 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
       "FROM public.declutter_tax_attestations a WHERE a.item_id = p_item_id AND a.seller_id = v_uid",
       "FROM public.declutter_pickup_windows w WHERE w.seller_id = v_uid",
       // Slice 2 (20261014200728) added the AI gate; item B (owner 2026-10-29, 20261030071816) dropped row 33's "first 3" hold.
-      "v_status := CASE WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;",
+      "v_status := CASE WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;",
     ]) expect(pub).toContain(must);
-    expect(flat(body("declutter_create_item"))).toContain("v_uid, 'offers', 'draft'");
+    expect(flat(body("declutter_create_item_with_id"))).toContain("p_item_id, v_uid, 'offers', 'draft'");
+    expect(flat(body("declutter_create_item"))).toContain("RETURN public.declutter_create_item_with_id( gen_random_uuid(), p_title,");
   });
 
   it("4. the floor price and exact address never sit where a buyer can read them", () => {

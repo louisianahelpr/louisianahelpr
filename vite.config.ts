@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
+import { guestBrowseSplit, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -164,7 +164,8 @@ function restartOnDependencyChange(): Plugin {
 }
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
-const { deep: signedInDeep, declutterOnly } = signedInSplit(process.cwd());
+const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
+const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -796,14 +797,18 @@ export default defineConfig(({ mode }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
-            // The parish tables and the job-list filter hook. Only the job lists,
-            // the location hook and address checks read them, but several lazy
+            // The parish tables and the location hook. Only the job lists, the
+            // location hook and address checks read them, but several lazy
             // screens share them, so app-shared captured them onto EVERY page's
             // boot (/posts 279 KB gz against a 278 edge, 2026-10-30). Same shape
-            // as rentals: they ride with their importers only.
+            // as rentals: they ride with their importers only. The job-list
+            // filter hook (useDashboardFilters) left this group 10-31: signed-in
+            // Home fetches this chunk for its location, and the filter hook here
+            // imported guest /browse's own chunk onto /home's critical path
+            // (468 KB gz vs 441); it rides in browse-first-screen now.
             {
               name: "parish-data",
-              test: /[\\/]src[\\/](lib[\\/]parishCentroids|hooks[\\/](useDashboardFilters|useUserLocation))\.ts$/,
+              test: /[\\/]src[\\/](lib[\\/]parishCentroids|hooks[\\/]useUserLocation)\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
@@ -860,6 +865,20 @@ export default defineConfig(({ mode }) => ({
               // in src/test/bootReach.test.ts matches its own line).
               includeDependenciesRecursively: false
             },
+            // The signed-in first-screen code /home never runs (bootReach.mjs
+            // signedInSplit homeOff: the job lists', Messages', You's and Post a
+            // job's). It rode in signed-in-shared, so every signed-in visitor's
+            // Home downloaded it (AUD31-60/66). Those screens fetch this chunk
+            // beside signed-in-shared, in the same round; Home does not fetch it.
+            // src/test/homeSkipsOtherScreensCode.test.ts reads the built graph.
+            {
+              name: "signed-in-pages",
+              test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 15.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-shared",
               test: (id: string) => signedInOnly.has(id.split("?")[0].replace(/\\/g, "/")),
@@ -870,6 +889,30 @@ export default defineConfig(({ mode }) => ({
               // (utils, the Supabase client, react-router, ...), and the chunk
               // then holds boot code too, so boot imports it and nothing moves.
               includeDependenciesRecursively: false,
+            },
+            // Shared code a public cold load reaches only through guest /browse (bootReach.mjs
+            // guestBrowseOnlyModules: its map, filters and job-card helpers, shared with signed-in
+            // pages). It rode in app-shared, so /posts, /, /login and /signup each downloaded it
+            // (LEAD-POSTS-BOOT-SHRINK, 10-31). Above app-shared's priority so it wins those modules.
+            {
+              name: "browse-first-screen",
+              test: (id: string) => browseOnly.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 12,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // The part of it signed-in Home's first screen also runs (guestBrowseSplit homeShared: the job
+            // price, notification panel, location, pull-to-refresh). In browse-first-screen it put the whole
+            // of guest /browse's code on /home's critical path (466 KB gz vs 441, 10-31); here /home and
+            // /browse fetch it and nothing else does.
+            {
+              name: "browse-home-shared",
+              test: (id: string) => browseHomeShared.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 12,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
             {
               name: "app-shared",

@@ -36,6 +36,10 @@ export const RELIABILITY_LADDER_RUNGS = [
 export const RELIABILITY_LADDER_SENTENCE =
   "a second is a final warning, a third suspends your account for 7 days, and a fourth restricts it for 7 days while an admin decides on a permanent ban";
 
+/** A cancel 24 or more hours out, either side: helper_cancel_booking and poster_cancel_job both gate on is_late_cancellation. */
+export const CANCEL_OVER_24H_NOT_A_STRIKE =
+  "The start is more than 24 hours away, so this isn't a strike. Inside 24 hours, cancelling counts as one.";
+
 /* ─────────────────────────  NO-SHOW LADDER  ───────────────────────── */
 
 /**

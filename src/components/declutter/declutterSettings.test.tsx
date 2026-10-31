@@ -1,11 +1,15 @@
 /**
- * /declutter/settings (owner 2026-10-30: a settings gear like Jobs): listing defaults on the account, then the
- * pickup, delivery and bundle settings that used to sit on Selling, then a way to the Declutter notifications.
+ * /declutter/settings (owner 2026-10-30: a settings gear like Jobs): pickup places, then listing defaults on the
+ * account (with the bundle discount and, under the "I'll deliver" tick, the delivery terms; owner 2026-10-31), then a
+ * way to the Declutter notifications.
  * The gear itself and Selling's one row: sellingDash.test.tsx.
  *
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <MeetupTimesCard userId={user.id} />\n |         <MeetupTimesCard userId={user.id} />\n        <section aria-label="Pickup times" />\n
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx | {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />} | {sellerDeliveryOpen && <SellerDeliveryDetails />}
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx | {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />} |
+ * @mutate src/components/declutter/SellerDeliverySettings.tsx |       {!embedded && (\n      <div className="flex items-center justify-between gap-3"> |       {(\n      <div className="flex items-center justify-between gap-3">
+ * @mutate src/components/declutter/SellerDeliverySettings.tsx |   const [enabled, setEnabled] = useState(embedded ? true : current.enabled); |   const [enabled, setEnabled] = useState(current.enabled);
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
  * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
@@ -13,10 +17,13 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       if (!done) {\n        toast.error("We couldn't save your listing defaults yet. Try again in a little while.");\n        return;\n      }\n |
- * @mutate src/components/declutter/DeclutterListingDefaults.tsx | disabled={save.isPending \|\| noWay \|\| same(draft, base)} | disabled={save.isPending \|\| same(draft, base)}
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx | disabled={save.isPending \|\| noWay \|\| !unsaved} | disabled={save.isPending \|\| !unsaved}
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | return [...new Set([...FLOOR_CHOICES, current])].sort | return [...FLOOR_CHOICES].sort
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       qc.setQueryData(["declutter", "seller-defaults", userId], draft);\n |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" \|\| sellerDeliveryOpen); | const shown = SELLER_WAYS;
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   useLeaveWarning(unsaved && !save.isPending);\n |
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |     if (pending.current) toast( |     if (false) toast(
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |     if (!unsaved) return;\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -56,7 +63,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
   return { ...real, fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [], items_off: [], rules: real.SELLER_DELIVERY_RULES }) };
 });
-vi.mock("./DeclutterPickupTimes", () => ({ PickupTimesCard: () => <section aria-label="Pickup times" data-pickup-times-card="" />, PickupTimesEditor: () => null }));
+// One mock of the module (a second vi.mock of the same path replaces the first). LEAD-OFFERS-CHOICE: fetchMyItems is
+// the listings the "for all my listings" row counts (none here, so it stays hidden).
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [], fetchMyItems: async () => [] }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {
@@ -78,7 +87,7 @@ beforeEach(() => {
   state.saves = [];
   state.places = [];
   state.features = { declutter: true, declutter_seller_delivery: true };
-  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast).mockClear();
   vi.mocked(toast.error).mockClear();
 });
 
@@ -93,18 +102,34 @@ describe("Declutter settings", () => {
   it("holds the five areas, the notifications row going to the Notifications screen", async () => {
     open();
     await save();
-    for (const name of ["Listing defaults", "Pickup, delivery and bundles", "Notifications"]) expect(screen.getByRole("region", { name })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Pickup times" })).toBeInTheDocument();
-    expect(await screen.findByRole("region", { name: "Your delivery" })).toBeInTheDocument();
-    expect(await screen.findByRole("region", { name: "Bundle discount" })).toBeInTheDocument();
+    for (const name of ["Listing defaults", "Notifications"]) expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    // LEAD-BUNDLE-DROPDOWN / LEAD-DELIVER-TWICE (owner 2026-10-31): no "Delivery and bundles" section, no "I can deliver" row.
+    expect(screen.queryByRole("region", { name: /^Delivery/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Your delivery" })).toBeNull();
+    expect(screen.queryByText("I can deliver")).toBeNull();
+    // LEAD-PLACE-TIMES (owner 2026-10-31): no separate Pickup times card; each pickup place has its own hours.
+    expect(screen.queryByRole("region", { name: "Pickup times" })).toBeNull();
+    expect(await screen.findByRole("group", { name: "Bundle discount" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Declutter notifications/ })).toHaveAttribute("href", "/profile?tab=notifications&show=declutter");
   });
 
-  it("the I'll deliver tile points down this page, not to the page it is already on", async () => {
+  it("the I'll deliver tile points nowhere: its price and times open under it while ticked, with no switch of their own", async () => {
     open();
-    const tile = (await screen.findByRole("checkbox", { name: "I'll deliver" })).closest("label")!;
-    expect(tile.textContent).toContain('under "I can deliver" below.');
+    const box = await screen.findByRole("checkbox", { name: "I'll deliver" });
+    const tile = box.closest("label")!;
+    expect(tile.textContent).not.toContain("I can deliver");
     expect(tile.textContent).not.toContain("in Declutter settings");
+    if (box.getAttribute("aria-checked") === "true") fireEvent.click(box);
+    expect(screen.queryByRole("group", { name: "Your delivery price and times" })).toBeNull();
+    fireEvent.click(box);
+    const details = await screen.findByRole("group", { name: "Your delivery price and times" });
+    expect(within(details).getByRole("radiogroup", { name: "Your delivery price, per order" })).toBeInTheDocument();
+    expect(within(details).getByText("When you can deliver")).toBeInTheDocument();
+    expect(within(details).getByRole("button", { name: "Save delivery" })).toBeInTheDocument();
+    expect(within(details).queryByRole("switch", { name: "Offer delivery to buyers" })).toBeNull();
+    expect(within(details).queryByRole("button", { name: "Cancel" })).toBeNull();
+    fireEvent.click(box);
+    expect(screen.queryByRole("group", { name: "Your delivery price and times" })).toBeNull();
   });
 
   it("no saved row: shows the app's defaults; Save stays off until something changes, then saves exactly the choices", async () => {
@@ -119,15 +144,15 @@ describe("Declutter settings", () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
     await vi.waitFor(() => expect(state.saves).toHaveLength(1));
-    expect(state.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: null, handovers: ["porch", "meetup"] });
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Listing defaults saved."));
+    expect(state.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: null, handovers: ["porch", "meetup"], acceptsOffers: true });
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
     // Saved: what shows is now the saved row, and there is nothing left to save.
     await vi.waitFor(() => expect(button).toBeDisabled());
     expect(radio("How much each evening", "15%")).toHaveAttribute("aria-checked", "true");
   });
 
   it("a saved row shows as saved, including a lowest price share that is not one of the everyday choices", async () => {
-    state.saved = { keepUp: false, drops: true, dropPct: 10, floorPct: 53, freeAfterDays: 14, handovers: ["meetup"] };
+    state.saved = { keepUp: false, drops: true, dropPct: 10, floorPct: 53, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     open();
     await save();
     expect(radio("How much each evening", "10%")).toHaveAttribute("aria-checked", "true");
@@ -135,7 +160,7 @@ describe("Declutter settings", () => {
     expect(screen.getByRole("checkbox", { name: "Safe meeting spot" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Porch pickup" })).not.toBeChecked();
     expect(screen.getByRole("switch", { name: "Keep it up until it sells" })).not.toBeChecked();
-    expect(screen.getByRole("radiogroup", { name: /make it free after/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /make it free after/i })).toHaveValue("14");
   });
 
   it("turning drops off hides its choices and is saved", async () => {
@@ -145,6 +170,21 @@ describe("Declutter settings", () => {
     expect(screen.queryByRole("radiogroup", { name: "How much each evening" })).toBeNull();
     fireEvent.click(button);
     await vi.waitFor(() => expect(state.saves[0]?.drops).toBe(false));
+  });
+
+  // LEAD-OFFERS-CHOICE (owner 2026-10-31): the default for a new listing.
+  // @mutate src/components/declutter/DeclutterListingDefaults.tsx | onCheckedChange={(v) => change({ acceptsOffers: v === true })} | onCheckedChange={() => {}}
+  // @mutate src/components/declutter/DeclutterListingDefaults.tsx |  a.keepUp === b.keepUp && a.acceptsOffers === b.acceptsOffers && |  a.keepUp === b.keepUp &&
+  it("Accept offers is on with nothing saved; turning it off says Buy now only and is saved", async () => {
+    open();
+    const button = await save();
+    const offers = screen.getByRole("switch", { name: /Accept offers/ });
+    expect(offers).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(offers);
+    expect(screen.getByText(/Buyers pay your price with Buy now; no offers\./)).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await vi.waitFor(() => expect(state.saves[0]?.acceptsOffers).toBe(false));
   });
 
   it("with no way ticked Save is off and says why", async () => {
@@ -176,12 +216,12 @@ describe("Declutter settings", () => {
     state.places = "not_deployed";
     open();
     await save();
-    await screen.findByRole("region", { name: "Bundle discount" });
+    await screen.findByRole("group", { name: "Bundle discount" });
     expect(screen.queryByRole("region", { name: "Pickup places" })).toBeNull();
   });
 
   it("a stored Helpr delivery tick is dropped, and I'll deliver is not offered while its switch is off", async () => {
-    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery", "seller_delivery", "porch"] };
+    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery", "seller_delivery", "porch"], acceptsOffers: true };
     state.features.declutter_seller_delivery = false;
     open();
     const button = await save();
@@ -207,8 +247,42 @@ describe("Declutter settings", () => {
     fireEvent.click(radio("How much each evening", "20%"));
     fireEvent.click(button);
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("We couldn't save your listing defaults yet. Try again in a little while."));
-    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
     expect(radio("How much each evening", "20%")).toHaveAttribute("aria-checked", "true");
     expect(button).toBeEnabled();
+  });
+
+  // NIGHT-SET-Declutterse-8: edits were lost without a word on leaving.
+  it("an edit not saved says so, a closing tab asks first, and leaving says it wasn't saved", async () => {
+    const view = open();
+    await save();
+    expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull();
+    const untouched = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(untouched);
+    expect(untouched.defaultPrevented).toBe(false);
+    fireEvent.click(radio("How much each evening", "20%"));
+    expect(screen.getByText("Not saved yet. Tap Save to keep these.")).toBeInTheDocument();
+    const closing = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(closing);
+    expect(closing.defaultPrevented).toBe(true);
+    view.unmount();
+    expect(toast).toHaveBeenCalledWith("Your changes to listing defaults weren't saved.");
+  });
+
+  it("saved, or never touched: leaving says nothing", async () => {
+    const first = open();
+    await save();
+    first.unmount();
+    expect(toast).not.toHaveBeenCalled();
+    const view = open();
+    const button = await save();
+    fireEvent.click(radio("How much each evening", "20%"));
+    // The edit shows the unsaved line first, so its absence below is reached, not the first paint.
+    expect(await screen.findByText("Not saved yet. Tap Save to keep these.")).toBeInTheDocument();
+    fireEvent.click(button);
+    await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Listing defaults saved."));
+    expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull();
+    view.unmount();
+    expect(toast).toHaveBeenCalledTimes(1);
   });
 });

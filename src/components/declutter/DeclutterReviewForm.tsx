@@ -25,7 +25,7 @@ import { leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
-import { fetchRefundRequestView, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
+import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 import { focusSheetItself } from "./focusSheetItself";
 
@@ -93,7 +93,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
       rememberReviewed(orderId, side);
       setSent(true);
       setOpen(false);
-      toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
+      toast(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => {
@@ -112,7 +112,8 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   }, [open, sent, orderId]);
 
   if (sent) return <p className="text-sm text-muted-foreground" data-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
-  if (problemOpen || refundHoldsTheItem(refund.data?.request?.status)) return null;
+  // NIGHT-SELL-soldstates-7: a sale refunded in full was undone, so the card asks for no review.
+  if (problemOpen || refundHoldsTheItem(refund.data?.request?.status) || refundedInFull(refund.data)) return null;
   return (
     <>
       {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}

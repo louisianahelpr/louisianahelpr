@@ -353,8 +353,10 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // tenancy (no user argument); it only narrows, and the rent tables hold no person column of their own.
     // seed_hidden_in_discovery (Declutter D1 seed boundary, 20261020033623): no argument; true while the launch
     // switch hides test accounts from a non-test CALLER. It only narrows (NOT is_seed OR NOT ...); the seller's own column is spelled out beside it.
+    // declutter_open_to_guests (BUY-16, 20261031060656): no argument; true while the declutter switch's audience is
+    // everyone. It only narrows the anon guest reads (live/reserved, not hidden, NOT is_seed); no person column.
     // @two-way src/test/dataExportCoversEveryUserTable.test.ts:stale KNOWN entry: no read policy calls it any more
-    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "feature_enabled_for", "has_role", "is_series_party", "rentals_caller_is_active_tenant_of", "rentals_tenancy_party", "seed_hidden_in_discovery", "seed_review_hidden", "shop_publicly_visible", "user_may_see_job_address"]);
+    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_open_to_guests", "feature_enabled_for", "has_role", "is_series_party", "rentals_caller_is_active_tenant_of", "rentals_tenancy_party", "seed_hidden_in_discovery", "seed_review_hidden", "shop_publicly_visible", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

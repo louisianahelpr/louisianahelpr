@@ -4,10 +4,11 @@
  * (DeclutterSellView). Kept in its own file so neither screen crosses the god-component line
  * (src/test/componentSizeRatchet.test.ts).
  *
- * A new listing's photos wait on the device until Post (there is no draft to hold them); Claude reads them
- * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft, uploads
- * them, then runs the same list path a draft's "List it" runs: saveDetails -> setPickupWindows -> attestItem ->
- * requestAiCheckWithRetry (fail-safe) -> publishItem. The server path is the same either way.
+ * A new listing's photos go up the moment they are added (LEAD-POST-SLOW (a), owner 2026-10-31: Post under 2 s): the
+ * app picks the new item's id at the first photo and stores each one in that item's folder at once; Claude reads them
+ * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft with that id
+ * (20261031160546), attaches the photos already up (uploading only one that did not go up yet), then runs the same list path a draft's "List it" runs: saveDetails, then setPickupWindows and attestItem side
+ * by side, then publishItem, then requestAiCheckWithRetry right after (LEAD-POST-SLOW). The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -21,6 +22,8 @@ import {
   addPhotoSteadily,
   attestItem,
   createDraft,
+  dropStagedPhotos,
+  stageListingPhoto,
   fetchItem,
   fetchMyItemPrivate,
   fetchMyPickupWindows,
@@ -57,6 +60,7 @@ import { useSavedPickup } from "./useSavedPickup";
 import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
+import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -101,6 +105,24 @@ export function useSellFlowState(urlItemId: string | null) {
   const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
+  // LEAD-POST-SLOW (a): the id a NEW listing will have, picked at its first photo, and each held photo's early upload
+  // into that item's folder (the stored path, or null when it must go up at Post).
+  const newItemId = useRef<string | null>(null);
+  const staged = useRef(new Map<File, Promise<string | null>>());
+  const stage = (pairs: readonly (readonly [File, File])[]) => {
+    if (!user || urlItemId || createdId || pairs.length === 0) return;
+    newItemId.current ??= crypto.randomUUID();
+    for (const [original, cleaned] of pairs) {
+      // Never in the way: an early upload that can't start is just uploaded at Post, as before.
+      const early = Promise.resolve()
+        .then(() => stageListingPhoto(user.id, newItemId.current!, cleaned))
+        .catch((err: unknown) => {
+          console.warn("[declutter] early photo upload did not start; it goes up at Post", err);
+          return null;
+        });
+      staged.current.set(original, early);
+    }
+  };
   // The AI's cover pick moves a photo first and says so, with Undo; once the seller has chosen, it never moves it again
   // (audit posting 1030 #9).
   const heldNow = useRef(held);
@@ -226,8 +248,10 @@ export function useSellFlowState(urlItemId: string | null) {
   const [keepUpWanted, setKeepUpWanted] = useState(true);
   // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
+  // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): a new listing's "Accept offers", from the saved default.
+  const [offersWanted, setOffersWanted] = useState(true);
   // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
-  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted });
+  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
@@ -242,6 +266,17 @@ export function useSellFlowState(urlItemId: string | null) {
     setKeepUpWanted(back.keepUpWanted);
     setAutoFreeWanted(back.autoFreeWanted);
     setHeld((h) => [...back.held, ...h]);
+    // Brought-back photos go up now as well, cleaned again off the main path (one that can't be is uploaded at Post).
+    if (!back.createdId) {
+      void Promise.all(
+        back.held.map((f) =>
+          cleanListingPhoto(f)
+            .then((c) => [f, c] as const)
+            // Said at Post if it still can't be prepared (uploadHeld's own refusal words).
+            .catch(() => null),
+        ),
+      ).then((pairs) => stage(pairs.filter((x): x is readonly [File, File] => x !== null)));
+    }
     if (back.createdId) {
       // The form holds what the seller last had; the draft's own reads must not reset it.
       loadedFor.current = back.createdId;
@@ -286,11 +321,25 @@ export function useSellFlowState(urlItemId: string | null) {
         if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
         // A new listing's second Post: only the photos that failed go up again.
         if (!urlItemId && waiting.length > 0) await uploadHeld(itemId, waiting);
-        if (urlItemId) toast.success("Saved.");
+        if (urlItemId) toast("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
-      const id = await createDraft(fields);
+      const wanted = newItemId.current;
+      const id = await createDraft(fields, wanted ?? undefined);
+      // Early uploads Post won't attach: photos removed before Post, or every one if the server picked another id
+      // (before 20261031160546 is live); those go up again below, into the right folder.
+      const unused: Promise<string | null>[] = [];
+      for (const [f, path] of staged.current) {
+        if (id !== wanted || !waiting.includes(f)) {
+          unused.push(path);
+          staged.current.delete(f);
+        }
+      }
+      void Promise.all(unused)
+        .then((paths) => dropStagedPhotos(paths.filter((x): x is string => !!x)))
+        // Best effort: an unattached object in the seller's own folder is only storage, never shown to anyone.
+        .catch((err: unknown) => console.warn("[declutter] unused early photo uploads not removed", err));
       loadedFor.current = id;
       setLoadedId(id);
       // The form already holds this draft's step: the drop-state read must not reset it.
@@ -310,6 +359,15 @@ export function useSellFlowState(urlItemId: string | null) {
       if (!form.free) await setDropPct(id, choice.dropPct);
       return id;
     } catch (err) {
+      // LEAD-RESUME-REPOSTS: this listing was already posted (kept work brought back, or a Post whose answer was lost).
+      // Nothing is made again: the kept work is cleared and the posted listing opens.
+      const posted = err as { message?: unknown; itemId?: unknown; userMessage?: unknown } | null;
+      if (posted?.message === "already_posted" && typeof posted.itemId === "string") {
+        void keptWork.finish();
+        toast(String(posted.userMessage ?? "Already posted."));
+        navigate(`/declutter/item/${posted.itemId}`);
+        return null;
+      }
       toast.error(declutterErrorMessage(err));
       return null;
     } finally {
@@ -346,11 +404,17 @@ export function useSellFlowState(urlItemId: string | null) {
     let why: string | null = null;
     setUploading(list.length);
     for (const [i, f] of list.entries()) {
-      setPostStep(`Uploading photo ${i + 1} of ${list.length}`);
+      // Already up since it was added (LEAD-POST-SLOW (a)): only attached now.
+      const early = id === newItemId.current ? staged.current.get(f) : undefined;
+      setPostStep(early ? `Adding photo ${i + 1} of ${list.length}` : `Uploading photo ${i + 1} of ${list.length}`);
       try {
-        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
+        const uploadedPath = (await early) ?? undefined;
+        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, uploadedPath, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
         up.add(f);
+        staged.current.delete(f);
       } catch (err) {
+        // A refused attach removed its object: the next Post uploads this photo again.
+        staged.current.delete(f);
         // Said on screen, with the photo kept and marked: data-photo-trouble in SellOneScreen.
         failed.push(f);
         // The plain upload failure is what the panel's own words already say; a refusal says its own reason.
@@ -374,11 +438,12 @@ export function useSellFlowState(urlItemId: string | null) {
     if (!itemId) {
       // Each is tried now, so one that can't be used is said at once, on the screen, instead of being lost at Post.
       const good: File[] = [];
+      const ready: (readonly [File, File])[] = [];
       const refused: { key: string; name: string; error: unknown }[] = [];
       setUploading(list.length);
       for (const f of list) {
         try {
-          await cleanListingPhoto(f);
+          ready.push([f, await cleanListingPhoto(f)]);
           good.push(f);
         } catch (error) {
           // Not swallowed: unusablePhotosNote names this photo and says why, under the photos.
@@ -389,6 +454,8 @@ export function useSellFlowState(urlItemId: string | null) {
       }
       setHeld((h) => [...h, ...good]);
       setRefusedNote(unusablePhotosNote(refused));
+      // LEAD-POST-SLOW (a): each goes up now, not on Post.
+      stage(ready);
       return;
     }
     if (urlItemId) await uploadPhotos(itemId, list);
@@ -403,6 +470,21 @@ export function useSellFlowState(urlItemId: string | null) {
       toast.error(declutterErrorMessage(err));
     }
   }
+
+  /** A setting that never blocks Post: if it fails it is said, with where to set it, and Post goes on. The words are
+   *  written here (not passed in) so the toast check can read that the sentence ends. */
+  async function notBlocking(run: () => Promise<unknown>, setting: "keepUp" | "autoFree" | "offers"): Promise<void> {
+    try {
+      await run();
+    } catch (err) {
+      const where = setting === "keepUp"
+        ? 'You can turn on "Keep it up" from Manage listing.'
+        : setting === "offers" ? "You can turn offers off from Manage listing." : "You can choose when it becomes free from Manage listing.";
+      toast.error(`${declutterErrorMessage(err)} ${where}`);
+    }
+  }
+
+  const offersAfter = useRef(false);
 
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
@@ -422,32 +504,35 @@ export function useSellFlowState(urlItemId: string | null) {
       if (!id) return;
       // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
       if (failedPhotos.current > 0) return;
-      setPostStep("Saving your listing");
-      // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
-      // fails it is said, and the seller can turn it on in Manage listing.
-      if (!urlItemId && keepUpWanted) {
-        try {
-          await setKeepUp(id, true);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
-        }
-      }
-      // The same for "make it free after __ days": a free listing has nothing to choose.
-      if (!urlItemId && autoFreeWanted !== null && !form.free) {
-        try {
-          await setAutoFreeDays(id, autoFreeWanted);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
-        }
-      }
-      // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
-      if (urlItemId) await setPickupWindows(windows);
-      await attestItem(id);
-      setPostStep("Checking your listing");
-      // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
-      await requestAiCheckWithRetry(id);
       setPostStep("Putting it up");
+      offersAfter.current = false;
+      // LEAD-POST-SLOW (owner 2026-10-31: "nothing slow for users, under 2 s"; 20261031152545): the listing goes up at
+      // once and the automatic photo check runs right after it. A flag takes it down and tells the seller why; a
+      // check that never comes back is held after 15 minutes (declutter_hold_unchecked_listings). The settings below
+      // go up side by side; none of them waits for another.
+      await Promise.all([
+        // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
+        // fails it is said, and the seller can turn it on in Manage listing.
+        !urlItemId && keepUpWanted ? notBlocking(() => setKeepUp(id, true), "keepUp") : null,
+        // The same for "make it free after __ days": a free listing has nothing to choose.
+        !urlItemId && autoFreeWanted !== null && !form.free
+          ? notBlocking(() => setAutoFreeDays(id, autoFreeWanted), "autoFree")
+          : null,
+        // "Accept offers" off (LEAD-OFFERS-CHOICE) goes on the draft before it is up, so it never goes live taking
+        // offers. Not a blocker. A free listing takes no offers anyway.
+        !urlItemId && !offersWanted && !form.free
+          ? notBlocking(async () => { offersAfter.current = (await offersOffOnDraft(id)) === "after"; }, "offers")
+          : null,
+        // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
+        urlItemId ? setPickupWindows(windows) : null,
+        attestItem(id),
+      ]);
       const status = await publishItem(id);
+      // Asked twice, after the listing is up (not awaited: the seller is already on Selling). Not silent: a check that
+      // fails both tries is said in the console, and the server holds the listing after 15 minutes (fail-safe).
+      void requestAiCheckWithRetry(id);
+      // A server without 20261031201036 refuses a draft: offers go off now that it is up.
+      if (offersAfter.current) await notBlocking(() => offersOffAfterPublish(id, status), "offers");
       void keptWork.finish();
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -455,7 +540,7 @@ export function useSellFlowState(urlItemId: string | null) {
         try {
           const out = await answerAfterListing(answer, id, status, form.free ? null : dollarsToCents(form.price));
           if (out.kind === "sent") {
-            toast.success(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
+            toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
             navigate("/declutter?view=wanted");
             return;
           }
@@ -485,7 +570,7 @@ export function useSellFlowState(urlItemId: string | null) {
   return {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
-    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
+    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, coverUndo, undoCover,
   };
 }

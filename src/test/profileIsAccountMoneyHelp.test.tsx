@@ -38,7 +38,8 @@ const desktop = { on: false };
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 // Jobs' tab bodies: only the header JobsSection hands them is under test. Browse hands its controls to the tabs row's end.
 vi.mock("@/pages/home/Dashboard", () => ({ default: ({ embeddedHeader }: { embeddedHeader: (b?: { end?: React.ReactNode }) => React.ReactNode }) => <>{embeddedHeader({ end: <button type="button" aria-label="Show the map" /> })}</> }));
-vi.mock("@/components/job-card/JobListPage", () => ({ default: ({ embeddedHeader }: { embeddedHeader: React.ReactNode }) => <>{embeddedHeader}</> }));
+// Posted / Working hand their search icon to the tabs row's end too (owner 2026-10-31: "next to the gear").
+vi.mock("@/components/job-card/JobListPage", () => ({ default: ({ embeddedHeader }: { embeddedHeader: (b?: { end?: React.ReactNode }) => React.ReactNode }) => <>{embeddedHeader({ end: <button type="button" aria-label="Search this list" /> })}</> }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null, useSectionsOpen: () => ({ open: null, settled: false }) }));
 
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
@@ -124,6 +125,7 @@ describe("Jobs settings", () => {
     expect(controls.length).toBeGreaterThan(0);
     expect(controls[controls.length - 1]).toBe(gear);
     if (url === "/jobs") expect(controls.map((b) => b.getAttribute("aria-label"))).toEqual(["Show the map", "Jobs settings"]);
+    else expect(controls.map((b) => b.getAttribute("aria-label"))).toEqual(["Search this list", "Jobs settings"]);
     expect(screen.queryByTestId("app-top-bar")?.contains(gear) ?? false).toBe(false);
     expect(screen.queryByTestId("section-add")).toBeNull();
     fireEvent.click(gear);

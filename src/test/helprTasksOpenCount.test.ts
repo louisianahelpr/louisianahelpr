@@ -9,10 +9,12 @@
  * except helpr_task_vehicle_fits. Behaviour proof: src/test/pglite/helprTasksOpenCount.pglite.mjs (16 PASS x3
  * replays; NEW_MIGRATION=skip 15 FAIL; 6 mutants RED).
  *
- * @mutate supabase/migrations/20261030044539_helpr_tasks_open_count.sql |      AND public.helpr_task_same_stripe_mode(v_uid, t.customer_id) |      AND true
- * @mutate supabase/migrations/20261030044539_helpr_tasks_open_count.sql |      AND NOT public.are_users_blocked(v_uid, t.pickup_contact_id) |      AND true
- * @mutate supabase/migrations/20261030044539_helpr_tasks_open_count.sql |   v_uid := public.helpr_task_assert_helpr(); |   v_uid := auth.uid();
- * @mutate supabase/migrations/20261030044539_helpr_tasks_open_count.sql |   SELECT t.pickup_area, count(*)::integer |   SELECT t.pickup_address, count(*)::integer
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |      AND public.helpr_task_same_stripe_mode(v_uid, t.customer_id) |      AND true
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |      AND NOT public.are_users_blocked(v_uid, t.pickup_contact_id) |      AND true
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |   v_uid := public.helpr_task_assert_helpr();\n  RETURN QUERY\n  SELECT t.pickup_area |   v_uid := auth.uid();\n  RETURN QUERY\n  SELECT t.pickup_area
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |   SELECT t.pickup_area, count(*)::integer |   SELECT t.pickup_address, count(*)::integer
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql |      AND NOT public.helpr_task_source_held(t.source_kind, t.source_id)\n   GROUP BY |      AND true\n   GROUP BY
+ * @mutate supabase/migrations/20261031082821_helpr_open_count_and_windows_hide_backed_out.sql | e.task_id = t.id AND e.actor_id = v_uid AND e.task_event IN ('released', 'helpr_no_show') | e.task_id = t.id AND e.actor_id = v_uid AND e.task_event IN ('released')
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const counts = useQuery({ queryKey: ["helpr-tasks", "open-count"], queryFn: fetchOpenCount, enabled: !!userId }); |   const counts = useQuery({ queryKey: ["helpr-tasks", "open-count"], queryFn: async () => null, enabled: !!userId });
  */
 import { describe, expect, it } from "vitest";

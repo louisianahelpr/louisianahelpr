@@ -6,7 +6,7 @@
  * with `orderBucket`: Needs you · Waiting · Upcoming · Done · Cancelled.
  *
  * Steps per handover (the same words on both sides; a free item's first step is "Claimed", never "Paid"):
- *   porch           Paid -> Day picked -> On the porch -> Picked up
+ *   porch           Paid -> Time booked -> On the porch -> Picked up (LEAD-PLACE-TIMES, 2026-10-31; was Day picked)
  *   pickup_home     Paid -> Time booked -> Picked up -> Done
  *   meetup          Paid -> Time booked -> Met -> Done
  *   seller_delivery Paid -> Time booked -> Delivered -> Done
@@ -28,15 +28,30 @@ export type OrderFacts = {
   booked: boolean;
   /** Porch: the seller's "on the porch" photo is in. */
   out?: boolean;
+  /** Door pickup or meetup: "I got it" is open (from an hour before the booked time: gotItOpen). */
+  gotItOpen?: boolean;
   /** The item has left the seller: the buyer picked it up, met, or the Helpr picked it up. */
   pickedUp?: boolean;
+  /** Helpr delivery: picked up 24 hours ago and not marked delivered (heldPastADay); the buyer may say they got it. */
+  inHandLong?: boolean;
   /** Delivery kinds: dropped off at the buyer's. */
   delivered?: boolean;
+  /** AUD31-3, seller delivery: no time is set, and only the buyer can pick one (status needs_time). */
+  needsTime?: boolean;
+  /** AUD31-3, seller delivery: the other side asked to move the time, and only this viewer can accept it. */
+  moveAsked?: boolean;
+  /** AUD31-2, seller delivery: the booked time is over and it is not marked delivered (the booking's not_delivered_from). */
+  late?: boolean;
   /** The order is handed over (final). */
   done: boolean;
   cancelled?: boolean;
   /** Audit 1b D2-2: a problem is open; nothing is asked of either side until Louisiana Helpr decides. */
   problem?: boolean;
+  /**
+   * NIGHT-BUYINGopenpr-2: the other side (or Louisiana Helpr) reported the problem and this viewer has not added their
+   * side yet ("Add your side" waits on them).
+   */
+  problemAwaitsYou?: boolean;
 };
 
 export type OrderBucket = "needs_you" | "waiting" | "upcoming" | "done" | "cancelled";
@@ -51,12 +66,24 @@ export const ORDER_BUCKETS: readonly { key: OrderBucket; label: string }[] = [
 ];
 
 const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = {
-  porch: ["Paid", "Day picked", "On the porch", "Picked up"],
+  porch: ["Paid", "Time booked", "On the porch", "Picked up"],
   pickup_home: ["Paid", "Time booked", "Picked up", "Done"],
   meetup: ["Paid", "Time booked", "Met", "Done"],
   seller_delivery: ["Paid", "Time booked", "Delivered", "Done"],
   delivery: ["Paid", "Helpr found", "Picked up", "Delivered"],
 };
+
+/**
+ * BUY-7 / audit 1030 DB-3: at a door pickup or a safe meeting spot "I got it" opens an hour before the booked
+ * time, as "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753). One rule for
+ * the card's action and the button under Details.
+ */
+const GOT_IT_OPENS_MINUTES_BEFORE = 60;
+export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
+  if (!slotStart) return false;
+  const t = new Date(slotStart).getTime();
+  return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000;
+}
 
 /** The step words for this order (free: "Claimed" first). */
 export function orderStepWords(f: Pick<OrderFacts, "handover" | "free">): readonly string[] {
@@ -89,19 +116,24 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
       return buyer ? !f.booked || (!!f.out && !f.pickedUp) : f.booked && !f.out;
     case "pickup_home":
     case "meetup":
-      return buyer && !f.booked;
+      // BUY-7: at the handover time "I got it" is the buyer's move, on the card, not under Details.
+      return buyer && (!f.booked || (!!f.gotItOpen && !f.pickedUp));
     case "seller_delivery":
+      // AUD31-3: before the drop-off, a time to pick or a move to answer is the buyer's move too.
+      return buyer && (!!f.delivered || (!f.delivered && (!!f.needsTime || !!f.moveAsked || !!f.late)));
     case "delivery":
-      // Dropped off: the buyer says they have it.
-      return buyer && !!f.delivered;
+      // Dropped off: the buyer says they have it. LEAD-GOTIT30H: so too once a Helpr has held it 24 hours undelivered.
+      return buyer && (!!f.delivered || !!f.inHandLong);
   }
 }
 
 /** Which chip the order sits under. */
 export function orderBucket(f: OrderFacts): OrderBucket {
   if (f.cancelled) return "cancelled";
+  // NIGHT-BUYINGopenpr-2: an open problem holds the money, so a handed-over order with one is never Done; when the
+  // other side reported it and this viewer's side is still missing, the move is theirs.
+  if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting";
   if (f.done) return "done";
-  if (f.problem) return "waiting";
   if (orderWaitsOnYou(f)) return "needs_you";
   // A day or time is set, the handover has not happened and nothing is asked of the viewer before it: coming up.
   // Otherwise it is on the other person or the clock (a buyer's day to pick, a Helpr to take it, the sale to settle).

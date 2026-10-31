@@ -47,7 +47,7 @@ export const SORT_LABEL: Record<DeclutterSort, string> = {
 };
 
 /** The drop columns Browse reads per item (fetchDropStates). */
-export type DropState = Pick<PriceDropFields, "sale_mode" | "last_price_drop_on" | "drop_pct">;
+export type DropState = Pick<PriceDropFields, "sale_mode" | "last_price_drop_on" | "drop_pct" | "drops_stopped">;
 
 interface BrowseItem {
   status: string;
@@ -102,6 +102,20 @@ export function browseStateFromParams(p: URLSearchParams): BrowseState {
       conditions: (p.get("cond") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 5) },
     maxMiles: positive(p.get("mi")),
   };
+}
+
+/**
+ * BUY-53: a saved search opens Browse with `new=<when the member last looked>` (resultsPath). An item that went live
+ * after it is one of the search's "N new" and wears the New tag. No param, or a bad one, marks nothing.
+ */
+export function newSinceFromParams(p: URLSearchParams): number | null {
+  const at = Date.parse(p.get("new") ?? "");
+  return Number.isFinite(at) ? at : null;
+}
+
+export function isNewSince(item: { live_at: string | null }, since: number | null): boolean {
+  if (since === null || !item.live_at) return false;
+  return Date.parse(item.live_at) > since;
 }
 
 /**

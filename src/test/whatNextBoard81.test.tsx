@@ -18,7 +18,7 @@ import { announceTransition, HelperDoneWhatNextHost } from "@/components/whatNex
 import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 const code = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");
 
 describe("board 81: what next after marking done", () => {

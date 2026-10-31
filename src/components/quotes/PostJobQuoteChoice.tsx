@@ -184,7 +184,7 @@ export function useAskForQuotes(windowHours: QuoteWindowHours) {
         windowHours,
       });
       void qc.invalidateQueries({ queryKey: ["quotes"] });
-      toast.success("Your request is up", { description: "We'll let you know when quotes come in." });
+      toast("Your request is up", { description: "We'll let you know when quotes come in." });
       navigate(`/quotes/request/${id}`);
     } catch (err) {
       toast.error(quoteErrorMessage(err));

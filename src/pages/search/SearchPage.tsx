@@ -192,6 +192,8 @@ export default function SearchPage() {
     ...(itemCount > 0 ? [{ key: "declutter" as const, label: "Declutter", count: itemCount }] : []),
   ];
   const show = (s: SearchSection) => section === "all" || section === s;
+  // AUD31-39: the box named Shops and Homes, both Coming soon, and was cut at 375; it names what it searches.
+  const fieldLabel = declutterOn ? "Search jobs and items" : "Search jobs";
 
   return (
     <AppPage title="Search" onBack={() => navigate(-1)}>
@@ -204,8 +206,8 @@ export default function SearchPage() {
             autoFocus={!q}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Search jobs, items, shops and homes"
-            aria-label="Search jobs, items, shops and homes"
+            placeholder={fieldLabel}
+            aria-label={fieldLabel}
             // The pill draws the focus ring (focus-within); the input must not draw a second, square one (audit #27).
             className="flex-1 min-w-0 bg-transparent outline-none focus-visible:outline-none font-sans text-ds-15"
           />
@@ -261,7 +263,15 @@ export default function SearchPage() {
             icon={Search}
             title={`Nothing matches “${q}” yet`}
             body="Save this search and we'll tell you when something new matches, or look through everything open now."
-            action={<Link to="/jobs" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse all jobs</Link>}
+            // AUD31-32: it searched Declutter too, so it offers Declutter's Browse as well.
+            action={
+              <span className="inline-flex flex-wrap justify-center gap-x-4 gap-y-2">
+                <Link to="/jobs" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse all jobs</Link>
+                {declutterOn && (
+                  <Link to="/declutter" className="font-sans font-semibold text-ds-14 underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>Browse Declutter</Link>
+                )}
+              </span>
+            }
           />
         )}
 
@@ -291,7 +301,7 @@ export default function SearchPage() {
           </Group>
         )}
         {q && section === "jobs" && jobCount > MAX_ROWS && (
-          <Link to={`/jobs?${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
+          <Link to={`/jobs?tab=browse&${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
             See all {jobCount} in Jobs
           </Link>
         )}

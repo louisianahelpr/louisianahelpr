@@ -65,7 +65,7 @@ export function RefundRequestDialog({
       // For All of it the library sends no amount at all (the server uses the price).
       await openRefundRequest(job.id, scope, amountCents, reason.trim());
       hapticSuccess();
-      toast.success(`Sent to ${first}. Nothing moves unless they agree.`);
+      toast(`Sent to ${first}. Nothing moves unless they agree.`);
       // The card's state is the request itself; the job lists may show it too.
       try {
         await Promise.all([

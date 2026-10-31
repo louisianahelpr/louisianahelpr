@@ -41,7 +41,7 @@ const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`;
 export async function copyListingLink(it: ShareableListing): Promise<void> {
   const url = listingLink(it.id);
   if (await copyToClipboard(url)) {
-    toast.success("Link copied. Paste it in your local groups.");
+    toast("Link copied. Paste it in your local groups.");
     return;
   }
   await shareNative({ title: it.title, text: shareText(it), url });

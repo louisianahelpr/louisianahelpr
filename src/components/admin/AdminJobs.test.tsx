@@ -48,6 +48,8 @@ const job = {
 };
 
 const invokeMock = vi.fn();
+/** The jobs read's rows (the refund cases read the one job above). */
+const jobRows = vi.hoisted(() => ({ list: [] as Record<string, unknown>[] }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -58,7 +60,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: (table: string) => {
       if (table === "jobs") {
         return {
-          select: () => ({ order: async () => ({ data: [job], error: null }) }),
+          select: () => ({ order: async () => ({ data: jobRows.list, error: null }) }),
           update: () => ({ eq: () => ({ select: async () => ({ data: [{ id: JOB_ID }], error: null }) }) }),
         };
       }
@@ -72,6 +74,8 @@ vi.mock("@/integrations/supabase/client", () => ({
           }),
         };
       }
+      // The Active tab's applicant counts (useApplicantCounts): none here.
+      if (table === "applications") return { select: () => ({ eq: async () => ({ count: 0, error: null }) }) };
       if (table === "notifications") {
         return { insert: () => ({ select: async () => ({ data: [{ id: "n1" }], error: null }) }) };
       }
@@ -115,6 +119,7 @@ async function openRefundDialog() {
 }
 
 beforeEach(() => {
+  jobRows.list = [job];
   invokeMock.mockReset();
   invokeMock.mockResolvedValue({ data: { ok: true }, error: null });
   toastError.mockReset();
@@ -185,3 +190,32 @@ describe("AdminJobs — the refund confirmation", () => {
 // cancels the job. The real module returns true on web, so only the mocked
 // refusal above can see this line go missing.
 // @mutate src/components/admin/AdminJobs.tsx | if (!ok) return;\n\n    setRefunding(true); | setRefunding(true);
+
+/**
+ * NOID-24 (M5): the Flagged tab counted every flagged job ever, finished and cancelled ones included (a passed date
+ * flags them all). Flagged is now only jobs that can still go wrong: open, accepted, in progress.
+ * @mutate src/components/admin/AdminJobs.tsx | const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]); | const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "completed", "cancelled"]);
+ * @mutate src/components/admin/AdminJobs.tsx |   const flaggedIds = [...jobFlags.keys()].filter((id) => flagLive.has(id) && !resolvedFlags.has(id)); |   const flaggedIds = [...jobFlags.keys()].filter((id) => realIds.has(id) && !resolvedFlags.has(id));
+ * @mutate src/components/admin/AdminJobs.tsx | realJobs.filter((j) => flagLive.has(j.id) && jobFlags.has(j.id) && !resolvedFlags.has(j.id)) | realJobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
+ */
+describe("AdminJobs — Flagged is live jobs only (NOID-24)", () => {
+  it("a finished or cancelled job's flag is not counted or listed under Flagged; a live one is", async () => {
+    const flagged = { ...job, description: "Call me at 225-555-0199 to set it up." };
+    jobRows.list = [
+      { ...flagged, id: "j-open", title: "Open flagged job", status: "open" },
+      { ...flagged, id: "j-done", title: "Finished flagged job", status: "completed" },
+      { ...flagged, id: "j-gone", title: "Cancelled flagged job", status: "cancelled" },
+    ];
+    render(
+      <MemoryRouter initialEntries={["/admin?view=jobs"]}>
+        <AdminJobs />
+      </MemoryRouter>,
+    );
+    const pill = await screen.findByRole("button", { name: /^Flagged \(\d+\)$/ });
+    expect(pill.textContent).toContain("Flagged (1)");
+    fireEvent.click(pill);
+    expect(await screen.findByText("Open flagged job")).toBeTruthy();
+    expect(screen.queryByText("Finished flagged job")).toBeNull();
+    expect(screen.queryByText("Cancelled flagged job")).toBeNull();
+  });
+});

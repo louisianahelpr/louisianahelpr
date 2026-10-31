@@ -12,6 +12,7 @@
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # The same scope as the unit job | VACUITY_PUSH_BEFORE: ""\n        # The same scope as the unit job
 // @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
 // @mutate scripts/land.sh |     if ! node scripts/perf/critical-path.mjs --check; then |     if false; then
+// @mutate scripts/land.sh |     export VITE_APPLE_MAPKIT_TOKEN=\n |     \n
 // @mutate scripts/land.sh | grep -qE '^(src/\|public/ | grep -qE '^(public/
 // @mutate scripts/land.sh |       exit 1\n    fi\n  else\n    echo "land: nothing the bundle |       true\n    fi\n  else\n    echo "land: nothing the bundle
 // @mutate .github/workflows/test.yml |   pull_request:\n    branches: [main]\n |   pull_request:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n
@@ -149,6 +150,18 @@ describe("landing path (Q44)", () => {
     expect(code).toMatch(/if ! node scripts\/perf\/critical-path\.mjs --check; then\n[^\n]*\n\s*exit 1\n/);
     // a fresh worktree has no .env and vite.config.ts refuses to build without it
     expect(code).toContain('ln -s "$MAIN_TREE/.env" .env');
+    // LEAD-POSTS-BOOT-SHRINK (10-31): the build ALWAYS uses bundle-size.yml's env, never .env's JWT or MapKit
+    // token (about 0.15 KB gz more, so a route at its edge flipped between here and CI).
+    const sizeYml = read(".github/workflows/bundle-size.yml");
+    const envBlock = code.slice(code.indexOf('ln -s "$MAIN_TREE/.env" .env'), buildAt);
+    for (const v of ["VITE_SUPABASE_PROJECT_ID", "VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"]) {
+      const ci = sizeYml.match(new RegExp(`${v}: (\\S+)`))?.[1];
+      expect(ci, `${v} missing from bundle-size.yml`).toBeTruthy();
+      expect(envBlock, `land.sh does not build with CI's ${v}`).toMatch(new RegExp(`^\\s*export ${v}=${ci!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+    }
+    expect(sizeYml).not.toMatch(/VITE_APPLE_MAPKIT_TOKEN/);
+    expect(envBlock).toMatch(/^\s*export VITE_APPLE_MAPKIT_TOKEN=$/m);
+    expect(envBlock, "the CI env is applied only when there is no .env").not.toMatch(/if \[ ! -e \.env \] && \[ -z "\$\{VITE_SUPABASE_URL/);
 
     // Skipped only when the push changes nothing the bundle is built from.
     const gates = [...code.slice(0, buildAt).matchAll(/if grep -qE '([^']+)' <<<"\$PUSHED_FILES"; then/g)];

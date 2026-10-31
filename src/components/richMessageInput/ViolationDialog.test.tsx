@@ -75,6 +75,11 @@ describe("ViolationDialog", () => {
 
     expect(screen.getByText(/joe@example\.com/)).toBeInTheDocument();
     expect(screen.getByText(/venmo/i)).toBeInTheDocument();
+    // AUD31-41: with two catches no explanation follows each bullet, so none may end in a dangling dash.
+    // @mutate src/components/richMessageInput/ViolationDialog.tsx | {unique.length === 1 ? <>{" — "}{EXPLANATION[v.type]}</> : null} | {" — "}{unique.length === 1 ? EXPLANATION[v.type] : null}
+    const items = screen.getAllByRole("listitem");
+    expect(items.length).toBeGreaterThan(1);
+    for (const li of items) expect(li.textContent ?? "").not.toMatch(/—\s*$/);
   });
 
   it("collapses a repeated match into one row to fix", () => {

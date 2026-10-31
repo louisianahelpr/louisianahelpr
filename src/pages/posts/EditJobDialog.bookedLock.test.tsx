@@ -21,7 +21,7 @@ import type { Job } from "../../components/job-card/activityConstants";
 const update = vi.fn();
 // Q1461: the Access & Parking note is a network read once a card opens; none here.
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children, disabled }: { children: ReactNode; disabled?: boolean }) => <div data-testid="category-select" aria-disabled={disabled ? "true" : "false"}>{children}</div>,
   SelectTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,

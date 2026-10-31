@@ -20,6 +20,8 @@ export interface OriginAsk {
   askDevice: () => void;
   /** The profile's ZIP code, for "Miles from 70501" (DA-10); absent where the screen does not name it. */
   zip?: string | null;
+  /** A signed-out guest (BUY-16): no profile, so never "add your ZIP code in your profile" (AUD31-75). */
+  guest?: boolean;
 }
 
 /** Whether to offer "Use my location" / "Try my location again": not while asking, not once the device gave a fix. */

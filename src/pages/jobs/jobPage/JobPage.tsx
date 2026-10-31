@@ -28,8 +28,9 @@ import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, type JobPageRow } from "./useJobPage";
-import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
+import { useJobPage, useOfferedToMe, type JobPageRow } from "./useJobPage";
+import { seriesSummary } from "@/lib/format";
+import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
 import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
@@ -40,8 +41,11 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
+import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
+import { usePosterPageFlows } from "./usePosterPageFlows";
+import { MineFaceNote } from "@/components/job-card/MineJobFace";
+import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
-import { GetHelpNow } from "@/components/jobs/GetHelpNow";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
@@ -60,6 +64,7 @@ const CARD = "rounded-2xl border border-border bg-card";
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
+  const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // Q1586(c): the same under-18 grey-out as every other Apply; a tap says why, before the sheet and its uploads (JOBS-17).
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const trackingStatus = tracking.data ?? null;
@@ -69,6 +74,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
+  // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
+  const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
+  // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
+  const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });
+  const posterActions = usePosterPageActions({
+    job: q.data?.job, userId, enabled: isPoster, flows: posterFlows,
+    posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
+    open: q.data?.job.status === "open", pending: applicants.data?.pending ?? 0, onChanged: () => void q.refetch(),
+  });
 
   if (q.isPending) {
     return (
@@ -115,7 +129,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const canApply = !isPoster && !party && open;
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
-  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew });
+  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
@@ -125,26 +139,17 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The hired Helpr (F26): the Working card's own next-step button, plus Message and the street address.
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, open: () => navigate(highlight), message: messagePoster })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: () => navigate(highlight), message: messagePoster })
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
-    ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
     : isPoster && jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
     ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
+    // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
+    // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
     : isPoster
-    ? {
-        label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
-        // The Posted card face is a link back to this page (board 14), so the
-        // page sends the poster to that card with its live controls open.
-        go: () =>
-          navigate(
-            open && pending > 0
-              // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card.
-              ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1`
-              : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
-          ),
-      }
+    ? posterActions.primary
     : hiredFace
       ? { label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled, secondary: hiredFace.tone === "secondary" }
       : viewer.action.kind === "open_working"
@@ -158,111 +163,131 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") }
             : null;
 
+  const share = open ? (
+    <ShareJobButton
+      variant="icon"
+      bare
+      job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: job.location ? getCity(job.location) : undefined }}
+    />
+  ) : null;
+
+  /*
+   * ONE SCREEN, IN THE OWNER'S ORDER (2026-10-31, LEAD-JOBPAGE-LAYOUT): the top bar is the back arrow with the job's
+   * TITLE beside it (share and the app's help icon at its right), then the price, the description, the tracker, the step needed now
+   * as the big button with the other actions under it, and the Helpr Guarantee at the very bottom. "Get help now" and
+   * its reply line are gone (help is the top bar's icon). A Helpr reads what the job is before Apply
+   * (LEAD-APPLICANT-JOBINFO). On a phone the two column boxes are `contents`, so their parts take that order in one
+   * stack; the desktop keeps its two columns (photos + details left, the summary card right).
+   * Guard: src/test/jobPageOneScreenOrder.test.tsx.
+   */
   return (
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
-      phoneHidesTitle
-      titleActions={
-        open ? (
-          <ShareJobButton
-            variant="icon"
-            bare
-            job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: job.location ? getCity(job.location) : undefined }}
-          />
-        ) : undefined
-      }
+      titleActions={share ?? undefined}
     >
       <div data-job-page="" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-8 lg:gap-y-6">
-        {/* A real photo or nothing (audit #8): no coloured placeholder band standing in for one. */}
-        {hasPhoto && (
-          <div data-job-photos="" className="lg:col-start-1 lg:row-start-1">
-            <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
-          </div>
-        )}
-
-        <section
-          aria-label="Job summary"
-          className={`space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5`}
-        >
-          <div className="space-y-1">
-            <p className="text-ds-13 font-semibold text-primary">{eyebrow}</p>
-            {/* Desktop prints the title once, in the page header (lead review 2026-10-20). */}
-            <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
-            {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
-            {/* The hired Helpr is owed the street address (the party read carries it; RLS gives it only to parties). */}
-            {isHired && job.location && (
-              <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
-                <span className="font-semibold">Address: </span>
-                {job.location}
-              </p>
-            )}
-          </div>
-          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            pendingApplicants={isPoster && applicants.data ? pending : undefined} />
-          {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
-          {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
-          {isHired && <HiredSeriesSection job={job} userId={userId} />}
-          {isPoster ? (
-            <PosterMoney job={job} total={total} loading={applicants.isLoading} />
-          ) : (
-            <HelprMoney job={job} />
-          )}
-          {/* Helpr Guarantee (owner 2026-10-27): the poster's explainer and "Not done right"; the hired Helpr's answer. */}
-          <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
-          {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
-          {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
-          {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
-          {primary && (
-            <Button
-              variant={"secondary" in primary && primary.secondary ? "outline" : "primary"}
-              size="lg"
-              className="w-full rounded-full text-ds-16"
-              onClick={primary.go}
-              disabled={"disabled" in primary ? primary.disabled : false}
-              {...("gated" in primary ? primary.gated : {})}
-            >
-              {primary.label}
-            </Button>
-          )}
-          {hiredFace && (
-            <div data-hired-actions="" className="flex flex-wrap gap-2">
-              {/* Message the poster, unless the main button already is that (a waiting card's one button). */}
-              {hiredFace.onClick !== messagePoster && (
-                <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={messagePoster}>
-                  Message {posterFirst ?? "them"}
-                </Button>
-              )}
-              <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => navigate(highlight)}>
-                Open in working
-              </Button>
+        <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
+          {/* A real photo or nothing (audit #8): no coloured placeholder band standing in for one. */}
+          {hasPhoto && (
+            <div data-job-photos="" className="order-1 lg:order-none">
+              <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
             </div>
           )}
-          {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
-          {(isPoster || isHired) && <GetHelpNow job={job} />}
-        </section>
+          {(job.description?.trim() || hasVideo) && (
+            <div data-job-details="" className="order-3 space-y-4 lg:order-none">
+              {/* The poster's scope video (A2-B6), for the poster and the Helpr alike; nothing when there is none. */}
+              {hasVideo && <ScopeVideo url={job.scope_video_url} />}
+              {job.description?.trim() && (
+                <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
+                  <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>
+                  <p className="mt-1.5 whitespace-pre-line text-ds-15 leading-relaxed [overflow-wrap:anywhere]">{job.description.trim()}</p>
+                </section>
+              )}
+            </div>
+          )}
+          {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
+          {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
+        </div>
 
-
-        {/* Board 57: the poster's open, paid job that nobody has applied to yet. */}
-        {/* Paid or, with the card hold at posting (Q2399), a held card: both are live listings. */}
-        {isPoster && open && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
-          <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
-        )}
-        {(job.description?.trim() || hasVideo || (!isPoster && job.customer_id)) && (
-          <div className={`space-y-4 lg:col-start-1 ${hasPhoto ? "lg:row-start-2" : "lg:row-start-1"}`}>
-            {/* The poster's scope video (A2-B6), for the poster and the Helpr alike; nothing when there is none. */}
-            {hasVideo && <ScopeVideo url={job.scope_video_url} />}
-            {job.description?.trim() && (
-              <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
-                <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>
-                <p className="mt-1.5 whitespace-pre-line text-ds-15 leading-relaxed [overflow-wrap:anywhere]">{job.description.trim()}</p>
-              </section>
+        <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5">
+          <section aria-label="Job summary" data-job-head="" className="order-2 space-y-4 lg:order-none">
+            <div className="space-y-1">
+              {/* The title is the top bar's, beside the back arrow; the category sits small under it. */}
+              <p className="text-ds-13 font-semibold text-primary">{eyebrow}</p>
+              {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+              {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
+              {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
+              {/* The hired Helpr is owed the street address (the party read carries it; RLS gives it only to parties). */}
+              {isHired && job.location && (
+                <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
+                  <span className="font-semibold">Address: </span>
+                  {job.location}
+                </p>
+              )}
+            </div>
+            {isPoster ? (
+              <PosterMoney job={job} total={total} loading={applicants.isLoading} />
+            ) : (
+              <HelprMoney job={job} />
             )}
-            {!isPoster && job.customer_id && <PostedBy posterId={job.customer_id} />}
+          </section>
+
+          <section aria-label="Where the job is" data-job-steps="" className="order-4 space-y-4 lg:order-none">
+            <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+              pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+            {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
+            {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
+            {isHired && <HiredSeriesSection job={job} userId={userId} />}
+            {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
+            {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
+            {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
+            {primary && (
+              <Button
+                variant={"secondary" in primary && primary.secondary ? "outline" : "primary"}
+                size="lg"
+                className="w-full rounded-full text-ds-16"
+                onClick={primary.go}
+                disabled={"disabled" in primary ? primary.disabled : false}
+                {...("gated" in primary ? primary.gated : {})}
+              >
+                {primary.label}
+              </Button>
+            )}
+            {isPoster && posterActions.secondary}
+            {!isPoster && <MineFaceNote note={hiredFace?.note} />}
+            {hiredFace && (
+              <div data-hired-actions="" className="flex flex-wrap gap-2">
+                {/* Message the poster, unless the main button already is that (a waiting card's one button). */}
+                {hiredFace.onClick !== messagePoster && (
+                  <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={messagePoster}>
+                    Message {posterFirst ?? "them"}
+                  </Button>
+                )}
+                <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => navigate(highlight)}>
+                  Open in working
+                </Button>
+              </div>
+            )}
+            {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
+          </section>
+
+          {/* Board 57: the poster's open, paid job that nobody has applied to yet. */}
+          {/* Paid or, with the card hold at posting (Q2399), a held card: both are live listings. */}
+          {isPoster && open && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
+            <div className="order-5 lg:order-none">
+              <NoApplicantsYet job={job} onManage={posterActions.edit} />
+            </div>
+          )}
+
+          {/* Helpr Guarantee (owner 2026-10-27): the poster's explainer and "Not done right"; the hired Helpr's answer. At the very bottom (owner 2026-10-31). */}
+          <div data-job-guarantee="" className="order-last lg:order-none empty:hidden">
+          <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           </div>
-        )}
+        </div>
       </div>
       {!isPoster && <PageApplySheet apply={apply} />}
+      {posterActions.dialogs}
     </AppPage>
   );
 }

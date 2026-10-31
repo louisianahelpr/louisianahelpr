@@ -9,13 +9,14 @@
  * neighbor"); the seller's first name comes from the same public profile read
  * as the seller card, and falls back to "the seller".
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
-import { answerQuestion, askQuestion, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
+import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 
@@ -47,18 +48,21 @@ function QuestionCard({
   q,
   sellerName,
   onAnswer,
+  mine,
 }: {
   q: DeclutterQuestion;
   sellerName: string | null;
   onAnswer: (() => void) | null;
+  /** AUD31-15: the viewer asked it (declutter_my_question_ids); only the asker is ever told. */
+  mine: boolean;
 }) {
   const asked = askedWhen(q.created_at);
   return (
-    <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="">
+    <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="" data-mine={mine ? "" : undefined}>
       <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p>
       {q.answer ? (
         <>
-          <p className="text-ds-13 text-muted-foreground">Asked by a neighbor · {asked}</p>
+          <p className="text-ds-13 text-muted-foreground">{mine ? "Your question" : "Asked by a neighbor"} · {asked}</p>
           <p className="mt-1 border-l-2 border-[hsl(var(--primary)/0.4)] pl-3 text-ds-15 [overflow-wrap:anywhere]" data-answer="">
             {q.answer}
             {sellerName ? <span className="text-muted-foreground"> — {sellerName}</span> : null}
@@ -66,7 +70,7 @@ function QuestionCard({
         </>
       ) : (
         <p className="text-ds-13 text-muted-foreground">
-          Asked {asked} · {onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
+          {mine ? "Your question · asked" : "Asked"} {asked} · {onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
         </p>
       )}
       {!q.answer && onAnswer && (
@@ -81,15 +85,18 @@ function QuestionCard({
 function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; itemId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const [answer, setAnswer] = useState("");
+  // AUD31-30: a refused answer is said under the box (the draft stays), as Ask does, never a toast over the box.
+  const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
     mutationFn: (args: { id: string; text: string }) => answerQuestion(args.id, args.text),
     onSuccess: () => {
       setAnswer("");
-      toast.success("Answer posted.");
+      setRefusal(null);
+      toast("Answer posted.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
       onClose();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => setRefusal(declutterErrorMessage(err)),
   });
   const text = answer.trim();
   return (
@@ -98,6 +105,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
       onOpenChange={(o) => {
         if (!o) {
           setAnswer("");
+          setRefusal(null);
           onClose();
         }
       }}
@@ -126,8 +134,11 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
               rows={3}
               maxLength={1000}
               value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
+              onChange={(e) => { setAnswer(e.target.value); setRefusal(null); }}
+              aria-invalid={refusal ? true : undefined}
+              aria-describedby={refusal ? "declutter-answer-error" : undefined}
             />
+            {refusal && <p id="declutter-answer-error" role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
             <p className="text-ds-13 text-muted-foreground">Everyone viewing the item sees this.</p>
           </div>
         )}
@@ -147,6 +158,8 @@ export function DeclutterQuestions({
   isSeller,
   canAsk,
   free = false,
+  preview = false,
+  onMakeOffer,
 }: {
   itemId: string;
   sellerId: string;
@@ -155,24 +168,41 @@ export function DeclutterQuestions({
   canAsk: boolean;
   /** A free item is claimed, never offered on (deep audit #23): no "Make an offer" line. */
   free?: boolean;
+  /** The seller's "See what buyers see" (LEAD-PREVIEW-ASK): the Ask box shows, greyed out, saying how it works. */
+  preview?: boolean;
+  /** AUD31-15: opens the offer box on the item page; without it the hint stays plain words. */
+  onMakeOffer?: () => void;
 }) {
   const qc = useQueryClient();
   const sellerName = useSellerFirstName(sellerId);
   const [question, setQuestion] = useState("");
   const [answering, setAnswering] = useState<DeclutterQuestion | null>(null);
   const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId) });
+  // AUD31-15: the viewer's own questions say "Your question". Same key prefix, so asking one refreshes it too. The
+  // seller never asks on their own listing and a guest asks nothing, so neither reads it; a failed read only leaves the
+  // label off.
+  const { user } = useAuthReady();
+  const myIds = useQuery({ queryKey: ["declutter", "questions", itemId, "mine"], queryFn: () => fetchMyQuestionIds(itemId), enabled: !!user && !isSeller });
   // Audit 1028 part 2, D2-13: a refusal (a phone number or email in the question, say) shows under the box, not in a
   // toast that sat on top of the box and the Ask button for 20+ seconds at 375. Typing again clears it.
   const ask = useMutation({
     mutationFn: (text: string) => askQuestion(itemId, text),
     onSuccess: () => {
       setQuestion("");
-      toast.success("Question posted. The answer will show here.");
+      toast("Question posted. The answer will show here.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
     },
   });
   const askError = ask.isError ? declutterErrorMessage(ask.error) : null;
   const list = questions.data ?? [];
+  // AUD31-28: Selling's "Questions to answer" links here with #declutter-questions; once the questions are in, the
+  // page scrolls to them (the item page opened at its top, the question ~2 screens down at 375).
+  const loaded = questions.isSuccess;
+  useEffect(() => {
+    if (loaded && window.location.hash === "#declutter-questions") {
+      document.getElementById("declutter-questions")?.scrollIntoView({ block: "start" });
+    }
+  }, [loaded]);
   const text = question.trim();
 
   return (
@@ -187,7 +217,7 @@ export function DeclutterQuestions({
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
-            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} />
+            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} />
           ))}
         </ul>
       )}
@@ -218,8 +248,26 @@ export function DeclutterQuestions({
             </Button>
           </div>
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
-          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? "" : " Want to make a deal? Make an offer."}</p>
+          {/* AUD31-15: "Make an offer" opens the offer box on this page (DeclutterItemView's onMakeOffer), not plain text. */}
+          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? null : onMakeOffer
+            ? <>{" Want to make a deal? "}<button type="button" className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">Make an offer</button>.</>
+            : " Want to make a deal? Make an offer."}</p>
         </form>
+      )}
+      {preview && (
+        // LEAD-PREVIEW-ASK (owner 2026-10-31): the seller sees where buyers ask, but can't ask on their own listing.
+        <div className="space-y-2" aria-disabled="true" data-preview-ask="">
+          <label htmlFor="declutter-question-preview" className="block text-ds-15 font-semibold text-muted-foreground">Ask a question</label>
+          <div className="flex gap-2">
+            <input id="declutter-question-preview" className={`${field} bg-muted`} disabled placeholder="Ask about size, condition…" aria-describedby="declutter-question-preview-note" />
+            <Button type="button" variant="outline" className="h-auto shrink-0" disabled>
+              Ask
+            </Button>
+          </div>
+          <p id="declutter-question-preview-note" className="text-ds-13 text-muted-foreground">
+            Buyers ask here. You'll get a notice and answer from this page.
+          </p>
+        </div>
       )}
       {isSeller && <AnswerSheet q={answering} itemId={itemId} onClose={() => setAnswering(null)} />}
     </section>

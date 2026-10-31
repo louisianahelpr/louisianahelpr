@@ -23,16 +23,19 @@
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature) && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature); |   return on && !openToEveryone?.has(feature) && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature);
  * Owner 2026-10-30: Declutter reads as open to everyone who has it (no tester mark), Shops and Homes keep theirs.
  * @mutate src/components/mobileNav/useSectionTabs.ts | && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(feature); | ;
- * @mutate src/components/mobileNav/useSectionTabs.ts | new Set(["declutter"]); | new Set(["declutter", "shops", "rentals"]);
+ * @mutate src/components/mobileNav/useSectionTabs.ts | const OPEN_FOR_THOSE_WHO_HAVE_IT: ReadonlySet<string> = new Set(["declutter"]); | const OPEN_FOR_THOSE_WHO_HAVE_IT: ReadonlySet<string> = new Set(["declutter", "shops", "rentals"]);
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isError ? new Set() : q.data ? new Set(q.data) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isSuccess ? new Set(q.data ?? []) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
- * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals); |   const openToEveryone = useOpenToEveryoneAnswer(true);
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals \|\| guest); |   const openToEveryone = useOpenToEveryoneAnswer(true);
  * @mutate src/components/DesktopSidebarNav.tsx |                   {preview && <PreviewPill variant="rail" />} |
- * @mutate src/components/sections/PreviewPill.tsx |       Coming soon\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
+ * @mutate src/components/sections/PreviewPill.tsx |       {t("soon.full")}\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
+ * @mutate src/components/sections/PreviewPill.tsx |         {t("soon.full")}\n      </span> |         Coming soon\n      </span>
  * @mutate src/components/create/CreateSheet.tsx |                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />} |                   {on && <PreviewPill data-create-preview={s.key} />}
  * @mutate src/components/profile/SettingsTab.tsx |           const preview = s.feature !== null && !!tab?.preview; |           const preview = s.feature !== null && !!tab?.on;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       await queryClient.invalidateQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY }); |
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   const on = { declutter: declutter \|\| (guest && !!openToEveryone?.has("declutter")), shops, rentals } as const; |   const on = { declutter, shops, rentals } as const;
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   const guest = isReady && !user; |   const guest = false;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
@@ -51,6 +54,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 import { sectionIsPreview, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { __resetLangForTests, ensureLangLoaded, setLang } from "@/lib/i18n/language";
 
 const ROOT = resolve(__dirname, "..", "..");
 let client: QueryClient;
@@ -165,17 +169,22 @@ describe("(b) useSectionTabs `preview`", () => {
     expect(previews(result.current)).toEqual({ declutter: false, shops: false, rentals: false });
   });
 
-  it("signed out, or nothing live: never asks features_open_to_everyone", async () => {
-    serve({ declutter: false, shops: false, rentals: false }, () => ({ data: [], error: null }));
+  it("a member with nothing live never asks features_open_to_everyone; a guest asks, and is never shown a preview", async () => {
+    serve({ declutter: false, shops: false, rentals: false }, () => ({ data: ["declutter", "shops"], error: null }));
     const a = renderHook(() => useSectionTabs(), { wrapper });
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("feature_switches_for_me", expect.anything()));
     await tick();
+    expect(askedOpen()).toBe(0);
     auth.user = null;
     const b = renderHook(() => useSectionTabs(), { wrapper: ({ children }) => <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider> });
-    await tick();
-    expect(askedOpen()).toBe(0);
+    // AUD31-73: a guest's Declutter (open to everyone, readable by guests) is live, never greyed "Soon"; Shops and
+    // Homes stay off for a guest even when open (no guest pages).
+    await waitFor(() => expect(b.result.current.find((t) => t.feature === "declutter")?.on).toBe(true));
+    expect(askedOpen()).toBeGreaterThan(0);
+    expect(b.result.current.find((t) => t.feature === "shops")?.on).toBe(false);
     expect(previews(a.result.current)).toEqual({ declutter: false, shops: false, rentals: false });
     expect(previews(b.result.current)).toEqual({ declutter: false, shops: false, rentals: false });
+    expect(a.result.current.find((t) => t.feature === "declutter")?.on).toBe(false);
   });
 });
 
@@ -201,6 +210,21 @@ describe("(c) every listing draws PreviewPill, gated on the section's own previe
       const el = container.querySelector("[data-preview-pill]") as HTMLElement;
       expect({ variant, text: el.textContent?.trim(), color: el.style.color }).toEqual({ variant, text: "Coming soon", color: "hsl(var(--bark))" });
       unmount();
+    }
+  });
+
+  // AUD31-52: in Spanish the rail read "Tiendas · Muy pronto" (SoonPill) beside "Casas · Coming soon" (this mark).
+  it("speaks the viewer's language, like SoonPill (soon.full)", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      for (const variant of ["pill", "rail"] as const) {
+        const { container, unmount } = render(<PreviewPill variant={variant} data-x="" />);
+        expect((container.querySelector("[data-preview-pill]") as HTMLElement).textContent?.trim()).toBe("Muy pronto");
+        unmount();
+      }
+    } finally {
+      __resetLangForTests();
     }
   });
 

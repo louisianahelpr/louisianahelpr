@@ -36,7 +36,7 @@ const state = {
   messages: [] as { id: string; talk_id: string; sender_id: string; body: string; created_at: string }[],
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: state.me } }) }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
@@ -139,6 +139,7 @@ describe("the handover chat", () => {
     expect(screen.getByText(/This chat has ended\./)).toBeInTheDocument();
     expect(screen.queryByLabelText("Message")).toBeNull();
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    // The footer Close and the sheet's X (every sheet has an X since LEAD-SHEET-X-ONLY, owner 10-31).
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
   });
 });

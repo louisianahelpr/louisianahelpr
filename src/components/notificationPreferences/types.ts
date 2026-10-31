@@ -121,6 +121,8 @@ export interface Row {
   key: BoolPrefKey;
   emailKey: BoolPrefKey;
   label: string;
+  /** One line under the label, for a row whose name alone doesn't say what it covers. */
+  description?: string;
   icon: React.ReactNode;
   /** Set when this kind has no email to switch: the row shows a dash in the
       Email column (this text is its tooltip and screen-reader label) instead of

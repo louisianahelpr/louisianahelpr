@@ -37,8 +37,10 @@
  * @mutate supabase/migrations/20261021061341_member_display_name.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
- * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId }); | const { data: notReady, error: readyErr } = { data: null, error: null };
+ * @mutate supabase/functions/charge-recurring-visits/index.ts |           supabase.rpc("helper_accept_block_reason", { p_user_id: holderId }), |           Promise.resolve({ data: null, error: null }),
+ * @mutate supabase/functions/card-hold-sweep/index.ts |     const { data: block, error: blockErr } = await db.rpc("helper_accept_block_reason", { p_user_id: r.helper_id }); |     const { data: block, error: blockErr } = { data: null, error: null };
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -97,14 +99,31 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 const TS_WRITE = /\bhelper_confirmed_at\s*:\s*(?:new\s+Date\b|now\b|["'`])/;
-function tsInventory(): { file: string; callsHelper: boolean }[] {
+function tsInventory(): { file: string; callsHelper: boolean; calls: number }[] {
   return walk(join(REPO, "supabase", "functions"))
     .map((p) => p.slice(REPO.length + 1))
     .filter((f) => /\.ts$/.test(f) && !/\.test\.ts$/.test(f))
     .map((f) => ({ file: f, code: blankComments(readFileSync(join(REPO, f), "utf8")) }))
     .filter(({ code }) => TS_WRITE.test(code))
-    .map(({ file, code }) => ({ file, callsHelper: /\.rpc\(\s*["']helper_accept_block_reason["']/.test(code) }));
+    .map(({ file, code }) => {
+      const calls = code.match(/\.rpc\(\s*["']helper_accept_block_reason["']/g)?.length ?? 0;
+      return { file, callsHelper: calls > 0, calls };
+    });
 }
+
+/**
+ * How many times each server-side booking file asks the helper. EXACT both ways
+ * (LEAD-VACUOUS 10-31: charge-recurring-visits asks it twice, so "calls it at
+ * least once" stayed green with either call removed).
+ */
+const TS_HELPER_CALLS: Record<string, number> = {
+  // 1: completePendingAccept (a single job's accept that waited on the card hold);
+  // 2: completePendingCrewConfirms (each crew seat's Accept my spot that waited).
+  "supabase/functions/card-hold-sweep/index.ts": 2,
+  // 1: the per-holder readiness check that releases an unready holder's due dates;
+  // 2: the re-read right before the charge (a holder who turned unready since is skipped).
+  "supabase/functions/charge-recurring-visits/index.ts": 2,
+};
 
 describe("every booking path asks the one ID-once helper (owner 2026-10-20)", () => {
   const sql = sqlInventory();
@@ -161,5 +180,10 @@ describe("every booking path asks the one ID-once helper (owner 2026-10-20)", ()
     expect(ts.map((t) => t.file)).toEqual(expect.arrayContaining(["supabase/functions/charge-recurring-visits/index.ts"]));
     expect(ts.length).toBeGreaterThan(0);
     expect(ts.filter((t) => !t.callsHelper).map((t) => t.file)).toEqual([]);
+  });
+
+  it("each server-side booking asks the helper at every step that books (exact count per file)", () => {
+    const ts = tsInventory();
+    expect(Object.fromEntries(ts.map((t) => [t.file, t.calls]))).toEqual(TS_HELPER_CALLS);
   });
 });

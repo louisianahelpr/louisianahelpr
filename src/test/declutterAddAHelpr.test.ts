@@ -51,7 +51,7 @@
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |       IF rf.reason = 'seller_no_show' AND j.committed AND NOT p_include_committed THEN |       IF false THEN
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           .select("seller_fault_refund_id") |           .select("id")
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus)} /></Suspense>} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} /></Suspense>} |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -249,7 +249,7 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("the buyer's paid order card offers the choices behind the switch, each opening Post a job", () => {
-    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('{order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus)} /></Suspense>}');
+    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('{order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}');
     // Loaded with the buyer's order card only (Q178: off /posts' critical path).
     expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr")');
     const panel = code("src/components/declutter/DeclutterAddHelpr.tsx");

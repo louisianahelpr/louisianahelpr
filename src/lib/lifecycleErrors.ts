@@ -225,7 +225,7 @@ export const RPC_ERROR_COPY = {
   rpc_group_member_confirm: {
     not_authenticated: "Sign in again to accept your spot.",
     not_on_this_crew: "You're not on this job's crew any more.",
-    job_not_confirmable: "This job isn't live any more, so your spot can't be accepted. Pull to refresh.",
+    job_not_confirmable: "This job isn't live any more, so your spot can't be accepted. Refresh the page.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
     // Q2399: the poster's card is only held; capture_hold charges it first (cardHoldCapture.ts).
     payment_not_captured: "This job is waiting on payment. We've let the person who posted it know.",
@@ -245,10 +245,10 @@ export const RPC_ERROR_COPY = {
   rpc_group_member_mark_done: {
     not_authenticated: "Sign in again to mark your part done.",
     not_on_this_crew: "You're not on this job's crew any more, so you can't mark a part done.",
-    part_not_completable: "Your part couldn't be marked done. Pull to refresh and check where the job stands.",
+    part_not_completable: "Your part couldn't be marked done. Refresh the page and check where the job stands.",
     // A crew spot closed while the last Done ran (20261006031350): nothing was
     // finished, so the member just tries again.
-    crew_changed_under_completion: "The crew changed while you were marking done. Pull to refresh and try again.",
+    crew_changed_under_completion: "The crew changed while you were marking done. Refresh the page and try again.",
     // The per-member completion gates are raised by the roster TRIGGER
     // (enforce_group_member_completion_gates), which this inventory does not
     // follow; their copy is CREW_DONE_GATE_COPY in src/lib/crewLifecycle.ts.
@@ -258,7 +258,7 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Sign in again to confirm an arrival.",
     not_the_poster: "Only the person who posted this job can confirm a Helpr arrived.",
     job_not_active: "This job isn't active any more, so arrivals can't be confirmed.",
-    not_on_this_crew: "That Helpr isn't on this crew any more. Pull to refresh.",
+    not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
     arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've arrived.",
   },
   // useOfferHandlers — responding to a direct offer.
@@ -427,7 +427,7 @@ export const RPC_ERROR_COPY = {
   },
   // ActiveJobSection — Cancel job once work is underway.
   helper_abort_job: {
-    not_abortable: "This job has already moved on — pull to refresh and take another look.",
+    not_abortable: "This job has already moved on. Refresh the page and take another look.",
     // Raised by open_dispute_as (via rpc_open_dispute) when the job was
     // marked complete in the moment before this Cancel job landed. Done is
     // final (owner, 2026-09-14): say what happened, no support detour.
@@ -473,7 +473,7 @@ export const RPC_ERROR_COPY = {
   rpc_helper_mark_done: {
     job_not_found: JOB_GONE,
     not_the_assigned_helper: "You're no longer the Helpr on this job, so you can't mark it done.",
-    job_not_completable: "This job isn't active any more, so it can't be marked done. Pull to refresh.",
+    job_not_completable: "This job isn't active any more, so it can't be marked done. Refresh the page.",
     completion_requires_confirmed_arrival: LIFECYCLE_REASONS.completion_requires_confirmed_arrival,
     completion_requires_proof_photos: "Add before and after photos before marking the job done.",
     completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
@@ -616,6 +616,11 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  declutter_item_pickup_places: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_order_pickup_windows: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
@@ -671,6 +676,7 @@ export const RPC_ERROR_COPY = {
     // Anti-lying #1 (20261028235709): a "Picked up" photo is taken where the handover is.
     location_required: "Turn on location so we can confirm where you took the photo.",
     no_delivery_fee: DC.no_delivery_fee,
+    no_show_reported: DC.no_show_reported,
     not_a_door_pickup: DC.not_a_door_pickup,
     not_at_meetup: DC.not_at_meetup,
     not_at_pickup: DC.not_at_pickup,
@@ -682,8 +688,64 @@ export const RPC_ERROR_COPY = {
     problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,
   },
+  declutter_answer_no_show: {
+    account_restricted: DC.account_restricted,
+    note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    problem_already_open: DC.problem_already_open,
+    too_many_photos: "Add up to 3 photos.",
+    item_not_found: DC.item_not_found,
+    no_show_answer_late: DC.no_show_answer_late,
+    no_show_not_reported: DC.no_show_not_reported,
+    not_authenticated: DC.not_authenticated,
+    order_not_paid: DC.order_not_paid,
+    wrong_side: DC.wrong_side,
+  },
+  declutter_cancel_after_no_helpr: {
+    account_restricted: DC.account_restricted,
+    already_paid_out: DC.already_paid_out,
+    // From the close (declutter_close_paid_order): the task of an order no Helpr took is already closed, so these
+    // three are not reached; if one is, the sale is not one this cancel can close.
+    delivery_not_done: DC.not_a_no_helpr_order,
+    invalid_method: DC.not_a_no_helpr_order,
+    invalid_status: DC.not_a_no_helpr_order,
+    order_not_paid: DC.order_not_paid,
+    refund_amount_unknown: DC.refund_amount_unknown,
+    item_not_found: DC.item_not_found,
+    not_a_no_helpr_order: DC.not_a_no_helpr_order,
+    not_authenticated: DC.not_authenticated,
+    pickup_booked: DC.pickup_booked,
+    problem_open: DC.problem_open,
+    wrong_side: "Only the buyer can cancel this sale.",
+  },
+  declutter_report_helpr_no_show: {
+    account_restricted: DC.account_restricted,
+    already_handed_over: DC.already_handed_over,
+    item_not_found: DC.item_not_found,
+    no_helpr_booked: DC.no_helpr_booked,
+    not_a_helpr_delivery: DC.not_a_helpr_delivery,
+    not_authenticated: DC.not_authenticated,
+    problem_open: DC.problem_open,
+    too_early: "You can report this 15 minutes after the pickup time.",
+    wrong_side: "Only the seller reports this.",
+  },
+  declutter_helpr_answer_no_show: {
+    account_restricted: DC.account_restricted,
+    already_answered: DC.already_answered,
+    item_not_found: DC.item_not_found,
+    no_show_answer_late: DC.no_show_answer_late,
+    no_show_not_reported: "The seller hasn't reported anything on this delivery.",
+    not_authenticated: DC.not_authenticated,
+    note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    task_not_found: DC.task_not_found,
+  },
   declutter_report_no_show: {
     account_restricted: DC.account_restricted,
+    problem_taken_back: DC.problem_taken_back,
+    already_confirmed: DC.already_confirmed,
+    no_show_reported: DC.no_show_reported,
+    seller_confirmed: DC.seller_confirmed,
     already_paid_out: DC.already_paid_out,
     already_picked_up: DC.already_picked_up,
     delivery_not_done: DC.delivery_not_done,
@@ -765,6 +827,12 @@ export const RPC_ERROR_COPY = {
   },
   declutter_answer_refund: {
     account_restricted: DC.account_restricted,
+    already_refunded: DC.already_refunded,
+    invalid_payout: DC.invalid_payout,
+    invalid_reason: DC.invalid_reason,
+    order_not_handed_over: DC.order_not_handed_over,
+    payout_missing: DC.payout_missing,
+    refund_amount_unknown: DC.refund_amount_unknown,
     feature_disabled: DC.feature_disabled,
     invalid_amount: DC.invalid_amount,
     invalid_answer: DC.invalid_answer,
@@ -824,6 +892,8 @@ export const RPC_ERROR_COPY = {
   // Declutter returns (20261030071818_declutter_returns.sql).
   declutter_accept_refund_with_return: {
     account_restricted: DC.account_restricted,
+    drop_off_not_offered: DC.drop_off_not_offered,
+    no_return_needed: DC.no_return_needed,
     feature_disabled: DC.feature_disabled,
     invalid_return_day: DC.invalid_return_day,
     invalid_return_time: DC.invalid_return_time,
@@ -887,6 +957,10 @@ export const RPC_ERROR_COPY = {
   },
   // Q2278: the item page's questions read (20261021122157); the switch is its only refusal.
   declutter_item_questions: {
+    feature_disabled: DC.feature_disabled,
+  },
+  // AUD31-15: the caller's own question ids on an item (20261031183631); the switch is its only refusal.
+  declutter_my_question_ids: {
     feature_disabled: DC.feature_disabled,
   },
   declutter_ask_question: {
@@ -977,6 +1051,14 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   // Owner 2026-10-28: the ways the seller ticks on step 4 (20261028235247).
+  // LEAD-DELIVER-OFF-ALL (20261031180550): what declutter_assert_member, the switch and the ban check raise.
+  declutter_stop_my_seller_delivery: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_set_handovers: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
@@ -1177,6 +1259,20 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     invalid_floor_price: DC.invalid_floor_price,
     invalid_location: DC.invalid_location,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  // LEAD-POST-SLOW (a), 20261031160546: the same rules with the id the app picked at the first photo. item_id_taken
+  // never reaches the seller: createDraft reuses the seller's own draft, says "Already posted" for the seller's own
+  // posted item (LEAD-RESUME-REPOSTS), and only for an id that isn't the seller's makes a fresh one.
+  declutter_create_item_with_id: {
+    account_restricted: DC.account_restricted,
+    area_looks_like_address: DC.area_looks_like_address,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_location: DC.invalid_location,
+    item_id_taken: "Something went wrong saving your listing. Tap Post it again.",
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
@@ -1471,6 +1567,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
+    invalid_place_hours: DC.invalid_place_hours,
     invalid_porch_days: DC.invalid_porch_days,
     invalid_porch_place: DC.invalid_porch_place,
     not_authenticated: DC.not_authenticated,

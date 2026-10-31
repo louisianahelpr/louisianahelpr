@@ -39,7 +39,7 @@ vi.mock("@/lib/iap", () => ({
 }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn() }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn() }));
 const openApple = vi.fn();
 vi.mock("@/lib/appleSubscriptions", async (orig) => ({

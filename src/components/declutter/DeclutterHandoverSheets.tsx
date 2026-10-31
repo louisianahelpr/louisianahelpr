@@ -7,8 +7,8 @@
  *    right" first.
  *  - PickedUpSheet (seller, door pickup): what "Picked up" does.
  *  - NoShowSheet (160): what reporting a no-show really does, from
- *    declutter_report_no_show (read live 2026-10-21): the buyer reporting the
- *    seller cancels the sale with everything refunded; the seller reporting
+ *    declutter_report_no_show (owner 10-30): the buyer reporting the seller gives
+ *    the seller 24 hours to answer, then a refund and a strike; the seller reporting
  *    the buyer gives the buyer one new booking inside the 7-day pickup
  *    deadline, and a second miss cancels the sale with the item price
  *    refunded (not the buyer's fee) and a strike. The seller does not choose.
@@ -97,6 +97,45 @@ export function PutItOutSheet({
   );
 }
 
+/**
+ * BUY-5 (buying audit 10-30 #5): the buyer's porch pickup photo uploaded the moment it was chosen and finished the
+ * sale, with no preview, retake or confirm (the seller's porch photo and "I got it" both ask). It now shows here first.
+ */
+export function PickedUpPhotoSheet({ file, who, free, pending, onSend, onRetake, onClose }: {
+  /** The photo just taken; null closes the sheet. */
+  file: File | null;
+  /** The seller's first name, or "the seller". */
+  who: string;
+  free: boolean;
+  pending: boolean;
+  onSend: (file: File) => void;
+  onRetake: () => void;
+  onClose: () => void;
+}) {
+  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const shown = safeBlobUrl(url);
+  return (
+    <Sheet open={!!file} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-picked-up-photo="">
+        <SheetHero title="Picked up?" />
+        {shown && shown.startsWith("blob:") && (
+          <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
+            <img src={shown} alt="Your pickup photo" className="h-full w-full object-cover" />
+          </div>
+        )}
+        <Note>{`This photo tells ${who} you have it${free ? "." : ". They're paid 24 hours later, unless you report a problem."}`}</Note>
+        <SheetFooter>
+          <SheetSecondaryAction onClick={onRetake} disabled={pending}>Retake</SheetSecondaryAction>
+          <SheetPrimaryAction onClick={() => file && onSend(file)} disabled={pending || !file}>
+            {pending ? "Sending…" : "Send photo · I have it"}
+          </SheetPrimaryAction>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 /** The seller's porch photo, read the same way PorchOutPhoto reads it (one cache). */
 function PorchPhotoThumb({ orderId }: { orderId: string }) {
   const h = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
@@ -117,6 +156,21 @@ function PorchPhotoThumb({ orderId }: { orderId: string }) {
         The porch photo from {time(h.data.set_out_at)}{h.data.set_out_note ? ` · "${h.data.set_out_note}"` : ""}
       </figcaption>
     </figure>
+  );
+}
+
+/**
+ * BUY-17 (buying audit 10-30 #17): on the pickup day "I got it" opens before the seller's porch photo (A1-C2 keeps the
+ * day), so a slip would finish the sale on an item nobody put out. Before the photo, the sheet says so first.
+ */
+function PorchNoPhotoYet({ orderId, who }: { orderId: string; who: string }) {
+  const h = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
+  if (!h.data || h.data.set_out_at) return null;
+  const Who = who === "the seller" ? "The seller" : who;
+  return (
+    <p role="note" className="mt-3 text-ds-14 text-foreground" data-got-it-no-porch-photo="">
+      {Who} hasn't posted the porch photo yet. Tap I got it only if the item is in your hands.
+    </p>
   );
 }
 
@@ -148,6 +202,7 @@ export function GotItSheet({
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-got-it-sheet="">
         <SheetHero title="Do you have it?" />
         {porch && <PorchPhotoThumb orderId={orderId} />}
+        {porch && <PorchNoPhotoYet orderId={orderId} who={who} />}
         <div className="mt-3">
           <Note>{free
             ? `Tap I got it once you have it. If something is wrong, tap Something's not right first.`
@@ -183,7 +238,7 @@ export function PickedUpSheet({
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
-        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that."}</Note>
+        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "We ask the buyer to confirm. If they don't say anything, you're paid in about 48 hours."}</Note>
         <SheetFooter>
           <SheetSecondaryAction onClick={() => onOpenChange(false)} disabled={pending}>Not yet</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending}>Picked up</SheetPrimaryAction>
@@ -224,7 +279,9 @@ export function NoShowSheet({
           </ul>
         ) : (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="buyer">
-            <li>{free ? "Your claim is cancelled. Nothing was charged." : "The sale is cancelled and you get everything back."}</li>
+            <li>We tell {who} now, and they have 24 hours to answer.</li>
+            <li>{free ? "If they don't, your claim is cancelled. Nothing was charged." : "If they don't, the sale is cancelled and you get everything back."}</li>
+            <li>If they say they were there, Louisiana Helpr looks at both sides{free ? "." : ", and your money stays held until then."}</li>
             <li className="text-ds-13 text-muted-foreground">A no-show counts against the seller, not you.</li>
           </ul>
         )}

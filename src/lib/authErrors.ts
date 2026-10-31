@@ -138,3 +138,15 @@ export function isWeakPasswordError(error: unknown): boolean {
   if (e.name === "AuthWeakPasswordError") return true;
   return typeof e.message === "string" && /password (?:is too weak|should )/i.test(e.message);
 }
+
+/**
+ * The words under the sign-up password field for a server weak_password refusal (AUD31-53). GoTrue's `reasons`
+ * name the rule: "pwned" is a password seen in a data breach (the client's own HIBP check fails open, so the server
+ * can still refuse one); anything else is restated by describeWeakPassword.
+ */
+export function weakPasswordWords(error: unknown): string {
+  const e = (error ?? {}) as { reasons?: unknown; message?: unknown };
+  const reasons = Array.isArray(e.reasons) ? e.reasons : [];
+  if (reasons.includes("pwned")) return "That password has shown up in a data breach. Pick a different one.";
+  return describeWeakPassword(typeof e.message === "string" ? e.message : "") || "Pick a stronger password.";
+}

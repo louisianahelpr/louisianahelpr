@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import type { Dispatch, SetStateAction } from "react";
 import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
@@ -368,7 +370,7 @@ export function ChatComposer({
           <button
             type="button"
             onClick={onCancelReply}
-            aria-label="Cancel reply"
+            aria-label={t("chat.cancelReply")}
             className="shrink-0 min-h-[44px] min-w-[44px] -mr-1 -mt-1 inline-flex items-center justify-center ctl-exit ctl-tint"
             style={{ color: "hsl(var(--olivewood))" }}
           >

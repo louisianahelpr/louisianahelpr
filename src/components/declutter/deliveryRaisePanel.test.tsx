@@ -21,7 +21,7 @@ const state = vi.hoisted(() => ({
   opened: [] as string[],
   reads: 0,
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/deliveryRaise", () => ({
   fetchDeliveryRaiseStatus: async () => { state.reads++; if (state.error) throw state.error; return state.status; },
   startDeliveryRaise: async (...a: unknown[]) => { state.started.push(a); return { url: "https://checkout.stripe.test/raise", paid: false }; },

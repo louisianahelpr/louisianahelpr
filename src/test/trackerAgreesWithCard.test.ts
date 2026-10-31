@@ -123,13 +123,13 @@ const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^Review \d+ applicants?$/, [0], []],
   // The day-before confirm, on the face (owner, 2026-10-23, card critique item 1).
   [/^(I'm still on|Confirm you'll be at the job)$/, [3], []],
-  [/^Confirm(ing…| arrival)$/, [5], []],
+  [/^Confirm(ing…| they've arrived)$/, [5], []],
   [/^Approve and release$/, [7], []],
   [/^I'm on my way$/, [4], [3]],
   // En route (step in play: On the way) or past the day stuck before Arrived: the tap completes Arrived.
   [/^I've arrived$/, [4, 5], []],
   [/^Start working$/, [5, 6], []],
-  [/^Mark done$/, [6], []],
+  [/^Mark job complete$/, [6], []],
   // An owed photo is the face's button (owner 2026-10-23; trackerKeepsThePhotos): before on Arrived, after on Working.
   [/^Take the before photo$/, [5], []],
   [/^Take the after photo$/, [6], []],
@@ -174,7 +174,7 @@ function helprCard(s: State) {
  *  under "Finish and mark it done"). */
 const HELPR_BUTTON_LINES: Record<string, RegExp> = {
   "Start working": /^(overdue_)?(start_working|before_photo)$/,
-  "Mark done": /^(working|after_photo|overdue_unfinished|overdue_after_photo)$/,
+  "Mark job complete": /^(working|after_photo|overdue_unfinished|overdue_after_photo)$/,
 };
 
 function agree(side: string, name: string, c: { line: { id: string; tone: string }; face: { label: string; tone: string } | null; bar: JobProgressState }) {
@@ -232,7 +232,7 @@ describe("the 8-step bar reads the card's own line and button (lead review 2026-
   it("(a) arrived with only the geofence stamp: Arrived, the poster's move, and the job page's line asks for the confirm", () => {
     const c = posterCard(STATES.arrived_verified_only);
     expect(c.line.id).toBe("confirm_arrival");
-    expect(c.face.label).toBe("Confirm arrival");
+    expect(c.face.label).toBe("Confirm they've arrived");
     expect(c.bar).toMatchObject({ stage: 5, waitingOnYou: true, tone: "progress" });
     expect(c.page.next).toBe("Hallie arrived — confirm it");
   });

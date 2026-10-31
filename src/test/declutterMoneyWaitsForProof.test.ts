@@ -27,18 +27,18 @@
  * declutterSellerDelivery, declutterHelprDelivery, declutterRefundRequests). This file pins the rule as ONE class,
  * so a restatement of any one function that drops its part fails here.
  *
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |       IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')\n         AND EXISTS | IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND EXISTS
- * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                       WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL AND (d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL) | WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL
+ * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto'); |          THEN\n        PERFORM public.declutter_complete_handover(o.id, 'auto');
+ * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |       IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open')\n         AND EXISTS | IF o.status = 'paid' AND o.handover NOT IN ('delivery', 'seller_delivery', 'ship')\n         AND EXISTS
+ * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |                       WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL AND (d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL) | WHERE h.order_id = o.id AND d.delivered_at IS NOT NULL
  * @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF (p_photo_path IS NULL AND d.handoff = 'leave') OR (p_photo_path IS NOT NULL AND ( |   IF (p_photo_path IS NOT NULL AND (
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql | 'invalid_handoff' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;\n  IF d.status NOT IN ('booked', 'needs_time')\n     OR EXISTS (SELECT 1 FROM public.declutter_seller_deliveries x WHERE x.order_id = o.id AND x.delivered_at IS NOT NULL) THEN\n    RAISE EXCEPTION 'not_reschedulable' | 'invalid_handoff' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO d FROM public.declutter_seller_deliveries WHERE order_id = o.id FOR UPDATE;\n  IF d.status NOT IN ('booked', 'needs_time')\n     THEN\n    RAISE EXCEPTION 'not_reschedulable'
- * @mutate supabase/migrations/20261031014011_helpr_delivery_still_in_hand_nudge.sql |             WHERE x.status = 'delivered' AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP | WHERE x.status IN ('picked_up', 'delivered') AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP
- * @mutate supabase/migrations/20261031014011_helpr_delivery_still_in_hand_nudge.sql |       IF t.status = 'delivered' AND t.delivered_at + interval '24 hours' <= now()\n         AND NOT public.helpr_task_source_held(t.source_kind, t.source_id) THEN | IF t.status = 'delivered' AND t.delivered_at + interval '24 hours' <= now() THEN
+ * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql |             WHERE x.status = 'delivered' AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP | WHERE x.status IN ('picked_up', 'delivered') AND x.delivered_at + interval '24 hours' <= now() ORDER BY x.id LIMIT 200 LOOP
+ * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql |       IF t.status = 'delivered' AND t.delivered_at + interval '24 hours' <= now()\n         AND NOT public.helpr_task_source_held(t.source_kind, t.source_id) THEN | IF t.status = 'delivered' AND t.delivered_at + interval '24 hours' <= now() THEN
  * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql |     IF v_m IS NULL OR v_m > 200 THEN | IF false THEN
- * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |     RETURN EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = p_source AND p.status = 'open'); |     RETURN false;
+ * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql |     RETURN EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = p_source AND p.status = 'open')\n      -- CHANGED (soldstates-5) |     RETURN false\n      -- CHANGED (soldstates-5)
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_problems x WHERE x.order_id = p.order_id AND x.status = 'open')\n     -- 141d | -- 141d
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id) | AND true
- * @mutate supabase/migrations/20261030134109_declutter_take_back_problem_report.sql |    IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN | IF v_side <> 'buyer' THEN
+ * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |    IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN | IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship')); |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship', 'locker'));
  */
@@ -110,8 +110,8 @@ describe("Declutter money waits for proof (anti-lying #3)", () => {
     expect(pickupLoop, "the pickup/porch/meetup loop").toBeTruthy();
     expect(sdLoop, "the seller-delivery loop").toBeTruthy();
     // Porch: no "on the porch" photo, no automatic finish (pick and lock).
-    expect(pickupLoop).toContain("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))");
-    expect(pickupLoop).toContain("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN PERFORM public.declutter_complete_handover(o.id, 'auto')");
+    expect(pickupLoop).toContain("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))");
+    expect(pickupLoop).toContain("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now())) THEN PERFORM public.declutter_complete_handover(o.id, 'auto')");
     // Seller delivery left at the door: no door photo, no automatic finish (pick and lock).
     expect(count(sdLoop, "(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)")).toBe(2);
     expect(sdLoop.indexOf("declutter_lock_order(r.id)")).toBeLessThan(sdLoop.lastIndexOf("(d.handoff = 'hand' OR h.set_out_photo_path IS NOT NULL)"));
@@ -143,7 +143,7 @@ describe("Declutter money waits for proof (anti-lying #3)", () => {
     expect(delivered).toContain("IF v_m IS NULL OR v_m > 200 THEN RAISE EXCEPTION 'not_at_dropoff'");
     expect(delivered).toContain("SET status = 'delivered', delivered_at = now(), dropoff_photo_path = p_photo_path");
     expect(body("helpr_task_source_held")).toContain(
-      "IF p_kind = 'declutter_delivery' THEN RETURN EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = p_source AND p.status = 'open');");
+      "IF p_kind = 'declutter_delivery' THEN RETURN EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = p_source AND p.status = 'open') OR EXISTS (SELECT 1 FROM public.helpr_tasks x");
   });
 
   it("the payout waits: no open problem, and only once the buyer's window is over", () => {

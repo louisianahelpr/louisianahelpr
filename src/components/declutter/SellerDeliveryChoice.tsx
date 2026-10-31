@@ -82,7 +82,7 @@ export function sellerDeliveryTermsLine(offer: SellerDeliveryOffer | null | unde
  * `onOffer` receives a new answer after an address check; `checked` is the address checked in this
  * checkout (null until then, and again as soon as the buyer edits it).
  */
-export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onOffer, handoff, onHandoff, checked, onChecked }: {
+export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onOffer, handoff, onHandoff, checked, onChecked, typed = "", onTyped }: {
   sellerId: string;
   offer: SellerDeliveryOffer | null | undefined;
   state: SellerDeliveryState;
@@ -93,8 +93,11 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
   onHandoff: (h: DeliveryHandoff) => void;
   checked: string | null;
   onChecked: (address: string | null) => void;
+  /** BUY-9: what the buyer already typed in this checkout's other Deliver to box; it is not typed twice. */
+  typed?: string;
+  onTyped?: (address: string) => void;
 }) {
-  const [address, setAddress] = useState(checked ?? "");
+  const [address, setAddress] = useState(checked ?? typed);
   const days = groupSlotsByDay(offer?.slots ?? []);
   const [day, setDay] = useState<string | null>(null);
   const shownDay = days.find((d) => d.day === day) ?? days.find((d) => d.slots.some((s) => sameSlot(s, slot))) ?? days[0];
@@ -119,7 +122,7 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
           <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
             autoComplete="street-address" maxLength={300} value={address}
             aria-invalid={failed ? true : undefined} aria-describedby={failed ? errorId : undefined}
-            onChange={(e) => { setAddress(e.target.value); setFailed(null); if (checked !== null && e.target.value.trim() !== checked) onChecked(null); }} />
+            onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); setFailed(null); if (checked !== null && e.target.value.trim() !== checked) onChecked(null); }} />
           <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
             disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate(address.trim())}>
             {check.isPending ? "Checking…" : "Check"}

@@ -2,6 +2,7 @@ import { SeriesStrip } from "@/pages/posts/SeriesStrip";
 import { SeriesDatesForJob, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { seriesMoneySentence } from "@/lib/seriesMoneyCopy";
+import { hasTaxableLine } from "@/lib/salesTax";
 
 /**
  * The poster's series and schedule controls on a PostedJobCard, in card order:
@@ -17,7 +18,7 @@ export function PostedJobSeriesControls({ job, userId }: { job: SeriesCardJob; u
     : 0;
   const running = !job.series_ended_on && job.status !== "cancelled" && job.status !== "completed";
   const budget = Number(job.budget ?? 0);
-  const seriesMoney = visits > 1 && running && budget > 0 ? seriesMoneySentence(budget, visits) : null;
+  const seriesMoney = visits > 1 && running && budget > 0 ? seriesMoneySentence(budget, visits, hasTaxableLine(job.category)) : null;
   return (
     <>
       {!job.parent_job_id && (

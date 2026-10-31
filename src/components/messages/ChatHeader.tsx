@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useId } from "react";
 import { ChevronLeft, ChevronRight, Flag, MoreVertical, Ban, BellOff, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -140,7 +142,7 @@ export function ChatHeader({
              floors the hit box at 44px regardless of what is drawn inside. */
           className="ctl-exit h-10 w-10 shrink-0"
           onClick={onBack}
-          aria-label="Back to conversations"
+          aria-label={t("chat.back")}
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={2.25} />
         </Button>
@@ -261,7 +263,7 @@ export function ChatHeader({
         <DropdownMenuTrigger asChild>
           <button
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
-            aria-label="Conversation options"
+            aria-label={t("chat.options")}
           >
             <MoreVertical className="w-5 h-5" />
           </button>

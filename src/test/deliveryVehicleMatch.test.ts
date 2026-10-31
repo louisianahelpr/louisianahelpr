@@ -19,11 +19,11 @@
  *
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |        AND v.has_car\n |
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   IF EXISTS (SELECT 1 FROM public.helpr_tasks t\n              WHERE t.helpr_id = v_uid AND t.status IN ('accepted', 'picked_up') |   IF false AND EXISTS (SELECT 1 FROM public.helpr_tasks t\n              WHERE t.helpr_id = v_uid AND t.status IN ('accepted', 'picked_up')
- * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |      RAISE EXCEPTION 'vehicle_needs_car' USING ERRCODE = '42501', |      RAISE EXCEPTION 'vehicle_too_small' USING ERRCODE = '42501',
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |      RAISE EXCEPTION 'vehicle_needs_car' USING ERRCODE = '42501', |      RAISE EXCEPTION 'vehicle_too_small' USING ERRCODE = '42501',
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   p_has_car := p_has_car OR p_has_truck;\n |
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR UPDATE;\n |
- * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR SHARE;\n |
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR SHARE;\n |
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
  * @mutate supabase/migrations/20261027203030_helpr_go_online_for_deliveries.sql |        AND public.helpr_task_vehicle_fits(h.user_id, NEW.size)\n |        AND true\n
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const noCar = vehicle.isSuccess && !vehicle.data?.has_car; |   const noCar = false;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx | <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} | <input type="checkbox" id={`helpr-truck-${userId}`} checked={hasTruck}
@@ -65,6 +65,9 @@ const EXEMPT: Record<string, string> = {
   declutter_admin_decide_delivery_damage: "its 'open' is a PROBLEM's status; an admin decides it, no Helpr is shown a delivery",
   declutter_delivery_raise_open: "whether the BUYER may raise an open delivery's pay; no Helpr is shown one",
   declutter_delivery_raise_paid: "a buyer's raise is paid onto the open task; offers stay with the readers above",
+  declutter_report_helpr_no_show: "its 'open' is a PROBLEM's status; the seller reports the booked Helpr, no Helpr is shown a delivery",
+  declutter_helpr_answer_no_show: "its 'open' is a PROBLEM's status; the booked Helpr answers a report, no Helpr is shown a delivery",
+  helpr_task_source_held: "its 'open' is a PROBLEM's status (the money hold); no Helpr is shown a delivery",
   helpr_task_reopen: "puts a task back to open for the readers above; picks no Helpr",
   helpr_task_sweep: "the cron that closes unfilled tasks; picks no Helpr",
   helpr_tasks_open_count: "counts open deliveries by pickup area for a Helpr with no car yet (audit 1c D3-6); lists, offers, suggests and hands no task",

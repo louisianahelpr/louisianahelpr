@@ -11,9 +11,9 @@
  *
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     FROM public.declutter_order_pickup_points(o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the pickup address.'; |     FROM (SELECT p.pickup_lat AS lat, p.pickup_lng AS lng FROM public.declutter_cart_items c JOIN public.declutter_item_private p ON p.item_id = c.item_id WHERE c.order_id = o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the pickup address.';
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF NOT public.declutter_order_is_porch_day(o.id, extract(dow FROM p_day)::smallint) THEN |   IF NOT public.declutter_is_porch_day(o.seller_id, extract(dow FROM p_day)::smallint) THEN
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_place.id IS NOT NULL THEN\n    INSERT INTO public.declutter_order_porch_places (order_id, seller_id, place_id, label, address, area, lat, lng, weekdays)\n    VALUES (v_order, p_seller_id, v_place.id, v_place.label, v_place.address, v_place.area, v_place.lat, v_place.lng, v_place.weekdays);\n  END IF;\n\n  IF p_handover = 'meetup' THEN | \n  IF p_handover = 'meetup' THEN
+ * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |   IF v_place.id IS NOT NULL THEN\n    INSERT INTO public.declutter_order_porch_places (order_id, seller_id, place_id, label, address, area, lat, lng, weekdays)\n    VALUES (v_order, p_seller_id, v_place.id, v_place.label, v_place.address, v_place.area, v_place.lat, v_place.lng, v_place.weekdays);\n  END IF;\n\n  IF p_handover = 'meetup' THEN | \n  IF p_handover = 'meetup' THEN
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     v_area := v_pp.area; |     v_area := v_area;
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   v_open := v_side = 'seller' OR o.status IN ('paid', 'handed_over'); |   v_open := true;
+ * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   v_open := v_side = 'seller' OR o.status IN ('paid', 'handed_over'); |   v_open := true;
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql | REVOKE ALL ON FUNCTION public.declutter_order_pickup_points(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_order_pickup_points(uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     FROM public.declutter_order_pickup_points(o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.'; |     FROM (SELECT p.pickup_lat AS lat, p.pickup_lng AS lng FROM public.declutter_cart_items c JOIN public.declutter_item_private p ON p.item_id = c.item_id WHERE c.order_id = o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.';
  * @mutate supabase/migrations/20261030223154_job_post_drafts.sql | ELSE to_jsonb(t) - 'address' - 'lat' - 'lng' - 'seller_id' END) | ELSE to_jsonb(t) END)
@@ -75,7 +75,9 @@ describe("porch places: every pickup reader reads the order's place", () => {
       expect(b, fn).toMatch(/INSERT INTO public\.declutter_order_porch_places \(order_id, seller_id, place_id, label, address, area, lat, lng, weekdays\)/);
       expect(b, fn).toMatch(/FOR SHARE OF pl/);
     }
-    expect(body("declutter_start_checkout")).toMatch(/IF p_handover IN \('porch', 'delivery'\)/);
+    // LEAD-PLACE-TIMES (owner 2026-10-31, 20261031164337): a door pickup is at the chosen place too.
+    expect(body("declutter_start_checkout")).toMatch(/IF p_handover IN \('porch', 'pickup_home', 'delivery'\)/);
+    expect(body("declutter_checkout_free")).toMatch(/IF p_handover IN \('porch', 'pickup_home'\)\s+AND EXISTS \(SELECT 1 FROM public\.declutter_porch_places/);
     expect(body("declutter_start_checkout")).toMatch(/AND v_existing\.porch_key IS NOT DISTINCT FROM/);
   });
 

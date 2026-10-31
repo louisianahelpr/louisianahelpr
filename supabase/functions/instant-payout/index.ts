@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import {
   computeInstantPayoutFeeCents,
   INSTANT_PAYOUT_MIN_CENTS,
@@ -18,6 +19,14 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { returnInstantFee, settleUnreturnedInstantFees, type FeeOutcome } from "../_shared/instantPayoutFeeReturn.ts";
+
+/** A Helpr whose last fee has not gone back starts no new attempt: no second fee. */
+const feeStillOwedResponse = () =>
+  new Response(JSON.stringify({
+    error: "The fee from your last instant payout is still on its way back, and our team has been alerted. You can cash out again once it's back, and you won't be charged a second fee.",
+    code: "instant_fee_return_pending",
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -95,6 +104,30 @@ serve(async (req) => {
       });
     }
 
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    // Made once, and only when needed. A test account's alerts are seed alerts
+    // (review of 9c498193ff #4): the digest, never the owner's phone.
+    let client: { stripe: Stripe; seed: boolean } | null = null;
+    const stripeFor = async () => {
+      if (!client) {
+        const mode = await stripeModeForParties(supabaseAdmin, [user.id]);
+        client = { stripe: new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" }), seed: mode === "test" };
+      }
+      return client;
+    };
+
+    // Jobs audit 54a: a fee from an attempt that ended without a payout goes back
+    // BEFORE the balance is read, so this quote and any new attempt are worked out
+    // on the Helpr's real balance. If it cannot go back yet, nothing new starts.
+    // A repeat is safe (fixed key per attempt). settle catches per row and fails
+    // closed on an unreadable row, so nothing here turns into a fresh fee.
+    // Review of 9c498193ff #1: BEFORE the hold and membership gates. The money is
+    // the Helpr's own and goes back into their balance; a gate that refuses a new
+    // cash-out (memberships off: everyone) must not keep it. The answer is given
+    // after the gates, so a held or switched-off account still reads why.
+    const unsettled = await settleUnreturnedInstantFees(stripeFor, supabaseAdmin, user.id, profile.stripe_account_id);
+
     // Payout hold (Q764), for BOTH quote and execute. The balance is already
     // in this person's Connect account; an instant payout sends it on to their
     // bank, where it can no longer be reversed. While an admin holds their
@@ -167,11 +200,8 @@ serve(async (req) => {
       );
     }
 
-    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
-    // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
-      apiVersion: "2025-08-27.basil",
-    });
+    const { stripe, seed } = await stripeFor();
+    if (unsettled.kind === "owed") return feeStillOwedResponse();
 
     // Check instant-available balance on the connected account
     // Q1251: an account the live key can never use (sandbox, or gone) is not
@@ -245,6 +275,8 @@ serve(async (req) => {
         fee_amount: feeCents / 100,
         net_amount: netCents / 100,
         status: "pending",
+        // From the first moment: a stranded row can never read "no fee was due".
+        fee_state: feeCents > 0 ? "attempting" : "none",
       })
       .select()
       .single();
@@ -263,7 +295,37 @@ serve(async (req) => {
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    // IP001 = refuse_instant_payout_while_fee_owed (20261031051513): another press
+    // ended with a fee still owed after this one read the fees above.
+    if (recordErr && (recordErr as { code?: string }).code === "IP001") {
+      return feeStillOwedResponse();
+    }
     if (recordErr || !record) throw new Error("Failed to create payout record");
+
+    // This row now holds the one-attempt lock, so no other press can move money
+    // until it ends. The balance read above may predate an earlier press that has
+    // since finished: read again, so a fee is never worked out on stale money.
+    const recheck = await stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })
+      .catch((recheckErr: unknown) => {
+        console.error(`[instant-payout] balance re-read failed for ${record.id}:`, caughtMessage(recheckErr));
+        return null;
+      });
+    const recheckedCents = recheck?.instant_available?.find((b) => b.currency === "usd")?.amount ?? 0;
+    if (recheckedCents !== availableCents) {
+      const { data: released, error: releaseErr } = await supabaseAdmin
+        .from("instant_payouts")
+        .update({ status: "failed", fee_state: "none", error_message: "balance changed before any money moved" })
+        .eq("id", record.id)
+        .eq("status", "pending")
+        .select("id");
+      if (releaseErr || !released || released.length === 0) {
+        console.error(`[instant-payout] could not release attempt ${record.id} after a balance change: ${releaseErr?.message ?? "zero rows"}`);
+      }
+      return new Response(JSON.stringify({
+        error: "Your balance just changed. Check the new amount before cashing out.",
+        code: "instant_balance_changed",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+    }
 
     // Track whether the fee transfer completed so the payout catch block can
     // include the full picture in error_message — without this, a
@@ -271,6 +333,11 @@ serve(async (req) => {
     // with only the payout error, leaving admins unable to tell from the DB
     // alone whether the helper's Connect account was already debited.
     let feeTransferSucceeded = false;
+    // This attempt's fee, kept here too: the writes below can fail and the failure
+    // path still has to know. A dropped connection on the transfer leaves it
+    // "attempting" (the money may have moved), which Stripe settles later.
+    let feeState = (feeCents > 0 ? "attempting" : "none") as "none" | "attempting" | "taken" | "not_taken";
+    let feeTransferId = null as string | null;
     // ME-015: the fee_uncollected marker written below used to be clobbered by
     // the payout-failure write (plain assignment). Kept here and prefixed onto
     // that write, as the SQL reaper does with COALESCE.
@@ -300,16 +367,19 @@ serve(async (req) => {
           );
           // Best-effort reconciliation write so the skipped fee is visible in the DB.
           feeMarker = `fee_uncollected: platform_account_retrieval_failed: ${acctMsg}`;
+          feeState = "not_taken";
           const { error: acctRecErr } = await supabaseAdmin
             .from("instant_payouts")
-            .update({ error_message: feeMarker })
-            .eq("id", record.id);
+            .update({ error_message: feeMarker, fee_state: feeState })
+            .eq("id", record.id)
+            .select("id");
           if (acctRecErr) {
             console.error(`[instant-payout] failed to record platform_account_retrieval_failed for ${record.id}:`, acctRecErr);
           }
           // ME-015: same write-only marker as the transfer-failure branch below,
           // which alerts; this one only logged.
           await postSlackOpsAlert({
+            seed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Instant-payout fee NOT collected",
@@ -349,8 +419,19 @@ serve(async (req) => {
             stripeAccount: profile.stripe_account_id,
             idempotencyKey: `instant-payout-transfer-${record.id}`,
           }
-        ).then(() => {
+        ).then(async (feeTransfer) => {
           feeTransferSucceeded = true;
+          feeState = "taken";
+          feeTransferId = feeTransfer.id;
+          // Saved at once, before the payout. A failed write is not fatal: the
+          // outcome writes below carry it, and a stranded row finds the transfer
+          // at Stripe by its instant_payout_id.
+          const { error: takenErr } = await supabaseAdmin
+            .from("instant_payouts")
+            .update({ fee_state: "taken", fee_transfer_id: feeTransfer.id })
+            .eq("id", record.id)
+            .select("id");
+          if (takenErr) console.error(`[instant-payout] could not record the fee taken on ${record.id}: ${takenErr.message}`);
         }).catch(async (feeErr) => {
           // The fee transfer can fail on older Connect setups. We deliberately
           // continue and still pay out only netCents — the fee stays in the
@@ -366,10 +447,18 @@ serve(async (req) => {
           // want the net payout below to proceed, so log rather than throw (a
           // throw here would surface as an uncaught rejection inside .catch()).
           feeMarker = `fee_uncollected: ${feeMsg}`;
+          // A refusal from Stripe means no money moved. A lost connection or a
+          // Stripe 5xx does not say that, so the fee stays "attempting".
+          const feeErrInfo = feeErr as { type?: string; statusCode?: number } | null;
+          const unknownOutcome = feeErrInfo?.type === "StripeConnectionError" ||
+            feeErrInfo?.type === "StripeAPIError" ||
+            (typeof feeErrInfo?.statusCode === "number" && feeErrInfo.statusCode >= 500);
+          if (!unknownOutcome) feeState = "not_taken";
           const { error: recErr } = await supabaseAdmin
             .from("instant_payouts")
-            .update({ error_message: feeMarker })
-            .eq("id", record.id);
+            .update({ error_message: feeMarker, fee_state: feeState })
+            .eq("id", record.id)
+            .select("id");
           if (recErr) {
             console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
           }
@@ -378,6 +467,7 @@ serve(async (req) => {
           // forever. Surface it so someone can either collect it or fix the
           // Connect setup that caused it.
           await postSlackOpsAlert({
+            seed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Instant-payout fee NOT collected",
@@ -433,6 +523,9 @@ serve(async (req) => {
         .update({
           status: "completed",
           stripe_payout_id: payout.id,
+          // The payout went, so a fee that was taken is earned.
+          fee_state: feeState === "none" ? "none" : feeTransferSucceeded ? "kept" : "not_taken",
+          fee_transfer_id: feeTransferId,
         })
         .eq("id", record.id)
         .eq("status", "pending")
@@ -445,6 +538,7 @@ serve(async (req) => {
             `While it stays 'pending', helper ${user.id} cannot start another instant payout.`,
         );
         await postSlackOpsAlert({
+          seed,
           kind: "payout_failed",
           severity: "critical",
           title: "Instant payout sent but the record was not completed",
@@ -492,24 +586,6 @@ serve(async (req) => {
           ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to Helpr's Connect account before closing`
           : ` | fee transfer also failed (fee not collected)`;
       }
-      // ME-015: this is the one branch where the HELPER is out money (the fee
-      // left their Connect balance, no payout followed). It used to alert only
-      // if the DB write below failed; the marker alone reached nobody.
-      const feeTakenNoPayout = feeCents > 0 && feeTransferSucceeded;
-      if (feeTakenNoPayout) {
-        await postSlackOpsAlert({
-          kind: "money_at_risk",
-          severity: "critical",
-          title: "Instant-payout fee taken but the payout failed",
-          message: `The ${feeCents}¢ instant-payout fee was transferred from the helper's Connect account to the platform, then the payout itself failed. Reverse the fee transfer to the helper's Connect account.`,
-          fields: {
-            "Instant payout ID": String(record.id),
-            "Helper ID": user.id,
-            "Fee (cents)": String(feeCents),
-            "Payout error": msg.slice(0, 200),
-          },
-        });
-      }
       // Same hazard as the completion write above, and this one did not even
       // destructure `error` — a rejected or zero-row update was invisible. A
       // failed payout whose row stays 'pending' locks the helper out of the
@@ -517,7 +593,7 @@ serve(async (req) => {
       // silent, unbounded loss of access.
       const { data: failedRows, error: failWriteErr } = await supabaseAdmin
         .from("instant_payouts")
-        .update({ status: "failed", error_message: fullError })
+        .update({ status: "failed", error_message: fullError, fee_state: feeState, fee_transfer_id: feeTransferId })
         .eq("id", record.id)
         .eq("status", "pending")
         .select("id");
@@ -529,6 +605,7 @@ serve(async (req) => {
             `Helper ${user.id} is locked out of instant payouts while it stays 'pending'.`,
         );
         await postSlackOpsAlert({
+          seed,
           kind: "payout_failed",
           severity: "critical",
           title: "Instant payout failed AND its record could not be marked failed",
@@ -542,14 +619,54 @@ serve(async (req) => {
           },
         });
       }
-      // The fee left the helper's balance and no payout followed: a retry would
-      // take a second fee, so say what happened instead of "try again".
-      if (feeTakenNoPayout) {
-        throw new PublicError(
-          "Your instant payout didn't go through, but the instant payout fee was already taken. Our team has been alerted to refund it. Please don't retry.",
-        );
+      // Jobs audit 54a: the fee goes back now, on the same path every later call
+      // uses. A person is only paged when that path could not do it (ME-015: this
+      // is the one branch where the Helpr is out money).
+      const feeDollars = `$${(feeCents / 100).toFixed(2)}`;
+      let feeOutcome: FeeOutcome | "pending" | "none" = "none";
+      if (feeState === "taken" || feeState === "attempting") {
+        try {
+          feeOutcome = await returnInstantFee(stripe, supabaseAdmin, {
+            id: record.id,
+            created_at: record.created_at ?? new Date().toISOString(),
+            fee_amount: feeCents / 100,
+            fee_state: feeState,
+            fee_transfer_id: feeTransferId,
+            error_message: fullError,
+          }, profile.stripe_account_id);
+        } catch (returnErr) {
+          feeOutcome = "pending";
+          const returnMsg = caughtMessage(returnErr);
+          console.error(`[instant-payout] fee return failed for ${record.id}: ${returnMsg}`);
+          await postSlackOpsAlert({
+            seed,
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Instant-payout fee taken but the payout failed",
+            message: `The ${feeCents}¢ instant-payout fee was transferred from the helper's Connect account to the platform, then the payout itself failed, and the automatic return failed too. Instant cash-out stays refused for this Helpr until it is back; each cash-out they open tries again. Reverse the fee transfer to the helper's Connect account if it stays stuck.`,
+            fields: {
+              "Instant payout ID": String(record.id),
+              "Helper ID": user.id,
+              "Fee (cents)": String(feeCents),
+              "Payout error": msg.slice(0, 200),
+              "Return error": returnMsg.slice(0, 200),
+            },
+          });
+        }
       }
-      throw payoutErr;
+      const failure = feeOutcome === "returned"
+        ? { fee: "returned", can_retry: true, error: `Your instant payout didn't go through. The ${feeDollars} fee went back to your balance. You can try again.` }
+        : feeOutcome === "pending"
+        ? { fee: "pending", can_retry: false, error: `Your instant payout didn't go through, and the ${feeDollars} fee was already taken. It's on its way back and our team has been alerted. You won't be charged a second fee.` }
+        : feeOutcome === "kept"
+        // payouts.create reported an error, yet Stripe holds a live payout for this
+        // attempt: the money is moving. Say so; never invite a second try.
+        ? { fee: "kept", can_retry: false, error: "We couldn't confirm your instant payout, but it looks like it's on its way. Check your balance before you cash out again." }
+        : { fee: "none", can_retry: true, error: "Your instant payout didn't go through and you weren't charged. You can try again." };
+      return new Response(JSON.stringify({ ...failure, code: "instant_payout_failed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
   } catch (err) {
     if (err instanceof StripeModeRefused) return stripeModeRefusedResponse(err, corsHeaders);

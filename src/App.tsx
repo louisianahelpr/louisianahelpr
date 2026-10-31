@@ -129,6 +129,8 @@ const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 // Declutter (docs/specs/declutter-*.md): each page is the 404 unless its hidden switch is on (DeclutterGate).
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
 const DeclutterItemPage = lazyWithPreload(() => import("./pages/declutter/DeclutterItemPage"));
+// BUY-16: guests read a shared listing; members go through ProtectedRoute as before.
+const DeclutterGuestOrMember = lazy(() => import("./components/declutter/DeclutterGuestRoute"));
 const DeclutterSellPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSellPage"));
 const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/DeclutterMovePage"));
 const DeclutterSettingsPage = lazyWithPreload(() => import("./pages/declutter/DeclutterSettingsPage"));
@@ -270,11 +272,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/tips/:tipId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><TipMoment /></ProtectedRoute>)}</RouteErrorBoundary>} />

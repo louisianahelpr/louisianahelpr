@@ -1,3 +1,4 @@
+import { anyIsTestSubject } from "./_testSubject.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 // Shared by charge.refunded, charge.dispute.created and charge.dispute.closed.
@@ -69,6 +70,45 @@ export async function giftDonationAlreadyReversed(
 }
 
 /**
+ * Whether a gift donation is test data, so its alert goes to the daily digest
+ * (postSlackOpsAlert `seed`) and never pages: gift_cards has no is_seed of its
+ * own, so it is its donor's profiles.is_seed OR is_test_subject. A failed read counts as real, and
+ * so does a donor the row no longer names (a deleted account): a page is never
+ * hidden because the flag could not be read.
+ */
+async function donorIsSeed(
+  supabase: any,
+  donorId: string | null | undefined,
+  logStep: (m: string, d?: unknown) => void,
+): Promise<boolean> {
+  if (!donorId) return false;
+  const { data, error } = await supabase.from("profiles").select("is_seed").eq("user_id", donorId).maybeSingle();
+  if (error) {
+    logStep("WARNING: could not read the gift donor's is_seed; its alert pages as real", { error: error.message });
+    return anyIsTestSubject(supabase, [donorId], logStep);
+  }
+  return (data as { is_seed?: boolean } | null)?.is_seed === true || await anyIsTestSubject(supabase, [donorId], logStep);
+}
+
+async function giftDonationIsSeed(
+  supabase: any,
+  paymentIntentId: string,
+  logStep: (m: string, d?: unknown) => void,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("gift_cards")
+    .select("donor_id")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    logStep("WARNING: could not read the gift's donor; its alert pages as real", { error: error.message });
+    return false;
+  }
+  return donorIsSeed(supabase, (data as { donor_id?: string | null } | null)?.donor_id, logStep);
+}
+
+/**
  * Revoke the unspent portion of a gift-card donation tree whose charge went
  * back to the donor.
  *
@@ -104,6 +144,7 @@ export async function revokeGiftCardForRefund(
     if ((error as { code?: string }).code === "PGRST202") {
       logStep("WARNING: revoke_gift_card_for_refund not deployed yet", { paymentIntentId });
       await postSlackOpsAlert({
+        seed: await giftDonationIsSeed(supabase, paymentIntentId, logStep),
         kind: "money_at_risk",
         severity: "critical",
         title: "Gift card revocation RPC missing — refunded gifts stay spendable",
@@ -166,6 +207,7 @@ export async function revokeGiftCardForRefund(
   // is paged rather than logged: `critical` when the platform is out of pocket,
   // `warning` when the whole gift was still sitting unspent and nothing was lost.
   await postSlackOpsAlert({
+    seed: await giftDonationIsSeed(supabase, paymentIntentId, logStep),
     kind: "money_at_risk",
     severity: result.spentCents > 0 ? "critical" : "warning",
     title:
@@ -209,7 +251,7 @@ export async function alertPartialGiftRefund(
 
   const { data, error } = await supabase
     .from("gift_cards")
-    .select("id, amount, status, payment_status")
+    .select("id, amount, status, payment_status, donor_id")
     .eq("stripe_payment_intent_id", paymentIntentId)
     .maybeSingle();
 
@@ -224,6 +266,7 @@ export async function alertPartialGiftRefund(
 
   logStep("Partial refund on a gift donation — not auto-revoked", { paymentIntentId });
   await postSlackOpsAlert({
+    seed: await donorIsSeed(supabase, data.donor_id, logStep),
     kind: "money_at_risk",
     severity: "critical",
     title: "Gift card donation PARTIALLY refunded — credit left spendable on purpose",
@@ -270,7 +313,7 @@ export async function alertGiftDisputeClosed(
 
   const { data, error } = await supabase
     .from("gift_cards")
-    .select("id, amount, status, payment_status")
+    .select("id, amount, status, payment_status, donor_id")
     .eq("stripe_payment_intent_id", paymentIntentId)
     .maybeSingle();
 
@@ -292,6 +335,7 @@ export async function alertGiftDisputeClosed(
   const won = outcome === "won";
   logStep("Chargeback on a gift donation closed", { paymentIntentId, outcome });
   await postSlackOpsAlert({
+    seed: await donorIsSeed(supabase, data.donor_id, logStep),
     kind: "money_at_risk",
     severity: won ? "warning" : "critical",
     title: won

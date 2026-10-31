@@ -187,6 +187,8 @@ export const NOT_MATCHED = {
   "tip_hold_redrives.reversal_id": "a transfer reversal of a held tip (Q1222); NOT listed by the script (reversals live under each transfer), the same manual runbook step as chargeback_clawbacks.stripe_reversal_id",
   "chargeback_clawbacks.stripe_reversal_id": "a transfer reversal; NOT listed by the script (reversals live under each transfer) — runbook §5.1 has it as a manual step with Stripe disputes",
   "instant_payouts.stripe_payout_id": "a payout ON a connected account; listing it needs a Stripe-Account header per helper — manual step in the runbook",
+  "instant_payouts.fee_transfer_id": "NIGHT-JOBSRE4-1 (20261031051513): the instant-payout fee's transfer, created and listed ON the Helpr's connected account (Stripe-Account header per helper, _shared/instantPayoutFeeReturn.ts) — same manual runbook step as instant_payouts.stripe_payout_id",
+  "instant_payouts.fee_reversal_id": "NIGHT-JOBSRE4-1 (20261031051513): the reversal that gives that fee back; NOT listed by the script (reversals live under each transfer, on the connected account) — same manual step as tip_hold_redrives.reversal_id",
   "payout_failures.stripe_payout_id": "a FAILED bank payout ON a member's connected account (board 143, 20261021030052): a notice record, no platform money moves; Stripe returns the money to that account's balance. Listing it needs a Stripe-Account header per member, same manual runbook step as instant_payouts.stripe_payout_id",
   "payout_failures.stripe_account_id": "the connected account the failed payout was on, not a money movement",
   "connect_account_retirements.stripe_account_id": "a connected account stripe-connect replaced after Stripe rejected it (owner 2026-10-25), not a money movement",

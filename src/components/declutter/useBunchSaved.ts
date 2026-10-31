@@ -7,8 +7,9 @@
  * together, not sorted, with a Sort again button: never sorted again by itself, or a sort that crashes the page would
  * crash it again on every reload). A photo the seller dropped is removed, so it never comes back.
  */
-import { useCallback, useState } from "react";
-import { addSorted, keepCleanablePhotos, notSortedPile, PILE_PAGE_CLOSED, type BunchItem, type BunchPhoto, type GroupResult } from "@/lib/declutter/bunch";
+import { useCallback, useRef, useState } from "react";
+import { addSorted, keepCleanablePhotos, keptItemIds, notSortedPile, PILE_PAGE_CLOSED, withoutPosted, type BunchItem, type BunchPhoto, type GroupResult } from "@/lib/declutter/bunch";
+import { fetchItemStatuses } from "@/lib/declutter/api";
 import { bunchStore, type SavedBunch } from "@/lib/declutter/bunchSaved";
 import { useDeviceSaved } from "./useDeviceSaved";
 
@@ -52,6 +53,7 @@ export function useBunchSaved(
 ) {
   const [restoredCount, setRestoredCount] = useState(0);
   const { areaLabel, pickupAddress, coords, photos, items, sorting, finished } = snapshot;
+  const clearOnDiskRef = useRef<() => Promise<void>>(async () => {});
   const { note, flush, latest, clearSaved: clearOnDisk } = useDeviceSaved<BunchSnapshot, SavedBunch>({
     store: bunchStore,
     userId,
@@ -63,15 +65,35 @@ export function useBunchSaved(
       return { photos: keep, meta: { areaLabel: s.areaLabel, pickupAddress: s.pickupAddress, coords: s.coords, moveDate: s.moveDate, items: s.items } };
     },
     restore: async (found, stale) => {
-      const { photos: usable, unusable } = await keepCleanablePhotos(found.photos, found.saved.items);
+      // LEAD-RESUME-REPOSTS: an item already posted is never offered back (the server is asked), nor its photos.
+      const ids = keptItemIds(found.saved.items);
+      let statuses: Map<string, string> | null = null;
+      if (ids.length > 0) {
+        try {
+          statuses = await fetchItemStatuses(ids);
+        } catch (err) {
+          // Not a blocker: listing asks the server again, and an id already posted is refused there (AlreadyPosted).
+          console.warn("[declutter] could not check the kept items against the server", err);
+        }
+      }
       if (stale()) return;
-      const back = restoredItems(found.saved.items, usable);
+      const fresh = withoutPosted(found.saved.items, found.photos, statuses);
+      const { photos: usable, unusable } = await keepCleanablePhotos(fresh.photos, fresh.items);
+      if (stale()) return;
+      const back = restoredItems(fresh.items, usable);
+      // Everything kept was already posted: nothing comes back, and the device forgets it.
+      if (back.length === 0 && fresh.posted > 0) {
+        void clearOnDiskRef.current();
+        return;
+      }
       setRestoredCount(back.length);
       onRestore({ areaLabel: found.saved.areaLabel, pickupAddress: found.saved.pickupAddress, coords: found.saved.coords, moveDate: found.saved.moveDate ?? "", photos: usable, items: back, unusable });
     },
     warn: (items.length > 0 || photos.length > 0) && !finished,
     notSaved: BUNCH_NOT_SAVED,
   });
+
+  clearOnDiskRef.current = clearOnDisk;
 
   /** A listing step on one item (null = it has left the list). Saved now, so a crash after it never repeats it. */
   const applyStep = useCallback((key: string, patch: Partial<BunchItem> | null) => {

@@ -80,6 +80,9 @@ function SellerAwayStep({ taskId, userId, slotStart, label, onReported }: {
 /** What the Helpr does at a stop: the "Picked up" photo, or the drop-off photo and "Left at the door". */
 export function StopActions({ stop, userId }: { stop: RouteStop; userId: string }) {
   const [dropPhoto, setDropPhoto] = useState<File | null>(null);
+  // BUY-40: "Picked up" fired the moment a photo was chosen. Like the drop-off, the photo is picked (shown, can be
+  // retaken), then sent with its own button.
+  const [pickPhoto, setPickPhoto] = useState<File | null>(null);
   const { pickedUp, delivered, done } = useTaskSteps(stop.task_id, userId, () => setDropPhoto(null));
   const id = useId();
   // BUY-36: reported as can't finish: the drop-off waits (the server refuses it: delivery_on_hold), except the one retry.
@@ -93,7 +96,12 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
       <div className="space-y-1">
         <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
         {opensAt && <PickupWindowNote opensAt={opensAt} />}
-        <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending || (opensAt !== null && stop.handed_over_at === null)} onPick={(f) => pickedUp.mutate(f)} />
+        <PhotoPickButton id={`${id}-pick`} picked={pickPhoto} disabled={pickedUp.isPending || (opensAt !== null && stop.handed_over_at === null)} onPick={setPickPhoto} />
+        {pickPhoto && (
+          <button type="button" className={`${primary} disabled:opacity-50`} disabled={pickedUp.isPending} onClick={() => pickedUp.mutate(pickPhoto)}>
+            Picked up
+          </button>
+        )}
         <SellerAwayStep taskId={stop.task_id} userId={userId} slotStart={stop.slot_start} label={`${stop.title}, stop ${stop.seq}`} onReported={done} />
       </div>
     );

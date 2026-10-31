@@ -84,7 +84,7 @@ describe("a Declutter sale in flight blocks deleting either party's account", ()
     for (const status of ["in_cart", "paid"]) {
       for (const who of [BUYER, SELLER]) {
         const r = await findActiveWork(fakeAdmin({ declutter_cart_items: [line(status)] }), who);
-        expect(r, `${status} ${who}`).toMatchObject({ ok: true, active: true, reason: "declutter" });
+        expect(r, `${status} ${who}`).toMatchObject({ ok: true, active: true, reason: status === "paid" ? "declutter_held" : "declutter" });
       }
     }
   });

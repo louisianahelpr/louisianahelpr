@@ -11,9 +11,9 @@
  *   2. no function links a retired Declutter address (?view=cart, ?view=deliver) beyond the exact list below, which
  *      only shrinks (a function fixed later must leave the list in the same commit; a new one may never join it).
  *
- * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
+ * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
  * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | '/declutter?tab=deliver', t.customer_id); | '/declutter?view=deliver', t.customer_id);
- * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=buying', NULL); | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart', NULL);
+ * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=buying', NULL); | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart', NULL);
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
@@ -60,13 +60,13 @@ function notices(fn: string) {
 /** The functions still linking a retired address on main today (exact; it only shrinks). */
 // @two-way src/test/helprDeliveryNoticesNameTheItem.test.ts:expect(now.sort()).toEqual(KNOWN_OLD_LINKS);
 const KNOWN_OLD_LINKS = [
-  "declutter_add_handover", "declutter_admin_decide_delivery_damage", "declutter_admin_decide_problem", "declutter_answer_refund",
+  "declutter_add_handover", "declutter_admin_decide_problem", "declutter_answer_refund",
   "declutter_checkout_free", "declutter_close_paid_order", "declutter_complete_handover", "declutter_delivery_raise_paid",
   "declutter_delivery_raises_on_task_close", "declutter_hand_refund_failed", "declutter_handover_sweep", "declutter_mark_order_paid",
   "declutter_pickup_reminder_sweep", "declutter_record_hand_refund", "declutter_refund_after_handover", "declutter_refund_gave_up_check",
   "declutter_refund_paid_order", "declutter_refund_request_to_admin", "declutter_report_no_show", "declutter_seller_cancel_sale",
   "declutter_seller_delivered", "declutter_seller_delivery_on_order", "declutter_setup_fee_refunded", "declutter_take_item",
-  "helpr_task_close", "helpr_task_offer_online", "helpr_task_tip_paid", "helpr_task_tip_payout_sent",
+  "declutter_delivery_still_in_hand", "helpr_task_offer_online", "helpr_task_tip_paid", "helpr_task_tip_payout_sent",
 ].sort();
 
 describe("Helpr delivery notices name the item and open the right tab (audit 1c D3-5)", () => {

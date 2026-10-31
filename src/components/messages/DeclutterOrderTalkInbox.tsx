@@ -23,10 +23,13 @@ import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY, type OrderTalkListRow } from "@/
 import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME } from "./ConversationRow";
 import { rowAge } from "./rowAge";
 
-/** "You sent the last message" / "The seller sent the last message": all the row knows (no words, no names). */
+/**
+ * "You wrote last" / "The seller wrote last": all the row knows (no words, no names). AUD31-14: "sent the last
+ * message" was cut at 375 ("The seller sent the l…"); the short words fit, and the line may take a second line.
+ */
 export function orderTalkRowLine(row: Pick<OrderTalkListRow, "side" | "last_mine">): string {
   const other = row.side === "buyer" ? "seller" : "buyer";
-  return row.last_mine ? "You sent the last message" : `The ${other} sent the last message`;
+  return row.last_mine ? "You wrote last" : `The ${other} wrote last`;
 }
 
 export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
@@ -65,7 +68,7 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
                   {!row.open && <span className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground">Ended</span>}
                   <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
                 </span>
-                <span className="block text-ds-12 text-muted-foreground truncate"
+                <span className="block text-ds-12 text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line=""
                   title={`${row.side !== "buyer" ? "You sold this" : "You bought this"} · ${orderTalkRowLine(row)}`}>
                   {row.side === "buyer" ? "You bought this" : "You sold this"} · {orderTalkRowLine(row)}
                 </span>

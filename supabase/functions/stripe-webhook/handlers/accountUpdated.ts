@@ -320,7 +320,7 @@ export async function handleAccountUpdated(
     await insertNotifications(supabase, {
       user_id: helperProfile.user_id,
       title: "Payout account verified",
-      message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+      message: "Your payout account is fully set up! You can now get paid for jobs, Declutter sales and deliveries.",
       type: "success",
       // Name the tab. Bare "/profile" opens the LANDING tab (resolveTab,
       // src/pages/profile/types.ts), which says nothing about payouts.

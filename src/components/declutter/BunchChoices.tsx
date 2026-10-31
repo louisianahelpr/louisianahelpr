@@ -29,7 +29,9 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   const saved = useQuery({ queryKey: ["declutter", "seller-defaults", userId], queryFn: () => fetchSellerDefaults(userId!), enabled: !!userId });
   const last = useQuery({ queryKey: ["declutter", "last-setup", userId], queryFn: () => fetchLastSetup(userId!), enabled: !!userId, staleTime: 60_000 });
   const [choices, setChoices] = useState<BunchChoices>({
-    keepUp: SELLER_DEFAULTS.keepUp, drops: SELLER_DEFAULTS.drops, dropPct: SELLER_DEFAULTS.dropPct, floorPct: SELLER_DEFAULTS.floorPct,
+    // LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): price drops start OFF on Sell a bunch until the seller turns them on
+    // (here or in Settings); saved settings still win below.
+    keepUp: SELLER_DEFAULTS.keepUp, drops: false, dropPct: SELLER_DEFAULTS.dropPct, floorPct: SELLER_DEFAULTS.floorPct,
   });
   const applied = useRef(false);
   useEffect(() => {
@@ -38,7 +40,8 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
     applied.current = true;
     const row = saved.data ?? null;
     const lastSetup = last.data ?? null;
-    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct });
+    // LEAD-OFFERS-CHOICE part (2): each item's Accept offers starts from the saved default.
+    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers });
     else if (lastSetup?.dropPct != null) setChoices((c) => ({ ...c, dropPct: lastSetup.dropPct! }));
     const ways = (row?.handovers ?? lastSetup?.ways ?? []).filter((w) => w !== "delivery");
     // The default is porch pickup alone; a seller who already ticked something keeps it.
@@ -49,7 +52,7 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   async function remember(ways: SellerHandover[]): Promise<void> {
     if (!userId) return;
     try {
-      await saveSellerDefaults(userId, { ...choices, freeAfterDays: saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways });
+      await saveSellerDefaults(userId, { ...choices, freeAfterDays: saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways, acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers });
     } catch (err) {
       // Remembering is extra: logged, never a second error on a screen that says what was listed.
       console.warn("[declutter] could not save the seller's listing choices", err);
@@ -65,21 +68,27 @@ export function bunchDropsLine(c: Pick<BunchChoices, "drops" | "dropPct" | "floo
   return c.drops ? `Price drops: on, ${c.dropPct}% each evening, never below ${c.floorPct}% of each price.` : "Price drops: off. Each priced item stays at its price.";
 }
 
+/** The price-drops switch for the whole bunch: on the setup form, and behind "Change" when settings are saved. */
+export function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
+  const { drops, dropPct, floorPct } = c.choices;
+  return (
+    <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-drops={drops ? "on" : "off"}>
+      <span className="min-w-0 flex-1">
+        <span id="bunch-drops" className="block text-ds-15 font-semibold">{DROPS_SWITCH_LABEL}</span>
+        <span className="block text-ds-13 text-muted-foreground">
+          {drops ? `On. Each priced item drops ${dropPct}% each evening, never below ${floorPct}% of its price.` : "Off. Each priced item stays at its price."}
+        </span>
+      </span>
+      <Switch aria-labelledby="bunch-drops" checked={drops} onCheckedChange={(v) => c.set({ drops: v === true })} />
+    </div>
+  );
+}
+
 export function BunchChoicesCard({ c, anyPriced }: { c: ReturnType<typeof useBunchChoices>; anyPriced: boolean }) {
-  const { keepUp, drops, dropPct, floorPct } = c.choices;
+  const { keepUp } = c.choices;
   return (
     <div className="space-y-3 pt-2" data-bunch-switches="">
-      {anyPriced && (
-        <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-drops={drops ? "on" : "off"}>
-          <span className="min-w-0 flex-1">
-            <span id="bunch-drops" className="block text-ds-15 font-semibold">{DROPS_SWITCH_LABEL}</span>
-            <span className="block text-ds-13 text-muted-foreground">
-              {drops ? `On. Each priced item drops ${dropPct}% each evening, never below ${floorPct}% of its price.` : "Off. Each priced item stays at its price."}
-            </span>
-          </span>
-          <Switch aria-labelledby="bunch-drops" checked={drops} onCheckedChange={(v) => c.set({ drops: v === true })} />
-        </div>
-      )}
+      {anyPriced && <BunchDropsSwitch c={c} />}
       <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-keep-up={keepUp ? "on" : "off"}>
         <span className="min-w-0 flex-1">
           <span id="bunch-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>

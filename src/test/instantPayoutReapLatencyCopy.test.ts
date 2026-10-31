@@ -8,7 +8,8 @@
  * @mutate supabase/functions/instant-payout/index.ts | will release the lock within about 90 minutes | will release the lock within the hour
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 
 const root = resolve(__dirname, "../..");
@@ -43,5 +44,16 @@ describe("instant-payout reaper latency copy (ME-017 #5)", () => {
       expect(n, line.slice(0, 120)).not.toBeNull();
       expect(Number(n![1])).toBeGreaterThanOrEqual(worst);
     }
+  });
+});
+
+// JOBS3-55: "In your debit card in ~30 minutes" was awkward, and the note below it said the time again.
+// @mutate src/components/InstantPayoutDialog.tsx | Prefer to wait? Standard payouts are{" "} | Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
+describe("the instant payout dialog says the time once, in plain words", () => {
+  const dialog = readFileSync(resolve(root, "src/components/InstantPayoutDialog.tsx"), "utf8");
+  it("reads properly and does not repeat itself", () => {
+    expect(dialog).toContain("Goes to your debit card in about 30 minutes.");
+    expect(dialog).not.toContain("In your debit card");
+    expect(dialog).not.toContain("Arrives in ~30 minutes");
   });
 });

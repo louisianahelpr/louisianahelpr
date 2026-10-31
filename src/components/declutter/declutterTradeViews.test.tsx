@@ -13,13 +13,17 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
+ * @mutate src/components/declutter/handoverCopy.ts |   porch: "Porch pickup", |   porch: "Porch or safe place",
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => !!offerAmountFromState(location.state)); | useState(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | \|\| card.isLoading \|\| checkingCard} | }
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | variant={needCard === "offer" ? "outline" : undefined} | variant={undefined}
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) run(resume); |     if (false) run(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) { |     if (false) {
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState<AfterCardAction \| null>(() => afterCardFromState(location.state)); | useState<AfterCardAction \| null>(() => null);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     refetchInterval: resume ? CARD_POLL_MS : false, |     refetchInterval: false,
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n    }, CARD_WAIT_MS); |     }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel();\n    }, CARD_WAIT_MS); |       showPanel();\n    }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useEffect(() => { if (resume) showPanel(); }, [resume]); |   useEffect(() => {}, [resume]);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel(); |       setNeedCard(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         setCardSaved(true); |         setCardSaved(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
@@ -55,10 +59,19 @@ const state = {
   underAge: false,
   handovers: null as string[] | null,
   card: null as unknown,
+  /** NIGHT-BUYING0-5: the card read fails. */
+  cardReadFails: false,
+  /** NIGHT-BUYING0-6: declutter_buy_now refuses with this message (e.g. card_required). */
+  buyRefusal: null as string | null,
   bought: 0,
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
   returnWithCard: null as unknown,
   strikes: 0,
+  /** BUY-9: the buyer's newest drop-off (declutter_delivery_dropoffs, theirs only); null = none. */
+  lastDropoff: null as string | null,
+  lastDropoffReads: 0,
+  /** BUY-9: the signed-in buyer (null = none, as every other case here reads it). */
+  me: null as string | null,
   offers: [] as unknown[],
   cart: [] as unknown[],
   /** A2-8: cart lines the buyer removed (declutter_remove_cart_item). */
@@ -96,13 +109,15 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   fetchSellerDeliveryOffer: async () => state.sdOffer,
   quoteSellerDelivery: async () => state.sdOffer,
 }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
+vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
 vi.mock("@/lib/declutter/delivery", () => ({
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
     return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,
@@ -112,13 +127,21 @@ vi.mock("@/lib/declutter/meetup", () => ({
   fetchMeetupSpotsNear: async () => state.spots.map((sp) => ({ ...sp, chosen: state.chosenSpots.includes(sp.id) })),
   chooseMeetupSpot: async (_seller: string, spotId: string) => { state.chosenSpots = [spotId]; },
 }));
+/** BUY-15: the photos the cart's thumbnails read (declutter_item_photos), set per case. */
+const cartPhotos: { id: string; item_id: string; storage_path: string; position: number }[] = [];
 vi.mock("@/lib/declutter/api", () => ({
   // Audit 1030 DB-4: the ways the seller ticked (null = an older item: "with pickup").
   fetchItemHandovers: async () => state.handovers,
-  fetchMyCard: async () => state.card,
+  fetchMyCard: async () => {
+    if (state.cardReadFails) throw new Error("read failed");
+    return state.card;
+  },
   fetchMyActiveStrikes: async () => state.strikes,
   fetchMyOffers: async () => state.offers,
   fetchMyCart: async () => state.cart,
+  // BUY-15: the cart's small photos (first photo per item).
+  fetchPhotos: async (ids: string[]) => cartPhotos.filter((p) => ids.includes(p.item_id)),
+  photoPublicUrl: (path: string) => `https://photos.test/${path}`,
   makeOffer: async (itemId: string, cents: number) => {
     state.sent.push({ itemId, cents });
     return "o1";
@@ -126,6 +149,7 @@ vi.mock("@/lib/declutter/api", () => ({
   respondOffer: async (_id: string, action: string) => { state.responded.push(action); return "declined"; },
   buyNow: async () => {
     state.bought++;
+    if (state.buyRefusal) throw new Error(state.buyRefusal);
     return "l1";
   },
   sellerCancelSale: async () => 1,
@@ -157,6 +181,7 @@ vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title:
 
 import { CartView, FinishSalesView, OffersSection, StrikeCount, dollarsInputToCents } from "./DeclutterTradeViews";
 import { OfferPanel } from "./DeclutterOfferPanel";
+import { afterCardReturnState } from "@/lib/declutter/afterCard";
 
 /** The router's history state, shown so a test can see OfferPanel clear it. */
 function RouterState() {
@@ -199,11 +224,16 @@ describe("Declutter slice 3 screens", () => {
     state.setupFeeCents = 0;
     state.setupFeeKnown = true;
     state.card = null;
+    state.cardReadFails = false;
+    state.buyRefusal = null;
     state.bought = 0;
     state.returnWithCard = null;
     sessionStorage.clear();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     state.strikes = 0;
+    state.lastDropoff = null;
+    state.lastDropoffReads = 0;
+    state.me = null;
     state.offers = [];
     state.cart = [];
     state.sent = [];
@@ -232,7 +262,9 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
     // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
-    expect(screen.getByText("We save your card now; you're only charged when you check out. Then you confirm the buy.")).toBeInTheDocument();
+    // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | "Then checkout opens." | "Then you confirm the buy."
+    expect(screen.getByText("We save your card now; you're only charged when you check out. Then checkout opens.")).toBeInTheDocument();
     // Said once: the line under the buttons steps aside while the card step says it.
     expect(screen.getAllByText(/only charged when/)).toHaveLength(1);
     expect(window.confirm).not.toHaveBeenCalled();
@@ -395,6 +427,109 @@ describe("Declutter slice 3 screens", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // NIGHT-BUYING0-2 (audit 1030 night, d-375-31-webhook-late): the card filed after the 10-second wait; Buy now
+  // still showed the Add a card step and never called declutter_buy_now.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     void card.refetch().then((r) => {\n      if (r.data \|\| r.isError) { |     void card.refetch().then((r) => {\n      if (false) {
+  it("a card filed after the wait is noticed: Buy now goes on, not to a second card page", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(10_001);
+      });
+      expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+      // The webhook lands late; no poll is running now.
+      state.card = { brand: "visa", last4: "4242" };
+      fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
+      await waitFor(() => expect(state.bought).toBe(1));
+      expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // NIGHT-BUYING0-5: with the card read failing, Buy now did nothing (no step, no call, no toast). The server decides.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       if (r.data \|\| r.isError) { |       if (r.data) {
+  // NIGHT-BUYING0-6: the server's card_required left a toast and no way forward; its card step opens.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     onError: (err) => { if (!askCardIfRefused(err, "buy")) toast.error(declutterErrorMessage(err)); }, |     onError: (err) => toast.error(declutterErrorMessage(err)),
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const showCardStep = !!needCard && !resume && (!card.isError \|\| serverNoCard); |   const showCardStep = !!needCard && !resume && !card.isError;
+  it("0-5/0-6: a failed card read lets Buy now go to the server, and its card_required opens the card step", async () => {
+    state.cardReadFails = true;
+    state.buyRefusal = "card_required";
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    expect(await screen.findByText("We couldn't check your saved card.")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
+    await waitFor(() => expect(state.bought).toBe(1));
+    expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+  });
+
+  // NIGHT-BUYING0-7: cancelling on the card page came back with no words and the buy dropped.
+  // @mutate src/lib/declutter/afterCard.ts |   return { cardCancelled: next.action, ...amount }; |   return next.offerAmount ? amount : null;
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       note={cardCancelled === action ? CARD_NOT_SAVED : undefined} |       note={undefined}
+  it("0-7: back from the card page with none saved, the card step opens again and says so", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "buy" }) });
+    expect(await screen.findByText("No card was saved, so nothing happened yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
+    expect(state.bought).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByText("No card was saved, so nothing happened yet.")).toBeNull();
+  });
+
+  // NIGHT-BUYING0-1 (audit 1030 night, d-375-30-checking.png): back from the card page the panel sat below a phone's
+  // screen ("Checking for your card…" at y 990 of 812, the card step at y 962 after the wait). It is brought into view.
+  it("back from the card page: the panel is scrolled into view while checking, and again when the card step returns", async () => {
+    const seen: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this); });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      const panelEl = screen.getByRole("region", { name: "Buy or make an offer" });
+      await waitFor(() => expect(seen).toContain(panelEl));
+      const before = seen.filter((e) => e === panelEl).length;
+      await act(async () => {
+        vi.advanceTimersByTime(10_001);
+      });
+      expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+      expect(seen.filter((e) => e === panelEl).length).toBeGreaterThan(before);
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
+  });
+
+  // NIGHT-BUYING0-3 (audit 1030 night, e-375-41-offer-back.png): back with a card for an offer, the typed offer waited
+  // off screen, unsent, with nothing saying so.
+  it("back with a card for an offer: the panel comes into view and says the offer still needs Send", async () => {
+    const seen: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this); });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer", offerAmount: "30" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      expect(screen.queryByText("Card saved. Now send your offer.")).toBeNull();
+      state.card = { brand: "visa", last4: "4242" };
+      expect(await screen.findByText("Card saved. Now send your offer.", {}, { timeout: 4_000 })).toBeInTheDocument();
+      expect(seen).toContain(screen.getByRole("region", { name: "Buy or make an offer" }));
+      expect(screen.getByLabelText("Your offer")).toHaveValue("30");
+      expect(state.sent).toEqual([]);
+      fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+      await waitFor(() => expect(state.sent).toEqual([{ itemId: "i1", cents: 3000 }]));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("no 'Card saved' line on a plain Make an offer (no trip to the card page)", async () => {
+    state.card = { brand: "visa", last4: "4242" };
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const offer = await screen.findByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(offer).toBeEnabled());
+    fireEvent.click(offer);
+    expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
+    expect(screen.queryByText("Card saved. Now send your offer.")).toBeNull();
   });
 
   it("under 18: buying is a plain block (row 53)", async () => {
@@ -616,7 +751,37 @@ describe("Declutter slice 3 screens", () => {
     show(<OffersSection side="buyer" />);
     fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
     const sheet = await screen.findByText(/you pay at most/);
-    expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay; nothing is charged until you do.');
+    expect(sheet.textContent).toBe('"Lamp": you pay at most $32.20 with pickup. You\'ll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.');
+  });
+
+  // NIGHT-SELL-offers,sale-1 (audit 10-30 night, High): after a price drop to $40 a $48 offer's Accept asked "Sell it for
+  // $48?" while the card said "you keep the whole $40"; declutter_respond_offer sells at least(offer, price now).
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Sell it for ${formatPrice(takeCents)}?` | `Sell it for ${formatPrice(o.amount_cents)}?`
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Buy it for ${formatPrice(takeCents)}?` | `Buy it for ${formatPrice(o.amount_cents)}?`
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | ${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""} |
+  it("NIGHT-SELL-offers,sale-1: Accept on an offer above a dropped price names the price it sells at", async () => {
+    state.offers = [{ ...OFFER, amount_cents: 4800, current_price_cents: 4000, floor_price_cents: null }];
+    const seller = show(<OffersSection side="seller" />);
+    expect(await screen.findByText(/you keep the whole/)).toHaveTextContent("you keep the whole $40.");
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    let sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Sell it for $40?");
+    expect(sheet).not.toHaveTextContent("Sell it for $48?");
+    expect(sheet).toHaveTextContent("Their $48 offer is above your price now, so it sells at $40.");
+    seller.unmount();
+    state.offers = [{ ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 4800, current_price_cents: 4000, floor_price_cents: null, counter_count: 1 }];
+    const buyer = show(<OffersSection side="buyer" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Buy it for $40?");
+    buyer.unmount();
+    // An offer under the price: as before, no extra words.
+    state.offers = [{ ...OFFER, amount_cents: 2500, current_price_cents: 4000, floor_price_cents: null }];
+    show(<OffersSection side="seller" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Sell it for $25?");
+    expect(sheet).not.toHaveTextContent(/above your price/);
   });
 
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
@@ -697,6 +862,7 @@ describe("Declutter slice 3 screens", () => {
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span> |         <span>{allFree ? "Reserved for you" : "Reserved for you"}</span>
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |             <Link to={`/user/${sellerId}`} data-cart-bundle-more="" |             <Link to="/declutter" data-cart-bundle-more=""
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20.5 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line];
@@ -709,7 +875,9 @@ describe("Declutter slice 3 screens", () => {
     first.unmount();
     state.bundleRule = 10;
     show(<CartView />);
-    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\.$/));
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\. See their other items$/));
+    // BUY-12: the hint links to the seller's other items (their profile's "Selling now").
+    expect(screen.getByRole("link", { name: "See their other items" })).toHaveAttribute("href", "/user/s2");
   });
 
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
@@ -781,8 +949,8 @@ describe("Declutter slice 3 screens", () => {
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | or 24 hours after your pickup time unless you report a problem. | once you have your items.
-    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem\./);
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | or about 48 hours after the seller says you do, unless you report a problem. | once you have your items.
+    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem\./);
     // Owner: no codes or QR for Declutter pickup.
     expect(document.body.textContent).not.toMatch(/\bcode\b|QR/i);
     // Never the false promise the money review found (the sweep can pay the seller with no buyer step).
@@ -829,6 +997,44 @@ describe("Declutter slice 3 screens", () => {
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+    state.deliveryOn = false;
+  });
+
+  // BUY-9 (buying audit 10-30 #9): "Deliver to" was typed from nothing on every order. The buyer's newest drop-off
+  // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} /> | onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+  it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    expect(await screen.findByLabelText(/Porch pickup/)).toBeChecked();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(state.lastDropoffReads).toBe(0);
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    await waitFor(() => expect((screen.getByLabelText(/^Deliver to/) as HTMLInputElement).value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    await waitFor(() => expect(state.quotes).toEqual([{ sellerId: "s2", address: "12 Oak St, Baton Rouge, LA" }]));
+    state.deliveryOn = false;
+  });
+
+  it("BUY-9: what the buyer types is never replaced, even emptied", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+    const box = () => screen.getByLabelText(/^Deliver to/) as HTMLInputElement;
+    await waitFor(() => expect(box().value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.change(box(), { target: { value: "" } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(box().value).toBe("");
     state.deliveryOn = false;
   });
 
@@ -990,7 +1196,10 @@ describe("Declutter slice 3 screens", () => {
     await screen.findByLabelText(/Seller delivers/);
     const radios = screen.getAllByRole("radio").filter((r) => r.tagName === "INPUT");
     expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "seller_delivery"]);
-    expect(screen.getByLabelText(/Porch or safe place/)).toBeChecked();
+    // BUY-14: "Porch pickup" as on the item page, its line names the other safe place.
+    expect(screen.getByLabelText(/^Porch pickup/)).toBeChecked();
+    expect(screen.getByText(/porch or another safe place/)).toBeInTheDocument();
+    expect(screen.queryByText("Porch or safe place")).toBeNull();
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
     // DB-9: the address is typed and checked in this checkout first (see the DB-9 tests below).
     fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "12 Oak St, Baton Rouge" } });
@@ -1011,6 +1220,7 @@ describe("Declutter slice 3 screens", () => {
   // Audit 2026-10-30 DB-9: the server keeps the last drop-off per buyer and seller (the Helpr delivery box writes the
   // same row). The box opened empty with Pay on and the order went to an address the buyer never saw here.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | && !!handoff && sdChecked !== null; | && !!handoff;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       {!held && !opening && payWaitsOn && ( |       {false && (
   // @mutate src/components/declutter/SellerDeliveryChoice.tsx |       {state === "pick" && shownDay && checked !== null && ( |       {state === "pick" && shownDay && (
   // @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onSuccess: (o, typed) => { onSlot(null); setDay(null); onOffer(o); onChecked(typed); }, |     onSuccess: (o) => { onSlot(null); setDay(null); onOffer(o); },
   it("DB-9: a stored drop-off is never used silently: the buyer types and checks the full address here, sees it, and only then can pay", async () => {
@@ -1029,6 +1239,8 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/Mid-City/)).toBeNull();
     expect(document.querySelector("[data-sd-address-needed]")).toHaveTextContent("Type the full address and tap Check");
     expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    // BUY-8: a grey Pay says why, right above it.
+    expect(document.querySelector("[data-pay-waits-on]")).toHaveTextContent("Finish the delivery choices above to pay.");
     fireEvent.change(input, { target: { value: "12 Oak St, Baton Rouge" } });
     fireEvent.click(screen.getByRole("button", { name: "Check" }));
     // The full address, written out, before the times.
@@ -1037,6 +1249,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
     fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
     expect(screen.getByRole("button", { name: /^Pay / })).toBeEnabled();
+    expect(document.querySelector("[data-pay-waits-on]")).toBeNull();
     // Editing the address takes the check back: the times go and Pay is off until it is checked again.
     fireEvent.change(input, { target: { value: "14 Oak St, Baton Rouge" } });
     expect(document.querySelector("[data-sd-deliver-to]")).toBeNull();
@@ -1081,7 +1294,7 @@ describe("Declutter slice 3 screens", () => {
     first.unmount();
     state.sdOffer = { ...(state.sdOffer as object), reason: "out_of_range" };
     show(<CartView />);
-    await screen.findByLabelText(/Porch or safe place/);
+    await screen.findByLabelText(/^Porch pickup/);
     expect(screen.queryByLabelText(/Seller delivers/)).toBeNull();
   });
 
@@ -1132,6 +1345,8 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText(/asked buyers to meet at their home for this order/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Porch pickup/)).toBeNull();
     expect(screen.getByLabelText(/Meet at the seller's home/)).toBeChecked();
+    // LEAD-PLACE-TIMES (20261031164337): a door pickup reads the seller's places too, so Pay waits for that read.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
   });
@@ -1223,5 +1438,56 @@ describe("B-1: the return from the payment page never offers Pay again for what 
     show(<CartView />, "/declutter?tab=buying");
     expect((await screen.findAllByRole("button", { name: /^Pay / })).length).toBe(2);
     expect(screen.queryByText("Payment received.")).toBeNull();
+  });
+});
+
+// BUY-15 (buying audit 10-30): checkout at 1440 was one stretched column (Pay 1110 px wide, no side summary, no
+// thumbnail). From lg the choices and the bill with Pay are two columns; each cart line shows its item's photo.
+// NIGHT-BUYINGpresse-3: the line's title link was 20 px tall on a phone; it is a 44 px tap now.
+// jsdom has no layout: the case pins the structure the lg grid lays out (the 375/1440 look is in the commit).
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] | lg:block
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |     </div>\n    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary=""> |     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />\n |
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && !failed && <img | {false && <img
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center truncate" | className="truncate"
+describe("BUY-15: checkout is two columns from lg, and each cart line shows its photo", () => {
+  const line = { line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "buyer", seller_id: "s2", price_cents: 4000, status: "in_cart",
+    checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+  it("the ways to get it sit in the left column and the bill with Pay in the right one", async () => {
+    cartPhotos.length = 0;
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    const pay = await screen.findByRole("button", { name: /^Pay \$/ });
+    const columns = document.querySelector("[data-checkout-columns]")!;
+    expect(columns.className).toMatch(/\blg:grid\b/);
+    expect(columns.className).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,22rem\)\]/);
+    const choices = columns.querySelector(":scope > [data-checkout-choices]")!;
+    const summary = columns.querySelector(":scope > [data-checkout-summary]")!;
+    expect(choices).not.toBeNull();
+    expect(summary).not.toBeNull();
+    expect(choices.querySelector("fieldset")).not.toBeNull();
+    expect(choices.contains(pay)).toBe(false);
+    expect(summary.contains(pay)).toBe(true);
+    expect(summary.querySelector("[data-checkout-breakdown]")).not.toBeNull();
+    expect(summary.querySelector("[data-checkout-note]")).not.toBeNull();
+    // A phone keeps the old order: the choices come before the bill and Pay.
+    expect(choices.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
+    cartPhotos.length = 0;
+    cartPhotos.push({ id: "p2", item_id: "i1", storage_path: "s2/i1/b.jpg", position: 1 }, { id: "p1", item_id: "i1", storage_path: "s2/i1/a.jpg", position: 0 });
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Blue coffee mug", price_cents: 500 }];
+    show(<CartView />, "/declutter?tab=buying");
+    await waitFor(() => expect(document.querySelectorAll("[data-cart-thumb] img").length).toBe(1));
+    const rows = Array.from(document.querySelectorAll("[data-cart-line]"));
+    expect(rows).toHaveLength(2);
+    // fetchPhotos returns them by position in real life; firstPhotos keeps the first one it is given.
+    expect(rows[0].querySelector("[data-cart-thumb] img")?.getAttribute("src")).toBe("https://photos.test/s2/i1/b.jpg");
+    expect(rows[1].querySelector("[data-cart-thumb]")).not.toBeNull();
+    expect(rows[1].querySelector("[data-cart-thumb] img")).toBeNull();
+    const link = within(rows[1] as HTMLElement).getByRole("link", { name: "Blue coffee mug" });
+    expect(link.getAttribute("href")).toBe("/declutter/item/i2");
+    expect(link.className).toMatch(/\bmin-h-11\b/);
+    cartPhotos.length = 0;
   });
 });

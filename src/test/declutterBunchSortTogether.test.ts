@@ -16,6 +16,7 @@
  * @mutate src/lib/declutter/steadyRetry.ts |       if (awayCount() !== awayBefore) { |       if (false) {
  * @mutate src/lib/declutter/steadyRetry.ts |     await whenBack();\n    const awayBefore |     const awayBefore
  */
+import { AI_CHECK_GAP_MS } from "@/lib/declutter/moves";
 import { describe, expect, it, vi } from "vitest";
 import { addSorted, bunchItemProblem, bunchListable, blankItem, groupPhotos, joinSorted, mightBeSameThing, notSortedPile, type BunchPhoto, type GroupAnswer, type SortExtras } from "@/lib/declutter/bunch";
 import { withRetries, worthTryingAgain } from "@/lib/declutter/steadyRetry";
@@ -46,7 +47,7 @@ describe("a failed batch keeps trying before it gives up", () => {
     const { run, waits } = sort(many(3), ask);
     const res = await run;
     expect(ask).toHaveBeenCalledTimes(3);
-    expect(waits.filter((ms) => ms !== 10_500)).toEqual([5_000, 20_000]);
+    expect(waits.filter((ms) => ms !== AI_CHECK_GAP_MS)).toEqual([5_000, 20_000]);
     expect(res.failed).toEqual([]);
     expect(res.items).toHaveLength(1);
     expect(res.items[0].notSorted).toBeFalsy();
@@ -67,7 +68,7 @@ describe("a failed batch keeps trying before it gives up", () => {
     const res = await run;
     expect(res.failed).toEqual([]);
     // Four tries killed by iOS: no backoff spent, each new try waited for the page.
-    expect(waits.filter((ms) => ms !== 10_500)).toEqual([]);
+    expect(waits.filter((ms) => ms !== AI_CHECK_GAP_MS)).toEqual([]);
     expect(ask).toHaveBeenCalledTimes(5);
     expect(whenBack).toHaveBeenCalledTimes(5);
   });

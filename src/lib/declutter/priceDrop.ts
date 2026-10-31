@@ -32,6 +32,8 @@ export interface PriceDropFields {
   last_price_drop_on?: string | null;
   /** The seller's step, percent (declutter_items.drop_pct, 20261028160637); 0 = off. Absent reads as 5, the rule before it. */
   drop_pct?: number | null;
+  /** The seller stopped drops (declutter_items.drops_stopped, 20261031020705): the sweep won't lower it, so no "can drop" line. */
+  drops_stopped?: boolean | null;
 }
 
 /** The steps a seller may pick (declutter_set_drop_pct and the drop_pct CHECK accept 0 and exactly these). */
@@ -72,6 +74,7 @@ export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { 
   // (a cron run that failed or an item that was reserved at the last run also
   // hides the line below: hiding is the safe side of the truth rule)
   if (item.status !== "live" || item.sale_mode !== "offers" || !item.live_at) return null;
+  if (item.drops_stopped === true) return null;
   const pct = dropPctOf(item);
   // Drops off (0): the sweep skips it. Said here, not left to the rounding ($18.50 at 0% would round to $18).
   if (pct <= 0) return null;

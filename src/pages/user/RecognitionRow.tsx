@@ -471,8 +471,15 @@ export const RecognitionRow = ({
     });
   }
 
-  for (const milestone of [...getEarnedMilestones(milestoneStats)].reverse()) {
-    specs.push(milestoneSpec(milestone));
+  // AUD31-51: the job-count rungs are one ladder, so only the highest earned one shows; "First job" beside
+  // "Neighborhood pro" read like a newcomer. The lower rungs stay one tap away, behind "+N more". A milestone that is
+  // not a job-count rung (Licensed pro, from a credential) shows as before.
+  const earned = [...getEarnedMilestones(milestoneStats)].reverse();
+  const topRung = earned.find((m) => !m.requirement.credentialTier);
+  const lowerRungs: BadgeSpec[] = [];
+  for (const milestone of earned) {
+    if (!milestone.requirement.credentialTier && milestone !== topRung) lowerRungs.push(milestoneSpec(milestone));
+    else specs.push(milestoneSpec(milestone));
   }
 
   // No "Verification in progress" chip (owner, 2026-09-14, VN-13): a public
@@ -484,7 +491,7 @@ export const RecognitionRow = ({
   // occupy the same slot as the badge it hides while telling the reader less.
   const overflows = specs.length > VISIBLE_BADGE_CAP + 1;
   const visible = overflows ? specs.slice(0, VISIBLE_BADGE_CAP) : specs;
-  const hidden = overflows ? specs.slice(VISIBLE_BADGE_CAP) : [];
+  const hidden = [...(overflows ? specs.slice(VISIBLE_BADGE_CAP) : []), ...lowerRungs];
 
   // THE CAP IS APPLIED IN PRIORITY ORDER, THE ROW IS DRAWN IN GROUP ORDER.
   // Those are two different orders on purpose. Sorting the specs into groups

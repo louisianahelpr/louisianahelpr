@@ -19,13 +19,14 @@
  * @mutate src/lib/declutter/bunch.ts |           made = giveUp(good, cleaned, error); |           void good;
  * @mutate src/lib/declutter/bunch.ts |     onProgress(i + 1, batches.length, made); |     onProgress(i + 1, batches.length, []);
  * @mutate src/lib/declutter/bunch.ts | withRetries(() => spacedAsk(cleaned), { delays, | withRetries(() => spacedAsk(part.map((p) => p.file)), { delays,
- * @mutate src/lib/declutter/bunch.ts |         unusable.push({ key: p.key, name: p.file.name, error });\n      }\n    }\n    let made |         throw error;\n      }\n    }\n    let made
+ * @mutate src/lib/declutter/bunch.ts |         unusable.push({ key: p.key, name: p.file.name, error: made.error });\n      }\n    }\n    let made |         throw made.error;\n      }\n    }\n    let made
  * @mutate src/lib/declutter/bunch.ts |   const reworded = "title" in patch \|\| "description" in patch; |   const reworded = false;
  * @mutate src/lib/declutter/bunch.ts |   const kept = photos.filter((p) => held.has(p.key)); |   const kept = photos;
  * @mutate src/lib/declutter/bunch.ts |   const next = { ...blankItem(take), flagged: src.flagged }; |   const next = blankItem(take);
  * @mutate src/lib/declutter/bunch.ts |       if (problem) throw Object.assign(new Error("bunch_item_not_ready"), { userMessage: problem }); |       void problem;
  * @mutate src/lib/declutter/bunch.ts |       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true }); |       throw error;
  */
+import { AI_CHECK_GAP_MS } from "@/lib/declutter/moves";
 import { describe, expect, it, vi } from "vitest";
 import { ListingPhotoError } from "@/lib/declutter/errors";
 import {
@@ -67,7 +68,7 @@ describe("grouping keeps every photo", () => {
     const waits: number[] = [];
     const res = await groupPhotos(photos, () => {}, ask, async (ms) => { waits.push(ms); now += ms; }, () => now, async (f) => f);
     expect(ask.mock.calls.map((c) => c[0].length)).toEqual([8, 8, 8, 8, 1]);
-    expect(waits).toEqual([10_500, 5_000, 5_500, 20_000, 10_500]);
+    expect(waits).toEqual([AI_CHECK_GAP_MS, 5_000, AI_CHECK_GAP_MS - 5_000, 20_000, AI_CHECK_GAP_MS]);
     expect(res.failed).toEqual([{ photos: 8, error: new Error("ai_rate_limited") }]);
     expect(allPhotos(res.items)).toEqual(photos.map((p) => p.key).sort());
   });
@@ -211,6 +212,7 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[]) => ids.map((id: string) => (id === "id3" ? { id, error: new Error("setup_fee_required") } : { id, status: "live" as const }))),
     };
     const items = [
@@ -234,7 +236,7 @@ describe("listBunch", () => {
     // server decide its status); an unready one never reaches the server.
     expect(deps.publishMany).toHaveBeenCalledWith(["id1", "id3", "id4"], expect.any(Function));
     expect(deps.createDraft).toHaveBeenCalledTimes(5);
-    expect(deps.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000, areaLabel: "Mid-City" }));
+    expect(deps.createDraft).toHaveBeenCalledWith(expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000, areaLabel: "Mid-City" }), expect.any(String));
   });
 
   // Audit finding 2: a run cut off part way (crash, reload) resumes; nothing is made or uploaded twice.
@@ -253,7 +255,8 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      setOfferRules: vi.fn(async () => {}),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
     const steps: [string, unknown][] = [];
     const out = await listBunch("seller", [item("cut", ["a", "b"], { draftId: "d1", uploaded: { a: "pa" } })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
@@ -267,8 +270,35 @@ describe("listBunch", () => {
     expect(steps).toEqual([["cut", { uploaded: { a: "pa", b: "ph" } }], ["cut", null]]);
   });
 
+  // LEAD-BUNCH-34-SLOW: listing runs a few at once, so items finish in any order; each one's own card leaves the list.
+  // @mutate src/lib/declutter/bunch.ts |       const p = prepared[index]; |       const p = prepared[done - 1];
+  it("items listed out of order: each one that went live is the one taken off the list", async () => {
+    const deps: ListDeps = {
+      createMoveDraft: vi.fn(async () => "moved"),
+      createDraft: vi.fn(async (f: { title: string }) => `d-${f.title}`),
+      updateDraft: vi.fn(async (id) => id),
+      removePhoto: vi.fn(async () => {}),
+      itemStatuses: vi.fn(async () => new Map()),
+      withdrawItem: vi.fn(async () => {}),
+      addPhoto: vi.fn(async () => "ph"),
+      setHandovers: vi.fn(async (_id, w) => w),
+      setDropPct: vi.fn(async (_id, p) => p),
+      setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
+      // The last item goes live first; the first never does.
+      publishMany: vi.fn(async (ids: string[], p) => {
+        p(1, ids.length, 2);
+        p(2, ids.length, 1);
+        return ids.map((id, i) => (i === 0 ? { id, error: new Error("photos_required") } : { id, status: "live" as const }));
+      }),
+    };
+    const steps: [string, unknown][] = [];
+    await listBunch("seller", [item("one", ["a"], { title: "One" }), item("two", ["b"], { title: "Two" }), item("three", ["a"], { title: "Three" })], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
+    expect(steps.filter(([, patch]) => patch === null).map(([k]) => k)).toEqual(["three", "two"]);
+  });
+
   // A photo moved off an item that already has a draft (B19's gap, lead 10-30): it stayed on the draft on the server.
-  // @mutate src/lib/declutter/bunch.ts |         await removeDraftPhoto(deps, photoId); |         void photoId;
+  // @mutate src/lib/declutter/bunch.ts |         await removeDraftPhoto(deps, uploaded[k]); |         void k;
   // @mutate src/lib/declutter/bunch.ts |         delete uploaded[k]; |         void k;
   // @mutate src/lib/declutter/bunch.ts |     if (!String((err as Error)?.message ?? "").includes("photo_not_found")) throw err; |     throw err;
   describe("a photo moved off an item with a draft", () => {
@@ -283,7 +313,8 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      setOfferRules: vi.fn(async () => {}),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     });
 
     it("leaves the draft before it lists, and what stays is not uploaded again", async () => {
@@ -321,11 +352,12 @@ describe("listBunch", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async () => []),
     };
     const steps: [string, unknown][] = [];
     await listBunch("seller", [item("x", ["a"])], files, place, ["porch"], () => {}, deps, (k, patch) => steps.push([k, patch]));
-    expect(steps).toEqual([["x", { draftId: "d9" }], ["x", { failedPhoto: "a" }]]);
+    expect(steps).toEqual([["x", { appId: expect.any(String) }], ["x", { draftId: "d9" }], ["x", { failedPhoto: "a" }]]);
     expect(deps.updateDraft).not.toHaveBeenCalled();
   });
 });
@@ -385,7 +417,8 @@ describe("trying again after a cut-off run", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
-      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length); return { id, status: "live" as const }; })),
+      setOfferRules: vi.fn(async () => {}),
+      publishMany: vi.fn(async (ids: string[], p) => ids.map((id: string, i: number) => { p(i + 1, ids.length, i); return { id, status: "live" as const }; })),
     };
   }
 

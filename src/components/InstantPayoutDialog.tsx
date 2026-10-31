@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -9,12 +9,11 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
 import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
@@ -36,29 +35,34 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Jobs audit 54a: a failed cash-out replaces the offer. The old screen kept
+  // "You receive $77.60" and a live Cash Out under a toast that faded.
+  const [failure, setFailure] = useState<{ message: string; canRetry: boolean } | null>(null);
+
+  const loadQuote = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setFailure(null);
+    setQuote(null);
+    const { data, error } = await supabase.functions.invoke("instant-payout", {
+      body: { action: "quote" },
+    });
+    setLoading(false);
+    if (error || data?.error) {
+      // On a non-2xx the SDK's error.message is generic and `data` is null —
+      // recover the edge function's real message (e.g. the below-$25 floor
+      // notice) from the response body. See functionErrorMessage.
+      setError(
+        data?.error || (error ? await functionErrorMessage(error, "Couldn't load quote") : "Couldn't load quote")
+      );
+      return;
+    }
+    setQuote(data);
+  }, []);
 
   useEffect(() => {
-    if (!open) return;
-    const getQuote = async () => {
-      setLoading(true);
-      setError(null);
-      const { data, error } = await supabase.functions.invoke("instant-payout", {
-        body: { action: "quote" },
-      });
-      setLoading(false);
-      if (error || data?.error) {
-        // On a non-2xx the SDK's error.message is generic and `data` is null —
-        // recover the edge function's real message (e.g. the below-$25 floor
-        // notice) from the response body. See functionErrorMessage.
-        setError(
-          data?.error || (error ? await functionErrorMessage(error, "Couldn't load quote") : "Couldn't load quote")
-        );
-        return;
-      }
-      setQuote(data);
-    };
-    getQuote();
-  }, [open]);
+    if (open) void loadQuote();
+  }, [open, loadQuote]);
 
   const handleConfirm = async () => {
     // Face ID / Touch ID gate before moving money. No-op on web. On device it
@@ -75,9 +79,16 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
 
     if (error || data?.error) {
       hapticError();
-      toast.error(
-        data?.error || (error ? await functionErrorMessage(error, "Your instant payout didn't go through — try again?") : "Your instant payout didn't go through — try again?")
-      );
+      // The server says what happened to the fee and whether another try is open.
+      // No answer at all means nobody here knows: say that. Trying again stays
+      // open because it only re-quotes, and the server refuses a second fee.
+      const body = data?.error ? data : error ? await functionErrorBody(error) : null;
+      setFailure({
+        message: typeof body?.error === "string" && body.error.trim()
+          ? body.error
+          : "We couldn't confirm your instant payout. Check your balance before you try again.",
+        canRetry: body?.can_retry !== false && body?.code !== "instant_fee_return_pending",
+      });
       return;
     }
 
@@ -87,6 +98,33 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   };
 
   const fmt = (cents: number) => `$${formatPriceExact(cents / 100)}`;
+
+  if (failure) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHero title="Cash out didn't finish" />
+          <div
+            role="alert"
+            className="rounded-ds-md p-4 font-sans text-ds-14"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            {failure.message}
+          </div>
+          <DialogFooter>
+            <DialogSecondaryAction onClick={() => onOpenChange(false)}>Close</DialogSecondaryAction>
+            {failure.canRetry && (
+              <DialogPrimaryAction onClick={() => void loadQuote()}>Try again</DialogPrimaryAction>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,7 +140,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
         <DialogBody>
-          <p>In your debit card in ~30 minutes.</p>
+          <p>Goes to your debit card in about 30 minutes.</p>
         </DialogBody>
         {loading ? (
           <div className="py-8 flex justify-center">
@@ -161,7 +199,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             >
               <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
+                Prefer to wait? Standard payouts are{" "}
                 <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and land {STANDARD_PAYOUT_WINDOW}.
               </p>
             </div>

@@ -12,7 +12,7 @@ const successToast = vi.fn();
 const insert = vi.fn();
 const del = vi.fn();
 vi.mock("@/lib/toast", () => ({ successToast: (...a: unknown[]) => successToast(...a) }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticError: () => {} }));
 vi.mock("@/integrations/supabase/client", () => {
   const chain = (result: unknown) => {

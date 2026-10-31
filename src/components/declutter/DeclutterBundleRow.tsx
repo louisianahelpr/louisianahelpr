@@ -10,7 +10,8 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
-import { fetchSellerCard, fetchSellerItems, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchItemHandovers, fetchSellerCard, fetchSellerItems, type DeclutterItem } from "@/lib/declutter/api";
+import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import { formatName } from "@/lib/utils";
 import { bundleLabel, fetchBundleApplies, fetchBundleRule } from "@/lib/declutter/bundle";
 
@@ -32,6 +33,9 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
     queryFn: () => fetchBundleApplies(ids),
     enabled: !!rule.data && buyable.length > 0,
   });
+  // Audit BUY-3: an item the seller offers only delivered has no pickup to share (the same key as the item page's ways).
+  const ways = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
+  const pickup = noDeliveryWay(ways.data) !== "none";
   const offer = !!rule.data && (applies.data === null || !!applies.data && ids.some((id) => applies.data!.has(id)));
   // fetchSellerItems reads at most 12 (live + reserved): a full page may hide more, so say "12+".
   const capped = (more.data?.length ?? 0) >= 12;
@@ -49,7 +53,7 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
         <span className="font-semibold">
           {buyable.length}{capped ? "+" : ""} more from {name}.
         </span>{" "}
-        Check out together: one pickup, one payment.
+        {item.current_price_cents === 0 ? "Get them together: one pickup." : pickup ? "Check out together: one pickup, one payment." : "Check out together: one payment."}
         {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null}
       </span>
     </button>

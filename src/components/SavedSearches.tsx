@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
+import { savedSearchSaveError } from "@/lib/savedSearches";
 import { parseNearbyFilter } from "@/lib/geo";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
@@ -257,7 +258,7 @@ export function SavedSearches({
         // again" for a thing that cannot yet work.
         toast.error("Saved searches are being upgraded right now — try again in a few minutes.");
       } else {
-        toast.error(mutationErrorMessage(err, "We couldn't save your search — please try again."));
+        toast.error(savedSearchSaveError(err, "We couldn't save your search — please try again."));
       }
       return;
     }

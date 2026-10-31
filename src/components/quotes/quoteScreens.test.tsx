@@ -230,6 +230,9 @@ describe("board 115: quotes side by side", () => {
     expect(table.textContent).toMatch(/\$95/);
     expect(table.textContent).not.toMatch(/take.?home|receives/i);
     expect(screen.getByText(/Each amount is the job price/)).toBeInTheDocument();
+    // AUD31-50: "use Dana, Ray's card" gave the two names one "'s".
+    // @mutate src/components/quotes/QuotesSideBySide.tsx | ${own.slice(0, -1).join(", ")} or ${own[own.length - 1]} | ${names.join(", ")}
+    expect(screen.getByText(/Each amount is the job price/).textContent).toContain("To accept, use Dana's or Ray's card below.");
   });
 
   it("one quote: no side-by-side", async () => {
@@ -270,6 +273,26 @@ describe("the poster's quotes on a request", () => {
     expect(state.calls.find((c) => c.fn === "respond_to_job_quote")?.args).toEqual({
       p_quote_id: "q1", p_action: "accept", p_price_cents: undefined, p_note: undefined,
     });
+  });
+
+  // AUD31-63: Decline ended the quote on one tap, with no ask first.
+  // @mutate src/components/quotes/QuoteAnswerControls.tsx | onClick={() => setConfirmDecline(true)} | onClick={() => answer.mutate("decline")}
+  it("Decline asks first; only the confirm sends it, and Keep it sends nothing", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [QUOTE];
+    state.rpc.respond_to_job_quote = "declined";
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    fireEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    expect(await screen.findByText("Decline $250?")).toBeInTheDocument();
+    expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Keep it" }));
+    // Keep it closes the ask at once (shown two lines up), so no wait: a waitFor here would pass on its first poll.
+    expect(screen.queryByText("Decline $250?")).not.toBeInTheDocument();
+    expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Decline quote" }));
+    await waitFor(() => expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(true));
+    expect(state.calls.find((c) => c.fn === "respond_to_job_quote")?.args).toMatchObject({ p_action: "decline" });
   });
 
   it("a counter sends whole dollars as cents; a price outside $10-$1,000 cannot be sent", async () => {

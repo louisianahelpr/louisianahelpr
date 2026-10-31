@@ -154,9 +154,11 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   // Without the detail (server not updated) it stays offered, as before.
   const deliveryReason = (row.reason === "damaged" || row.reason === "not_received") && row.detail?.helpr_delivery !== false;
   const id = (k: string) => `dcl-prob-${k}-${row.id}`;
+  // declutter_answer_no_show: the buyer's report, with the seller's answer as the other side.
+  const noShowAnswered = row.reason === "no_show" && row.reporter_side === "buyer" && !!row.detail?.other_side_note;
   return (
     <li className="rounded-xl border border-border p-3 space-y-2">
-      <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</p>
+      <p className="font-semibold">{row.reporter_side === "system" ? "Held 60 days · nobody has said anything" : noShowAnswered ? "The seller didn't show · reported by the buyer · the seller answered" : <>{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</>}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
@@ -164,11 +166,11 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
       {/* D2-3: the reporter's photos, and the other side's words and photos. */}
-      {row.reporter_side !== "helpr" && (row.photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt={`The ${row.reporter_side}'s photo`} />)}
+      {row.reporter_side !== "helpr" && row.reporter_side !== "system" && (row.photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt={`The ${row.reporter_side}'s photo`} />)}
       {row.detail?.other_side_note ? (
         <div className="space-y-1" data-admin-other-side="">
           <p className="text-sm [overflow-wrap:anywhere]">
-            <span className="font-semibold">The {row.reporter_side === "seller" ? "buyer" : "seller"}'s side:</span> {row.detail.other_side_note}
+            <span className="font-semibold">{noShowAnswered ? "The seller's answer:" : `The ${row.reporter_side === "seller" ? "buyer" : "seller"}'s side:`}</span> {row.detail.other_side_note}
           </p>
           {(row.detail.other_side_photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt="The other side's photo" />)}
         </div>

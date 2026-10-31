@@ -87,7 +87,9 @@ export default function DeclutterMap({
         colorScheme: colorSchemeFor(mk, readIsDark()),
         showsCompass: mk.FeatureVisibility?.Hidden ?? "hidden",
         showsScale: mk.FeatureVisibility?.Hidden ?? "hidden",
-        showsZoomControl: false,
+        // NIGHT-BUYINGrealma-3: the desktop column has a mouse and no pinch, so it gets MapKit's + and - buttons; the
+        // phone map stays clean (pinch zooms).
+        showsZoomControl: flush,
         showsMapTypeControl: false,
         showsUserLocationControl: false,
         isRotationEnabled: false,

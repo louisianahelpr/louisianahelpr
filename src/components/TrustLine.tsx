@@ -27,11 +27,26 @@ export function ApplicantTrustLine({ helperId, helperIds }: { helperId: string; 
   const trust: Map<string, MemberTrust> = useMemberTrust(helperIds);
   const t = trust.get(helperId);
   if (!t) return null;
-  const parts = trustLineParts(t.stats);
+  // A new member's "New" sits right of their name (ApplicantNewTag, owner 2026-10-31 LEAD-APPLICANT-TAG), never
+  // alone at the bottom of the card; the reply speed still shows here when the server has one.
+  const parts = isNewMember(t.stats) ? [] : trustLineParts(t.stats);
   if (t.reply) parts.push(REPLY_BUCKET_COPY[t.reply]);
+  if (!parts.length) return null;
   return (
     <p data-trust-line className="font-sans mt-0.5 leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
       {parts.join(" · ")}
     </p>
+  );
+}
+
+/** "New" right of an applicant's name (owner 2026-10-31, LEAD-APPLICANT-TAG): the same rule and the same one read
+ *  as ApplicantTrustLine, which no longer says it at the bottom of the card. */
+export function ApplicantNewTag({ helperId, helperIds }: { helperId: string; helperIds: string[] }) {
+  const t = useMemberTrust(helperIds).get(helperId);
+  if (!t || !isNewMember(t.stats)) return null;
+  return (
+    <span data-new-tag className="shrink-0 rounded-full px-1.5 py-0.5 font-sans text-ds-11 font-semibold leading-none" style={{ background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }}>
+      New
+    </span>
   );
 }

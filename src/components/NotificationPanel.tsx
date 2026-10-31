@@ -47,6 +47,7 @@ import { NotificationTrigger } from "@/components/notificationPanel/Notification
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
 import { useFramerMotion, type FramerMotion } from "@/components/notificationPanel/useFramerMotion";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
+import { NotificationMessage } from "@/components/notificationPanel/NotificationMessage";
 
 /* One day group. When the LAST row of a day leaves (mark read on the Unread
    tab), the whole section unmounts, not just the row — so the section needs
@@ -813,12 +814,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
                                 />
                               )}
                             </div>
-                            <p
-                              className="font-sans mt-0.5 line-clamp-2 text-ds-13"
-                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                            >
-                              {n.message}
-                            </p>
+                            <NotificationMessage text={n.message} />
                             {/* Inline quick-action pills — only for actionable
                                 types so chat/review/payment rows stay clean. */}
                             {(() => {

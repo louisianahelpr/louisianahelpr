@@ -82,7 +82,9 @@ export function useDeleteReauth(disabled: boolean): DeleteReauth {
       ) : (
         <>
           <p className="text-ds-13 text-foreground">
-            {codeSent ? t("deleteAccount.codeSentTo") : t("deleteAccount.codeWillSend")} <span className="font-semibold break-all">{email}</span>.
+            {codeSent ? t("deleteAccount.codeSentTo") : t("deleteAccount.codeWillSend")}{" "}
+            {/* AUD31-72: the address gets its own line and wraps only where it must; break-all split "example.co / m.". */}
+            <span className="block font-semibold [overflow-wrap:anywhere]">{email}.</span>
           </p>
           {codeSent ? (
             <>

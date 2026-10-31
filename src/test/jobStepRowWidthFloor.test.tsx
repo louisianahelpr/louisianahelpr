@@ -67,7 +67,7 @@ import { join, resolve } from "node:path";
 //      and below.
 // @mutate src/components/job-card/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({

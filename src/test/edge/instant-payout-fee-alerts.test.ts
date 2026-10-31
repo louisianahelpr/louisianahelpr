@@ -7,7 +7,7 @@
  * overwrote the fee_uncollected marker.
  */
 //
-// @mutate supabase/functions/instant-payout/index.ts | const feeTakenNoPayout = feeCents > 0 && feeTransferSucceeded; | const feeTakenNoPayout = false;
+// @mutate supabase/functions/instant-payout/index.ts |       if (feeState === "taken" \|\| feeState === "attempting") { |       if (false) {
 // @mutate supabase/functions/instant-payout/index.ts |       let fullError = feeMarker ? `${feeMarker} \| ${msg}` : msg; |       let fullError = msg;
 // @mutate supabase/functions/instant-payout/index.ts |             message: "The platform Stripe account could not be read |             kind: "x", message: "The platform Stripe account could not be read
 import { describe, it, expect, beforeEach } from "vitest";
@@ -56,8 +56,11 @@ beforeEach(async () => {
 });
 
 describe("instant-payout fee outcomes always reach someone (ME-015)", () => {
-  it("fee taken, payout failed: pages critical even though the row was marked failed", async () => {
+  // Jobs audit 54a: the fee now goes back on its own; a person is paged only when that return fails too.
+  it("fee taken, payout failed, and the fee could not go back: pages critical even though the row was marked failed", async () => {
+    stripeMock.transfers.createReversal.mockRejectedValue(new Error("reversal refused"));
     await execute();
+    expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(failedWrite()?.error_message).toMatch(/already transferred/);
     const a = alerts().find((x) => x.title === "Instant-payout fee taken but the payout failed");

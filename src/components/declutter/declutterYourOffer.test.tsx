@@ -52,7 +52,7 @@ vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/components/mobileNav/useDockYield", () => ({ useDockYield: () => undefined }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
@@ -184,6 +184,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     await waitFor(() => expect(state.claimed).toBe(1));
     expect(where).not.toBe("/declutter?tab=buying");
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
+    // Porch comes first; it is picked by a time in the place's hours (LEAD-PLACE-TIMES; was a day, BUY-18).
     expect(screen.getByRole("button", { name: "Confirm and pick a time" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });

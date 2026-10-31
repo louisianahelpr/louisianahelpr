@@ -17,6 +17,11 @@ export function QuotesSideBySide({ quotes }: { quotes: RequestQuote[] }) {
   const live = quotes.filter((q) => q.status === "pending");
   if (live.length < 2) return null;
   const first = (q: RequestQuote) => formatName(q.quoter_name, "Member").split(" ")[0];
+  // AUD31-50: the names were joined with one "'s" ("Dana, Maximiliano's card"); each name owns its card.
+  const cardsOf = (names: string[]) => {
+    const own = names.map((n) => `${n}'s`);
+    return `${own.length > 1 ? `${own.slice(0, -1).join(", ")} or ${own[own.length - 1]}` : own[0]} card`;
+  };
   return (
     <section aria-label="Quotes side by side" className="space-y-2">
       <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Side by side</h2>
@@ -54,7 +59,7 @@ export function QuotesSideBySide({ quotes }: { quotes: RequestQuote[] }) {
       </div>
       <p className="text-ds-12 text-muted-foreground">
         Each amount is the job price. Your total, with any tax, is shown before you pay. To accept,
-        use {live.map(first).join(", ")}&apos;s card below.
+        use {cardsOf(live.map(first))} below.
       </p>
     </section>
   );

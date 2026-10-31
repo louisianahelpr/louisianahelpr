@@ -162,6 +162,24 @@
       "function": "public.declutter_claim_free",
       "code": "free_claim_limit",
       "reason": "Not dropped, MOVED: declutter_claim_free is now a one-line wrapper that returns public.declutter_request_free(p_item_id) (Q2487; installed builds still call it), and declutter_request_free in the same migration raises 'free_claim_limit' on the same condition."
+    },
+    {
+      "migration": "20261031160546_declutter_create_item_with_id.sql",
+      "function": "public.declutter_create_item",
+      "code": "invalid_floor_price",
+      "reason": "Not dropped, MOVED: declutter_create_item is now a wrapper (switch, ban and member gates restated) that returns public.declutter_create_item_with_id(gen_random_uuid(), ...) (LEAD-POST-SLOW a), and declutter_create_item_with_id in the same migration raises 'invalid_floor_price' on the same condition."
+    },
+    {
+      "migration": "20261031160546_declutter_create_item_with_id.sql",
+      "function": "public.declutter_create_item",
+      "code": "invalid_location",
+      "reason": "Not dropped, MOVED: declutter_create_item is now a wrapper (switch, ban and member gates restated) that returns public.declutter_create_item_with_id(gen_random_uuid(), ...) (LEAD-POST-SLOW a), and declutter_create_item_with_id in the same migration raises 'invalid_location' on the same condition."
+    },
+    {
+      "migration": "20261031160546_declutter_create_item_with_id.sql",
+      "function": "public.declutter_create_item",
+      "code": "area_looks_like_address",
+      "reason": "Not dropped, MOVED: declutter_create_item is now a wrapper (switch, ban and member gates restated) that returns public.declutter_create_item_with_id(gen_random_uuid(), ...) (LEAD-POST-SLOW a), and declutter_create_item_with_id in the same migration raises 'area_looks_like_address' on the same condition."
     }
   ]
 }

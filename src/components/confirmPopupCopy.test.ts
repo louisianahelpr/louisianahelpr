@@ -51,6 +51,15 @@ describe("Mark job complete confirm popup", () => {
     expect(tracking).not.toContain("Request Your Payout?");
     expect(tracking).not.toMatch(/Yes, I['’]m Done/);
   });
+
+  // Audit 2026-10-30: nothing pays out on a timer (escrowTiming.ts: the money moves only after approval, and past the
+  // window support is asked to step in), so "starts the clock on your payment" promised something that never runs.
+  // @mutate src/components/JobTracking.tsx | the work is finished, so they can approve it." | the work is finished and starts the clock on your payment."
+  it("says what the tap does, with no clock on the payment", () => {
+    expect(tracking).toContain("This tells the person who posted this job the work is finished, so they can approve it.");
+    expect(tracking).not.toMatch(/clock on your payment/);
+    expect(tracking).toContain("Your payment stays held safely until the job is approved.");
+  });
 });
 
 describe("confirm-booking popup cancel link", () => {

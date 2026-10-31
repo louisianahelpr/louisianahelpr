@@ -13,9 +13,17 @@
 // @mutate scripts/lib/prodDeployDebounce.mjs | const stuck = now - oldest >= MIGRATION_STUCK_MS; | const stuck = false;
 // @mutate scripts/lib/prodDeployDebounce.mjs | .filter((v) => v && !have.has(v)) | .filter((v) => v && have.has(v))
 // @mutate scripts/prod-deploy.mjs | if (d.fail) throw | if (false) throw
-// @mutate scripts/prod-deploy.mjs | pendingMigrations: pending }); | pendingMigrations: [] });
+// @mutate scripts/prod-deploy.mjs | pendingMigrations: pending, edgeDeploy | pendingMigrations: [], edgeDeploy
 // @mutate .github/workflows/prod-deploy.yml | SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} | SUPABASE_ACCESS_TOKEN_OFF: x
 // @mutate .github/workflows/prod-freshness.yml | if: github.event_name != 'push' | if: always()
+// @mutate scripts/lib/prodDeployDebounce.mjs | if (edgeDeploy.state !== "ok") { | if (false) {
+// @mutate scripts/lib/prodDeployDebounce.mjs | if (!edgeDeploy) { | if (false) {
+// @mutate scripts/lib/prodDeployDebounce.mjs | fail: edgeDeploy.state === "failed", | fail: false,
+// @mutate scripts/lib/prodDeployDebounce.mjs | if (run.status !== "completed") return { state: "pending", ...base }; | if (false) return { state: "pending", ...base };
+// @mutate scripts/lib/prodDeployDebounce.mjs | .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)); | .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+// @mutate scripts/lib/prodDeployDebounce.mjs | .filter((r) => r && r.head_sha && isOnHead(r.head_sha)) | .filter((r) => r && r.head_sha)
+// @mutate scripts/prod-deploy.mjs | pendingMigrations: pending, edgeDeploy: edge }); | pendingMigrations: pending, edgeDeploy: { state: "ok" } });
+// @mutate .github/workflows/prod-deploy.yml | GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} | GITHUB_TOKEN_OFF: x
 
 /*
  * GUARD (docs/OPEN.md Q271): production web deploys are BATCHED.
@@ -41,6 +49,7 @@ import {
   decide as decideRaw,
   summarize,
   pendingMigrationVersions,
+  edgeDeployState,
   DEBOUNCE_MS,
   MIGRATION_STUCK_MS,
 } from "../../scripts/lib/prodDeployDebounce.mjs";
@@ -52,9 +61,11 @@ const HEAD = "a".repeat(40);
 const OLD = "b".repeat(40);
 const NOW = Date.parse("2026-09-23T18:00:00Z");
 const MIN = 60_000;
-// The Q271 cases below are about the debounce: prod has applied every migration.
-const decide = (input: Omit<Parameters<typeof decideRaw>[0], "pendingMigrations">) =>
-  decideRaw({ pendingMigrations: [], ...input });
+// The Q271 cases below are about the debounce: prod has applied every migration
+// and functions-deploy is green for HEAD.
+const EDGE_OK = { state: "ok" as const, runId: null, sha: null, status: null };
+const decide = (input: Omit<Parameters<typeof decideRaw>[0], "pendingMigrations" | "edgeDeploy">) =>
+  decideRaw({ pendingMigrations: [], edgeDeploy: EDGE_OK, ...input });
 const row = (sha: string, agoMin: number, state = "READY", id = `dpl_${sha.slice(0, 3)}${agoMin}`) => ({
   id,
   created: NOW - agoMin * MIN,
@@ -140,7 +151,7 @@ describe("prod deploy debounce rules (Q271)", () => {
  */
 describe("prod deploy waits for main's migrations (Q1824)", () => {
   const base = row(OLD, 90);
-  const ready = { head: HEAD, now: NOW, newest: base, base, deployPathsChanged: true };
+  const ready = { head: HEAD, now: NOW, newest: base, base, deployPathsChanged: true, edgeDeploy: EDGE_OK };
 
   it("deploys when prod has applied every migration on HEAD", () => {
     expect(decideRaw({ ...ready, pendingMigrations: [] }).action).toBe("deploy");
@@ -184,11 +195,94 @@ describe("prod deploy waits for main's migrations (Q1824)", () => {
   it("the script and workflow wire the check in (prod read with the Management API, a held deploy fails red)", () => {
     const src = read("scripts/prod-deploy.mjs");
     expect(src).toMatch(/select version from supabase_migrations\.schema_migrations/);
-    expect(src).toMatch(/pendingMigrations: pending \}\);/);
+    expect(src).toMatch(/pendingMigrations: pending, edgeDeploy: edge \}\);/);
     expect(src).toMatch(/if \(d\.fail\) throw/);
     const wfSrc = read(".github/workflows/prod-deploy.yml");
     expect(wfSrc).toMatch(/SUPABASE_ACCESS_TOKEN: \$\{\{ secrets\.SUPABASE_ACCESS_TOKEN \}\}/);
     expect(wfSrc).toMatch(/SUPABASE_PROJECT_REF: \$\{\{ secrets\.SUPABASE_PROJECT_REF \}\}/);
+  });
+});
+
+describe("prod deploy waits for functions-deploy (edge gate, 2026-10-31)", () => {
+  const base = row(OLD, 90);
+  const ready = { head: HEAD, now: NOW, newest: base, base, deployPathsChanged: true, pendingMigrations: [] };
+  const ANC = "c".repeat(40); // an ancestor of HEAD
+  const OTHER = "d".repeat(40); // not in HEAD's history
+  const onHead = (sha: string) => sha === HEAD || sha === ANC || sha === OLD;
+  const run = (id: number, head_sha: string, status: string, conclusion: string | null, agoMin: number) => ({
+    id,
+    head_sha,
+    status,
+    conclusion,
+    created_at: new Date(NOW - agoMin * MIN).toISOString(),
+  });
+
+  it("2026-10-31's case: migrations applied, edge still deploying, a push run -> SKIP (not deploy)", () => {
+    // #3892: 8b68c21a77 merged; functions-deploy 41232537450 in progress on it;
+    // the bot push 7121ae45e9 (a child of it) ran prod-deploy once db-deploy had applied the migrations.
+    const edge = edgeDeployState([run(41232537450, ANC, "in_progress", null, 6), run(41200000000, OLD, "completed", "success", 300)], onHead);
+    expect(edge.state).toBe("pending");
+    const d = decideRaw({ ...ready, edgeDeploy: edge });
+    expect(d.action).toBe("skip");
+    expect(d.fail).toBe(false);
+    expect(d.reason).toMatch(/^waiting for functions-deploy/);
+    expect(d.reason).toMatch(/41232537450/);
+  });
+
+  it("a queued run holds too", () => {
+    const d = decideRaw({ ...ready, edgeDeploy: edgeDeployState([run(2, HEAD, "queued", null, 1)], onHead) });
+    expect(d.action).toBe("skip");
+    expect(d.reason).toMatch(/waiting for functions-deploy/);
+  });
+
+  it("a FAILED edge deploy on HEAD's history holds and goes red", () => {
+    for (const conclusion of ["failure", "cancelled", "timed_out", "startup_failure"]) {
+      const edge = edgeDeployState([run(3, ANC, "completed", conclusion, 10)], onHead);
+      expect(edge.state).toBe("failed");
+      const d = decideRaw({ ...ready, edgeDeploy: edge });
+      expect(d.action).toBe("skip");
+      expect(d.fail).toBe(true);
+      expect(d.reason).toMatch(/waiting for functions-deploy/);
+    }
+  });
+
+  it("cannot read the runs -> holds, red (fail closed)", () => {
+    const d = decideRaw({ ...ready, edgeDeploy: null });
+    expect(d.action).toBe("skip");
+    expect(d.fail).toBe(true);
+    expect(d.reason).toMatch(/waiting for functions-deploy/);
+  });
+
+  it("the NEWEST run on HEAD's history decides: a later green clears an older red", () => {
+    const edge = edgeDeployState([run(4, OLD, "completed", "failure", 60), run(5, ANC, "completed", "success", 20)], onHead);
+    expect(edge).toMatchObject({ state: "ok", runId: 5 });
+    expect(decideRaw({ ...ready, edgeDeploy: edge }).action).toBe("deploy");
+    // ...and a later red after an older green holds.
+    const red = edgeDeployState([run(6, OLD, "completed", "success", 60), run(7, ANC, "completed", "failure", 20)], onHead);
+    expect(red).toMatchObject({ state: "failed", runId: 7 });
+  });
+
+  it("ignores runs whose commit is not HEAD or an ancestor (another branch, a dispatch on old code)", () => {
+    const edge = edgeDeployState([run(8, OTHER, "in_progress", null, 1), run(9, ANC, "completed", "success", 30)], onHead);
+    expect(edge).toMatchObject({ state: "ok", runId: 9 });
+  });
+
+  it("no functions-deploy run in HEAD's history -> ok", () => {
+    expect(edgeDeployState([], onHead).state).toBe("ok");
+    expect(decideRaw({ ...ready, edgeDeploy: edgeDeployState([], onHead) }).action).toBe("deploy");
+  });
+
+  it("the script and workflow wire it in (GitHub runs API, ancestor check, actions: read, GITHUB_TOKEN)", () => {
+    const src = read("scripts/prod-deploy.mjs");
+    expect(src).toMatch(/actions\/workflows\/functions-deploy\.yml\/runs\?branch=main/);
+    expect(src).toMatch(/"merge-base", "--is-ancestor", sha, head/);
+    expect(src).toMatch(/pendingMigrations: pending, edgeDeploy: edge \}\);/);
+    const wfDoc = parse(read(".github/workflows/prod-deploy.yml")) as {
+      jobs: { deploy: { permissions: Record<string, string>; steps: { id?: string; env?: Record<string, string> }[] } };
+    };
+    expect(wfDoc.jobs.deploy.permissions.actions).toBe("read");
+    const step = wfDoc.jobs.deploy.steps.find((s) => s.id === "run");
+    expect(step?.env?.GITHUB_TOKEN).toBe("${{ secrets.GITHUB_TOKEN }}");
   });
 });
 
@@ -219,7 +313,7 @@ describe("the wiring around the rules (Q271)", () => {
 
   it("the script creates a production deployment of main through the API, using the pure rules", () => {
     const src = read("scripts/prod-deploy.mjs");
-    expect(src).toMatch(/import \{ decide, summarize, pendingMigrationVersions \} from "\.\/lib\/prodDeployDebounce\.mjs"/);
+    expect(src).toMatch(/import \{ decide, summarize, pendingMigrationVersions, edgeDeployState \} from "\.\/lib\/prodDeployDebounce\.mjs"/);
     expect(src).toMatch(/target: "production"/);
     expect(src).toMatch(/gitSource: \{ type: "github", org: ORG, repo: REPO, ref: "main", sha: head \}/);
     expect(src).toMatch(/bash", \["scripts\/deploy-paths\.sh"\]/);

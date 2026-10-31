@@ -37,7 +37,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus
 vi.mock("@/hooks/useAuthReady", async (orig) => ({ ...(await orig<object>()), useAuthReady: () => ({ user: { id: "u-1" }, isReady: true }) }));
 // Jobs' tab bodies: only the header JobsSection hands them is under test.
 vi.mock("@/pages/home/Dashboard", () => ({ default: ({ embeddedHeader }: { embeddedHeader: () => ReactNode }) => <>{embeddedHeader()}</> }));
-vi.mock("@/components/job-card/JobListPage", () => ({ default: ({ embeddedHeader }: { embeddedHeader: ReactNode }) => <>{embeddedHeader}</> }));
+vi.mock("@/components/job-card/JobListPage", () => ({ default: ({ embeddedHeader }: { embeddedHeader: () => ReactNode }) => <>{embeddedHeader()}</> }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null, useSectionsOpen: () => ({ open: null, settled: false }) }));
 
 import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";

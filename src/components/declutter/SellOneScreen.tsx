@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { StepHead } from "./DeclutterSellSteps";
 import { windowsSummary } from "./DeclutterPickupTimes";
+import { MyPickupPlacesSummary, useHasPorchPlaces } from "./SellPorchPlaces";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { autoFreeOutcomeLine } from "@/lib/declutter/autoFree";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
@@ -26,13 +27,12 @@ import { handoverSummary } from "./SellHandoverChoices";
 import { UsesSettingsNote } from "./SellLastSetup";
 import { DeclutterNotice } from "./declutterUi";
 import { dropsOutcomeLine, formProblem } from "./sellForm";
-import { SellFreeToggle, SellTaxBox } from "./SellFormParts";
+import { SellFreeNote, SellOffersToggle, SellTaxBox } from "./SellFormParts";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
-import { itemPriceLabel } from "@/lib/declutter/distance";
+import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
-import { FallbackImg } from "./FallbackImg";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
@@ -69,17 +69,8 @@ function BuyerPreview({ s }: { s: SellFlow }) {
   const title = s.form.title.trim();
   if (!title || (!cover && !heldCover)) return null;
   const src = cover ? photoPublicUrl(cover.storage_path) : url;
-  return (
-    <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-3" data-sell-preview="">
-      {/* Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
-      {src && (cover || src.startsWith("blob:")) && <FallbackImg src={src} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" />}
-      <div className="min-w-0 flex-1">
-        <p className="text-ds-13 text-muted-foreground">What buyers see</p>
-        <p className="truncate text-ds-15 font-bold text-foreground">{title}</p>
-        {(s.form.free || s.priceCents) && <p className="text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(s.form.free ? 0 : (s.priceCents as number))}</p>}
-      </div>
-    </div>
-  );
+  // Only a stored photo or a local blob: preview (CodeQL js/xss-through-dom; the PhotoProof pattern).
+  return <BuyerPreviewCard src={src && (cover || src.startsWith("blob:")) ? src : null} title={title} cents={s.form.free ? 0 : (s.priceCents || null)} />;
 }
 
 /** Start over (a listing brought back from this device): a fresh form, with the seller's saved settings read again. */
@@ -90,6 +81,7 @@ export function SellOneScreen() {
 
 function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
+  const hasPlaces = useHasPorchPlaces();
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   const [open, setOpen] = useState<SummaryField | null>(null);
   const [tried, setTried] = useState(false);
@@ -183,7 +175,10 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           open={open}
           setOpen={setOpen}
           problems={{ title: problemAt("title"), price: problemAt("price"), size: problemAt("size") }}
-          priceExtras={<div className="space-y-3 pt-1"><SellFreeToggle s={s} /></div>}
+          // LEAD-FREE-MOVE (owner 2026-10-31): "Give it away free" is a choice on the sell chooser's first screen
+          // (?free=1), not a tick on the Price row; a free listing's row says what free means and offers "Charge for it".
+          // LEAD-OFFERS-CHOICE part (2): a priced listing's row has its own Accept offers switch.
+          priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>}
         />
 
         <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
@@ -191,8 +186,10 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         {/* What will happen, in plain words, before Post; the choices themselves are made ahead (owner 2026-10-30). */}
         <div className="space-y-1" data-sell-outcome="" data-sell-row="settings">
           <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
-            {[handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)].filter(Boolean).join(" · ")}
+            {/* LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows below with its own days and hours, not one area. */}
+            {(hasPlaces ? [handoverSummary(savedWays)] : [handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)]).filter(Boolean).join(" · ")}
           </p>
+          {hasPlaces && <MyPickupPlacesSummary />}
           {s.saved.pickup && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{s.saved.pickup.line}</p>}
           {!form.free && dropsLine && <p className="text-ds-14 font-semibold text-foreground">{dropsLine}</p>}
           {!form.free && <p className="text-ds-13 text-muted-foreground">{autoFreeOutcomeLine(autoFreeWanted)}</p>}
@@ -214,7 +211,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             </div>
           </div>
         )}
-        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
+        {/* LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing"): the pointer by the button names what blocks Post, so a
+            tap whose marked row is out of sight is never a tap that did nothing. */}
+        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Not posted yet: {bad.message} Fix what's marked above, then post.</p>}
         {postWhenWritten && (
           <div className="flex flex-wrap items-center justify-between gap-2" role="status" data-post-when-written="">
             <p className="min-w-0 flex-1 text-ds-14 text-foreground">Still writing your listing. It posts when that's done.</p>

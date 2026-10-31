@@ -2,7 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { closeUnpaidShopPages, describeDeleteError, findActiveWork, findFeeDebtOwed, purgeAccount, FEE_DEBT_BLOCKS_DELETION_MESSAGE, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
+import { closeUnpaidShopPages, DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE, describeDeleteError, findActiveWork, findFeeDebtOwed, purgeAccount, FEE_DEBT_BLOCKS_DELETION_MESSAGE, MONEY_OWED_BLOCKS_DELETION_MESSAGE, SERIES_BLOCKS_DELETION_MESSAGE, SHOPS_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 import { REAUTH_REQUIRED_CODE, REAUTH_REQUIRED_MESSAGE, REAUTH_WINDOW_SECONDS, signedInWithin } from "../_shared/recentSignIn.ts";
 
@@ -111,6 +111,8 @@ serve(async (req) => {
             ? SHOPS_BLOCKS_DELETION_MESSAGE
             : active.reason === "money_owed"
             ? MONEY_OWED_BLOCKS_DELETION_MESSAGE
+            : active.reason === "declutter_held"
+            ? DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE
             : "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },

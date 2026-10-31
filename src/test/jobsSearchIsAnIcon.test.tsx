@@ -10,6 +10,10 @@
  * the gear (the desktop's order), and the search opens in place, leftward, in that row (InlineListSearch). The
  * map stays reachable in the filter sheet's View choice (hideViewToggle is desktop-only).
  *
+ * JOBS > POSTED / WORKING (owner 2026-10-31, Jobs > Posted at 375, LEAD-SEARCH-BY-GEAR: "move it up into the tab
+ * row next to the gear"): their search icon left the end of the status chip row and ends the TABS row, right before
+ * the gear, as Browse's does. The chip row has nothing at its end. Red on f551dd2746 (the icon was in the chip row).
+ *
  * THE CLASS: every search control on the Jobs tabs (header + list header) is an icon, and the "mine" card face's
  * padding, thumb and gaps stay within Browse's measures. Red on 25fc6a8ef9: JobsSection drew the "Search all
  * sections" field under the tabs, and MineJobFace was p-4 with a 56px thumb.
@@ -19,6 +23,9 @@
  * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />\n      {phoneSearchOpen && <SearchTriggerSlot width="40px" />}\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} /> |       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />\n      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />
  * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen }) | : undefined)
  * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
+ * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header} | header() : header}
+ * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader} /> | <JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader()} />
+ * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader} /> | <JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader()} />
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
@@ -39,11 +46,17 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 vi.mock("@/pages/home/Dashboard", () => ({
   default: ({ embeddedHeader }: { embeddedHeader: (b?: { end?: ReactNode }) => ReactNode }) => <div data-testid="feed">{embeddedHeader()}</div>,
 }));
-vi.mock("@/components/job-card/JobListPage", () => ({
-  default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader?: ReactNode }) => (
-    <div data-testid={`list-${defaultTab}`}>{embeddedHeader}</div>
-  ),
-}));
+// Posted / Working draw the REAL list header (EmbeddedActivityHeader), so the tabs row is the one JobsSection builds.
+vi.mock("@/components/job-card/JobListPage", async () => {
+  const { EmbeddedActivityHeader } = await vi.importActual<typeof import("@/components/job-card/embeddedActivity")>("@/components/job-card/embeddedActivity");
+  return {
+    default: ({ defaultTab, embeddedHeader }: { defaultTab: "posted" | "applied"; embeddedHeader: import("@/components/job-card/embeddedActivity").EmbeddedHeader }) => (
+      <div data-testid={`list-${defaultTab}`}>
+        <EmbeddedActivityHeader header={embeddedHeader} tab={defaultTab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />
+      </div>
+    ),
+  };
+});
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-1" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
@@ -57,6 +70,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus
 
 import JobsSection from "@/pages/jobs/JobsSection";
 import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
+import { StatusBoxes } from "@/components/sections/StatusBoxes";
+import { InlineListSearch } from "@/components/sections/InlineListSearch";
 
 afterEach(cleanup);
 
@@ -92,40 +107,61 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
     expect(checked).toBe(3);
   });
 
-  for (const tab of ["posted", "applied"] as const) {
-    it(`${tab}: the list header carries its search as a 40px icon at the end of the status chip row (it opens in place: jobsToolbarRowIsOneRow)`, () => {
-      const { container } = wrap(
-        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
-      );
-      const link = container.querySelector<HTMLElement>("[data-jobs-search]")!;
-      expect(link, "the search icon").not.toBeNull();
-      expect(link.getAttribute("aria-label")).toBe(tab === "posted" ? "Search posted jobs" : "Search jobs you're working");
-      expect(link.getAttribute("aria-expanded")).toBe("false");
-      expect((link.textContent ?? "").trim(), "the icon shows no words").toBe("");
-      expect(link.querySelector("svg"), "a glyph").not.toBeNull();
-      expect(link.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-10", "w-10"]));
-      // Same row as the chips, outside their sideways scroll (so it never scrolls away).
-      const chips = within(container).getByRole("group", { name: "Filter by status" });
-      expect(chips.contains(link)).toBe(false);
-      expect(chips.parentElement?.contains(link)).toBe(true);
+  for (const tab of ["posted", "working"] as const) {
+    it(`${tab}: the search is a 40px icon at the END OF THE TABS ROW, right before the gear, never in the status chip row (owner 2026-10-31)`, () => {
+      const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
+      const icons = [...container.querySelectorAll<HTMLElement>("[data-jobs-search]")];
+      expect(icons, "one search icon").toHaveLength(1);
+      const icon = icons[0];
+      expect(icon.getAttribute("aria-label")).toBe(tab === "posted" ? "Search posted jobs" : "Search jobs you're working");
+      expect(icon.getAttribute("aria-expanded")).toBe("false");
+      expect((icon.textContent ?? "").trim(), "the icon shows no words").toBe("");
+      expect(icon.querySelector("svg"), "a glyph").not.toBeNull();
+      expect(icon.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-10", "w-10"]));
+      const tabsRow = within(container).getByTestId("section-tabs");
+      expect(tabsRow.contains(icon), "in the tabs row").toBe(true);
+      expect(within(tabsRow).getByRole("tablist").contains(icon), "outside the tabs' own sideways scroll").toBe(false);
+      // The control right after the search is the gear, and the gear is the row's last control.
+      const box = icon.closest<HTMLElement>("[data-activity-search-controls]")!;
+      expect(box, "the search's box").not.toBeNull();
+      const gear = within(tabsRow).getByTestId("section-settings");
+      expect(box.nextElementSibling).toBe(gear);
+      expect(tabsRow.lastElementChild).toBe(gear);
+      const chipRow = container.querySelector<HTMLElement>("[data-jobs-toolbar]")!;
+      expect(chipRow, "the status chip row").not.toBeNull();
+      expect(chipRow.querySelector("[data-jobs-search]"), "nothing searches from the chip row").toBeNull();
       expect(expandedSearchFields(container)).toEqual([]);
     });
-
-    it(`${tab}: no chip looks clipped by the icon: the row fades over at least one icon width, and its end padding lets the last chip clear the fade`, () => {
-      const { container } = wrap(
-        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
-      );
-      const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
-      const iconPx = Math.max(...icon.className.split(/\s+/).map((c) => /^w-(\d+(?:\.\d+)?)$/.exec(c)).filter(Boolean).map((m) => px(m![1])));
-      expect(iconPx).toBe(40);
-      const cls = within(container).getByRole("group", { name: "Filter by status" }).className.split(/\s+/);
-      const fade = cls.map((c) => /^\[mask-image:linear-gradient\(to_right,#000_calc\(100%-(\d+)px\),transparent\)\]$/.exec(c)).find(Boolean);
-      expect(fade, "a right-edge fade on the scrolling chip row").toBeTruthy();
-      const fadePx = Number(fade![1]);
-      expect(fadePx, "the fade is at least one icon wide").toBeGreaterThanOrEqual(iconPx);
-      expect(padOf(cls.filter((c) => !/^p[xl]-/.test(c)), "x"), "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
-    });
   }
+
+  it("with nothing at its end, the status chip row draws no fade over its chips", () => {
+    const { container } = wrap(
+      <EmbeddedActivityHeader header={() => <div />} tab="posted" statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
+    );
+    const cls = within(container).getByRole("group", { name: "Filter by status" }).className;
+    expect(cls).toContain("overflow-x-auto");
+    expect(cls).not.toMatch(/mask-image|pr-11/);
+  });
+
+  it("a status chip row that does carry an end control (StatusBoxes' `end`) fades over at least one icon width, and its end padding lets the last chip clear the fade", () => {
+    const { container } = wrap(
+      <StatusBoxes boxes={[{ key: "a", label: "Needs you", count: 1 }, { key: "b", label: "Waiting", count: 2 }]} value={null} onToggle={() => {}} allCount={3}
+        end={<InlineListSearch value="" onChange={() => {}} label="Search posted jobs" />} />,
+    );
+    const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
+    expect(icon, "the end control is drawn").not.toBeNull();
+    const chips = within(container).getByRole("group", { name: "Filter by status" });
+    expect(chips.contains(icon)).toBe(false);
+    expect(chips.parentElement?.contains(icon)).toBe(true);
+    const iconPx = Math.max(...icon.className.split(/\s+/).map((c) => /^w-(\d+(?:\.\d+)?)$/.exec(c)).filter(Boolean).map((m) => px(m![1])));
+    expect(iconPx).toBe(40);
+    const cls = chips.className.split(/\s+/);
+    const fade = cls.map((c) => /^\[mask-image:linear-gradient\(to_right,#000_calc\(100%-(\d+)px\),transparent\)\]$/.exec(c)).find(Boolean);
+    expect(fade, "a right-edge fade on the scrolling chip row").toBeTruthy();
+    const fadePx = Number(fade![1]);
+    expect(fadePx, "the fade is at least one icon wide").toBeGreaterThanOrEqual(iconPx);
+    expect(padOf(cls.filter((c) => !/^p[xl]-/.test(c)), "x"), "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
+  });
 });
 
 // ── Card spacing: the mine card face is no looser than Browse's card ──────────────────────────────────────────

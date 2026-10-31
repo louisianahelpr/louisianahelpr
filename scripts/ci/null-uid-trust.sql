@@ -39,6 +39,14 @@
 --       that each RAISE 42501 on a NULL uid first (rentals_assert_member(), or
 --       their own check in rentals_propose_visit / rentals_admin_review_property),
 --       and the p_staff branch judges the seed boundary itself before any insert.
+--   declutter_no_helpr_choice       A (reviewed 2026-10-31, lander 4): a STABLE
+--       read RPC RETURNING jsonb, not a trigger; RETURN NULL on a NULL uid hands
+--       back no refund figures (a denial) and it writes nothing. The next IF also
+--       returns NULL unless the caller is the order's buyer (buyer_id NOT NULL).
+--   helpr_task_no_show_report       A (reviewed 2026-10-31, lander 4): a STABLE
+--       read RPC RETURNING jsonb, not a trigger; RETURN NULL on a NULL uid (or a
+--       caller who is neither the task's Helpr nor the order's seller) hands back
+--       no report clock (a denial) and it writes nothing.
 --
 -- Shared by:
 --   .github/workflows/db-smoke.yml      replayed schema (deploy gate)
@@ -89,5 +97,7 @@ SELECT DISTINCT c.proname AS function_name,
                          'audit_admin_job_status_change',
                          'enforce_ban_gate',
                          'enforce_jobs_arrival_integrity',
-                         'rentals_notify')
+                         'rentals_notify',
+                         'declutter_no_helpr_choice',
+                         'helpr_task_no_show_report')
  ORDER BY 1, 2

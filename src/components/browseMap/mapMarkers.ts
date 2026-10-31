@@ -82,7 +82,29 @@ function wireButtonBehaviour(
  * reads instantly and tapping (or Entering) it zooms in.
  */
 /** `noun`: what a pin stands for, [one, many] (Declutter's map says "items"). */
-export function clusterElement(count: number, onActivate?: () => void, noun: readonly [string, string] = ["job", "jobs"]): HTMLElement {
+/**
+ * NIGHT-JOBSMA5-1 (audit 10-30 night, High): get_open_jobs_for_map rounds every point to 2 decimals (about 1 km) for
+ * privacy, so jobs in one rounded square share one coordinate and zooming can never split their cluster: the bubble
+ * stayed "2" at street level and those jobs could not be opened from the map. Members spread less than this (in
+ * degrees, about 55 m) are listed instead of zoomed into.
+ */
+const CLUSTER_SPLIT_DEG = 0.0005;
+
+/** True when zooming in can't separate a cluster's members: they all sit on (or within CLUSTER_SPLIT_DEG of) one point. */
+export function clusterCannotSplit(coords: readonly { latitude: number; longitude: number }[]): boolean {
+  if (coords.length < 2) return false;
+  const lats = coords.map((c) => c.latitude);
+  const lngs = coords.map((c) => c.longitude);
+  return Math.max(...lats) - Math.min(...lats) < CLUSTER_SPLIT_DEG && Math.max(...lngs) - Math.min(...lngs) < CLUSTER_SPLIT_DEG;
+}
+
+export function clusterElement(
+  count: number,
+  onActivate?: () => void,
+  noun: readonly [string, string] = ["job", "jobs"],
+  /** The press lists the members rather than zooming (clusterCannotSplit). */
+  lists = false,
+): HTMLElement {
   const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
   const bark = resolveToken("--bark", "#5E6544");
   const parchment = resolveToken("--parchment", "#FAF8F5");
@@ -109,7 +131,7 @@ export function clusterElement(count: number, onActivate?: () => void, noun: rea
   // reader nothing about what it is or what activating it does.
   wireButtonBehaviour(
     el,
-    `${count} ${count === 1 ? noun[0] : noun[1]} in this area — zoom in to see them`,
+    `${count} ${count === 1 ? noun[0] : noun[1]} in this area — ${lists ? "show them" : "zoom in to see them"}`,
     // A cluster only moves the camera, so pointer and keyboard do the same thing.
     () => onActivate?.(),
   );

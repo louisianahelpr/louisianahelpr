@@ -16,7 +16,8 @@ import type { RouteStop } from "@/lib/helprTasks/api";
 
 const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as string[] };
 
-vi.mock("sonner", () => ({ toast: { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() } }));
+// LEAD-TOAST3: the step confirmations are the bare toast(); toast.success stays for any other caller.
+vi.mock("sonner", () => ({ toast: Object.assign((m: string) => { state.toasts.push(m); }, { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
@@ -57,6 +58,7 @@ const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg"
 beforeEach(() => {
   state.route = ROUTE;
   state.calls = [];
+  state.toasts = [];
 });
 
 describe("My route", () => {
@@ -108,6 +110,8 @@ describe("My route", () => {
     const list = await screen.findByRole("list", { name: "Stops in order" });
     const cards = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list);
     fireEvent.change(within(cards[1]).getByLabelText(/Picked up: a photo of the item/), { target: { files: [jpeg()] } });
+    // BUY-40: the photo is picked first; its own button sends it.
+    fireEvent.click(await within(cards[1]).findByRole("button", { name: "Picked up" }));
     await waitFor(() => expect(state.calls).toContainEqual(["picked_up", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
     await waitFor(() => expect(state.toasts).toContain("Picked up. The buyer is told it's on the way."));
     const leave = within(cards[0]).getByRole("button", { name: "Left at the door" });

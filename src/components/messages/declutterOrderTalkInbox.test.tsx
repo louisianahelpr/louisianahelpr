@@ -9,7 +9,8 @@
  *   3. tapping a row opens that order's chat over Messages (?order_talk=<order id>).
  * The hook keeping the chip with Declutter off, and the list sitting above threads, are in messagesSectionTabs.test.tsx.
  *
- * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   return row.last_mine ? "You sent |   return !row.last_mine ? "You sent
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   return row.last_mine ? "You wrote |   return !row.last_mine ? "You wrote
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line="" | text-muted-foreground truncate" data-order-talk-line=""
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | {row.side === "buyer" ? "You bought this" : "You sold this"} | {"You bought this"}
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |                   {!row.open && <span |                   {false && <span
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   if (rows.length === 0) return <>{empty}</>; |   if (rows.length === 0) return null;
@@ -74,17 +75,30 @@ describe("Messages -> Declutter: the order chats", () => {
     const rows = await screen.findAllByRole("button");
     expect(rows).toHaveLength(2);
     expect(rows[0].textContent).toContain("Brass lamp");
-    expect(rows[0].textContent).toContain("You bought this · The seller sent the last message");
+    expect(rows[0].textContent).toContain("You bought this · The seller wrote last");
     expect(rows[0].textContent).not.toContain("Ended");
     expect(rows[1].textContent).toContain("Oak chair");
-    expect(rows[1].textContent).toContain("You sold this · You sent the last message");
+    expect(rows[1].textContent).toContain("You sold this · You wrote last");
     expect(rows[1].textContent).toContain("Ended");
     expect(screen.queryByText("EMPTY STATE")).toBeNull();
   });
 
+  it("AUD31-14: the who-wrote-last line is short and may wrap, never cut at 375", async () => {
+    state.rows = [row({})];
+    const { container } = show(<p>EMPTY STATE</p>);
+    await screen.findAllByRole("button");
+    const l = container.querySelector("[data-order-talk-line]")!;
+    expect(l.className).not.toContain("truncate");
+    expect(l.className).toContain("line-clamp-2");
+    for (const side of ["buyer", "seller"] as const) for (const last_mine of [true, false]) {
+      const words = `${side === "buyer" ? "You bought this" : "You sold this"} · ${orderTalkRowLine({ side, last_mine })}`;
+      expect(words.length, words).toBeLessThanOrEqual(40); // "· The seller sent the last message" was 50
+    }
+  });
+
   it("the row line names the other side by role only", () => {
-    expect(orderTalkRowLine({ side: "seller", last_mine: false })).toBe("The buyer sent the last message");
-    expect(orderTalkRowLine({ side: "buyer", last_mine: true })).toBe("You sent the last message");
+    expect(orderTalkRowLine({ side: "seller", last_mine: false })).toBe("The buyer wrote last");
+    expect(orderTalkRowLine({ side: "buyer", last_mine: true })).toBe("You wrote last");
   });
 
   it("no chats: the chip's own empty state, and not before the answer is in", async () => {

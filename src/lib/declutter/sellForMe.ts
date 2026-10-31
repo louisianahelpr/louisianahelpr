@@ -24,6 +24,18 @@ export function sellForMePostJobPath(): string {
 /** The job category option A posts in (migration 20261019210635). */
 const SELL_FOR_ME_JOB_CATEGORY: JobCategory = "declutter_help";
 
+/** A job posted through option A (any Declutter Help job). */
+export function isSellForMeJob(category: string | null | undefined): boolean {
+  return category === SELL_FOR_ME_JOB_CATEGORY;
+}
+
+/**
+ * POST-H3 (posting audit 10-30 #3): the finished job leads to what it was for. The seller's own listings
+ * (Declutter, Selling): what sold, and for what didn't, the item's own Lower price, Give it away free and
+ * haul-away, which already live there.
+ */
+export const SELL_FOR_ME_LISTINGS_PATH = "/declutter?tab=selling";
+
 /** The Shops category option B lists (migration 20261019210636). */
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
 
@@ -38,14 +50,51 @@ const SELL_FOR_ME_TITLE = "Help me list my things to sell";
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =
   "You help take the photos and write the listings; I post them from my account.";
 
-/** The description template the poster fills in (under the 1000-character cap). */
+/**
+ * POST-H3 photo hand-off: a Helpr who shoots on their own phone sends the photos in the job's chat (it takes
+ * photos: MessageBubble / ChatView attachments); the seller saves them and picks them when posting. No new path.
+ */
+export const SELL_FOR_ME_PHOTO_LINE = "Photos you take on your phone: send them to me in our job chat.";
+
+/**
+ * The description template the poster fills in (under the 1000-character cap). POST-H15 (posting audit 10-30 #15):
+ * its three blanks were empty line ends, so Continue went on with all three blank and a Helpr got "How many items:
+ * about " and nothing after it. Each blank is a [placeholder] now: Post a Job's details step refuses one left as it
+ * is (detailsBlocker's "Replace the [placeholders] to continue") and the field says why.
+ */
+/**
+ * POST-H15 (left part): the three blanks, each answered in its own field on Post a Job's details step
+ * (SellForMeBlanks), which writes the answer into its line of the description. The labels are the lines' own words.
+ */
+export const SELL_FOR_ME_BLANKS = [
+  { key: "count", label: "How many items", placeholder: "[about how many]" },
+  { key: "size", label: "Rough size", placeholder: "[small things, furniture or a mix]", choices: ["Small things", "Furniture", "A mix"] },
+  { key: "pickups", label: "Also handle pickups with buyers", placeholder: "[yes or no]", choices: ["Yes", "No"] },
+] as const;
+export type SellForMeBlank = (typeof SELL_FOR_ME_BLANKS)[number];
+
+const blankLine = (b: SellForMeBlank) => new RegExp(`^${b.label}:[ \\t]*(.*)$`, "m");
+
+/** The answer on the blank's line ("" while it is still the [placeholder]); null when the line is gone. */
+export function sellForMeBlankValue(description: string, b: SellForMeBlank): string | null {
+  const m = blankLine(b).exec(description);
+  if (!m) return null;
+  const v = m[1].trim();
+  return v === b.placeholder ? "" : v;
+}
+
+/** The description with the blank's line answered; an empty answer puts the [placeholder] back. Unchanged if the line is gone. */
+export function fillSellForMeBlank(description: string, b: SellForMeBlank, value: string): string {
+  const v = value.replace(/[\r\n]+/g, " ").trim();
+  return description.replace(blankLine(b), () => `${b.label}: ${v || b.placeholder}`);
+}
+
 const SELL_FOR_ME_DESCRIPTION = [
   "I'd like help selling things I no longer need on Declutter.",
   "",
-  "How many items: about ",
-  "Rough size (small things, furniture or a mix): ",
-  "Also handle pickups with buyers (yes or no): ",
+  ...SELL_FOR_ME_BLANKS.map((b) => `${b.label}: ${b.placeholder}`),
   "",
+  SELL_FOR_ME_PHOTO_LINE,
   SELL_FOR_ME_NO_ACCOUNT_LINE,
 ].join("\n");
 

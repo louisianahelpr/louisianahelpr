@@ -18,18 +18,24 @@
  * tests fail (neither exists). Behaviour: src/test/pglite/newMemberNoticeOnConfirm.pglite.mjs;
  * complete-signup itself: src/test/edge/complete-signup-new-member-notice.test.ts.
  *
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_confirmed IS NULL THEN\n    RETURN 'not_confirmed'; |   IF false THEN\n    RETURN 'not_confirmed';
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   ON CONFLICT (user_id) DO NOTHING\n  RETURNING user_id INTO v_claimed; |   ON CONFLICT (user_id) DO UPDATE SET via = EXCLUDED.via\n  RETURNING user_id INTO v_claimed;
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_confirmed IS NULL THEN\n    RETURN 'not_confirmed'; |   IF false THEN\n    RETURN 'not_confirmed';
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   ON CONFLICT (user_id) DO NOTHING\n  RETURNING user_id INTO v_claimed; |   ON CONFLICT (user_id) DO UPDATE SET via = EXCLUDED.via\n  RETURNING user_id INTO v_claimed;
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   WHEN (OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL) |   WHEN (NEW.email_confirmed_at IS NOT NULL)
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   AFTER UPDATE OF email_confirmed_at ON auth.users\n  FOR EACH ROW\n  WHEN | AFTER INSERT ON auth.users\n  FOR EACH ROW\n  WHEN
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   EXCEPTION WHEN OTHERS OR query_canceled THEN | EXCEPTION WHEN division_by_zero THEN
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   EXCEPTION WHEN OTHERS OR query_canceled THEN |   EXCEPTION WHEN OTHERS THEN
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | SET lock_timeout TO '3s' | SET lock_timeout TO '0'
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |     RETURN 'wipe_failed'; |     NULL;
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF false THEN
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | ' just joined and can post and apply now.', | ' just joined. They can start posting + applying as soon as they confirm their email.',
- * @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | SET lock_timeout TO '3s' | SET lock_timeout TO '0'
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |     RETURN 'wipe_failed'; |     NULL;
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |   IF v_count = 0 AND v_deleted = 0 THEN | IF false THEN
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |            OR NOT EXISTS (SELECT 1 FROM public.profiles p | OR false AND NOT EXISTS (SELECT 1 FROM public.profiles p
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |        AND (public.is_test_subject(n.user_id) |        AND (false
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |    WHERE user_id = ANY (v_ids); |    WHERE false;
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | '11 13 * * *' | '11 * * * *'
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |         UPDATE public.notifications x\n           SET message = public.daily_member_summary_message(v_ids, v_deleted) |         UPDATE public.notifications x\n           SET message = message
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |      WHERE user_id = NEW.user_id AND summarized_at IS NULL; |      WHERE false;
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -42,7 +48,7 @@ const MIG = join(ROOT, "supabase", "migrations");
 const FNS = join(ROOT, "supabase", "functions");
 const defs = effectiveDefs(MIG);
 const code = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
-const TITLE = /New member joined/;
+const TITLE = /New member (joined|summary)/;
 const migrationSql = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()
   .map((f) => blankSqlComments(readFileSync(join(MIG, f), "utf8"))).join("\n");
 
@@ -71,7 +77,8 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     // functions and 200+ edge sources.
     expect(defs.size).toBeGreaterThan(500);
     expect(edgeFiles.length).toBeGreaterThan(100);
-    expect(sqlWriters).toEqual(["notify_admins_new_member"]);
+    // Owner 2026-10-30: one daily summary. notify_admins_new_member only queues now.
+    expect(sqlWriters).toEqual(["send_new_member_daily_summary"]);
   });
 
   it("no edge function writes it (complete-signup used to, at signup)", () => {
@@ -84,10 +91,10 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     const c = code("notify_admins_new_member");
     const confirmedGate = c.search(/IF\s+v_confirmed\s+IS\s+NULL\s+THEN\s+RETURN\s+'not_confirmed'/i);
     const claim = c.search(/INSERT\s+INTO\s+public\.new_member_admin_notices[\s\S]*?ON\s+CONFLICT\s*\(\s*user_id\s*\)\s+DO\s+NOTHING\s+RETURNING\s+user_id\s+INTO\s+v_claimed/i);
-    const send = c.search(/INSERT\s+INTO\s+public\.notifications/i);
     expect(confirmedGate).toBeGreaterThan(-1);
     expect(claim).toBeGreaterThan(confirmedGate);
-    expect(send).toBeGreaterThan(claim);
+    // It queues; only the daily summary writes a notification.
+    expect(c).not.toMatch(/INSERT\s+INTO\s+public\.notifications/i);
     expect(c).toMatch(/IF\s+v_claimed\s+IS\s+NULL\s+THEN\s+RETURN\s+'already_sent'/i);
     // Owner 2026-10-27 ("test stuff should never be shown"): ANY is_seed account
     // is skipped (20261027154114), not only one enrolled in test_accounts.
@@ -99,9 +106,31 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     expect(c.indexOf("RETURN 'wipe_failed'")).toBeLessThan(c.indexOf("INSERT INTO public.new_member_admin_notices"));
     // It runs inside GoTrue's confirm: a lock wait must fail fast, not time the confirm out.
     expect(defs.get("notify_admins_new_member")?.stmt ?? "").toMatch(/SET\s+lock_timeout\s+TO\s+'3s'/i);
-    // The owner's wording, and the title every downstream rule keys on.
-    expect(c).toContain("' just joined and can post and apply now.'");
+    // The earlier one-by-one title still counts as announced.
     expect(c).toContain("'New member joined'");
+  });
+
+  it("the daily summary sends one notice, skips test subjects at send time, and runs daily", () => {
+    const c = code("send_new_member_daily_summary");
+    expect(c).toContain("'New member summary'");
+    expect(c).toMatch(/public\.is_test_subject\(n\.user_id\)/);
+    expect(c).toMatch(/NOT\s+coalesce\(p\.is_seed,\s*false\)/);
+    expect(c).toMatch(/p\.anonymized_at\s+IS\s+NULL/);
+    expect(c).toMatch(/OR\s+NOT\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.profiles\s+p/);
+    expect(c).toMatch(/IF\s+v_count\s*=\s*0\s+AND\s+v_deleted\s*=\s*0\s+THEN/);
+    expect(c).toMatch(/WHERE\s+user_id\s*=\s*ANY\s*\(v_ids\)/);
+    expect(migrationSql).toMatch(/cron\.schedule\('new-member-daily-summary',\s*'11 13 \* \* \*'/);
+    expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.send_new_member_daily_summary\(\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
+  });
+
+  it("marked a test account after a summary: their name leaves it, and a pending row is never named (owner: test data never reaches her)", () => {
+    const t = code("retract_new_member_notice_for_test_account").replace(/\s+/g, " ");
+    expect(defs.get("retract_new_member_notice_for_test_account")?.file ?? "").toContain("20261031205315");
+    expect(t).toContain("UPDATE public.notifications x SET message = public.daily_member_summary_message(v_ids, v_deleted)");
+    expect(t).toContain("AND x.title = 'New member summary' AND x.created_at = v_at;");
+    expect(t).toMatch(/IF v_ids IS NULL AND v_deleted = 0 THEN DELETE FROM public\.notifications x/);
+    expect(t).toContain("WHERE user_id = NEW.user_id AND summarized_at IS NULL;");
+    expect(code("send_new_member_daily_summary")).toContain("public.daily_member_summary_message(v_ids, v_deleted)");
   });
 
   it("fires on the confirmation itself (NULL -> set), and a failure never breaks the confirmation", () => {

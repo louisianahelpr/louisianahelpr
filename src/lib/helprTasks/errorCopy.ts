@@ -86,6 +86,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
+    delivery_on_the_way: DC.delivery_on_the_way,
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,
     invalid_status: DC.invalid_status,
@@ -222,6 +223,19 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_active: "This delivery has no Helpr on it right now.",
     task_not_found: DC.task_not_found,
   },
+  // The seller's one move of a Helpr's pickup (BUY-42, 20261031095846).
+  helpr_task_seller_move_pickup: {
+    account_restricted: DC.account_restricted,
+    already_moved: "You can move a Helpr's pickup once. Message the Helpr if this time still doesn't work.",
+    feature_disabled: DC.feature_disabled,
+    invalid_slot: "Pick a new time at least 2 hours away, inside your pickup times.",
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    problem_open: DC.problem_open,
+    task_not_active: "This delivery has no Helpr booked to pick it up right now.",
+    task_not_found: DC.task_not_found,
+    too_late: "The pickup time has started. Message the Helpr instead.",
+  },
   helpr_task_pickup_no_show: {
     account_restricted: DC.account_restricted,
     location_required: DC.location_required,
@@ -248,7 +262,9 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_active: DC.task_not_active,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
-    already_picked_up: DC.already_picked_up,
+    // AUD31-9: the Helpr pressing Back out after the pickup (a stale page) has the item; the buyer picked up nothing.
+    // The server's own hint (helpr_task_release, 20261031102758).
+    already_picked_up: "You already have the item. Deliver it, or report a problem.",
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,

@@ -22,7 +22,7 @@ describe("every main-tab empty page wears its own nav icon in the shared circle"
   });
   it("Messages: the Messages nav icon, and no illustration in its place", () => {
     const s = src("src/components/messages/ConversationList.tsx");
-    const block = s.slice(s.indexOf('title="No messages yet"') - 400, s.indexOf('title="No messages yet"'));
+    const block = s.slice(s.indexOf('title={t("chat.emptyTitle")}') - 400, s.indexOf('title={t("chat.emptyTitle")}'));
     expect(block).toMatch(/icon=\{navIconFor\("\/messages"\)\}/);
     expect(block).not.toMatch(/illustration=/);
   });

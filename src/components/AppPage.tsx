@@ -70,11 +70,13 @@ interface AppPageProps {
    * 2026-10-30: the item page lost its back and heart buttons on scroll).
    */
   stickyHeader?: boolean;
+  /** Phone: a long title wraps onto a second line instead of ending in "..." (PageHeader's `wrapTitle`). */
+  wrapTitle?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyHeader, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyHeader, wrapTitle, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -115,7 +117,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyH
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
               {children}
             </ProfileTabBody>
           </div>

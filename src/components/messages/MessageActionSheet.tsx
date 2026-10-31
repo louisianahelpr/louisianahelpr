@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { Ban, Copy, Flag, Pencil, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
@@ -87,7 +89,7 @@ export function MessageActionSheet({
         await navigator.clipboard.writeText(message.content);
       }
     } catch {
-      toast.error("Couldn't copy that message.");
+      toast.error(t("chat.copyFailed"));
     }
     onClose();
   };
@@ -129,7 +131,7 @@ export function MessageActionSheet({
             DialogHero). This block used to compose the eyebrow → title parts
             inline because SheetHero did not exist yet; hand-copying the tokens
             is what let four sheets drift to four different title sizes. */}
-        <SheetHero title="What next?" />
+        <SheetHero title={t("chat.whatNext")} />
         {/* Tapbacks — the row sits ABOVE the action list because it is the
             thing people reach for most, and because a horizontal emoji strip
             reads as a different KIND of control than the stacked destructive
@@ -159,14 +161,14 @@ export function MessageActionSheet({
           {onReply && (
             <ActionRow
               icon={<Reply className="w-5 h-5" strokeWidth={2} />}
-              label="Reply"
+              label={t("chat.reply")}
               onClick={() => { hapticLight(); onReply(message); onClose(); }}
             />
           )}
           {canCopy && (
             <ActionRow
               icon={<Copy className="w-5 h-5" strokeWidth={2} />}
-              label="Copy"
+              label={t("chat.copy")}
               onClick={handleCopy}
             />
           )}
@@ -175,13 +177,13 @@ export function MessageActionSheet({
               {canEdit && (
                 <ActionRow
                   icon={<Pencil className="w-5 h-5" strokeWidth={2} />}
-                  label="Edit"
+                  label={t("chat.edit")}
                   onClick={handleEdit}
                 />
               )}
               <ActionRow
                 icon={<Trash2 className="w-5 h-5" strokeWidth={2} />}
-                label="Delete"
+                label={t("chat.delete")}
                 onClick={handleDelete}
                 tone="danger"
               />
@@ -195,13 +197,13 @@ export function MessageActionSheet({
             <>
               <ActionRow
                 icon={<Flag className="w-5 h-5" strokeWidth={2} />}
-                label="Report"
+                label={t("chat.report")}
                 onClick={handleReport}
                 tone="danger"
               />
               <ActionRow
                 icon={<Ban className="w-5 h-5" strokeWidth={2} />}
-                label="Block"
+                label={t("chat.block")}
                 onClick={handleBlock}
                 tone="danger"
               />

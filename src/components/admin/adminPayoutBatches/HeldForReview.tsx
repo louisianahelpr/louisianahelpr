@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,7 @@ import { formatPriceExact } from "@/lib/format";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { adminSettleHeldShopRefund } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { heldReasonWords } from "./heldReason";
 
 export type HeldRow = {
   kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund";
@@ -58,6 +60,20 @@ async function fetchHeld(): Promise<HeldRow[]> {
   return ((Array.isArray(data) ? data : []) as unknown as HeldRow[]).filter((r) => r && r.kind in KIND_LABEL && typeof r.id === "string");
 }
 
+/** Payee names for the held rows (AUD31-43: a bare user id told the admin nothing). A failed read shows the ids alone. */
+async function fetchPayeeNames(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  // unwrap keeps the HTTP status the retry policy reads (src/lib/queryRetry.ts).
+  const data = unwrap(await supabase.from("profiles").select("user_id, full_name").in("user_id", ids));
+  const out: Record<string, string> = {};
+  for (const p of (data ?? []) as Array<{ user_id: string; full_name: string | null }>) {
+    if (p.full_name?.trim()) out[p.user_id] = p.full_name.trim();
+  }
+  return out;
+}
+
+const money = (cents: number) => `$${formatPriceExact(cents / 100)}`;
+
 type Draft = { row: HeldRow; action: "release" | "settle"; note: string; ref: string; amount: string; confirmed: boolean };
 
 /** "12.34" -> 1234; anything else -> null. */
@@ -70,6 +86,12 @@ function toCents(v: string): number | null {
 export function HeldForReview() {
   const qc = useQueryClient();
   const { data: rows, isLoading, error } = useQuery({ queryKey: ["admin", "payouts-held-for-review"], queryFn: fetchHeld });
+  const payeeIds = Array.from(new Set((rows ?? []).map((r) => r.payee_id).filter((v): v is string => !!v))).sort();
+  const { data: names } = useQuery({
+    queryKey: ["admin", "payouts-held-for-review", "payee-names", payeeIds],
+    queryFn: () => fetchPayeeNames(payeeIds),
+    enabled: payeeIds.length > 0,
+  });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -127,19 +149,19 @@ export function HeldForReview() {
         {(rows ?? []).map((r) => (
           <li key={`${r.kind}-${r.id}`} className="rounded border p-2 text-sm" data-testid="held-row">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span>{KIND_LABEL[r.kind]} · {formatPriceExact(r.amount_cents / 100)}</span>
+              <span>{KIND_LABEL[r.kind]} · {money(r.amount_cents)}</span>
               <span className="text-xs text-muted-foreground">{r.stripe_group ?? "no Stripe group"}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Payee {r.payee_id ?? "deleted"} · payout account {r.payee_account ?? "none"}
+              Payee {r.payee_id ? `${names?.[r.payee_id] ?? "name not loaded"} (${r.payee_id})` : "deleted"} · payout account {r.payee_account ?? "none"}
             </p>
-            <p className="text-xs text-muted-foreground">{r.reason ?? "No reason recorded"}</p>
+            <p className="text-xs text-muted-foreground break-words">{heldReasonWords(r.reason)}</p>
             {(r.sibling_refs ?? []).length > 0 && (
               <p className="text-xs" data-testid="held-siblings">
-                Already used by this payee's other payouts (never reuse): {(r.sibling_refs ?? []).map((s) => `${s.ref} (${formatPriceExact(s.amount_cents / 100)})`).join(", ")}
+                Already used by this payee's other payouts (never reuse): {(r.sibling_refs ?? []).map((s) => `${s.ref} (${money(s.amount_cents)})`).join(", ")}
               </p>
             )}
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setDraft({ row: r, action: "release", note: "", ref: "", amount: "", confirmed: false })}>Release to automatic</Button>
               <Button size="sm" variant="outline"
                 onClick={() => setDraft({ row: r, action: "settle", note: "", ref: "", amount: (r.amount_cents / 100).toFixed(2), confirmed: false })}>
@@ -166,7 +188,7 @@ export function HeldForReview() {
                     ? "I confirmed in Stripe that no transfer or refund for this row was made outside the app"
                     : "I checked this Stripe id (or payment) is for this row: the right payee and amount"}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" disabled={!canSubmit(draft)} onClick={submit}>
                     {draft.action === "release" ? "Release" : "Mark settled"}
                   </Button>

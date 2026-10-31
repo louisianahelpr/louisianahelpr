@@ -20,7 +20,7 @@ it in Admin -> Settings.
 - Per item, delivery can be switched off (on by default).
 
 ## Buyer side (checkout)
-Choices, in order, each only when available: "Porch or safe place", pickup at the seller's home, the seller delivers,
+Choices, in order, each only when available: "Porch pickup" (porch or another safe place; BUY-14), pickup at the seller's home, the seller delivers,
 Helpr delivery.
 - The seller delivers: shows the rate; the buyer enters the delivery address (geocoded on the server), picks a day
   and time from the seller's open slots, and chooses "Leave it at my door" (the seller leaves it with a photo; it

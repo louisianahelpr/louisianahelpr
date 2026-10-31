@@ -1,3 +1,5 @@
+import { unwrap } from "@/lib/supabaseResult";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { ConfigCheck } from "./useConfigChecks";
@@ -21,6 +23,29 @@ const TONE: Record<string, ConfigCheck["tone"]> = {
   warning: "warn",
   info: "unknown",
 };
+
+/**
+ * How many open ledger items are serious (a warning or a note is not): the
+ * number the admin home reads before it may call the platform calm. Same ledger
+ * and same "open" as the list below. A failed read throws, so the page shows it
+ * as a data error, never as a confident zero.
+ */
+export const useSeriousOpenAlertCount = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["admin-open-alerts", "serious-count"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const result = await supabase
+        .from("ops_alert_ledger")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "closed")
+        .in("severity", ["fatal", "critical", "error"]);
+      unwrap(result);
+      if (result.count === null) throw new Error("The alert ledger returned no count");
+      return result.count;
+    },
+  });
 
 export const useOpenAlerts = () =>
   useInstantQuery<ConfigCheck[]>({

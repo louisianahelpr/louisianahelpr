@@ -79,6 +79,10 @@ describe("nextPriceDrop follows declutter_price_drop_sweep", () => {
 
   it("never for a fixed-price, reserved or not-yet-live item, or one with no cent left to drop", () => {
     expect(nextPriceDrop({ ...LIVE, sale_mode: "fixed" }, NOW)).toBeNull();
+    // POST-DROPFLAG: a seller's stop hides the line at once, not after the next sweep passes it over.
+    expect(nextPriceDrop({ ...LIVE, drops_stopped: true }, NOW)).toBeNull();
+    expect(nextPriceDrop({ ...LIVE, drops_stopped: false }, NOW)).not.toBeNull();
+    expect(nextPriceDrop({ ...LIVE, drops_stopped: null }, NOW)).not.toBeNull();
     expect(nextPriceDrop({ ...LIVE, sale_mode: null }, NOW)).toBeNull();
     expect(nextPriceDrop({ ...LIVE, status: "reserved" }, NOW)).toBeNull();
     expect(nextPriceDrop({ ...LIVE, live_at: null }, NOW)).toBeNull();

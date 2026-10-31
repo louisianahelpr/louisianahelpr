@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
@@ -195,9 +197,8 @@ export function ChatView({
   }, [embedded, activeConvo.jobId, activeConvo.otherUserId]);
   // Open the snooze picker for the active thread.
   const [muteSheetOpen, setMuteSheetOpen] = useState(false);
-  // Single-photo lightbox for tapped chat images — keeps the photo inside
-  // the app's frosted viewer instead of punting to a system browser tab
-  // (window.open in a Capacitor WebView leaves the app).
+  // Single-photo lightbox for tapped chat images — keeps the photo inside the app's frosted viewer instead of
+  // punting to a system browser tab (window.open in a Capacitor WebView leaves the app).
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   // Message whose long-press action sheet is open (null = closed). One
   // shared sheet for the whole thread, mirroring JobQuickActionSheet.
@@ -222,7 +223,7 @@ export function ChatView({
       setEditSecondsLeft(Math.max(remaining, 0));
       if (remaining <= 0) {
         setEditingMessage(null);
-        toast.error("The 15-minute edit window closed — that change wasn't saved.");
+        toast.error(t("chat.editClosed"));
       }
     };
     tick();
@@ -232,7 +233,7 @@ export function ChatView({
   const saveEdit = async () => {
     if (!editingMessage) return;
     if (editDraft.length > MESSAGE_MAX_LENGTH) {
-      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      toast.error(t("chat.limit", { count: MESSAGE_MAX_LENGTH.toLocaleString() }));
       return;
     }
     setSavingEdit(true);

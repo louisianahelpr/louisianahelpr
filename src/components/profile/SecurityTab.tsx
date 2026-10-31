@@ -15,6 +15,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Mail, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
+import { ShakeToReportCard } from "@/components/profile/ShakeToReportCard";
 import { Switch } from "@/components/ui/switch";
 import {
   APP_LOCK_GRACE_OPTIONS,
@@ -32,6 +33,7 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { PasswordResetCard } from "@/components/profile/PasswordResetCard";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
+import { EmailWaitingLine, usePendingEmail } from "@/components/profile/EmailChangeWaiting";
 import { SignInMethodsCard } from "@/components/profile/SignInMethodsCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -107,6 +109,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // AUD31-70: the address a change is waiting on (EmailChangeWaiting.tsx).
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const waitingFor = usePendingEmail(sentTo);
   // Prevents double-submit on the "Reset password" button — the Supabase
   // call is async and users on slow connections can tap twice.
 
@@ -126,6 +131,10 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     if (!validateEmail(trimmed)) {
       setEmailError("That doesn't look like a valid email — check the address and try again.");
+      return;
+    }
+    if (email && trimmed.toLowerCase() === email.trim().toLowerCase()) {
+      setEmailError("That's already your email.");
       return;
     }
     setEmailError("");
@@ -154,6 +163,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     setSubmitting(false);
     setEmailDialogOpen(false);
+    setSentTo(trimmed);
     // The dialog just closes on success — without this the user has no cue
     // that a confirmation email is now sitting in the NEW inbox.
     confirmConsequential(`Check ${trimmed} to confirm your new address.`);
@@ -217,6 +227,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <ProfileTabHeader
         title={TAB_TITLES.security}
         onBack={onBack}
+        wrapTitle
       />
 
       {/* Change-email dialog — replaces the native prompt(). iOS keyboard
@@ -279,7 +290,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               onClick={handleEmailChange}
               disabled={submitting || !newEmail.trim()}
             >
-              {submitting ? "Sending…" : "Confirm Change"}
+              {submitting ? "Sending…" : "Confirm change"}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
@@ -334,8 +345,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               Email address
             </h2>
             {email && (
-              <p className="text-ds-12 font-medium text-foreground truncate mt-0.5">{email}</p>
+              <p className="text-ds-12 font-medium text-foreground [overflow-wrap:anywhere] mt-0.5">{email}</p>
             )}
+            <EmailWaitingLine waitingFor={waitingFor} email={email} />
           </div>
           <Button
             size="sm"
@@ -367,6 +379,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           already guards individual money actions; this guards the app itself.
           Card structure copied from "Active sessions" below so the two read as
           siblings rather than one-offs. */}
+      <ShakeToReportCard />
       {/* `isAppLockSupported()`, not the raw `isNativePlatform`: it is the same
           `isNativePlatform` in every production build, but it ALSO honours the
           dev-only `?app_lock_demo=1` harness that `AppLockGate` already gates

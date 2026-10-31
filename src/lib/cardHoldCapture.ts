@@ -30,7 +30,7 @@ type HoldCapture =
   | { kind: "error"; message: string };
 
 const WAITING_FALLBACK = "This job is waiting on payment. We've let the person who posted it know.";
-const UNKNOWN = "Couldn't finish your accept. Pull to refresh to see where it stands.";
+const UNKNOWN = "Couldn't finish your accept. Refresh the page to see where it stands.";
 
 /** The hire on a held card, done by create-payment capture_hold. Never throws. */
 async function captureHeldCard(jobId: string): Promise<HoldCapture> {

@@ -16,6 +16,24 @@ describe("saved searches in plain words (board 91)", () => {
     expect(defaultName({ section: "jobs", query: "", category: null })).toBe("Everything in Jobs");
   });
 
+  // SS-7 (saved audit 10-30): a long search was cut mid-word with no closing quote ("…eight matching chai").
+  // @mutate src/lib/savedSearches.ts |   const words = (atWord > 0 ? cut.slice(0, atWord) : q.slice(0, room)).trimEnd(); |   const words = q.slice(0, room);
+  // @mutate src/lib/savedSearches.ts |   return `“${words}…”${where}`; |   return `“${words}${where}`;
+  it("a long search is cut at a word, with an ellipsis and its closing quote, within 60", () => {
+    const long = "antique mahogany dining room table with eight matching chairs and a hutch";
+    const name = defaultName({ section: "declutter", query: long, category: null });
+    expect(name).toBe("“antique mahogany dining room table with…” in Declutter");
+    expect(name.length).toBeLessThanOrEqual(60);
+    expect(name.length).toBeGreaterThan(40);
+    // One unbroken word longer than the room is cut, still closed.
+    const one = defaultName({ section: "jobs", query: "x".repeat(80), category: null });
+    expect(one).toMatch(/^“x+…” in Jobs$/);
+    expect(one.length).toBeLessThanOrEqual(60);
+    // At exactly the limit nothing is cut.
+    const fits = "a".repeat(60 - " in Jobs".length - 2);
+    expect(defaultName({ section: "jobs", query: fits, category: null })).toBe(`“${fits}” in Jobs`);
+  });
+
   it("each row says its channel, then its filters", () => {
     expect(rowSummary(base)).toBe("Email · within 25 mi · under $100");
     expect(rowSummary({ ...base, notify_email: false, radius_miles: 40, max_budget: null })).toBe("App only · within 40 mi");
@@ -30,7 +48,7 @@ describe("saved searches in plain words (board 91)", () => {
   });
 
   it("a Jobs search opens Jobs Browse with the dashboard's own params", () => {
-    expect(resultsPath({ ...base, section: "jobs", category: "yard_work", min_budget: 50 })).toBe("/jobs?q=chair&cat=yard_work&min=50&max=100&loc=nearby%3A25");
+    expect(resultsPath({ ...base, section: "jobs", category: "yard_work", min_budget: 50 })).toBe("/jobs?tab=browse&q=chair&cat=yard_work&min=50&max=100&loc=nearby%3A25");
   });
 
   it("a bad URL value is no filter, not a wrong one", () => {

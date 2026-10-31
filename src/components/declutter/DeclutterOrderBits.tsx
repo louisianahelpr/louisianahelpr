@@ -1,9 +1,12 @@
-/** Two self-contained pieces of the paid-order card (split out of DeclutterHandoverViews.tsx to keep it under the size line). */
+/** Self-contained pieces of the paid-order card (split out of DeclutterHandoverViews.tsx to keep it under the size line). */
 import { useQueries } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { CartLine } from "@/lib/declutter/api";
 import { fetchItemAddress } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
+import { PickupStatus } from "./DeclutterPorchHandover";
+import type { PaidOrder } from "./paidOrders";
 
 /**
  * The exact address is stored per ITEM, so a multi-item order can have more
@@ -46,11 +49,32 @@ export function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
     <div className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
       <p className="font-medium text-foreground">Pickup at the door</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-4">
-        <li>Pick a daytime slot.</li>
-        <li>Bring someone with you{side === "seller" ? ", or have someone home" : ""}.</li>
+        {/* Night audit sold states #3: the buyer picks the slot; the seller is never told to. */}
+        {side === "buyer" && <li>Pick a daytime slot.</li>}
+        <li>{side === "seller" ? "Have someone home with you." : "Bring someone with you."}</li>
         <li>Meet at the door; nobody needs to go inside.</li>
         {side === "buyer" && <li>Too big to carry? Add a Helpr below.</li>}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * NIGHT-SELL-soldstates-3 (B18's order): on the seller's open pickup sale, the money note and Message the buyer
+ * come AFTER the next actions (DeclutterHandoverViews' OrderCard renders this only when sellerNextFirst).
+ */
+export function SellerAfterActions({ order, booking, itemsCents, problemOpen, refunded }: {
+  order: PaidOrder;
+  booking: { slot_start?: string | null; pickup_day?: string | null } | null | undefined;
+  itemsCents: number;
+  problemOpen: boolean;
+  refunded: boolean;
+}) {
+  return (
+    <div className="space-y-3" data-seller-after-actions="">
+      <PickupStatus orderId={order.orderId} handover={order.handover as "porch" | "pickup_home" | "meetup"} side="seller" slot={booking?.slot_start ?? null}
+        day={booking?.pickup_day ?? null} itemsCents={itemsCents} problemOpen={problemOpen} refunded={refunded} part="money" />
+      <OrderTalkButton orderId={order.orderId} side={order.side} />
     </div>
   );
 }

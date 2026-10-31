@@ -16,6 +16,7 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerTalks } from "./DeclutterHandoverTalk";
+import { DeclutterNotice } from "./declutterUi";
 
 /** The words for one kind of waiting line: a paid sale, or a free item someone claimed. */
 const WORDS = {
@@ -54,7 +55,8 @@ export function useWaitingChipLabel(): string {
   return free === waiting.length ? "Claimed" : "Waiting";
 }
 
-export function SalesWaiting() {
+/** `emptyNotice`: on the seller's own chip (NIGHT-SELL-Sellinglist-3: an empty "To be paid" chip was a blank page). */
+export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } = {}) {
   const qc = useQueryClient();
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const [asking, setAsking] = useState<{ itemId: string; kind: Kind } | null>(null);
@@ -63,7 +65,7 @@ export function SalesWaiting() {
     onSettled: () => setAsking(null),
     onSuccess: (n, { kind }) => {
       // A free claim gives no strike (20261030132149), so its toast names no strike count.
-      toast.success(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
+      toast(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
       // The same as DeclutterTradeViews' invalidateTrades (not imported: that file imports this one).
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -74,7 +76,7 @@ export function SalesWaiting() {
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
-  if (waiting.length === 0) return null;
+  if (waiting.length === 0) return emptyNotice && cart.isSuccess ? <DeclutterNotice title="Nothing waiting to be paid right now." /> : null;
   const groups: [Kind, CartLine[]][] = [
     ["paid", waiting.filter((l) => l.price_cents !== 0)],
     ["free", waiting.filter((l) => l.price_cents === 0)],

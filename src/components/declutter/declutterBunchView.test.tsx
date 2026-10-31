@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" "); |       const note = notSorted;
- * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" | alt="" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb=""
+ * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | alt="" draggable={false} loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" | alt="" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb=""
  * @mutate src/components/declutter/useBunchThumbs.ts |         const url = URL.createObjectURL(await bunchThumbnail(p.file)); |         const url = URL.createObjectURL(p.file);
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |       ) : wantsBunch(params) ? ( |       ) : false ? (
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" /> | groups={CATEGORY_PICKER_GROUPS} />
@@ -200,21 +200,28 @@ describe("Sell a bunch", () => {
     document.querySelectorAll("[data-bunch-thumb]").forEach((img) => expect(img.getAttribute("loading")).toBe("lazy"));
   });
 
-  it("names a photo that can't be used, and photos no item holds stop counting toward the cap", async () => {
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |       if (res.unusable.length > 0) { |       if (false) {
+  it("names a photo that can't be used, keeps it to try again, and photos no item holds stop counting toward the cap", async () => {
     renderPage();
     await pageHeading();
     const files = Array.from({ length: 80 }, (_, i) => new File([`${i}`], `${i}.jpg`, { type: "image/jpeg" }));
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
     await screen.findByText(/77 photos weren't added \(3\.jpg, 4\.jpg, 5\.jpg, 6\.jpg, 7\.jpg and 72 more\)/);
     await waitFor(() => expect((document.getElementById("bunch-files") as HTMLInputElement).disabled).toBe(false));
-    // 80 picked, 3 held: another go has room instead of the cap's refusal.
+    // LEAD-BUNCH-34-SLOW: the photos that couldn't be read are kept together, said, and can be tried again.
+    expect(await screen.findByText(/We couldn't read these 77 photos\. Tap Sort again to try once more\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sort again" })).toBeInTheDocument();
+    // Not selling them frees their room: 80 picked, 3 held, so another go has room instead of the cap's refusal.
+    fireEvent.click(screen.getByRole("button", { name: "Don't sell these" }));
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["x", "y", "z"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
     await waitFor(() => expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(4));
     expect(screen.queryByText(/That's the most for one go/)).toBeNull();
   });
 
   it("is a choice in What do you want to sell?", () => {
-    render(<MemoryRouter><DeclutterSellChooser /></MemoryRouter>);
+    // LEAD-BUNCH-DRAFT-KEEP: the chooser reads the work kept on this device (a query), so it needs a client.
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter><DeclutterSellChooser /></MemoryRouter></QueryClientProvider>);
     expect(screen.getByRole("link", { name: /Sell a bunch/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
   });
 });
@@ -235,7 +242,7 @@ describe("the page's name", () => {
 describe("the merge picker's row", () => {
   it("has the card's whole width, with the buttons below it", () => {
     const item = { ...blankItem(["a"]), key: "one" };
-    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
+    render(<BunchCard item={item} index={0} others={[{ key: "two", name: "Item 2" }]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onReorder={() => {}} canDrag={false} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} />);
     const row = document.querySelector("[data-bunch-merge-row]") as HTMLElement;
     expect(row.className.split(" ")).toContain("w-full");
     expect(row.className).not.toContain("flex-1");

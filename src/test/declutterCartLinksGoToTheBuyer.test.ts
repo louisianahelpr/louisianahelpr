@@ -8,10 +8,10 @@
  * src/test/pglite/declutterCartLinksOpenBuying.pglite.mjs (3x; red without the migration and on its planted defects).
  */
 // @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql | WHEN p_link ~ '^/declutter\?view=cart(&\|#\|$)' | WHEN false
-// @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql | 'link', public.declutter_notice_link(p_link)) | 'link', p_link)
+// @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | 'link', public.declutter_notice_link(p_link)) | 'link', p_link)
 // @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Setup fee coming back', | PERFORM public.declutter_notify(o.seller_id, 'payment', 'Setup fee coming back',
 // @mutate supabase/functions/declutter-money/index.ts | const link = `${getAppUrl()}/declutter?tab=buying`; | const link = `${getAppUrl()}/declutter?view=cart`;
-// @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | const link = `${getAppUrl()}/declutter?tab=buying`; | const link = `${getAppUrl()}/declutter?view=cart`;
+// @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | path: "/declutter?tab=buying", actionLabel: "Open Buying", | path: "/declutter?view=cart", actionLabel: "Open Buying",
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -20,7 +20,6 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 /** The recipient of each ?view=cart notice in each function's newest definition. */
 const CART_SENDERS: Record<string, string> = {
   declutter_add_handover: "r.buyer_id",
-  declutter_admin_decide_delivery_damage: "o.buyer_id",
   declutter_admin_decide_problem: "o.buyer_id",
   declutter_answer_refund: "o.buyer_id",
   declutter_checkout_free: "v_uid",
@@ -93,7 +92,8 @@ describe("every ?view=cart notice goes to the buyer", () => {
   it.each(["supabase/functions/declutter-money/index.ts", "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts"])(
     "the money email in %s opens the buyer's tab", (file) => {
       const src = readFileSync(file, "utf8");
-      expect(src).toContain("/declutter?tab=buying`");
+      // AUD31-35: declutterCheckout passes the path to the branded email as a plain string.
+      expect(src).toMatch(/\/declutter\?tab=buying[`"]/);
       expect(src).not.toContain("const link = `${getAppUrl()}/declutter?view=cart`");
     });
 });

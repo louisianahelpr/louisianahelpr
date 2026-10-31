@@ -19,6 +19,8 @@
  *
  * So this file drives the real component: it taps the real button, watches the
  * real `supabase.rpc` call, and reads the copy off the rendered DOM.
+ *
+ * @mutate src/components/JobTracking.tsx | else toast(arrivalVerdictMessage(v), { duration: 9000 }); | else toast.info(arrivalVerdictMessage(v), { duration: 9000 });
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -29,7 +31,7 @@ import { JobTracking } from "./JobTracking";
 import { supabase } from "@/integrations/supabase/client";
 
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() }),
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
@@ -161,14 +163,38 @@ describe("Mark Arrived always records the check-in", () => {
     renderHelperTracker();
     await tapArrived();
 
-    await waitFor(() => expect(toast.info).toHaveBeenCalled());
-    const said = (toast.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    // The bare `toast()`: `toast.info` and `toast.success` render nothing without an action (toastPolicy.ts).
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    const said = (toast as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(said, "a successful check-in").toMatch(/checked in/i);
     expect(said, "the one gate, named").toMatch(/Confirm they've arrived/);
     // NOT an error and NOT a warning: an unverified location is an ordinary
     // outcome, not a fault of the Helpr's.
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.warning).not.toHaveBeenCalled();
+  });
+
+  // Audit 2026-10-30: toast.info renders nothing without an action (toastPolicy.ts), so the Helpr never read this.
+  it.each(["near_miss", "too_far", "no_location"])("%s: the sentence that names the poster's tap goes through the toast that renders", async (basis) => {
+    rpc().mockResolvedValue({ data: { ...NO_LOCATION_VERDICT, basis, distance_ft: basis === "no_location" ? null : 640 }, error: null });
+    renderHelperTracker();
+    await tapArrived();
+
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect((toast as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatch(/Confirm they've arrived/);
+    expect(toast.info).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("settled by GPS: no toast, the tracker's next step says it", async () => {
+    rpc().mockResolvedValue({ data: { ...NO_LOCATION_VERDICT, basis: "gps_verified", verified: true, poster_confirmation_required: false, arrival_established: true }, error: null });
+    renderHelperTracker();
+    await tapArrived();
+
+    await waitFor(() => expect(rpc().mock.calls.some(([fn]) => fn === "mark_helper_arrival")).toBe(true));
+    await act(async () => { await Promise.resolve(); });
+    expect(toast).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("a null verdict body is NOT a success — a null `error` is not a write", async () => {
@@ -179,6 +205,7 @@ describe("Mark Arrived always records the check-in", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
     // The rail did not move: the same button is still offered.
     expect(screen.getByRole("button", { name: /I've arrived/i })).toBeTruthy();
+    expect(toast).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });

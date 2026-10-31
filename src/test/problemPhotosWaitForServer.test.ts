@@ -12,8 +12,8 @@
  * @mutate src/lib/declutter/problemPhotos.ts | export const PROBLEM_FORM_PHOTOS_READY = true; | export const PROBLEM_FORM_PHOTOS_READY = false;
  * @mutate src/lib/declutter/problemPhotos.ts | export const REFUND_FORM_PHOTOS_READY = true; | export const REFUND_FORM_PHOTOS_READY = false;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
- * @mutate supabase/migrations/20261029225634_declutter_problem_both_sides_and_photos.sql | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photo_paths text[] DEFAULT '{}') | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photos text[] DEFAULT '{}')
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
+ * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photo_paths text[] DEFAULT '{}') | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photos text[] DEFAULT '{}')
+ * @mutate src/components/declutter/DeclutterProblemForm.tsx | {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  */
 import { describe, expect, it } from "vitest";
@@ -68,7 +68,7 @@ describe("D2-7: the photo pickers wait for the server, and turn on when it is re
   });
 
   it("each form shows the picker only behind its flag", () => {
-    expect(src("src/components/declutter/DeclutterHandoverViews.tsx")).toContain("{PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker");
+    expect(src("src/components/declutter/DeclutterProblemForm.tsx")).toContain("{PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker");
     expect(src("src/components/declutter/DeclutterRefundRequest.tsx")).toContain("{REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker");
   });
 });

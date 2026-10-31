@@ -47,7 +47,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 // Query; this list-vs-badge test renders cards without a QueryClient.
 vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null, ScheduleChangeAskDialog: () => null, usePendingScheduleChange: () => ({ data: null }) }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

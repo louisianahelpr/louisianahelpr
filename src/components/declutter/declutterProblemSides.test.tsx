@@ -5,7 +5,10 @@
  *
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   if (!p \|\| p.status !== "open") return null; |   if (!p) return null;
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       {!mine && !open && ( |       {!open && (
- * @mutate src/components/declutter/DeclutterProblemSides.tsx |     mutationFn: (p: OrderProblem) => addProblemSide(p.id, note.trim()), |     mutationFn: (p: OrderProblem) => addProblemSide(p.id, note),
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx | addProblemSide(p.id, note.trim(), photos.length | addProblemSide(p.id, note, photos.length
+ * BUY-28: "Add your side to it, with photos" had no photo option; sent again with none, the server would have wiped them.
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |           <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />\n |
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx | : (p.other_side_photo_paths ?? [])), | : []),
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       <ProblemPhotos paths={p.photo_paths ?? []} />\n | \n
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   const words = p?.status === "decided" && p.decision ? DECIDED_WORDS[p.decision]?.[side] : undefined; |   const words = p?.decision ? DECIDED_WORDS[p.decision]?.buyer : undefined;
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   pay_seller: { buyer: "The seller keeps the payment, and the sale is final.", seller: "You keep the payment." }, |   pay_seller: { buyer: "Handed over.", seller: "Handed over." },
@@ -18,13 +21,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { OrderProblem } from "@/lib/declutter/handover";
 
-const state = vi.hoisted(() => ({ problem: null as unknown, added: [] as unknown[][], withdrawn: [] as unknown[] }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+const state = vi.hoisted(() => ({ problem: null as unknown, added: [] as unknown[][], withdrawn: [] as unknown[], uploaded: [] as string[] }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchOrderProblem: async () => state.problem,
   addProblemSide: async (...a: unknown[]) => { state.added.push(a); return { result: "added", problem_id: "p1" }; },
   handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
+  uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push(f.name); return `s/declutter/problem/${orderId}/${f.name}`; },
   withdrawProblem: async (id: unknown) => { state.withdrawn.push(id); return { result: "withdrawn", problem_id: id }; },
 }));
 
@@ -41,7 +45,7 @@ function show(side: "buyer" | "seller", problem: OrderProblem | null) {
   return render(<QueryClientProvider client={qc}><DeclutterProblemSides orderId="o1" side={side} /></QueryClientProvider>);
 }
 
-beforeEach(() => { state.added = []; state.withdrawn = []; });
+beforeEach(() => { state.added = []; state.withdrawn = []; state.uploaded = []; });
 
 describe("DeclutterProblemSides", () => {
   it("the seller sees the buyer's report with its photo, and adds their side (exactly the words)", async () => {
@@ -52,7 +56,30 @@ describe("DeclutterProblemSides", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add your side" }));
     fireEvent.change(screen.getByLabelText("Your side, for Louisiana Helpr"), { target: { value: "  It left here in one piece.  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    await waitFor(() => expect(state.added).toEqual([["p1", "It left here in one piece."]]));
+    await waitFor(() => expect(state.added).toEqual([["p1", "It left here in one piece.", []]]));
+  });
+
+  it("adding a side can carry photos, uploaded on Send and sent with the words", async () => {
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    const { container } = show("seller", OPEN);
+    fireEvent.click(await screen.findByRole("button", { name: "Add your side" }));
+    fireEvent.change(screen.getByLabelText("Your side, for Louisiana Helpr"), { target: { value: "Here it is packed." } });
+    const file = new File(["x"], "packed.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.added).toEqual([["p1", "Here it is packed.", ["s/declutter/problem/o1/packed.jpg"]]]));
+    expect(state.uploaded).toEqual(["packed.jpg"]);
+  });
+
+  it("changing a side with no new photo keeps the ones already sent, and says new ones replace them", async () => {
+    show("seller", { ...OPEN, other_side_note: "First words.", other_side_photo_paths: ["s/declutter/problem/o1/old.jpg"] });
+    fireEvent.click(await screen.findByRole("button", { name: "Change your side" }));
+    expect(screen.getByText("New photos replace the ones you sent.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Your side, for Louisiana Helpr"), { target: { value: "Better words." } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.added).toEqual([["p1", "Better words.", ["s/declutter/problem/o1/old.jpg"]]]));
+    expect(state.uploaded).toEqual([]);
   });
 
   it("the reporter sees the other side's answer and cannot add a side to their own report", async () => {

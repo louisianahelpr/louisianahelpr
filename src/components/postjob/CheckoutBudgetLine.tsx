@@ -1,6 +1,6 @@
 import { formatPriceExact } from "@/lib/format";
 import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
-import { SERIES_LATER_VISITS_CHARGED, seriesVisitsSuffix } from "@/lib/seriesMoneyCopy";
+import { seriesLaterVisitsCharged, seriesVisitsSuffix } from "@/lib/seriesMoneyCopy";
 
 /**
  * The review step's secondary line under the Total: the budget, and what sits on top of it.
@@ -15,6 +15,7 @@ import { SERIES_LATER_VISITS_CHARGED, seriesVisitsSuffix } from "@/lib/seriesMon
  */
 export function CheckoutBudgetLine({
   budgetNum, totalWithTax, hasGift, giftAppliedAmount, isUrgent, urgentFeeNum, onboardingFeeAmount, visitCount = 1, crewSize = 1,
+  taxable = false,
 }: {
   budgetNum: number;
   totalWithTax: number;
@@ -27,6 +28,8 @@ export function CheckoutBudgetLine({
   visitCount?: number;
   /** Helprs on a crew job (1 for a one-Helpr job). */
   crewSize?: number;
+  /** The category's labor carries Louisiana sales tax (hasTaxableLine): later visits are charged it too. */
+  taxable?: boolean;
 }) {
   const series = visitCount > 1;
   const crew = crewSize > 1;
@@ -45,7 +48,7 @@ export function CheckoutBudgetLine({
           {hasGift ? ` · $${formatPriceExact(giftAppliedAmount)} gift applied` : ""}
         </p>
         <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          {`The total is for the first visit; ${SERIES_LATER_VISITS_CHARGED}.`}
+          {`The total is for the first visit; ${seriesLaterVisitsCharged(taxable)}.`}
         </p>
         {crewLine}
       </>

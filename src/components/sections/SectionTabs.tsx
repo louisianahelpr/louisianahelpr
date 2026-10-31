@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
@@ -93,6 +93,8 @@ export function SectionTabs<T extends string>({
   // "Wantec" on load, a lone "e" after a chevron).
   const listRef = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState(false);
+  // Moved along, the row also has a way back, so a selected tab off the start is one tap away (T12, 10-30).
+  const [less, setLess] = useState(false);
   const memberMoved = useRef(false);
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -107,6 +109,7 @@ export function SectionTabs<T extends string>({
         else if (t.left < box.left) list.scrollLeft -= box.left - t.left;
       }
       setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
+      setLess(list.scrollLeft > 2);
       const box = list.getBoundingClientRect();
       for (const tab of Array.from(list.children)) {
         const t = tab.getBoundingClientRect();
@@ -133,6 +136,15 @@ export function SectionTabs<T extends string>({
     const edge = list.getBoundingClientRect().right;
     const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > edge + 1);
     if (next) list.scrollLeft += next.getBoundingClientRect().right - edge;
+  };
+  /** The last tab the start of the row hides comes back whole. */
+  const showPrevious = () => {
+    const list = listRef.current;
+    if (!list) return;
+    memberMoved.current = true;
+    const edge = list.getBoundingClientRect().left;
+    const previous = Array.from(list.children).reverse().find((tab) => tab.getBoundingClientRect().left < edge - 1);
+    list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0;
   };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -163,6 +175,12 @@ export function SectionTabs<T extends string>({
           (measured in WebKit: scrollTop 0 -> 1 on a wheel over the row) and on iOS rubber-banded them out of the clip,
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
+      {less && !onlySelected && (
+        <button type="button" aria-label={tr("tabs.less")} data-tabs-less-button="" onClick={showPrevious}
+          className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+        </button>
+      )}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
         onPointerDown={() => { memberMoved.current = true; }} onWheel={() => { memberMoved.current = true; }}
         className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>

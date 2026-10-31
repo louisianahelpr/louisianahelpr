@@ -19,7 +19,7 @@ import type { ShopPage as ShopPageData } from "@/lib/shops/api";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true, lastAnswer: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 const bar = vi.hoisted(() => ({ desktop: false }));
 vi.mock("@/components/header/PageTitleBar", async (orig) => ({
   ...(await orig<typeof import("@/components/header/PageTitleBar")>()),

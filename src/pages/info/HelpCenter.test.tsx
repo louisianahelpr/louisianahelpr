@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import HelpCenter from "./HelpCenter";
+import HelpCenter, { LEGACY_TOPIC_ANCHORS } from "./HelpCenter";
 import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
@@ -71,24 +71,45 @@ describe("/help FAQ anchors are real destinations", () => {
   it("stamps an id for every topic", () => {
     const { container } = renderHelp();
     const ids = [...container.querySelectorAll("[id^='faq-']")].map((n) => n.id);
-    expect(ids).toContain("faq-payments-escrow");
+    expect(ids).toContain("faq-payments-how-your-money-is-held");
     expect(ids).toContain("faq-trust-safety");
   });
 
   it("#faq-<topic> OPENS that topic and scrolls to it", async () => {
-    window.history.replaceState({}, "", "/help#faq-payments-escrow");
+    window.history.replaceState({}, "", "/help#faq-payments-how-your-money-is-held");
     const { container } = renderHelp();
-    const section = container.querySelector("#faq-payments-escrow")!;
+    const section = container.querySelector("#faq-payments-how-your-money-is-held")!;
     const header = section.querySelector("button")!;
     await waitFor(() => expect(header.getAttribute("aria-expanded")).toBe("true"));
     // …and ONLY that one. Landing on an anchor must not unfold the whole page.
     expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
   });
 
-  it("an addressed section can still be closed by hand", async () => {
+  // JOBS-28: the topic was "Payments & Escrow". Links sent before the rename
+  // (support replies, notices) still open the payments topic, not nothing.
+  // @mutate src/pages/info/HelpCenter.tsx | return raw ? LEGACY_TOPIC_ANCHORS[raw] ?? raw : null; | return raw;
+  it("the old #faq-payments-escrow link still opens the payments topic", async () => {
     window.history.replaceState({}, "", "/help#faq-payments-escrow");
     const { container } = renderHelp();
-    const header = container.querySelector("#faq-payments-escrow button") as HTMLElement;
+    const header = container.querySelector("#faq-payments-how-your-money-is-held button")!;
+    await waitFor(() => expect(header.getAttribute("aria-expanded")).toBe("true"));
+    expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
+  });
+
+  it("every old anchor alias still points at a live topic, and no live topic shadows it", () => {
+    const { container } = renderHelp();
+    const ids = new Set([...container.querySelectorAll("[id^='faq-']")].map((n) => n.id));
+    const stale = Object.entries(LEGACY_TOPIC_ANCHORS)
+      .filter(([old, target]) => !ids.has(target) || ids.has(old))
+      .map(([old]) => `stale topic anchor alias ${old} — point it at a live topic or remove it`);
+    expect(Object.keys(LEGACY_TOPIC_ANCHORS).length).toBeGreaterThan(0);
+    expect(stale).toEqual([]);
+  });
+
+  it("an addressed section can still be closed by hand", async () => {
+    window.history.replaceState({}, "", "/help#faq-payments-how-your-money-is-held");
+    const { container } = renderHelp();
+    const header = container.querySelector("#faq-payments-how-your-money-is-held button") as HTMLElement;
     await waitFor(() => expect(header.getAttribute("aria-expanded")).toBe("true"));
     fireEvent.click(header);
     await waitFor(() => expect(header.getAttribute("aria-expanded")).toBe("false"));
@@ -133,6 +154,16 @@ describe("/help FAQ copy is derived from config, not retyped", () => {
 
   const allAnswers = FAQ_SECTIONS.flatMap((section) => section.items.map((item) => `${item.q} ${item.a}`)).join("\n");
 
+  // JOBS-28 (lead 10-31): members read "Louisiana Helpr holds the money", never
+  // "Escrow", in Help's topics, questions and answers.
+  // @mutate src/pages/info/helpCenter/helpCenterContent.ts | q: "How does Louisiana Helpr hold my payment?", | q: "What is Helpr Escrow?",
+  it("no Help topic, question or answer says escrow", () => {
+    expect(FAQ_SECTIONS.length).toBeGreaterThan(5);
+    const copy = FAQ_SECTIONS.flatMap((section) => [section.topic, ...section.items.map((item) => `${item.q} ${item.a}`)]);
+    expect(copy.filter((line) => /escrow/i.test(line))).toEqual([]);
+    expect(allAnswers).toContain("How does Louisiana Helpr hold my payment?");
+  });
+
   it("names every paid tier somewhere in the FAQ", () => {
     expect(paidTiers.length).toBeGreaterThan(1);
     for (const tier of paidTiers) {
@@ -158,7 +189,7 @@ describe("/help FAQ copy is derived from config, not retyped", () => {
     const credentialAnswer = allAnswers.match(/On trade jobs \(([^)]+)\)/)?.[1];
     expect(credentialAnswer).toBeTruthy();
     for (const value of JOB_CATEGORY_VALUES) {
-      const named = credentialAnswer!.includes(JOB_CATEGORY_LABELS[value].toLowerCase());
+      const named = credentialAnswer!.toLowerCase().includes(JOB_CATEGORY_LABELS[value].toLowerCase()); // "HVAC" keeps its capitals (AUD31-58)
       expect(named).toBe(CREDENTIAL_TIER_CATEGORIES.has(value));
     }
   });

@@ -50,7 +50,12 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
-import { queuedEmails, resetEmailMocks } from "./mocks/email";
+import { emailRenders, queuedEmails, resetEmailMocks } from "./mocks/email";
+
+/** AUD31-35: the branded notice email each Declutter money email was rendered from (the mock records the element). */
+type Rendered = { type: { name: string }; props: Record<string, string> };
+const renderedEmail = (title: string | RegExp): Rendered | undefined =>
+  (emailRenders as Rendered[]).find((e) => (typeof title === "string" ? e.props.title === title : title.test(e.props.title)));
 import { isRoutedTestCheckout } from "../../../supabase/functions/_shared/stripeMode";
 
 const BUYER = "0000000a-0000-4000-8000-000000000001";
@@ -111,7 +116,7 @@ describe("stripe-webhook: Declutter order paid", () => {
     });
     scenario.rpc.declutter_mark_order_paid = answer;
     scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }],
-      ...(opts.sellerEmail ? { eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ email: opts.sellerEmail, user_id: SELLER }] } }] } : {}) };
+      ...(opts.sellerEmail ? { eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ email: opts.sellerEmail, user_id: SELLER, full_name: "Sam Seller" }] } }] } : {}) };
     scenario.reads.declutter_orders = { rows: [opts.orderRow ?? { buyer_id: BUYER, seller_id: SELLER }] };
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     return res;
@@ -170,7 +175,7 @@ describe("stripe-webhook: Declutter order paid", () => {
   // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const setupFeeCents = feeClaimed ? Number.parseInt(meta.setup_fee_cents ?? "0", 10) : 0; |     const setupFeeCents = Number.parseInt(meta.setup_fee_cents ?? "0", 10);
   it("Q2352: the receipt names the setup fee only when the order's claim won", async () => {
     await deliver({ result: "paid" }, { orderRow: { ...feeOwed, setup_fee_state: "claimed" }, meta: { setup_fee_cents: "200" } });
-    expect(JSON.stringify(queuedEmails[0])).toMatch(/account setup fee/);
+    expect(renderedEmail("Your Declutter receipt")?.props.message).toMatch(/account setup fee/);
   });
   const feeRefundTaken = { id: "re_fee", status: "succeeded" };
   it("Q2352: a lost claim (fee coming back) gets a receipt that never says the payment included the fee", async () => {
@@ -178,7 +183,9 @@ describe("stripe-webhook: Declutter order paid", () => {
     scenario.rpc.declutter_setup_fee_refunded = "recorded";
     await deliver({ result: "paid" }, { orderRow: feeOwed, meta: { setup_fee_cents: "200" } });
     expect(queuedEmails.map((e) => e.templateName)).toContain("declutter_receipt");
-    expect(JSON.stringify(queuedEmails.find((e) => e.templateName === "declutter_receipt"))).not.toMatch(/account setup fee/);
+    const receipt = renderedEmail("Your Declutter receipt");
+    expect(receipt?.props.message).toMatch(/^You paid /);
+    expect(receipt?.props.message).not.toMatch(/account setup fee/);
   });
   it("Q2352: a sale that kept its setup fee (claimed) sends nothing back", async () => {
     const res = await deliver({ result: "paid" }, { orderRow: { ...feeOwed, setup_fee_state: "claimed" } });
@@ -208,9 +215,11 @@ describe("stripe-webhook: Declutter order paid", () => {
   });
 
   // Deep audit #57 / audit 2 SH2-3 (A2-3): the seller is emailed when the buyer pays, once, with no fee words.
-  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep); |
+  // AUD31-35: rendered from the branded notice email (React escapes the member's item title), greeting by first name.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, |     if (Math.random() > 2) await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep,
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       subject: `You sold ${items}`, |       subject: "You sold an item",
-  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       html: `<p>${escapeHtml(body)}</p><p><a href="${link}">Open Selling</a></p>`, |       html: `<p>${body}</p><p><a href="${link}">Open Selling</a></p>`,
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     userName: firstName(opts.fullName), |     userName: "",
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     const result = await queueEmail(db, { to, subject, templateName, html, text }); |     const result = await queueEmail(db, { to, subject, templateName, html: `<p>${body}</p>`, text });
   it("the seller is emailed \"You sold ...\" when the buyer pays, at the seller's own address, naming the item and price", async () => {
     scenario.rpc.declutter_order_items_named = '"Lamp <b>"';
     const res = await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });
@@ -219,11 +228,37 @@ describe("stripe-webhook: Declutter order paid", () => {
     const sold = queuedEmails[1] as Record<string, string>;
     expect(sold.to).toBe("seller@test.dev");
     expect(sold.subject).toBe('You sold "Lamp <b>"');
-    expect(sold.text).toMatch(/^You sold "Lamp <b>" for \$30\.00\. The buyer has paid\..*you get paid after the handover\./);
-    expect(sold.html).toContain("&quot;Lamp &lt;b&gt;&quot;");
-    expect(sold.html).not.toContain("<b>");
+    const r = renderedEmail('You sold "Lamp <b>"');
+    expect(r?.type.name).toBe("NotificationEmail");
+    expect(r?.props.message).toMatch(/^You sold "Lamp <b>" for \$30\.00\. The buyer has paid\..*you get paid after the handover\./);
+    expect(r?.props.userName).toBe("Sam");
+    expect(r?.props.actionUrl).toMatch(/\/declutter\?tab=selling$/);
+    expect(r?.props.actionLabel).toBe("Open Selling");
+    expect(r?.props.prefsUrl).toMatch(/\/profile\?tab=notifications$/);
+    // Both parts are the render's (the mock's), never a hand-built raw paragraph.
+    expect(sold.html).toBe("<p>mock</p>");
+    expect(sold.text).toBe("mock");
     expect(rpcs("declutter_order_items_named")[0]?.args).toEqual({ p_order_id: ORDER });
-    expect(JSON.stringify(sold)).not.toMatch(/fee|%/i);
+    expect(JSON.stringify({ sold, message: r?.props.message })).not.toMatch(/fee|%/i);
+  });
+  // AUD31-35: a seller who delivers is paid items + delivery (declutter_complete_handover's v_rate); the email says so.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       parties?.handover === "seller_delivery" ? parties?.delivery_cents : 0); |       0);
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     const plus = deliveryCents > 0 ? `, plus ${dollars(deliveryCents)} for delivering it` : ""; |     const plus = "";
+  it("a seller who delivers is told the delivery money too; any other handover names the item price only", async () => {
+    scenario.rpc.declutter_order_items_named = '"Lamp"';
+    await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 4500, delivery_cents: 1000, handover: "seller_delivery" }, sellerEmail: "seller@test.dev" });
+    expect(renderedEmail('You sold "Lamp"')?.props.message).toMatch(/^You sold "Lamp" for \$45\.00, plus \$10\.00 for delivering it\. The buyer has paid\./);
+    resetEmailMocks();
+    await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 4500, delivery_cents: 1000, handover: "delivery" }, sellerEmail: "seller@test.dev" });
+    expect(renderedEmail('You sold "Lamp"')?.props.message).toMatch(/^You sold "Lamp" for \$45\.00\. The buyer has paid\./);
+  });
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       title: subject, message: body, path: "/declutter?tab=buying", actionLabel: "Open Buying", |       title: subject, message: body, path: "/declutter", actionLabel: "Open Buying",
+  it("the buyer's receipt is the branded notice email and opens Buying (AUD31-35)", async () => {
+    await deliver({ result: "paid" });
+    const r = renderedEmail("Your Declutter receipt");
+    expect(r?.type.name).toBe("NotificationEmail");
+    expect(r?.props.actionUrl).toMatch(/\/declutter\?tab=buying$/);
+    expect(queuedEmails.find((e) => e.templateName === "declutter_receipt")?.html).toBe("<p>mock</p>");
   });
   it("a redelivered payment (already_paid) emails the seller nothing", async () => {
     await deliver({ result: "already_paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });

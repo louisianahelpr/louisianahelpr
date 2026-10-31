@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T02:52:20.612Z",
-  "guards": 2844,
-  "registered": 2841,
+  "generated": "2026-10-31T22:22:30.038Z",
+  "guards": 2990,
+  "registered": 2987,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -10,17 +10,27 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
+    "src/components/declutter/DeclutterBrowse.guest.test.tsx",
+    "src/components/declutter/declutterBunchTickCorner.test.tsx",
     "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
+    "src/components/declutter/declutterStillAvailable.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/components/messages/MessageText.test.tsx",
+    "src/components/reviewPanel/starRowKeys.test.tsx",
+    "src/lib/imageCompression.test.ts",
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/browseEmptySameSpot.test.tsx",
+    "src/test/crewHasNoJobLevelNoShow.test.ts",
+    "src/test/declutterOnePreview.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/instantReleaseSaysThreeDays.test.ts",
+    "src/test/masterSwitchSaysWhatOffDoes.test.ts",
+    "src/test/photoViewerArrowsAbovePhoto.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
-    "src/test/vitestShardsGateTheCheck.test.ts"
+    "src/test/vitestShardsGateTheCheck.test.ts",
+    "src/test/wantedConfirmationsShow.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -51,6 +61,15 @@
       ],
       "parents": [
         "src/components/admin/AdminFraudDashboard.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/adminReports/WantedReportPanel.tsx",
+      "tests": [
+        "src/components/admin/adminReports/wantedReportPanel.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminReports.tsx"
       ]
     },
     {
@@ -137,15 +156,6 @@
       ],
       "parents": [
         "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/DeclutterPickupDayCard.tsx",
-      "tests": [
-        "src/components/declutter/declutterPickupDayCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterMineViews.tsx"
       ]
     },
     {
@@ -244,6 +254,22 @@
       ]
     },
     {
+      "module": "src/components/ProtectedRoute.tsx",
+      "tests": [
+        "src/test/emailGateEveryProtectedRoute.test.tsx",
+        "src/test/errorSurfacesReport.test.tsx",
+        "src/test/guestOpensSharedJobLink.test.tsx",
+        "src/test/lapsedSuspensionRouteGate.test.tsx",
+        "src/test/pressHonoursSelfHeal.test.tsx",
+        "src/components/ProtectedRoute.autoHeal.test.tsx",
+        "src/components/ProtectedRoute.sessionLost.test.tsx",
+        "src/components/ProtectedRouteGates.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterGuestRoute.tsx"
+      ]
+    },
+    {
       "module": "src/components/RouteErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -294,6 +320,7 @@
     {
       "module": "src/pages/post-job/FormStep.tsx",
       "tests": [
+        "src/test/detailsPlaceholdersAskOnContinue.test.tsx",
         "src/test/flexibleScheduleUnlocksSubmit.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],

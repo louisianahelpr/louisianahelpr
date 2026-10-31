@@ -13,14 +13,14 @@
  * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e)); |       p_not_a_frequent_seller: false,\n      p_keeps_item_until_handover: true,\n    }), (e) => rpcErrorMessage("declutter_attest_item", e));
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
  * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
- * @mutate src/lib/declutter/api.ts | upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL }); | upsert: false, cacheControl: "3600" });
+ * @mutate src/lib/declutter/api.ts | await bucket.upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL }); | await bucket.upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: "3600" });
  * @mutate src/lib/declutter/api.ts |       const { error: rmErr } = await bucket.remove([path]);\n      if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message); |       const rmErr = null as { message: string } \| null;\n      if (rmErr) console.warn("[declutter] could not remove a refused photo upload", rmErr.message);
  * @mutate src/lib/declutter/api.ts |   if (itemIds.length === 0) return []; |   if (false) return [];
  * @mutate src/lib/declutter/api.ts |   if (paths.length === 0) return; |   if (false) return;
  * @mutate src/lib/declutter/api.ts |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }) |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note })
  * @mutate src/lib/declutter/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     if (msg) e.userMessage = msg;
  * @mutate src/lib/declutter/api.ts |       throw new Error("photo_not_uploaded");\n    },\n    attach: |       return;\n    },\n    attach:
- * @mutate src/lib/declutter/api.ts |   const cleaned = await cleanListingPhoto(file, size, quality);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   const cleaned = await cleanListingPhoto(file, size, quality);\n  if (false) throw new Error("photo_not_uploaded");
+ * @mutate src/lib/declutter/api.ts |   if (cleaned && !LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/api.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
@@ -84,6 +84,8 @@ const h = vi.hoisted(() => {
         return Promise.resolve(next());
       },
     },
+    // LEAD-RESUME-REPOSTS: who is signed in, read locally (no queue entry).
+    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: "me" } } }, error: null }) },
   };
   return { queue, queries, rpcs, store, invokes, supabase, clean: vi.fn() };
 });
@@ -96,6 +98,7 @@ vi.mock("@/lib/declutter/photos", async (importOriginal) => ({
 
 import { FULL_LISTING_COPY } from "./photoRules";
 import {
+  AlreadyPosted,
   addPhotoSteadily,
   answerQuestion,
   askQuestion,
@@ -631,11 +634,66 @@ describe("RPC writes", () => {
   });
 });
 
+// LEAD-POST-SLOW (a), review of 62f90f3368 (4): a first Post whose answer was lost already made the draft with the
+// app's id. The second Post reuses that draft (saving its fields again), never a second draft that would upload the
+// photos twice; an id taken by anything else still gets a fresh draft.
+// @mutate src/lib/declutter/api.ts |     if (mine === "draft") { |     if (false) {
+// @mutate src/lib/declutter/api.ts |   if (row.status === "draft") return "draft"; |   if (row.status === "draft") return null;
+// LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates c87b7de4 / 019dd0b3): Post again with an id that is already the
+// seller's POSTED item makes no second copy; it says "Already posted" (AlreadyPosted, with the id to open).
+// @mutate src/lib/declutter/api.ts |     if (mine) throw new AlreadyPosted(withId); |     void mine;
+// @mutate src/lib/declutter/api.ts |   return row.seller_id === me ? row.status : null; |   return null;
+describe("createDraft with the app's own id", () => {
+  const taken = { data: null, error: { code: "22023", message: "item_id_taken" } };
+  it("makes the draft with that id", async () => {
+    h.queue.push(ok("app-id"));
+    await expect(createDraft(FIELDS, "app-id")).resolves.toBe("app-id");
+    expect(h.rpcs).toEqual([["declutter_create_item_with_id", { p_item_id: "app-id", ...DRAFT_ARGS }]]);
+  });
+  it("the id is the caller's own draft already: that draft is saved again and reused", async () => {
+    h.queue.push(taken, ok({ id: "app-id", status: "draft" }), ok("app-id"));
+    await expect(createDraft(FIELDS, "app-id")).resolves.toBe("app-id");
+    expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id", "declutter_update_draft"]);
+    expect(h.rpcs[1]).toEqual(["declutter_update_draft", { p_item_id: "app-id", ...DRAFT_ARGS }]);
+  });
+  it("LEAD-RESUME-REPOSTS: post, then Post again with the same id: no second copy, 'Already posted' with its id", async () => {
+    for (const status of ["live", "pending_review", "reserved", "paused"]) {
+      h.rpcs.length = 0;
+      h.queue.push(taken, ok({ id: "app-id", status, seller_id: "me" }));
+      const err = await createDraft(FIELDS, "app-id").catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(AlreadyPosted);
+      expect((err as AlreadyPosted).itemId).toBe("app-id");
+      expect((err as AlreadyPosted).userMessage).toBe("Already posted. It's under Selling.");
+      expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id"]);
+    }
+  });
+  it("the id is taken by a row that isn't the caller's: a fresh draft", async () => {
+    for (const read of [ok(null), ok({ id: "app-id", status: "live", seller_id: "someone-else" })]) {
+      h.rpcs.length = 0;
+      h.queue.push(taken, read, ok("fresh"));
+      await expect(createDraft(FIELDS, "app-id")).resolves.toBe("fresh");
+      expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id", "declutter_create_item"]);
+    }
+  });
+  // Lead review 10-31: a failed read said null, so a taken id got a fresh one; with the run's status read failed too,
+  // the item was posted twice. Now it stops this item, makes nothing, and says why.
+  // @mutate src/lib/declutter/api.ts |   if (r.error) throw Object.assign(new Error(`item_read_failed: ${r.error.message}`), { userMessage: CANT_CHECK }); |   if (r.error) return null;
+  it("the id is taken and the check of it fails: nothing is made, never a fresh id (it may be posted)", async () => {
+    h.rpcs.length = 0;
+    h.queue.push(taken, { data: null, error: { code: "500", message: "boom" } });
+    const err = await createDraft(FIELDS, "app-id").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(AlreadyPosted);
+    expect((err as { userMessage?: string }).userMessage).toBe("We couldn't check whether this item is already posted. Try again.");
+    expect(h.rpcs.map((r) => r[0])).toEqual(["declutter_create_item_with_id"]);
+  });
+});
+
 // @mutate src/lib/declutter/api.ts |       if (again && /already exists\|duplicate/i.test(error.message)) return; |       void again;
 // @mutate src/lib/declutter/api.ts |       if (isNetworkFailure(error)) throw new Error(error.message); |       void isNetworkFailure;
 // @mutate src/lib/declutter/api.ts | .eq("item_id", itemId).eq("storage_path", path).maybeSingle(); | .eq("item_id", itemId).maybeSingle();
 // @mutate src/lib/declutter/api.ts | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new PhotoUploadRefused("photo_not_uploaded"); | status >= 400 && status < 500 && status !== 408 && status !== 429) throw new Error("photo_not_uploaded");
-// @mutate src/lib/declutter/api.ts | const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, ...hooks } = options; | const { size = 1920, quality = 0.82, ...hooks } = options;
+// @mutate src/lib/declutter/api.ts | const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, uploadedPath, ...hooks } = options; | const { size = 1920, quality = 0.82, uploadedPath, ...hooks } = options;
 describe("addPhotoSteadily", () => {
   const file = new File(["raw"], "raw.png", { type: "image/png" });
   const cleaned = new File(["clean"], "clean.jpg", { type: "image/jpeg" });

@@ -10,6 +10,7 @@ import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
+import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
@@ -29,6 +30,7 @@ import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
 import { HelperCollapsedStrip, helperCardLine } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
+import { ClosedJobCard } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
@@ -99,6 +101,8 @@ function AppliedJobCardInner({
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
+  // The face's Mark job complete is greyed for the same 30 minutes as the Working card's (useDoneFloor).
+  const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(app.job?.poster_confirmed_working_at, app.job?.helper_arrived_at));
 
   // `poster_viewed_at` isn't in the generated types yet (migration lag);
   // read it through this narrow view rather than `as any`.
@@ -110,20 +114,7 @@ function AppliedJobCardInner({
     // policy hides it from a rejected applicant, so `app.job` comes back null. The bucket counts (activityFilters)
     // still tally this application under Done — a silent `null` here is what made the Done badge read 3 over a list
     // of 2 cards. Render the same minimal "Not selected" card, minus the job details we can no longer read.
-    return (
-      <div ref={cardRef}>
-        <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
-          <div className="px-4 py-3 space-y-1">
-            <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              {closedCardLabel(app)}
-            </p>
-            <p className="text-ds-11 text-muted-foreground">
-              This job has closed, so its details aren’t available any more.
-            </p>
-          </div>
-        </JobCardShell>
-      </div>
-    );
+    return <ClosedJobCard cardRef={cardRef} label={app.closed_job_label} status={closedCardLabel(app)} />;
   }
   const {
     status,
@@ -324,6 +315,7 @@ function AppliedJobCardInner({
     posterId, review: (id) => onHelperReview(app.job_id, id, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
+    doneFloorMinutes,
   });
 
   return (

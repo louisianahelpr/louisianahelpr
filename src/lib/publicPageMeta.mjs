@@ -74,6 +74,15 @@ export const PUBLIC_PAGE_META = {
     ogDescription:
       "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
   },
+  // BUY-16 (owner 10-30: guests see Declutter Browse): /declutter opens to a signed-out visitor while Declutter is open
+  // to everyone, so it is a public page with a head of its own.
+  "/declutter": {
+    title: "Declutter: used things for sale near you — Helpr",
+    description: "Furniture, home goods and more from your Louisiana neighbors. Pick it up, meet up, or have a Helpr deliver it.",
+    canonical: `${SITE_ORIGIN}/declutter`,
+    ogTitle: "Declutter on Louisiana Helpr",
+    ogDescription: "Used things for sale from your Louisiana neighbors. Look around, no account needed.",
+  },
   // Owner 2026-10-23: Twilio's A2P campaign form needs a public link showing how members opt in to texts.
   "/sms-opt-in": {
     title: "How to opt in to Louisiana Helpr text alerts — Helpr",
@@ -110,11 +119,11 @@ export const PUBLIC_PAGE_META = {
     // Partner" long suffix belongs to the landing page's title alone.
     title: "Contact support — Helpr",
     description:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
+      "Message the Louisiana Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: `${SITE_ORIGIN}/support`,
     ogTitle: "Contact support — Helpr",
     ogDescription:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
+      "Message the Louisiana Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
   },
 };
 

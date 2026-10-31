@@ -207,11 +207,14 @@ async function order(handover, titles, { free = false } = {}) {
   const o = I(500 + ++n);
   await db.query(`insert into public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, total_cents, paid_with)
     values ($1, $2, $3, 'awaiting_payment', $4, $5, $5, $6)`, [o, BUYER, SELLER, handover, free ? 0 : 3000, free ? "free" : null]);
-  for (const t of titles) {
+  for (const [k, t] of titles.entries()) {
     const it = I(++n);
     await db.query(`insert into public.declutter_items (id, seller_id, title, status) values ($1, $2, $3, 'reserved')`, [it, SELLER, t]);
-    await db.query(`insert into public.declutter_cart_items (item_id, buyer_id, seller_id, price_cents, order_id, status, checkout_by)
-      values ($1, $2, $3, $4, $5, 'in_cart', now() + interval '1 day')`, [it, BUYER, SELLER, free ? 0 : Math.round(3000 / titles.length), o]);
+    // "In the order added": each line one second after the last. Two inserts can share now(), and the tie then falls
+    // to the random line id (declutter_order_items_named orders by created_at, id), so the check flaked (b25 10-31:
+    // red 4 of 4 runs on main 6a2acdd012, a different item first each time).
+    await db.query(`insert into public.declutter_cart_items (item_id, buyer_id, seller_id, price_cents, order_id, status, checkout_by, created_at)
+      values ($1, $2, $3, $4, $5, 'in_cart', now() + interval '1 day', now() + make_interval(secs => $6))`, [it, BUYER, SELLER, free ? 0 : Math.round(3000 / titles.length), o, k]);
   }
   return o;
 }

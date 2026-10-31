@@ -289,20 +289,30 @@ export async function fetchItemDropState(itemId: string): Promise<DropStateRow |
 }
 
 /** The price-drop columns a buyer may read; drop_pct is the seller's step (20261028160637). */
-export type DropStateRow = { sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null };
-const DROP_COLUMNS = "sale_mode, last_price_drop_on, drop_pct";
+export type DropStateRow = { sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null; drops_stopped?: boolean | null };
+const DROP_COLUMNS = "sale_mode, last_price_drop_on, drop_pct, drops_stopped";
+const DROP_COLUMNS_BEFORE_STOPPED = "sale_mode, last_price_drop_on, drop_pct";
 const DROP_COLUMNS_BEFORE_PCT = "sale_mode, last_price_drop_on";
 
 /**
  * The drop columns, with drop_pct. Before 20261028160637 reaches prod the read
  * is refused with 42703 naming drop_pct: read again without it (every listing
  * then had the 5% step, which priceDrop.ts reads for an absent column). Every
- * other refusal is thrown. Remove once the migration is live on prod.
+ * other refusal is thrown. Remove once the migration is live on prod. The same for
+ * drops_stopped before 20261031020705: read without it, and a stopped listing shows
+ * its line until the next sweep, as it did before that column.
  */
 async function readDropColumns(run: (columns: string) => PromiseLike<ItemRead>, extra = ""): Promise<unknown> {
   const first = await run(extra + DROP_COLUMNS);
+  if (first.error?.code === "42703" && first.error.message.includes("drops_stopped")) return readDropColumnsBeforeStopped(run, extra);
   if (first.error?.code === "42703" && first.error.message.includes("drop_pct")) return unwrap(await run(extra + DROP_COLUMNS_BEFORE_PCT));
   return unwrap(first);
+}
+
+async function readDropColumnsBeforeStopped(run: (columns: string) => PromiseLike<ItemRead>, extra: string): Promise<unknown> {
+  const second = await run(extra + DROP_COLUMNS_BEFORE_STOPPED);
+  if (second.error?.code === "42703" && second.error.message.includes("drop_pct")) return unwrap(await run(extra + DROP_COLUMNS_BEFORE_PCT));
+  return unwrap(second);
 }
 
 /** Owner 2026-10-28: the seller's nightly drop, 0 (off), 5, 10, 15 or 20 percent (declutter_set_drop_pct). */
@@ -327,7 +337,7 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
   const prefetched = await takeFirstScreenDropStates(itemIds);
   const rows = prefetched ?? (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
     (DropStateRow & { id: string })[] | null;
-  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct });
+  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct, drops_stopped: r.drops_stopped });
   return out;
 }
 
@@ -365,6 +375,20 @@ export async function fetchQuestions(itemId: string): Promise<DeclutterQuestion[
     return (rows ?? []) as DeclutterQuestion[];
   }
   return (rpcData(res, (e) => rpcErrorMessage("declutter_item_questions", e)) ?? []) as DeclutterQuestion[];
+}
+
+/**
+ * AUD31-15: which of this item's questions the caller asked, so the page can say "Your question" on them. Read through
+ * declutter_my_question_ids (20261031183631, SECURITY DEFINER): it answers only the caller's own question ids, so who
+ * asked any other question stays hidden (Q2278). Until that migration is on prod (PGRST202 naming it), none are marked.
+ */
+export async function fetchMyQuestionIds(itemId: string): Promise<Set<string>> {
+  const res = await supabase.rpc("declutter_my_question_ids", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_my_question_ids")) {
+    console.warn("[declutter] declutter_my_question_ids not deployed yet; no question is marked as yours");
+    return new Set();
+  }
+  return new Set((rpcData(res, (e) => rpcErrorMessage("declutter_my_question_ids", e)) ?? []) as string[]);
 }
 
 /**
@@ -443,6 +467,29 @@ export async function fetchSellerCard(sellerId: string): Promise<SellerCard | nu
   return row ? { name: row.full_name ?? null, avatarUrl: row.avatar_url ?? null, joinedAt: row.created_at ?? null } : null;
 }
 
+/**
+ * BUY-16: a guest's seller line, the seller's FIRST name only (owner 10-30: "no seller full name"), from
+ * declutter_guest_seller_first_name (20261031062900). Null when the server gives none (not a guest-readable listing, no
+ * name on the profile) or before it is deployed (the page then shows no seller line, as before).
+ */
+export async function fetchGuestSellerFirstName(itemId: string): Promise<string | null> {
+  const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_first_name")) return null;
+  // The function raises nothing of its own (it answers NULL instead), so a failure is the transport's: thrown as is.
+  const name = unwrap(res);
+  return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
+}
+
+/**
+ * SS-5 (Watching under Buying): the hearted items the member can still read. An item RLS no longer shows (sold to
+ * someone else, taken down) is left out; the caller counts those from fetchWatching's ids.
+ */
+export async function fetchWatchedItems(ids: readonly string[]): Promise<DeclutterItem[]> {
+  if (ids.length === 0) return [];
+  const rows = await readItems((cols) => supabase.from("declutter_items").select(cols).in("id", [...ids]));
+  return (rows ?? []) as DeclutterItem[];
+}
+
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {
   return rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
 }
@@ -469,8 +516,66 @@ const draftArgs = (f: DraftFields) => ({
   p_pickup_lng: f.pickupLng,
 });
 
-export async function createDraft(f: DraftFields): Promise<string> {
+/**
+ * A new draft. `withId` is the id the app picked when the first photo was added, so those photos were already uploaded
+ * into its folder (LEAD-POST-SLOW (a), migration 20261031160546). Before that migration reaches prod (PGRST202) the
+ * draft gets a fresh id instead; the caller compares and uploads the photos again into the right folder.
+ */
+export async function createDraft(f: DraftFields, withId?: string): Promise<string> {
+  if (withId) {
+    const res = await supabase.rpc("declutter_create_item_with_id", { p_item_id: withId, ...draftArgs(f) });
+    // The id already made: a first Post whose answer was lost made this seller's draft with it. Review of 62f90f3368
+    // (4): that draft is reused (its fields saved again), never a second draft with the photos uploaded twice. A
+    // draft row reads back only for its own seller (the declutter_items read policy), so a row that reads back as a
+    // draft is the caller's own; anything else gets a fresh id below.
+    const taken = !!res.error && /item_id_taken/.test(res.error.message ?? "");
+    const mine = taken ? await readMyItem(withId) : null;
+    if (mine === "draft") {
+      await updateDraft(withId, f);
+      return withId;
+    }
+    // LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates of c87b7de4 / 019dd0b3): the id is the caller's own item and
+    // it is already past draft (posted). A fresh id here made a second copy of it; it is never made again.
+    if (mine) throw new AlreadyPosted(withId);
+    // Before 20261031160546 (PGRST202), or an id taken by a row that is not the caller's: a fresh id.
+    const retry = res.error && (isMissingRpcNamed(res.error, "declutter_create_item_with_id") || /item_id_taken/.test(res.error.message ?? ""));
+    if (!retry) {
+      return rpcData(res, (e) => rpcErrorMessage("declutter_create_item_with_id", e)) as string;
+    }
+  }
   return rpcData(await supabase.rpc("declutter_create_item", draftArgs(f)), (e) => rpcErrorMessage("declutter_create_item", e)) as string;
+}
+
+/**
+ * LEAD-RESUME-REPOSTS: Post with an id that is already the seller's posted item. Never a second copy: the screen says
+ * "Already posted" and opens it (itemId).
+ */
+export class AlreadyPosted extends Error {
+  readonly userMessage = "Already posted. It's under Selling.";
+  constructor(readonly itemId: string) {
+    super("already_posted");
+  }
+}
+
+/**
+ * The caller's own item with this id: its status, or null when it is really not the caller's (no row, or another
+ * seller's). A draft reads back only for its own seller (the declutter_items read policy); a posted item reads for
+ * everyone, so the seller is compared too.
+ * A failed read THROWS (lead review, 10-31): null there meant a fresh id, and when the run's status read had failed too
+ * nothing else knew the id was already posted, so the item was posted twice. Not knowing stops this item; Try again asks
+ * again with the same id.
+ */
+const CANT_CHECK = "We couldn't check whether this item is already posted. Try again.";
+async function readMyItem(itemId: string): Promise<string | null> {
+  const r = await supabase.from("declutter_items").select("id, status, seller_id").eq("id", itemId).maybeSingle();
+  if (r.error) throw Object.assign(new Error(`item_read_failed: ${r.error.message}`), { userMessage: CANT_CHECK });
+  const row = r.data as { status?: string; seller_id?: string } | null;
+  if (!row?.status) return null;
+  if (row.status === "draft") return "draft";
+  const me = (await supabase.auth.getSession()).data.session?.user.id;
+  // Who is signed in can't be read: whether a posted row is theirs is unknown, so the same as a failed read.
+  if (!me) throw Object.assign(new Error("item_read_failed: no session"), { userMessage: CANT_CHECK });
+  return row.seller_id === me ? row.status : null;
 }
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {
@@ -528,15 +633,21 @@ const BUNCH_UPLOAD_QUALITY = 0.78;
  * itself with backoff, and never stores or attaches it twice (lib/declutter/steadyUpload.ts). Throws once it is out of
  * tries. The copy is Sell a bunch's unless the caller asks for the one-item form's (FULL_LISTING_COPY).
  */
-export async function addPhotoSteadily(sellerId: string, itemId: string, file: File, options: UploadHooks & { size?: number; quality?: number } = {}): Promise<string> {
-  const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, ...hooks } = options;
-  const cleaned = await cleanListingPhoto(file, size, quality);
-  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
-  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
-  const path = listingPhotoPath(sellerId, itemId, nonce);
+export async function addPhotoSteadily(
+  sellerId: string,
+  itemId: string,
+  file: File,
+  options: UploadHooks & { size?: number; quality?: number; uploadedPath?: string } = {},
+): Promise<string> {
+  const { size = BUNCH_UPLOAD_SIZE, quality = BUNCH_UPLOAD_QUALITY, uploadedPath, ...hooks } = options;
+  // Already in this item's folder (stageListingPhoto, when it was added): only the attach is left.
+  const cleaned = uploadedPath ? null : await cleanListingPhoto(file, size, quality);
+  if (cleaned && !LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
+  const path = uploadedPath ?? listingPhotoPath(sellerId, itemId, photoNonce());
   const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
   return uploadSteadily({
     store: async (again) => {
+      if (!cleaned) return;
       const { error } = await bucket.upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (!error) return;
       // The first try landed and only its answer was lost.
@@ -561,6 +672,52 @@ export async function addPhotoSteadily(sellerId: string, itemId: string, file: F
       return data?.id ?? null;
     },
   }, hooks);
+}
+
+const photoNonce = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()));
+
+/**
+ * LEAD-POST-SLOW (a): a NEW listing's photo goes up the moment it is added, into the folder of the id the app picked
+ * for it (createDraft(fields, withId)). Only the object is stored; Post attaches it (addPhotoSteadily with
+ * `uploadedPath`). `cleaned` is cleanListingPhoto's copy at the one-item form's size. null when it could not go up now: Post then uploads it the usual way, with its retries.
+ */
+export async function stageListingPhoto(sellerId: string, itemId: string, cleaned: File): Promise<string | null> {
+  try {
+    if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) return null;
+    const path = listingPhotoPath(sellerId, itemId, photoNonce());
+    const { error } = await supabase.storage
+      .from(DECLUTTER_PHOTO_BUCKET)
+      .upload(path, cleaned, { contentType: "image/jpeg", upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+    if (error) {
+      console.warn("[declutter] early photo upload failed; it goes up at Post", error.message);
+      return null;
+    }
+    return path;
+  } catch (err) {
+    // Not silent: the photo stays held and Post uploads it (or says why it can't).
+    console.warn("[declutter] early photo upload failed; it goes up at Post", err);
+    return null;
+  }
+}
+
+/**
+ * LEAD-BUNCH-34-SLOW: Sell a bunch's early upload of one sorted item's photo, at the copy Sell a bunch lists with, into
+ * the folder of the id that item will be created with (declutter_create_item_with_id), so List only attaches it. Null
+ * when it can't go now: listing then cleans and uploads it as before.
+ */
+export async function stageBunchPhoto(sellerId: string, itemId: string, file: File): Promise<string | null> {
+  try {
+    return await stageListingPhoto(sellerId, itemId, await cleanListingPhoto(file, BUNCH_UPLOAD_SIZE, BUNCH_UPLOAD_QUALITY));
+  } catch (err) {
+    // Not silent: the photo goes up at listing instead (addPhotoSteadily), and says why if it can't.
+    console.warn("[declutter] early bunch photo upload failed; it goes up at listing", err);
+    return null;
+  }
+}
+
+/** Early uploads Post did not use (the photo was removed first): best effort, as removeObjects. */
+export async function dropStagedPhotos(paths: string[]): Promise<void> {
+  await removeObjects(paths);
 }
 
 /** Remove storage objects the server detached (photo removed, listing withdrawn). */
@@ -939,6 +1096,9 @@ export interface MyOffer {
   /** Audit 1d D4-3 (20261030134231): a seller's answer to the buyer's Wanted post, not an offer the buyer made.
    *  Absent before that migration is on prod (read as false). */
   from_wanted?: boolean;
+  /** BUY-29 (20261031095146): on the poster's own row only, the id of the still-open Wanted post this offer answers,
+   *  so the card can ask to close it after an accept. Null otherwise; absent before that migration is on prod. */
+  open_wanted_id?: string | null;
 }
 
 export interface CartLine {

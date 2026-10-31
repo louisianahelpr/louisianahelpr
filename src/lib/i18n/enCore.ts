@@ -32,9 +32,11 @@ export const enCore = {
 
   "common.timedOut": "{label} timed out. Please check your connection and try again.",
   "signup.notifySubtitle": "Sign up to get notified when paid work lands.",
+  "signup.itemSubtitle": "Sign up and we'll take you straight back to this item.",
   "zip.unknown": "We don't recognise that as a Louisiana ZIP code. Jobs are matched by parish, so double-check it — otherwise nearby work won't reach you.",
   // Jobs browse (the section tabs)
   "tabs.browse": "Browse",
+  "tabs.less": "Earlier tabs",
   "tabs.more": "More tabs",
   "jobs.tabPosted": "Posted",
   "jobs.tabWorking": "Working",

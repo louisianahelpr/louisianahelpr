@@ -87,13 +87,20 @@ export function BusyAreasCard({ deliveries }: { deliveries: ReadonlyArray<{ pick
         // to Florida.
         <div ref={setEl} className="aspect-[4/3] max-h-72 w-full max-w-md overflow-hidden rounded-xl bg-muted" aria-hidden data-testid="busy-areas-map" />
       )}
-      {top.length === 0 ? (
+      {/* AUD31-10: a delivery whose area names no parish (prod's "Mid City", 10-31) is still waiting: it is counted
+          as elsewhere, never dropped, so this card never says none while the page counts some. */}
+      {top.length === 0 && summary.elsewhere === 0 ? (
         <p className="text-sm text-muted-foreground">No deliveries are waiting right now.</p>
       ) : (
         <ul className="space-y-1.5" aria-label="Where work is waiting">
           {top.map((a) => (
             <li key={a.parish} className="text-sm text-foreground">{busyAreaLabel(a)}</li>
           ))}
+          {summary.elsewhere > 0 && (
+            <li className="text-sm text-foreground" data-busy-elsewhere="">
+              {top.length > 0 ? `${summary.elsewhere} more in areas not on the map` : `${summary.elsewhere} ${summary.elsewhere === 1 ? "delivery" : "deliveries"} in areas not on the map`}
+            </li>
+          )}
         </ul>
       )}
     </section>

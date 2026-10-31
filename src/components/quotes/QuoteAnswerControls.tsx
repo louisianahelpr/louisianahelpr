@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import {
   MAX_QUOTE_DOLLARS,
   MIN_QUOTE_DOLLARS,
@@ -62,6 +63,8 @@ export function QuoteAnswerControls({
   const [countering, setCountering] = useState(false);
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
+  // Decline ends this quote for good (AUD31-63): one tap used to send it.
+  const [confirmDecline, setConfirmDecline] = useState(false);
   const counterDollars = parseWholeDollars(price);
 
   const answer = useMutation({
@@ -73,7 +76,7 @@ export function QuoteAnswerControls({
         note: action === "counter" ? note : undefined,
       }),
     onSuccess: (out) => {
-      toast.success(
+      toast(
         out === "accepted" ? "Quote accepted" : out === "declined" ? "Quote declined" : "Counter-offer sent",
       );
       setCountering(false);
@@ -138,9 +141,22 @@ export function QuoteAnswerControls({
       <Button type="button" size="sm" variant="outline" disabled={answer.isPending} onClick={() => setCountering(true)}>
         Counter
       </Button>
-      <Button type="button" size="sm" variant="ghost" disabled={answer.isPending} onClick={() => answer.mutate("decline")}>
+      <Button type="button" size="sm" variant="ghost" disabled={answer.isPending} onClick={() => setConfirmDecline(true)}>
         Decline
       </Button>
+      <BrandConfirmDialog
+        open={confirmDecline}
+        onOpenChange={setConfirmDecline}
+        title={`Decline ${dollars(priceCents)}?`}
+        description="This quote ends and they are told. You can't take it back."
+        primaryLabel="Decline quote"
+        primaryTone="sienna"
+        onPrimary={() => {
+          setConfirmDecline(false);
+          answer.mutate("decline");
+        }}
+        secondaryLabel="Keep it"
+      />
     </div>
   );
 }

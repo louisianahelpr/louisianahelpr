@@ -30,7 +30,7 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => fee.
 const items: Record<string, Record<string, unknown>> = {};
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async (id: string) => items[id] ?? null,
-  fetchItemDropState: async (id: string) => ({ sale_mode: items[id]?.sale_mode ?? null, last_price_drop_on: null }),
+  fetchItemDropState: async (id: string) => ({ sale_mode: items[id]?.sale_mode ?? null, last_price_drop_on: null, ...(items[id] && "drop_pct" in items[id] ? { drop_pct: items[id].drop_pct as number } : {}) }),
   // Board 192's link card reads the cover.
   fetchPhotos: async () => [],
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -126,6 +126,21 @@ describe("board 80: after listing", () => {
     expect(text).toContain("Listed at $40");
     expect(text).toMatch(/Price can drop/);
     expect(text).toContain("As low as $38");
+  });
+
+  // LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31): the sheet reads the listing's own saved step. Drops off (0) promises
+  // no drop; the seller's 5% says 5%.
+  // @mutate src/components/declutter/ListedWhatNext.tsx | return row ? { ...row, ...(drop ?? {}) } : null; | return row ? { ...row, ...(drop ?? {}), drop_pct: 5 } : null;
+  it("LEAD-BUNCH-DROPS-IGNORED: a live listing saved with drops off promises no drop; one saved at 5% says 5%", async () => {
+    items.off = { id: "off", title: "Cooler", status: "live", sale_mode: "offers", current_price_cents: 2500, live_at: new Date(Date.now() - 60e3).toISOString(), last_price_drop_on: null, drop_pct: 0 };
+    const { unmount } = renderListed("off", "live");
+    expect(await screen.findByRole("heading", { name: "Your listing is live" })).toBeTruthy();
+    expect(screen.getByTestId("what-next-sheet").textContent).not.toMatch(/drop/i);
+    unmount();
+    items.on = { ...items.off, id: "on", drop_pct: 5 };
+    renderListed("on", "live");
+    expect(await screen.findByRole("heading", { name: "Your listing is live" })).toBeTruthy();
+    expect(screen.getByTestId("what-next-sheet").textContent).toMatch(/Price can drop[\s\S]*5% less each evening/);
   });
 
   it("a listing the drop rule never touches (auction) shows no drop, and a reviewed one says so", async () => {

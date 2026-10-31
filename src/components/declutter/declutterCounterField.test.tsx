@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = vi.hoisted(() => ({ offers: [] as unknown[], responded: [] as unknown[][] }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyOffers: async () => state.offers,
@@ -89,5 +89,71 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     show("buyer");
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
     expect(screen.getByLabelText("Your price")).not.toHaveAttribute("placeholder");
+  });
+});
+
+// NIGHT-SELL-offers,sale-4: "Answer with a price" took any number and said nothing; the box wasn't focused.
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   return { min: o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100, max: o.current_price_cents }; |   return { min: 100, max: o.current_price_cents };
+// @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | disabled={act.isPending \|\| !counterCents}>
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   useEffect(() => { if (countering) counterBox.current?.focus(); }, [countering]); |   useEffect(() => {}, [countering]);
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   if (cents === o.amount_cents) return | if (cents === -1) return
+describe("the counter box says its range and refuses a price outside it (NIGHT-SELL-offers,sale-4)", () => {
+  beforeEach(() => {
+    state.offers = [{ ...OFFER, current_price_cents: 4500 }];
+    state.responded = [];
+  });
+
+  it("seller: focused on opening, $1 to the price now; $99 and the buyer's own amount keep Send off with the reason", async () => {
+    show();
+    fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
+    const input = screen.getByLabelText("Your price");
+    expect(input).toHaveFocus();
+    expect(input).toHaveAccessibleDescription("Between $1 and $45.");
+    fireEvent.change(input, { target: { value: "99" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(input).toHaveAccessibleDescription("Your price has to be between $1 and $45.");
+    fireEvent.change(input, { target: { value: "22" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(input).toHaveAccessibleDescription("$22 is the offer already on the table. To agree to it, tap Accept.");
+    fireEvent.change(input, { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.responded).toHaveLength(1));
+    expect(state.responded[0]).toEqual(expect.arrayContaining(["o1", "counter", 4000]));
+  });
+
+  it("buyer: at least half the price now", async () => {
+    state.offers = [{ ...OFFER, current_price_cents: 4500, my_side: "buyer", awaiting: "buyer", amount_cents: 4000 }];
+    show("buyer");
+    fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
+    const input = screen.getByLabelText("Your price");
+    expect(input).toHaveAccessibleDescription("Between $22.50 and $45.");
+    fireEvent.change(input, { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "23" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  });
+});
+
+// BUY-10 (buying audit 10-30 #10): "Take back my offer" ended the offer in one tap.
+// @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setWithdrawing(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |         {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`} |         {""}
+describe("Take back my offer asks first (BUY-10)", () => {
+  beforeEach(() => {
+    state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "seller" }];
+    state.responded = [];
+  });
+
+  it("opens a sheet naming the item and amount; Keep my offer sends nothing; the sheet's button withdraws", async () => {
+    show("buyer");
+    fireEvent.click(await screen.findByRole("button", { name: "Take back my offer" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take back your offer?");
+    expect(sheet).toHaveTextContent('"Blue enamel mug": your offer of $22 ends. Nothing is charged.');
+    fireEvent.click(within(sheet).getByRole("button", { name: "Keep my offer" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.responded).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take back my offer" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));
+    await waitFor(() => expect(state.responded).toEqual([["o1", "withdraw", null]]));
   });
 });

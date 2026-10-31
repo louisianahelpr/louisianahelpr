@@ -12,7 +12,7 @@
  * bodies md5-checked, 3x replay, RED before it and on 6 planted defects; the tip line shown exactly when
  * helpr_task_tip_start takes a tip).
  */
-// @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr left your item at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
+// @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr left your item at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
 // @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql | THEN ' You can add a tip for your Helpr in Buying.' ELSE '' END | THEN '' ELSE '' END
 // @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |        AND NOT public.are_users_blocked(o.buyer_id, t.helpr_id)\n |
 // @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |     format('The handover of %s is done. ', public.declutter_order_items_named(o.id)) \|\|\n |
@@ -57,7 +57,7 @@ describe("Declutter sale notices name the item", () => {
 
   it("the seven named in the audit name the order's items, every call", () => {
     const hits = all.filter((c) => SEVEN.includes(c.title));
-    expect(hits.length).toBe(11); // Payment received 2, Buyer paid 2, Helpr pickup booked 1, Picked up 1, Delivered 1, Handover done 2, Enjoy your item 2
+    expect(hits.length).toBe(12); // Payment received 2, Buyer paid 2, Helpr pickup booked 1, Picked up 1, Delivered 2 (the seller too since LEAD-BUY44, 20261031140431), Handover done 2, Enjoy your item 2
     expect(hits.filter((c) => !/declutter_order_items_named\((p_order_id|o\.id)\)/.test(c.message)).map((c) => `${c.fn}: ${c.title}`)).toEqual([]);
     expect(flat("declutter_order_items_named")).toContain("WHEN 2 THEN format('\"%s\" and \"%s\"'");
   });

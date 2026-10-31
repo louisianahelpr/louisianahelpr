@@ -21,7 +21,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  * action, whatever inline colour a caller layers on top of it.
  */
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({

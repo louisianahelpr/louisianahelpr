@@ -6,13 +6,14 @@
  * - The phone bar is Home, Explore, the center "+", Messages, You. You is
  *   Profile (the member's photo); Explore holds the four sections.
  * - "+" opens "What are we doing?" (mock-up 20, superseding board 1's 2x2):
- *   ONE ROW PER SECTION in Customize order, a main action and a second one
- *   only where its path exists (Moving out sale only while that switch is on;
- *   "Open a shop" becomes "Add a product or service" once the member has a
- *   shop). A section closed to the viewer is a greyed "Coming soon" row with
- *   no actions; it never routes into a closed section.
- * - Post a job keeps the under-18 gate. "Or just describe it" opens the AI job
- *   builder (/post-job?start=ai, which step 0 opens on: usePostJobForm entryPanel).
+ *   ONE ROW PER SECTION in Customize order, each with ONE main button (owner
+ *   10-31, LEAD-CREATE-SHEET-TRIM: no "Moving out sale" (Sell an item's chooser
+ *   has it), no "No shop yet" beside Shops, no "or describe it" under Jobs (Post
+ *   a job offers it)). "Open a shop" becomes "Add a product or service" once the
+ *   member has a shop. A section closed to the viewer is a greyed "Coming soon"
+ *   row with no actions; it never routes into a closed section.
+ * - Post a job keeps the under-18 gate. The AI builder stays reachable from Post
+ *   a job (/post-job?start=ai, which step 0 opens on: usePostJobForm entryPanel).
  *
  * - Explore (HELPR-DESIGN-SPEC §3): /explore opens the section the member was
  *   last in, else their first open shown section; every section screen carries
@@ -29,11 +30,9 @@
  * @mutate src/components/MobileNav.tsx |                    setCreateOpen((o) => !o); |                    navigate("/post-job");
  * @mutate src/components/create/CreateSheet.tsx |                 {on && ( |                 {true && (
  * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
- * @mutate src/components/create/CreateSheet.tsx | ...(movingOut ? [{ label: "Moving out sale", path: SELL_MOVE_PATH }] : []) | { label: "Moving out sale", path: SELL_MOVE_PATH }
+ * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }], | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, { label: "Moving out sale", path: "/declutter/sell?mode=move" }],
  * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
- * @mutate src/components/create/CreateSheet.tsx | const DESCRIBE_IT_PATH = "/post-job?start=ai"; | const DESCRIBE_IT_PATH = "/post-job";
- * @mutate src/components/create/CreateSheet.tsx |                   {s.key === "jobs" && ( |                   {s.key === "homes" && (
- * @mutate src/components/create/CreateSheet.tsx |                       or describe it\n |                       Or describe a job: "gutters cleaned Saturday"\n
+ * @mutate src/components/create/CreateSheet.tsx |   return { isOn, isPreview, actions }; |   return { isOn, isPreview, actions: { ...actions, jobs: [...actions.jobs, { label: "or describe it", path: "/post-job?start=ai" }] } };
  * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
@@ -64,8 +63,11 @@ vi.mock("@/hooks/useFeature", () => ({
 vi.mock("sonner", () => ({
   toast: Object.assign((m: string) => { toasts.push(m); }, { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn(), message: vi.fn() }),
 }));
+const who = vi.hoisted(() => ({ guest: false }));
 vi.mock("@/hooks/useCurrentUser", () => ({
-  useCurrentUser: () => ({ user: { id: "u-create", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
+  useCurrentUser: () => who.guest
+    ? ({ user: null, profile: null, isLoading: false, isAdmin: false })
+    : ({ user: { id: "u-create", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 0, markAllRead: () => {} }) }));
 vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: 0, jobs: 0, shops: 0 }) }));
@@ -164,19 +166,17 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     openSheet();
     expect([...document.querySelectorAll("[data-create-row]")].map((e) => e.getAttribute("data-create-row"))).toEqual(["jobs", "declutter", "shops", "homes"]);
     expect(actionLabels("jobs")).toEqual(["Post a job"]);
-    expect(actionLabels("declutter")).toEqual(["Sell an item", "Moving out sale"]);
-    expect(actionLabels("homes")).toEqual(["List for rent"]);
-    expect(await screen.findByText("No shop yet")).toBeTruthy();
-    expect(actionLabels("shops")).toEqual(["Open a shop"]);
-  });
-
-  it("Moving out sale only while its switch is on", () => {
-    renderDock();
-    openSheet();
+    // Owner 10-31 (LEAD-CREATE-SHEET-TRIM): ONE button per row, even with the moving-out switch on.
     expect(actionLabels("declutter")).toEqual(["Sell an item"]);
+    expect(actionLabels("homes")).toEqual(["List for rent"]);
+    expect(await screen.findByText("Open a shop")).toBeTruthy();
+    expect(actionLabels("shops")).toEqual(["Open a shop"]);
+    const sheet = screen.getByTestId("create-sheet").textContent ?? "";
+    for (const gone of ["Moving out sale", "No shop yet", "or describe it"]) expect(sheet).not.toContain(gone);
+    expect(screen.queryByTestId("create-describe")).toBeNull();
   });
 
-  it("a member with a shop gets 'Add a product or service' and no 'No shop yet'", async () => {
+  it("a member with a shop gets 'Add a product or service'", async () => {
     shop.id = "shop-1";
     renderDock();
     openSheet();
@@ -221,35 +221,17 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     localStorage.clear();
   });
 
-  it("Post a job keeps the under-18 gate (and so does 'describe it')", () => {
+  it("Post a job keeps the under-18 gate", () => {
     age.under = true;
     renderDock();
     openSheet();
     expect(action("jobs").getAttribute("data-age-gated")).toBe("post");
     fireEvent.click(action("jobs"));
-    fireEvent.click(screen.getByTestId("create-describe"));
     expect(where()).toBe("/home");
-    expect(age.explained).toEqual(["post", "post"]);
+    expect(age.explained).toEqual(["post"]);
   });
 
-  it("'or describe it' is a Jobs action: a small link INSIDE the Jobs row, right under Post a job, never under the whole menu (owner 2026-10-21)", () => {
-    switches.on = new Set(["declutter", "shops", "rentals"]);
-    renderDock();
-    openSheet();
-    const describe = screen.getByTestId("create-describe");
-    expect(row("jobs").contains(describe)).toBe(true);
-    expect(describe.textContent?.trim()).toBe("or describe it");
-    // Under Post a job: it follows that button in document order, and no other row holds it.
-    expect(action("jobs").compareDocumentPosition(describe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    for (const key of ["declutter", "shops", "homes"]) expect(row(key).contains(describe)).toBe(false);
-    expect(screen.getAllByTestId("create-describe")).toHaveLength(1);
-  });
-
-  it("'Or just describe it' opens the AI builder path, which the post-a-job entry screen opens on", () => {
-    renderDock();
-    openSheet();
-    fireEvent.click(screen.getByTestId("create-describe"));
-    expect(where()).toBe("/post-job?start=ai");
+  it("the AI builder stays reachable from Post a job's own entry screen (start=ai)", () => {
     expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('searchParams.get("start") === "ai" ? "ai" : null');
   });
 });
@@ -354,5 +336,23 @@ describe("a section's phone top bar (mock-up 6)", () => {
     expect(bar.querySelector('[data-testid="section-settings"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeTruthy();
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
+  });
+
+  // AUD31-74 (Guests on Declutter): a guest on Declutter Browse tapped the bell and got a panel stuck on "Loading
+  // notifications..." asking to turn on push. A guest has no notifications: no bell, as no photo.
+  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell">
+  it("a guest on Declutter gets no bell (and no photo); the chips stay", async () => {
+    vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    const { AppTopBar } = await import("@/components/sections/AppTopBar");
+    who.guest = true;
+    try {
+      renderAt(<AppTopBar title="Declutter" explore section="declutter" />, "/declutter");
+      const bar = screen.getByTestId("app-top-bar");
+      expect(bar.querySelector('[data-testid="explore-switcher"]')).toBeTruthy();
+      expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeNull();
+      expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeNull();
+    } finally {
+      who.guest = false;
+    }
   });
 });

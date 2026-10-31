@@ -44,8 +44,8 @@ export interface ReturnPick {
   local: string;
 }
 
-export function emptyReturnPick(): ReturnPick {
-  return { way: "drop_off", day: returnDayChoices()[0] ?? "", local: "" };
+export function emptyReturnPick(canDropOff = true): ReturnPick {
+  return { way: canDropOff ? "drop_off" : "collect", day: returnDayChoices()[0] ?? "", local: "" };
 }
 
 /** What the RPC takes: a drop-off sends its day; a collect sends its time. Null when the pick isn't complete. */
@@ -56,22 +56,24 @@ export function returnPickArgs(p: ReturnPick): { day: string | null; atIso: stri
 }
 
 /** The seller picks how the item comes back (shown under "Refund in full"). */
-export function DeclutterReturnWayPicker({ id, who, value, onChange }: {
+export function DeclutterReturnWayPicker({ id, who, canDropOff, value, onChange }: {
   id: string;
   who: string;
+  /** BUY-23: off on a meeting-spot, delivered or shipped sale: the seller's address stays private there. */
+  canDropOff: boolean;
   value: ReturnPick;
   onChange: (p: ReturnPick) => void;
 }) {
   const days = returnDayChoices();
   return (
     <fieldset className="space-y-2" data-return-way="">
-      <legend className="text-xs font-medium">How does it come back? Both ways are free.</legend>
+      <legend className="text-xs font-medium">{canDropOff ? "How does it come back? Both ways are free." : "How it comes back. It's free."}</legend>
       {/* The app's one "pick one" list (D2-15), not browser radios. */}
       <RadioCardList
         label="How does it come back?"
         required
         options={[
-          { value: "drop_off", label: `${cap(who)} brings it back`, sub: "To your pickup address, on the day you pick or after, with a photo taken there." },
+          ...(canDropOff ? [{ value: "drop_off", label: `${cap(who)} brings it back`, sub: "To your pickup address, on the day you pick or after, with a photo taken there." }] : []),
           { value: "collect", label: "I'll pick it up", sub: `You go to the address ${who} gives you, at the time you pick.` },
         ]}
         value={value.way}
@@ -113,7 +115,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
       const path = await uploadReturnPhoto(user.id, v.order_id, file);
       return returnDroppedOff(r.id, path, where);
     },
-    onSuccess: () => { toast.success(`Dropped off. ${cap(who)} is told.`); refresh(); },
+    onSuccess: () => { toast(`Dropped off. ${cap(who)} is told.`); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const addr = useMutation({
@@ -125,7 +127,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
       return { approximate: g.approximate === true };
     },
     onSuccess: ({ approximate }) => {
-      toast.success(approximate
+      toast(approximate
         ? `Saved. ${cap(who)} is told where to pick it up. Their map may only show the area, but they'll read the address you typed.`
         : `Saved. ${cap(who)} is told where to pick it up.`);
       setAddress("");
@@ -142,6 +144,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
     return (
       <div className="space-y-2" data-return-drop-off="">
         <p className="text-sm">Bring the item back to {who}'s pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}, then take a photo there.</p>
+        {r.drop_off_address && <p className="text-sm" data-return-drop-address="">Address: <span className="font-medium">{r.drop_off_address}</span></p>}
         <label htmlFor={fileId} className="sr-only">Photo of the item where you left it, taken at the pickup address</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={drop.isPending}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) drop.mutate(f); e.target.value = ""; }} />

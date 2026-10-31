@@ -15,7 +15,7 @@
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsRefunds.pglite.mjs.
  * Stripe call order and keys, executed: src/test/edge/shop-refunds.test.ts.
  *
- * @mutate supabase/migrations/20261019112103_shops_held_for_review_admin_tools.sql | attempts = 0, reversals = least(reversals + 1, 100), | attempts = 0,
+ * @mutate supabase/migrations/20261031200034_declutter_payout_tries_restart.sql | attempts = 0, reversals = least(reversals + 1, 100), | attempts = 0,
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     UPDATE public.payout_settlements SET voided_at = now(), voided_reason = v_why | PERFORM 1; UPDATE public.payout_settlements SET voided_reason = voided_reason
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n | \n

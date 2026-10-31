@@ -26,6 +26,12 @@
  * @mutate src/pages/post-job/useSavedJobAddress.ts |     if (!f.streetAddress.trim() \|\| !f.city?.trim() \|\| !f.zipCode?.trim()) continue; |     if (!f.city?.trim()) continue;
  * @mutate src/pages/post-job/useSavedJobAddress.ts |     if ((f.addrState ?? "").toUpperCase() !== "LA") continue; |
  * @mutate src/pages/post-job/FormStep.tsx |             savedAddress={form.savedAddress} |             savedAddress={null}
+ * GROW-4 (repeat posters): the poster's other places are more WHERE cards; a rebook at one of them shows it chosen.
+ * @mutate src/components/postjob/LogisticsSection.tsx |               ...otherSavedAddresses.map((p, i) => ({ value: `saved-${i + 1}`, label: p.streetAddress, sub: `${p.city} · from an earlier job` })), |
+ * @mutate src/components/postjob/LogisticsSection.tsx |    const picked = v === "saved" ? savedAddress : /^saved-\d+$/.test(v) ? places[Number(v.slice(6))] : undefined; |    const picked = v === "saved" ? savedAddress : undefined;
+ * @mutate src/components/postjob/LogisticsSection.tsx |   const places = savedAddress ? [savedAddress, ...otherSavedAddresses] : NO_OTHER_PLACES; |   const places = savedAddress ? [savedAddress] : NO_OTHER_PLACES;
+ * @mutate src/pages/post-job/useSavedJobAddress.ts |     if (out.some((p) => samePlace(p, place))) continue; |
+ * @mutate src/pages/post-job/useSavedJobAddress.ts |     return { savedAddress: places[0] ?? null, otherSavedAddresses: places.slice(1) }; |     return { savedAddress: places[0] ?? null, otherSavedAddresses: [] };
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -48,7 +54,7 @@ vi.mock("@/components/postjob/CityAutocomplete", () => ({
 
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { dayStrip, DAY_STRIP_LENGTH, TIME_CHIPS } from "@/components/postjob/whenChoices";
-import { savedAddressFrom, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
+import { savedAddressFrom, savedAddressesFrom, SAVED_PLACES_MAX, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { todayYmd } from "@/lib/jobDate";
 import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
 
@@ -61,6 +67,7 @@ let seen: Record<string, unknown> = {};
 
 function Host(props: {
   saved?: SavedAddress | null;
+  others?: SavedAddress[];
   start?: Partial<{ street: string; city: string; zip: string; date: string; time: string; flexible: boolean; recurring: boolean }>;
   scheduleInPast?: boolean;
 }) {
@@ -101,6 +108,7 @@ function Host(props: {
       includeMaterials={false} setIncludeMaterials={noop}
       materialsNote="" setMaterialsNote={noop}
       savedAddress={props.saved}
+      otherSavedAddresses={props.others}
     />
   );
 }
@@ -235,6 +243,52 @@ describe("board 45 WHERE: the saved address radio fills the address fields", () 
       .toEqual(HOME);
     expect(savedAddressFrom(["Baton Rouge, LA 70801", "", null])).toBeNull();
     expect(savedAddressFrom([])).toBeNull();
+  });
+});
+
+const RENTAL: SavedAddress = { streetAddress: "40 Levee St", city: "Houma", addrState: "LA", zipCode: "70360" };
+const CAMP: SavedAddress = { streetAddress: "7 Marsh Ln", city: "Abbeville", addrState: "LA", zipCode: "70510" };
+
+describe("GROW-4: a repeat poster's places are one tap each", () => {
+  it("every other place is its own WHERE card, and choosing one fills all four fields", () => {
+    render(<Host saved={HOME} others={[RENTAL, CAMP]} />);
+    expect(checked(radio("Where", /12 Bayou Rd/))).toBe(true);
+    expect(radio("Where", /40 Levee St/).textContent).toContain("Houma · from an earlier job");
+    fireEvent.click(radio("Where", /7 Marsh Ln/));
+    expect(seen).toMatchObject({ streetAddress: "7 Marsh Ln", city: "Abbeville", addrState: "LA", zipCode: "70510" });
+    expect(checked(radio("Where", /7 Marsh Ln/))).toBe(true);
+    expect(checked(radio("Where", /12 Bayou Rd/))).toBe(false);
+    expect(screen.queryByLabelText("Street address")).toBeNull();
+    // From another place, "Somewhere else" still clears it and opens the entry.
+    fireEvent.click(radio("Where", /Somewhere else/));
+    expect(seen).toMatchObject({ streetAddress: "", zipCode: "" });
+    expect(screen.getByLabelText("Street address")).toBeTruthy();
+  });
+
+  it("Post again for a job at another property opens with that property chosen, the rest one tap away", () => {
+    render(<Host saved={HOME} others={[RENTAL]} start={{ street: "40 Levee St", city: "Houma", zip: "70360" }} />);
+    expect(seen).toMatchObject({ streetAddress: "40 Levee St", city: "Houma" });
+    expect(checked(radio("Where", /40 Levee St/))).toBe(true);
+    fireEvent.click(radio("Where", /12 Bayou Rd/));
+    expect(seen).toMatchObject({ streetAddress: "12 Bayou Rd", city: "Delcambre", zipCode: "70528" });
+  });
+
+  it("savedAddressesFrom keeps each different whole Louisiana address once, newest first, at most SAVED_PLACES_MAX", () => {
+    const rows = [
+      "12 Bayou Rd, Delcambre, LA 70528", "12 bayou rd, Delcambre, LA 70528-1234", "Delcambre, LA", null,
+      "40 Levee St, Houma, LA 70360", "1 Elm St, Austin, TX 78701", "7 Marsh Ln, Abbeville, LA 70510",
+      "3 Pine St, Lafayette, LA 70501", "9 Oak St, Houma, LA 70364",
+    ];
+    const places = savedAddressesFrom(rows);
+    expect(places.map((p) => p.streetAddress)).toEqual(["12 Bayou Rd", "40 Levee St", "7 Marsh Ln", "3 Pine St"]);
+    expect(SAVED_PLACES_MAX).toBe(4);
+    expect(savedAddressFrom(rows)?.streetAddress).toBe("12 Bayou Rd");
+  });
+
+  it("the form hands the hook's other places to the section (source)", () => {
+    const hook = read("src/pages/post-job/useSavedJobAddress.ts");
+    expect(hook).toContain("return { savedAddress: places[0] ?? null, otherSavedAddresses: places.slice(1) };");
+    expect(read("src/pages/post-job/usePostJobForm.ts")).toContain("const { savedAddress, otherSavedAddresses } = useSavedJobAddress();");
   });
 });
 

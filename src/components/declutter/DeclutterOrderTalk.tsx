@@ -12,16 +12,17 @@
 import { useState } from "react";
 import { useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
 
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+// AUD31-12: the weekday alone only within 6 days; older lines carry their date.
+const when = (iso: string) => talkTime(iso);
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
 export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller" }) {
@@ -64,22 +65,30 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const key = ["declutter", "order-talk", orderId] as const;
   // A light poll while the chat is open (the other side's new message shows within 15 seconds).
   const talk = useQuery({ queryKey: key, queryFn: () => fetchOrderTalk(orderId), refetchInterval: 15_000 });
+  // AUD31-13: the sheet names the item it is about, from the same list Messages -> Declutter reads (one cached read).
+  const talks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks });
+  const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
   const [draft, setDraft] = useState("");
+  // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
+  const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
     mutationFn: () => sendOrderMessage(orderId, draft.trim()),
     // Messages -> Declutter's list (DeclutterOrderTalkInbox) shows who sent the last message: refresh it too.
-    onSuccess: () => { setDraft(""); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onSuccess: () => { setDraft(""); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },
+    onError: (err) => setRefusal(declutterErrorMessage(err)),
   });
   const t = talk.data;
   const other = t?.side === "seller" ? "buyer" : "seller";
   const open = !!t?.open;
+  // AUD31-31: an ended chat is not titled as if it could still be sent to, and says when and why it ended.
+  const endedAt = !open && t?.open_until && new Date(t.open_until).getTime() <= Date.now() ? t.open_until : null;
   const formId = `order-talk-form-${orderId}`;
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
-        <SheetHero title={t ? `Message the ${other}` : "Order chat"} />
+        <SheetHero title={!t ? "Order chat" : open ? `Message the ${other}` : `Your chat with the ${other}`} />
+        {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>}
         {talk.isError ? (
           <ErrorState variant="inline" title="We couldn't load this chat." body={declutterErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
         ) : talk.isPending || !t ? (
@@ -88,8 +97,14 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
           <div className="mt-2 space-y-3">
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
-              {!open ? " This chat has ended." : t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}
+              {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}
             </p>
+            {!open && (
+              <p className="rounded-xl border border-border bg-card px-3 py-2 text-ds-13 text-foreground" data-order-talk-ended="">
+                {endedAt ? `This chat ended ${when(endedAt)}, 48 hours after the handover.` : "This chat has ended."} You can still read it.
+                {" "}For a problem with this order, use Report a problem on its card.
+              </p>
+            )}
             <ol className="space-y-2" aria-label="Messages">
               {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet.</li>}
               {t.messages.map((m) => (
@@ -105,7 +120,9 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
                 <textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
-                  maxLength={1000} value={draft} onChange={(e) => setDraft(e.target.value)} />
+                  maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
+                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : undefined} />
+                {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
               </form>
             )}
           </div>

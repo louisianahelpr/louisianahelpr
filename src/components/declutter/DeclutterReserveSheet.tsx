@@ -5,7 +5,7 @@
  * and a Buy now line that is never paid just goes back up (declutter_deadline_sweep, 20261030064929).
  */
 import { useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
 import { holdHasNoStrike } from "@/lib/declutter/buyNowHold";
@@ -14,7 +14,8 @@ import type { CartLine } from "@/lib/declutter/api";
 /**
  * The cart's hold line for one seller's checkout (lead 2026-10-28): "Reserved for you, not paid yet" and the time
  * left, then when it must be paid by and what happens if not (the server's 48-hour rule, 20261014210518). The
- * bundle hint shows only when this seller has a bundle discount (the same read as the item page's bundle row).
+ * bundle hint shows only when this seller has a bundle discount (the same read as the item page's bundle row), with a
+ * link to the seller's other items (BUY-12).
  * DB-5: when every line is Buy now or free (holdHasNoStrike), running out is no strike; a checkout holding an
  * accepted offer keeps the strike words, because that line still carries one. And Buy now lands on
  * ?checkout=<seller>: this seller's checkout (the section around the hold line) scrolls into view once it is shown.
@@ -43,7 +44,16 @@ export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
         {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.`
           : noStrike ? `Pay by ${by}. If you don't, it goes back up for sale. No strike.`
             : `Check out by ${by}. If you don't, you get a strike and the item goes back up for sale.`}
-        {!allFree && rule.data ? " Add more from this seller first to save with their bundle discount." : ""}
+        {/* BUY-12 (audit 10-30): the hint had no way to do it from the cart; the seller's profile lists what else they
+            have for sale (SellingNowRow on /user/:id). */}
+        {!allFree && rule.data ? (
+          <>
+            {" Add more from this seller first to save with their bundle discount. "}
+            <Link to={`/user/${sellerId}`} data-cart-bundle-more="" className="link-standard font-semibold text-foreground">
+              See their other items
+            </Link>
+          </>
+        ) : null}
       </p>
     </div>
   );

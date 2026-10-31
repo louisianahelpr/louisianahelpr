@@ -50,7 +50,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
 // Q706: the rule's NEWEST definition is 20261004193450 (false); the twin check reads that one.
 // @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
-// @mutate supabase/migrations/20261021130723_poster_cancel_checks_quoted_fee.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
+// @mutate supabase/migrations/20261031015647_poster_cancel_strike_only_inside_24h.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id, reviewee_id); |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id);
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND reviewer_id = NEW.reviewee_id\n |     AND true\n
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       OR public.is_crew_member_of_job_folder(name)\n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read | \n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read
@@ -90,6 +90,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   rentals_propose_visit: "Rentals S3 (20261017221621): only the job's single CONFIRMED Helpr may offer a visit time; a crew member is refused (job_not_found), never granted. A crew job linked to a maintenance request offers no visit time yet (Q2081)",
   rentals_visit_for_job: "Rentals S3: reads the visit for the single confirmed Helpr or the poster; a crew member gets no rows, never another member's access",
   rpc_answer_refund_request: "Board 141 (20261021102943): reads helper_id only to check the request's Helpr is still the job's Helpr; refund requests refuse a crew job outright (refund_request_assert_job_open: refund_request_crew_job), so a crew member is never granted anything",
+  get_closed_application_job_labels: "JOBS-12 (20261031021424): keys on applications.helper_id, the caller's OWN application, never jobs.helper_id; returns only the title and date of a job the caller applied to, so a crew member reads their own applications and is granted nothing else",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",

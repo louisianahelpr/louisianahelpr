@@ -13,13 +13,13 @@
  *     (an unbounded search traced a seller's private windows: lh-authz-rls review #1).
  * Backend proof, six planted defects each RED: src/test/pglite/helprRouteSuggestions.pglite.mjs.
  *
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |        AND NOT public.are_users_blocked(v_uid, x.customer_id)\n |        AND true\n
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |   IF v_held + (CASE WHEN p_with_task IS NULL THEN 0 ELSE 1 END) >= 2 THEN |   IF false THEN
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql | 'kind', 'pickup', 'lat', round(t.pickup_lat, 2), 'lng', round(t.pickup_lng, 2)) | 'kind', 'pickup', 'lat', t.pickup_lat, 'lng', t.pickup_lng)
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |       IF public.helpr_task_source_slot_ok(t.source_kind, t.source_id, v_slot) THEN |       IF true THEN
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql | WHILE v_found IS NULL AND i <= 12 AND | WHILE v_found IS NULL AND i < 7 * 24 * 4 AND
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |       'lat', CASE WHEN v_own_shown THEN t.dropoff_lat ELSE round(t.dropoff_lat, 2) END, |       'lat', t.dropoff_lat,
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql | 'kind', 'dropoff', 'lat', round(t.dropoff_lat, 1), 'lng', round(t.dropoff_lng, 1))) | 'kind', 'dropoff', 'lat', round(t.dropoff_lat, 2), 'lng', round(t.dropoff_lng, 2)))
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |        AND NOT public.are_users_blocked(v_uid, x.customer_id)\n |        AND true\n
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   IF v_held + (CASE WHEN p_with_task IS NULL THEN 0 ELSE 1 END) >= 2 THEN |   IF false THEN
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql | 'kind', 'pickup', 'lat', round(t.pickup_lat, 2), 'lng', round(t.pickup_lng, 2)) | 'kind', 'pickup', 'lat', t.pickup_lat, 'lng', t.pickup_lng)
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |       IF public.helpr_task_source_slot_ok(t.source_kind, t.source_id, v_slot) THEN |       IF true THEN
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql | WHILE v_found IS NULL AND i <= 12 AND | WHILE v_found IS NULL AND i < 7 * 24 * 4 AND
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |       'lat', CASE WHEN v_own_shown THEN t.dropoff_lat ELSE round(t.dropoff_lat, 2) END, |       'lat', t.dropoff_lat,
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql | 'kind', 'dropoff', 'lat', round(t.dropoff_lat, 1), 'lng', round(t.dropoff_lng, 1))) | 'kind', 'dropoff', 'lat', round(t.dropoff_lat, 2), 'lng', round(t.dropoff_lng, 2)))
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

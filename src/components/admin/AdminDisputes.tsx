@@ -13,10 +13,9 @@ import { report } from "@/lib/errorLogger";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { logAdminAction } from "@/lib/adminAudit";
-import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
-import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
+import { categoriseReason } from "./adminDisputes/adminDisputesHelpers";
+import { DisputeFilters } from "./adminDisputes/DisputeFilters";
 import { DisputeTabs } from "./adminDisputes/DisputeTabs";
-import { pillLabel } from "@/components/admin/useFilterCounts";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
 import { HelprFaultDisputeDialog } from "./helprFault/HelprFaultDisputeDialog";
 import { groupDisputeRecords } from "./adminDisputes/groupDisputeRecords";
@@ -557,57 +556,12 @@ const AdminDisputes = () => {
       {/* Filter tabs — Open queue vs. Decided audit log. */}
       <DisputeTabs filter={filter} setFilter={setFilter} openCount={openFiltered.length} decidedCount={decidedJobs.length} />
 
-      {/* Cross-cutting filters — only meaningful on the Open queue. Panelled so
-          the three chip groups read as one control block between the tabs and
-          the queue, rather than three stacks floating on the page. */}
+      {/* Cross-cutting filters — only meaningful on the Open queue (DisputeFilters; closed on a phone, AUD31-45). */}
       {filter === "open" && disputes.length > 0 && (
-        <AdminCard
-          title="Filters"
-          action={
-            filtersActive ? (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-ds-11 text-primary hover:underline"
-              >
-                Reset Filters
-              </button>
-            ) : undefined
-          }
-          contentClassName="flex flex-col gap-2.5 text-ds-11"
-        >
-          <FilterChipGroup
-            label="Age"
-            value={ageFilter}
-            onChange={(v) => setAgeFilter(v as AgeFilter)}
-            options={[
-              { id: "all", label: "All" },
-              { id: "0-24h", label: "0–24h" },
-              { id: "1-7d", label: "1–7d" },
-              { id: "7-30d", label: "7–30d" },
-              { id: ">30d", label: ">30d" },
-            ].map((o) => ({ ...o, label: pillLabel(o.label, ageCount(o.id as AgeFilter)) }))}
-          />
-          <FilterChipGroup
-            label="Filed by"
-            value={partyFilter}
-            onChange={(v) => setPartyFilter(v as PartyFilter)}
-            options={[
-              { id: "all", label: "Both" },
-              { id: "poster", label: "Poster" },
-              { id: "helper", label: "Helpr" },
-            ].map((o) => ({ ...o, label: pillLabel(o.label, partyCount(o.id as PartyFilter)) }))}
-          />
-          <FilterChipGroup
-            label="Category"
-            value={categoryFilter}
-            onChange={(v) => setCategoryFilter(v)}
-            options={[
-              { id: "all", label: "All" },
-              ...Object.entries(CATEGORY_LABELS).map(([id, label]) => ({ id, label })),
-            ].map((o) => ({ ...o, label: pillLabel(o.label, categoryCount(o.id as CategoryFilter)) }))}
-          />
-        </AdminCard>
+        <DisputeFilters ageFilter={ageFilter} setAgeFilter={setAgeFilter} ageCount={ageCount}
+          partyFilter={partyFilter} setPartyFilter={setPartyFilter} partyCount={partyCount}
+          categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} categoryCount={categoryCount}
+          clearFilters={clearFilters} />
       )}
 
       {/* surface="none": every dispute below is its own bordered `bg-card`

@@ -9,7 +9,7 @@
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarCheck, Navigation } from "lucide-react";
-import { fetchItemAddress, onMyWay, type MyBooking } from "@/lib/declutter/handover";
+import { fetchItemAddress, fetchMyHandover, onMyWay, type MyBooking } from "@/lib/declutter/handover";
 import { fetchOrderMeetup, meetupMapUrl } from "@/lib/declutter/meetup";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { routeMapsUrl } from "@/lib/declutter/route";
@@ -39,13 +39,23 @@ function OnMyWayButton({ orderId, sent }: { orderId: string; sent: boolean }) {
   );
 }
 
-export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[]; bookings: MyBooking[] | undefined }) {
-  const today = pickupsToday(orders, bookings ?? []);
+export function PickupDayCard({ orders, bookings, held }: { orders: PickupOrderLike[]; bookings: MyBooking[] | undefined; held?: ReadonlySet<string> }) {
+  const today = pickupsToday(orders, bookings ?? [], new Date(), held);
   // The first line's address stands for the order's stop; an order with lines at two addresses also lists them on its own card.
   const places = useQueries({
     queries: today.map((p) => p.order.handover === "meetup"
       ? { queryKey: ["declutter", "order-meetup", p.order.orderId], queryFn: () => fetchOrderMeetup(p.order.orderId) }
       : { queryKey: ["declutter", "address", p.order.lines[0]?.item_id], queryFn: () => (p.order.lines[0]?.item_id ? fetchItemAddress(p.order.lines[0].item_id) : Promise.resolve(null)) }),
+  });
+  // BUY-6 (buying audit 10-30 #6): a porch pickup offered "I'm on my way" and Directions before the seller put it
+  // out, against the app's own "Don't go until we tell you it's on the porch". The porch photo (set_out_at) is on
+  // the handover row, read with the order card's own key, so nothing is read twice.
+  const porchRows = useQueries({
+    queries: today.map((p) => ({
+      queryKey: ["declutter", "handover", p.order.orderId],
+      queryFn: () => fetchMyHandover(p.order.orderId),
+      enabled: p.order.handover === "porch",
+    })),
   });
   if (today.length === 0) return null;
   const stops = today.map((p, i) => {
@@ -67,6 +77,7 @@ export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[];
       <ul className="space-y-4">
         {today.map((p, i) => {
           const s = stops[i];
+          const notOut = p.order.handover === "porch" && !porchRows[i]?.data?.set_out_at;
           return (
             <li key={p.order.orderId} className={i > 0 ? "space-y-2 border-t border-border pt-4" : "space-y-2"}>
               <p className="text-ds-15 font-semibold leading-snug line-clamp-2">{p.order.lines.map((l) => l.item_title).join(", ")}</p>
@@ -74,6 +85,9 @@ export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[];
               {places[i]?.isError
                 ? <p className="text-ds-13" role="alert">We couldn't load the place. It's on the order below.</p>
                 : (s.name || s.address) && <p className="text-ds-13 font-medium break-words">{[s.name, s.address].filter(Boolean).join(", ")}</p>}
+              {notOut ? (
+                <p className="text-ds-13 text-muted-foreground" data-porch-not-out="">Not out yet. Don't go until we tell you it's on the porch.</p>
+              ) : (
               <div className="flex flex-wrap items-center gap-2">
                 <OnMyWayButton orderId={p.order.orderId} sent={p.onWay} />
                 {s.map && (
@@ -83,6 +97,7 @@ export function PickupDayCard({ orders, bookings }: { orders: PickupOrderLike[];
                   </a>
                 )}
               </div>
+              )}
             </li>
           );
         })}

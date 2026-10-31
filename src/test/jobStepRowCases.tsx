@@ -415,7 +415,7 @@ export const CASES: Case[] = [
   {
     name: "Posts · Open — Share · Boost · Edit · Cancel",
     side: "poster",
-    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />),
+    render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null, date_needed: "2099-01-01" }))} />),
     minControls: 4,
   },
   {

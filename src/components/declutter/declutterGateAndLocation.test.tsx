@@ -42,6 +42,8 @@ const state = { feature: true, featureSettled: true };
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
+// The item page's pickup places (b9 place times): none here; their own tests are itemHandoverTimes / SellPorchPlaces'.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchItemPickupPlaces: async () => [], fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
@@ -340,7 +342,7 @@ describe("Declutter location ask", () => {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
     // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={isNewSince(item, newSince) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
     const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
     // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
     expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);
@@ -406,7 +408,7 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |         count: listLoading \|\| preview \|\| items.isError ? undefined : rows.length, |         count: undefined,
     // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |     body = desktop && mapVisible ? ( |     body = false ? (
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop \|\| !member ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
     screenWidth.desktop = true;
     twoItems();
     try {
@@ -448,7 +450,7 @@ describe("Declutter location ask", () => {
 
   it("phone: search and filters end the tabs row, before the gear, with no row of their own; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && phoneView === "map") { |   } else if (false) {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
     // @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<SectionSettingsButton settings={DECLUTTER_SETTINGS} />}
     twoItems();
     pins.reads = 0;
@@ -482,13 +484,31 @@ describe("Declutter location ask", () => {
       await screen.findByRole("region", { name: "Map of items for sale" });
       expect(pins.reads).toBeGreaterThan(0);
       expect(screen.queryByText("Oak rocking chair")).toBeNull();
+      // NIGHT-BUYINGrealma-1: the choice is kept, so a reload opens the map again.
+      expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("map");
       // DA-13: the way back is on the map's own screen.
       // @mutate src/components/declutter/DeclutterBrowseView.tsx |  data-map-back="" onClick={() => setPhoneView("list")}> |  data-map-back="">
       fireEvent.click(screen.getByRole("button", { name: "Show list" }));
       expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
       expect(container.querySelector("[data-declutter-map]")).toBeNull();
+      expect(localStorage.getItem("helpr.declutterPhoneView")).toBe("list");
     } finally {
       live.items = [];
+      localStorage.removeItem("helpr.declutterPhoneView");
+    }
+  });
+
+  it("NIGHT-BUYINGrealma-1: phone, a member who chose the map opens on the map after a reload", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | useState<"list" \| "map">(() => (safeStorage.getItem(PHONE_VIEW_KEY) === "map" ? "map" : "list")) | useState<"list" \| "map">(() => "list")
+    twoItems();
+    localStorage.setItem("helpr.declutterPhoneView", "map");
+    try {
+      at("/declutter", <DeclutterPage />);
+      expect(await screen.findByRole("region", { name: "Map of items for sale" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Show list" })).toBeInTheDocument();
+    } finally {
+      live.items = [];
+      localStorage.removeItem("helpr.declutterPhoneView");
     }
   });
 

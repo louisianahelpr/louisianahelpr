@@ -128,7 +128,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const { accountChoice, notice } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", arrivedFromSignup, bouncedFromGatedRoute });
+  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect) });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);
@@ -325,9 +325,17 @@ const Login = () => {
           ) : (
             <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
           )}
-          <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-            {notice}
-          </p>
+          <div className="min-w-0 space-y-2">
+            <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+              {notice}
+            </p>
+            {/* AUD31-16: a shared Declutter link's guest is most likely new: sign-up first, here, not only the small last line. */}
+            {leadWithSignup && (
+              <Link to={signupHref} className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }} data-login-lead-signup="">
+                {t("login.createAccount")}
+              </Link>
+            )}
+          </div>
         </div>
       )}
       <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">

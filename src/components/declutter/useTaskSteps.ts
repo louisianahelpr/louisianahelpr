@@ -17,11 +17,14 @@ export function invalidateTasks(qc: ReturnType<typeof useQueryClient>) {
 
 export function useTaskSteps(taskId: string, userId: string, onDelivered?: () => void) {
   const qc = useQueryClient();
-  const done = (msg: string) => { toast.success(msg); invalidateTasks(qc); };
+  const done = (msg: string) => { toast(msg); invalidateTasks(qc); };
+  // BUY-40: location first (a refusal uploads nothing), then the photo once per file (a retry reuses it).
+  const pickedUpPhoto = useRef<{ file: File; path: string } | null>(null);
   const pickedUp = useMutation({
     mutationFn: async (file: File) => {
-      const path = await uploadTaskPhoto(userId, taskId, file);
-      await markPickedUp(taskId, path, await currentPosition());
+      const where = await currentPosition();
+      if (pickedUpPhoto.current?.file !== file) pickedUpPhoto.current = { file, path: await uploadTaskPhoto(userId, taskId, file) };
+      await markPickedUp(taskId, pickedUpPhoto.current.path, where);
     },
     onSuccess: () => done("Picked up. The buyer is told it's on the way."),
     onError: (err) => toast.error(declutterErrorMessage(err)),

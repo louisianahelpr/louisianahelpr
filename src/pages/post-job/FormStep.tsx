@@ -3,6 +3,8 @@ import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { PriceGuidanceCard } from "@/components/postjob/PriceGuidance";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
+import { SellForMeBlanks } from "@/components/postjob/SellForMeBlanks";
+import { isSellForMeJob } from "@/lib/declutter/sellForMe";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 // formatPriceExact, not formatPrice: this button quotes the CHARGE. See the
@@ -10,11 +12,12 @@ import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 // silently understated every total whose fee carried cents.
 import { formatPriceExact } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
-import { detailsBlocker } from "./detailsBlocker";
+import { PLACEHOLDER_BLOCK, detailsBlocker } from "./detailsBlocker";
+import { focusFirstPlaceholder } from "./focusFirstPlaceholder";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { usePrefillOpensDetails } from "./usePrefillOpensDetails";
 import { AgeGateNote } from "@/components/AgeGateNote";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
@@ -124,6 +127,7 @@ export function FormStep({ form }: FormStepProps) {
     goOn: () => setPage?.(4),
   });
   const rootRef = useRef<HTMLDivElement>(null);
+  const [placeholdersRefused, setPlaceholdersRefused] = useState(false);
   // scrollToField (postJobFormHelpers) asks a hidden screen to open when the
   // submit pass refuses a field on it.
   useEffect(() => {
@@ -140,12 +144,15 @@ export function FormStep({ form }: FormStepProps) {
   const openGroup = form.categoryGroup ? JOB_CATEGORY_GROUPS.find((g) => g.id === form.categoryGroup) ?? null : null;
   let pageLabel = "Continue";
   let pageReady = true;
+  // POST-H15 (lead 10-31): with only [placeholders] left, Details' Continue can be pressed. It does not move on: the
+  // description then says so in red and the first placeholder gets the focus (before that, a neutral hint).
+  const placeholdersOnly = page === 2 && detailsBlock === PLACEHOLDER_BLOCK;
   if (page === 1) {
     pageReady = !!form.category;
     pageLabel = form.category ? `Continue with ${sentenceCaseLabel(jobCategoryLabel(form.category))}` : "Pick a category to continue";
   } else if (page === 2) {
     pageReady = detailsBlock === null;
-    pageLabel = detailsBlock ?? "Continue";
+    pageLabel = placeholdersOnly ? "Continue" : detailsBlock ?? "Continue";
   } else if (page === 3) {
     pageReady = askingQuotes || form.budgetComplete;
     pageLabel = pageReady ? "Continue" : "Set a budget to continue";
@@ -153,6 +160,16 @@ export function FormStep({ form }: FormStepProps) {
   // The open-job cap and the age gate stop the flow at screen 1, as the
   // one-page form's button did (their notices sit above every screen).
   if (atOpenJobLimit || underAge) pageReady = false;
+  const pagePressable = pageReady || (placeholdersOnly && !atOpenJobLimit && !underAge);
+  const refusePlaceholders = () => {
+    setPlaceholdersRefused(true);
+    // After the refused state renders (and Details is showing): the first placeholder.
+    requestAnimationFrame(() => focusFirstPlaceholder(form.description, rootRef.current ?? document));
+  };
+  const goOn = () => {
+    if (pageReady) setPage?.(page + 1);
+    else if (placeholdersOnly && pagePressable) refusePlaceholders();
+  };
   const lastPage = page >= 4;
   // Screen 4 can make an EARLIER screen incomplete: turning on Repeats or
   // Group switches "Get quotes" back to a set price, whose field is on screen
@@ -169,7 +186,7 @@ export function FormStep({ form }: FormStepProps) {
           : null;
 
   // The action bar floats over the form only while its button does something.
-  const barFloats = backTo && !atOpenJobLimit && !underAge ? true : !lastPage ? pageReady : !submitDisabled;
+  const barFloats = backTo && !atOpenJobLimit && !underAge ? true : !lastPage ? pagePressable : !submitDisabled;
 
   // Reopen a passed step: the desktop rail and the phone's step bar share one rule (owner 2026-10-25).
   const canPickStep = (s: PostJobScreen) => FORM_PAGE_OF[s] !== undefined && !(s === "kind");
@@ -218,18 +235,19 @@ export function FormStep({ form }: FormStepProps) {
           // on Enter there: move on by hand (never from a textarea).
           if (lastPage || e.key !== "Enter" || (e.target as HTMLElement).tagName !== "INPUT") return;
           e.preventDefault();
-          if (pageReady) setPage?.(page + 1);
+          goOn();
         }}
         onSubmit={(e) => {
           if (!lastPage) {
             // Enter in a field on screens 1-3 moves on, never submits.
             e.preventDefault();
-            if (pageReady) setPage?.(page + 1);
+            goOn();
             return;
           }
           if (backTo) {
             e.preventDefault();
             setPage?.(backTo.page);
+            if (backTo.label === PLACEHOLDER_BLOCK) refusePlaceholders();
             return;
           }
           form.setQuoteReview(askingQuotes);
@@ -274,6 +292,8 @@ export function FormStep({ form }: FormStepProps) {
               Haul-away for {form.haulAwayItemIds.length} {form.haulAwayItemIds.length === 1 ? "item" : "items"} from your Declutter listings. Check the details, then set the pay.
             </p>
           )}
+          {/* POST-H15: the Helpr-list-it job's three blanks, each its own field (they write into the description). */}
+          {isSellForMeJob(form.category) && <SellForMeBlanks description={form.description} setDescription={form.setDescription} refused={placeholdersRefused} />}
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -296,6 +316,7 @@ export function FormStep({ form }: FormStepProps) {
             scopeVideoUrl={form.scopeVideoPreviewUrl}
             onVideoSelect={form.handleVideoSelect}
             onClearVideo={form.clearVideo}
+            placeholdersRefused={placeholdersRefused}
           />
         </div>
 
@@ -386,6 +407,7 @@ export function FormStep({ form }: FormStepProps) {
             materialsNote={form.materialsNote}
             setMaterialsNote={form.setMaterialsNote}
             savedAddress={form.savedAddress}
+            otherSavedAddresses={form.otherSavedAddresses}
           />
         </div>
 
@@ -415,7 +437,7 @@ export function FormStep({ form }: FormStepProps) {
               type="button"
               className="w-full rounded-full text-ds-16"
               size="lg"
-              onClick={() => setPage?.(backTo.page)}
+              onClick={() => { setPage?.(backTo.page); if (backTo.label === PLACEHOLDER_BLOCK) refusePlaceholders(); }}
             >
               <span className="min-w-0 whitespace-normal text-center leading-tight">{backTo.label}</span>
             </Button>
@@ -425,9 +447,9 @@ export function FormStep({ form }: FormStepProps) {
               type="button"
               className="w-full rounded-full text-ds-16"
               size="lg"
-              disabled={!pageReady}
-              aria-disabled={!pageReady}
-              onClick={() => setPage?.(page + 1)}
+              disabled={!pagePressable}
+              aria-disabled={!pagePressable}
+              onClick={goOn}
             >
               <span className="min-w-0 whitespace-normal text-center leading-tight">{pageLabel}</span>
             </Button>

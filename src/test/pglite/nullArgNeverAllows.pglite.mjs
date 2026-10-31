@@ -196,6 +196,8 @@ CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), 
   pickup_contact_id uuid, source_kind text, source_id uuid,
   -- Q1929 (20261021185418): declutter_delivery_raise_open reads the task's window end.
   open_until timestamptz,
+  -- b83 (20261031134217): helpr_task_source_held reads the seller no-show report's clock.
+  seller_no_show_reported_at timestamptz, seller_no_show_answered_at timestamptz, seller_no_show_settled_at timestamptz,
   -- A3-8 / A2-18 (20261028210552): the columns the class SQL's 'tip' step writes.
   size text, title text, pickup_area text, dropoff_area text, pickup_address text, pickup_lat numeric, pickup_lng numeric,
   dropoff_address text, dropoff_lat numeric, dropoff_lng numeric, trip_miles integer, pay_cents integer, fee_cents integer,
@@ -218,7 +220,8 @@ CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_ra
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 CREATE TABLE public.declutter_seller_porch_days (seller_id uuid PRIMARY KEY, weekdays smallint[] NOT NULL);
 -- Porch places (D-NEW14, 20261030164712): declutter_order_is_porch_day reads the place frozen on an order.
-CREATE TABLE public.declutter_order_porch_places (order_id uuid PRIMARY KEY, weekdays smallint[] NOT NULL);
+-- Place hours (20261031145652): declutter_order_slot_in_windows reads the frozen place's hours.
+CREATE TABLE public.declutter_order_porch_places (order_id uuid PRIMARY KEY, weekdays smallint[] NOT NULL, windows jsonb);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
 -- Declutter is on (as on prod): declutter_item_link_visible (Q2426) reads the switch.
 INSERT INTO public.feature_switches VALUES ('declutter', 'testers', 'Declutter');
@@ -305,7 +308,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Shipping S2 (20261030000030): may the label worker buy this rate.
   "shipping_rate_buyable",
   // Porch places (D-NEW14, 20261030164712): after declutter_is_porch_day, which its SQL body calls.
-  "declutter_order_is_porch_day"];
+  "declutter_order_is_porch_day",
+  // Place hours (20261031145652): the order's frozen place hours, else declutter_slot_in_windows (loaded FIRST).
+  "declutter_order_slot_in_windows"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
@@ -324,7 +329,8 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Q2462: declutter_pair_needs_talk's SQL body calls it (validated at CREATE).
   "declutter_pair_shared_ways"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
-const FIRST = ["job_payment_is_funded", "job_payment_is_listed"];
+// declutter_order_slot_in_windows (20261031145652): declutter_delivery_slot_ok's SQL body calls it.
+const FIRST = ["job_payment_is_funded", "job_payment_is_listed", "declutter_order_slot_in_windows"];
 const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];
 const loaded = [];
 // Skip mode loads the newest definition that exists BEFORE the fix. A function

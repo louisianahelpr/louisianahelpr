@@ -480,17 +480,17 @@ describe("Saved Helprs search — one control, one place", () => {
   });
 });
 
-/* ─────────────────── Jobs > Posted / Working chip row ─────────────────── */
+/* ─────────────────── Jobs > Posted / Working tabs row ─────────────────── */
 
-/* Audit 2026-10-28 F20: the open field keeps only the lit chip on a phone. The field opens IN the
-   chip row, out of the magnifier, and the row holds the magnifier's 40px box while it is open. */
+/* The search ends the TABS row, beside the gear (owner 2026-10-31; it was the chip row's end until then). The field
+   opens IN that row, out of the magnifier, and the row holds the magnifier's 40px box while it is open. */
 describe("Posted / Working search — in flow, the slot held, one dismiss", () => {
   async function mount() {
     const { EmbeddedActivityHeader } = await import("@/components/job-card/embeddedActivity");
     render(
       <MemoryRouter>
         <EmbeddedActivityHeader
-          header={<h1>Jobs</h1>}
+          header={(row) => <div data-testid="tabs-row"><h1>Jobs</h1>{row?.end}</div>}
           tab="applied"
           statusFilter="all"
           counts={{ all: 3, needs_you: 1 }}

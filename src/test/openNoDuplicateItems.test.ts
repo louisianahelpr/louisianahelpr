@@ -34,6 +34,7 @@
 // @mutate scripts/lib/openQueue.mjs |     .replace(VITE_HASH, "") |     .replace(VITE_HASH, "$&")
 // @mutate scripts/lib/openQueue.mjs |     if (!m \|\| m[1] === "x") continue;\n    const key = itemTitleKey(line); |     if (!m) continue;\n    const key = itemTitleKey(line);
 // @mutate scripts/lib/openFeeds.mjs |     if (same.length) { |     if (false) {
+// @mutate scripts/lib/openFeeds.mjs |     if (filed) { |     if (false) {
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -89,6 +90,28 @@ describe("no item is counted under two numbers", () => {
     // a problem with a different title is still filed on its own
     const other = groupSources({ ledger: [{ fingerprint: "e067480712413dc7e3b99490c9b7c4f6", source_kind: "sentry", source: "sentry:assets/app-shared", status: "open", title: "error: permission denied for table jobs", sample_ref: {} }], issues: [] });
     expect(applyFeeds(md, other, { status: () => "open", nextFree: 1811, today: "2026-10-14" }).created.map((c) => c.id)).toEqual(["Q1811"]);
+  });
+
+  it("two sources with one title in ONE sync file one number, not two (Q2511/Q2512, bot PR #3820)", () => {
+    const md = ["# OPEN", "", "## FEEDS — x", "", "- [ ] **Q1 LOW something else.** keep me.", "", "## CARRIED", ""].join("\n");
+    const row = (fingerprint: string, source: string) => ({ fingerprint, source_kind: "sentry", source, status: "open", title: "error: jwt expired", sample_ref: {} });
+    const groups = groupSources({ ledger: [row("e6fb014ab0990d29fdeee5b923e5f1e4", "sentry:assets/signed-in-shared"), row("acebac9d71e7669e5e61232c13345a12", "sentry:assets/app-shared")], issues: [] });
+    const opts = { status: () => "open" as const, nextFree: 2511, today: "2026-10-31" };
+    const res = applyFeeds(md, groups, opts);
+    expect(res.created.map((c) => c.id)).toEqual(["Q2511"]);
+    expect(res.attached).toEqual([{ id: "Q2511", keys: ["ledger acebac9d71e7"], seenAgain: true }]);
+    expect(openTitleDuplicates(res.md)).toEqual([]);
+    const jwt = queueItems(res.md).filter((i) => i.text.includes("jwt expired"));
+    expect(jwt.map((i) => i.id)).toEqual(["Q2511"]);
+    // both sources stay mirrored, each with its own done-when, and a re-sync changes nothing
+    expect(jwt[0].text).toContain("feed: ledger e6fb014ab099");
+    expect(jwt[0].text).toContain("feed: ledger acebac9d71e7");
+    expect(jwt[0].text).toContain("fingerprint = 'e6fb014ab0990d29fdeee5b923e5f1e4'");
+    expect(jwt[0].text).toContain("fingerprint = 'acebac9d71e7669e5e61232c13345a12'");
+    expect(applyFeeds(res.md, groups, { ...opts, nextFree: 2600 }).md).toBe(res.md);
+    // a different title in the same sync still files its own number
+    const other = groupSources({ ledger: [row("e6fb014ab0990d29fdeee5b923e5f1e4", "a"), { ...row("0123456789ab0123456789ab01234567", "b"), title: "error: permission denied for table jobs" }], issues: [] });
+    expect(applyFeeds(md, other, opts).created.map((c) => c.id)).toEqual(["Q2511", "Q2512"]);
   });
 
   it("two OPEN items whose titles differ only by number, tier, date, digits or a Vite hash are one problem", () => {

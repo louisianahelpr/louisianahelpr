@@ -12,13 +12,14 @@
  * poster's card").
  */
 // @mutate src/lib/posterSpend.ts | if (tip.payment_status !== "paid") return 0; | if (tip.payment_status === "__never__") return 0;
-// @mutate src/lib/posterSpend.ts | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) + tipCents; | const c = posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0);
-// @mutate src/lib/posterSpend.ts | for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, refundedCents: 0, adminRefunded: false }); | for (const o of orphanTips) void o;
+// @mutate src/lib/posterSpend.ts | const c = kept + tipCents; | const c = kept;
+// @mutate src/lib/posterSpend.ts | for (const o of orphanTips) rows.push({ job: null, tip: o.tip, cents: o.cents, tipCents: o.cents, tipGivenCents: o.given, refundedCents: 0, adminRefunded: false, refundedInFull: false }); | for (const o of orphanTips) void o;
+// @mutate src/lib/posterSpend.ts |     const given = Math.min(c, Math.max(0, cents(t.amount ?? 0))); |     const given = c;
 // @mutate src/lib/posterSpend.ts | if (pi && jobPi.get(r.job_id) && pi !== jobPi.get(r.job_id)) continue; | if (false) continue;
 // @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) \|\| 0)); | return 0;
 // Q1736: the crew block fees captured with the cancellation fee count too.
 // @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) \|\| 0)); | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)));
-// @mutate src/lib/posterSpend.ts | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0)
+// @mutate src/lib/posterSpend.ts | const kept = posterSpentCents(job, refundedCents, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0); | const kept = posterSpentCents(job, refundedCents, giftByJob.get(job.id) ?? 0);
 // @mutate src/lib/posterSpend.ts | return Math.max(0, charged - Math.max(0, refundedCents)); | return Math.max(0, charged);
 // @mutate src/lib/posterSpend.ts | const charged = tipChargeBreakdown(cents(tip.amount ?? 0)).chargeCents; | const charged = cents(tip.amount ?? 0);
 // @mutate src/lib/posterSpend.ts | job.payment_status === "cancelled" && (refundedCents > 0 \|\| job.cancellation_fee_status === "charged"); | false;
@@ -29,11 +30,15 @@
 // @mutate src/lib/posterSpend.ts | return Math.max(0, chargedCents - Math.max(0, refundedCents)); | return Math.max(0, chargedCents);
 // @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)));
 // @mutate src/lib/posterSpend.ts | const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars))); | const giftCents = Math.max(0, cents(giftDollars));
-// @mutate src/lib/posterSpend.ts | if (c > 0) rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) }); | rows.push({ job, tip: null, cents: c, tipCents, refundedCents: refundedByJob.get(job.id) ?? 0, adminRefunded: adminRefundedJobs.has(job.id) });
+// @mutate src/lib/posterSpend.ts | if (c > 0 \|\| refundedInFull) rows.push( | rows.push(
+// AUD31-55: a job refunded in full stays (only a ledgered refund of a real charge, never a chargeback).
+// @mutate src/lib/posterSpend.ts | const refundedInFull = kept === 0 && refundedCents > 0 | const refundedInFull = false && refundedCents > 0
+// @mutate src/lib/posterSpend.ts | ((CHARGED_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "") \|\| job.payment_status === "cancelled"); | true;
+// @mutate src/lib/posterSpend.ts |   if (r.job && r.refundedInFull) return " · Refunded in full"; |
 // @mutate src/lib/posterSpend.ts | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling"] as const; | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling", "chargeback", "cancelled"] as const;
 import { describe, it, expect } from "vitest";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
-import { posterSpentCents, tipSpentCents, spentRows, spentTotalCents, CHARGED_PAYMENT_STATUSES, type PosterSpendJob, type PosterTipRow, type PosterBlockFeeRow } from "./posterSpend";
+import { posterSpentCents, tipSpentCents, spentRows, spentTotalCents, refundedReceiptNote, CHARGED_PAYMENT_STATUSES, type PosterSpendJob, type PosterTipRow, type PosterBlockFeeRow } from "./posterSpend";
 
 const job = (over: Partial<PosterSpendJob> = {}): PosterSpendJob => ({
   id: "j1",
@@ -127,13 +132,30 @@ describe("spentRows / spentTotalCents — one source for the Spent list and the 
   ];
   const gifts = [{ job_id: "gift", amount: 75 }, { job_id: null, amount: 10 }];
 
-  it("leaves out every job that cost nothing and keeps the input order", () => {
+  it("leaves out every job that cost nothing, keeps a job refunded in full at $0, and keeps the input order", () => {
     const rows = spentRows(jobs, refunds, gifts);
-    expect(rows.map((r) => [r.job?.id, r.cents])).toEqual([
-      ["paid", 11200],
-      ["partial", 3600],
-      ["gift", 2500],
+    expect(rows.map((r) => [r.job?.id, r.cents, r.refundedInFull])).toEqual([
+      ["paid", 11200, false],
+      ["full-refund", 0, true],
+      ["partial", 3600, false],
+      ["gift", 2500, false],
     ]);
+  });
+
+  // AUD31-55 (lead decision 10-31): a job refunded in full STAYS on Spent and Receipts, "Refunded in full", $0 net;
+  // the total counts net, so the list and the total agree. Nothing charged (no PaymentIntent, a voided hold), a
+  // chargeback, or a 'refunded' status with no refund ledgered stay out: no money came back that the row could name.
+  it("AUD31-55: only a ledgered refund of the whole charge makes a Refunded in full row", () => {
+    const full = spentRows([job({ id: "f", payment_status: "refunded" })], [{ job_id: "f", amount_cents: 11200 }], []);
+    expect(full).toHaveLength(1);
+    expect(full[0]).toMatchObject({ cents: 0, refundedCents: 11200, refundedInFull: true });
+    expect(refundedReceiptNote(full[0])).toBe(" · Refunded in full");
+    expect(spentRows([job({ id: "s", payment_status: "refunded" })], [], [])).toEqual([]);
+    expect(spentRows([job({ id: "v", payment_status: "cancelled", stripe_payment_intent_id: null })], [{ job_id: "v", amount_cents: 11200 }], [])).toEqual([]);
+    expect(spentRows([job({ id: "cb", payment_status: "chargeback" })], [{ job_id: "cb", amount_cents: 11200 }], [])).toEqual([]);
+    const part = spentRows([job({ id: "p" })], [{ job_id: "p", amount_cents: 4000 }], []);
+    expect(part[0].refundedInFull).toBe(false);
+    expect(refundedReceiptNote(part[0])).toBe(" · $40.00 refunded");
   });
 
   it("the total is exactly the sum of the rows", () => {
@@ -144,7 +166,7 @@ describe("spentRows / spentTotalCents — one source for the Spent list and the 
 
   it("refund rows for other jobs never touch this one", () => {
     expect(spentRows([job({ id: "paid" })], [{ job_id: "other", amount_cents: 11200 }], [])).toEqual([
-      { job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200, tipCents: 0, refundedCents: 0, adminRefunded: false },
+      { job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200, tipCents: 0, tipGivenCents: 0, refundedCents: 0, adminRefunded: false, refundedInFull: false },
     ]);
   });
 
@@ -185,7 +207,7 @@ describe("tips count (owner, 2026-10-05)", () => {
 
   it("a tip joins its job's row; the row shows charge + tip", () => {
     const rows = spentRows([job({ id: "paid" })], [], [], [tip()]);
-    expect(rows).toEqual([{ job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200 + T10, tipCents: T10, refundedCents: 0, adminRefunded: false }]);
+    expect(rows).toEqual([{ job: expect.objectContaining({ id: "paid" }), tip: null, cents: 11200 + T10, tipCents: T10, tipGivenCents: 1000, refundedCents: 0, adminRefunded: false, refundedInFull: false }]);
   });
 
   it("a refund on the tip's PaymentIntent comes off the tip, never off the job", () => {
@@ -200,7 +222,7 @@ describe("tips count (owner, 2026-10-05)", () => {
 
   it("a paid tip whose job is not in the list still counts, as its own row", () => {
     const rows = spentRows([], [], [], [tip({ job_id: "elsewhere" })]);
-    expect(rows).toEqual([{ job: null, tip: expect.objectContaining({ id: "t1" }), cents: T10, tipCents: T10, refundedCents: 0, adminRefunded: false }]);
+    expect(rows).toEqual([{ job: null, tip: expect.objectContaining({ id: "t1" }), cents: T10, tipCents: T10, tipGivenCents: 1000, refundedCents: 0, adminRefunded: false, refundedInFull: false }]);
     expect(spentTotalCents(rows)).toBe(T10);
   });
 

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { mutationErrorMessage } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createSavedSearch, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
+import { createSavedSearch, fetchSavedSearches, sameSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 
 export const SAVED_SEARCHES_KEY = ["saved-searches"] as const;
 
@@ -25,14 +25,18 @@ export function SaveSearchSheet({
   draft,
   sections,
   userId,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   draft: SearchDraft;
   sections?: SavedSearchSection[];
   userId: string;
+  /** BUY-54: the search is saved (now, or already), so the pill can say so. */
+  onSaved?: (d: SearchDraft) => void;
 }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [section, setSection] = useState<SavedSearchSection>(draft.section);
   const [email, setEmail] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,19 +54,36 @@ export function SaveSearchSheet({
   const save = async () => {
     if (saving) return;
     setSaving(true);
+    const toList = { label: "View", onClick: () => navigate("/profile?tab=saved_searches") };
+    // BUY-54: the same search saved twice alerts twice and uses up the cap. The list is the Saved searches tab's own
+    // read (one cache). If it can't be read, the save goes ahead: a duplicate is better than a search never saved.
+    const mine = await qc.fetchQuery({ queryKey: [...SAVED_SEARCHES_KEY, "list", userId], queryFn: () => fetchSavedSearches(userId) })
+      .catch((err: unknown) => { report(err, { tags: { source: "SaveSearchSheet.sameSearch" } }); return null; });
+    if (mine?.some((s) => sameSearch(s, d))) {
+      setSaving(false);
+      toast("You already saved this search", { description: "Find it in You › Settings › Saved searches.", action: toList });
+      onSaved?.(d);
+      onOpenChange(false);
+      return;
+    }
     try {
       await createSavedSearch(userId, d, email);
     } catch (err) {
       setSaving(false);
       report(err, { tags: { source: "SaveSearchSheet.save" } });
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't save your search. Please try again."));
+      toast.error(savedSearchSaveError(err, "We couldn't save your search. Please try again."));
       return;
     }
     setSaving(false);
     hapticSuccess();
     void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
-    toast.success("Search saved", { description: "Find it in You › Settings › Saved searches." });
+    // NIGHT-SAVEDS1-SS-2: toast.success renders nothing (toastPolicy); the bare toast() does, with a way to the list.
+    toast("Search saved", {
+      description: "Find it in You › Settings › Saved searches.",
+      action: toList,
+    });
+    onSaved?.(d);
     onOpenChange(false);
   };
 
@@ -101,7 +122,7 @@ export function SaveSearchSheet({
           <div className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border">
             <span className="flex-1 min-w-0">
               <span className="block font-sans font-semibold text-ds-15">In the app</span>
-              <span className="block font-sans text-ds-13 text-muted-foreground">Always on for saved searches</span>
+              <span className="block font-sans text-ds-13 text-muted-foreground">Follows New matches in your notification settings</span>
             </span>
             <span className="font-sans font-semibold text-ds-13 text-muted-foreground">On</span>
           </div>

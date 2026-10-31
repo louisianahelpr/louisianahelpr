@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CancellationDialog } from "./CancellationDialog";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     // The dialog's open-effect reads the job's series columns; give the
@@ -66,6 +66,7 @@ describe("CancellationDialog shows amounts, never fees", () => {
     // 25% of $100 = $25 for the Helpr's time (the ladder, unchanged).
     expect(screen.getByText("For Marie's time")).toBeInTheDocument();
     expect(screen.getAllByText("$25").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Strike recorded/)).toBeInTheDocument();
     expect(screen.getByText(/Most of the rest of your payment comes back to your card within the hour\./)).toBeInTheDocument();
     expect(shown()).not.toMatch(FEE_WORDS);
   });
@@ -86,8 +87,10 @@ describe("CancellationDialog shows amounts, never fees", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);
     expect(screen.queryByText("For Marie's time")).not.toBeInTheDocument();
-    // JOBS-14: poster_cancel_job files the strike on any committed booking (live: IF v_committed THEN); never "free".
-    expect(screen.getByText(/No charge for your Helpr's time.*A strike is still recorded/)).toBeInTheDocument();
+    // JOBS-14 (owner 10-30): poster_cancel_job files the strike only inside 24 hours, as for Helprs.
+    expect(screen.getByText(/No charge for your Helpr's time\. The start is more than 24 hours away, so this isn't a strike\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Strike recorded/)).not.toBeInTheDocument();
+    expect(screen.getByText(/These consequences don't apply to this cancel/)).toBeInTheDocument();
     expect(screen.queryByText(/Free cancellation/)).not.toBeInTheDocument();
     expect(shown()).not.toMatch(FEE_WORDS);
   });

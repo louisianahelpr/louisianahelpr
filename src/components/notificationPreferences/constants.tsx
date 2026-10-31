@@ -86,11 +86,13 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // missing any of them — so a future map row cannot go unswitched the way
 // these four did. Do not shorten this list to match a hand-written count.
 //
-// On the two money rows: `payments` and `financial_alerts` are genuinely
-// separate columns with separate types. `payment` (escrow held, released,
-// refunded, cancellation fee) routes to `payments`; `financial_alerts` (tip
-// received, payout sent, instant payout) routes to its own column. The labels
-// have to carry that distinction because nothing else on the screen does.
+// On the two money rows: `payments` and `financial_alerts` are separate columns
+// with separate types, but the senders don't split them cleanly by kind. Real
+// members' titles on prod, last 60 days (read 2026-10-30): `financial_alerts`
+// held money secured for a job, payout setup, payouts released and a tip;
+// `payment` held refunds, job completed or approved, card saved, and also
+// "Payout sent!" and tips. So each row's description says what it covers,
+// overlap included, because neither label can.
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
@@ -98,12 +100,12 @@ export const rows: Row[] = [
   // The Daily Match Digest row renders directly beneath this one (see
   // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
   // and it greys out when this switch is off.
-  { key: "job_matches", emailKey: "email_job_matches", label: "Job matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "payments", emailKey: "email_payments", label: "Job payments", icon: <Receipt className="w-3.5 h-3.5" /> },
-  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
+  { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards. Some payouts and tips too.", icon: <Receipt className="w-3.5 h-3.5" /> },
+  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
   { key: "system_alerts", emailKey: "email_system_alerts", label: "System alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
@@ -116,13 +118,15 @@ export const rows: Row[] = [
 // Pickups, price drops and Wanted matches are the only kinds that send a notice
 // email, so the other rows show a dash in the Email column rather than a switch that does
 // nothing. (A Declutter refund's receipt email, declutter-money's
-// tellBuyerRefunded, is a receipt and always goes; the Refunds dash says so.)
+// tellBuyerRefunded, is a receipt and always goes; the Refunds dash says so. So do the seller's
+// "You sold" and "Your payout is on its way", _shared/declutterSellerEmail.ts; the Sales dash says so,
+// NIGHT-SET-Declutterse-3.)
 const NO_EMAIL = "In the app only, no email for this";
 export const declutterRows: Row[] = [
   { key: "declutter_listings", emailKey: "email_declutter_listings", label: "Listings", icon: <Tag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "declutter_offers", emailKey: "email_declutter_offers", label: "Offers", icon: <HandCoins className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
-  { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Sales", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Sales", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: "Sale and payout receipts are always emailed" },
   { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", icon: <CalendarClock className="w-3.5 h-3.5" /> },
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
   { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", icon: <TrendingDown className="w-3.5 h-3.5" /> },

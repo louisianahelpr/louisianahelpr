@@ -17,7 +17,10 @@ const OFF = "border border-border bg-card text-foreground";
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
   const all = chips.reduce((n, c) => n + c.count, 0);
   return (
-    <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
+    // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
+    // of it, so nothing stays faded once the row is at its end. Never wrapped.
+    <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button type="button" aria-pressed={value === null} onClick={() => onPick(null)} className={`${CHIP} ${value === null ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}>
         All{all > 0 ? ` · ${all}` : ""}
       </button>
@@ -34,7 +37,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
-import { myItemsQuery } from "./myItemsQuery";
+import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
 import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
@@ -48,6 +51,8 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
+import { WatchingList } from "./DeclutterWatching";
+import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -88,7 +93,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
       <FreePauseLine />
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
-      <PickupDayCard orders={t.live} bookings={t.bookings} />
+      {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
+      <PickupDayCard orders={t.live} bookings={t.bookings} held={new Set(t.live.filter((o) => t.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
@@ -108,12 +114,11 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}
       {/* The Free change (Q2487): the free items this member asked for, until the giver picks. */}
       <MyFreeAsks />
+      {/* SS-5: the items the member hearted, so they can be found again. */}
+      <WatchingList />
     </div>
   );
 }
-
-/** On sale, or on its way there (the listings a seller still manages). */
-const LISTED = new Set(["draft", "pending_review", "live", "paused", "reserved"]);
 
 const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
@@ -122,7 +127,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
-  const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
+  // NIGHT-SELL-Sellinglist-2: the rows Your listings shows (everything but history), so "Listed · n" opens n rows.
+  const listed = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).length;
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).
   const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");
@@ -131,10 +137,20 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
   // Audit DC-9: "To answer" is the offers waiting for the seller AND the questions waiting for an answer, and only
-  // those (no buyer-turn offers, no settings).
+  // those (no buyer-turn offers, no settings). NIGHT-BUYINGopenpr-3 (lead 10-31): and the sales with a buyer's report
+  // waiting on the seller's side, listed there too, so the chip never counts what it hides.
   const questions = useUnansweredQuestions(userId);
-  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count;
+  const reports = useSellerReportsToAnswer();
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size;
   const waitingLabel = useWaitingChipLabel();
+  // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
+  // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
+  const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0;
+  const sold = show("sold") && <>
+    {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
+    <SellerPayoutPrompt />
+    <PaidOrders side="seller" />
+  </>;
   return (
     <div className="space-y-6">
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
@@ -151,14 +167,14 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
+      {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
+      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
-      {show("waiting") && <SalesWaiting />}
-      {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
-      {show("sold") && <SellerPayoutPrompt />}
-      {show("sold") && <PaidOrders side="seller" />}
+      {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
+      {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
       {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
       {only === null && settings}

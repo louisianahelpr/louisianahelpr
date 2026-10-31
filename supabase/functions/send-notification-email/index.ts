@@ -6,6 +6,7 @@ import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
 import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
+import { notificationActionLabel } from '../_shared/email-templates/notificationAction.ts'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
@@ -62,6 +63,7 @@ async function renderNotificationEmail(
       title,
       message,
       actionUrl,
+      actionLabel: notificationActionLabel(link),
       userName,
       prefsUrl,
       host: siteUrl.replace(/^https?:\/\//, ''),

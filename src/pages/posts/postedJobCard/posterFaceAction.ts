@@ -63,7 +63,7 @@ export function posterFaceAction(
       };
     case "confirm_arrival":
       return {
-        label: h.confirmingArrival ? "Confirming…" : "Confirm arrival",
+        label: h.confirmingArrival ? "Confirming…" : "Confirm they've arrived",
         onClick: h.confirmArrival,
         tone: "primary",
         disabled: h.confirmingArrival,

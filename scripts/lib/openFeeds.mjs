@@ -325,6 +325,7 @@ export function applyFeeds(md, groups, { status, nextFree, today, robotsReadable
   let lines = md.split("\n");
   const snapshotMd = () => lines.join("\n");
   const newItems = [];
+  const filedThisRun = new Map(); // title key -> { id, at: its index in newItems }
   const take = qCounter(nextFree);
 
   // The test-robots item is rewritten whole, and only when both feeds were read
@@ -417,8 +418,18 @@ export function applyFeeds(md, groups, { status, nextFree, today, robotsReadable
       attached.push({ id: t.id, keys: add, seenAgain: true });
       continue;
     }
+    // `items` above reads the file, and an item filed in THIS run is not in it
+    // until the loop ends: two rows with one title in one sync each filed a
+    // number (Q2511/Q2512 "error: jwt expired", bot PR #3820, 2026-10-31).
+    const filed = key ? filedThisRun.get(key) : undefined;
+    if (filed) {
+      newItems[filed.at] = `${newItems[filed.at]} **Seen again ${today}** (${g.origin}). ${g.keys.map((k) => `feed: ${k}`).join(" · ")}. ${g.markers.join(", ")}`;
+      attached.push({ id: filed.id, keys: g.keys, seenAgain: true });
+      continue;
+    }
     const id = take();
     newItems.push(`- [ ] **${id} ${title.startsWith(`${tier} `) ? "" : `${tier} `}${title}.** Mirrored ${today} from ${g.origin} by \`scripts/open-sync-trackers.mjs\`: find the root cause, fix it, re-run the source's own detector. ${g.keys.map((k) => `feed: ${k}`).join(" · ")}. ${g.markers.join(", ")}`);
+    if (key) filedThisRun.set(key, { id, at: newItems.length - 1 });
     created.push({ id, keys: g.keys });
   }
 

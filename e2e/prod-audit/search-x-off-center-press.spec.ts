@@ -178,7 +178,7 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     name: "search-page", file: "src/pages/search/SearchPage.tsx",
     url: "/search?q=chair",
     trigger: "",
-    field: 'input[aria-label="Search jobs, items, shops and homes"]',
+    field: 'form[aria-label="Search Helpr"] input[type="search"]',
     close: CLEAR,
   },
 ];

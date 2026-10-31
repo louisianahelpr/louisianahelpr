@@ -372,4 +372,4 @@ describe("Activity — whose move is it", () => {
 // is, on both the poster and the helper side.
 // BLIND TO: the chip row and the counts as RENDERED. These drive the pure
 // bucketers and the hook's memos, never the Activity page.
-// @mutate src/components/job-card/activityFilters.ts | return isPastDue(j.date_needed); | return false;
+// @mutate src/components/job-card/activityFilters.ts |   if (!isPastDue(j.date_needed)) return false; |   return false;

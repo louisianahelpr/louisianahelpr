@@ -161,7 +161,7 @@ export async function syncConnectGate(
     await insertNotifications(supabaseAdmin, {
       user_id: userId,
       title: "Payout account verified",
-      message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+      message: "Your payout account is fully set up! You can now get paid for jobs, Declutter sales and deliveries.",
       type: "success",
       link: "/profile?tab=payment",
     });

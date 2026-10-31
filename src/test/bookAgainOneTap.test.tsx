@@ -29,7 +29,7 @@ import { bookAgainLabel, bookAgainLink, prefillOpensWhen } from "@/lib/bookAgain
 import { blankComments } from "./helpers/blankNonCode";
 import { openMore } from "./helpers/openMore";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

@@ -35,7 +35,7 @@ function PosterWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose:
       open
       onClose={onClose}
       title="Offer sent"
-      lead={<span data-payment-held="">{who?.cardHeld ? `Your card is charged when ${name ?? "your Helpr"} accepts. Then we hold the payment until the job is done.` : PAYMENT_HELD_SENTENCE}</span>}
+      lead={<span data-payment-held="">{who?.cardHeld ? `Your card is charged when ${name ?? "your Helpr"} accepts. Then Louisiana Helpr holds the payment until the job is done.` : PAYMENT_HELD_SENTENCE}</span>}
       steps={[
         { key: "sent", label: "You sent the offer", detail: "Today", state: "done" },
         { key: "accept", label: `${them} accepts`, detail: name ? `We'll let you know when ${name} answers` : "We'll let you know when you get an answer", state: "now" },

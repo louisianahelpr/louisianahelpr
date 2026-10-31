@@ -16,6 +16,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { acceptTask, fetchRouteSuggestions, type RouteSuggestion } from "@/lib/helprTasks/api";
 import { invalidateTasks } from "./useTaskSteps";
+import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -26,7 +27,7 @@ function SuggestionRow({ s, onTaken }: { s: RouteSuggestion; onTaken: () => void
   const take = useMutation({
     mutationFn: () => acceptTask(s.task_id, s.pickup_slot_start),
     onSuccess: () => {
-      toast.success(`Added to your route. Pick it up ${when(s.pickup_slot_start)}.`);
+      toast(`Added to your route. Pick it up ${when(s.pickup_slot_start)}.`);
       invalidateTasks(qc);
       onTaken();
       if (user?.id) void hiredPayout.offer(user.id);
@@ -85,7 +86,7 @@ export function RouteSuggestions({ withTaskId }: { withTaskId?: string }) {
           <SuggestionRow key={s.task_id} s={s} onTaken={() => void qc.invalidateQueries({ queryKey: ["helpr-tasks", "suggest"] })} />
         ))}
       </ul>
-      <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you add one.</p>
+      <p className="text-ds-12 text-muted-foreground">{DELIVERY_ADDRESSES_SHOW}</p>
     </section>
   );
 }

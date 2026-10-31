@@ -156,7 +156,32 @@ export function signedInSplit(root) {
   const deep = new Set([...signedInOnly].filter((f) => !reach.has(f)));
   const others = staticReach(root, firstScreenRoots(root).filter((r) => !toPosix(r).endsWith(DECLUTTER_ROOT)));
   const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f)));
-  return { signedInOnly, firstScreen, deep, declutterOnly };
+  // `homeOff`: the rest of firstScreen that Home's own first screen never runs
+  // (AUD31-60/66). Every signed-in visitor lands on /home, and it downloaded the
+  // whole of signed-in-shared, though most of it is only the other first
+  // screens' (the job lists, Messages, You, Post a job). It gets its own chunk,
+  // which those screens fetch beside signed-in-shared in the same round.
+  const home = staticReach(root, homeFirstScreenRoots(root));
+  const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f)));
+  return { signedInOnly, firstScreen, deep, declutterOnly, homeOff };
+}
+
+/**
+ * What a signed-in cold load of /home runs before its first screen: main.tsx,
+ * the /home row of ENTRY_ROUTE_CHUNKS (its page and the ProtectedRoute gate),
+ * and EVERY_PAGE_ROOTS. Read from routePreload.ts, so a page moved there moves here.
+ */
+export function homeFirstScreenRoots(root) {
+  const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
+  const row = src.match(/"\/home":\s*\{[\s\S]*?signedIn:\s*\[([^\]]*)\]/)?.[1] ?? "";
+  const specs = [...row.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]);
+  const protectedSpec = row.includes("protectedRoute") ? src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1] : null;
+  if (protectedSpec) specs.push(protectedSpec);
+  const roots = specs.map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
+  if (roots.length < 2 || roots.some((r) => !r) || !protectedSpec) {
+    throw new Error(`bootReach: read ${roots.length} /home first-screen roots from routePreload.ts (expected its page and protectedRoute). Fix the scan.`);
+  }
+  return [path.join(root, "src/main.tsx"), ...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
 }
 
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */
@@ -173,3 +198,48 @@ export function signedInOnlyModules(root) {
   walk(path.join(root, "src"));
   return { signedInOnly: new Set(all.filter((f) => !reach.has(f))), reachable: reach, sharedModules: all.length };
 }
+
+/** The guest /browse first screen: its map, filter and job-card code is shared with signed-in pages, never the boot. */
+export const BROWSE_GUEST_ROOT = "src/pages/home/DashboardGuest.tsx";
+
+/**
+ * Shared-code modules a public cold load reaches ONLY through guest /browse (LEAD-POSTS-BOOT-SHRINK, 10-31).
+ * They are shared with signed-in pages (Dashboard, job lists), so they rode in app-shared and every route's
+ * boot downloaded them (~36 KB raw on /posts, /, /login and /signup, 2026-10-31). Not reached by main.tsx, any
+ * other guest first screen, App.tsx or the every-page components, so only /browse and the pages that use them
+ * fetch the `browse-first-screen` chunk. Over-approximating the reach is harmless (a module stays in app-shared).
+ */
+export function guestBrowseOnlyModules(root) {
+  const pub = publicRoots(root);
+  const browse = toPosix(path.join(root, BROWSE_GUEST_ROOT));
+  if (!pub.map(toPosix).includes(browse)) {
+    throw new Error(`bootReach: ${BROWSE_GUEST_ROOT} is not a guest first screen in routePreload.ts any more. Fix the scan.`);
+  }
+  const reach = staticReach(root, pub);
+  const others = staticReach(root, [
+    ...pub.filter((r) => toPosix(r) !== browse),
+    ...["src/App.tsx", ...EVERY_PAGE_ROOTS].map((r) => toPosix(path.join(root, r))),
+  ]);
+  // Every src module, not only the shared directories: app-shared's recursive capture would otherwise pull a
+  // component one of these imports (dashboard/JobPrice.tsx via lib/jobDisplayPay.ts) back into app-shared, and
+  // app-shared would then import this chunk on every boot (measured 10-31: +1 KB on every route).
+  const src = toPosix(path.join(root, "src")) + "/";
+  return new Set([...reach].filter((f) => f.startsWith(src) && !others.has(f) && f !== browse));
+}
+
+/**
+ * guestBrowseOnlyModules split by whether signed-in Home's first screen reaches the module (10-31, follow-up to
+ * LEAD-POSTS-BOOT-SHRINK): as one chunk it put all of guest /browse's map, filters and job-card code on /home's
+ * critical path (466 KB gz against a 441 budget). `homeShared` (the job price, notification panel, location,
+ * pull-to-refresh, ...) gets its own chunk that /home and /browse fetch; `browseOnly` only /browse and the pages
+ * that use it. Over-approximating Home's reach is harmless (a module moves to the chunk Home fetches).
+ */
+export function guestBrowseSplit(root) {
+  const all = guestBrowseOnlyModules(root);
+  const home = staticReach(root, homeFirstScreenRoots(root));
+  return {
+    browseOnly: new Set([...all].filter((f) => !home.has(f))),
+    homeShared: new Set([...all].filter((f) => home.has(f))),
+  };
+}
+

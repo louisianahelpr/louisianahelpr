@@ -6,6 +6,7 @@
  *   - the "Busy right now" map frames Louisiana's land, never a coastal parish zoomed out to Houston and the Gulf.
  *
  * @mutate src/components/declutter/DeclutterDeliverExplainer.tsx |   const large = helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["large"])); |   const large = deliveryPriceCents(EXAMPLE_MILES, ["large"]);
+ * @mutate src/components/declutter/DeclutterDeliverExplainer.tsx | Not picked up within 2 hours of the pickup time, | Not picked up in time,
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const intro = <DeliverExplainer />; |   const intro = <p>Deliver Declutter items near you.</p>;
  * @mutate src/components/busyAreas/BusyAreasCard.tsx |   [29.0, -94.05], // SW: Sabine Pass |   [28.5, -94.6], // SW: Sabine Pass
  * @mutate src/components/busyAreas/BusyAreasCard.tsx |   const summary = useMemo(() => busyAreas([], deliveries), [deliveries]); |   const summary = useMemo(() => busyAreas([{ parish: "Vermilion" }], deliveries), [deliveries]);
@@ -43,6 +44,8 @@ describe("the Deliver tab explains itself", () => {
     expect([small, large]).toEqual(["$18", "$37"]);
     expect(pay).toBe(`A ${EXAMPLE_MILES}-mile trip pays you ${small}, or ${large} for a large item. Every delivery shows your pay before you take it, and tips are all yours.`);
     expect(card.textContent).not.toMatch(/fee|%|¢|70c/i);
+    // BUY-45: the limit and the no-show strike the server applies (helpr_task_accept: 2 taken; helpr_task_sweep: 2 hours).
+    expect(container.querySelector("[data-deliver-rules]")?.textContent?.replace(/\s+/g, " ").trim()).toBe("You can have 2 deliveries taken and not yet picked up at a time. Not picked up within 2 hours of the pickup time, a delivery goes to another Helpr and you get a delivery strike.");
   });
 
   it("the Deliver page opens on that card", () => {

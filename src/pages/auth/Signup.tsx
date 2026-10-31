@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { rememberReferralFromUrl } from "@/lib/pendingReferral";
+import { useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,8 +17,8 @@ import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
-import { rememberJobIntent, rememberSignupRedirect, postAuthDestination, notifySignupSubtitle } from "@/lib/jobIntent";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { signupSubtitle } from "@/lib/jobIntent";
+import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -35,7 +34,7 @@ import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
-import { recognizedAuthError } from "@/lib/authErrors";
+import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
@@ -46,36 +45,8 @@ const Signup = () => {
   const navigate = useNavigate();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/signup"]);
-  const { user, isReady } = useAuthReady();
   const [searchParams] = useSearchParams();
-  // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup
-  // wall. `?redirect=<path>` — the fuller form of the same idea: the exact
-  // in-app route they were trying to reach (e.g. `/jobs/<id>`). Persist both
-  // immediately, because signup does not end here: it ends at /signup-pending
-  // and then in the visitor's email client, and neither router state nor a
-  // query param survives that round-trip. See lib/jobIntent.
-  //
-  // SECURITY: `redirect` is attacker-controllable. `rememberSignupRedirect`
-  // drops anything that isn't a same-origin path, so a crafted
-  // `/signup?redirect=https://evil.com` stores nothing and the flow falls back
-  // to its normal landing.
-  const pendingJobId = searchParams.get("job");
-  const pendingRedirect = searchParams.get("redirect");
-  // NOTE ON ORDER: this effect is declared BEFORE the already-authenticated
-  // bounce below on purpose. Both fire on the mount commit, in declaration
-  // order, and the bounce reads the value this one writes.
-  useEffect(() => {
-    if (pendingJobId) rememberJobIntent(pendingJobId);
-    rememberSignupRedirect(pendingRedirect); rememberReferralFromUrl(window.location.search); // ?ref= survives an Apple/Google sign-up
-  }, [pendingJobId, pendingRedirect]);
-  // An already-authenticated visitor is bounced into the app (after isReady, never on the null snapshot).
-  useEffect(() => {
-    if (isReady && user) navigate(postAuthDestination(), { replace: true });
-  }, [isReady, user, navigate]);
-  // Funnel event: user landed on signup page (top of activation funnel)
-  useEffect(() => {
-    track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
-  }, []);
+  useSignupEntry(searchParams, navigate); // ?job= / ?redirect= / ?ref= kept, signed-in bounce, funnel start
   // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.
   const [step, setStep] = useState(() => {
     if (!import.meta.env.DEV) return 1;
@@ -146,6 +117,8 @@ const Signup = () => {
 
   // Step 2 inline field errors — populated on Continue tap, cleared as user fixes each field
   const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+  // The server's refusal of the password, shown under step 1's field until the password changes (AUD31-53).
+  const [serverPasswordError, setServerPasswordError] = useState<string | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -452,6 +425,15 @@ const Signup = () => {
       // userFacingError guarantees the raw text still reaches the console; on
       // the auth branch it is never called, so log it here rather than lose
       // the breadcrumb a bug report depends on.
+      // AUD31-53: a server refusal of the password (weak_password: a leaked one, or a rule the client's list does
+      // not know) is about step 1's field. It showed as a raw toast on step 2; now step 1 opens with the reason
+      // under the password.
+      if (isWeakPasswordError(err)) {
+        setServerPasswordError(weakPasswordWords(err));
+        setStep2Errors({});
+        setStep(1);
+        return;
+      }
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
       if (authCopy) console.error("[signup:auth]", err);
       toast.error(authCopy ?? userFacingError(err, t("signup.createFailed")));
@@ -488,7 +470,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: t("signup.title"), subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: t("signup.aboutTitle") };
+    step === 1 ? { title: t("signup.title"), subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) } : { title: t("signup.aboutTitle") };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked
@@ -573,7 +555,8 @@ const Signup = () => {
             email={email}
             setEmail={setEmail}
             password={password}
-            setPassword={setPassword}
+            setPassword={(v: string) => { setServerPasswordError(null); setPassword(v); }}
+            serverPasswordError={serverPasswordError}
             showPassword={showPassword}
             setShowPassword={setShowPassword}
             acceptedPolicies={acceptedPolicies}

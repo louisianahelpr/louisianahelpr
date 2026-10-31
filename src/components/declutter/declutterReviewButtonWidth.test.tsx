@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/UserAvatar", () => ({ default: () => null }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { buyer_id: "me", seller_id: "s1" }, error: null }) }) }) }) },

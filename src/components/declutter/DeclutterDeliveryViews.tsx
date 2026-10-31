@@ -12,12 +12,15 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
+import { stillInHandLine } from "@/lib/declutter/stillInHand";
+import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
 import { DeliveryTalkButton } from "./DeliveryTalk";
 import { BuyerCantFinishPanel, buyerMayConfirm, cantFinishLine, HelprCantFinish, SellerReturnPanel } from "./DeliveryCantFinish";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { SellerHandedOver } from "./SellerHandedOver";
+import { HelprNoShowAnswer, HelprNoShowReportButton } from "./DeclutterNoHelpr";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
@@ -32,6 +35,7 @@ import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { DeliveryTipPanel } from "./DeliveryTipPanel";
+import { ProblemForm } from "./DeclutterProblemForm";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { TaskPickupTime } from "./DeclutterPickupWindows";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +50,7 @@ import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { VehicleForm } from "./DeliverVehicleForm";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
+import { sellerPayoutRule } from "@/lib/declutter/sellerPayoutRule";
 import {
   acceptTask,
   confirmReceived,
@@ -73,10 +78,10 @@ const SIZE_WORDS: Record<TaskSize, string> = {
 
 const DELIVERY_STEPS = ["Booked", "Picked up", "Delivered"] as const;
 const DELIVERY_STEP: Partial<Record<TaskView["status"], number>> = { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 };
-/** helpr_task_sweep's first "still not delivered" nudge (20261031014011): 24 hours after Picked up. */
-const STILL_IN_HAND_MS = 24 * 3_600_000;
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+/** AUD31-27: the Louisiana day a finished delivery ended, "Thu, Oct 29". */
+const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** A private task photo through a short-lived signed URL. */
@@ -110,12 +115,25 @@ function TaskPhotos({ view }: { view: TaskView }) {
 }
 
 /**
+ * BUY-22 (buying audit 10-30), the D2-9 rule for a Helpr delivery: pickups hold "Report a problem" back until the
+ * booked pickup is over (pickupTimeOver, 15 minutes past it), and a Helpr delivery offered it while nobody had even
+ * taken the job. Now the button shows once the Helpr has the item (picked up, delivered or confirmed), or 15 minutes
+ * after the Helpr's booked pickup time (a Helpr who never came). Still finding a Helpr, unfilled or closed: none (no
+ * Helpr is what DeclutterNoHelpr answers). The sheet itself can still be opened from the order's other buttons.
+ */
+export function deliveryProblemTimeCame(v: Pick<TaskView, "status" | "pickup_slot_start">, now = Date.now()): boolean {
+  if (v.status === "picked_up" || v.status === "delivered" || v.status === "confirmed") return true;
+  return v.status === "accepted" && !!v.pickup_slot_start && now >= new Date(v.pickup_slot_start).getTime() + 15 * 60_000;
+}
+
+/**
  * What the buyer or the seller reads about a paid delivery order. `tipOnly`: the handed-over
  * order card (after "I got it" the order is handed_over and the card no longer shows this
  * panel) shows just the buyer's tip, so the Helpr can still be tipped (audit 2026-10-28 A3-1).
  */
 /** `askGot` (D3-7): opened from the card's "I got it", so the confirm sheet opens once the task says it can. */
-export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, askGot: askOnOpen = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean; askGot?: boolean }) {
+/** `problemForm`: the order card's "Report a problem" lives here, so it can wait for the task (deliveryProblemTimeCame). */
+export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, askGot: askOnOpen = false, problemForm = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean; askGot?: boolean; problemForm?: boolean }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
   // A2-7: the buyer's raise read starts NOW, beside the task read, not once the task has loaded and the panel mounts.
@@ -127,7 +145,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
     onSettled: () => setAskGot(false),
     onSuccess: () => {
       markReviewPrompt(orderId);
-      toast.success("Delivery done. Enjoy your item.");
+      toast("Delivery done. Enjoy your item.");
       invalidateTasks(qc);
       void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
     },
@@ -154,20 +172,24 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else if (v.status === "picked_up") {
     // Audit 1c #1: without the seller's "Handed over" the seller reads it as the Helpr's word.
     line = side === "buyer"
-      ? v.picked_up_at && Date.now() - new Date(v.picked_up_at).getTime() >= STILL_IN_HAND_MS
-        ? `${who} picked it up ${when(v.picked_up_at)} and hasn't marked it delivered. If you have it, tap "I got it". If not, report a problem. Your money stays held until then.`
-        : `${who} has your item and is on the way.`
+      ? stillInHandLine(who, v.picked_up_at) ?? `${who} has your item and is on the way.`
       : v.handed_over_at
         ? `${who} picked it up. You're paid when the buyer has it.`
         : `${who} says it was picked up. You're paid when the buyer has it. If you didn't hand it over, report a problem.`;
   } else if (v.status === "delivered" && v.delivered_at) {
     line = side === "buyer"
       ? `${who} left it at your drop-off address ${when(v.delivered_at)}. Tap "I got it". If something is wrong, report a problem before it confirms itself ${when(new Date(new Date(v.delivered_at).getTime() + 24 * 3_600_000).toISOString())}.`
-      : `${who} left it at the buyer's address. You're paid when the buyer confirms, or after 24 hours.`;
+      // LEAD-DOOR-PAYLINE: the seller's rule for a Helpr delivery (sellerPayoutRule): "after 24 hours" was a day early.
+      : `${who} left it at the buyer's address. ${sellerPayoutRule("delivery")}`;
   } else if (v.status === "confirmed") {
     line = "Delivered.";
   } else if (v.status === "unfilled") {
     line = "No Helpr took this delivery. What you paid for delivery was refunded.";
+  } else if (v.status === "failed") {
+    // BUY-45: the buyer read only "This delivery was closed" (declutter_admin_decide_delivery_damage: decided as damaged).
+    line = side === "buyer" ? "Louisiana Helpr decided this delivery as damaged on the way. What happens to your money shows on this order." : "Louisiana Helpr decided this delivery as damaged on the way.";
+  } else if (v.status === "cancelled") {
+    line = side === "buyer" ? "This delivery was cancelled. What happens to your money shows on this order." : "This delivery was cancelled.";
   } else {
     line = "This delivery was closed.";
   }
@@ -175,7 +197,11 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   const cantFinish = v.status === "picked_up" ? cantFinishLine(v, side, who) : null;
   if (cantFinish) line = cantFinish;
   const collecting = v.stuck_stage === "collecting";
-  const canConfirm = side === "buyer" && (v.status === "picked_up" || v.status === "delivered") && buyerMayConfirm(v);
+  // BUY-39: never while it is on the road (it finished the sale with the item in the Helpr's car); from the drop-off,
+  // or once the Helpr has held it 24 hours without marking it delivered (BUY-37's "If you have it, tap I got it").
+  // BUY-36: a buyer collecting it from a Helpr at fault confirms when they have it (the server skips BUY-39 then).
+  const canConfirm = side === "buyer" && buyerMayConfirm(v)
+    && (v.status === "delivered" || (v.status === "picked_up" && (collecting || stillInHandLine(who, v.picked_up_at) !== null)));
   // Board 76: the one tracker, Booked -> Picked up -> Delivered, once a Helpr has it.
   const at = DELIVERY_STEP[v.status];
   // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
@@ -216,10 +242,13 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {side === "buyer" && v.status === "picked_up" && <BuyerCantFinishPanel taskId={taskId} view={v} who={who} />}
       {side === "seller" && v.status === "picked_up" && <SellerReturnPanel taskId={taskId} view={v} who={who} />}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
-      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} who={who} handedOverAt={v.handed_over_at} />}
+      {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
+      {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
+      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} pickupAt={v.pickup_slot_start} />}
+      {problemForm && <ProblemForm orderId={orderId} side={side} stage="delivery" trigger={deliveryProblemTimeCame(v)} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
-        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and your delivery fee comes back." : "Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours."}
+        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and your delivery fee comes back." : "Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours."}
       </ConfirmSheet>
     </div>
   );
@@ -296,7 +325,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
           Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.
         </p>
       </div>
-      <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
+      <p className="text-ds-12 text-muted-foreground">{DELIVERY_ADDRESSES_SHOW}</p>
       <div className="space-y-2">
         <p className="block text-ds-13 font-semibold">Pickup time</p>
         <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} enabled={!taken} />
@@ -366,12 +395,17 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <p className="font-semibold truncate" title={t.title}>{t.title}</p>
-      <p className="text-sm text-muted-foreground">{SIZE_WORDS[t.size]} · {formatPrice(t.take_home_cents)} for you</p>
+      {/* AUD31-27: a delivery that ended unpaid (closed, unfilled, damaged) promises no pay; the line under says why. */}
+      <p className="text-sm text-muted-foreground">{SIZE_WORDS[t.size]}{active || t.status === "confirmed" ? <> · {formatPrice(t.take_home_cents)} for you</> : null}</p>
       {!active && (
         <p className="text-sm">
           {t.status === "confirmed"
-            ? t.payout_status === "succeeded" ? "Delivered and paid." : "Delivered. Your pay is on its way."
-            : t.status === "failed" ? "Not paid for this delivery." : "Closed."}
+            ? t.payout_status === "succeeded" ? "Delivered and paid."
+              : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up."
+                : "Delivered. Your pay is on its way."
+            : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
+          {/* AUD31-27: every finished row says the day it ended (when the server sends it). */}
+          {t.ended_at && <span className="text-muted-foreground" data-task-ended=""> {ENDED_DAY.format(new Date(t.ended_at))}</span>}
         </p>
       )}
       {/* Deep audit #40: after the drop-off photo the card said nothing until the buyer confirmed. */}
@@ -404,6 +438,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               </div>
             </>
           )}
+          {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} />}
           {v.status === "picked_up" && !v.stuck_stage && toRoute}
           {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={t.task_id} />}
           {v.status === "picked_up" && <HelprCantFinish taskId={t.task_id} userId={userId} />}
@@ -412,10 +447,21 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       )}
       <ConfirmSheet open={ask?.kind === "backOut"} title="Back out of this delivery?" confirmLabel="Back out" pending={backOut.isPending}
         onConfirm={() => backOut.mutate()} onClose={() => setAsk(null)} testId="delivery-back-out">
-        Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike.
+        {/* AUD31-26: say whether THIS back-out costs a strike (helpr_task_release: late = under 2 hours before the
+            pickup, and free whenever the seller moved the time, which this view cannot see). */}
+        Another Helpr can take it. {backOutCostsStrike(v?.pickup_slot_start)
+          ? "It's less than 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time."
+          : "It's more than 2 hours before the pickup, so backing out now costs no strike."}
       </ConfirmSheet>
     </li>
   );
+}
+
+/** helpr_task_release's late rule: under 2 hours before the booked pickup (or no time read yet: say the worst). */
+export function backOutCostsStrike(pickupSlotStart: string | null | undefined, now: number = Date.now()): boolean {
+  if (!pickupSlotStart) return true;
+  const t = new Date(pickupSlotStart).getTime();
+  return !Number.isFinite(t) || now > t - 2 * 3_600_000;
 }
 
 /**
@@ -515,7 +561,7 @@ export function DeliverView() {
         ) : open.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
         ) : openList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No deliveries to take right now. Large items only show once you add a truck.</p>
+          <p className="text-sm text-muted-foreground">No deliveries to take right now.{vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."}</p>
         ) : (
           <ul className="space-y-3">{openList.map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
         )}

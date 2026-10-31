@@ -1,5 +1,10 @@
 /** The 30-minute done floor's start, as a pure helper app-shared code can import (libImportsNoPages). */
 
+/** Why Mark job complete is greyed, the one sentence: the job page, the card's face and the Working step. */
+export function doneFloorNote(minutesLeft: number): string {
+  return `Available in ${minutesLeft} min — 30 minutes after you arrived, to ensure quality.`;
+}
+
 /**
  * When the 30-minute floor starts: the EARLIER of the Helpr's arrival and the
  * poster's "Confirm they're working", ignoring a missing one (SQL LEAST). The

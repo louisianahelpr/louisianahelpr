@@ -79,6 +79,9 @@ const NOT_ACTION_ROWS = new Set([
   // button sizes (§3 Buttons), not the step row's 11px chips.
   "src/components/job-card/MineJobFace.tsx",
   "src/pages/jobs/jobPage/JobPage.tsx",
+  // The poster's half of the same job page bar (moved out of JobPage.tsx, 10-31): its primary and its
+  // Message / Edit / Cancel / More buttons are the page bar's spec sizes, not the step row's chips.
+  "src/pages/jobs/jobPage/posterPageActions.tsx",
   "src/components/job-card/PagedActivityList.tsx",
   "src/pages/posts/BulkDismissBar.tsx",
 ]);

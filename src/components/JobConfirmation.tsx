@@ -21,17 +21,18 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
+import { recordConfirmInActivityCache } from "@/lib/confirmActivityCache";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { helperDayOfConfirmation } from "@/components/job-card/helperDayOfConfirmation";
 import { takeFaceAction } from "@/components/job-card/faceActionRequest";
+import { posterConfirmWarning } from "./posterConfirmWarning";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
 export { helperDayOfConfirmation };
-
 
 export function JobConfirmation({
   jobId,
@@ -52,6 +53,8 @@ export function JobConfirmation({
   hideNotYetOpen = false,
   otherFirstName = null,
   rescheduled = false,
+  jobTitle = null,
+  openNow = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -109,6 +112,11 @@ export function JobConfirmation({
   /** The date or time was moved by an accepted change (useJobRescheduled, owner 2026-10-21): both sides
    *  confirm the NEW slot, and the words say so ("Confirm the new time, Thu 9:00 AM"). */
   rescheduled?: boolean;
+  /** The job's name, shown first in the confirm sheet so the member knows WHICH job they confirm (owner 2026-10-31, LEAD-CONFIRM-WORDS / LEAD-JOBPAGE-LAYOUT). */
+  jobTitle?: string | null;
+  /** Open the confirm sheet as soon as it can (the job page's "Confirm it's still on", LEAD-JOBPAGE-LAYOUT): the
+   *  caller remounts it per tap. Same owed-and-open rule as the card's face request. */
+  openNow?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -124,8 +132,8 @@ export function JobConfirmation({
   // this card's own button opens, only while the confirm is open and still owed by this viewer.
   useEffect(() => {
     const owed = !(isOwner ? posterConfirmedAt : helperDayofConfirmedAt) && Date.now() >= confirmOpensMs(dateNeeded);
-    if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true);
-  }, [jobId, isOwner, posterConfirmedAt, helperDayofConfirmedAt, dateNeeded]);
+    if (owed && (openNow || takeFaceAction(jobId, "confirm"))) setShowConfirmDialog(true);
+  }, [jobId, isOwner, posterConfirmedAt, helperDayofConfirmedAt, dateNeeded, openNow]);
 
   const jobDate = jobDayStart(dateNeeded);
   const now = new Date();
@@ -281,17 +289,18 @@ export function JobConfirmation({
     // advanced past Accepted. Both sides then believed a step had completed that had not. (CLAUDE.md: "a null error
     // does NOT mean the write happened".)
     let confirmFailed = false;
+    const confirmedAt = new Date().toISOString();
     try {
       unwrapMutation(
         await supabase
           .from("jobs")
-          .update({ [field]: new Date().toISOString() } as never)
+          .update({ [field]: confirmedAt } as never)
           .eq("id", jobId)
           .select("id"),
         {
           action: "confirm the job",
           rejectedMessage:
-            "We couldn't record that confirmation — this job may have been cancelled. Pull to refresh.",
+            "We couldn't record that confirmation — this job may have been cancelled. Refresh the page.",
           context: { jobId, field },
         },
       );
@@ -305,7 +314,9 @@ export function JobConfirmation({
     }
     if (!confirmFailed) {
       hapticSuccess();
-      setLocalConfirmedAt(new Date().toISOString());
+      setLocalConfirmedAt(confirmedAt);
+      // Home's Next up, the nav badge and Jobs > Posted/Working drop the step at once (LEAD-NEEDSYOU-MISSING).
+      recordConfirmInActivityCache(jobId, field, confirmedAt);
       onConfirm?.();
       if (!isOwner) void offerIdentityCheckAfterConfirm(); // confirm, THEN Stripe Identity, then On the way
       // Notify the other party
@@ -338,21 +349,25 @@ export function JobConfirmation({
     ? "less than 24 hours"
     : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
 
-  // "Thursday, October 22, 2037 at 9:00 AM": the day the Helpr commits to, and the time when the job has one.
+  // "Thursday, October 22, 2037 at 9:00 AM": the day being confirmed, and the time when the job has one.
   const scheduledStart = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
   const scheduledFor = `${jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" })}${
     scheduledStart ? ` at ${scheduledStart.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" })}` : ""
   }`;
 
-  /* The commit popup, hoisted out of the card's return so BOTH variants
+  /* The confirm popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,
      and the hand-off to the caller's real cancel path. The inline variant drops
      the card's chrome, never its consequences. */
   const confirmDialog = (
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <DialogContent>
-        <DialogHero title="Commit to this job?" />
+        {/* Plain words by role, no "commit" (owner 2026-10-31, LEAD-CONFIRM-WORDS). */}
+        <DialogHero title={isOwner ? "Confirm the job is still on" : "Confirm you'll be there"} />
         <div className="space-y-3">
+          {jobTitle?.trim() && (
+            <p data-confirm-job-title="" className="text-ds-16 font-semibold text-foreground [overflow-wrap:anywhere]">{jobTitle.trim()}</p>
+          )}
           <div
             className="rounded-ds-md p-3"
             style={{
@@ -375,9 +390,13 @@ export function JobConfirmation({
               same 8% sienna fill, same sienna hairline, same AlertTriangle —
               one border width and one radius token off from the one
               BrandConfirmDialog renders behind every confirm in the app.
-              Copy unchanged. */}
+              The words name each side's real consequence (LEAD-CONFIRM-WORDS, owner 10-31): a poster
+              who cancels within 24 hours of the start, once the Helpr confirmed, pays 25% of the price
+              (50% inside 2 hours) and the sweep sends it to the Helpr (computeCancellationFee,
+              void-cancelled-payments); before the Helpr confirms there is no fee. A Helpr keeps the
+              no-show line. */}
           <DialogCallout>
-            No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
+            {posterConfirmWarning(isOwner, helperConfirmedAt)}
           </DialogCallout>
         </div>
         <DialogFooter>
@@ -388,7 +407,7 @@ export function JobConfirmation({
             onClick={handleConfirm}
             disabled={confirming}
           >
-            {confirming ? "Confirming…" : "Yes, I confirm"}
+            {confirming ? "Confirming…" : isOwner ? "Yes, it's still on" : "Yes, I'll be there"}
           </DialogPrimaryAction>
         </DialogFooter>
         {/* Distinct from Cancel: Cancel just dismisses this popup, nothing

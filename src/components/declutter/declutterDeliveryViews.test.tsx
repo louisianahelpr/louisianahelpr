@@ -4,10 +4,15 @@
  * The shared task module's calls are stubbed; the backend proof is
  * src/test/pglite/declutterDelivery.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); |   const canConfirm = v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null);
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); | v.status === "picked_up");
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Tapping I got it finishes the sale: the Helpr and the seller are paid. | Tapping I got it pays the Helpr.
+ * BUY-45: a failed or cancelled delivery says which, never only "This delivery was closed."
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "failed") { |   } else if (v.status === "failed_never") {
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "cancelled") { |   } else if (v.status === "cancelled_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Date.now() - new Date(v.picked_up_at).getTime() >= STILL_IN_HAND_MS | Date.now() < 0
+ * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,7 +41,9 @@ vi.mock("@/components/DateTimeField", () => ({
     <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// soldstates-5: the seller's report and the Helpr's answer read their own RPC; none on these cards.
+vi.mock("@/lib/declutter/noHelpr", () => ({ fetchHelprNoShowReport: async () => null, fetchNoHelprChoice: async () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
 // Q2416: the hired-Helpr payout prompt after taking a delivery (its own dialog test is payoutAfterHire.test.tsx).
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
@@ -149,6 +156,18 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(screen.queryByText(/drop-off code/i)).toBeNull();
   });
 
+  it("BUY-45: the buyer's failed or cancelled delivery says which, and where the money is", async () => {
+    state.view = { ...VIEW, status: "failed" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("Louisiana Helpr decided this delivery as damaged on the way. What happens to your money shows on this order.")).toBeInTheDocument();
+  });
+
+  it("BUY-45: a cancelled delivery says so", async () => {
+    state.view = { ...VIEW, status: "cancelled" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("This delivery was cancelled. What happens to your money shows on this order.")).toBeInTheDocument();
+  });
+
   it("the seller sees progress only", async () => {
     state.view = { ...VIEW, role: "pickup_contact", status: "accepted", pickup_slot_start: "2026-10-17T20:00:00Z" };
     show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
@@ -177,7 +196,7 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}> |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => gotIt.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Do you have it?");
-    expect(sheet).toHaveTextContent("pays the Helpr");
+    expect(sheet).toHaveTextContent("finishes the sale: the Helpr and the seller are paid");
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toEqual([["got_it", "t1"]]));
@@ -265,6 +284,39 @@ describe("DeliverView: the Helpr sees the buyer's tip on the delivery (Q2453)", 
   });
 });
 
+describe("DeliverView: a finished delivery that paid nothing promises no pay (AUD31-27)", () => {
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {active \|\| t.status === "confirmed" ? <> | {true ? <>
+  it("closed and damaged rows say why and show no take-home; a paid one still shows it", async () => {
+    const row = { size: "small", pickup_area: "Mid-City", dropoff_area: "Baker, LA", trip_miles: 9, take_home_cents: 2100, pickup_slot_start: null };
+    state.mine = [
+      { ...row, task_id: "t1", status: "cancelled", title: "Lamp", payout_status: null },
+      { ...row, task_id: "t2", status: "failed", title: "Mirror", payout_status: null },
+      { ...row, task_id: "t3", status: "confirmed", title: "Chair", payout_status: "succeeded" },
+    ];
+    show(<DeliverView />);
+    expect(await screen.findByText("Closed.")).toBeInTheDocument();
+    expect(screen.getByText("Decided as damaged in delivery. Not paid.")).toBeInTheDocument();
+    expect(screen.getByText("Delivered and paid.")).toBeInTheDocument();
+    expect(screen.getAllByText(/\$21 for you/)).toHaveLength(1);
+  });
+
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {t.ended_at && <span className="text-muted-foreground" data-task-ended=""> {ENDED_DAY.format(new Date(t.ended_at))}</span>} |
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", | const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo",
+  it("AUD31-27: every finished row says the Louisiana day it ended; a row under way has none", async () => {
+    const row = { size: "small", pickup_area: "Mid-City", dropoff_area: "Baker, LA", trip_miles: 9, take_home_cents: 2100, pickup_slot_start: "2026-10-30T15:00:00Z" };
+    state.mine = [
+      { ...row, task_id: "t1", status: "cancelled", title: "Lamp", payout_status: null, ended_at: "2026-10-27T15:00:00Z" },
+      { ...row, task_id: "t2", status: "failed", title: "Mirror", payout_status: null, ended_at: "2026-10-28T15:00:00Z" },
+      // 04:30 UTC on Oct 30 is still Thu, Oct 29 in Louisiana.
+      { ...row, task_id: "t3", status: "confirmed", title: "Chair", payout_status: "succeeded", ended_at: "2026-10-30T04:30:00Z" },
+    ];
+    const { container } = show(<DeliverView />);
+    await screen.findByText(/^Closed\./);
+    const days = Array.from(container.querySelectorAll("[data-task-ended]")).map((e) => e.textContent?.trim());
+    expect(days).toEqual(["Tue, Oct 27", "Wed, Oct 28", "Thu, Oct 29"]);
+  });
+});
+
 describe("DeliverView (the Helpr's screen)", () => {
   it("a truck needs a photo before it can be saved (row 41)", async () => {
     show(<DeliverView />);
@@ -334,7 +386,10 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(screen.getByText("Drop off near Baker, LA")).toBeInTheDocument();
     expect(screen.getByText("To the buyer · about 9 miles")).toBeInTheDocument();
     expect(screen.getByText("$26.20")).toBeInTheDocument();
-    expect(screen.getByText("Exact addresses unlock when you accept.")).toBeInTheDocument();
+    // BUY-38: the drop-off follows helpr_task_dropoff_shows_at, so "unlock when you accept" was untrue for a first delivery.
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <p className="text-ds-12 text-muted-foreground">{DELIVERY_ADDRESSES_SHOW}</p> | <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
+    expect(screen.getByText("The pickup address shows when you accept. The drop-off shows 2 hours before the pickup time, or at once after your first finished delivery.")).toBeInTheDocument();
+    expect(screen.queryByText(/unlock when you accept/)).toBeNull();
     const take = screen.getByRole("button", { name: "Accept delivery" });
     expect(take).toBeDisabled();
     // Before helpr_task_pickup_windows is live (null), the free field stays, once that read answers.
@@ -424,11 +479,25 @@ describe("DeliverView (the Helpr's screen)", () => {
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                   onClick={() => setAsk({ kind: "backOut" })}> |                   onClick={() => backOut.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Back out of this delivery?");
-    expect(sheet).toHaveTextContent("Under 2 hours before the pickup it costs a delivery strike.");
+    // AUD31-26: this pickup is past, so THIS back-out costs a strike.
+    expect(sheet).toHaveTextContent("It's less than 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time.");
     expect(state.calls).toHaveLength(0);
     fireEvent.click(within(sheet).getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["release", "t1"]));
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  // AUD31-26: 40 hours before the pickup the sheet says this back-out is free.
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   return !Number.isFinite(t) \|\| now > t - 2 * 3_600_000; |   return true;
+  it("AUD31-26: backing out well before the pickup says it costs no strike", async () => {
+    state.mine = [{ task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: new Date(Date.now() + 40 * 3_600_000).toISOString(), payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: new Date(Date.now() + 40 * 3_600_000).toISOString(), pickup_address: "1234 Example St" };
+    show(<DeliverView />);
+    fireEvent.click(await screen.findByRole("button", { name: "Back out" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("It's more than 2 hours before the pickup, so backing out now costs no strike.");
+    expect(sheet).not.toHaveTextContent("delivery strike");
   });
 
   it("audit 1c #1: after the seller's \"Handed over\" the card says so", async () => {
@@ -467,11 +536,15 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(23), helpr_first_name: "Hank" };
     const { unmount } = show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText("Hank has your item and is on the way.")).toBeInTheDocument();
+    // BUY-39: no "I got it" while it is on the road (the server would finish the sale and pay the seller).
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     unmount();
     state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(25), helpr_first_name: "Hank" };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/Hank picked it up .* and hasn't marked it delivered\. If you have it, tap "I got it"\. If not, report a problem\./)).toBeInTheDocument();
     expect(screen.queryByText(/is on the way/)).toBeNull();
+    // Held 24 hours without a drop-off: the buyer who has it may say so.
+    expect(screen.getByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
   it("BUY-36: the Helpr reports they can't finish, with a reason and what comes next", async () => {

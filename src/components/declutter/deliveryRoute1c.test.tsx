@@ -21,7 +21,7 @@ import type { RouteStop } from "@/lib/helprTasks/api";
 
 const state = vi.hoisted(() => ({ route: null as unknown, shown: [] as { n: number; options: unknown }[] }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "ready" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));

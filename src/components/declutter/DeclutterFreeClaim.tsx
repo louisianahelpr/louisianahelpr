@@ -73,7 +73,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const ask = useMutation({
     mutationFn: () => requestFree(item.id),
     onSuccess: () => {
-      toast.success("Asked. The giver picks who gets it, and we'll tell you.");
+      toast("Asked. The giver picks who gets it, and we'll tell you.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -81,7 +81,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
     onSuccess: () => {
-      toast.success("Your ask is taken back.");
+      toast("Your ask is taken back.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -131,7 +131,7 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   const pick = useMutation({
     mutationFn: (requestId: string) => pickFreeRequest(requestId),
     onSuccess: () => {
-      toast.success("Picked. They have 48 hours to choose a pickup.");
+      toast("Picked. They have 48 hours to choose a pickup.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -233,22 +233,24 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   const [handover, setHandover] = useState<FreeHandover>(offered[0]);
   const chosen = offered.includes(handover) ? handover : offered[0];
   // D-NEW14: a giver with saved pickup places: the taker picks one for a porch pickup (porch_place_needed otherwise).
-  const porchPlaces = useSellerPorchPlaces(sellerId, 0, chosen === "porch");
-  const placeReady = chosen !== "porch" || porchPlaces.ready;
+  // LEAD-PLACE-TIMES (20261031164337): a door pickup is at the chosen place too.
+  const atPlace = chosen === "porch" || chosen === "pickup_home";
+  const porchPlaces = useSellerPorchPlaces(sellerId, 0, atPlace);
+  const placeReady = !atPlace || porchPlaces.ready;
   const confirm = useMutation({
     mutationFn: async () => {
       await porchPlaces.whenPicked();
       return checkoutFree(sellerId, chosen);
     },
     onSuccess: () => {
-      toast.success("It's set. Next: choose your pickup time.");
+      toast("It's set. Next: choose your pickup time.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onDone();
     },
     onError: (err) => {
       toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
-      if (chosen === "porch") void porchPlaces.reread(err);
+      if (atPlace) void porchPlaces.reread(err);
     },
   });
   return (
@@ -268,7 +270,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
         {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} who="giver" />}
       </fieldset>
-      {chosen === "porch" && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
+      {atPlace && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
         onRetry={() => void porchPlaces.reread()} />}
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}

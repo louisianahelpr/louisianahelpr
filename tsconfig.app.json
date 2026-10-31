@@ -35,6 +35,8 @@
     "src",
     "e2e/liveSession.ts",
     "e2e/a11y-prod/sectionTabScreens.ts",
+    "e2e/a11y-prod/abortProdWrites.ts",
+    "e2e/a11y-prod/readOnlyRpcs.ts",
     "e2e/readRpc.ts",
     "e2e/listedPayment.ts",
     "e2e/adminRpcClassification.ts",
@@ -99,6 +101,7 @@
     "supabase/functions/_shared/payments/paypalWebhookVerify.ts",
     "supabase/functions/_shared/payments/registry.ts",
     "supabase/functions/_shared/smsPolicy.ts",
+    "supabase/functions/_shared/email-templates/notificationAction.ts",
     "supabase/functions/stripe-webhook/handlers/_payoutRetry.ts",
     "supabase/functions/_shared/memberDisplayName.ts",
     "supabase/functions/_shared/landlordIdRetention.ts",
@@ -209,6 +212,7 @@
     // Its one-retry-on-busy wrapper, imported by
     // src/test/declutterAiModelRetry.test.ts.
     "supabase/functions/declutter-ai-draft/modelRetry.ts",
+    "supabase/functions/declutter-ai-draft/priceLookup.ts",
     // Shop items' AI answer sanitizer and the shared type list (Shops slice
     // 2): dependency-free, imported by src/lib/shops/items.ts and
     // src/test/shopsItems.test.ts.

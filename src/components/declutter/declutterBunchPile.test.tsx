@@ -18,7 +18,7 @@ vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 const card = (props: Partial<Parameters<typeof BunchCard>[0]> = {}) => render(
   <ul>
-    <BunchCard item={blankItem(["a"])} index={0} others={[]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} {...props} />
+    <BunchCard item={blankItem(["a"])} index={0} others={[]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onReorder={() => {}} canDrag={false} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} {...props} />
   </ul>,
 );
 

@@ -49,6 +49,8 @@ interface RefundRequest {
   return_deadline?: string | null;
   /** A collect, while returning: the address the buyer typed (and its point, for directions). */
   return_address?: string | null;
+  /** BUY-23: where a drop-off goes, for the buyer, while it is open (20261031010243). */
+  drop_off_address?: string | null;
   return_lat?: number | null;
   return_lng?: number | null;
 }
@@ -57,6 +59,8 @@ export interface RefundRequestView {
   order_id: string;
   side: "buyer" | "seller";
   handed_over: boolean;
+  /** BUY-23: "the buyer brings it back" exists only where the seller offered pickup. Absent before 20261031010243. */
+  can_drop_off?: boolean;
   /** 24 hours after the handover. */
   window_ends_at: string | null;
   can_ask: boolean;
@@ -64,6 +68,8 @@ export interface RefundRequestView {
   items_cents: number;
   /** What a full refund gives back: the payment minus the card fee (and minus a delivery fee a Helpr earned). */
   full_refund_cents: number;
+  /** BUY-25: "never got it", refunded in full: everything back, less a delivery a Helpr already made. Absent before the migration. */
+  never_got_it_refund_cents?: number;
   /** A delivery fee that paid a Helpr for the trip: never refunded. */
   delivery_kept_cents: number;
   request: RefundRequest | null;
@@ -88,6 +94,34 @@ function rpcData<T>(result: { data: T; error: { message: string } | null }, word
  */
 export function refundHoldsTheItem(status: string | null | undefined): boolean {
   return status === "returning" || status === "to_admin";
+}
+
+/** NIGHT-SELL-soldstates-7: what a sale refunded in full says on each side's card, in place of "Handed over". */
+export const REFUNDED_IN_FULL = {
+  buyer: "Refunded in full to your card.",
+  seller: "Refunded in full to the buyer. You get no payout for this sale.",
+} as const;
+
+/**
+ * NIGHT-SELL-soldstates-7: the request settled with everything back (a full refund, or "never got it" in full, both at
+ * least declutter_full_refund_cents), so the sale was undone. The card says so in place of "Handed over" and asks for
+ * no review. A part refund (an offer taken, always below the item price) is not this.
+ */
+export function refundedInFull(v: Pick<RefundRequestView, "full_refund_cents" | "request"> | null | undefined): boolean {
+  const r = v?.request;
+  return !!r && r.status === "agreed" && r.refund_cents != null && r.refund_cents >= v.full_refund_cents;
+}
+
+/** The fields of a request that say the item went back and what came back for it (AUD31-36). */
+export type RefundTookItBack = Pick<RefundRequest, "status" | "returned_at"> & Partial<Pick<RefundRequest, "refund_cents" | "refund_status">>;
+
+/**
+ * AUD31-36: a full refund where the item went back to the seller (status "agreed", returned_at set). The buyer no longer
+ * has it, so the card stops offering help moving it and says it was returned. A part refund (the buyer keeps it) has no
+ * returned_at and reads as before.
+ */
+export function refundTookItBack(request: RefundTookItBack | null | undefined): boolean {
+  return request?.status === "agreed" && !!request.returned_at;
 }
 
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {

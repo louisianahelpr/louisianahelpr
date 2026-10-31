@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useFeature } from "@/hooks/useFeature";
@@ -18,6 +18,8 @@ import SmsAlertsCard from "./SmsAlertsCard";
 export type SmsPromptMoment = "first_job" | "first_hire" | "has_phone";
 
 export const SMS_PHONE_PROMPT_TITLE = "Add your phone so you don't miss updates";
+/** How long "You're all set" shows before the prompt closes itself (owner, 2026-10-31: "about 2 s"). */
+export const SMS_PROMPT_ALL_SET_MS = 2000;
 /** They already gave a phone: ask them to turn texts on, not to add one. */
 export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don't miss updates";
 
@@ -32,11 +34,21 @@ export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don't miss updates";
  * confirmation text is waiting, and for anything but the member's first post or hire. Never on sign-up (no
  * session there). Any close, "Not now" or after turning texts on, dismisses it for good
  * (dismiss_sms_phone_prompt); a failed dismiss is logged, and the worst case is the prompt once more.
+ *
+ * DONE MEANS GONE (owner, 2026-10-31, LEAD-PHONE-PROMPT-DONE): she confirmed her phone inside the prompt, came
+ * back, and the SAME prompt was open, reading "Text alerts: On" with only "Turn off text alerts" and "Not now".
+ * The due answer is cached for the session (staleTime Infinity) and `closed` is per mount, so a remount showed it
+ * again; and the card inside offered Settings' Turn off. Now: once texts are on, the card says "You're all set,
+ * texts go to ..." (no Turn off), and the prompt closes itself after SMS_PROMPT_ALL_SET_MS; or, if texts were on
+ * from the first read it closes at once. Every close dismisses on the account AND writes "not due" into every
+ * cached due answer, so no remount in this session shows it again; the server answers false after that.
  */
 export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
   const [closed, setClosed] = useState(false);
+  const [allSet, setAllSet] = useState(false);
+  const queryClient = useQueryClient();
   const due = useQuery({
     queryKey: ["sms-phone-prompt", moment, user?.id],
     enabled: enabled && !!user,
@@ -52,8 +64,10 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
       return unwrap(res) === true;
     },
   });
-  const close = () => {
+  const close = useCallback(() => {
     setClosed(true);
+    // Every moment's cached answer: a remount (Home, Posted, a first hire) never reopens it this session.
+    queryClient.setQueriesData({ queryKey: ["sms-phone-prompt"] }, false);
     void supabase.rpc("dismiss_sms_phone_prompt").then(({ data, error }) => {
       // A zero-row answer is not a write: no timestamp back means it was not stored.
       if (error || !data) {
@@ -63,18 +77,27 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
         });
       }
     });
-  };
+  }, [moment, queryClient]);
+  const onAllSet = useCallback((alreadyOn: boolean) => {
+    if (alreadyOn) close();
+    else setAllSet(true);
+  }, [close]);
+  useEffect(() => {
+    if (!allSet || closed) return;
+    const t = setTimeout(close, SMS_PROMPT_ALL_SET_MS);
+    return () => clearTimeout(t);
+  }, [allSet, closed, close]);
   if (!enabled || closed || due.data !== true) return null;
   return (
     <Dialog open onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} data-sms-phone-prompt={moment}>
-        <DialogHero title={moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} />
+        <DialogHero title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} />
         <DialogBody>
-          <p>We'll text you when something on your job needs you and you haven't seen it in the app.</p>
-          <SmsAlertsCard />
+          {!allSet && <p>We'll text you when something on your job needs you and you haven't seen it in the app.</p>}
+          <SmsAlertsCard inPrompt onAllSet={onAllSet} />
         </DialogBody>
         <DialogFooter>
-          <DialogSecondaryAction onClick={close}>Not now</DialogSecondaryAction>
+          <DialogSecondaryAction onClick={close}>{allSet ? "Close" : "Not now"}</DialogSecondaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

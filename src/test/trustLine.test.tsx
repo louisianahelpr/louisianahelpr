@@ -11,6 +11,11 @@
  * @mutate src/pages/user/UserProfile.tsx |                 replyBucket={replyBucket} |                 replyBucket={null}
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} /> | {null}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} /> | {null}
+ *
+ * LEAD-APPLICANT-TAG (owner 2026-10-31): a new member's "New" sits right of the name, never alone at the bottom
+ * of the applicant card, and the distance sits under the name.
+ * @mutate src/components/TrustLine.tsx |   const parts = isNewMember(t.stats) ? [] : trustLineParts(t.stats); |   const parts = trustLineParts(t.stats);
+ * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                               <ApplicantNewTag helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />\n | 
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -117,7 +122,30 @@ describe("where it shows", () => {
     rpc.mockClear();
     wrap(<><ApplicantTrustLine helperId="h1" helperIds={["h1", "h2"]} /><ApplicantTrustLine helperId="h2" helperIds={["h1", "h2"]} /></>);
     expect(await screen.findByText("4 jobs done · 80% on time · Usually replies in under an hour")).toBeTruthy();
-    expect(await screen.findByText("New")).toBeTruthy();
+    // h2 is new (its fixture row is under the New threshold): nothing at the bottom of the card; "New" is the tag beside the name.
+    await waitFor(() => expect(document.querySelectorAll("[data-trust-line]").length).toBe(1));
+    expect(screen.queryByText("New")).toBeNull();
     expect(rpc.mock.calls.filter((c) => c[0] === "get_public_profile_stats").length).toBe(1);
+  });
+
+  it("ApplicantNewTag says New beside a new member's name only", async () => {
+    rpc.mockImplementation((fn: string) =>
+      Promise.resolve(
+        fn === "get_public_profile_stats"
+          ? { data: [{ user_id: "h1", completed_jobs_as_helper: 4, on_time_rate: 80, repeat_hire_percent: null, repeat_client_sample: 1 }, { user_id: "h2", completed_jobs_as_helper: 1, on_time_rate: null, repeat_hire_percent: null, repeat_client_sample: 0 }], error: null, status: 200 }
+          : { data: [], error: null, status: 200 },
+      ),
+    );
+    const { ApplicantNewTag } = await import("@/components/TrustLine");
+    wrap(<><ApplicantNewTag helperId="h1" helperIds={["h1", "h2"]} /><ApplicantNewTag helperId="h2" helperIds={["h1", "h2"]} /></>);
+    expect(await screen.findByText("New")).toBeTruthy();
+    expect(document.querySelectorAll("[data-new-tag]").length).toBe(1);
+  });
+
+  it("on the phone card: the tag right after the name, the distance under the name above the details", () => {
+    const panel = code("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
+    expect(panel).toMatch(/\{helperName\}\s*<\/a>\s*<ApplicantNewTag helperId=\{app\.helper_id\}/);
+    expect(panel.indexOf("{distanceBand.label}")).toBeGreaterThan(0);
+    expect(panel.indexOf("{distanceBand.label}")).toBeLessThan(panel.indexOf("data-applicant-details"));
   });
 });

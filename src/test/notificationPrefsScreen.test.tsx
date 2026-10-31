@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import { rows, declutterRows } from "@/components/notificationPreferences/constants";
 import NotificationPreferences from "@/components/NotificationPreferences";
@@ -81,12 +83,12 @@ describe("prefs screen renders a control for every row", () => {
   it("renders the Job Matches switch, push and email", async () => {
     PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Job matches push")).toBeTruthy());
-    expect(screen.getByLabelText("Job matches email")).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText("New matches push")).toBeTruthy());
+    expect(screen.getByLabelText("New matches email")).toBeTruthy();
     // Unset in the row means ON — an existing account must not silently lose
     // matches the moment the column ships.
-    expect((screen.getByLabelText("Job matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
-    expect((screen.getByLabelText("Job matches email") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByLabelText("New matches push") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByLabelText("New matches email") as HTMLButtonElement).getAttribute("aria-checked")).toBe("true");
   });
 
   // Q1585 (owner, 2026-10-12): no "Daily Match Digest" choice. Every member
@@ -95,7 +97,7 @@ describe("prefs screen renders a control for every row", () => {
   it("offers no daily-list choice for job matches, even with an old row that had it on", async () => {
     PREFS_ROW = { user_id: "u1", push_enabled: true, match_digest_mode: true, quiet_start: null, quiet_end: null };
     render(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Job matches push")).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("New matches push")).toBeTruthy());
     expect(screen.queryByLabelText("Daily match digest")).toBeNull();
     expect(screen.queryByText("Daily Match Digest")).toBeNull();
   });
@@ -130,6 +132,33 @@ describe("the Declutter group", () => {
       }
     }
     expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_pickups", "declutter_price_drops", "declutter_wanted"]);
+  });
+
+  // NIGHT-SET-Declutterse-3 (night audit 10-30, settings #3): the Sales row said "In the app only, no email for this",
+  // but a seller is emailed "You sold" and "Your payout is on its way" every time (_shared/declutterSellerEmail.ts reads
+  // no preference). The dash now says the receipts always go; if the sender ever reads a preference, this fails.
+  // @mutate src/components/notificationPreferences/constants.tsx | noEmailSwitch: "Sale and payout receipts are always emailed" | noEmailSwitch: NO_EMAIL
+  it("the Sales dash says the sale and payout receipts are always emailed, as the sender does", () => {
+    const sales = declutterRows.find((r) => r.key === "declutter_sales");
+    expect(sales?.noEmailSwitch).toBe("Sale and payout receipts are always emailed");
+    const sender = readFileSync(join(process.cwd(), "supabase/functions/_shared/declutterSellerEmail.ts"), "utf8");
+    expect(sender).toMatch(/"sold"/);
+    expect(sender).toMatch(/"payout_sent"/);
+    expect(sender).not.toMatch(/notification_preferences|email_declutter_sales/);
+  });
+
+  // NIGHT-SET-Declutterse-4 (night audit 10-30, settings #4): "Saved Helpr openings" and "Quote reminders" (Jobs rows)
+  // followed Wanted matches with no heading, so a seller sent here read them as Declutter's. The group now comes last.
+  // @mutate src/components/NotificationPreferences.tsx |       {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}\n |
+  it("the Declutter group comes after every Jobs row: nothing that is not Declutter sits under it", async () => {
+    FEATURES = { declutter: true, declutter_wanted: true, quotes: true };
+    PREFS_ROW = withDeclutterColumns();
+    render(<NotificationPreferences />);
+    const group = await screen.findByTestId("declutter-notification-group");
+    const after = (el: Element) => (group.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+    const jobsRows = [await screen.findByText("Saved Helpr openings"), await screen.findByText("Quote reminders")];
+    expect(jobsRows.length).toBe(2);
+    for (const el of jobsRows) expect(after(el), el.textContent ?? "").toBe(true);
   });
 
   it("hides Wanted matches while Wanted is off for the member", async () => {

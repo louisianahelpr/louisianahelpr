@@ -6,19 +6,24 @@
  *
  * Deep audit 2026-10-28 B-5 (#5): the full refund is less than the payment (the card network keeps its part); the buyer
  * is told why in words wherever that amount is shown, with no fee name or figure (membersSeeNoFeeWords scans the copy).
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | . <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund | . For a full refund
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "} | .{" "}
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span></>}{" "} | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{FULL_REFUND_WHY}</span></>}{" "}
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY); | const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY : FULL_REFUND_WHY);
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice, choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice, offerCents);
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice ?? "decline", offerCents);
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
  * D2-5 (audit 1b #5): a request Louisiana Helpr decided says so on both sides, never "is looking" or "said no".
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       if (r.admin_decided) return <p | if (false) return <p
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.status === "declined" && r.admin_decided) return | if (false) return
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       {r.admin_decided && "Louisiana Helpr decided to refund the buyer. "} |
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "part" && offerCents === null) \|\| (choice === "full" && !pickArgs)} onClick={() => send.mutate()}> |       <button type="button" className={primary} disabled={send.isPending \|\| (choice === "full" && !pickArgs)} onClick={() => send.mutate()}>
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| !choice \|\| (choice === "part" && offerCents === null) \|\| (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}> |       <button type="button" className={primary} disabled={send.isPending} onClick={() => setAskingSend(true)}>
  *
  * Audit 1028 part 2, D2-15: both pick-one lists are the app's RadioCardList (no browser radios), and the amount box
  * is capped to a money field's width.
+ * BUY-27: the seller answers with the buyer's photos in front of them; the form uploaded them and nothing showed them.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <ProblemPhotos paths={r.photo_paths ?? []} />\n |
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | const amountInput = `${input} max-w-[12rem]`; | const amountInput = input;
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           label="What's wrong?" |           label="Reason"
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |         label="Your answer" |         label="Answer"
@@ -45,7 +50,7 @@ vi.mock("@/lib/declutter/refundReturns", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/refundReturns")>();
   return { ...real, acceptRefundWithReturn: async (...a: unknown[]) => { state.accepted.push(a); return { result: "returning" }; } };
 });
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 // D2-11: who made the handover (declutter_my_handover); the card's handover row.
 const handover = vi.hoisted(() => ({ row: { confirmed_by: "auto", picked_up_at: null } as { confirmed_by: string | null; picked_up_at: string | null } }));
 vi.mock("@/lib/declutter/problemPhotos", () => ({
@@ -55,6 +60,7 @@ vi.mock("@/lib/declutter/problemPhotos", () => ({
 }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, ...handover.row }),
+  handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
   uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push([orderId, f.name]); return `me/declutter/problem/${orderId}/${f.name}`; },
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
@@ -106,6 +112,51 @@ beforeEach(() => {
 // Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</button>
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
+async function sendAnswer() {
+  fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+  const sheet = await screen.findByRole("dialog");
+  fireEvent.click(within(sheet).getByRole("button", { name: "Send answer" }));
+}
+
+describe("the seller's answer shows the buyer's photos", () => {
+  it("each photo is a signed link beside the buyer's words", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, photo_paths: ["b/declutter/problem/o1/a.jpg", "b/declutter/problem/o1/b.jpg"] } });
+    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/a.jpg");
+    expect(await screen.findByAltText("Problem photo 2")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/b.jpg");
+  });
+});
+
+// BUY-10 (buying audit 10-30 #10): Take $X and Ask Louisiana Helpr to decide were one tap and final.
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={offer.isPending} onClick={() => setAnswering("take")}> | disabled={offer.isPending} onClick={() => offer.mutate(true)}>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={offer.isPending} onClick={() => setAnswering("ask")}> | disabled={offer.isPending} onClick={() => offer.mutate(false)}>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |             onConfirm={() => offer.mutate(answering === "take", { onSettled: () => setAnswering(null) })} |             onConfirm={() => offer.mutate(true, { onSettled: () => setAnswering(null) })}
+describe("DeclutterRefundPanel: answering a part refund asks first (BUY-10)", () => {
+  const OFFERED = { ...REQ, status: "offered" as const, offer_cents: 1500, offer_answer_by: "2026-10-25T18:00:00Z" };
+  it("Take $15 opens a sheet saying what ends; Not now sends nothing; the sheet's button takes it", async () => {
+    show({ ...BASE, can_ask: false, request: OFFERED });
+    fireEvent.click(await screen.findByRole("button", { name: "Take $15" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Take $15 back?");
+    expect(sheet).toHaveTextContent("$15 comes back to your card and you keep the item. This ends your refund request.");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.offers).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take $15" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take $15" }));
+    await waitFor(() => expect(state.offers).toEqual([["r1", true]]));
+  });
+
+  it("Ask Louisiana Helpr to decide says the offer ends, and sends a no only from the sheet", async () => {
+    show({ ...BASE, can_ask: false, request: OFFERED });
+    fireEvent.click(await screen.findByRole("button", { name: "Ask Louisiana Helpr to decide" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Nikki's offer of $15 ends, and Louisiana Helpr decides what, if anything, comes back to you.");
+    expect(state.offers).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Ask Louisiana Helpr" }));
+    await waitFor(() => expect(state.offers).toEqual([["r1", false]]));
+  });
+});
+
 describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
   it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
     show({ ...BASE, can_ask: false, request: REQ });
@@ -207,6 +258,37 @@ describe("DeclutterRefundPanel", () => {
     state.refundPhotos = false;
   });
 
+  it("seller: nothing is picked at the start, and Send answer waits for a choice (BUY-26)", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    await screen.findByText("Offer part of it");
+    expect((screen.getByRole("button", { name: "Send answer" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByText("I'll pick it up")).toBeNull();
+  });
+
+  it("seller: never got it: no way back to pick, the sheet says the money goes now, and it goes (BUY-25)", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, reason: "not_received" } });
+    fireEvent.click(await screen.findByText("Refund in full"));
+    expect(screen.queryByText("I'll pick it up")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.textContent).toMatch(/\$41\.20 back to .* now, and you get no payout/);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send answer" }));
+    await waitFor(() => expect(state.answered).toEqual([["r1", "full", null]]));
+    expect(state.accepted).toEqual([]);
+  });
+
+  it("seller: a sale with no pickup offered has only I'll pick it up (BUY-23)", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, can_drop_off: false, request: REQ });
+    fireEvent.click(await screen.findByText("Refund in full"));
+    expect(screen.getByText("I'll pick it up")).toBeTruthy();
+    expect(screen.queryByText(/brings it back/)).toBeNull();
+  });
+
+  it("buyer: an open drop-off names the address (BUY-23)", async () => {
+    show({ ...BASE, request: { ...REQ, status: "returning", return_way: "drop_off", return_day: "2030-01-02", drop_off_address: "12 Home Street, Lafayette" } });
+    expect((await screen.findByText("12 Home Street, Lafayette")).closest("[data-return-drop-address]")).toBeTruthy();
+  });
+
   it("seller: the offer starts empty, cannot be sent until it is an amount, and sends exactly that amount", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
     expect(await screen.findByText(/then gets \$41\.20 back once you confirm you have it/)).toBeTruthy();
@@ -217,7 +299,7 @@ describe("DeclutterRefundPanel", () => {
     expect(send.disabled).toBe(true);
     fireEvent.change(box, { target: { value: "12.50" } });
     expect(send.disabled).toBe(false);
-    fireEvent.click(send);
+    await sendAnswer();
     await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250]]));
   });
 
@@ -226,7 +308,7 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.click(await screen.findByText("Offer part of it"));
     fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
     fireEvent.click(screen.getByText("Refund in full"));
-    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    await sendAnswer();
     // Declutter returns (20261030071818): the full answer and the way back go in ONE call, with no amount.
     await waitFor(() => expect(state.accepted).toHaveLength(1));
     expect(state.accepted[0]).toEqual(["r1", "drop_off", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), null]);
@@ -238,17 +320,18 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.click(await screen.findByText("Offer part of it"));
     fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
     fireEvent.click(screen.getByText("I don't agree"));
-    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    await sendAnswer();
     await waitFor(() => expect(state.answered).toEqual([["r1", "decline", null]]));
     expect(state.accepted).toEqual([]);
   });
 
   it("seller: Refund in full with I'll pick it up sends the time, and needs one first", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    fireEvent.click(await screen.findByText("Refund in full"));
     fireEvent.click(await screen.findByText("I'll pick it up"));
     expect(screen.getByRole("button", { name: "Send answer" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/When will you come\?/), { target: { value: "2030-01-02T15:00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    await sendAnswer();
     await waitFor(() => expect(state.accepted).toEqual([["r1", "collect", null, new Date("2030-01-02T15:00").toISOString()]]));
   });
 
@@ -290,6 +373,8 @@ describe("DeclutterRefundPanel", () => {
   it("buyer: takes the seller's offer", async () => {
     show({ ...BASE, can_ask: false, request: { ...REQ, status: "offered", offer_cents: 1250, offer_answer_by: "2026-10-25T18:00:00Z" } });
     fireEvent.click(await screen.findByRole("button", { name: "Take $12.50" }));
+    // BUY-10: it asks first.
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take $12.50" }));
     await waitFor(() => expect(state.offers).toEqual([["r1", true]]));
   });
 
@@ -315,6 +400,22 @@ describe("DeclutterRefundPanel", () => {
     expect(document.querySelector('[data-confirm-sheet="refund-item-back"]')).toHaveTextContent("It can't be undone.");
     fireEvent.click(await screen.findByRole("button", { name: "Yes, send the refund" }));
     await waitFor(() => expect(state.returned).toEqual([["r1", null]]));
+  });
+
+  it("AUD31-37: on a Helpr-delivery order (the delivery stays paid) the form never says the refund is all you paid", async () => {
+    show({ ...BASE, delivery_kept_cents: 1500 });
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Damaged" }));
+    expect(screen.getByText(/the delivery stays paid: the Helpr made the trip/)).toBeTruthy();
+    const why = document.querySelector("[data-full-refund-why]")!;
+    expect(why.textContent).toBe("That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.");
+    expect(why.textContent).not.toMatch(/\$|\d|fee/i);
+  });
+
+  it("AUD31-37: the item going back on a Helpr-delivery order says the same", async () => {
+    show({ ...BASE, delivery_kept_cents: 1500, can_ask: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });
+    await screen.findByText(/Your refund is sent as soon as Nikki confirms they have it\./);
+    expect(document.querySelector("[data-full-refund-why]")?.textContent).toMatch(/^That's what you paid for the item, less the small part/);
   });
 
   it("buyer: while the item goes back, the refund is promised on the seller's confirmation, with no button to press", async () => {

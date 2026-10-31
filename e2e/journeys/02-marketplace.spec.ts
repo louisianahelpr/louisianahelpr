@@ -820,7 +820,7 @@ test.describe.serial("marketplace chain", () => {
       if (await stillOn.isVisible()) {
         test.info().annotations.push({ type: "path", description: "the day-before prompt was offered and taken" });
         await stillOn.click();
-        const yes = hp.getByRole("button", { name: /Yes, I confirm/i });
+        const yes = hp.getByRole("button", { name: /Yes, I'll be there/i });
         if (await appears(yes, 5_000)) await yes.click();
         /* The POSTER's half of the same control, and it is "I'm still on"
            there too (JobConfirmation's `isOwner` branch). There is no "Confirm
@@ -835,7 +835,7 @@ test.describe.serial("marketplace chain", () => {
         const posterStillOn = pc.getByRole("button", { name: /I'm still on/ }).first();
         if (await appears(posterStillOn, 10_000)) {
           await press(pp, pc, /I'm still on/, "poster confirm");
-          const py = pp.getByRole("button", { name: /Yes, I confirm/i });
+          const py = pp.getByRole("button", { name: /Yes, it's still on/i });
           if (await appears(py, 5_000)) await py.click();
           await assertHealthy(pp, "poster day-of confirm");
         } else {

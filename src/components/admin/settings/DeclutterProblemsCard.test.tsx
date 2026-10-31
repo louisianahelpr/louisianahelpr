@@ -50,7 +50,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { asked: [] as unknown[], rows: [] as unknown[], calls: [] as unknown[][], talk: [] as unknown[] | null, talkError: false, talkAsked: 0, kase: null as unknown };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/helprTasks/photoUrl", () => ({ taskPhotoUrl: async (p: string) => `https://signed.test/${p}` }));
 vi.mock("@/lib/declutter/handover", () => ({
@@ -293,7 +293,7 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     await waitFor(() => expect(document.querySelector("[data-order-steps]")).not.toBeNull());
     let steps = document.querySelector("[data-order-steps]")!;
     expect(steps.getAttribute("data-order-steps")).toBe("porch");
-    // A day is picked (the booking's porch day), nothing set out yet: "Day picked" is the current step.
+    // A day is picked (the booking's porch day), nothing set out yet: "Time booked" is the current step.
     expect(steps.getAttribute("data-order-step")).toBe("1");
     v.unmount();
     // Set out, not yet picked up: "On the porch".

@@ -5,19 +5,30 @@
  * a new listing's one screen holds the choice until Post (useSellFlowState). Hidden until migration
  * 20261030030408 is on prod (PGRST202 -> "not_deployed").
  */
+import { useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchAutoFreeDays, setAutoFreeDays } from "@/lib/declutter/api";
 import { AUTO_FREE_LABEL, AUTO_FREE_OPTIONS, autoFreeDaysFrom, autoFreeExplainer, autoFreeSaved, autoFreeValue } from "@/lib/declutter/autoFree";
-import { ChipGroup } from "./DeclutterSellSteps";
 
-/** The chips and the line under them. Presentational: the caller owns the value. */
+/**
+ * One row, the label on the left and a native labelled dropdown on the right (LEAD-FREE-AFTER-DROPDOWN, owner
+ * 2026-10-31: five chips took two lines), then the line under it. Presentational: the caller owns the value. The one
+ * control for this choice: Declutter settings, Manage listing and a saved draft's last sell step all use it.
+ */
 export function AutoFreeChoice({ days, onChange }: { days: number | null; onChange: (days: number | null) => void }) {
+  const id = useId();
   return (
     <div className="space-y-2" data-auto-free={autoFreeValue(days)}>
-      <ChipGroup label={AUTO_FREE_LABEL} options={AUTO_FREE_OPTIONS} value={autoFreeValue(days)} onChange={(v) => onChange(autoFreeDaysFrom(v))} />
+      <div className="flex items-center justify-between gap-3" data-auto-free-row="">
+        <label htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{AUTO_FREE_LABEL}</label>
+        <select id={id} value={autoFreeValue(days)} onChange={(e) => onChange(autoFreeDaysFrom(e.target.value))}
+          className="h-11 w-auto max-w-[65%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          {AUTO_FREE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
       <p className="text-ds-13 text-muted-foreground">{autoFreeExplainer(days)}</p>
       {/* Audit 2 SE2-3: with drops stopped, say that the day count wins (declutter_auto_free_due clears the stop). */}
       {days !== null && <p className="text-ds-13 text-muted-foreground" data-auto-free-wins="">This wins over a stopped price: on day {days} it's free.</p>}
@@ -33,7 +44,7 @@ export function AutoFreeRow({ itemId, rowClassName, as = "li" }: { itemId: strin
   const pick = useMutation({
     mutationFn: (days: number | null) => setAutoFreeDays(itemId, days),
     onSuccess: (days) => {
-      toast.success(autoFreeSaved(days));
+      toast(autoFreeSaved(days));
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

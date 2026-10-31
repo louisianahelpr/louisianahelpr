@@ -140,6 +140,7 @@ const LENIENT_PARTY_CALLS = [
   'declutter-money/index.ts: return await modes.clientForParties([r.buyer_id, r.seller_id], "refund");',
   'declutter-money/index.ts: return mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], kind)).stripe;',
   'payout-hold-stripe-sync/index.ts: port = portFor((await stripes.clientForParties([id], "read")).stripe);',
+  'process-scheduled-payouts/index.ts: const c = await stripes.clientForParties([helperId], "refund");',
   'recheck-pending-accepts/index.ts: const stripeFor = async (helperId: string) => (await stripes.clientForParties([helperId], "read")).stripe;',
   'shop-checkout/index.ts: ?? await stripeModeForParties(admin, [o.buyer_id, o.seller_id], { kind });',
   'shop-checkout/index.ts: await releaseShopHold(await stripeForOrder(admin, o, "refund"), admin, {',

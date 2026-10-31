@@ -34,7 +34,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage: { from: () => ({}) }, from: () => ({}), rpc: () => ({}) } }));
 vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: () => [], PENDING_PHOTO_SRC: "" }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { helperFaceAction, helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { takePhotoCapture, requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";
@@ -78,9 +78,9 @@ describe("the tracker keeps the before and after photos (owner 2026-10-23)", () 
     }
   });
 
-  it("1b. with no photo owed the steps are unchanged (Start working, Mark done)", () => {
+  it("1b. with no photo owed the steps are unchanged (Start working, Mark job complete)", () => {
     expect(helperFaceNextStep(job, { status: "arrived" } as never, "start_working")?.label).toBe("Start working");
-    expect(helperFaceNextStep(job, { status: "working" } as never, "working")?.label).toBe("Mark done");
+    expect(helperFaceNextStep(job, { status: "working" } as never, "working")?.label).toBe("Mark job complete");
   });
 
   it("2. the tap asks the card's photo control to open, not the tracker to press a step", () => {

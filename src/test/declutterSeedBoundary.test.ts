@@ -1,4 +1,5 @@
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
+// @mutate supabase/migrations/20261031060656_declutter_guest_read.sql |     AND NOT is_seed\n  ); |     AND true\n  );
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
 // @mutate supabase/migrations/20261030064929_declutter_buy_now_no_strike.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
 //
@@ -60,9 +61,12 @@ function newestPolicies(): Map<string, { table: string; name: string; stmt: stri
 
 const SEED_SWITCH = /seed_hidden_in_discovery|seed_jobs_hidden_publicly|seed_hidden_for|seed_hidden_from_caller/;
 
-/** Does `text`, or a public function it calls (up to `hops` deep), ask the seed switch? */
+/** A policy that never shows a test row at all (`AND NOT is_seed`, BUY-16's guest read) needs no switch. */
+const NEVER_SEED = /\bAND\s+NOT\s+is_seed\b/i;
+
+/** Does `text`, or a public function it calls (up to `hops` deep), ask the seed switch (or hide test rows outright)? */
 function asksSeedSwitch(text: string, hops = 2, seen = new Set<string>()): boolean {
-  if (SEED_SWITCH.test(text)) return true;
+  if (SEED_SWITCH.test(text) || NEVER_SEED.test(text)) return true;
   if (hops === 0) return false;
   for (const m of text.matchAll(/public\.(\w+)\s*\(/g)) {
     const fn = m[1];

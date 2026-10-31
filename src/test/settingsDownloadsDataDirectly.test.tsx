@@ -22,6 +22,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke } } }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+// useSectionTabs reads the session (AUD31-73: a guest's open sections); this member is signed in.
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useDarkMode", () => ({ useDarkMode: () => ({ theme: "system" }) }));
 
 import { SettingsTab } from "@/components/profile/SettingsTab";

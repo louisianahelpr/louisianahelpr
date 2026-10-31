@@ -452,6 +452,7 @@ describe("Popup grammar — footer", () => {
   };
   /** Footers whose commit is chosen at render time between two components. */
   const BRANCHED_COMMITS: Record<string, string> = {
+    "src/pages/profile/SavedSearchesTab.tsx": "Delete search asks once in the sheet: \"Delete search\" or, after it, \"Yes, delete it\": exactly one renders (asking ? confirm : delete)",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
     "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",
@@ -1063,6 +1064,8 @@ describe("Popup grammar — footer", () => {
     const DECLINE_LABELS = new Set([
       // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).
       "It's gone",
+      // AUD31-71 (TwoFactorCard, f2aaec89f6): turning two-step off is a security downgrade; the dismiss names what stays.
+      "Keep it on",
       // Declutter handover sheets (Builder 3c s3, DeclutterHandoverSheets.tsx):
       // "Retake" takes the porch photo again (an action, not a dismissal);
       // "Something's not right" opens the problem report instead of confirming;

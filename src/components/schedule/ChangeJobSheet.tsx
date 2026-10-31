@@ -43,7 +43,7 @@ export function ChangeJobSheet({
   startTime: string | null;
   /** Opens the existing cancellation dialog (fee from the shared ladder). */
   onCancelJob: () => void;
-  /** For tests: the day the 14-day strip starts after. */
+  /** For tests: the day the strip starts after. */
   today?: Date;
 }) {
   const [choice, setChoice] = useState<"time" | "cancel">("time");
@@ -55,6 +55,8 @@ export function ChangeJobSheet({
   const now = [formatJobDate(dateNeeded), jobStartTimeLabel(startTime)].filter(Boolean).join(" · ");
   const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5);
   const { chipBase, chipActive, chipIdle } = chipStyles;
+  // The shared chip is 40 px (board 24); this strip is thumbed sideways on a phone, so its chips meet the 44 px floor.
+  const dayChip = chipBase.replace("min-h-10", "min-h-11");
   const card = (on: boolean) =>
     `flex w-full items-start gap-3 rounded-[20px] bg-card px-4 py-3.5 text-left ${on ? "border-2 border-primary" : "border border-border"}`;
 
@@ -91,7 +93,7 @@ export function ChangeJobSheet({
             <p className="text-ds-14 font-semibold">New time</p>
             <div role="group" aria-label="New day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
               {days.map((d) => (
-                <button key={d} type="button" aria-pressed={date === d} className={`${chipBase} shrink-0 ${date === d ? chipActive : chipIdle}`} onClick={() => setDate(d)}>
+                <button key={d} type="button" aria-pressed={date === d} className={`${dayChip} shrink-0 ${date === d ? chipActive : chipIdle}`} onClick={() => setDate(d)}>
                   {formatJobDate(d)}
                 </button>
               ))}

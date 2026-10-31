@@ -13,6 +13,10 @@
 // @mutate src/components/postjob/CheckoutBudgetLine.tsx |   const crew = crewSize > 1; |   const crew = false;
 // @mutate src/lib/seriesMoneyCopy.ts | "each later visit is charged to your saved card about 3 days before it"; | "each later visit is charged to your saved card";
 // @mutate src/pages/post-job/CheckoutStepView.tsx |         isGroupJob={form.isGroupJob} |         isGroupJob={false}
+// JOBS-28 (Jobs audit 10-30, "later repeat visits don't mention tax"): a taxable category's later visits are charged
+// their sales tax too (charge-recurring-visits), so Review says so; an untaxed one keeps the plain words.
+// @mutate src/components/postjob/CheckoutStep.tsx | taxable={hasTaxableLine(category)} /> | taxable={false} />
+// @mutate src/lib/seriesMoneyCopy.ts |   return taxable ? SERIES_LATER_VISITS_CHARGED_TAXED : SERIES_LATER_VISITS_CHARGED; |   return SERIES_LATER_VISITS_CHARGED;
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CheckoutStepView } from "./CheckoutStepView";
@@ -52,6 +56,16 @@ describe("A2-C36: a Repeats job's review says the total is one visit of several"
     expect(row).toContain("The total is for the first visit; each later visit is charged to your saved card about 3 days before it.");
     // Never "charged now": the card may only be held until the hire (card_hold_at_post).
     expect(row).not.toMatch(/charged now/);
+  });
+
+  it("a taxable category (handyman): the later visits are charged their sales tax too", () => {
+    render(<CheckoutStepView form={makeForm({ category: "handyman", categoryLabel: "Handyman", isRecurring: true, recurrenceInterval: "weekly", recurrenceDays: [1], recurrenceWeeks: 4 })} />);
+    expect(totalRow()).toContain("The total is for the first visit; each later visit, plus its sales tax, is charged to your saved card about 3 days before it.");
+  });
+
+  it("an untaxed category (yard work) does not mention tax on the later visits", () => {
+    render(<CheckoutStepView form={makeForm({ isRecurring: true, recurrenceInterval: "weekly", recurrenceDays: [1], recurrenceWeeks: 4 })} />);
+    expect(totalRow()).not.toMatch(/sales tax/);
   });
 
   it("a one-off job says nothing about visits", () => {

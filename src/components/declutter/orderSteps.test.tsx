@@ -63,11 +63,11 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
     expect(states).toBeGreaterThan(80);
   });
 
-  it("porch: Paid -> Day picked -> On the porch -> Picked up, read from the booking, the porch photo and the pickup", () => {
+  it("porch: Paid -> Time booked -> On the porch -> Picked up, read from the booking, the porch photo and the pickup", () => {
     const [unbooked, booked, out, picked, done] = life("porch", "buyer");
-    expect(orderStepWords(unbooked)).toEqual(["Paid", "Day picked", "On the porch", "Picked up"]);
+    expect(orderStepWords(unbooked)).toEqual(["Paid", "Time booked", "On the porch", "Picked up"]);
     expect([unbooked, booked, out, picked, done].map(orderStepAt)).toEqual([0, 1, 2, 3, 3]);
-    // The buyer picks a day, waits for the photo (never goes before it), then picks it up.
+    // The buyer books a time inside the place's hours (LEAD-PLACE-TIMES), waits for the photo (never goes before it), then picks it up.
     expect([unbooked, booked, out, picked, done].map(orderBucket)).toEqual(["needs_you", "upcoming", "needs_you", "waiting", "done"]);
     // The seller: waiting on the buyer's day, then puts it out.
     const seller = life("porch", "seller");
@@ -83,7 +83,7 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
   // Audit 1b D2-2: while a problem is open nothing is asked of either side (booking and a no-show are refused,
   // problem_open), so no order waits on the viewer and it files under Waiting, never Needs you or Upcoming.
   // @mutate src/components/declutter/OrderSteps.tsx |   if (f.done \|\| f.cancelled \|\| f.problem) return false; |   if (f.done \|\| f.cancelled) return false;
-  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.problem) return "waiting"; |
+  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting"; |
   it("an open problem: no order waits on either side, and every open state files under Waiting (D2-2)", () => {
     let n = 0;
     for (const handover of HANDOVERS) {
@@ -98,6 +98,25 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
       }
     }
     expect(n).toBeGreaterThan(20);
+  });
+
+  // NIGHT-BUYINGopenpr-2 (p-buyer-375-00-top): 7 held orders chipped as "Waiting 3, Done 4": the 4 handed over were
+  // Done though the money is held, and one waiting on the buyer's own side never reached Needs you.
+  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting"; |   if (f.problem && !f.done) return f.problemAwaitsYou ? "needs_you" : "waiting";
+  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting"; |   if (f.problem) return "waiting";
+  it("an open problem is never Done, and one waiting on the viewer's side is Needs you (openpr-2)", () => {
+    let n = 0;
+    for (const handover of HANDOVERS) {
+      for (const side of SIDES) {
+        for (const f of life(handover, side)) {
+          expect(orderBucket({ ...f, problem: true }), `${handover} ${side} done=${f.done}`).toBe("waiting");
+          expect(orderBucket({ ...f, problem: true, problemAwaitsYou: true }), `${handover} ${side} done=${f.done}`).toBe("needs_you");
+          expect(orderBucket({ ...f, problem: true, problemAwaitsYou: true, cancelled: true })).toBe("cancelled");
+          n++;
+        }
+      }
+    }
+    expect(n).toBeGreaterThan(30);
   });
 
   it("renders the shared bar with this order's words and step", () => {

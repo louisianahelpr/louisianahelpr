@@ -209,7 +209,7 @@ function RequestView({ id }: { id: string }) {
   const cancel = useMutation({
     mutationFn: () => cancelQuoteRequest(id),
     onSuccess: () => {
-      toast.success("Request cancelled");
+      toast("Request cancelled");
       void qc.invalidateQueries({ queryKey: ["quotes"] });
     },
     onError: (err) => toast.error(quoteErrorMessage(err)),
@@ -309,7 +309,8 @@ export default function QuoteRequestPage() {
   const { id = "" } = useParams<{ id: string }>();
   return (
     <QuotesGate title={TITLE} backTo={QUOTE_HOMES.myRequests} label="Loading the request">
-      <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests}>
+      {/* wrapTitle: "Quotes for your job" was cut to "Quotes for you..." at 375 (AUD31-64). */}
+      <AppPage title={TITLE} backTo={QUOTE_HOMES.myRequests} wrapTitle>
         <RequestView id={id} />
       </AppPage>
     </QuotesGate>

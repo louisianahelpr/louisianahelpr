@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { Bell, BellOff, Clock } from "lucide-react";
 // Dialog, not Sheet. Mute, Report and Block all launch from the same chat
 // menu, but Sheet slides up from the bottom while DialogContent is pinned
@@ -61,7 +63,7 @@ export function MuteSheet({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHero title="Mute notifications" />
+        <DialogHero title={t("chat.mute")} />
         {isMuted && (
           <div
             className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"

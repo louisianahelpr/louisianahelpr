@@ -17,7 +17,12 @@ import { PageTitleBar } from "@/components/header/PageTitleBar";
  * form below sits IN that bar's row, left of the bell and menu, in place of
  * the emblem, the way AppTopBar draws "Jobs" on a phone. One row either way.
  */
-const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => void }) => (
+const AdminSectionHeader = ({ title, phoneTitle, onBack }: {
+  title: string;
+  /** A shorter title for the phone bar when the full one would be cut (ADMIN_PHONE_TITLES, AUD31-48). */
+  phoneTitle?: string;
+  onBack: () => void;
+}) => (
   <PageTitleBar
     title={title}
     back={{ onBack }}
@@ -43,7 +48,7 @@ const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => vo
               letterSpacing: "-0.02em",
             }}
           >
-            {title}
+            {phoneTitle ?? title}
           </h1>
         </div>
       </div>

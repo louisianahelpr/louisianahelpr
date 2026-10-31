@@ -81,7 +81,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       return now?.status === "live" ? "live_again" : "held";
     },
     onSuccess: (outcome) => {
-      toast.success(EDIT_SAVED[outcome]);
+      toast(EDIT_SAVED[outcome]);
       onDone();
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

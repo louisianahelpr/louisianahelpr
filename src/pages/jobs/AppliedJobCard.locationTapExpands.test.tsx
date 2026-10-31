@@ -70,7 +70,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } })
 // Query; this card test renders without a QueryClient and is not about them.
 vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null, ScheduleChangeAskDialog: () => null, usePendingScheduleChange: () => ({ data: null }) }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({
   hapticError: vi.fn(),
   hapticLight: vi.fn(),

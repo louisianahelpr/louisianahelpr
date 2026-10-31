@@ -121,7 +121,7 @@ export function PaySettlingNotice({ s }: { s: PaySettling }) {
       <p className="font-semibold">Payment received.</p>
       <p className="mt-1 text-muted-foreground">
         {s.slow
-          ? "Confirming it is taking longer than usual. Don't pay again: the order moves to Purchases once it's confirmed."
+          ? "Confirming it is taking longer than usual. Don't pay again: the order moves to Buying once it's confirmed."
           : "We're confirming your order. This takes a few seconds."}
       </p>
       {/* Not an error screen (nothing failed; the card was charged): a plain notice with a way to look again. */}

@@ -29,7 +29,7 @@ import { JobStepRowContext } from "./job-card/jobStepRow";
  * ping inside the verification radius says nothing about where.
  */
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
@@ -495,4 +495,4 @@ describe("the step row's primary slot puts the glossy primary last", () => {
 // The map's visibility gate: "keep map until done" (owner, 2026-09-16), with
 // the contested-job exemption that keeps it through a dispute or a revision.
 // Dropping the markedDone half leaves the map up on a finished job.
-// @mutate src/components/JobTracking.tsx | (contested \|\| !markedDone) && |
+// @mutate src/components/trackingMapGate.ts | (contested \|\| !markedDone) && |

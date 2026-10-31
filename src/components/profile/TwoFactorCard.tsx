@@ -104,8 +104,9 @@ export function TwoFactorCard() {
               {isError
                 ? "We couldn't check your status."
                 : verified
-                  ? "Required at sign-in. Support can remove it."
-                  : "Authenticator code at sign-in."}
+                  // AUD31-72: "sign-in" stays whole; at 360 it split "sign- / in.".
+                  ? <>Required at <span className="whitespace-nowrap">sign-in.</span> Support can remove it.</>
+                  : <>Authenticator code at <span className="whitespace-nowrap">sign-in.</span></>}
             </p>
           )}
         </div>
@@ -167,6 +168,8 @@ export function TwoFactorCard() {
           onClose={() => setEnrollOpen(false)}
           onEnrolled={() => {
             setEnrollOpen(false);
+            // AUD31-71: say it worked (a wrong code before this showed only a red toast).
+            toast("Two-step is on.");
             void refetch();
           }}
         />
@@ -183,6 +186,17 @@ export function TwoFactorCard() {
         />
       )}
     </div>
+  );
+}
+
+const WRONG_CODE = "That code didn't match. Check your app and try again.";
+
+function CodeError({ id, message }: { id: string; message: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="text-ds-11 font-sans" role="alert" style={{ color: "hsl(var(--alert-ink))" }}>
+      {message}
+    </p>
   );
 }
 
@@ -232,6 +246,7 @@ function EnrollDialog({
   });
 
   const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
   // OA-015: the setup key is a permanent credential. Once the user has used
@@ -260,7 +275,8 @@ function EnrollDialog({
     });
     setVerifying(false);
     if (verifyError) {
-      toast.error("That code didn't match. Check your app and try again.");
+      // AUD31-71: under the field, not a toast over "Verify and turn on" that outlives a right code.
+      setCodeError(WRONG_CODE);
       return;
     }
     onEnrolled();
@@ -332,10 +348,13 @@ function EnrollDialog({
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setCodeError(""); }}
                 onKeyDown={(e) => { if (e.key === "Enter") handleVerify(); }}
+                aria-invalid={codeError ? true : undefined}
+                aria-describedby={codeError ? "mfa-code-error" : undefined}
                 className="tracking-[0.3em] text-center font-mono border-[hsl(var(--border)/0.6)] focus-visible:border-primary/40"
               />
+              <CodeError id="mfa-code-error" message={codeError} />
             </div>
           </>
         )}
@@ -370,6 +389,7 @@ function DisableDialog({
   onDisabled: () => void;
 }) {
   const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [working, setWorking] = useState(false);
 
   // Disabling removes a verified factor, which requires the session to reach
@@ -385,7 +405,7 @@ function DisableDialog({
     });
     if (challenge.error) {
       setWorking(false);
-      toast.error("That code didn't match. Check your app and try again.");
+      setCodeError(WRONG_CODE);
       return;
     }
     const { error } = await supabase.auth.mfa.unenroll({ factorId });
@@ -404,6 +424,9 @@ function DisableDialog({
           title="Turn off two-step?"
         />
 
+        <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          Enter the code from your authenticator app.
+        </p>
         <div className="space-y-1.5">
           <Label
             htmlFor="mfa-disable-input"
@@ -417,15 +440,18 @@ function DisableDialog({
             autoComplete="one-time-code"
             maxLength={6}
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setCodeError(""); }}
             onKeyDown={(e) => { if (e.key === "Enter") handleDisable(); }}
+            aria-invalid={codeError ? true : undefined}
+            aria-describedby={codeError ? "mfa-disable-error" : undefined}
             className="tracking-[0.3em] text-center font-mono border-[hsl(var(--border)/0.6)] focus-visible:border-primary/40"
           />
+          <CodeError id="mfa-disable-error" message={codeError} />
         </div>
 
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>
-            Keep It On
+            Keep it on
           </DialogSecondaryAction>
           {/* Turning 2FA off is a security downgrade, so it keeps a
               destructive treatment — but the SHARED one. It was a flat inline
@@ -437,7 +463,7 @@ function DisableDialog({
             onClick={handleDisable}
             disabled={working || code.length !== 6}
           >
-            {working ? "Turning Off…" : "Turn off"}
+            {working ? "Turning off…" : "Turn off"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

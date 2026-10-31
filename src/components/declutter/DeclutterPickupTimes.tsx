@@ -12,12 +12,8 @@
  */
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Clock, Plus, X } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
-import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { Plus, X } from "lucide-react";
+import { type PickupWindow } from "@/lib/declutter/api";
 import { WEEKDAYS } from "./declutterUi";
 
 /** declutter_set_pickup_windows takes at most this many windows. */
@@ -61,8 +57,10 @@ export function DayChip({ day, on, onToggle, disabled }: { day: number; on: bool
 }
 
 /** "Sat, Sun": short weekday names, in week order. */
-export function shortDays(days: number[]): string {
-  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).join(", ");
+export function shortDays(days: readonly number[] | null | undefined): string {
+  // A row missing its days (an older server, a mocked read) shows nothing rather than blanking the page (review 2026-10-31).
+  if (!Array.isArray(days)) return "";
+  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).filter(Boolean).join(", ");
 }
 
 const byDayThenStart = (a: PickupWindow, b: PickupWindow) => a.weekday - b.weekday || a.starts.localeCompare(b.starts);
@@ -190,70 +188,8 @@ export function pickupWindowsProblem(windows: PickupWindow[]): string | null {
   return null;
 }
 
-const START: PickupWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
-
-/** "Saturday 9:00 AM to 12:00 PM", or how many times a week. */
-function pickupSummary(rows: { weekday: number; starts_local: string; ends_local: string }[]): string {
-  if (rows.length === 0) return "None yet. You add one with your first listing.";
-  if (rows.length > 1) return `${rows.length} times a week`;
-  const t = (hhmm: string) => {
-    const [h, m] = hhmm.split(":").map(Number);
-    return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  };
-  const r = rows[0];
-  return `${WEEKDAYS[r.weekday]} ${t(r.starts_local)} to ${t(r.ends_local)}`;
-}
-
-/**
- * Declutter settings' "Pickup times" (owner 2026-10-28: the seller's settings in one place; /declutter/settings 2026-10-30). The same times the
- * sell form and moving-out mode edit (declutter_set_pickup_windows replaces the whole set, for every listing).
- */
-export function PickupTimesCard({ userId }: { userId: string }) {
-  const qc = useQueryClient();
-  const saved = useQuery({ queryKey: ["declutter", "windows", userId], queryFn: () => fetchMyPickupWindows(userId) });
-  const [open, setOpen] = useState(false);
-  const [windows, setWindows] = useState<PickupWindow[]>([START]);
-  const save = useMutation({
-    mutationFn: () => setPickupWindows(windows),
-    onSuccess: () => {
-      toast.success("Pickup times saved.");
-      void qc.invalidateQueries({ queryKey: ["declutter", "windows"] });
-      setOpen(false);
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  if (saved.isError) return null;
-  const toggle = () => {
-    if (!open) {
-      const rows = saved.data ?? [];
-      setWindows(rows.length ? rows.map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) })) : [START]);
-    }
-    setOpen((o) => !o);
-  };
-  return (
-    <section className="rounded-2xl border border-border bg-card" aria-label="Pickup times" data-pickup-times-card="">
-      <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open} disabled={saved.isLoading} onClick={toggle}>
-        <Clock className="h-5 w-5 shrink-0" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Pickup times</span>
-          <span className="block text-xs text-muted-foreground">{saved.isLoading ? "Loading…" : pickupSummary(saved.data ?? [])}</span>
-        </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
-      {open && (
-        <div className="space-y-3 border-t border-border px-4 py-3">
-          <p className="text-xs text-muted-foreground">When buyers can come for any of your items. They pick one of these after they pay.</p>
-          <PickupTimesEditor windows={windows} setWindows={setWindows} />
-          <div className="flex justify-end">
-            <Button type="button" size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? "Saving…" : "Save pickup times"}
-            </Button>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
+// Declutter settings' separate "Pickup times" card is gone (LEAD-PLACE-TIMES, owner 2026-10-31): each pickup place
+// carries its own days and hours (SellPorchPlaces), set with PickupTimesEditor above.
 
 const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -263,4 +199,21 @@ export function windowsSummary(windows: PickupWindow[]): string {
   if (!sameHoursEveryDay(windows)) return `${windows.length} pickup times`;
   const days = [...windows].sort((a, b) => a.weekday - b.weekday).map((w) => SHORT_DAY[w.weekday]).join(", ");
   return `${days} ${timeLabel(windows[0].starts)}–${timeLabel(windows[0].ends)}`;
+}
+
+/**
+ * One place's days and hours in words (LEAD-POST-PLACES): "Every day 7:00 AM–9:00 PM", "Mon, Wed 9:00 AM–12:00 PM",
+ * or per day when they differ: "Sat 9:00 AM–12:00 PM; Sun 1:00 PM–3:00 PM". No hours (an older server): the days.
+ */
+export function placeHoursLine(windows: PickupWindow[] | null | undefined, weekdays: number[] | null | undefined): string {
+  const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
+  if (ws.length === 0) return shortDays(weekdays);
+  const range = (w: PickupWindow) => `${timeLabel(w.starts)}–${timeLabel(w.ends)}`;
+  if (sameHoursEveryDay(ws)) {
+    const days = [...new Set(ws.map((w) => w.weekday))];
+    return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`;
+  }
+  const byDay = new Map<number, PickupWindow[]>();
+  for (const w of [...ws].sort(byDayThenStart)) byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
+  return [...byDay.entries()].map(([d, list]) => `${SHORT_DAY[d]} ${list.map(range).join(", ")}`).join("; ");
 }

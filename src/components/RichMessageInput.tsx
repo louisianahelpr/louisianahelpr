@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +46,8 @@ export const RichMessageInput = ({
   // and "which words are the problem" is the only question the blocked sender
   // actually has.
   const [pendingViolations, setPendingViolations] = useState<DetectedViolation[] | null>(null);
-  // The attach picker sheet — bottom-sheet with three tabs (Camera /
-  // Library / Files) so the user picks the source explicitly instead
-  // of hoping the OS file picker happens to default to the right one.
+  // The attach picker sheet — bottom-sheet with three tabs (Camera / Library / Files) so the user picks the
+  // source explicitly instead of hoping the OS file picker happens to default to the right one.
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
   // One hidden <input type="file"> per source so each can carry its
   // own `accept` / `capture` attributes — iOS Safari + Capacitor
@@ -162,9 +163,8 @@ export const RichMessageInput = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset the input regardless of selection so re-picking the same
-    // file fires onChange next time. Each of the three source inputs
-    // resets only its own value.
+    // Reset the input regardless of selection so re-picking the same file fires onChange next time.
+    // Each of the three source inputs resets only its own value.
     if (e.target) e.target.value = "";
     if (!file) return;
     stageFile(file);
@@ -334,7 +334,7 @@ export const RichMessageInput = ({
     if (text.trim()) {
       if (text.length > MESSAGE_MAX_LENGTH) {
         hapticError();
-        toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+        toast.error(t("chat.limit", { count: MESSAGE_MAX_LENGTH.toLocaleString() }));
         return;
       }
       const violations = scanMessage(text);
@@ -366,7 +366,7 @@ export const RichMessageInput = ({
             onClick={clearStaged}
             className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
             disabled={uploading}
-            aria-label="Remove attachment"
+            aria-label={t("chat.removeAttachment")}
           >
             <X className="w-3 h-3" />
           </button>
@@ -402,7 +402,7 @@ export const RichMessageInput = ({
           {/* Discard */}
           <button
             type="button"
-            aria-label="Discard voice note"
+            aria-label={t("chat.discardVoice")}
             onClick={handleVoiceNoteDiscard}
             className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
             style={{ background: "hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood))" }}
@@ -413,7 +413,7 @@ export const RichMessageInput = ({
           {recorder.state === "recording" ? (
             <button
               type="button"
-              aria-label="Stop recording"
+              aria-label={t("chat.stopRecording")}
               onClick={() => { hapticLight(); recorder.stop(); }}
               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
               style={{ background: "hsl(var(--burnt-sienna))", color: "white" }}
@@ -423,7 +423,7 @@ export const RichMessageInput = ({
           ) : (
             <button
               type="button"
-              aria-label="Send voice note"
+              aria-label={t("chat.sendVoice")}
               onClick={() => void handleVoiceNoteRecord()}
               disabled={uploading}
               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
@@ -455,18 +455,18 @@ export const RichMessageInput = ({
           className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
           onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
-          aria-label="Add photo, file, or location"
-          title="Add photo, file, or location"
+          aria-label={t("chat.add")}
+          title={t("chat.add")}
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" strokeWidth={2.25} />}
         </Button>
         )}
         <Input
-          aria-label="Type a message"
+          aria-label={t("chat.typeMessage")}
           placeholder={
             voice.isListening
-              ? voice.interimText || "Listening…"
-              : "Message" // short enough never to clip at 375 (audit #53)
+              ? voice.interimText || t("chat.listening")
+              : t("chat.placeholder") // short enough never to clip at 375 (audit #53)
           }
           enterKeyHint="send"
           autoCapitalize="sentences"
@@ -500,7 +500,7 @@ export const RichMessageInput = ({
             className="shrink-0 h-11 w-11 relative rounded-full liquid-glass glass-press"
             onClick={toggleVoice}
             disabled={disabled || uploading}
-            aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}
+            aria-label={voice.isListening ? t("chat.stopDictate") : t("chat.dictate")}
             title={
               voice.isListening
                 ? "Stop dictating"
@@ -540,7 +540,7 @@ export const RichMessageInput = ({
           className="shrink-0 h-11 w-11 rounded-full"
           onClick={handleSend}
           disabled={(!text.trim() && !stagedFile) || uploading || disabled || recorder.state === "recording" || recorder.state === "stopped"}
-          aria-label="Send message"
+          aria-label={t("chat.send")}
         >
           <Send className="w-4 h-4" />
         </Button>

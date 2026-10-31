@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { spentRows } from "@/lib/posterSpend";
+import { refundedReceiptNote, spentRows } from "@/lib/posterSpend";
 import { usePosterSpendData } from "@/components/profile/earningsTab/usePosterSpendData";
 import { rowMs as spentRowMs } from "@/components/profile/earningsTab/SpentSection";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -161,13 +161,14 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
   if (spend.data) {
     const { jobs, refunds, tips, gifts, blockFees } = spend.data;
     for (const r of spentRows(jobs, refunds, gifts, tips, blockFees)) {
-      if (r.cents <= 0) continue;
+      // AUD31-55 (lead decision 10-31): a job refunded in full stays, "Refunded in full", at its $0 net.
+      if (r.cents <= 0 && !r.refundedInFull) continue;
       receipts.push({
         key: r.job ? `job-${r.job.id}` : `tip-${r.tip?.id}`,
         title: r.job ? r.job.title ?? "Job" : "Tip",
         ms: spentRowMs(r),
         cents: r.cents,
-        note: r.job?.status === "cancelled" ? " · Cancelled" : "",
+        note: `${r.job?.status === "cancelled" ? " · Cancelled" : ""}${refundedReceiptNote(r)}`,
       });
     }
   }

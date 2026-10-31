@@ -16,7 +16,6 @@
  * @mutate src/pages/post-job/useJobFormEffects.ts |     void recordBookingSourceFor(offerTo); |
  * @mutate src/pages/post-job/CheckoutStepView.tsx |       <FirstPostGuarantee oneHelpr={!form.isGroupJob} firstPost={form.isFirstPost === true} /> |
  * @mutate src/components/guarantee/FirstPostGuarantee.tsx |   if (!oneHelpr \|\| !firstPost) return null; |   if (!oneHelpr) return null;
- * @mutate src/components/landing/HowItWorksSection.tsx |         {side === "hire" && <GuaranteePromise className="w-full max-w-xl self-center sm:self-start text-left" />} |
  * @mutate src/pages/user/BookMeShareButton.tsx |       {userId && <BookMeShareButton userId={userId} displayName={displayName} />} |
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |           ? [{ key: "book-me", |           ? [{ key: "referral",
  * @mutate src/lib/guarantee/promiseCopy.ts |   "If it still isn't right, Louisiana Helpr steps in."; |   "If it still isn't right, you get your money back.";
@@ -76,7 +75,7 @@ describe("where the link and the guarantee show", () => {
     const first = blankComments(read("src/components/guarantee/FirstPostGuarantee.tsx"));
     expect(first).toContain("if (!oneHelpr || !firstPost) return null;");
     expect(blankComments(read("src/pages/book/BookHelprPage.tsx"))).toContain("<GuaranteePromise />");
-    expect(blankComments(read("src/components/landing/HowItWorksSection.tsx"))).toContain('{side === "hire" && <GuaranteePromise');
+    // Not on the home page's How a job works (owner, 2026-10-31): src/test/howAJobWorksFits.test.tsx.
   });
 });
 

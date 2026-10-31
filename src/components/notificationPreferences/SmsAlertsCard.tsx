@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquareText } from "lucide-react";
@@ -34,8 +34,13 @@ const QUERY_KEY = ["sms-consent"] as const;
  * for this account; turning texts off always works, so a member who is opted
  * in or pending still sees this card (with only "turn off") if the switch is
  * narrowed later.
+ *
+ * `inPrompt` (owner, 2026-10-31, LEAD-PHONE-PROMPT-DONE): inside the one-time
+ * "Add your phone" prompt, a confirmed phone reads "You're all set" and offers
+ * no "Turn off" (that is Settings' job); `onAllSet` fires once texts are on,
+ * with `alreadyOn` true when they were on from the first read.
  */
-export default function SmsAlertsCard() {
+export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void } = {}) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
   const queryClient = useQueryClient();
@@ -65,6 +70,12 @@ export default function SmsAlertsCard() {
   }, [consent?.phone_e164]);
 
   const optedIn = consent?.sms_opt_in === true;
+  // What the FIRST read said: on from the start means the prompt had nothing to ask.
+  const firstOptedIn = useRef<boolean | null>(null);
+  if (consent && firstOptedIn.current === null) firstOptedIn.current = optedIn;
+  useEffect(() => {
+    if (inPrompt && optedIn) onAllSet?.(firstOptedIn.current === true);
+  }, [inPrompt, optedIn, onAllSet]);
   const pendingPhone = consent?.pending_phone ?? null;
   if (!user) return null;
   // Switch off: only someone with texts on (or a request waiting) sees the card.
@@ -163,6 +174,10 @@ export default function SmsAlertsCard() {
               Cancel
             </Button>
           </>
+        ) : optedIn && inPrompt ? (
+          <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }} role="status">
+            You're all set, texts go to <span className="font-semibold whitespace-nowrap">{formatUsPhone(consent?.phone_e164 ?? null)}</span>.
+          </p>
         ) : optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>

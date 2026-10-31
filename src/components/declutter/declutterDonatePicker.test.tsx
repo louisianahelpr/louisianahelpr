@@ -24,7 +24,7 @@ vi.mock("@/lib/declutter/donate", () => ({
   fetchMyDonations: async () => [],
 }));
 vi.mock("@/lib/declutter/haulAwayLink", () => ({ haulAwayPostJobPath: () => "/post-job" }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { DonatePicker } from "./DeclutterDonate";
 

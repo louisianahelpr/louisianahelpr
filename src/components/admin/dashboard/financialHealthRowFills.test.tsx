@@ -36,6 +36,8 @@ function renderHome(late: number) {
         setCustomDays={() => {}}
         rangeLabel="last 7d"
         prevLabel="prior 7d"
+        standing="calm"
+        seriousAlerts={0}
       />
     </MemoryRouter>,
   );

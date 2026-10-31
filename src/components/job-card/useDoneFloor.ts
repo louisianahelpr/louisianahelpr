@@ -25,3 +25,19 @@ export function useDoneFloorActive(workStartAt: string | null | undefined): bool
   }, [unlocksAt]);
   return unlocksAt !== null && now < unlocksAt;
 }
+
+/**
+ * Whole minutes left on the floor, 0 once it has ended: the "Available in N min" a button says while it is greyed.
+ * Counts down while it shows and turns the button on by itself at the end (useDoneFloorActive's own timer).
+ */
+export function useDoneFloorMinutesLeft(workStartAt: string | null | undefined): number {
+  const active = useDoneFloorActive(workStartAt);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, [active]);
+  if (!active || !workStartAt) return 0;
+  return Math.max(1, Math.ceil((new Date(workStartAt).getTime() + DONE_FLOOR_MS - Date.now()) / 60_000));
+}

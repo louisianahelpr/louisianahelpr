@@ -20,6 +20,7 @@
  * the Move page are retired): with a date, the drafts join the seller's moving sale.
  * Behind the 'declutter' switch (DeclutterGate on the page). Every write is an ordinary declutter_* call that refuses without it.
  */
+import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
@@ -34,7 +35,7 @@ import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unusablePhotosNote, watchBunchRun,
+  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, movePhotoWithin, notSortedPile, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unreadyFirst, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
 import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
@@ -44,7 +45,6 @@ import { AREA_ADDRESS_RE, NO_CITY_IN_ADDRESS } from "./sellForm";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchPileCard } from "./DeclutterBunchPile";
-import { BunchBulk } from "./DeclutterBunchBulk";
 import { BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
 import { BunchRow } from "./DeclutterBunchRow";
@@ -57,11 +57,17 @@ import { BunchBar, type BunchUndo } from "./DeclutterBunchBar";
 import { BunchListStep } from "./DeclutterBunchListStep";
 import { BunchSection } from "./DeclutterBunchSection";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { useBunchThumbs } from "./useBunchThumbs";
+import { useSortingThumbs } from "./useBunchThumbs";
+import { useBunchStager } from "./useBunchStager";
+import { BunchIntake } from "./DeclutterBunchIntake";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
 let photoSeq = 0;
+
+function PlacesComeFirstLine() {
+  return useHasPorchPlaces() ? <SavedPlacesComeFirst free={false} /> : null;
+}
 
 export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const { user } = useCurrentUser();
@@ -79,7 +85,6 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const movingOpen = useFeature("declutter_moving_out");
   const today = louisianaToday();
   const [undo, setUndo] = useState<BunchUndo | null>(null);
-  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set());
   // Rows open by the seller's tap; one with something to read (a flag, a photo that failed, a merge suggestion) starts open.
   const [openRows, setOpenRows] = useState<ReadonlyMap<string, boolean>>(() => new Map());
   const [found, setFound] = useState(0);
@@ -100,12 +105,16 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const thumbs = useBunchThumbs(photos);
+  // LEAD-BUNCH-34-SLOW: while sorting, each photo's thumbnail is its small copy, shown the moment it is made (no second
+  // decode of the full photo); "Adding N of M" counts them. The preview maker fills in the rest once sorting is done.
+  const [adding, setAdding] = useState<{ ready: number; total: number } | null>(null);
+  const [thumbs, setCopyUrls] = useSortingThumbs(photos, !!sorting);
   // Photos of listed and dropped items stop counting toward the cap. Not mid-sort: a batch's photos aren't in an item yet.
   useEffect(() => {
     if (!sorting) setPhotos((ps) => photosInItems(ps, items));
   }, [items, sorting]);
   const files = useMemo(() => new Map(photos.map((p) => [p.key, p.file])), [photos]);
+  const stager = useBunchStager(user?.id, items, files, !!listing, setItems); // LEAD-BUNCH-34-SLOW early upload
   const [askingStartOver, setAskingStartOver] = useState(false);
   useScreenAwake(!!sorting || !!listing || listingDrafts);
   const saved = useBunchSaved(
@@ -123,6 +132,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     },
   );
   const draftsOnTheList = useMemo(() => new Set(items.flatMap((it) => (it.draftId ? [it.draftId] : []))), [items]);
+  const [pricedDraftsOffered, setPricedDraftsOffered] = useState(false);
 
   // A run outlives this screen (the back link). Coming back during one shows it and takes it over; it never starts a second.
   const runDone = useRef<BunchRunWatcher["onDone"]>(() => {});
@@ -208,24 +218,36 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   async function sortPhotos(batch: BunchPhoto[]) {
     setSorting({ done: 0, total: Math.ceil(batch.length / GROUP_BATCH) });
     setFound(0);
+    setAdding({ ready: 0, total: batch.length });
     try {
-      const at = await hintPoint();
+      // LEAD-BUNCH-34-SLOW: the photos start being made ready now; the address check runs beside them, not before them.
+      const at = hintPoint();
       const res = await groupPhotos(batch, (done, total, made) => {
         setSorting({ done, total });
         setFound((n) => n + made.length);
         // Items just came in, so "before" would lose them.
         if (made.length > 0) setUndo(null);
         setItems((its) => addSorted(its, made));
-      }, (cleaned) => askGroup(cleaned, at), undefined, undefined, undefined, {
+      }, async (cleaned) => askGroup(cleaned, await at), undefined, undefined, undefined, {
         onRetry: () => setSorting((s) => (s ? { ...s, retrying: true } : s)),
         onJoined: (into, from) => setItems((its) => joinSorted(its, into, from)),
+        onCleaned: (key, copy) => {
+          setAdding((a) => (a ? { ...a, ready: a.ready + 1 } : a));
+          if (copy) setCopyUrls((m) => new Map(m).set(key, URL.createObjectURL(copy)));
+        },
       });
+      // A photo that couldn't be read is kept, with why, in a pile the seller can Sort again (it is read again then).
+      if (res.unusable.length > 0) {
+        const n = res.unusable.length;
+        setItems((its) => addSorted(its, [notSortedPile(res.unusable.map((u) => u.key), `We couldn't read ${n === 1 ? "this photo" : `these ${n} photos`}. Tap Sort again to try once more.`)]));
+      }
       const n = res.failed.reduce((s, f) => s + f.photos, 0);
       const notSorted = n > 0 ? `${n} ${n === 1 ? "photo isn't" : "photos aren't"} sorted yet: ${declutterErrorMessage(res.failed[0].error)} ${n === 1 ? "It's" : "They're"} kept together below. Tap Sort again.` : null;
       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" ");
       if (note) setSortNote(note);
     } finally {
       setSorting(null);
+      setAdding(null);
     }
   }
 
@@ -357,19 +379,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     regroup((its) => mergeItems(its, fromKey, intoKey), said, other ? { intoKey, price: other } : undefined);
   }
 
-  /** What the bulk row changes: the chosen items, or all of them when none is chosen. A not-sorted pile isn't an item yet. */
-  const sortedItems = items.filter((it) => !it.notSorted);
-  const bulkKeys = (): ReadonlySet<string> => {
-    const live = sortedItems.filter((it) => chosen.has(it.key)).map((it) => it.key);
-    return new Set(live.length > 0 ? live : sortedItems.map((it) => it.key));
-  };
-  const counted = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
-  function onBulkPercent(pct: number) {
-    const res = percentOffSuggested(items, bulkKeys(), pct);
-    const skipped = res.skipped > 0 ? ` ${res.skipped} with no suggestion ${res.skipped === 1 ? "was" : "were"} left alone.` : "";
-    regroup(() => res.items, `Took ${pct}% off ${counted(res.changed)}.${skipped}`);
-  }
-
+  // LEAD-BUNCH-REMOVE-PCT (owner 10-31): no bulk-edit box; each item is edited on its own (tap to open, price on its row).
   /** Lists every ready item, or just `only`: the one whose photo is being tried again. */
   async function onListAll(only?: BunchItem) {
     setProblem(null);
@@ -398,7 +408,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       return listBunch(
         user!.id, toList, files,
         { areaLabel: areaLabel.trim(), pickupAddress: pickupAddress.trim(), pickupLat: c.lat, pickupLng: c.lng },
-        savedWays, onProgress, undefined, onStep, { ...choices.choices, moveOutOn: moveDate || null }, onPhoto,
+        savedWays, onProgress, undefined, onStep, { ...choices.choices, moveOutOn: moveDate || null }, onPhoto, stager ?? undefined,
       );
     });
     if (!started) {
@@ -415,6 +425,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       // an item that failed getting ready stays with its photos, to fix and try again.
       const gone = new Set(result.out.filter((o) => "status" in o || !o.stays).map((o) => o.key));
       setItems((its) => its.filter((it) => !gone.has(it.key)));
+      // LEAD-RESUME-REPOSTS: the moment the post leaves nothing on the list, the kept work goes, so it is never offered back.
+      if (items.every((it) => gone.has(it.key))) saved.clearSaved();
     } else {
       // Not silent: the address, pickup-times or listing refusal is shown beside the button (role="alert"),
       // and the items stay on screen to try again.
@@ -459,7 +471,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); document.getElementById("bunch-files")?.focus(); }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
-      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} />
+      <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
 
       {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
       {saved.restoredCount > 0 && items.length > 0 && (
@@ -476,6 +488,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {whereFolded ? null : (
       <BunchSection id="bunch-where" title="1. Where buyers pick up">
+        {/* Q2492: the same rule and words as the one-item form; the server's rule is the same (declutter_start_checkout). */}
+        <PlacesComeFirstLine />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
         <SellerAddressField id="bunch-address" ariaLabel="Pickup address" className={input} value={pickupAddress} place={place}
           onChange={(a, city) => { setPickupAddress(a); setAreaLabel(city); }} onBlurred={() => {
@@ -500,6 +514,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
         )}
+        {sorting && (
+          <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}
+            ready={adding?.ready ?? 0} total={adding?.total ?? 0} />
+        )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </BunchSection>
 
@@ -510,17 +528,6 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
           </p>
           {/* Nothing on a card can change while a run works on it: a draft dropped mid-run would be listed or lost. */}
           <fieldset disabled={!!listing || listingDrafts} className="contents">
-          {sortedItems.length > 1 && (
-            <BunchBulk
-              total={sortedItems.length}
-              chosen={sortedItems.filter((it) => chosen.has(it.key)).length}
-              onToggleAll={(on) => setChosen(new Set(on ? sortedItems.map((it) => it.key) : []))}
-              onSetPrice={(price) => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { price, free: false }), `Set the price on ${counted(keys.size)}.`); }}
-              onPercentOff={onBulkPercent}
-              onFree={() => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { free: true }), `Made ${counted(keys.size)} free.`); }}
-              onCondition={(conditionStars) => { const keys = bulkKeys(); regroup((its) => bulkEdit(its, keys, { conditionStars }), `Set the condition on ${counted(keys.size)}.`); }}
-            />
-          )}
           <ul className="space-y-2">
             {items.map((it, i) => it.notSorted ? (
               <BunchPileCard
@@ -539,14 +546,15 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                 index={i}
                 url={thumbs.get(it.photoKeys[0])}
                 open={isRowOpen(it)}
-                chosen={chosen.has(it.key)}
+                canDrop={!listing && !listingDrafts}
+                onPhotoDrop={(k) => regroup((its) => movePhoto(its, k, it.key), `Moved a photo to ${nameOf(it.key)}.`)}
                 nextPriceId={items.slice(i + 1).find((x) => !x.free && !x.notSorted) ? `price-${items.slice(i + 1).find((x) => !x.free && !x.notSorted)!.key}` : null}
                 onToggleOpen={() => setOpenRows((m) => new Map(m).set(it.key, !isRowOpen(it)))}
-                onToggleChosen={(on) => setChosen((c) => { const n = new Set(c); if (on) n.add(it.key); else n.delete(it.key); return n; })}
                 onPrice={(price) => { setUndo(null); setItems((its) => editBunchItem(its, it.key, { price })); }}
               >
                 <BunchCard
                   item={it}
+                  offersDefault={choices.choices.acceptsOffers}
                   index={i}
                   others={others(it.key)}
                   urls={thumbs}
@@ -559,6 +567,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                   onSplit={(keys) => onSplit(it.key, keys)}
                   onRemovePhoto={(k) => regroup((its) => takePhotoOff(its, it.key, k), it.photoKeys.length === 1 ? `Removed ${nameOf(it.key)}: that was its last photo.` : "Photo removed.")}
                   onCover={(k) => setItems((its) => makeCover(its, it.key, k))}
+                  onReorder={(k, before) => setItems((its) => movePhotoWithin(its, it.key, k, before))}
+                  canDrag={!listing && !listingDrafts}
                   onAddPhotos={(list) => void onAddPhotos(it.key, list)}
                   onMerge={(into) => onMerge(it.key, into)}
                   onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${nameOf(it.key)}.`)}
@@ -574,12 +584,12 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {items.length > 0 && (
         <BunchListStep
-          step={firstStep + 2} items={items} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
+          step={firstStep + 2} items={items} pricedDraftsOffered={pricedDraftsOffered} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
           choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} onList={() => void onListAll()}
         />
       )}
 
-      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => jumpTo(firstUnready.key) : null} onNext={toListing} onUndo={onUndo}
+      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={toListing} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>
   );

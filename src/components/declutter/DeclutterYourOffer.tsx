@@ -71,7 +71,7 @@ export function YourOfferBox({ offer, onChange }: { offer: MyOffer; onChange: ()
     mutationFn: () => respondOffer(offer.offer_id, "withdraw"),
     onSuccess: () => {
       setAsking(false);
-      toast.success("Offer taken back. Enter a new one, or leave it.");
+      toast("Offer taken back. Enter a new one, or leave it.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onChange();
     },

@@ -34,6 +34,8 @@ export type SeriesCardJob = {
   recurrence_end_date?: string | null;
   /** Per visit on a series (A2-C36: the poster's card names it). */
   budget?: number | string | null;
+  /** Category key: a taxable one's later visits are charged sales tax too (JOBS-28). */
+  category?: string | null;
   // Q1254: the place and details an agreed change request proposes to replace.
   description?: string | null;
   location?: string | null;

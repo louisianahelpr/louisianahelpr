@@ -5,13 +5,14 @@
  * orders on one side. Split out of DeclutterTradeViews to keep it under the
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
+import { useLinkedOrder } from "./useLinkedOrder";
 
 /**
  * What needs the member on each side (the Buying / Selling badges), from the
@@ -71,10 +72,12 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const lines = (cart.data ?? []).filter((l) => l.my_side === side);
   const todo = declutterTodo(lines, []);
+  const [showDone, setShowDone] = useState(false);
+  const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
   // CartView / SalesWaiting on the same tab show this read's loading and error.
   if (!cart.data) return null;
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
-  if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id)))) return null;
+  if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id) || l.order_id === linked))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
     const buyer = side === "buyer";
     return (
@@ -93,11 +96,30 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   // DA-3: a giver whose orders are all free items sold nothing and is paid nothing.
   const sold = lines.filter((l) => l.status === "paid" && l.order_id);
   const sellerTitle = sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
+  // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
+  // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
+  const done = new Set(side === "seller" && !show ? sold.filter((l) => l.order_status === "handed_over" || l.order_status === "refunded").map((l) => l.order_id as string) : []);
+  const allDone = done.size > 0 && sold.every((l) => done.has(l.order_id as string));
+  const doneToggle = done.size > 0 && (
+    <button type="button" className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
+      {showDone ? "Hide finished sales" : `Show ${done.size} finished ${done.size === 1 ? "sale" : "sales"}`}
+    </button>
+  );
+  if (allDone && !showDone && !(linked && done.has(linked))) {
+    return (
+      <section className="space-y-2" aria-label={sellerTitle}>
+        <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
+        <p className="text-sm text-muted-foreground">Nothing to hand over right now.</p>
+        {doneToggle}
+      </section>
+    );
+  }
   return (
+    <>
     <PaidOrdersSection
       cart={lines}
       views={views}
-      show={show}
+      show={done.size > 0 && !showDone ? (id) => !done.has(id) || id === linked : show}
       label={side === "buyer" ? "Purchases" : sellerTitle}
       heading={
         side === "buyer"
@@ -105,5 +127,7 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
           : <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
       }
     />
+    {doneToggle}
+    </>
   );
 }

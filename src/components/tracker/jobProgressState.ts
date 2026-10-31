@@ -296,6 +296,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       return at(3, mine, "Confirmed", !helprIn ? `Confirm you'll be at the job by ${when(due)}` : `Waiting on ${otherLow} to confirm`, held);
     }
   }
-  // Both confirmed: setting out is the Helpr's move.
-  return at(4, !poster, "On the way", poster ? `You're both confirmed. ${other} taps On my way when they leave` : "Tap I'm on my way when you leave", held);
+  // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has
+  // moved the job to in_progress), the Helpr's line is the card's "today" line, not "when you leave".
+  const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
+  const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
+  return at(4, !poster, "On the way", poster ? `You're both confirmed. ${other} taps On my way when they leave` : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave", held);
 }

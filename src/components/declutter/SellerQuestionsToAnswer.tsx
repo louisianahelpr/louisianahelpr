@@ -41,7 +41,8 @@ export function QuestionsToAnswer({ userId }: { userId: string }) {
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {rows.map((r) => (
           <li key={r.id}>
-            <Link to={`/declutter/item/${r.item_id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+            {/* AUD31-28: straight to the item's questions (they sat ~2 screens down at 375), not the top of the page. */}
+            <Link to={`/declutter/item/${r.item_id}#declutter-questions`} className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-13 font-semibold text-muted-foreground [overflow-wrap:anywhere]">{r.title}</span>
                 <span className="block text-ds-15 text-foreground [overflow-wrap:anywhere]">{r.question}</span>

@@ -28,7 +28,7 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
   });
   it("search, Active/All and the options live in the slim search row's one more menu", () => {
     const row = list.slice(list.indexOf("const phoneSearchRow"), list.indexOf("const headerEl ="));
-    expect(row).toContain('aria-label="Search conversations"');
+    expect(row).toContain('aria-label={t("chat.search")}');
     expect(row).toContain("{moreMenu}");
     const menu = list.slice(list.indexOf("const moreMenu"), list.indexOf("const phoneSearchRow"));
     expect(menu).toContain("<MessagesMoreMenu");

@@ -19,7 +19,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus:
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 const account = { user: { id: "u1" }, profile: {}, isLoading: false };
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => account }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: ReactNode }) => (
     <main>

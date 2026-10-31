@@ -62,7 +62,7 @@ export function ListedWhatNext() {
       title={live ? (free ? "Your free listing is live" : "Your listing is live") : "Sent for a review"}
       lead={<><strong>{it.title}</strong>{live ? (free ? " is listed for free now." : " is up for sale now.") : " goes up once it's checked."}</>}
       steps={steps}
-      primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
+      primary={{ label: "Preview", onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }}
       // Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review.
       secondary={shareable ? { label: "Copy link for local groups", onClick: () => void copyListingLink(it) } : undefined}
     >

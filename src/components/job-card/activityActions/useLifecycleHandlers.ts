@@ -25,7 +25,7 @@ import type { CompletionPromptTarget } from "@/components/job-card/activityConst
  * (job_starts_too_soon), so "your job is open again, pick another applicant" could not happen on that date,
  * and auto-expire-jobs cancels the listing once it expires.
  */
-const NO_SHOW_NEXT = "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded.";
+const NO_SHOW_NEXT = "To hire someone else, pick a new date on the job right away. Otherwise it's cancelled and most of your payment comes back.";
 
 /**
  * Dependencies for the in-progress → completion → review lifecycle handlers,
@@ -318,7 +318,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         return;
       }
       hapticSuccess();
-      toast.success("Arrival confirmed.");
+      toast("Arrival confirmed.");
       refresh();
     } finally {
       setConfirmingArrivalJobId(null);
@@ -336,7 +336,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId).select("id"),
           {
             action: "confirm the Helpr is working",
-            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Pull to refresh.",
+            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Refresh the page.",
             context: { jobId },
           },
         );
@@ -354,7 +354,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "work_confirmed" });
       }
       hapticSuccess();
-      toast.success("Work confirmed.");
+      toast("Work confirmed.");
       refresh();
     } finally {
       setConfirmingWorkingJobId(null);

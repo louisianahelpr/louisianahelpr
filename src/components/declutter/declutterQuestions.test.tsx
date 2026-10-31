@@ -10,6 +10,17 @@
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
  *
+ * AUD31-15 (audit 10-31): the asker's own questions say "Your question"; nobody else is told who asked. The client reads
+ * declutter_my_question_ids (20261031183631) only when signed in and not the seller; the server answers only the
+ * caller's own ids (newest definition read below; behaviour: src/test/pglite/declutterMyQuestionIds.pglite.mjs,
+ * 12 PASS; NEW_MIGRATION=skip 10 FAIL).
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question" : "Asked by a neighbor"} | {"Asked by a neighbor"}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question · asked" : "Asked"} {asked} | Asked {asked}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | enabled: !!user && !isSeller }); | enabled: true });
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | mine={!!myIds.data?.has(q.id)} | mine={!!myIds.data}
+ * @mutate supabase/migrations/20261031183631_declutter_my_question_ids.sql |        AND q.asker_id = v_uid\n |\n
+ * @mutate supabase/migrations/20261031183631_declutter_my_question_ids.sql | REVOKE ALL ON FUNCTION public.declutter_my_question_ids(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_my_question_ids(uuid) FROM PUBLIC;
+ *
  * Audit 1028 part 2, D2-13: the Ask refusal shows under the box (role="alert", tied to the box), never as a toast over it.
  * @mutate src/components/declutter/DeclutterQuestions.tsx |           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>} |
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   const askError = ask.isError ? declutterErrorMessage(ask.error) : null; |   const askError = null; void ask.error;
@@ -24,19 +35,22 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup as cleanupAll, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null };
+const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null, answerRefusal: null as Error | null };
 const toasts = vi.hoisted(() => ({ error: [] as unknown[] }));
 vi.mock("sonner", () => ({ toast: { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } } }));
+const mineState = { ids: new Set<string>(), calls: 0, user: { id: "b1" } as { id: string } | null };
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: mineState.user, isReady: true }) }));
 const state = { questions: [] as unknown[], seller: { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null } as unknown };
 
 vi.mock("@/lib/declutter/api", () => ({
   fetchQuestions: async () => state.questions,
   fetchSellerCard: async () => state.seller,
+  fetchMyQuestionIds: async () => { mineState.calls++; return mineState.ids; },
   askQuestion: async (itemId: string, q: string) => { calls.ask.push([itemId, q]); if (calls.askRefusal) throw calls.askRefusal; return "q9"; },
-  answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); return "2026-10-20"; },
+  answerQuestion: async (id: string, a: string) => { calls.answer.push([id, a]); if (calls.answerRefusal) throw calls.answerRefusal; return "2026-10-20"; },
 }));
 
 const suggest = { calls: [] as string[], result: { reply: "Yes, it fits with the back seats down.", needsSeller: false } as { reply: string; needsSeller: boolean } | Error };
@@ -50,6 +64,9 @@ vi.mock("@/lib/declutter/aiReply", () => ({
 }));
 
 import { DeclutterQuestions, askedWhen } from "./DeclutterQuestions";
+import { blankSqlComments } from "@/test/helpers/blankNonCode";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 const TODAY = new Date().toISOString();
 const QS = [
@@ -67,11 +84,15 @@ function renderIt(props: { isSeller: boolean; canAsk: boolean }) {
 }
 
 beforeEach(() => {
+  mineState.ids = new Set();
+  mineState.calls = 0;
+  mineState.user = { id: "b1" };
   state.questions = QS;
   state.seller = { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null };
   calls.answer = [];
   calls.ask = [];
   calls.askRefusal = null;
+  calls.answerRefusal = null;
   toasts.error = [];
   suggest.calls = [];
   suggest.result = { reply: "Yes, it fits with the back seats down.", needsSeller: false };
@@ -99,6 +120,48 @@ describe("board 162: public questions", () => {
     const note = screen.getByText(/Contact info is not allowed\./);
     expect(note.textContent).not.toMatch(/message/i);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
+  });
+
+  it("AUD31-15: the asker's own questions say 'Your question'; a neighbour's still say 'Asked by a neighbor'", async () => {
+    mineState.ids = new Set(["q2"]);
+    renderIt({ isSeller: false, canAsk: true });
+    expect(await screen.findByText("Your question · asked today · waiting for Marie")).toBeInTheDocument();
+    const cards = screen.getAllByRole("listitem");
+    expect(within(cards[0]).getByText("Asked by a neighbor · today")).toBeInTheDocument();
+    expect(cards[0].hasAttribute("data-mine")).toBe(false);
+    expect(cards[1].hasAttribute("data-mine")).toBe(true);
+    mineState.ids = new Set(["q1"]);
+    cleanupAll();
+    renderIt({ isSeller: false, canAsk: true });
+    expect(await screen.findByText("Your question · today")).toBeInTheDocument();
+    expect(screen.getByText("Asked today · waiting for Marie")).toBeInTheDocument();
+  });
+
+  it("AUD31-15: the seller and a guest never ask which questions are theirs", async () => {
+    mineState.ids = new Set(["q2"]);
+    renderIt({ isSeller: true, canAsk: false });
+    expect(await screen.findByText("Asked today · waiting for your answer")).toBeInTheDocument();
+    cleanupAll();
+    mineState.user = null;
+    renderIt({ isSeller: false, canAsk: false });
+    expect(await screen.findByText("Asked today · waiting for Marie")).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mineState.calls).toBe(0);
+    expect(screen.queryByText(/Your question/)).toBeNull();
+  });
+
+  it("AUD31-15 server: the newest declutter_my_question_ids answers only the caller's own ids, signed in only", () => {
+    const def = effectiveDefs(resolve(process.cwd(), "supabase/migrations")).get("declutter_my_question_ids");
+    expect(def, "declutter_my_question_ids is defined").toBeTruthy();
+    const body = blankSqlComments(def!.stmt);
+    expect(body).toMatch(/security\s+definer/i);
+    expect(body).toMatch(/require_feature\('declutter'\)/);
+    expect(body).toMatch(/q\.asker_id\s*=\s*v_uid/);
+    expect(body).toMatch(/v_uid\s+uuid\s*:=\s*auth\.uid\(\)/);
+    expect(body).toMatch(/returns\s+setof\s+uuid/i);
+    const file = blankSqlComments(readFileSync(resolve(process.cwd(), "supabase/migrations", def!.file), "utf8"));
+    expect(file).toMatch(/REVOKE ALL ON FUNCTION public\.declutter_my_question_ids\(uuid\) FROM PUBLIC, anon;/);
+    expect(file).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.declutter_my_question_ids\(uuid\) TO[^;]*\banon\b/);
   });
 
   it("no seller name: waits for 'the seller', never a pronoun", async () => {
@@ -155,8 +218,59 @@ describe("board 162: public questions", () => {
     // Shown is not sent.
     await new Promise((r) => setTimeout(r, 20));
     expect(calls.answer).toEqual([]);
-    fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post this answer" }));
     await waitFor(() => expect(calls.answer).toEqual([["q2", "Yes, it fits with the back seats down."]]));
+  });
+
+  // AUD31-29 (audit 2026-10-31): two buttons that post publicly at once had two names ("Send" on the suggested reply,
+  // "Post answer" under the box). Both say Post now, and no "Send" is left in the sheet.
+  // @mutate src/components/declutter/DeclutterSuggestedReply.tsx |             Post this answer\n |             Send\n
+  it("the suggested reply's button and the sheet's button both say Post (AUD31-29)", async () => {
+    const sheet = await openAnswerSheet();
+    await within(sheet).findByText("Suggested reply");
+    const names = within(sheet).getAllByRole("button").map((b) => b.textContent ?? "");
+    expect(names).toEqual(expect.arrayContaining(["Post this answer", "Post answer"]));
+    expect(names.filter((n) => /\bSend\b/.test(n))).toEqual([]);
+  });
+
+  // AUD31-30 (audit 2026-10-31): a refused answer was a toast over the answer box and the draft at 375.
+  // @mutate src/components/declutter/DeclutterQuestions.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},
+  it("a refused answer is said under the box, the draft stays, and typing clears it (AUD31-30)", async () => {
+    calls.answerRefusal = Object.assign(new Error("A phone number in the answer. Keep contact details out."), { code: "23514" });
+    const sheet = await openAnswerSheet();
+    const box = within(sheet).getByLabelText("Your answer");
+    fireEvent.change(box, { target: { value: "Call me at 555" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Post answer" }));
+    const said = await within(sheet).findByRole("alert");
+    expect(said.textContent).toBe(declutterErrorMessage(calls.answerRefusal));
+    expect(said.textContent!.length).toBeGreaterThan(10);
+    expect(box).toHaveValue("Call me at 555");
+    expect(box.getAttribute("aria-describedby")).toBe(said.id);
+    expect(toasts.error).toEqual([]);
+    fireEvent.change(box, { target: { value: "Yes, it fits." } });
+    expect(within(sheet).queryByRole("alert")).toBeNull();
+  });
+
+  // AUD31-28 (audit 2026-10-31): Selling's "Questions to answer" links to the item with #declutter-questions; the
+  // item page scrolls to the questions once they are in (it opened at the top, the question 2 screens down at 375).
+  // @mutate src/components/declutter/DeclutterQuestions.tsx |     if (loaded && window.location.hash === "#declutter-questions") { |     if (false) {
+  it("opened with #declutter-questions, the page scrolls to the questions once they load; without it, it doesn't", async () => {
+    const seen: string[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this.id); });
+    try {
+      window.location.hash = "#declutter-questions";
+      renderIt({ isSeller: true, canAsk: false });
+      await screen.findByText("Will it fit in an SUV?");
+      await waitFor(() => expect(seen).toEqual(["declutter-questions"]));
+      window.location.hash = "";
+      seen.length = 0;
+      renderIt({ isSeller: true, canAsk: false });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(seen).toEqual([]);
+    } finally {
+      spy.mockRestore();
+      window.location.hash = "";
+    }
   });
 
   it("suggested reply: Edit fills the answer box and sends nothing", async () => {
@@ -172,7 +286,7 @@ describe("board 162: public questions", () => {
     suggest.result = { reply: "It is about ___ inches wide.", needsSeller: true };
     const sheet = await openAnswerSheet();
     expect(await within(sheet).findByText("Your listing doesn't say this. Fill in the blank before you post.")).toBeInTheDocument();
-    expect(within(sheet).queryByRole("button", { name: "Send" })).toBeNull();
+    expect(within(sheet).queryByRole("button", { name: "Post this answer" })).toBeNull();
     expect(within(sheet).getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(calls.answer).toEqual([]);
   });

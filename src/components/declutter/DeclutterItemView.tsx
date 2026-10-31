@@ -11,7 +11,7 @@ import { useState, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -49,7 +49,8 @@ import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
-import { ItemPickupTimes } from "./DeclutterPickupWindows";
+import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
+import { ItemHandoverTimes } from "./ItemHandoverTimes";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
@@ -57,6 +58,7 @@ import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop"
 import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
+import { toastWatching } from "./DeclutterWatching";
 
 /** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
 function addressNote(free: boolean, isSeller: boolean): string {
@@ -80,6 +82,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
   // A link whose id is not an item id at all can never load one: say so at
@@ -99,6 +102,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const [params] = useSearchParams();
   const preview = ownListing && params.get("preview") === "buyer";
   const [previewPressed, setPreviewPressed] = useState(false);
+  // AUD31-15: the Questions hint's "Make an offer" opens the offer box (OfferPanel's askSignal).
+  const [offerAsk, setOfferAsk] = useState(0);
   const isSeller = ownListing && !preview;
   // A failed read hides the drop line (nothing is promised); the item itself still shows.
   const dropState = useQuery({
@@ -123,7 +128,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
+    onSuccess: () => {
+      // SS-5: a new heart says where to find the item again.
+      if (!isWatching) toastWatching(navigate);
+      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
+    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
@@ -153,11 +162,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const sellerState = isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" ? sellerDrops.data : null;
   const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
   const actions = (<>
-    {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
+    {canAct && user && <DeclutterBundleRow item={it} viewerId={user.id} />}
 
     {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)}
+    {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
+    {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 
@@ -179,7 +190,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           >
             <Share2 className="w-5 h-5" aria-hidden />
           </button>
-          {canAct && (
+          {canAct && user && (
             <button
               type="button"
               aria-pressed={isWatching}
@@ -261,7 +272,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           )}
 
-          {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
+          {!user && <DeclutterGuestSeller itemId={it.id} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses
@@ -277,7 +290,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           ) : actions}
 
-          {!free && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
+          {!free && user && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
 
           <section className="space-y-1" aria-labelledby="declutter-details">
             <h2 id="declutter-details" className="text-base font-semibold">Details</h2>
@@ -294,7 +307,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
-            {way !== "none" && forSale && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
+            {/* Lead's product call 2026-10-31 (LEAD-PLACE-TIMES review): pickup places for porch, pickup and delivery,
+                each with its own days and hours, never an address; the usual times only as Meetup times (or as the
+                pickup times of a seller with no place). Never both lists for the same way. BUY-18's porch day stays. */}
+            {forSale && user && <ItemHandoverTimes itemId={itemId} handovers={ways.data} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already
@@ -302,15 +318,15 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
           </section>
 
-          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user && !preview} free={free} />
+          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}
         </div>
       </div>
-      {!isSeller && (
+      {!isSeller && user && (
         <div className="mt-8">
-          <DeclutterItemRows item={it} viewerId={user?.id ?? null} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
+          <DeclutterItemRows item={it} viewerId={user.id} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
         </div>
       )}
     </AppPage>

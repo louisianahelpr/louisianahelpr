@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { centsToDollars } from "@/lib/declutter/money";
+import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
@@ -66,13 +67,36 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
       <Checkbox checked={form.free} onCheckedChange={(v) => setForm((f) => ({ ...f, free: v === true }))} />
       Give it away free
     </label>
-    {form.free && (
-      <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
-        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
-        from your porch, and nothing is charged.
-      </p>
-    )}
+    {form.free && <SellFreeNote />}
   </>);
+}
+
+/** What free means, under a free listing's price (LEAD-FREE-MOVE: free is chosen on the sell chooser's first screen). */
+export function SellFreeNote() {
+  return (
+    <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
+      Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
+      from your porch, and nothing is charged.
+    </p>
+  );
+}
+
+/**
+ * LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): a new listing's "Accept offers", starting from the saved default
+ * (Settings > Listing defaults) and saved with the item at Post. A free item is claimed, so it has no offers to take.
+ */
+export function SellOffersToggle({ s }: { s: SellFlow }) {
+  const { form, offersWanted, setOffersWanted } = s;
+  if (form.free) return null;
+  return (
+    <div className="flex min-h-11 items-center gap-3 rounded-[14px] border border-border bg-card px-4 py-3" data-sell-offers={offersWanted ? "on" : "off"}>
+      <label htmlFor="sell-offers" className="min-w-0 flex-1">
+        <span className="block text-ds-15 font-semibold text-foreground">{OFFERS_TITLE}</span>
+        <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(offersWanted)}</span>
+      </label>
+      <Switch id="sell-offers" checked={offersWanted} onCheckedChange={(v) => setOffersWanted(v === true)} />
+    </div>
+  );
 }
 
 /**

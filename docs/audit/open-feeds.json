@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-22T07:27Z",
+  "measured_at": "2026-10-31T22:36Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,14 +15,14 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39229246557",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/40832806380",
         "runTruncated": false
       },
       {
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39569997816",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41189360102",
         "runTruncated": false
       },
       {
@@ -36,21 +36,21 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39617026842",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/40721330192",
         "runTruncated": false
       },
       {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39404849766",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41047645233",
         "runTruncated": false
       },
       {
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39671846391",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41131359413",
         "runTruncated": false
       },
       {
@@ -61,66 +61,78 @@
         "runTruncated": true
       },
       {
-        "number": 3307,
-        "title": "nightly-red: staleness-watch",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39630562701",
-        "runTruncated": false
-      },
-      {
-        "number": 3311,
-        "title": "nightly-red: e2e-real-backend",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39394472605",
-        "runTruncated": false
-      },
-      {
-        "number": 3435,
-        "title": "nightly-red: db-drift-detect",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39648983153",
-        "runTruncated": false
-      },
-      {
         "number": 3454,
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39378186662",
-        "runTruncated": false
-      },
-      {
-        "number": 3462,
-        "title": "nightly-red: e2e-abuse-notifications",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39438118542",
-        "runTruncated": false
-      },
-      {
-        "number": 3487,
-        "title": "nightly-red: race-runner",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39715824462",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41018395640",
         "runTruncated": false
       },
       {
         "number": 3491,
         "title": "nightly-red: ui-sweep",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39579166876",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398",
         "runTruncated": false
       },
       {
-        "number": 3527,
-        "title": "nightly-red: feature-switch-audience",
+        "number": 3743,
+        "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39631239520",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41225818194",
         "runTruncated": false
       },
       {
-        "number": 3540,
-        "title": "nightly-red: main: Supabase DB Deploy",
+        "number": 3784,
+        "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39715824587",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294",
+        "runTruncated": false
+      },
+      {
+        "number": 3802,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41248570296",
+        "runTruncated": false
+      },
+      {
+        "number": 3813,
+        "title": "nightly-red: e2e-real-backend",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744",
+        "runTruncated": false
+      },
+      {
+        "number": 3823,
+        "title": "🔴 3 scheduled workflow(s) have stopped running",
+        "label": "schedule-stalled"
+      },
+      {
+        "number": 3824,
+        "title": "nightly-red: schedule-heartbeat",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151",
+        "runTruncated": false
+      },
+      {
+        "number": 3833,
+        "title": "nightly-red: core-loop-canary",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41128418672",
+        "runTruncated": false
+      },
+      {
+        "number": 3846,
+        "title": "nightly-red: codeql",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41151980186",
+        "runTruncated": false
+      },
+      {
+        "number": 3875,
+        "title": "nightly-red: code-scanning-alerts",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439",
         "runTruncated": false
       }
     ]
@@ -134,6 +146,14 @@
         "source": "ops-alert:custom",
         "status": "open",
         "title": "job stalled with escrow held",
+        "issue": null
+      },
+      {
+        "fingerprint": "3a801ee231b0cb5622678dd6e59362c5",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "new member joined",
         "issue": null
       },
       {
@@ -158,7 +178,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: staleness-watch",
-        "issue": 3307
+        "issue": 3784
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -185,6 +205,14 @@
         "issue": null
       },
       {
+        "fingerprint": "0d3beba829aef2b190538db98a6a28d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: money-reconciliation returned 500 (# defect(s) reported)",
+        "issue": null
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -206,7 +234,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: db-drift-detect",
-        "issue": 3435
+        "issue": 3743
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -214,7 +242,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: e2e-real-backend",
-        "issue": 3311
+        "issue": 3813
       },
       {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
@@ -233,12 +261,12 @@
         "issue": 3454
       },
       {
-        "fingerprint": "4c89303184fbafc9613e873aa811fa3c",
+        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: race-runner",
-        "issue": 3487
+        "title": "nightly-red: schedule-heartbeat",
+        "issue": 3824
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -247,6 +275,22 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
+      },
+      {
+        "fingerprint": "b75d265e62012a472e62221e79c5ce28",
+        "source_kind": "workflow",
+        "source": "quota-monitor",
+        "status": "open",
+        "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
+        "issue": null
+      },
+      {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
+        "issue": 3802
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -265,12 +309,20 @@
         "issue": 3491
       },
       {
-        "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
+        "fingerprint": "07e2a58f38a211fe4b6f8d32417eb4ba",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: zip # resolved to no louisiana parish",
+        "issue": null
+      },
+      {
+        "fingerprint": "18539240a894224e952b88b2b21bb927",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: e2e-abuse-notifications",
-        "issue": 3462
+        "title": "nightly-red: core-loop-canary",
+        "issue": 3833
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -286,6 +338,46 @@
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "88b4addefbcd1dc226926886a24bff50",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load jobs.",
+        "issue": null
+      },
+      {
+        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "source_kind": "workflow",
+        "source": "code-scanning",
+        "status": "open",
+        "title": "github code scanning: open alerts on main",
+        "issue": null
+      },
+      {
+        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
+        "source_kind": "nightly_red",
+        "source": "schedule-stalled",
+        "status": "open",
+        "title": "🔴 # scheduled workflow(s) have stopped running",
+        "issue": 3823
+      },
+      {
+        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
+        "source_kind": "error_logs",
+        "source": "stripe-connect",
+        "status": "open",
+        "title": "stripe-connect cleared unusable payout account <id>",
+        "issue": null
+      },
+      {
+        "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: usesearchparammirror runaway writes",
         "issue": null
       },
       {
@@ -369,6 +461,14 @@
         "issue": null
       },
       {
+        "fingerprint": "8f6eb3360000fd0c4b5ad2c0e8a40a29",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: permission denied for table recurring_visit_payments",
+        "issue": null
+      },
+      {
         "fingerprint": "70c81dfc4f91698da16eec1b21081e0b",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -423,14 +523,6 @@
         "status": "open",
         "title": "error: profile request timed out",
         "issue": null
-      },
-      {
-        "fingerprint": "a13c4edc69832354d5e579c068462874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: feature-switch-audience",
-        "issue": 3527
       },
       {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
@@ -489,14 +581,6 @@
         "issue": null
       },
       {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
         "source_kind": "sentry",
         "source": "sentry:assets/ProtectedRoute",
@@ -505,11 +589,11 @@
         "issue": null
       },
       {
-        "fingerprint": "f2afa1349a3ae98138fd104f49431fcf",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
         "status": "open",
-        "title": "/home · error screen shown: we couldn't load your account.",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -561,11 +645,323 @@
         "issue": null
       },
       {
+        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
+        "issue": null
+      },
+      {
         "fingerprint": "cae29df0662b839817a9ea111d74efb5",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't load deliveries.",
+        "issue": null
+      },
+      {
+        "fingerprint": "3712b62a98396cc4bf31f5d158cbb6f2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: loading jobs timed out",
+        "issue": null
+      },
+      {
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "source_kind": "sentry",
+        "source": "sentry:assets/signed-in-shared",
+        "status": "open",
+        "title": "error: jwt expired",
+        "issue": null
+      },
+      {
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: jwt expired",
+        "issue": null
+      },
+      {
+        "fingerprint": "7549f5452e445091876a48962f59b346",
+        "source_kind": "user-report",
+        "source": "contact-support-guest",
+        "status": "open",
+        "title": "a user report (read it on /admin?view=health)",
+        "issue": null
+      },
+      {
+        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: code-scanning-alerts",
+        "issue": 3875
+      },
+      {
+        "fingerprint": "fcb35988052463c0af6b7ba5ce3dc4d5",
+        "source_kind": "sentry",
+        "source": "sentry:assets/supabase",
+        "status": "open",
+        "title": "authapierror: failed to reach hook within maximum time of # seconds",
+        "issue": null
+      },
+      {
+        "fingerprint": "99a77a9221e6c89e7182a9c199812094",
+        "source_kind": "sentry",
+        "source": "sentry:assets/Signup",
+        "status": "open",
+        "title": "error: signup completion window expired. please log in to finish your profile.",
+        "issue": null
+      },
+      {
+        "fingerprint": "8be078d458667980e4122f19029b6505",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: permission denied for function feature_switches_for_me",
+        "issue": null
+      },
+      {
+        "fingerprint": "ec24ac4f76e60c2d4ede8efbf0b046fd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: mapkit has no token: mapkit-token timed out",
+        "issue": null
+      },
+      {
+        "fingerprint": "c540527c8265b56e664f823f4805b1ec",
+        "source_kind": "sentry",
+        "source": "sentry:assets/supabase",
+        "status": "open",
+        "title": "error: channel error: transport failure",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
+        "issue": null
+      },
+      {
+        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "1cd0639083c208d6639fcb91662b1dd9",
+        "source_kind": "sentry",
+        "source": "sentry:assets/IdentityCheckSheet",
+        "status": "open",
+        "title": "error: we couldn't start identity verification right now. please try again.",
+        "issue": null
+      },
+      {
+        "fingerprint": "d630b837976e51102992d64e1c19c32c",
+        "source_kind": "sentry",
+        "source": "sentry:assets/Signup",
+        "status": "open",
+        "title": "error: invalid user",
+        "issue": null
+      },
+      {
+        "fingerprint": "9934727135a0958cee44ea48fe40622e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: notifications load timed out after #ms",
+        "issue": null
+      },
+      {
+        "fingerprint": "29d0375aa9ccc7417e435c67f032271b",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "wr",
+        "issue": null
+      },
+      {
+        "fingerprint": "c5d2aafd1f77b05a9c85a4064ef2e2b5",
+        "source_kind": "sentry",
+        "source": "sentry:assets/lucide",
+        "status": "open",
+        "title": "typeerror: undefined is not an object (evaluating 'e._result.default')",
+        "issue": null
+      },
+      {
+        "fingerprint": "95093fa29c63294226e8767a2fc95cee",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:payout_wait",
+        "status": "open",
+        "title": "stripe closed helprs' payout accounts",
+        "issue": null
+      },
+      {
+        "fingerprint": "4ac3e9488b48a533aab28a1c7444d1ad",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "paypal webhook not configured",
+        "issue": null
+      },
+      {
+        "fingerprint": "29fbdd01ae0a95bfec62fa003481d3b7",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/jobs · error screen shown: we couldn't load jobs.",
+        "issue": null
+      },
+      {
+        "fingerprint": "5a28db44e9121ab2e59627768b979035",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/messages · undefined is not an object (evaluating 'e._result.default')",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "51fed45d8e7725b124d2dfcab0da1d3c",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "declutter delivery: the address lookup is not answering",
+        "issue": null
+      },
+      {
+        "fingerprint": "4fa74a115db72f79403b3c1d2cc19d9b",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:money_at_risk",
+        "status": "open",
+        "title": "money reconciliation found # discrepancy",
+        "issue": null
+      },
+      {
+        "fingerprint": "c8ed7ffc5625f91c7c09d6a3ded1e4b7",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: card-hold-sweep returned 500 (# defect(s) reported)",
+        "issue": null
+      },
+      {
+        "fingerprint": "ba04c0f07725165f0b8657b1d49abd9d",
+        "source_kind": "sentry",
+        "source": "sentry:assets/adminRailBadges",
+        "status": "open",
+        "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
+        "issue": null
+      },
+      {
+        "fingerprint": "092de8bb62f57ce086ac16a5b4baeb55",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: permission denied for table shop_orders",
+        "issue": null
+      },
+      {
+        "fingerprint": "c93b8da828e76d16c75ebeb0380b4287",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/rentals · error screen shown: we couldn't load this.",
+        "issue": null
+      },
+      {
+        "fingerprint": "714c8b8667bc7554dc022c095213028c",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your sales.",
+        "issue": null
+      },
+      {
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "issue": null
+      },
+      {
+        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load offers.",
+        "issue": null
+      },
+      {
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "issue": null
+      },
+      {
+        "fingerprint": "16925d0d35eb6520504f8bc1e3ece900",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your donation receipts.",
+        "issue": null
+      },
+      {
+        "fingerprint": "1b4359140e39b8e532425da88f274cc7",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load your donation receipts.",
+        "issue": null
+      },
+      {
+        "fingerprint": "11d7173a8901aa9c840419d304ac3b55",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: codeql",
+        "issue": 3846
+      },
+      {
+        "fingerprint": "a526aff531da165c860c6babfc0dc3f2",
+        "source_kind": "workflow",
+        "source": "analytics-freshness",
+        "status": "open",
+        "title": "analytics: message_sent stopped recording (real users acted, zero events)",
         "issue": null
       }
     ]
@@ -581,49 +977,69 @@
     "issue #2436": "Q1816",
     "issue #2601": "Q1816",
     "issue #2894": "Q1816",
-    "issue #3307": "Q1816",
-    "issue #3311": "Q1816",
-    "issue #3435": "Q1816",
     "issue #3454": "Q1816",
-    "issue #3462": "Q1816",
-    "issue #3487": "Q1816",
     "issue #3491": "Q1816",
-    "issue #3527": "Q1816",
-    "issue #3540": "Q1816",
+    "issue #3743": "Q1816",
+    "issue #3784": "Q1816",
+    "issue #3802": "Q1816",
+    "issue #3813": "Q1816",
+    "issue #3823": "Q2498",
+    "issue #3824": "Q1816",
+    "issue #3833": "Q1816",
+    "issue #3846": "Q1816",
+    "issue #3875": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
+    "ledger 07e2a58f38a2": "Q2502",
+    "ledger 092de8bb62f5": "Q2533",
     "ledger 0bebf0385b3e": "Q1615",
+    "ledger 0d3beba829ae": "Q2500",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 104294997a13": "Q2293",
+    "ledger 11d7173a8901": "Q1816",
+    "ledger 11f46545733f": "Q2409",
     "ledger 11fa6e898f3d": "Q1596",
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 15cc2d7f63f3": "Q2347",
+    "ledger 16925d0d35eb": "Q2540",
     "ledger 16e6e91f6701": "Q1816",
+    "ledger 18539240a894": "Q1816",
+    "ledger 1b4359140e39": "Q2541",
     "ledger 1b4eafb12222": "Q1596",
     "ledger 1bebf5c8bc35": "Q2319",
+    "ledger 1cd0639083c2": "Q2520",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
+    "ledger 29d0375aa9cc": "Q2523",
+    "ledger 29fbdd01ae0a": "Q2526",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
+    "ledger 34e050b1bba0": "Q2539",
     "ledger 36bcfb8c2391": "Q1696",
+    "ledger 3712b62a9839": "Q2510",
     "ledger 379653db0e8d": "Q1596",
     "ledger 384f33fc7d1b": "Q2318",
     "ledger 3a3460b71be7": "Q1816",
+    "ledger 3a801ee231b0": "Q2543",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
+    "ledger 3ccd4890a4ac": "Q2537",
     "ledger 40a33605c7c3": "Q1596",
     "ledger 41f88aeb227f": "Q1777",
     "ledger 41fbf0358661": "Q1596",
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
+    "ledger 4aa239aefeb6": "Q1816",
+    "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",
-    "ledger 4c89303184fb": "Q1816",
+    "ledger 4fa74a115db7": "Q2530",
+    "ledger 51fed45d8e77": "Q2527",
     "ledger 59e0e601cc69": "Q2295",
+    "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
-    "ledger 5be6011a46f6": "Q1816",
     "ledger 5cf4543facb7": "Q2348",
     "ledger 5d35922623b5": "Q1596",
     "ledger 5d96992ce6da": "Q2316",
@@ -637,35 +1053,58 @@
     "ledger 65bd41ba4452": "Q1596",
     "ledger 708048794e4c": "Q1596",
     "ledger 70c81dfc4f91": "Q1596",
+    "ledger 714c8b8667bc": "Q2536",
+    "ledger 7549f5452e44": "Q2512",
     "ledger 779af65c258e": "Q1596",
+    "ledger 79112fbf22c8": "Q2504",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 87d1722faa1d": "Q1596",
+    "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
+    "ledger 8a2e802edbe7": "Q2498",
     "ledger 8ad756b6da76": "Q1596",
+    "ledger 8be078d45866": "Q2515",
+    "ledger 8f6eb3360000": "Q2507",
     "ledger 8f84bf1e767f": "Q2294",
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
+    "ledger 95093fa29c63": "Q2524",
     "ledger 974ed70164eb": "Q2349",
+    "ledger 9934727135a0": "Q2522",
     "ledger 99390a68ded7": "Q1615",
+    "ledger 99a77a9221e6": "Q2514",
     "ledger 9a2d993f43d7": "Q1596",
-    "ledger a13c4edc6983": "Q1816",
+    "ledger 9ca2900cedab": "Q2509",
+    "ledger a526aff531da": "Q2542",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger ab736843373b": "Q1596",
+    "ledger acebac9d71e7": "Q2511",
+    "ledger acf4ea2ff283": "Q2505",
     "ledger ad381aa30d09": "Q1596",
+    "ledger aeedd2495772": "Q2409",
     "ledger afd194b74d95": "Q1596",
     "ledger afffce6dd514": "Q1596",
-    "ledger b4de6dae32de": "Q1633",
+    "ledger b75d265e6201": "Q2501",
     "ledger b7cb40a7f712": "Q1596",
+    "ledger b8b42cf124da": "Q2506",
+    "ledger b97c1eafe3cd": "Q2508",
+    "ledger ba04c0f07725": "Q2532",
     "ledger ba752f27944d": "Q1596",
+    "ledger bab94ea313cb": "Q2519",
     "ledger bbdaee370c35": "Q1631",
     "ledger bc6810c9f1ab": "Q1596",
     "ledger bd4c3063280b": "Q1596",
     "ledger c1ad0c081216": "Q1596",
+    "ledger c2e77e40435e": "Q1816",
     "ledger c4af5413ec6a": "Q1596",
+    "ledger c540527c8265": "Q2517",
+    "ledger c5d2aafd1f77": "Q2410",
+    "ledger c8ed7ffc5625": "Q2531",
+    "ledger c93b8da828e7": "Q2534",
     "ledger caab19e71ae9": "Q1596",
     "ledger cae29df0662b": "Q2351",
     "ledger cd2127b53ee7": "Q1596",
@@ -676,17 +1115,23 @@
     "ledger d2ada3522c22": "Q1596",
     "ledger d3424c5d01ad": "Q1596",
     "ledger d5cc10e1fb86": "Q1596",
+    "ledger d630b837976e": "Q2521",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger dd274a9b4b57": "Q1596",
     "ledger de37efb6fa8e": "Q1596",
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
+    "ledger e32aa223d475": "Q2518",
+    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e62e32bec0c4": "Q2144",
+    "ledger e6fb014ab099": "Q2511",
     "ledger e81647556a56": "Q1596",
+    "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f2afa1349a3a": "Q2301",
-    "ledger f3c752b3230f": "Q1596"
+    "ledger f3c752b3230f": "Q1596",
+    "ledger fba95b3590a6": "Q2538",
+    "ledger fcb359880524": "Q2513"
   }
 }

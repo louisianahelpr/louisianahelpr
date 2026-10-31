@@ -17,7 +17,7 @@ export async function confirmPosterArrival(job: { id: string; helper_id: string 
     await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId).select("id"),
     {
       action: "confirm arrival",
-      rejectedMessage: "We couldn't confirm arrival — this job may have already been cancelled. Pull to refresh.",
+      rejectedMessage: "We couldn't confirm arrival — this job may have already been cancelled. Refresh the page.",
       context: { jobId },
     },
   );

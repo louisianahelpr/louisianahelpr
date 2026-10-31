@@ -37,8 +37,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
-import { emailSeller } from "../../_shared/declutterSellerEmail.ts";
-import { getAppUrl } from "../../_shared/appUrl.ts";
+import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
 import { checkPayoutHold } from "../../_shared/payoutHold.ts";
@@ -342,9 +341,11 @@ async function settleOrder(
   // this payment is not applied to it (lh-authz-rls review 3b #2: a session
   // made outside our function, e.g. with the test key, naming a real order).
   const { data: orderRow, error: orderErr } = await supabase
-    .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents").eq("id", orderId).maybeSingle();
+    .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents, delivery_cents").eq("id", orderId).maybeSingle();
   if (orderErr) throw new Error(`declutter order read failed: ${orderErr.message}`);
-  const parties = orderRow as { buyer_id?: string | null; seller_id?: string | null; handover?: string; items_cents?: number | null } | null;
+  const parties = orderRow as {
+    buyer_id?: string | null; seller_id?: string | null; handover?: string; items_cents?: number | null; delivery_cents?: number | null;
+  } | null;
   // Q2307: a party deleted their account after this page opened (the order outlives them with the column NULL). The
   // payment is refunded automatically and never applied (lh-money-escrow review 2026-10-21 #3).
   const partyGone = !!parties && (parties.buyer_id == null || parties.seller_id == null);
@@ -407,7 +408,9 @@ async function settleOrder(
           : "Next: pick up your items at the time you chose."}`);
     // Deep audit #57 / audit 2 SH2-3: the seller is emailed too ("You sold ..."), once, on the same 'paid' answer
     // (a redelivery answers already_paid and sends nothing).
-    await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep);
+    // AUD31-35: a seller who delivers is told the delivery money too (their payout is items + delivery).
+    await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep,
+      parties?.handover === "seller_delivery" ? parties?.delivery_cents : 0);
   }
   if (answer.result === "paid" || answer.result === "already_paid") {
     // Q2352: a sale that stands may owe its buyer the setup fee back, after the receipt (a failed refund throws
@@ -597,20 +600,18 @@ async function sendMoneyEmail(
 ): Promise<void> {
   if (!userId) return;
   try {
-    const { data: profile, error } = await supabase.from("profiles").select("email").eq("user_id", userId).maybeSingle();
+    const { data: profile, error } = await supabase.from("profiles").select("email, full_name").eq("user_id", userId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     if (error || !to) {
       logStep("Declutter email skipped (no address)", { template: templateName, error: error?.message });
       return;
     }
-    const link = `${getAppUrl()}/declutter?tab=buying`;
-    const result = await queueEmail(supabase, {
-      to,
-      subject,
-      templateName,
-      html: `<p>${body}</p><p><a href="${link}">Open your Declutter cart</a></p>`,
-      text: `${body}\n\nOpen your Declutter cart: ${link}`,
+    // AUD31-35: the branded notice email (greeting, sign-off, settings footer), not one raw paragraph.
+    const { html, text } = await declutterEmailParts({
+      title: subject, message: body, path: "/declutter?tab=buying", actionLabel: "Open Buying",
+      fullName: (profile as { full_name?: string | null } | null)?.full_name,
     });
+    const result = await queueEmail(supabase, { to, subject, templateName, html, text });
     if (!result.ok) {
       logStep("Declutter email not queued", { template: templateName, error: String(result.error) });
     }

@@ -153,7 +153,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         variant="inline"
         icon={BarChart3}
         title="Analytics is coming online"
-        body="This page is being switched on right now. Give it a minute and pull to refresh — your earnings are unaffected."
+        body="This page is being switched on right now. Give it a minute and refresh the page. Your earnings are unaffected."
         action={
           <button
             type="button"

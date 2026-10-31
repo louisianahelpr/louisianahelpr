@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/SellOneScreen.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Waiting for a review. We'll send you a notice.", |   pending_review: "pending_review",
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Being checked. We'll send you a notice when it's done.", |   pending_review: "Waiting for a review. We'll send you a notice.",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
  * @mutate src/components/declutter/declutterUi.tsx | <Checkbox id={id} className="mt-0.5" checked={checked} onCheckedChange={(v) => onChange(v === true)} />; | <input type="checkbox" id={id} className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />;
@@ -16,10 +16,10 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
- * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />)} | : null)}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -49,7 +49,10 @@ const state = {
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
+  // The item page's places read (ItemHandoverTimes): none saved, so the usual times are the pickup times. Unmocked, it
+  // went to the network and the file ran for 10+ minutes.
+  fetchItemPickupPlaces: async () => [] }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
@@ -263,13 +266,13 @@ describe("Declutter screens", () => {
     state.mine = [ITEM, { ...ITEM, id: "i2", status: "draft", title: "Lamp" }];
     at("/declutter?view=mine", <DeclutterPage />);
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
-    expect(await screen.findByText(/^Waiting for a review\./)).toBeInTheDocument();
+    expect(await screen.findByText("Being checked. We'll send you a notice when it's done.")).toBeInTheDocument();
     expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
-    // D4-12: every Selling row's actions name their item, so a list of rows is not "View, Manage, View, Manage".
+    // D4-12: every Selling row's actions name their item, so a list of rows is not "Preview, Manage, Preview, Manage".
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`View ${item.title}`} | aria-label="View"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Preview ${item.title}`} | aria-label="Preview"
     expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: `View ${ITEM.title}` })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: `Preview ${ITEM.title}` }).length).toBeGreaterThan(0);
     expect(screen.queryByText("pending_review")).toBeNull();
   });
 
@@ -323,7 +326,8 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
     const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
-    expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    // AUD31-15: the Questions hint has its own "Make an offer"; this is the panel's.
+    expect(within(document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
     await waitFor(() => expect(buyNow).toBeEnabled());
     fireEvent.click(buyNow);
@@ -343,7 +347,7 @@ describe("Declutter screens", () => {
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
-  // @mutate src/components/declutter/DeclutterItemView.tsx |             {way !== "none" && forSale && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />} |
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |     {plan.usual && <ItemPickupTimes itemId={itemId} label={plan.usual} />}\n |
   it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
@@ -377,14 +381,18 @@ describe("Declutter screens", () => {
   // and checkout then had no pickup. The block follows the ways the seller ticked; an older item keeps "Pickup".
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2> | Pickup</h2>
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label} | Pickup in {it.area_label}
-  // @mutate src/components/declutter/DeclutterItemView.tsx | label={way === "meetup" ? "Meeting times" : "Pickup times"} | label="Pickup times"
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |   if (!meetup) return { places, usual: !hasPlaces && ways === null ? "Pickup times" : null }; |   if (!meetup) return { places, usual: !hasPlaces ? "Pickup times" : null };
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |   const pickup = ways === null \|\| ways.includes("porch"); |   const pickup = true;
   it("DB-4: the item page says pickup only when the seller offers one", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
     const cases: [string[] | null, string, string, string | null][] = [
       [["seller_delivery", "delivery"], "Delivery", "Comes from Mid-City, Baton Rouge", null],
-      [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meeting times: Mon–Fri 5–8 PM"],
-      [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
+      // Lead's call 2026-10-31: the usual times are the Meetup times (no pickup place saved in this world).
+      [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meetup times: Mon–Fri 5–8 PM"],
+      // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them.
+      [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", null],
+      [["porch", "meetup"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup and meetup times: Mon–Fri 5–8 PM"],
       [null, "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
     ];
     for (const [ways, heading, area, times] of cases) {

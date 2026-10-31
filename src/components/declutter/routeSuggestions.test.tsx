@@ -21,7 +21,7 @@ const state = {
   offered: [] as string[],
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
   useHiredPayoutPrompt: () => ({ open: false, offer: async (id: string) => { state.offered.push(id); return true; }, close: () => {} }),

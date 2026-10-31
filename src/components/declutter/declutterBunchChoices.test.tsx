@@ -4,7 +4,7 @@
  * are remembered; pickup times already saved are not written over.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
- * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct }); |     void row;
+ * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
@@ -110,20 +110,40 @@ async function listIt() {
 }
 
 describe("Sell a bunch: listing choices", () => {
-  it("nothing saved: both switches start ON, and they reach the listing and are remembered", async () => {
+  // LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): price drops start OFF until the seller turns them on.
+  // @mutate src/components/declutter/BunchChoices.tsx | keepUp: SELLER_DEFAULTS.keepUp, drops: false, | keepUp: SELLER_DEFAULTS.keepUp, drops: SELLER_DEFAULTS.drops,
+  it("nothing saved: drops start OFF and Keep it up ON, and they reach the listing and are remembered", async () => {
     await open();
-    await waitFor(() => expect(isOn(switchOf(DROPS))).toBe(true));
-    expect(isOn(switchOf(KEEP))).toBe(true);
+    await waitFor(() => expect(isOn(switchOf(KEEP))).toBe(true));
+    expect(isOn(switchOf(DROPS))).toBe(false);
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, moveOutOn: null });
+    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: false, dropPct: 5, floorPct: 50, moveOutOn: null });
     await waitFor(() => expect(state.remembered).toHaveLength(1));
-    expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: true, handovers: ["porch"] });
+    expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: false, handovers: ["porch"] });
     expect(await screen.findByText(/didn't turn on for 1 item/)).toBeTruthy();
   });
 
+  // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): each item has its own Accept offers, starting from the saved default
+  // (no box for the whole bunch); what the seller flips on an item is what that item lists with.
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |                   offersDefault={choices.choices.acceptsOffers} | 
+  // @mutate src/components/declutter/DeclutterBunchCard.tsx | onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} | onCheckedChange={() => {}}
+  it("each item's Accept offers starts from the saved default, and the seller's flip is what that item lists with", async () => {
+    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: null, handovers: ["porch"], acceptsOffers: false };
+    await open();
+    fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
+    openRows();
+    const sw = await screen.findByRole("switch", { name: /^Accept offers for / });
+    await waitFor(() => expect(sw).toHaveAttribute("aria-checked", "false"));
+    fireEvent.click(sw);
+    expect(sw).toHaveAttribute("aria-checked", "true");
+    await listIt();
+    expect(state.listed[0].choices?.acceptsOffers).toBe(false);
+    expect(state.listed[0].items.map((it) => it.acceptsOffers)).toEqual([true]);
+  });
+
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
-    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"] };
+    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     await open();
     // Saved settings are one line (owner 2026-10-30), saying the price choice; no form, and they reach the listing.
     const line = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
@@ -131,9 +151,16 @@ describe("Sell a bunch: listing choices", () => {
     expect(within(line).getByRole("link", { name: "Settings" })).toBeTruthy();
     expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();
     expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
+    // LEAD-BUNCH-PCT-LABEL: the drops choice is findable from that line ("Change"), for this bunch.
+    // @mutate src/components/declutter/DeclutterBunchListStep.tsx | {changingDrops && <BunchDropsSwitch c={choices} />} | {null}
+    fireEvent.click(within(line).getByRole("button", { name: "Change" }));
+    fireEvent.click(switchOf(DROPS));
+    expect(line.textContent).toContain("Price drops: on, 15% each evening");
+    fireEvent.click(switchOf(DROPS));
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, moveOutOn: null });
+    // LEAD-OFFERS-CHOICE: the saved Accept offers reaches the run, as each item's starting choice.
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null });
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });
@@ -143,7 +170,7 @@ describe("Sell a bunch: listing choices", () => {
       { id: "p2", position: 2, label: "Mom's house", address: "2 Oak St, Baton Rouge, LA", area: "Garden District", lat: 30.2, lng: -91.2, weekdays: [6] },
       { id: "p1", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [0] },
     ];
-    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     await open();
     const where = await waitFor(() => { const el = document.querySelector("[data-saved-pickup]") as HTMLElement; expect(el).not.toBeNull(); return el; });
     expect(where.textContent).toContain("Pickup at Home, Mom's house. Buyers pick one.");

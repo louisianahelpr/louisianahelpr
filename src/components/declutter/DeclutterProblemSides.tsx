@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FallbackImg } from "./FallbackImg";
+import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 const REASON_WORDS: Record<ProblemReason, string> = {
@@ -31,7 +32,7 @@ const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
-function ProblemPhotos({ paths }: { paths: string[] }) {
+export function ProblemPhotos({ paths }: { paths: string[] }) {
   const urls = useQuery({
     queryKey: ["declutter", "problem-photos", paths],
     queryFn: async () => Promise.all(paths.map((p) => handoverPhotoUrl(p))),
@@ -67,16 +68,19 @@ export function DeclutterProblemDecided({ orderId, side }: { orderId: string; si
   return <p className="text-sm" data-problem-decided=""><span className="font-semibold">Louisiana Helpr decided:</span> {words}</p>;
 }
 
-export function DeclutterProblemSides({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
+export function DeclutterProblemSides({ orderId, side, delivery = false }: { orderId: string; side: "buyer" | "seller"; delivery?: boolean }) {
   const qc = useQueryClient();
   const problem = useQuery({ queryKey: ["declutter", "problem", orderId], queryFn: () => fetchOrderProblem(orderId) });
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const send = useMutation({
-    mutationFn: (p: OrderProblem) => addProblemSide(p.id, note.trim()),
+    // Sent again, the server replaces the earlier words and photos: with no new photo the ones already sent stay.
+    mutationFn: async (p: OrderProblem) => addProblemSide(p.id, note.trim(), photos.length ? await uploadProblemPhotos(orderId, photos) : (p.other_side_photo_paths ?? [])),
     onSuccess: () => {
-      toast.success("Sent. Louisiana Helpr reads both sides before it decides.");
+      toast("Sent. Louisiana Helpr reads both sides before it decides.");
       setOpen(false);
+      setPhotos([]);
       void qc.invalidateQueries({ queryKey: ["declutter", "problem", orderId] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -86,7 +90,7 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
     mutationFn: (q: OrderProblem) => withdrawProblem(q.id),
     onSettled: () => setTakingBack(false),
     onSuccess: () => {
-      toast.success("Report taken back. Nothing is held for it now.");
+      toast("Report taken back. Nothing is held for it now.");
       // The order card's hold, refund panel and steps all read from the order, so refresh every Declutter read.
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -95,17 +99,20 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
   const p = problem.data;
   if (!p || p.status !== "open") return null;
   const mine = p.reporter_side === side;
-  const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : "The Helpr";
+  const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : p.reporter_side === "system" ? "Louisiana Helpr" : "The Helpr";
   const other = side === "buyer" ? "The seller" : "The buyer";
+  // A buyer's no-show report: "Someone didn't show" hid who was said not to; the seller's words are an answer to it.
+  const noShow = p.reason === "no_show" && p.reporter_side === "buyer";
+  const reason = !noShow ? REASON_WORDS[p.reason] ?? "Something else" : delivery ? "It wasn't delivered" : side === "seller" ? "You didn't show" : "The seller didn't show";
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" data-problem-sides="">
       <p className="text-sm">
-        <span className="font-semibold">{by} reported a problem: {REASON_WORDS[p.reason] ?? "Something else"}.</span> "{p.note}"
+        <span className="font-semibold">{by} reported a problem: {reason}.</span> "{p.note}"
       </p>
       <ProblemPhotos paths={p.photo_paths ?? []} />
       {p.other_side_note && (
         <div className="space-y-1" data-problem-other-side="">
-          <p className="text-sm"><span className="font-semibold">{mine ? `${other}'s side:` : "Your side:"}</span> "{p.other_side_note}"</p>
+          <p className="text-sm"><span className="font-semibold">{noShow ? (mine ? `${other} answered:` : "You answered:") : mine ? `${other}'s side:` : "Your side:"}</span> "{p.other_side_note}"</p>
           <ProblemPhotos paths={p.other_side_photo_paths ?? []} />
         </div>
       )}
@@ -127,6 +134,8 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
         <div className="space-y-2">
           <label htmlFor={`dcl-side-${orderId}`} className="block text-xs font-medium">Your side, for Louisiana Helpr</label>
           <textarea id={`dcl-side-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />
+          {(p.other_side_photo_paths ?? []).length > 0 && <p className="text-ds-12 text-muted-foreground">New photos replace the ones you sent.</p>}
           <div className="flex gap-2">
             <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</button>
             <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>

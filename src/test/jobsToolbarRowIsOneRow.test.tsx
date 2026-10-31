@@ -30,7 +30,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -104,11 +104,12 @@ describe("the search opens in place, focused, and closes back into its icon", ()
     expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("paint");
   });
 
-  it("Posted / Working: the icon at the chip row's end opens there and searches that tab's list", async () => {
+  it("Posted / Working: the icon beside the gear opens there, in the tabs row, and searches that tab's list (owner 2026-10-31)", async () => {
     const onSearch = vi.fn();
+    const tabsRow = (row?: { end?: ReactNode }) => <div data-testid="tabs-row">{row?.end}<button type="button" aria-label="Jobs settings" /></div>;
     function Header() {
       const [q, setQ] = useState("");
-      return <EmbeddedActivityHeader header={null} tab="applied" statusFilter="all" counts={{ all: 2 }} onFilter={() => {}} search={q} onSearch={(v) => { onSearch(v); setQ(v); }} />;
+      return <EmbeddedActivityHeader header={tabsRow} tab="applied" statusFilter="all" counts={{ all: 2 }} onFilter={() => {}} search={q} onSearch={(v) => { onSearch(v); setQ(v); }} />;
     }
     const { container } = render(<MemoryRouter><Header /></MemoryRouter>);
     const chips = screen.getByRole("group", { name: "Filter by status" });
@@ -116,8 +117,8 @@ describe("the search opens in place, focused, and closes back into its icon", ()
     expect(row.contains(chips)).toBe(true);
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Search jobs you're working" })));
     const field = screen.getByRole("searchbox", { name: "Search jobs you're working" });
-    expect(row.contains(field), "the field opens in the chip row").toBe(true);
-    expect(chips.contains(field), "outside the chips' sideways scroll").toBe(false);
+    expect(screen.getByTestId("tabs-row").contains(field), "the field opens in the tabs row, where the icon was").toBe(true);
+    expect(row.contains(field), "not in the chip row").toBe(false);
     expect(document.activeElement).toBe(field);
     fireEvent.change(field, { target: { value: "mow" } });
     expect(onSearch).toHaveBeenLastCalledWith("mow");

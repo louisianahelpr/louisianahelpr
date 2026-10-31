@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import {
   Dialog,
@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
 import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { MessageSquare, TriangleAlert } from "lucide-react";
-import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { offerResponseDeadline, jobOfferCutoff, JOB_STARTS_TOO_SOON_COPY, OFFER_MAX_WINDOW_HOURS } from "@/lib/offerDeadline";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -23,6 +22,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { formatPriceExact, seriesSummary } from "@/lib/format";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { Star } from "lucide-react";
+import { readCardHoldLine } from "@/lib/cardHoldRead";
 
 type Props = {
   open: boolean;
@@ -33,6 +33,7 @@ type Props = {
    *  (server rule, accept_application 20261005184940), so the line under the
    *  picker says so when the start comes first. */
   job?: {
+    id?: string | null;
     date_needed?: string | null;
     start_time?: string | null;
     title?: string | null;
@@ -122,6 +123,17 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   // tapped Send four times against the jobs_award_gate refusal with no visible
   // response at all. The dialog stays open and Send re-enables for a retry.
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // JOBS3-46: the amount on a held card is the hold's own (job_card_holds.amount_cents, what capture_hold charges,
+  // less a setup fee already paid elsewhere). Not on a crew: its total is not this one Helpr's. Unread: no amount.
+  const holdJobId = open && postedJob?.payment_status === "held" && !postedJob.is_group_job ? postedJob.id ?? null : null;
+  const [heldCents, setHeldCents] = useState<number | null>(null);
+  useEffect(() => {
+    setHeldCents(null);
+    if (!holdJobId) return;
+    let alive = true;
+    void readCardHoldLine(holdJobId).then((line) => { if (alive) setHeldCents(line.amountCents); });
+    return () => { alive = false; };
+  }, [holdJobId]);
   const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
   const selectedLabel =
     options.find((o) => o.value === hours)?.label ?? `${hours} hours`;
@@ -162,10 +174,8 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
       // the generic backstop so a failure never dies silently with the
       // dialog stuck open and no explanation.
       const msg = userFacingError(err, "Couldn't send the offer — please try again.");
+      // Inline only (role="alert" announces it): a toast said the same words again on top (audit 2026-10-30).
       setErrorMessage(msg);
-      // Toast kept as a secondary signal (e.g. screen-reader/haptic parity
-      // with other flows); the inline block above is the primary surface.
-      toast.error(msg);
     } finally {
       sendingRef.current = false;
       setSubmitting(false);
@@ -238,7 +248,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             // Q2399: the card is held (or, for a job more than 6 days out, only saved) and charged when the
             // hire completes (their accept); "on hold" would be false for a saved card (round 4, silent #8).
             <p className="rounded-ds-md px-3 py-2 font-sans text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-hire-card-held="">
-              Your card is charged when {them} accepts.
+              {heldCents !== null && heldCents > 0
+                ? <>Your card is charged <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceExact(heldCents / 100)}</strong> when {them} accepts.</>
+                : <>Your card is charged when {them} accepts.</>}
             </p>
           )}
           {funded && (
@@ -257,8 +269,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               <>The job was paid for when you posted it, so nothing new is charged now.</>
             )}{" "}
             {job?.is_group_job
-              ? `Helpr holds the money and pays each Helpr on the crew their share after the job is done.`
-              : `Helpr holds the money and releases it to ${them} after the job is done.`}
+              ? `Louisiana Helpr holds the money and pays each Helpr on the crew their share after the job is done.`
+              // A no or no answer reopens the job and leaves payment_status alone (decline_job_offer, expire_unanswered_offers).
+              : `Louisiana Helpr holds the money and releases it to ${them} after the job is done. If ${them} says no or doesn't answer, the job reopens and your payment stays on it.`}
           </p>
           )}
           <DialogBody>

@@ -79,7 +79,7 @@ describe("admin queue rows show a live count (Q1071)", () => {
     expect(hook).toMatch(/const queues = useOpenQueueCounts\(enabled\);/);
     expect(hook).toMatch(/\(\) => \(\{ \.\.\.queues\.data, stalled: stalled\.data,/);
     expect(admin).toMatch(/const openQueues = pendingCounts\.data;/);
-    expect(admin).toMatch(/pendingCounts\.isError\}/);
+    expect(admin).toMatch(/pendingCounts\.isError \|\| seriousAlertsFailed/);
   });
 
   it("Q1691: the counts read each screen's own source and leave test accounts out", () => {

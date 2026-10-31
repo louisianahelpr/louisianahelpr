@@ -30,14 +30,14 @@ describe("board 29: hire sheet", () => {
     expect(screen.getByText("ID verified")).toBeInTheDocument();
     expect(screen.getByText(/4\.9 · 18 reviews/)).toBeInTheDocument();
     const note = document.querySelector("[data-hire-no-new-charge]")!;
-    expect(note.textContent).toMatch(/The job price, \$90, was paid when you posted it, so nothing new is charged now\. Helpr holds the money and releases it to Andre after the job is done\./);
+    expect(note.textContent).toMatch(/The job price, \$90, was paid when you posted it, so nothing new is charged now\. Louisiana Helpr holds the money and releases it to Andre after the job is done\. If Andre says no or doesn't answer, the job reopens and your payment stays on it\./);
     expect(note.querySelector("strong")!.className).toContain("sienna-ink");
     expect(screen.getByRole("button", { name: "Send offer" })).toBeInTheDocument();
   });
 
   it("a crew job or an urgent bonus shows no amount (the budget isn't this Helpr's whole charge)", () => {
     const { unmount } = render(<ResponseDeadlineDialog open helperName="Andre" job={{ ...job, is_group_job: true }} onConfirm={() => {}} onClose={() => {}} />);
-    expect(document.querySelector("[data-hire-no-new-charge]")!.textContent).toMatch(/^The job was paid for when you posted it, so nothing new is charged now\. Helpr holds the money and pays each Helpr on the crew their share after the job is done\./);
+    expect(document.querySelector("[data-hire-no-new-charge]")!.textContent).toMatch(/^The job was paid for when you posted it, so nothing new is charged now\. Louisiana Helpr holds the money and pays each Helpr on the crew their share after the job is done\.$/);
     unmount();
     render(<ResponseDeadlineDialog open helperName="Andre" job={{ ...job, urgent_fee: 10 }} onConfirm={() => {}} onClose={() => {}} />);
     expect(document.querySelector("[data-hire-no-new-charge]")!.textContent).not.toMatch(/\$/);

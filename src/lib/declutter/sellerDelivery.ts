@@ -181,11 +181,26 @@ function slotDayLabel(iso: string): string {
   return DAY_FMT.format(new Date(iso));
 }
 
-/** "2:00 PM – 3:00 PM" in Louisiana time. */
+const ZONE_FMT = new Intl.DateTimeFormat("en-US", { timeZone: SELLER_DELIVERY_RULES.timezone, timeZoneName: "short" });
+const zoneName = (d: Date): string => ZONE_FMT.formatToParts(d).find((p) => p.type === "timeZoneName")?.value ?? "";
+/** Within an hour of a clock change (the 1 AM that happens twice in November, the skipped 2 AM in March). */
+function nearClockChange(d: Date): boolean {
+  const z = zoneName(d);
+  return zoneName(new Date(d.getTime() - 3_600_000)) !== z || zoneName(new Date(d.getTime() + 3_600_000)) !== z;
+}
+
+/**
+ * "2:00 PM – 3:00 PM" in Louisiana time. On the night the clocks change, a
+ * time within an hour of the change names its zone (AUD31-6): "1:00 AM CDT –
+ * 1:00 AM CST", never "1:00 AM – 1:00 AM".
+ */
 export function slotTimeLabel(iso: string, minutes: number = SELLER_DELIVERY_RULES.slot_minutes): string {
   const start = new Date(iso);
   const end = new Date(start.getTime() + minutes * 60_000);
-  return `${TIME_FMT.format(start)} – ${TIME_FMT.format(end)}`;
+  const plain = `${TIME_FMT.format(start)} – ${TIME_FMT.format(end)}`;
+  if (!nearClockChange(start) && !nearClockChange(end)) return plain;
+  const at = (d: Date) => (nearClockChange(d) ? `${TIME_FMT.format(d)} ${zoneName(d)}` : TIME_FMT.format(d));
+  return `${at(start)} – ${at(end)}`;
 }
 
 /** "Sat, Oct 25, 2:00 PM – 3:00 PM". */
@@ -330,9 +345,9 @@ export async function quoteSellerDelivery(sellerId: string, address?: string): P
           return null;
         })
       : null;
-    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "delivery_check_unavailable");
   }
   const offer = (body as { offer?: SellerDeliveryOffer } | null)?.offer;
-  if (!offer || typeof offer.available !== "boolean" || !Array.isArray(offer.slots)) throw new Error("payment_unavailable");
+  if (!offer || typeof offer.available !== "boolean" || !Array.isArray(offer.slots)) throw new Error("delivery_check_unavailable");
   return offer;
 }

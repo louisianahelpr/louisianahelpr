@@ -7,21 +7,28 @@
  * has a cancel button on a paid delivery (migration 20261030002630 makes both cancel RPCs refuse).
  *
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <button type="button" className={btn} onClick={onProblem}>Report a problem</button> |         <button type="button" className={btn}>Cancel order</button><button type="button" className={btn}>Cancel delivery</button><button type="button" className={btn} onClick={onProblem}>Report a problem</button>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("notDelivered")}> |             onClick={() => notDelivered.mutate(undefined)}>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("gotIt")}>I got it</button>} | onClick={() => gotIt.mutate(undefined)}>I got it</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>} | onClick={() => notDelivered.mutate(undefined)}>It wasn't delivered</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const late = can.notDelivered && !noShowWaiting; |   const late = false;
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>} | !late && <button type="button" className={primary} disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
+ * AUD31-38: after "It wasn't delivered", and once the delivery's hour has passed, the buyer is not offered Leave it at my door / Hand it to me.
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {can.changeHandoff && !noShowWaiting && ( |       {can.changeHandoff && (
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | (b.status === "needs_time" \|\| (b.status === "booked" && !slotOver)), | (b.status === "needs_time" \|\| b.status === "booked"),
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const slotOver = booked && now >= Date.parse(b.slot_end ?? b.slot_start!); |   const slotOver = booked && now >= Date.parse(b.not_delivered_from ?? b.slot_start!) + 24 * 3_600_000;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 
 const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://signed.test/s1/declutter/handover/o/door.jpg" as string | null };
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
+const handoverRow = vi.hoisted(() => ({ reported: null as string | null, reads: 0 }));
 vi.mock("@/lib/declutter/handover", () => ({
+  fetchMyHandover: async () => { handoverRow.reads++; return { no_show_reported_at: handoverRow.reported }; },
   confirmHandover: async () => { state.calls.push("got_it"); },
   uploadHandoverPhoto: async () => "p.jpg",
   handoverPhotoUrl: async () => state.photoUrl,
@@ -115,16 +122,28 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     expect(window.confirm).not.toHaveBeenCalled();
   });
 
+  it("AUD31-2: a late delivery leads with It wasn't delivered, then Ask for a new time; I got it comes after", async () => {
+    state.booking = { ...BASE, slot_start: iso(-2 * HOUR), slot_end: iso(-1 * HOUR), not_delivered_from: iso(-0.75 * HOUR) };
+    show();
+    await screen.findByRole("button", { name: "It wasn't delivered" });
+    const row = document.querySelector("[data-seller-delivery-actions]")!;
+    const names = [...row.querySelectorAll("button")].map((b) => (b.textContent ?? "").trim());
+    expect(names.length).toBeGreaterThan(2);
+    expect(names).toEqual(["It wasn't delivered", "Ask for a new time", "I got it", "Report a problem"]);
+  });
+
   // Audit 2026-10-30 DB-8: the notice said the seller took a photo; neither side's card showed it.
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto | {false && b.delivered_photo_path && <DeliveredPhoto
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {url.isSuccess && !url.data && <p className="text-xs" role="alert"> |       {false && <p className="text-xs" role="alert">
+  // @mutate src/components/declutter/SellerDeliveryOrder.tsx | mine={b.side === "seller"} /> | mine={false} />
   it("DB-8: once delivered, both sides see the seller's photo from the buyer's door, and a link that fails says so", async () => {
-    for (const side of ["buyer", "seller"] as const) {
+    // AUD31-5: the seller's own card says "Your photo"; the buyer's names the seller.
+    for (const [side, words] of [["buyer", "The seller's photo of where it was left"], ["seller", "Your photo of where you left it"]] as const) {
       state.booking = { ...BASE, side, delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
       const { unmount } = show();
-      const img = await screen.findByAltText("The seller's photo of where it was left");
+      const img = await screen.findByAltText(words);
       expect(img).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o/door.jpg");
-      expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(/^The seller's photo of where it was left, taken \w{3}, \w{3} \d+, \d+:\d{2} (AM|PM)$/);
+      expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(new RegExp(`^${words}, taken \\w{3}, \\w{3} \\d+, \\d+:\\d{2} (AM|PM)$`));
       unmount();
     }
     state.booking = { ...BASE, handoff: "hand", delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
@@ -153,7 +172,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
 // Audit 1030 DB-2 (live run A): with a problem report open, the delivery panel still offered "I got it" (which then
 // failed: the server refuses it with problem_open), the "Tap I got it ... 24 hours to report a problem" line and a
 // second "Report a problem". While a problem is open the panel offers none of them; the card's note says why.
-// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && <button | {can.gotIt && <button
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && !late && <button | {can.gotIt && !late && <button
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {problemOpen ? null : b.side === "buyer" ? | {b.side === "buyer" ?
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <button type="button" className={btn} onClick={onProblem}> | {<button type="button" className={btn} onClick={onProblem}>
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | !can.gotIt && !problemOpen && b.order_status | !can.gotIt && b.order_status
@@ -189,14 +208,90 @@ describe("DB-2: a problem is open on the delivery", () => {
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 
-  it("seller, delivered: not told they are paid in 24 hours while a problem is open, and no second report", async () => {
+  it("seller, delivered: not told they are paid in about 48 hours while a problem is open, and no second report", async () => {
     state.booking = { ...BASE, side: "seller", handoff: "hand", delivered_at: iso(-HOUR), dropoff_address: "500 Drop Rd" };
     const before = show(false);
-    expect(await screen.findByText(/You're paid when the buyer confirms, or in 24 hours/)).toBeInTheDocument();
+    expect(await screen.findByText(/We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours/)).toBeInTheDocument();
     before.unmount();
     show(true);
     expect(await screen.findByText("Handed over.")).toBeInTheDocument();
-    expect(screen.queryByText(/You're paid when the buyer confirms/)).toBeNull();
+    expect(screen.queryByText(/you're paid in about 48 hours/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+  });
+
+  it("review of 7496d29c8b #2: during the 24 hours after 'It wasn't delivered' nobody can ask for or accept a new time", async () => {
+    state.booking = { ...BASE, side: "buyer", proposed_start: iso(96 * HOUR), proposed_by: "seller" };
+    handoverRow.reported = null;
+    const before = show();
+    expect(await screen.findByRole("button", { name: "Accept the new time" })).toBeInTheDocument();
+    before.unmount();
+    handoverRow.reported = "2026-10-30T12:00:00Z";
+    handoverRow.reads = 0;
+    show();
+    expect(await screen.findByRole("button", { name: "Keep the current time" })).toBeInTheDocument();
+    await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("button", { name: "Accept the new time" })).toBeNull();
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+  });
+
+  it("during the seller's 24 hours, It wasn't delivered and the seller's Delivered are gone; both show without a report", async () => {
+    const pastDue = { slot_start: iso(-3 * HOUR), slot_end: iso(-2 * HOUR), not_delivered_from: iso(-HOUR) };
+    const frozenAfterRead = async () => {
+      handoverRow.reads = 0;
+      handoverRow.reported = "2026-10-30T12:00:00Z";
+      const view = show();
+      await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+      await act(async () => { await Promise.resolve(); });
+      return view;
+    };
+
+    state.booking = { ...BASE, ...pastDue, side: "buyer" };
+    handoverRow.reported = null;
+    const buyerBefore = show();
+    expect(await screen.findByRole("button", { name: "It wasn't delivered" })).toBeInTheDocument();
+    buyerBefore.unmount();
+    const buyerDuring = await frozenAfterRead();
+    expect(screen.queryByRole("button", { name: "It wasn't delivered" })).toBeNull();
+    buyerDuring.unmount();
+
+    state.booking = { ...BASE, ...pastDue, side: "seller" };
+    handoverRow.reported = null;
+    const sellerBefore = show();
+    expect(await screen.findByRole("button", { name: "Delivered" })).toBeInTheDocument();
+    sellerBefore.unmount();
+    await frozenAfterRead();
+    expect(screen.queryByRole("button", { name: "Delivered" })).toBeNull();
+
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+  });
+
+  it("AUD31-38: the door-or-hand choice shows for a delivery to come, and is gone once its hour passed and after It wasn't delivered", async () => {
+    const pastDue = { slot_start: iso(-3 * HOUR), slot_end: iso(-2 * HOUR), not_delivered_from: iso(-HOUR) };
+    const choice = () => screen.queryByRole("radiogroup", { name: "When the seller arrives" });
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
+    const ahead = show();
+    expect(await screen.findByRole("radiogroup", { name: "When the seller arrives" })).toBeInTheDocument();
+    ahead.unmount();
+
+    state.booking = { ...BASE, ...pastDue, side: "buyer" };
+    const late = show();
+    expect(await screen.findByRole("button", { name: "It wasn't delivered" })).toBeInTheDocument();
+    expect(choice()).toBeNull();
+    late.unmount();
+
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reads = 0;
+    handoverRow.reported = "2026-10-30T12:00:00Z";
+    show();
+    await screen.findByRole("button", { name: /Ask for a new time|Pick a time|Report a problem/ });
+    await vi.waitFor(() => expect(handoverRow.reads).toBeGreaterThan(0));
+    await act(async () => { await Promise.resolve(); });
+    expect(choice()).toBeNull();
+    state.booking = { ...BASE, side: "buyer" };
+    handoverRow.reported = null;
   });
 });

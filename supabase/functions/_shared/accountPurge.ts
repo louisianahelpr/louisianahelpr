@@ -153,7 +153,7 @@ export interface ActiveWorkResult {
    * held on one). Its own copy, because what unblocks it is ending the series
    * (or leaving it), not finishing a job (owner decision Q407 (7)).
    */
-  reason?: "job" | "series" | "declutter" | "shops" | "money_owed" | "fee_owed";
+  reason?: "job" | "series" | "declutter" | "declutter_held" | "shops" | "money_owed" | "fee_owed";
 }
 
 /** What the person is told when a running series blocks deleting their account. */
@@ -399,6 +399,10 @@ export async function findActiveWork(
 export const SHOP_ORDER_OPEN_STATUSES = ["awaiting_hold", "held", "accepted"];
 
 /** What the member is told when a Shops order in progress blocks deleting their account. */
+/** Owner 10-30: a paid Declutter sale nobody has confirmed holds the account too, and the member is told what ends it. */
+export const DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE =
+  "You have a Declutter sale with money held, because the handover hasn't been confirmed yet. Ask the other person to confirm it, or report a problem on the order in Buying or Selling. You can delete your account once it's settled.";
+
 export const SHOPS_BLOCKS_DELETION_MESSAGE =
   "You have a Shops order in progress: a card hold waiting for the shop's answer, or an accepted order. Withdraw an order you're waiting on (or, for your own shop, accept or decline it), and let accepted orders finish, before deleting your account.";
 
@@ -733,6 +737,8 @@ function raiseQuery(admin: PurgeCapableClient, userId: string, withTask = false)
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" });
 }
 
+const HELD_LABEL = "paid, money held until handover";
+
 async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
   // A cart line stays 'paid' forever after its sale (there is no later line status), so a paid line is in flight
   // only while its ORDER still holds the money (order status 'paid', before handover or refund). Counting every paid
@@ -743,7 +749,7 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
       .from("declutter_cart_items").select("id")
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .eq("status", "in_cart").limit(1) },
-    { label: "paid, money held until handover", build: () => admin
+    { label: HELD_LABEL, build: () => admin
       .from("declutter_cart_items").select("id, declutter_orders!inner(status)")
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .eq("status", "paid").eq("declutter_orders.status", "paid").limit(1) },
@@ -781,7 +787,7 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
       return { ok: false, active: false, detail: lines.error.message };
     }
     if (lines.data && lines.data.length > 0) {
-      return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id} (${c.label})`, reason: "declutter" };
+      return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id} (${c.label})`, reason: c.label === HELD_LABEL ? "declutter_held" : "declutter" };
     }
   }
   // Slice 5, Helpr delivery (20261017055505): a Helpr who has taken a delivery

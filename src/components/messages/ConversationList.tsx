@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
@@ -21,9 +23,8 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { useSearchOnOwnLine } from "@/components/messages/useSearchOnOwnLine";
-// Card-matching skeleton — mirrors the actual ConversationRow shape
-// (avatar + name/job/last-msg lines + timestamp + unread dot) so the
-// loading→loaded swap doesn't shift the row. See task #121.
+// Card-matching skeleton — mirrors the actual ConversationRow shape (avatar + name/job/last-msg lines +
+// timestamp + unread dot) so the loading→loaded swap doesn't shift the row. See task #121.
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
@@ -254,10 +255,9 @@ export function ConversationList({
   // archive resolves.
   const [selectMode, setSelectMode] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  // In-list search: an expandable field (mirrors the Activity tabs'
-  // search pattern) that client-filters the already-loaded threads by
-  // the other person's name and the last-message snippet. No new query —
-  // a pure local filter over `conversations`, so no debounce needed.
+  // In-list search: an expandable field (mirrors the Activity tabs' search pattern) that client-filters the
+  // already-loaded threads by the other person's name and the last-message snippet. No new query — a pure
+  // local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the same dismiss contract
@@ -872,8 +872,8 @@ export function ConversationList({
       <input
         autoFocus
         type="search"
-        aria-label="Search conversations"
-        placeholder="Search conversations…"
+        aria-label={t("chat.search")}
+        placeholder={`${t("chat.search")}…`}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         /* Escape is the keyboard's X — same single activation, same return
@@ -891,7 +891,7 @@ export function ConversationList({
       <button
         type="button"
         onClick={closeSearch}
-        aria-label="Close search"
+        aria-label={t("chat.closeSearch")}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition"
       >
         <X className="w-4 h-4" strokeWidth={2.25} />
@@ -946,7 +946,7 @@ export function ConversationList({
       type="button"
       data-search-trigger
       onClick={() => { hapticLight(); setSearchOpen(true); }}
-      aria-label="Search conversations"
+      aria-label={t("chat.search")}
       className={isWebDesktop ? HEADER_ICON_BUTTON_DESKTOP_CLASS : HEADER_ICON_BUTTON_CLASS}
     >
       <Search className={isWebDesktop ? "w-3.5 h-3.5" : "w-4 h-4"} />
@@ -1083,8 +1083,8 @@ export function ConversationList({
         <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
         <input
           type="search"
-          aria-label="Search conversations"
-          placeholder="Search conversations"
+          aria-label={t("chat.search")}
+          placeholder={t("chat.search")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           enterKeyHint="search"
@@ -1094,7 +1094,7 @@ export function ConversationList({
         {searchQuery && (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={t("chat.clearSearch")}
             onClick={() => setSearchQuery("")}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground"
           >
@@ -1256,7 +1256,7 @@ export function ConversationList({
           {!loading && loadError && conversations.length === 0 ? (
             <div className="flex-1 min-h-0 flex" data-thread-area>
               <ErrorState
-                title="We couldn't load your messages."
+                title={t("chat.loadFailed")}
                 onRetry={() => { void retryInbox(); }}
               />
             </div>
@@ -1284,12 +1284,12 @@ export function ConversationList({
                 // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,
                 // Q1558: "nearly identical"); the icon is the Messages tab's own.
                 icon={navIconFor("/messages")}
-                title="No messages yet"
+                title={t("chat.emptyTitle")}
                 body={mainEmptyBody}
                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
                   <BarkPillButton onClick={() => navigate("/jobs")}>
-                    Browse jobs
+                    {t("chat.browseJobs")}
                   </BarkPillButton>
                 }
               />
@@ -1660,7 +1660,7 @@ export function ConversationList({
                   <button
                     type="button"
                     onClick={exitSelectMode}
-                    aria-label="Cancel selection"
+                    aria-label={t("chat.cancelSelection")}
                     // Rest fill as a CLASS, not inline: an inline background
                     // beats the stylesheet, so no hover tint could ever land
                     // on it. Same computed value, and `.ctl-tint-invert` (the

@@ -18,7 +18,7 @@
  * Row 62: with the switch off, a member with an agreed sale still gets the
  * cart and their sales (FinishSalesView), nothing else.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,12 +28,13 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
-import { fetchMyActiveStrikes, fetchMyCart, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
+import { fetchMyActiveStrikes, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
 import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
+import { fetchMyLastDropoff } from "@/lib/declutter/lastDropoff";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
@@ -43,7 +44,7 @@ import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
+import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
@@ -54,6 +55,7 @@ import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./DeclutterOffersSection";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
+import { firstPhotos } from "./DeclutterItemCard";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -144,8 +146,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
   // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
-  // refuses checkout and a delivery price without it, porch_place_needed).
-  const needsPlace = chosen === "porch" || delivering;
+  // refuses checkout and a delivery price without it, porch_place_needed). LEAD-PLACE-TIMES (20261031164337): a door
+  // pickup is at the chosen place too.
+  const needsPlace = chosen === "porch" || chosen === "pickup_home" || delivering;
   const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents, needsPlace);
   const placeReady = !needsPlace || porchPlaces.ready;
   // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
@@ -163,6 +166,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
+  // BUY-9: the last drop-off this buyer sent (theirs only) fills "Deliver to" once, while the box is still empty and
+  // untouched; asked only when a way that delivers is chosen.
+  const lastDropoff = useQuery({ queryKey: ["declutter", "last-dropoff", me?.id], queryFn: () => fetchMyLastDropoff(me!.id),
+    enabled: !!me?.id && (delivering || sellerDelivering), staleTime: 5 * 60_000 });
+  const [addressTouched, setAddressTouched] = useState(false);
+  useEffect(() => {
+    if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data);
+  }, [addressTouched, lastDropoff.data, address]);
   const meetingUp = chosen === "meetup";
   const meetupReady = !meetingUp || spotsNear.some((s) => s.chosen);
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
@@ -178,9 +189,20 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + setupFeeCents;
   const includesServiceFee = payCents > listedCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
+  // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
+  // past the bill. The first thing it waits on, in the buyer's words, right above it.
+  const payWaitsOn =
+    needsPlace && !placeReady && porchPlaces.places.length > 0 ? "Choose a pickup place above to pay."
+      : delivering && !liveQuote ? "Get the delivery price above to pay."
+        : sellerDelivering && sdState === "pick" && !sdReady ? "Finish the delivery choices above to pay."
+          : !meetupReady ? "Choose a meeting spot above to pay."
+            : null;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
-    <>
+    // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
+    // choices sit on the left and the bill with Pay beside them; a phone keeps the one column in the same order.
+    <div className="space-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start lg:gap-6 lg:space-y-0" data-checkout-columns="">
+    <div className="min-w-0 space-y-3" data-checkout-choices="">
       {/* Board 30: "How you'll get it" as radio cards; each price from the real rule (pickups are free; delivery is
           the server's quote, or "Get a price" until there is one). */}
       <fieldset className="space-y-2">
@@ -191,7 +213,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
-              <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
+              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
@@ -214,6 +236,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
+          typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
           onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
       )}
       {delivering && (
@@ -222,7 +245,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           <div className="flex gap-2">
             <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               autoComplete="street-address" maxLength={300} value={address}
-              onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+              onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} />
             <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
               disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate()}>
               {priceIt.isPending ? "Pricing…" : "Get price"}
@@ -234,10 +257,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               <div className="flex justify-between text-xs text-muted-foreground"><dt>$10 + $2 a mile{liveQuote.size_cents > 0 ? " + size" : ""}</dt><dd>{formatPrice(liveQuote.base_cents)} + {formatPrice(liveQuote.per_mile_cents)}{liveQuote.size_cents > 0 ? ` + ${formatPrice(liveQuote.size_cents)}` : ""}</dd></div>
             </dl>
           ) : (
-            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back and you pick it up instead.</p>
+            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
           )}
         </div>
       )}
+    </div>
+    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
       <div className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
       <dl className="space-y-1.5">
@@ -277,11 +302,15 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {delivering
           ? "It's paid to the seller once the delivery is done."
           : sellerDelivering
-            ? "It's paid to the seller when you have your items, or 24 hours after they mark it delivered unless you report a problem."
-            : "It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem."}
+            ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
+            : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
       </p>
+      {!held && !opening && payWaitsOn && (
+        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground" data-pay-waits-on="">{payWaitsOn}</p>
+      )}
       <button
         type="button"
+        aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
         disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady}
         onClick={async () => {
@@ -292,7 +321,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : null);
             if (res.paid || !res.url) {
-              toast.success("This order is already paid.");
+              toast("This order is already paid.");
               invalidateTrades(qc);
               setOpening(false);
               return;
@@ -319,7 +348,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       </button>
       <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
       <AddHelprNote />
-    </>
+    </div>
+    </div>
   );
 }
 
@@ -349,11 +379,26 @@ export function FinishSalesView() {
   );
 }
 
+/** BUY-15: a cart line's small photo; a grey square while it loads, when the item has none, or when it fails. */
+function CartThumb({ path }: { path?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-cart-thumb="" aria-hidden="true">
+      {path && !failed && <img src={photoPublicUrl(path)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover" />}
+    </span>
+  );
+}
+
 /** The buyer's cart (rows 13, 20-22, 24, 38, 59): one checkout per seller. */
 export function CartView() {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   // B-1: back from the payment page, the cart is read again until the paid checkout leaves it; its Pay is off meanwhile.
   const settling = usePaySettling();
+  // BUY-15: each cart line shows its item's first photo (none at either width before).
+  const lineItemIds = useMemo(() => [...new Set((cart.data ?? []).filter((l) => l.my_side === "buyer" && l.status === "in_cart" && l.item_id)
+    .map((l) => l.item_id as string))].sort(), [cart.data]);
+  const photos = useQuery({ queryKey: ["declutter", "photos", lineItemIds.join(",")], queryFn: () => fetchPhotos(lineItemIds), enabled: lineItemIds.length > 0 });
+  const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your cart." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
@@ -382,11 +427,13 @@ export function CartView() {
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
               <CheckoutCardHead allFree={allFree} count={lines.length} />
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {lines.map((l) => (
-                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0">
+                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0" data-cart-line="">
+                    <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />
                     {l.item_id ? (
-                      <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
+                      // NIGHT-BUYINGpresse-3: the title link was 20 px tall on a phone; it is now a 44 px tap.
+                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">{l.item_title}</span></Link>
                     ) : (
                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
                     )}

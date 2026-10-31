@@ -52,7 +52,9 @@ import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
+import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { SectionScreen } from "@/components/sections/SectionScreen";
+import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
@@ -73,8 +75,9 @@ import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
-import { myItemsQuery, useMyItemsFollowNotices } from "./myItemsQuery";
+import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
+import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -114,7 +117,8 @@ function ListingsSkeleton() {
  */
 const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   draft: "Not listed yet. Finish it to sell it.",
-  pending_review: "Waiting for a review. We'll send you a notice.",
+  // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner); "Waiting for a review" read as a person.
+  pending_review: "Being checked. We'll send you a notice when it's done.",
   paused: "Paused. Hidden from buyers.",
   rejected: "Not approved. Open it to see why.",
 };
@@ -148,9 +152,6 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   );
 }
 
-/** Listings that are history, not for sale: taken down, or sold elsewhere (A2-5). They live in Selling history. */
-const PAST: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_elsewhere"]);
-
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -158,7 +159,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const mine = useQuery(myItemsQuery(userId));
   useMyItemsFollowNotices(userId);
   // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
-  const mineIds = (mine.data ?? []).filter((i) => !PAST.has(i.status)).map((i) => i.id);
+  const mineIds = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).map((i) => i.id);
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
@@ -223,7 +224,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
       return (await haulLib()).cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
-      toast.success(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
+      toast(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -246,7 +247,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSettled: () => setAsking(null),
     onSuccess: () => {
-      toast.success("Taken down.");
+      toast("Taken down.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -256,7 +257,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const list = (mine.data ?? []).filter((i) => !PAST.has(i.status));
+  const list = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   if (list.length === 0) {
     return (
       <section className="space-y-2" aria-label="Your listings">
@@ -293,22 +294,27 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
         {list.map((item) => {
           const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
+          const statusLine = drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id));
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              {/* NIGHT-SELL-Sellinglist-4 (night audit 10-30): at 375 the title takes two lines and the row itself opens the
+                  item (a draft's opens Finish listing), so View is only a button from sm up. */}
+              <Link
+                to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-listing-open=""
+              >
                 <ListingThumb path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-ds-15 font-semibold" title={item.title}>{item.title}</p>
-                  <p
-                    data-listing-status={item.status}
+                  <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
+                  <p data-listing-status={item.status} title={statusLine}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
                   >
-                    {drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id))}
+                    {statusLine}
                   </p>
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
-              </div>
+              </Link>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
@@ -318,14 +324,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>
-                ) : (
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
-                  </Button>
-                )}
-                {item.status === "live" && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
+                ) : null}
+                {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
+                {item.status !== "draft" && (
+                  <Button asChild variant="outline" size="sm" data-listing-preview="">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`Preview ${item.title}`}>Preview</Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
@@ -365,7 +368,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?"}
         confirmLabel={asking?.status === "draft" ? "Delete" : "Take down"} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>
-        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : "Buyers can't see it any more. Nothing is charged, and you can relist it from your selling history."}
+        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : TAKE_DOWN_WORDS}
       </ConfirmSheet>
       {managing && (
         <ManageListingSheet
@@ -394,9 +397,9 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   return (
     <div className="space-y-6">
       <ListedWhatNext />
-      {/* Audit posting 1030 #11: on a phone this tab had no way to sell. The photo screen directly, and one small line
-          to the other ways. The header has its own add action on desktop. */}
-      <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its
+          own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
+      <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
         <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
         <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
       </div>
@@ -471,7 +474,33 @@ const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: own
 const MINE_TABS_FREE = [...MINE_TABS, "free"] as const;
 const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted", "free"] as const;
 
+/**
+ * BUY-16: a signed-out visitor (DeclutterGate lets one in only while Declutter is open to everyone) gets Browse alone:
+ * Buying, Selling, Deliver, Wanted and Free and the settings gear are a member's own, and a sign-up line sits on top.
+ */
 export default function DeclutterHome() {
+  const { user, isLoading } = useCurrentUser();
+  if (user) return <DeclutterMemberHome />;
+  if (isLoading) return <DeclutterHomeSkeleton />;
+  return <DeclutterGuestHome />;
+}
+
+function DeclutterGuestHome() {
+  const tabsFor = (browse: DeclutterBrowseHeader) => (
+    <SectionTabs<DeclutterTab>
+      label="Declutter view"
+      browseCount={browse.count}
+      onlySelected={browse.onlySelected}
+      end={browse.end}
+      value="browse"
+      onChange={() => undefined}
+      tabs={[]}
+    />
+  );
+  return <DeclutterBrowse userId={null} tabs={tabsFor} top={<DeclutterGuestBrowseJoin />} />;
+}
+
+function DeclutterMemberHome() {
   const { user } = useCurrentUser();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
@@ -550,10 +579,12 @@ export default function DeclutterHome() {
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
-    // Browse (above) draws its own "Search items", so Explore's global search shows only on Deliver and Wanted. Not on
-    // Buying (lead walkthrough 2026-10-28, shot 05) or Selling (owner 2026-10-28): a member's own cart, offers,
-    // listings and sales are not what "Search all sections" finds.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()}>
+    // LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no full-width "Search all sections" bar under the tabs
+    // on any tab. Every tab carries the same search as Jobs' 40px icon square, right before the gear (Browse's own
+    // "Search items" icon sits there too). LEAD-SEARCH-ALL-TABS (owner 2026-10-31): Buying and Selling too, matching
+    // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
+    // src/components/declutter/sellingDash.test.tsx.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>

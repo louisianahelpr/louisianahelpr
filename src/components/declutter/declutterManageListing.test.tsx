@@ -43,7 +43,7 @@ const dropPct = vi.hoisted(() => ({ value: 5 }));
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/api", () => ({
   // Records that the manage-state read RESOLVED, so a test can wait for the data before asserting an absence.
   fetchManageState: async () => { const r = deployed ? manage : "not_deployed"; stateReads.n++; return r; },
@@ -167,26 +167,43 @@ describe("Manage a listing (board 158)", () => {
     first.unmount();
     autoFree = null;
     sheet();
-    await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
+    await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
     expect(screen.queryByText(/wins over a stopped price/)).toBeNull();
   });
 
-  it("make it free after __ days: Never by default, each chip sends the seller's choice; hidden before the migration is on prod (OWN-FREE)", async () => {
+  // LEAD-FREE-AFTER-DROPDOWN (owner 2026-10-31): one row, the label on the left, a native labelled dropdown on the right.
+  // @mutate src/components/declutter/AutoFreeRow.tsx |       <div className="flex items-center justify-between gap-3" data-auto-free-row=""> |       <div className="space-y-2" data-auto-free-row="">
+  // @mutate src/components/declutter/AutoFreeRow.tsx |         <label htmlFor={id} | <label
+  it("make it free after: one row, label left, native dropdown right, explainer under it", async () => {
+    autoFree = null;
+    sheet();
+    const pick = await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
+    expect(pick.tagName).toBe("SELECT");
+    const row = pick.closest("[data-auto-free-row]")!;
+    expect(row.className).toMatch(/\bflex\b/);
+    expect(row.className).not.toMatch(/\bflex-col\b|\bflex-wrap\b/);
+    expect(row.firstElementChild!.tagName).toBe("LABEL");
+    expect(row.lastElementChild).toBe(pick);
+    expect(row.parentElement!.querySelectorAll('[role="radio"]')).toHaveLength(0);
+    expect(row.nextElementSibling?.textContent).toBeTruthy(); // the explainer stays under it
+  });
+
+  it("make it free after __ days: Never by default, each choice sends the seller's choice; hidden before the migration is on prod (OWN-FREE)", async () => {
     autoFree = null;
     const a = sheet();
-    const group = await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
-    const chips = Array.from(group.querySelectorAll('[role="radio"]')).map((c) => c.textContent);
-    expect(chips).toEqual(["Never make it free", "7 days", "14 days", "21 days", "30 days"]);
-    expect(screen.getByRole("radio", { name: "Never make it free" }).getAttribute("aria-checked")).toBe("true");
+    const pick = await screen.findByRole("combobox", { name: "If it doesn't sell, make it free after" });
+    const options = Array.from((pick as HTMLSelectElement).options).map((c) => c.textContent);
+    expect(options).toEqual(["Never make it free", "7 days", "14 days", "21 days", "30 days"]);
+    expect((pick as HTMLSelectElement).value).toBe("never");
     expect(screen.queryByText("Free on day 12")).toBeNull();
-    fireEvent.click(screen.getByRole("radio", { name: "21 days" }));
+    fireEvent.change(pick, { target: { value: "21" } });
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", 21]));
     a.unmount();
     autoFree = 7;
     calls.length = 0;
     const b = sheet();
-    await waitFor(() => expect(screen.getByRole("radio", { name: "7 days" }).getAttribute("aria-checked")).toBe("true"));
-    fireEvent.click(screen.getByRole("radio", { name: "Never make it free" }));
+    await waitFor(() => expect((screen.getByRole("combobox", { name: "If it doesn't sell, make it free after" }) as HTMLSelectElement).value).toBe("7"));
+    fireEvent.change(screen.getByRole("combobox", { name: "If it doesn't sell, make it free after" }), { target: { value: "never" } });
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", null]));
     b.unmount();
     autoFree = "not_deployed";
@@ -196,7 +213,7 @@ describe("Manage a listing (board 158)", () => {
     // Wait for the auto-free DATA ("not_deployed" resolved and React settled), then assert the absence.
     await waitFor(() => expect(autoFreeReads.n).toBeGreaterThan(readsBefore));
     await act(async () => {});
-    expect(screen.queryByRole("radiogroup", { name: "If it doesn't sell, make it free after" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "If it doesn't sell, make it free after" })).toBeNull();
     autoFree = null;
   });
 
@@ -282,7 +299,9 @@ describe("Manage a listing (board 158)", () => {
     sheet();
     fireEvent.click(await screen.findByText("Delete listing"));
     expect(calls).toEqual([]);
-    expect(screen.getByText(/This can't be undone/)).toBeTruthy();
+    // Sellinglist-1: Relist is in History, so never "can't be undone"; the photos are said to go.
+    expect(screen.getByText("Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.")).toBeTruthy();
+    expect(screen.queryByText(/can't be undone/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Delete listing" }));
     await waitFor(() => expect(calls).toContainEqual(["withdraw", "i1"]));
   });
@@ -309,6 +328,25 @@ describe("Manage a listing (board 158)", () => {
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: "Save price" }));
     await waitFor(() => expect(calls).toContainEqual(["price", "i1", 2500, 2000]));
+  });
+
+  // NIGHT-SELL-Sellinglist-6: under the lowest was only said on Save, and the seller had to find the other box.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |       {(touched \|\| underFloor) && problem && ( |       {touched && problem && (
+  // @mutate src/components/declutter/DeclutterManageListing.tsx | onClick={() => setFloor(price)}> | onClick={() => setFloor(floor)}>
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |         ? `${formatPrice(priceCents)} is under your lowest price, ${formatPrice(floorC)}.` |         ? "Your lowest price must be at least $1 and no more than your price."
+  it("a price typed under the lowest is said at once, with a one-tap Also set lowest", async () => {
+    sheet();
+    fireEvent.click(await screen.findByText("Change price or lowest price"));
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "20" } });
+    expect(screen.getByRole("alert").textContent).toBe("$20 is under your lowest price, $30.");
+    fireEvent.click(screen.getByRole("button", { name: "Also set lowest to $20" }));
+    expect((screen.getByLabelText("Lowest you'll take") as HTMLInputElement).value).toBe("20");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Also set lowest/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save price" }));
+    await waitFor(() => expect(calls).toContainEqual(["price", "i1", 2000, 2000]));
+    expect(calls.length).toBeGreaterThan(0);
   });
 });
 

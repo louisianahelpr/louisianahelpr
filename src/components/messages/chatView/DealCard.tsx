@@ -232,7 +232,8 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
   const open = () =>
     navigate(
       viewerIsPoster
-        ? `/jobs?tab=posted&highlight=${job.id}&manage=1`
+        // The job page holds the poster's actions now (LEAD-JOBPAGE-LAYOUT); there is no Manage job screen.
+        ? `/jobs/${job.id}`
         // Working's `?highlight=` is an application id; `?job=` names the job and `open=1` opens its card (F10).
         : `/jobs?tab=working&job=${job.id}&open=1`,
     );

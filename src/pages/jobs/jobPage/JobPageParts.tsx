@@ -52,7 +52,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
 
 /** How the poster's money stands, from payment_status. Unlisted states print nothing rather than a guess. */
 const HELD_LINE: Partial<Record<string, string>> = {
-  escrow: "Paid when you posted. We hold it until the job is done.",
+  escrow: "Paid when you posted. Louisiana Helpr holds it until the job is done.",
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
   held: "Your card isn't charged until a Helpr accepts your offer.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
@@ -67,7 +67,7 @@ const HELD_LINE: Partial<Record<string, string>> = {
  * posted" on a job whose card was captured at the hire). A bank payment or a gift is still paid at
  * posting; "Paid" is true for every way the job was funded.
  */
-const PAID_UNDER_CARD_HOLD = "Paid. We hold it until the job is done.";
+const PAID_UNDER_CARD_HOLD = "Paid. Louisiana Helpr holds it until the job is done.";
 
 /** "Sat, Oct 31 at 11:13 PM" in Louisiana time (the payout schedule is Louisiana's). */
 function payoutWhen(iso: string): string {
@@ -150,6 +150,18 @@ export function PostedBy({ posterId }: { posterId: string }) {
   return (
     <section aria-label="Posted by">
       <DeclutterSellerCard sellerId={posterId} noun="poster" />
+    </section>
+  );
+}
+
+/**
+ * AUD31-80: the poster's page never named the hired Helpr (PostedBy is the Helpr's view of the poster). The poster now
+ * sees the same person card for their Helpr; "Message <name>" is already the page's own button (posterPageActions).
+ */
+export function HiredHelpr({ helprId }: { helprId: string }) {
+  return (
+    <section aria-label="Your Helpr">
+      <DeclutterSellerCard sellerId={helprId} noun="Helpr" />
     </section>
   );
 }

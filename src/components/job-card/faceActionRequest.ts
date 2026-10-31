@@ -8,6 +8,8 @@
 const REQUEST_TTL_MS = 10_000;
 const pending = new Map<string, { action: FaceRequest; at: number }>();
 
+/** The job page's approve, cancel, edit and "More options" run the card's flows on the page now
+ *  (usePosterPageFlows, LEAD-JOBPAGE-LAYOUT), so the confirm is the one request left. */
 type FaceRequest = "confirm";
 
 export function requestFaceAction(jobId: string, action: FaceRequest): void {

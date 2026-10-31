@@ -93,7 +93,7 @@ export function RefundAnswerDialog({
     try {
       const status = await answerRefundRequest(request.id, answer, answer === "finish" ? { date, time: time || null } : null);
       hapticSuccess();
-      toast.success(
+      toast(
         status === "agreed"
           ? `Agreed. ${first} gets the refund and you take home your pay on the rest.`
           : status === "finish_offered"

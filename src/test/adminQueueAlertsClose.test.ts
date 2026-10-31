@@ -39,20 +39,20 @@
  * src/test/pglite/adminNoticeAlertsClose.pglite.mjs (70 PASS; 47 FAIL with
  * NEW_MIGRATION=skip; 6 planted defects each caught).
  *
- * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql | ('ban review needed', | ('ban review wanted',
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | ('ban review needed', | ('ban review wanted',
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
- * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |       ('repeat offender: ', | 
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('repeat offender: ', | 
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
+ * @mutate supabase/migrations/20261031184552_declutter_check_alerts_close_by_hand.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
  * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
- * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |       ('new support message',                       'support-ticket') |       ('new support note',                          'support-ticket')
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('new support message',                       'support-ticket') |       ('new support note',                          'support-ticket')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'support-ticket' THEN |   ELSIF p_rule = 'support-tickets' THEN
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql |          'Low rating alert', |          'Low rating warning',
  * @mutate supabase/functions/_shared/alertPolicy.ts | return `admin-push:${ | return `admin-mirror:${
- * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |       ('ownership proof waits for review',          'rentals-ownership-review') |       ('ownership proof is waiting',                'rentals-ownership-review')
+ * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('ownership proof waits for review',          'rentals-ownership-review') |       ('ownership proof is waiting',                'rentals-ownership-review')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'rentals-ownership-review' THEN |   ELSIF p_rule = 'rentals-ownership-reviews' THEN
  */
 import { describe, it, expect } from "vitest";
@@ -265,7 +265,7 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
     // (rentals-ownership-review, 20261017223352).
     // Then by Landlord ID (rentals-landlord-id-review, 20261019051407), then by the approval queue
     // (approval-escalation, 20261023143240).
-    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert|rentals_landlord_id_review|payout_waits_for_the_posters_approval|support_ticket_alert_closes_itself/);
+    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert|rentals_landlord_id_review|payout_waits_for_the_posters_approval|support_ticket_alert_closes_itself|new_member_daily_summary/);
     expect(pendingDef?.file, "admin_queue_still_pending").toMatch(/rentals_ownership_review_alert|rentals_landlord_id_review|payout_waits_for_the_posters_approval|support_ticket_alert_closes_itself/);
     // Floors, 2026-09-26: 19 rule rows, 13 branches, 1 manual row.
     expect(RULES.length).toBeGreaterThanOrEqual(19);

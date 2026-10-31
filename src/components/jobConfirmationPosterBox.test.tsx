@@ -26,7 +26,7 @@ import { render, screen } from "@testing-library/react";
  * Widening when a poster may confirm is the owner's call, not this fix's.
  */
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => {

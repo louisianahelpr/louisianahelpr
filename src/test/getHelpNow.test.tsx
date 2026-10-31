@@ -7,7 +7,6 @@
  * support "Message sent" states to the one shared promise.
  *
  * @mutate src/components/jobs/GetHelpNow.tsx | navigate(`/support?topic=message&subject=${encodeURIComponent(subject)}`) | navigate("/support")
- * @mutate src/components/jobs/GetHelpNow.tsx | if (!GET_HELP_NOW_STATUSES.has(job.status ?? "")) return null; | if (!job.id) return null;
  * @mutate src/components/jobs/GetHelpNow.tsx | <p className="text-ds-13 text-muted-foreground">{SUPPORT_REPLY_PROMISE}</p> | <p className="text-ds-13 text-muted-foreground">We'll get back to you.</p>
  * CMP-3 on Declutter orders: the same one tap, only while the order needs help.
  * @mutate src/components/jobs/GetHelpNow.tsx |   if (!active) return null; |   void active;
@@ -17,7 +16,9 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} /> | {null}
  * @mutate src/lib/supportSubject.ts |   return jobSubject("Help with ", job); |   return jobSubject("Dispute on ", job);
  * @mutate src/lib/supportTopics.ts | export const SUPPORT_REPLY_PROMISE = "We usually answer within a few hours."; | export const SUPPORT_REPLY_PROMISE = "We usually answer within one business day.";
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && <GetHelpNow job={job} />} | {null}
+ * Then (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT): the JOB PAGE's "Get help now" and its reply line came off; help is
+ * the top-right icon every back-arrow screen already carries (PageHeader's HelpEntry). Declutter orders keep the button.
+ * @mutate src/components/PageHeader.tsx |               {titleActions}\n              <HelpEntry /> |               {titleActions}
  * @mutate src/pages/info/Support.tsx | Our team will read it and reply by email. {SUPPORT_REPLY_PROMISE} Nothing | Our team will read it and reply by email, usually within one business day. Nothing
  * @mutate src/components/profile/SupportInline.tsx | Our team will read it and reply. {SUPPORT_REPLY_PROMISE} | Our team will review and get back to you soon.
  */
@@ -25,7 +26,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { GetHelpNow, GET_HELP_NOW_STATUSES, OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
+import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { disputeSupportSubject, helpSupportSubject } from "@/lib/supportSubject";
 import { SUPPORT_REPLY_PROMISE } from "@/lib/supportTopics";
 import { blankComments } from "./helpers/blankNonCode";
@@ -37,17 +38,6 @@ function Where() {
   const loc = useLocation();
   return <p data-testid="where">{loc.pathname + loc.search}</p>;
 }
-function renderFor(status: string) {
-  return render(
-    <MemoryRouter initialEntries={["/jobs/x"]}>
-      <Routes>
-        <Route path="/jobs/x" element={<GetHelpNow job={{ id: JOB_ID, title: "Mow the back yard", status }} />} />
-        <Route path="/support" element={<Where />} />
-      </Routes>
-    </MemoryRouter>,
-  );
-}
-
 describe("Get help now on a Declutter order (CMP-3)", () => {
   const ORDER = "9d2c1b0a-7b4d-4e8a-9c1e-7b4d4e8a9c1e";
   const renderOrder = (status: string | null, problemOpen: boolean) =>
@@ -103,41 +93,18 @@ describe("Get help now (Q2478 part 3)", () => {
     expect(SUPPORT_REPLY_PROMISE).toBe("We usually answer within a few hours.");
   });
 
-  it("on an active job: one tap opens /support aimed at a real person, the job named in the subject", () => {
-    renderFor("in_progress");
-    expect(screen.getByText("We usually answer within a few hours.")).toBeTruthy();
-    const btn = screen.getByRole("button", { name: "Get help now" });
-    expect(btn.className.split(/\s+/)).toContain("rounded-full");
-    fireEvent.click(btn);
-    const url = new URL(screen.getByTestId("where").textContent ?? "", "https://x");
-    expect(url.pathname).toBe("/support");
-    expect(url.searchParams.get("topic")).toBe("message");
-    expect(url.searchParams.get("subject")).toBe('Help with "Mow the back yard" (job #3f2a9c1e)');
-  });
-
-  it("every active status shows it; open, done and cancelled jobs do not", () => {
-    // Floor: the active set is not empty.
-    expect(GET_HELP_NOW_STATUSES.size).toBeGreaterThan(2);
-    for (const s of GET_HELP_NOW_STATUSES) {
-      const { unmount } = renderFor(s);
-      expect(screen.queryByRole("button", { name: "Get help now" }), s).toBeTruthy();
-      unmount();
-    }
-    for (const s of ["open", "completed", "cancelled", "expired"]) {
-      const { unmount } = renderFor(s);
-      expect(screen.queryByRole("button", { name: "Get help now" }), s).toBeNull();
-      unmount();
-    }
-  });
-
   it("the help subject and the dispute subject share one builder but say different things", () => {
     expect(helpSupportSubject({ id: JOB_ID, title: null })).toBe("Help with job #3f2a9c1e");
     expect(disputeSupportSubject({ id: JOB_ID, title: "Mow" })).toBe('Dispute on "Mow" (job #3f2a9c1e)');
     expect(helpSupportSubject({ id: JOB_ID, title: "x".repeat(300) }).length).toBeLessThanOrEqual(120);
   });
 
-  it("mounted on the job page for both sides, and both support sent states make the same promise", () => {
-    expect(read("src/pages/jobs/jobPage/JobPage.tsx")).toContain("{(isPoster || isHired) && <GetHelpNow job={job} />}");
+  it("the job page has no Get help now (help is the header icon), and both support sent states make the same promise", () => {
+    const page = read("src/pages/jobs/jobPage/JobPage.tsx");
+    expect(page.length).toBeGreaterThan(1000);
+    expect(page, "no Get help now on the job page").not.toMatch(/GetHelpNow|SUPPORT_REPLY_PROMISE|Get help now/);
+    expect(page, "the page keeps its back-arrow header").toMatch(/<AppPage\b/);
+    expect(read("src/components/PageHeader.tsx"), "the back-arrow header carries the help icon").toContain("{titleActions} <HelpEntry />");
     const support = read("src/pages/info/Support.tsx");
     expect(support).toContain("Our team will read it and reply by email. {SUPPORT_REPLY_PROMISE} Nothing else to do on your end.");
     expect(support).not.toMatch(/business day/);

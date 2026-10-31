@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
-import { EmbeddedActivityHeader, EmbeddedActivityLoading, boxLabelledFilters } from "@/components/job-card/embeddedActivity";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
+import { EmbeddedActivityHeader, EmbeddedActivityLoading, boxLabelledFilters, type EmbeddedHeader } from "@/components/job-card/embeddedActivity";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -55,7 +55,7 @@ import { PAGE_COLUMN } from "@/lib/pageColumn";
 /** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
  *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,
  *  with their own search field) are gone: no route rendered them once /jobs became the Jobs section (Q2205). */
-const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "posted" | "applied"; embeddedHeader: ReactNode }) => {
+const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "posted" | "applied"; embeddedHeader: EmbeddedHeader }) => {
   usePageTitle("Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -296,9 +296,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     // waits while a `?job=` link is unresolved, and once `job` leaves the URL
     // it chooses exactly as it does for a plain open.
     if (deepLinkJobId && !onList) {
-      toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
+      toast(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
     } else if (tab === "posted" && highlightJobId && !onList) {
-      toast.info(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
+      toast(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
     }
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");

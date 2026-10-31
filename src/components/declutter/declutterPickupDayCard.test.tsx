@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/DeclutterPickupDayCard.tsx |       {route && route.count > 1 && ( |       {route && (
  * @mutate src/components/declutter/DeclutterPickupDayCard.tsx |   if (sent \|\| go.isSuccess) return | if (go.isSuccess) return
  * @mutate src/components/declutter/DeclutterPickupDayCard.tsx |     queries: today.map((p) => p.order.handover === "meetup" |     queries: today.map((p) => p.order.handover === "never"
+ * BUY-6: a porch pickup not out yet offers no "I'm on my way" or Directions, only "Not out yet".
+ * @mutate src/components/declutter/DeclutterPickupDayCard.tsx |          const notOut = p.order.handover === "porch" && !porchRows[i]?.data?.set_out_at; |          const notOut = false;
+ * @mutate src/components/declutter/DeclutterPickupDayCard.tsx |          const notOut = p.order.handover === "porch" && !porchRows[i]?.data?.set_out_at; |          const notOut = p.order.handover === "porch";
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -22,10 +25,12 @@ const state = vi.hoisted(() => ({
   addressAsked: [] as string[],
   addressFails: false,
   errors: [] as string[],
+  outAt: {} as Record<string, string | null>,
 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: (m: string) => state.errors.push(m) } }));
 vi.mock("@/lib/declutter/handover", () => ({
+  fetchMyHandover: async (id: string) => ({ order_id: id, set_out_at: state.outAt[id] ?? null }),
   onMyWay: async (id: string) => { state.calls.push(id); return "on_way"; },
   fetchItemAddress: async (id: string) => {
     state.addressAsked.push(id);
@@ -60,6 +65,7 @@ beforeEach(() => {
   state.addressAsked = [];
   state.addressFails = false;
   state.errors = [];
+  state.outAt = {};
 });
 
 describe("which orders are today's pickups", () => {
@@ -74,6 +80,15 @@ describe("which orders are today's pickups", () => {
     expect(got.map((p) => p.order.orderId)).toEqual(["early", "late", "porch"]);
     // A floor, so an empty result can never pass this guard by accident.
     expect(got.length).toBeGreaterThan(2);
+  });
+
+  // NIGHT-BUYINGopenpr-1 (night audit 10-30): an order on hold never says "set off".
+  // @mutate src/lib/declutter/pickupDay.ts |     if (held.has(order.orderId)) continue; |
+  it("an order on hold (open problem) is left out", () => {
+    const orders = [order("held", "pickup_home"), order("fine", "pickup_home")];
+    const bookings = [booked("held", { slot_start: at(10) }), booked("fine", { slot_start: at(11) })];
+    expect(pickupsToday(orders, bookings).map((p) => p.order.orderId)).toEqual(["held", "fine"]);
+    expect(pickupsToday(orders, bookings, new Date(), new Set(["held"])).map((p) => p.order.orderId)).toEqual(["fine"]);
   });
 
   it("said yesterday is not said today", () => {
@@ -136,6 +151,21 @@ describe("the pickup-day card", () => {
   it("a whole-day porch pickup says so", () => {
     show([order("p", "porch")], [booked("p", { pickup_day: ymdToday() })]);
     expect(screen.getByText("Today, any time")).toBeInTheDocument();
+  });
+
+  it("BUY-6: a porch pickup not out yet says so and offers no I'm on my way or Directions", async () => {
+    show([order("p", "porch")], [booked("p", { pickup_day: ymdToday() })]);
+    expect(await screen.findByText("Not out yet. Don't go until we tell you it's on the porch.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I'm on my way" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Directions" })).toBeNull();
+  });
+
+  it("BUY-6: once the seller's porch photo is in, I'm on my way and Directions come back", async () => {
+    state.outAt = { p: new Date().toISOString() };
+    show([order("p", "porch")], [booked("p", { pickup_day: ymdToday() })]);
+    expect(await screen.findByRole("button", { name: "I'm on my way" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Directions" })).toBeInTheDocument();
+    expect(screen.queryByText(/Not out yet/)).toBeNull();
   });
 
   it("a place that will not load says so, and I'm on my way still works", async () => {

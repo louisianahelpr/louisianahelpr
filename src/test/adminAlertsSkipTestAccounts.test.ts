@@ -30,7 +30,7 @@
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_admin_row AND (SELECT auth.uid()) IS NOT NULL |   IF false AND (SELECT auth.uid()) IS NOT NULL
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | AND v_actor <> p_recipient AND public.is_test_subject(v_actor) THEN | AND v_actor <> p_recipient AND public.is_test_member(v_actor) THEN
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |     IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |     IF true THEN
-// @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
+// @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |       IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |       IF NOT (o.is_seed) THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   IF NOT (public.is_test_subject(_uid) OR public.is_test_subject(_customer) OR public.is_test_subject(_helper)) THEN |   IF true THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |                     WHERE NOT d.is_seed AND d.status = 'handed_over'\n                      AND NOT public.is_test_subject(d.buyer_id) AND NOT public.is_test_subject(d.seller_id) |                     WHERE NOT d.is_seed AND d.status = 'handed_over'
@@ -49,19 +49,24 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   auto_escalate_reports: "link",
   auto_restrict_repeat_violators: "link",
   block_user_and_settle: "link",
+  declutter_answer_no_show: "caller", // 20261031004529: the seller answering a buyer's no-show report
+  declutter_handover_sweep: "explicit", // 20261031004529: the 60-day held sale
+  declutter_helpr_answer_no_show: "explicit", // 20261031134217: the Helpr answers a seller's "didn't come"; is_test_subject on buyer, seller and caller, and is_seed
+  declutter_hold_unchecked_listings: "explicit", // 20261031152545: a reserved or sold listing never checked; is_test_subject on the seller
   declutter_problem_add_side: "caller",
+  declutter_record_ai_check: "explicit", // 20261031152545: a flag after a buyer paid; is_test_subject on the seller
   declutter_refund_request_to_admin: "explicit",
   declutter_report_problem: "caller",
   declutter_withdraw_problem: "caller",
   detect_stuck_payments: "link",
   enforce_retained_payment_ban: "explicit",
   facilitator_threshold_check: "sum",
-  notify_admins_new_member: "explicit",
   notify_admins_support_ticket: "explicit",
   open_dispute_as: "explicit",
   rentals_submit_landlord_id: "caller",
   rentals_submit_ownership_proof: "caller",
   rpc_escalate_dispute: "link",
+  send_new_member_daily_summary: "explicit",
   settle_one_off_jobs_for_banned_account: "link",
   shop_refund_sweep: "explicit",
   shops_report_not_received: "caller",
@@ -112,7 +117,7 @@ describe("every function that notifies admins skips test accounts", () => {
   it("reads a plausible inventory (guards the parser)", () => {
     expect(BODIES.size).toBeGreaterThan(800);
     expect(INVENTORY.length).toBeGreaterThan(15);
-    expect(INVENTORY).toContain("notify_admins_new_member");
+    expect(INVENTORY).toContain("send_new_member_daily_summary");
   });
 
   it("every admin notifier is classified, exactly (both ways)", () => {

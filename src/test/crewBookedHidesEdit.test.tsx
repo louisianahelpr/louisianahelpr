@@ -22,7 +22,7 @@
  *     "Edit job" (seeded is_seed fixture, poster-e2e, 375 and 1440).
  */
 // @mutate src/pages/posts/postedJobCard/crewBooked.ts |   return (roster ?? []).some((m) => m.helper_id != null); |   return (roster ?? []).length > 0;
-// @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx |         ...(crewBooked |         ...(false
+// @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx |         ...(crewBooked \|\| startPassed |         ...(false
 // @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     crewBooked: crewIsBooked(job, crewRoster), |     crewBooked: false,
 // @mutate src/hooks/useActivityData.ts |       .filter((j) => (isActiveStatus(j.status) \|\| j.status === "open") && j.is_group_job) |       .filter((j) => isActiveStatus(j.status) && j.is_group_job)
 import { describe, expect, it, vi } from "vitest";

@@ -365,7 +365,8 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                 the icon buttons at full size when the title is long enough to
                 claim the rest of the row. */}
             {stickyTitle && phoneHidesTitle && (
-              <span aria-hidden="true" className="sticky-title-row-name min-w-0 flex-1 truncate text-center font-semibold">
+              // AUD31-15: two lines, not "Oak rocking ..." at 375 (back on the left, share, watch and Help on the right).
+              <span aria-hidden="true" className="sticky-title-row-name min-w-0 flex-1 line-clamp-2 break-words text-center font-semibold leading-tight">
                 {title}
               </span>
             )}

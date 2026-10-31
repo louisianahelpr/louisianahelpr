@@ -471,7 +471,7 @@ const AdminReports = () => {
                       ) : (
                         <span>{report.reporter_name}</span>
                       )}
-                      {" · "}{formatShortDate(report.created_at)}
+                      {" · "}<span className="whitespace-nowrap">{formatShortDate(report.created_at)}</span>
                     </p>
                   </div>
                 </div>
@@ -514,14 +514,11 @@ const AdminReports = () => {
 
               {report.reported_wanted && <WantedReportPanel post={report.reported_wanted} reportId={report.id} open={report.status !== "resolved" && report.status !== "dismissed"} onDone={loadReports} />}
 
-              {/* One line, not two: 7 action buttons kept on a single row —
-                  fits without scroll on wide admin screens, scrolls horizontally
-                  rather than wrapping to a second line on narrow ones.
-                  The mask is the missing half of that decision: without it the
-                  row sliced "Assign to Me" clean through at 375 with no
-                  affordance, which reads as clipped rather than scrollable —
-                  the same fade AdminFilterStrip puts on chip rows. */}
-              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto no-scrollbar [&>button]:shrink-0 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
+              {/* AUD31-44 (audit 10-31): the seven actions WRAP. They used to stay on one
+                  scrolling row under a fade, which hid "Dismiss" at 1440 and everything after
+                  "Assign to Me" at 375, so Resolve and Dismiss were never seen without a sideways
+                  scroll nobody knew to try. */}
+              <div data-report-actions className="flex flex-wrap gap-2 pt-1 [&>button]:shrink-0">
                 <ReportSubjectButton report={report} />
                 {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (
                   <>

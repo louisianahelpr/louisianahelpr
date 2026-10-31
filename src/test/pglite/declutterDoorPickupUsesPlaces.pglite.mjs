@@ -18,6 +18,8 @@ import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261031164337_declutter_door_pickup_uses_places.sql";
+// The money review's fix (2026-10-31 #2): a porch order with no frozen place keeps to the seller's porch days.
+const DAYS_FILE = "20261031171727_declutter_porch_days_without_places.sql";
 const BASES = [
   "20261027211754_declutter_bundle_discount.sql",
   "20261028195840_declutter_pickup_window_reads.sql",
@@ -52,6 +54,11 @@ if (!skip) {
     const r = await run(sql);
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
   }
+  const days = readFileSync(process.env.DAYS_PATH ?? `${MIG_DIR}${DAYS_FILE}`, "utf8");
+  for (let i = 0; i < 3; i++) {
+    const r = await run(days);
+    ok(!r?.error, `the porch-days migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
 }
 
 // The seller's usual times (7 AM to 9 PM every day) and two places, each with its own hours on every day of the week.
@@ -62,6 +69,8 @@ const CAMP = { lat: 29.95, lng: -90.07 };
 const everyDay = (starts, ends) => [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts, ends }));
 const save = (label, addr, p, windows) => me(SELLER2,
   `SELECT public.declutter_save_porch_place(NULL, '${label}', '${addr}', 'New Iberia', ${p.lat}, ${p.lng}, NULL, '${JSON.stringify(windows)}'::jsonb) AS id`);
+const save2 = (id, label, addr, p, windows) => me(SELLER2,
+  `SELECT public.declutter_save_porch_place('${id}', '${label}', '${addr}', 'New Iberia', ${p.lat}, ${p.lng}, NULL, '${JSON.stringify(windows)}'::jsonb) AS id`);
 const home = one(await save("Home", "12 Home Street, New Iberia", HOME, everyDay("09:00", "11:00")));
 const camp = one(await save("Camp", "99 Camp Road, New Iberia", CAMP, everyDay("15:00", "17:00")));
 ok(typeof home === "string" && typeof camp === "string", `fixture: the seller saves Home (9-11) and Camp (3-5)${typeof home === "string" ? "" : ` (got ${short(home)})`}`);
@@ -143,7 +152,50 @@ await addToCart(4, SELLER, BUYER, 0);
 const F2 = one(await me(BUYER, `SELECT public.declutter_checkout_free('${SELLER}', 'pickup_home') AS id`));
 ok(typeof F2 === "string", `no places: a free door claim as before${typeof F2 === "string" ? "" : ` (got ${short(F2)})`}`);
 
-// 6. Grants on the two restated functions.
+// 6. Review 2026-10-31 #2: a porch seller with NO places and porch days Saturday only (pickup times every day).
+await svc(`INSERT INTO public.declutter_seller_porch_days (seller_id, weekdays) VALUES ('${SELLER}', ARRAY[6]::smallint[])
+  ON CONFLICT (seller_id) DO UPDATE SET weekdays = EXCLUDED.weekdays`);
+await addToCart(5, SELLER, BUYER, 1100);
+const Pd = (await me(BUYER, `SELECT * FROM public.declutter_start_checkout('${SELLER}', 'porch')`))?.[0];
+await svc(`SELECT public.declutter_mark_order_paid('${Pd?.order_id}', 'pi_door_2', ${Pd?.total_cents}, now(), 150)`);
+ok(one(await svc(`SELECT status FROM public.declutter_orders WHERE id = '${Pd?.order_id}'`)) === "paid", `fixture: a porch order from a seller with no places is paid${Pd?.order_id ? "" : ` (got ${short(Pd)})`}`);
+const porchHours = await me(BUYER, `SELECT weekday FROM public.declutter_order_pickup_windows('${Pd?.order_id}')`);
+ok(Array.isArray(porchHours) && porchHours.length === 1 && Number(porchHours[0].weekday) === 6,
+  `the porch order's times are Saturday's only, not every day's (${short(porchHours)})`);
+const todayDow = Number(one(await svc(`SELECT extract(dow FROM now() AT TIME ZONE 'America/Chicago')::int`)));
+const ahead = (d) => ((d - todayDow + 7) % 7) || 7;
+const onDay = (d, hhmm) => `((date_trunc('day', now() AT TIME ZONE 'America/Chicago') + make_interval(days => ${ahead(d)}) + '${hhmm}'::time) AT TIME ZONE 'America/Chicago')`;
+const tue = await me(BUYER, `SELECT public.declutter_book_pickup('${Pd?.order_id}', ${onDay(2, "08:30")}) AS r`);
+ok(refused(tue, /invalid_slot/), `a Tuesday 8:30 (a pickup time, not a porch day) is refused${refused(tue, /invalid_slot/) ? "" : ` (got ${short(tue)})`}`);
+// The next Saturday 8:30 within the 7-day deadline: today's when it is Saturday before 8:30, else the coming one (on a
+// Saturday that is 7 days on, inside the deadline once it is 9:00; between 8:30 and 9:00 on a Saturday no Saturday slot
+// fits the 7 days, so run it outside that half hour).
+const nowMin = Number(one(await svc(`SELECT (extract(hour FROM now() AT TIME ZONE 'America/Chicago') * 60 + extract(minute FROM now() AT TIME ZONE 'America/Chicago'))::int`)));
+const satAt = todayDow === 6 && nowMin < 8 * 60 + 30
+  ? `((date_trunc('day', now() AT TIME ZONE 'America/Chicago') + '08:30'::time) AT TIME ZONE 'America/Chicago')`
+  : onDay(6, "08:30");
+const sat = await me(BUYER, `SELECT public.declutter_book_pickup('${Pd?.order_id}', ${satAt}) AS r`);
+ok(one(sat)?.result === "booked", `a Saturday 8:30 (the porch day) books${Array.isArray(sat) ? "" : ` (got ${short(sat)})`}`);
+// A door pickup from the same seller is not held to the porch days.
+await addToCart(6, SELLER, BUYER2, 1000);
+const Dd = (await me(BUYER2, `SELECT * FROM public.declutter_start_checkout('${SELLER}', 'pickup_home')`))?.[0];
+await svc(`SELECT public.declutter_mark_order_paid('${Dd?.order_id}', 'pi_door_3', ${Dd?.total_cents}, now(), 150)`);
+const doorHours = await me(BUYER2, `SELECT weekday FROM public.declutter_order_pickup_windows('${Dd?.order_id}')`);
+ok(Array.isArray(doorHours) && doorHours.length === 7, `a door pickup from that seller keeps every day's times (${Array.isArray(doorHours) ? doorHours.length : short(doorHours)})`);
+const doorTue = await me(BUYER2, `SELECT public.declutter_book_pickup('${Dd?.order_id}', ${onDay(2, "08:30")}) AS r`);
+ok(one(doorTue)?.result === "booked", `  and books a Tuesday${Array.isArray(doorTue) ? "" : ` (got ${short(doorTue)})`}`);
+
+// 7. Review (low): the place's hours are in the open-order reuse key; edited hours open a new order.
+await addToCart(7, SELLER2, BUYER2, 1300);
+await me(BUYER2, `SELECT public.declutter_set_porch_place('${SELLER2}', '${camp}')`);
+const K1 = (await me(BUYER2, `SELECT * FROM public.declutter_start_checkout('${SELLER2}', 'pickup_home')`))?.[0];
+await save2(camp, "Camp", "99 Camp Road, New Iberia", CAMP, everyDay("16:00", "18:00"));
+const K2 = (await me(BUYER2, `SELECT * FROM public.declutter_start_checkout('${SELLER2}', 'pickup_home')`))?.[0];
+ok(K1?.order_id && K2?.order_id && K1.order_id !== K2.order_id
+   && hours(one(await svc(`SELECT windows FROM public.declutter_order_porch_places WHERE order_id = '${K2?.order_id}'`))) === hours(everyDay("16:00", "18:00")),
+  `the seller edits Camp's hours: checkout opens a new order with the new hours (${short([K1?.order_id, K2?.order_id])})`);
+
+// 8. Grants on the restated functions.
 const acl = async (role, fn) => one(await svc(`SELECT has_function_privilege('${role}', 'public.${fn}', 'EXECUTE')`));
 ok(await acl("anon", "declutter_start_checkout(uuid, text, timestamptz, text)") === false
    && await acl("anon", "declutter_checkout_free(uuid, text)") === false,
@@ -151,6 +203,9 @@ ok(await acl("anon", "declutter_start_checkout(uuid, text, timestamptz, text)") 
 ok(await acl("authenticated", "declutter_start_checkout(uuid, text, timestamptz, text)") === true
    && await acl("authenticated", "declutter_checkout_free(uuid, text)") === true,
   "members can");
+ok(await acl("authenticated", "declutter_order_slot_in_windows(uuid, uuid, timestamptz)") === false
+   && await acl("anon", "declutter_order_pickup_windows(uuid)") === false,
+  "the slot helper stays internal; anon cannot read an order's times");
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

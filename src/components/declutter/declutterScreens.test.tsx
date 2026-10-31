@@ -268,11 +268,11 @@ describe("Declutter screens", () => {
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
     expect(await screen.findByText("Being checked. We'll send you a notice when it's done.")).toBeInTheDocument();
     expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
-    // D4-12: every Selling row's actions name their item, so a list of rows is not "View, Manage, View, Manage".
+    // D4-12: every Selling row's actions name their item, so a list of rows is not "Preview, Manage, Preview, Manage".
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`View ${item.title}`} | aria-label="View"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Preview ${item.title}`} | aria-label="Preview"
     expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: `View ${ITEM.title}` })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: `Preview ${ITEM.title}` }).length).toBeGreaterThan(0);
     expect(screen.queryByText("pending_review")).toBeNull();
   });
 

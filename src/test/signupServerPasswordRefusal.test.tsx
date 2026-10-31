@@ -5,7 +5,7 @@
  * aria-invalid), until the password changes.
  *
  * @mutate src/pages/auth/Signup.tsx |       if (isWeakPasswordError(err)) { |       if (false) {
- * @mutate src/pages/auth/signup/SignupStep1.tsx | || !!serverPasswordError; | ;
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | \|\| !!serverPasswordError; | ;
  * @mutate src/lib/authErrors.ts |   if (reasons.includes("pwned")) return | if (false) return
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

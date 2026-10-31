@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1049,
-    "files": 291,
-    "rendering": 894,
+    "calls": 1047,
+    "files": 290,
+    "rendering": 892,
     "suppressedByPolicy": 155,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 85,
-      "toast.error": 736,
+      "toast": 86,
+      "toast.error": 733,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 455,
       "template": 97,
-      "dynamic": 547,
+      "dynamic": 545,
       "jsx": 0
     }
   },
@@ -838,7 +838,112 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 953,
+      "line": 884,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalVerdictMessage(v)",
+        "from": "src/lib/arrivalGate.ts",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You're checked in — the person who posted this job confirmed you arrived."
+          },
+          {
+            "form": "literal",
+            "text": "You're checked in and your location is confirmed at the job. You can start working."
+          },
+          {
+            "form": "dynamic",
+            "text": "v.distanceFt != null ? `You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}` : `You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "v.distanceFt != null ? `You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}` : `You're checked in, but your location doesn't look like the job site. ${thenPoster}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "You're checked in, but your location doesn't look like the job site. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "template",
+            "text": "You're checked in. We couldn't read your location — turning Location on makes it obvious you're here. ${thenPoster}",
+            "holes": {
+              "thenPoster": [
+                {
+                  "form": "literal",
+                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "You're checked in, but we couldn't read your location. Try again with Location on so they can see you're here. ${thenPoster}",
+            "holes": {
+              "thenPoster": [
+                {
+                  "form": "literal",
+                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 955,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -848,7 +953,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 966,
+      "line": 968,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -858,7 +963,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 993,
+      "line": 995,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -868,7 +973,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1044,
+      "line": 1046,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -878,7 +983,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1088,
+      "line": 1090,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -888,7 +993,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1147,
+      "line": 1149,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -898,7 +1003,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1206,
+      "line": 1208,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1058,7 +1163,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 136,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1068,7 +1173,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 153,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1078,7 +1183,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 164,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1088,41 +1193,11 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 213,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "files.length === 1 ? \"That photo didn't upload. Try again — if it keeps failing, contact support.\" : \"None of those photos uploaded. Try again — if it keeps failing, contact support.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "That photo didn't upload. Try again — if it keeps failing, contact support."
-          },
-          {
-            "form": "literal",
-            "text": "None of those photos uploaded. Try again — if it keeps failing, contact support."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PhotoProof.tsx",
-      "line": 222,
+      "line": 229,
       "kind": "toast.warning",
       "title": {
         "form": "template",
         "text": "${failedUploads} of ${files.length} photos didn't upload — the rest were attached."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PhotoProof.tsx",
-      "line": 233,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "(crew ? rpcErrorMessage(\"rpc_group_member_set_proof\", updateError) : null) ?? mutationErrorMessage(updateError, \"Photos uploaded but couldn't be saved to the job. Please try again.\")"
       },
       "renders": true
     },
@@ -1213,16 +1288,6 @@
       "title": {
         "form": "literal",
         "text": "Couldn't copy — long-press the number to select it."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 181,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "msg"
       },
       "renders": true
     },
@@ -5021,17 +5086,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 67,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 211,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5042,6 +5097,16 @@
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
       "line": 223,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

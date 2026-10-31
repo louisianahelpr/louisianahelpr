@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import type { ReadableJobRow } from "@/lib/jobColumns";
+import type { PayoutTransferRow } from "./realPayoutTransfers";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -28,3 +29,12 @@ export type DrillDown = "users" | "jobs" | "revenue" | "fees" | "subscriptions" 
 // subscriber would count as $0 of MRR, so the revenue chart under-reports by
 // exactly the tier the owner just launched.
 export const SUB_PRICE = { basic: 5, pro: 10, plus: 15, elite: 20 } as const;
+
+/** What the Analytics page's one load returns (loadAnalytics in AdminAnalytics.tsx). */
+export type AnalyticsLoad = {
+  profiles: Profile[];
+  allJobs: Job[];
+  transfers: PayoutTransferRow[] | null;
+  tips: Tip[];
+  roleByUser: Map<string, string>;
+};

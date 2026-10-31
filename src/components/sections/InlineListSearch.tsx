@@ -90,7 +90,7 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
         desktop
           ? // The desktop pill (owner 2026-10-28, the mock-up's "Today" row; searchPill.ts).
             `${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} min-w-0 shrink flex items-center gap-2 pl-3.5 pr-1 focus-within:border-[hsl(var(--bark)/0.55)]`
-          : `h-10 ${fill ? "search-fill min-w-0 flex-1" : "w-[clamp(200px,55vw,320px)] shrink-0"} flex items-center gap-1.5 pl-3 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring`
+          : `h-10 ${fill ? "search-fill min-w-0 flex-1 gap-1 pl-2" : "w-[clamp(200px,55vw,320px)] shrink-0 gap-1.5 pl-3"} flex items-center pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring`
       }
     >
       {/* `search-fill-glyph`: below a 160px filling field the magnifier steps aside so "Search" stays whole (index.css). */}

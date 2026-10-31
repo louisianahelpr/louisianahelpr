@@ -55,7 +55,10 @@ export function ProblemOpenNote({ problem, side, answered = false, delivery = fa
     <div role="status" className="rounded-xl border border-border px-3 py-2 text-ds-13" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-problem-open="">
       <p className="font-semibold">{PROBLEM_OPEN_HEADLINE}</p>
       <p className="text-muted-foreground">
-        {reported} {side === "seller" ? "Your money is held until they decide." : "Nobody is paid until they decide."}
+        {/* NIGHT-BUYINGopenpr-8 (seller's held card): the money line under the tracker already says "Your $40 is held
+            while Louisiana Helpr looks at the problem." (MoneyNote, SellerDeliveryMoney, payoutLine), with the amount and
+            only while it is really held, so the note no longer says it a second time. A free giveaway has no money. */}
+        {side === "seller" ? reported : `${reported} Nobody is paid until they decide.`}
       </p>
       <p className="text-muted-foreground" data-problem-next="">{PROBLEM_NEXT}</p>
     </div>

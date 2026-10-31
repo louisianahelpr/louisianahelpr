@@ -34,9 +34,18 @@ describe("board 189: the first-job Home says only what is true", () => {
   });
 
   it("steps read the real profile, and the alerts card waits for alerts to be off", () => {
-    expect(src).toMatch(/done: hasIdBadge\(profile\?\.idv_status\)/);
     expect(src).toMatch(/const payoutsDone = profile\?\.stripe_payouts_enabled === true;[\s\S]*?done: payoutsDone/);
     expect(src).toMatch(/\{alertsOff && \(/);
     expect(src).toMatch(/prefs\.job_matches === false && prefs\.email_job_matches === false/);
+  });
+
+  // AUD31-65 (audit 10-31, Leftovers: first hour): with identity_check on, a new member's "Get your first job" listed
+  // "Verify your ID" first and tapping it started the ID check before any hire. Owner rule (memory "ID check timing",
+  // restated by the lead 10-31): the ID check happens once, at hire or first payout, never at sign-up, post, buy or
+  // list. The checklist has no ID step and opens no ID check.
+  it("AUD31-65: the first-job checklist never asks for the ID", () => {
+    expect(src).not.toMatch(/Verify your ID/);
+    expect(src).not.toMatch(/openIdentityCheck\(/);
+    expect(src).toMatch(/Pick what you do/);
   });
 });

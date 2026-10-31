@@ -331,7 +331,7 @@ const Login = () => {
             </p>
             {/* AUD31-16: a shared Declutter link's guest is most likely new: sign-up first, here, not only the small last line. */}
             {leadWithSignup && (
-              <Link to={signupHref} className="inline-flex min-h-11 items-center font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }} data-login-lead-signup="">
+              <Link to={signupHref} className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }} data-login-lead-signup="">
                 {t("login.createAccount")}
               </Link>
             )}

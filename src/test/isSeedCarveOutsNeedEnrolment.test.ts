@@ -65,6 +65,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
   admin_section_funnel: "hides",
+  admin_signup_source_report: "hides", // OPS-5 (20261031220447): seed profiles and test accounts never count in the sign-up sources
   check_push_token_health: "alerts",
   claim_come_back_emails: "hides",
   // confirm-your-email reminders (20261025190000): a seed account gets no reminder email

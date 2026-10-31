@@ -29,9 +29,11 @@ import { join } from "node:path";
  * INSERT/UPDATE/DELETE in its body.
  * `admin_booking_sources` added 2026-10-30 (B66 Book me, 20261030013347): STABLE,
  * SECURITY DEFINER, a single SELECT (read from the migration; it reaches prod on merge).
+ * `admin_signup_source_report` added 2026-10-31 (OPS-5, 20261031220447): plpgsql STABLE SECURITY DEFINER, one
+ * RETURN QUERY SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is

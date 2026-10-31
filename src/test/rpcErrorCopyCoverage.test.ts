@@ -71,6 +71,11 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // OPS-5 (20261031220447): reportSignupSource (src/lib/signupSource.ts) runs in the background only once a member is
+  // signed in (SessionManager, user id set); any error is report()ed and no message exists.
+  record_my_signup_source: {
+    not_signed_in: { reason: "no message exists at this site: reportSignupSource only runs signed in and only reports errors" },
+  },
   // LEAD-POST-SLOW (a), 20261031160546: these make their item through declutter_create_item_with_id with a fresh
   // gen_random_uuid(), never an id from the caller, so its item_id_taken (an id already used) can't happen.
   declutter_create_item: {

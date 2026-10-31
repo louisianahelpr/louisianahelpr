@@ -15144,16 +15144,20 @@ export type Database = {
       declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_porch_places: {
         Args: never
-        Returns: { address: string; area: string; id: string; label: string; lat: number; lng: number; position: number; weekdays: number[] }[]
+        Returns: { address: string; area: string; id: string; label: string; lat: number; lng: number; position: number; weekdays: number[]; windows: Json }[]
       }
       declutter_save_porch_place: {
-        Args: { p_address: string; p_area: string; p_label: string; p_lat: number; p_lng: number; p_place_id: string; p_weekdays: number[] }
+        Args: { p_address: string; p_area: string; p_label: string; p_lat: number; p_lng: number; p_place_id: string; p_weekdays: number[]; p_windows?: Json }
         Returns: string
       }
       declutter_delete_porch_place: { Args: { p_place_id: string }; Returns: string }
       declutter_seller_porch_places: {
         Args: { p_seller_id: string }
-        Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[] }[]
+        Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[]; windows: Json }[]
+      }
+      declutter_item_pickup_places: {
+        Args: { p_item_id: string }
+        Returns: { area: string; label: string; weekdays: number[]; windows: Json }[]
       }
       declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
       declutter_order_place: {

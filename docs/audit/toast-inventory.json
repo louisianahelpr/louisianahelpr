@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1052,
-    "files": 293,
-    "rendering": 971,
+    "calls": 1050,
+    "files": 292,
+    "rendering": 969,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 164,
-      "toast.error": 735,
+      "toast": 163,
+      "toast.error": 734,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 455,
+      "literal": 454,
       "template": 96,
-      "dynamic": 551,
+      "dynamic": 550,
       "jsx": 0
     }
   },
@@ -4923,7 +4923,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 135,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5261,26 +5261,6 @@
     {
       "file": "src/components/declutter/DeclutterPickupDayCard.tsx",
       "line": 32,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterPickupTimes.tsx",
-      "line": 220,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Pickup times saved."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterPickupTimes.tsx",
-      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6256,7 +6236,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 128,
+      "line": 147,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

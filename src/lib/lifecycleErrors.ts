@@ -616,6 +616,11 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  declutter_item_pickup_places: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_order_pickup_windows: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
@@ -1483,6 +1488,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
+    invalid_place_hours: DC.invalid_place_hours,
     invalid_porch_days: DC.invalid_porch_days,
     invalid_porch_place: DC.invalid_porch_place,
     not_authenticated: DC.not_authenticated,

@@ -4,7 +4,7 @@
  * The gear itself and Selling's one row: sellingDash.test.tsx.
  *
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <PickupTimesCard userId={user.id} />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <BundleDiscountCard />\n |             <BundleDiscountCard />\n            <section aria-label="Pickup times" />\n
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellerDeliveryCard />\n |
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
@@ -56,7 +56,7 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
   return { ...real, fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [], items_off: [], rules: real.SELLER_DELIVERY_RULES }) };
 });
-vi.mock("./DeclutterPickupTimes", () => ({ PickupTimesCard: () => <section aria-label="Pickup times" data-pickup-times-card="" />, PickupTimesEditor: () => null }));
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [] }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {
@@ -93,8 +93,9 @@ describe("Declutter settings", () => {
   it("holds the five areas, the notifications row going to the Notifications screen", async () => {
     open();
     await save();
-    for (const name of ["Listing defaults", "Pickup, delivery and bundles", "Notifications"]) expect(screen.getByRole("region", { name })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Pickup times" })).toBeInTheDocument();
+    for (const name of ["Listing defaults", "Delivery and bundles", "Notifications"]) expect(screen.getByRole("region", { name })).toBeInTheDocument();
+    // LEAD-PLACE-TIMES (owner 2026-10-31): no separate Pickup times card; each pickup place has its own hours.
+    expect(screen.queryByRole("region", { name: "Pickup times" })).toBeNull();
     expect(await screen.findByRole("region", { name: "Your delivery" })).toBeInTheDocument();
     expect(await screen.findByRole("region", { name: "Bundle discount" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Declutter notifications/ })).toHaveAttribute("href", "/profile?tab=notifications&show=declutter");

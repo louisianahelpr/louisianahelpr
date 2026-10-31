@@ -114,6 +114,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Porch places (D-NEW14, 20261030164712).
   invalid_porch_place: "Give the place a name and its full address.",
   porch_places_full: "You can save up to 5 pickup places.",
+  // Place hours (LEAD-PLACE-TIMES, 20261031145652).
+  invalid_place_hours: "Each pickup time must end at least 30 minutes after it starts.",
   porch_place_not_found: "We couldn't find that pickup place. It may have been removed.",
   porch_place_unavailable: "That pickup place isn't available. Pick another.",
   porch_place_needed: "Pick which of the seller's pickup places you'll use.",

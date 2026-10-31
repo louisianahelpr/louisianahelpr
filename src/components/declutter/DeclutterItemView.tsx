@@ -51,6 +51,7 @@ import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
 import { ItemPickupTimes } from "./DeclutterPickupWindows";
+import { ItemPickupPlaces } from "./SellPorchPlaces";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
@@ -309,6 +310,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {/* BUY-18: a porch-only item is picked up on a DAY (the porch day, picked after paying from the seller's
                 porch days, which a buyer cannot read here), so the seller's hours are not its pickup times. */}
             {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />}
+            {/* LEAD-POST-PLACES (owner 2026-10-31): every saved pickup place with its own days and hours, never an address. */}
+            {way !== "none" && forSale && user && <ItemPickupPlaces itemId={itemId} />}
             {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already

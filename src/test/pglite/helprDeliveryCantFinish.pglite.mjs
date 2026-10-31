@@ -255,6 +255,14 @@ const dmg = await cantFinish(I2.task, "damaged", "It fell over.");
 const pI = await openProblem(I2.order);
 ok(dmg?.[0]?.r?.result === "with_admin" && pI?.reporter_side === "helpr" && pI?.reason === "damaged", `damage goes to Louisiana Helpr (${short(dmg)})`);
 ok(!(await refund(I2.order)) && (await strikes()) === strikesI, "  no money and no strike until it decides");
+const adminNotes = async () => one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${ADMIN}' AND title = 'Declutter problem reported'`));
+ok((await adminNotes()) > 0, "  a real report reaches the admin");
+await run(`CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT p = '${HELPR}'::uuid $$;`);
+const adminBefore = await adminNotes();
+const T1 = await carried(21);
+await cantFinish(T1.task, "damaged", "Test Helpr.");
+ok((await openProblem(T1.order))?.reason === "damaged" && (await adminNotes()) === adminBefore, "  a test Helpr's report opens the problem, and no admin hears of it");
+await run(`CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;`);
 ok(refused(await me(HELPR, `SELECT public.helpr_task_cant_finish('${I2.task}', 'cant_finish', '')`), /problem_open/), "  and the Helpr can't report again meanwhile");
 
 // 7. The seller says it didn't come back.
@@ -275,6 +283,10 @@ await svc(`UPDATE public.helpr_tasks SET picked_up_at = now() - interval '30 hou
 await sweep();
 ok((await task(K.task)).in_hand_nudged_at === null, "a delivery already reported isn't nudged");
 ok(one(await svc(`SELECT count(*)::int FROM public.cron_defects_seen WHERE fn = 'helpr_task_sweep'`)) === 0, "no sweep step failed");
+
+// 9. BUY-44: the seller hears it was delivered (A was dropped off above).
+ok(/at the buyer's drop-off address/.test((await noteTo(SELLER, "Delivered")) ?? ""), "the seller is told it was delivered, once");
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${SELLER}' AND title = 'Delivered' AND message LIKE '%Carried item 1%'`)) === 1, "  one notice, naming the item");
 
 console.log(`\n${pass} PASS / ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

@@ -18,7 +18,6 @@ import { Camera, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { safeStorage } from "@/lib/safeStorage";
@@ -468,8 +467,10 @@ export function WantedView() {
       ) : origin.status === "pending" ? (
         <p className="text-sm text-muted-foreground" role="status">Finding your area…</p>
       ) : at ? (
-        <div className="flex justify-center sm:justify-start">
-          <BarkPillButton type="button" onClick={() => setPosting(true)}>Post what you're looking for</BarkPillButton>
+        // LEAD-WANTED-POST-BUTTON (owner 2026-10-31): the same button as Selling's "Sell an item" (DeclutterHomeView
+        // data-selling-sell): default Button, rounded, left-aligned in the same row, not a centered floating pill.
+        <div className="flex items-center gap-3" data-wanted-post="">
+          <Button type="button" className="shrink-0 rounded-full" onClick={() => setPosting(true)}>Post what you're looking for</Button>
         </div>
       ) : (
         <DeclutterNotice title="We need your area to find matches near you.">

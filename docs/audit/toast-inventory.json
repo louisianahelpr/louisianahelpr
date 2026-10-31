@@ -5886,7 +5886,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 228,
+      "line": 227,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5896,7 +5896,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 229,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5906,7 +5906,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 231,
+      "line": 230,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5916,7 +5916,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 238,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5936,11 +5936,21 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 304,
+      "line": 303,
       "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Your post is up. A photo is waiting for a quick look before sellers see it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 311,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },
@@ -5956,17 +5966,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 313,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 366,
+      "line": 365,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5976,7 +5976,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 367,
+      "line": 366,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5986,7 +5986,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 371,
+      "line": 370,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5996,7 +5996,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 372,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6006,7 +6006,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 381,
+      "line": 380,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6026,7 +6026,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 386,
+      "line": 385,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

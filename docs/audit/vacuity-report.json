@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T06:59:58.265Z",
-  "guards": 2882,
-  "registered": 2879,
+  "generated": "2026-10-31T12:57:10.153Z",
+  "guards": 2908,
+  "registered": 2905,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -10,6 +10,7 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
+    "src/components/declutter/DeclutterBrowse.guest.test.tsx",
     "src/components/declutter/declutterBunchTickCorner.test.tsx",
     "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
     "src/components/declutter/declutterStillAvailable.test.tsx",
@@ -23,6 +24,7 @@
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/instantReleaseSaysThreeDays.test.ts",
+    "src/test/photoViewerArrowsAbovePhoto.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
     "src/test/vitestShardsGateTheCheck.test.ts",
@@ -155,15 +157,6 @@
       ]
     },
     {
-      "module": "src/components/declutter/DeclutterPickupDayCard.tsx",
-      "tests": [
-        "src/components/declutter/declutterPickupDayCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterMineViews.tsx"
-      ]
-    },
-    {
       "module": "src/components/declutter/SellItForMe.tsx",
       "tests": [
         "src/components/declutter/sellItForMe.test.tsx"
@@ -256,6 +249,22 @@
       ],
       "parents": [
         "src/components/profile/SavedHelpersTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ProtectedRoute.tsx",
+      "tests": [
+        "src/test/emailGateEveryProtectedRoute.test.tsx",
+        "src/test/errorSurfacesReport.test.tsx",
+        "src/test/guestOpensSharedJobLink.test.tsx",
+        "src/test/lapsedSuspensionRouteGate.test.tsx",
+        "src/test/pressHonoursSelfHeal.test.tsx",
+        "src/components/ProtectedRoute.autoHeal.test.tsx",
+        "src/components/ProtectedRoute.sessionLost.test.tsx",
+        "src/components/ProtectedRouteGates.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterGuestRoute.tsx"
       ]
     },
     {

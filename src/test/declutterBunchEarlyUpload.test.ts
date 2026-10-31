@@ -9,7 +9,9 @@
  * @mutate src/lib/declutter/bunch.ts |             const uploadedPath = (await early?.path(draftId, k)) ?? undefined; |             const uploadedPath = undefined;
  * @mutate src/lib/declutter/bunch.ts |  withId ? deps.createDraft(fields, withId) : deps.createDraft(fields); |  deps.createDraft(fields);
  * @mutate src/lib/declutter/bunch.ts |   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, items.length) }, readyWorker)); |   await Promise.all(Array.from({ length: Math.min(1, items.length) }, readyWorker));
- * @mutate src/lib/declutter/bunch.ts |       const [, , keepUpFailed] = await Promise.all([sendPhotos(), settle(), keepUp()]); |       await sendPhotos(); await settle(); const keepUpFailed = await keepUp();
+ * @mutate src/lib/declutter/bunch.ts |       const [sent, settled, kept] = await Promise.allSettled([sendPhotos(), settle(), keepUp()]); |       const [sent, settled, kept] = [await Promise.allSettled([sendPhotos()]), await Promise.allSettled([settle()]), await Promise.allSettled([keepUp()])].map((r) => r[0]);
+ * @mutate src/lib/declutter/bunch.ts | await Promise.allSettled([sendPhotos(), settle(), keepUp()]); | await Promise.all([sendPhotos(), settle(), keepUp()]);
+ * @mutate src/lib/declutter/bunch.ts |       if (failed) throw failed.reason; |       void failed;
  * @mutate src/lib/declutter/bunch.ts |   prepared.sort((a, b) => a.at - b.at); |   prepared.reverse();
  * @mutate src/lib/declutter/bunchStage.ts |         if (!this.staged.has(at)) this.staged.set(at, this.queued(id, file)); |         void at;
  * @mutate src/lib/declutter/bunchStage.ts |     for (const [at] of gone) this.staged.delete(at); |     void gone;
@@ -203,5 +205,31 @@ describe("BunchStager", () => {
     expect(await stager.path("early-1", "a1")).toBe("seller/declutter/early-1/a1.jpg");
     stager.used("early-1", "a1");
     expect(await stager.path("early-1", "a1")).toBeNull();
+  });
+});
+
+describe("Sell a bunch: a setting that fails while the photos are still being attached", () => {
+  it("ends the item only once its photos are done, so a quick Try again attaches no photo twice", async () => {
+    const log: string[] = [];
+    const { d, addPhoto } = slowDeps(log);
+    let handoverTries = 0;
+    d.setHandovers = vi.fn(async (_id: string, w: string[]) => {
+      await lag(RPC_MS);
+      // The first try is refused at once, while the first photo is still going up.
+      if ((handoverTries += 1) === 1) throw new Error("network_error");
+      return w;
+    }) as unknown as ListDeps["setHandovers"];
+    // The screen's copy of the item, kept up to date by each lasting step, as DeclutterBunchView does.
+    let shown = item("a", ["a1", "a2", "a3"]);
+    const onStep = (_key: string, patch: Partial<BunchItem> | null) => { if (patch) shown = { ...shown, ...patch }; };
+    const first = await settle(listBunch("seller", [shown], photos, place, ["porch"], () => {}, d, onStep, CHOICES));
+    expect("error" in first[0]).toBe(true);
+    // Try again at once, from what the screen holds the moment the first run says it stopped.
+    const second = await settle(listBunch("seller", [shown], photos, place, ["porch"], () => {}, d, onStep, CHOICES));
+    await settle(lag(10_000));
+    expect(second.map((o) => ("status" in o ? o.status : "error"))).toEqual(["live"]);
+    const attached = addPhoto.mock.calls.map((c) => (c[2] as File).name).sort();
+    expect(attached).toEqual(["a1.jpg", "a2.jpg", "a3.jpg"]);
+    expect(Object.keys(shown.uploaded ?? {}).sort()).toEqual(["a1", "a2", "a3"]);
   });
 });

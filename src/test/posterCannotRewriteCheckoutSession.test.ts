@@ -15,7 +15,7 @@
  * red then green: src/test/pglite/posterCannotRewriteCheckoutSession.pglite.mjs
  * (applied 3x: ALL PASS; NEW_MIGRATION=skip: 3 FAILED).
  *
- * @mutate supabase/migrations/20261007032429_poster_cannot_rewrite_checkout_session.sql |     'stripe_session_id'\n  ]; |     'created_at_x'\n  ];
+ * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'stripe_session_id',\n |     'created_at_x',\n
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

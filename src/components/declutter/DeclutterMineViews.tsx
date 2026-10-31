@@ -34,7 +34,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
-import { myItemsQuery } from "./myItemsQuery";
+import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
 import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
@@ -117,9 +117,6 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   );
 }
 
-/** On sale, or on its way there (the listings a seller still manages). */
-const LISTED = new Set(["draft", "pending_review", "live", "paused", "reserved"]);
-
 const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
 
@@ -127,7 +124,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
-  const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
+  // NIGHT-SELL-Sellinglist-2: the rows Your listings shows (everything but history), so "Listed · n" opens n rows.
+  const listed = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).length;
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).
   const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");

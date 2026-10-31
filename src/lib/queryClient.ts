@@ -15,7 +15,9 @@
  *   data (Stripe payouts, admin payout ledger, job history,
  *   notification logs) until the persisted entries expire.
  */
-import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, onlineManager } from "@tanstack/react-query";
+import { ensureConnectivityStarted, isConfirmedOffline, noteReachable, subscribeConnectivity, getConnectivity } from "./connectivity";
+import { isNativePlatform } from "./nativeInit";
 import { report } from "./errorLogger";
 import { currentScreen } from "./currentScreen";
 import { PERSIST_MAX_AGE_MS } from "./queryPersister";
@@ -43,7 +45,7 @@ import { isNetworkFailure } from "./networkFailure";
 //     7). Transport failures are collected for NETWORK_BURST_MS and logged
 //     once, as a warning, with how many reads failed and which screens' keys.
 export function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, key: unknown, timeoutMessage?: string) {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  if (isConfirmedOffline()) return;
   const head = Array.isArray(key) ? key[0] : key;
   const keyName = typeof head === "string" ? head : String(head ?? "");
   if (kind === "QueryCache" && isNetworkFailure(error)) return noteNetworkBurst(error, kind, keyName);
@@ -102,8 +104,23 @@ export function _isHandledCopyError(err: unknown): boolean {
   return false;
 }
 
+// Web: TanStack pauses queries from the SAME confirmed state the banner reads,
+// not from the raw window offline event (Chrome can fire it while online, and
+// every query then paused into a full-page "You're offline", owner 10-31).
+// Native keeps appLifecycle.ts feeding @capacitor/network into onlineManager.
+if (!isNativePlatform) {
+  ensureConnectivityStarted();
+  onlineManager.setEventListener((setOnline) => {
+    setOnline(getConnectivity().online);
+    return subscribeConnectivity(() => setOnline(getConnectivity().online));
+  });
+}
+
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
+    // Any read that came back proves the connection: flip a (possibly wrong)
+    // offline state back at once (src/lib/connectivity.ts, owner 10-31).
+    onSuccess: () => noteReachable(),
     // `meta: { reportsItself: true }`: a query that reports its own failure (at most
     // once per session, e.g. the signed-out landing's public switch read) is
     // skipped here, so one bad deploy does not log an error on every anon visit.

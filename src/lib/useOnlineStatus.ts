@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { getConnectivity, setConnectivity, subscribeConnectivity, type OnlineStatus } from "@/lib/connectivity";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
  * Reusable online/offline status hook.
  *
  * Returns `{ online, lastChangedAt }`:
- *   - `online`: connectivity state. On web this tracks `navigator.onLine`
- *     via the window `online` / `offline` events. On native (Capacitor)
+ *   - `online`: connectivity state. On web this reads the shared store in
+ *     src/lib/connectivity.ts: a `navigator.onLine === false` / `offline`
+ *     event is only a hint, confirmed by a short backend probe before the
+ *     app says offline (owner, 10-31: Chrome reported offline while she was
+ *     online). On native (Capacitor)
  *     it additionally subscribes to `@capacitor/network`, which reports
  *     the OS-level reachability state (WiFi / cellular / none) rather
  *     than the WKWebView's `navigator.onLine` heuristic.
@@ -19,34 +23,18 @@ import { isNativePlatform } from "@/lib/nativeInit";
  * side (TanStack `onlineManager`) is fed from the same `@capacitor/network`
  * source in `appLifecycle.ts`.
  */
-export interface OnlineStatus {
-  online: boolean;
-  /** Epoch-ms of the most recent transition. Initial value is the hook mount time. */
-  lastChangedAt: number;
-}
+export type { OnlineStatus } from "@/lib/connectivity";
 
 export function useOnlineStatus(): OnlineStatus {
-  const [status, setStatus] = useState<OnlineStatus>(() => ({
-    online: typeof navigator === "undefined" ? true : navigator.onLine,
-    lastChangedAt: Date.now(),
-  }));
-
-  useEffect(() => {
-    const goOnline = () => setStatus({ online: true, lastChangedAt: Date.now() });
-    const goOffline = () => setStatus({ online: false, lastChangedAt: Date.now() });
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
+  // Web: the shared store (src/lib/connectivity.ts). navigator.onLine=false is
+  // only a hint there; it is confirmed by a probe before anything says offline.
+  const status = useSyncExternalStore(subscribeConnectivity, getConnectivity, getConnectivity);
 
   // Native: layer @capacitor/network on top for accurate OS reachability.
   // WKWebView's navigator.onLine can report `true` on captive-portal /
   // "connected but no internet" states; the Network plugin reflects the
   // real transport. Dynamic import keeps the plugin chunk off the web
-  // bundle. The web listeners above stay attached and harmless on native.
+  // bundle. The store's web listeners stay attached and harmless on native.
   useEffect(() => {
     if (!isNativePlatform) return;
     let cancelled = false;
@@ -56,13 +44,9 @@ export function useOnlineStatus(): OnlineStatus {
         const { Network } = await import("@capacitor/network");
         const initial = await Network.getStatus();
         if (cancelled) return;
-        setStatus((prev) =>
-          prev.online === initial.connected ? prev : { online: initial.connected, lastChangedAt: Date.now() },
-        );
+        setConnectivity(initial.connected);
         const handle = await Network.addListener("networkStatusChange", (s) => {
-          setStatus((prev) =>
-            prev.online === s.connected ? prev : { online: s.connected, lastChangedAt: Date.now() },
-          );
+          setConnectivity(s.connected);
         });
         removeListener = () => void handle.remove();
       } catch {

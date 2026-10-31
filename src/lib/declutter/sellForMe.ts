@@ -56,13 +56,18 @@ export const SELL_FOR_ME_NO_ACCOUNT_LINE =
  */
 export const SELL_FOR_ME_PHOTO_LINE = "Photos you take on your phone: send them to me in our job chat.";
 
-/** The description template the poster fills in (under the 1000-character cap). */
+/**
+ * The description template the poster fills in (under the 1000-character cap). POST-H15 (posting audit 10-30 #15):
+ * its three blanks were empty line ends, so Continue went on with all three blank and a Helpr got "How many items:
+ * about " and nothing after it. Each blank is a [placeholder] now: Post a Job's details step refuses one left as it
+ * is (detailsBlocker's "Replace the [placeholders] to continue") and the field says why.
+ */
 const SELL_FOR_ME_DESCRIPTION = [
   "I'd like help selling things I no longer need on Declutter.",
   "",
-  "How many items: about ",
-  "Rough size (small things, furniture or a mix): ",
-  "Also handle pickups with buyers (yes or no): ",
+  "How many items: [about how many]",
+  "Rough size: [small things, furniture or a mix]",
+  "Also handle pickups with buyers: [yes or no]",
   "",
   SELL_FOR_ME_PHOTO_LINE,
   SELL_FOR_ME_NO_ACCOUNT_LINE,

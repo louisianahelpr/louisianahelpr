@@ -71,6 +71,11 @@ vi.mock("@/lib/helprTasks/api", () => ({
   acceptTask: async (...a: unknown[]) => { state.calls.push(["accept", ...a]); },
   releaseTask: async (...a: unknown[]) => { state.calls.push(["release", ...a]); return { result: "released", strike: false }; },
   markPickedUp: async (...a: unknown[]) => { state.calls.push(["picked_up", ...a]); },
+  reportCantFinish: async (...a: unknown[]) => { state.calls.push(["cant_finish", ...a]); },
+  buyerFixDelivery: async (...a: unknown[]) => { state.calls.push(["buyer_fix", ...a]); },
+  buyerChooseAfterCantFinish: async (...a: unknown[]) => { state.calls.push(["buyer_choose", ...a]); },
+  markReturned: async (...a: unknown[]) => { state.calls.push(["returned", ...a]); },
+  sellerReturnAnswer: async (...a: unknown[]) => { state.calls.push(["return_answer", ...a]); },
   markDelivered: async (...a: unknown[]) => { state.calls.push(["delivered", ...a]); return { result: "confirmed" }; },
   reportPickupNoShow: async (...a: unknown[]) => { state.calls.push(["no_show", ...a]); },
   markHandedOver: async (...a: unknown[]) => { state.calls.push(["handed_over", ...a]); return { result: "handed_over" }; },
@@ -467,6 +472,51 @@ describe("DeliverView (the Helpr's screen)", () => {
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/Hank picked it up .* and hasn't marked it delivered\. If you have it, tap "I got it"\. If not, report a problem\./)).toBeInTheDocument();
     expect(screen.queryByText(/is on the way/)).toBeNull();
+  });
+
+  it("BUY-36: the Helpr reports they can't finish, with a reason and what comes next", async () => {
+    state.mine = [{ task_id: "t1", status: "picked_up", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA", trip_miles: 5, take_home_cents: 1600, pickup_slot_start: null, payout_status: null }];
+    state.view = { ...VIEW, role: "helpr", status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", problem_open: false };
+    show(<DeliverView />);
+    fireEvent.click(await screen.findByRole("button", { name: "I can't deliver this" }));
+    const sheet = await screen.findByTestId("delivery-cant-finish");
+    fireEvent.click(within(sheet).getByRole("radio", { name: "My vehicle, or I can't finish" }));
+    expect(within(sheet).getByText(/You aren't paid, and it's a delivery strike\./)).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["cant_finish", "t1", "cant_finish", ""]));
+  });
+
+  it("BUY-36: nobody's fault: the buyer can fix it once, and is told about the delivery fee and the card fee", async () => {
+    state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "waiting_fix", stuck_fault: "none", stuck_fix_by: "2026-10-31T12:00:00Z", problem_open: false };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText(/less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("What the Helpr needs to know"), { target: { value: "Gate code 1234" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send it to Hank" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["buyer_fix", "t1", "Gate code 1234", null, null]));
+  });
+
+  it("BUY-36: an item going back can't be confirmed, and the seller answers when it's back", async () => {
+    state.view = { ...VIEW, role: "pickup_contact", status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returned", stuck_fault: "helpr", return_answer_by: "2026-10-31T12:00:00Z", problem_open: false };
+    const seller = show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "I have it back" }));
+    const sheet = await screen.findByTestId("delivery-return-back");
+    fireEvent.click(within(sheet).getByRole("button", { name: "I have it back" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["return_answer", "t1", true, ""]));
+    seller.unmount();
+    state.view = { ...(state.view as object), role: "customer" };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    await screen.findByText(/says it's back with the seller/);
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+  });
+
+  it("BUY-36: the Helpr's fault: the buyer picks a full refund, another Helpr or collecting it", async () => {
+    state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returning", stuck_fault: "helpr", stuck_return_by: "2026-11-01T12:00:00Z", problem_open: false };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Refund me in full" }));
+    const sheet = await screen.findByTestId("delivery-cant-finish-choice");
+    expect(within(sheet).getByText(/All of your money comes back, delivery included/)).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Refund me" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["buyer_choose", "t1", "refund", ""]));
   });
 
   it("audit 1c #1: a pickup the seller never confirmed reads \"says it was picked up\" to the seller", async () => {

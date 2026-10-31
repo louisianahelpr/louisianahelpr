@@ -13,6 +13,7 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useEffect, useState } from "react";
+import { BuyerCantFinishPanel, buyerMayConfirm, cantFinishLine, HelprCantFinish, SellerReturnPanel } from "./DeliveryCantFinish";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { SellerHandedOver } from "./SellerHandedOver";
@@ -169,7 +170,11 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else {
     line = "This delivery was closed.";
   }
-  const canConfirm = side === "buyer" && (v.status === "picked_up" || v.status === "delivered");
+  // BUY-36: where a delivery the Helpr can't finish stands replaces the line above.
+  const cantFinish = v.status === "picked_up" ? cantFinishLine(v, side, who) : null;
+  if (cantFinish) line = cantFinish;
+  const collecting = v.stuck_stage === "collecting";
+  const canConfirm = side === "buyer" && (v.status === "picked_up" || v.status === "delivered") && buyerMayConfirm(v);
   // Board 76: the one tracker, Booked -> Picked up -> Delivered, once a Helpr has it.
   const at = DELIVERY_STEP[v.status];
   // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
@@ -206,11 +211,13 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
           I got it
         </button>
       )}
+      {side === "buyer" && v.status === "picked_up" && <BuyerCantFinishPanel taskId={taskId} view={v} who={who} />}
+      {side === "seller" && v.status === "picked_up" && <SellerReturnPanel taskId={taskId} view={v} who={who} />}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
       {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} who={who} handedOverAt={v.handed_over_at} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
-        Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours.
+        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and your delivery fee comes back." : "Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours."}
       </ConfirmSheet>
     </div>
   );
@@ -362,7 +369,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
         <p className="text-sm">
           {t.status === "confirmed"
             ? t.payout_status === "succeeded" ? "Delivered and paid." : "Delivered. Your pay is on its way."
-            : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
+            : t.status === "failed" ? "Not paid for this delivery." : "Closed."}
         </p>
       )}
       {/* Deep audit #40: after the drop-off photo the card said nothing until the buyer confirmed. */}
@@ -395,7 +402,8 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               </div>
             </>
           )}
-          {v.status === "picked_up" && toRoute}
+          {v.status === "picked_up" && !v.stuck_stage && toRoute}
+          {v.status === "picked_up" && <HelprCantFinish taskId={t.task_id} userId={userId} />}
           <TaskPhotos view={v} />
         </>
       )}

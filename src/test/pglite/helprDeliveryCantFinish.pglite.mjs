@@ -1,0 +1,280 @@
+#!/usr/bin/env node
+/**
+ * PGlite proof for 20261031021800_helpr_delivery_cant_finish (BUY-36; "Delivery Helpr can't finish after pickup", owner 10-30).
+ *
+ *   node src/test/pglite/helprDeliveryCantFinish.pglite.mjs                    # GREEN (migration applied 3x)
+ *   NEW_MIGRATION=skip node src/test/pglite/helprDeliveryCantFinish.pglite.mjs # RED: the chain without it
+ *   MIGRATION_PATH=<planted copy> node ...                                     # RED on a planted defect
+ *
+ * World: scripts/declutter/handoverPhotoWorld.mjs (the real money functions), then the newest definitions this migration
+ * restates or reads. Stubbed, and said so: is_test_subject (false). A task reaches "picked up" by a direct update: taking
+ * and picking up have their own proofs.
+ */
+import { readFileSync } from "node:fs";
+import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
+
+const NEW_FILE = "20261031021800_helpr_delivery_cant_finish.sql";
+const BASES = [
+  "20261027171453_declutter_withdraw_refund_not_once_returning.sql",
+  "20261027211754_declutter_bundle_discount.sql",
+  "20261028200440_declutter_audit3_notices_and_empty_cart.sql",
+  "20261028171944_declutter_notice_copy.sql",
+  "20261028210552_declutter_sale_notices_name_inline.sql",
+  "20261028232338_declutter_damage_no_enjoy_notice.sql",
+  "20261028235247_declutter_handover_choices.sql",
+  "20261028235709_declutter_handover_photos_at_the_address.sql",
+  "20261029000048_declutter_false_report_strike.sql",
+  "20261029002010_declutter_handover_photos_live_only.sql",
+  "20261029161347_declutter_porch_weekdays.sql",
+  "20261029201542_declutter_porch_photo_not_before_the_day.sql",
+  "20261029224147_declutter_admin_decision_closes_refund_request.sql",
+  "20261029225634_declutter_problem_both_sides_and_photos.sql",
+  "20261029231235_declutter_admin_part_refund.sql",
+  "20261029232103_declutter_refund_debt_notice.sql",
+  "20261027194235_helpr_my_route.sql",
+  "20261027201327_delivery_dropoff_on_accept.sql",
+  "20261030012018_helpr_delivery_seller_handover.sql",
+  "20261030031642_helpr_delivery_notices_name_the_item.sql",
+  "20261030164712_declutter_porch_places.sql",
+  "20261031014011_helpr_delivery_still_in_hand_nudge.sql",
+];
+const skip = process.env.NEW_MIGRATION === "skip";
+if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migration (expect FAILs)");
+const { svc, run, one, me, refused, liveItemSql, USERS } = await buildHandoverWorld();
+const { SELLER2, BUYER2, BUYER3, OUTSIDER, ADMIN } = USERS;
+const SELLER = SELLER2;
+const BUYER = BUYER2;
+const HELPR = BUYER3;
+
+let pass = 0;
+let fail = 0;
+const ok = (cond, label) => { if (cond) pass++; else fail++; console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); };
+const short = (r) => JSON.stringify(r)?.slice(0, 260);
+
+for (const f of BASES) {
+  const r = await run(readFileSync(`${MIG_DIR}${f}`, "utf8"));
+  ok(!r?.error, `base ${f} applies${r?.error ? `: ${r.error}` : ""}`);
+}
+await run(`CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;`);
+if (!skip) {
+  const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
+  for (let i = 0; i < 3; i++) {
+    const r = await run(sql);
+    ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
+}
+
+const I = (n) => `dddddddd-0000-0000-0000-${String(n).padStart(12, "0")}`;
+const PICK = { lat: 30.451234, lng: -91.154321 };
+const DROP = { lat: 30.496234, lng: -91.154321 };
+await run(`INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
+  SELECT '${SELLER}', d, '00:00', '23:59' FROM generate_series(0, 6) d ON CONFLICT DO NOTHING`);
+
+/** A paid Helpr delivery the Helpr has picked up. */
+async function carried(n) {
+  await run(liveItemSql({ id: I(n), seller: SELLER, title: `Carried item ${n}`, price: 4000, floor: 100 }));
+  await svc(`UPDATE public.declutter_items SET delivery_size = 'small' WHERE id = '${I(n)}'`);
+  await me(BUYER, `SELECT public.declutter_buy_now('${I(n)}', 4000)`);
+  await svc(`SELECT public.declutter_set_delivery_dropoff('${BUYER}', '${SELLER}', '500 Drop Rd', 'North Baton Rouge', ${DROP.lat}, ${DROP.lng})`);
+  const o = (await me(BUYER, `SELECT * FROM public.declutter_start_checkout('${SELLER}', 'delivery')`))?.[0];
+  if (!o?.order_id) throw new Error(`no order for ${n}`);
+  const paid = await svc(`SELECT public.declutter_mark_order_paid('${o.order_id}', 'pi_stuck_${n}', ${o.total_cents}, now(), 150)`);
+  if (paid?.error) throw new Error(`mark paid: ${paid.error}`);
+  const task = one(await svc(`SELECT task_id FROM public.declutter_order_deliveries WHERE order_id = '${o.order_id}'`));
+  const up = await run(`UPDATE public.helpr_tasks SET status = 'picked_up', helpr_id = '${HELPR}', accepted_at = now(), pickup_slot_start = now() - interval '1 hour',
+    picked_up_at = now(), pickup_photo_path = '${HELPR}/task/${task}/pick.jpg' WHERE id = '${task}'`);
+  if (!task) throw new Error(`no task for ${n}: ${JSON.stringify(paid)} ${JSON.stringify(await svc(`SELECT status, handover, total_cents FROM public.declutter_orders WHERE id = '${o.order_id}'`))} ${JSON.stringify(await svc(`SELECT count(*) FROM public.declutter_order_deliveries`))}`);
+  if (up?.error) throw new Error(up.error);
+  return { order: o.order_id, total: o.total_cents, delivery: o.delivery_cents, task };
+}
+const task = async (id) => (await svc(`SELECT * FROM public.helpr_tasks WHERE id = '${id}'`))?.[0];
+const order = async (id) => (await svc(`SELECT * FROM public.declutter_orders WHERE id = '${id}'`))?.[0];
+const refund = async (id) => (await svc(`SELECT reason, fee_policy, paid_cents, card_fee_cents, refund_cents FROM public.declutter_refunds WHERE order_id = '${id}'`))?.[0];
+const helprPayout = async (t) => (await svc(`SELECT amount_cents, debt_cents, status FROM public.helpr_task_payouts WHERE task_id = '${t}'`))?.[0];
+const sellerPayout = async (id) => (await svc(`SELECT amount_cents, status FROM public.declutter_payouts WHERE order_id = '${id}'`))?.[0];
+const openProblem = async (id) => (await svc(`SELECT id, reporter_side, reason FROM public.declutter_problems WHERE order_id = '${id}' AND status = 'open'`))?.[0];
+const strikes = async () => one(await svc(`SELECT count(*)::int FROM public.user_violations WHERE user_id = '${HELPR}'`));
+const noteTo = async (uid, title) => one(await svc(`SELECT message FROM public.notifications WHERE user_id = '${uid}' AND title = '${title.replace(/'/g, "''")}' ORDER BY created_at DESC LIMIT 1`));
+const cantFinish = (t, reason, note = "") => me(HELPR, `SELECT public.helpr_task_cant_finish('${t}', '${reason}', '${note}') AS r`);
+const sweep = async () => one(await svc(`SELECT public.helpr_task_sweep()`));
+async function bringBack(t, name = "back.jpg", at = PICK) {
+  await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('helpr-tasks', '${HELPR}/task/${t}/${name}')`);
+  return me(HELPR, `SELECT public.helpr_task_returned('${t}', '${HELPR}/task/${t}/${name}', ${at.lat}, ${at.lng}) AS r`);
+}
+
+// Who may.
+const A = await carried(1);
+ok(refused(await me(BUYER, `SELECT public.helpr_task_cant_finish('${A.task}', 'cant_finish', '')`), /task_not_found/), "the buyer can't report for the Helpr");
+ok(refused(await me(OUTSIDER, `SELECT public.helpr_task_cant_finish('${A.task}', 'cant_finish', '')`), /task_not_found/), "nor a stranger");
+ok(refused(await cantFinish(A.task, "made_up"), /invalid_reason/), "a reason it doesn't know is refused");
+ok(refused(await me(BUYER, `SELECT public.declutter_delivery_return_finish('${A.task}')`), /permission denied/), "a member can't finish a return");
+
+// 1. Nobody's fault: one retry, then back, then the money.
+const rep = await cantFinish(A.task, "wrong_address", "The pin is in a field.");
+ok(rep?.[0]?.r?.result === "waiting_fix" && rep?.[0]?.r?.strike === false, `wrong address: the buyer gets to fix it (${short(rep)})`);
+ok((await task(A.task)).status === "picked_up" && !(await refund(A.order)) && !(await helprPayout(A.task)), "  no status or money moved");
+ok(/within 24 hours/.test(await noteTo(BUYER, "Your Helpr can't get to you") ?? ""), "  the buyer is told");
+ok(refused(await cantFinish(A.task, "cant_get_in"), /already_reported/), "  a second report waits");
+await svc(`INSERT INTO storage.objects (bucket_id, name) VALUES ('helpr-tasks', '${HELPR}/task/${A.task}/d.jpg')`);
+const drop = `SELECT public.helpr_task_delivered('${A.task}', '${HELPR}/task/${A.task}/d.jpg', ${DROP.lat}, ${DROP.lng}, NULL)`;
+ok(refused(await me(HELPR, drop), /delivery_on_hold/), "  the drop-off waits for the fix");
+ok(refused(await me(SELLER, `SELECT public.helpr_task_buyer_fix('${A.task}', 'x', NULL, NULL, NULL)`), /task_not_found/), "  the seller can't fix it");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_fix('${A.task}', '', NULL, NULL, NULL)`), /note_required/), "  an empty fix is refused");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_fix('${A.task}', '', 'Far away', 32.5, -91.15)`), /fix_too_far/), "  an address over 25 miles away is refused");
+const fix = await me(BUYER, `SELECT public.helpr_task_buyer_fix('${A.task}', 'Gate code 1234', '510 Drop Rd', ${DROP.lat + 0.001}, ${DROP.lng}) AS r`);
+ok(fix?.[0]?.r?.result === "retrying", `the buyer fixes it (${short(fix)})`);
+const tA = await task(A.task);
+ok(tA.dropoff_address === "510 Drop Rd" && tA.stuck_fix_note === "Gate code 1234", "  the address and the note are on the task");
+const vH = await me(HELPR, `SELECT public.helpr_task_view('${A.task}') AS v`);
+ok(vH?.[0]?.v?.stuck_fix_note === "Gate code 1234", `  the Helpr sees it${vH?.[0]?.v ? "" : `: ${short(vH)}`}`);
+ok((await me(SELLER, `SELECT public.helpr_task_view('${A.task}') AS v`))?.[0]?.v?.stuck_fix_note == null, "  the seller doesn't");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_fix('${A.task}', 'again', NULL, NULL, NULL)`), /nothing_to_fix/), "  one fix only");
+const again = await cantFinish(A.task, "cant_get_in", "Still shut.");
+ok(again?.[0]?.r?.result === "returning" && again?.[0]?.r?.strike === false, `the retry fails: back to the seller, no strike (${short(again)})`);
+ok(refused(await bringBack(A.task, "far.jpg", DROP), /not_at_pickup/), "  the return photo must be at the pickup address");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_customer_confirm('${A.task}')`), /item_going_back/), "  the buyer can't confirm an item going back");
+const back = await bringBack(A.task);
+ok(back?.[0]?.r?.result === "returned", `the Helpr brings it back (${short(back)})`);
+ok(!(await refund(A.order)), "  nothing moves on the Helpr's word");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_seller_return_answer('${A.task}', true, '')`), /task_not_found/), "  only the seller answers");
+const yes = await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${A.task}', true, '') AS r`);
+ok(!yes?.error, `the seller confirms (${short(yes)})`);
+const rA = await refund(A.order);
+ok(rA?.reason === "admin_no_fault" && rA?.fee_policy === "keep_card_fee" && rA?.paid_cents === A.total - A.delivery && rA?.refund_cents === A.total - A.delivery - rA?.card_fee_cents && rA?.card_fee_cents > 0,
+  `  the buyer gets back all but the delivery fee and the card fee (${short(rA)})`);
+ok((await order(A.order)).status === "refunded", "  the sale is cancelled");
+const pA = await helprPayout(A.task);
+ok((await task(A.task)).status === "confirmed" && pA?.amount_cents > 0 && pA?.debt_cents === 0, `  the Helpr is paid for the trip (${short(pA)})`);
+ok(one(await svc(`SELECT status FROM public.declutter_items WHERE id = '${I(1)}'`)) === "live", "  the item is back on sale");
+ok((await strikes()) === 0, "  no strike");
+ok(/card network kept/.test(await noteTo(BUYER, "Your delivery couldn't be finished") ?? ""), "  the buyer is told about the card fee");
+
+// 2. Not fixed in 24 hours; not brought back in 48.
+const B = await carried(2);
+await cantFinish(B.task, "nobody_there");
+await svc(`UPDATE public.helpr_tasks SET stuck_fix_by = now() - interval '1 minute' WHERE id = '${B.task}'`);
+await sweep();
+ok((await task(B.task)).stuck_stage === "returning", "not fixed in 24 hours: it goes back");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_fix('${B.task}', 'late', NULL, NULL, NULL)`), /nothing_to_fix/), "  too late to fix");
+await svc(`UPDATE public.helpr_tasks SET stuck_return_by = now() - interval '1 minute' WHERE id = '${B.task}'`);
+await sweep();
+const pB = await openProblem(B.order);
+ok(pB?.reason === "other" && (await order(B.order)).status === "paid" && !(await refund(B.order)), `not back in 48 hours: Louisiana Helpr decides, money held (${short(pB)})`);
+ok((await strikes()) === 0, "  no strike");
+await sweep();
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_problems WHERE order_id = '${B.order}'`)) === 1, "  once");
+
+// Admin: fault words and outcomes.
+const pay = await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${pB?.id}', 'pay_seller', 'none', false, 'x')`);
+ok(refused(pay, /delivery_decision_needed/), `"Pay the seller" is refused (${short(pay)})`);
+const hint = (await svc(`SELECT pg_get_functiondef('public.declutter_admin_decide_problem'::regproc) AS d`))?.[0]?.d ?? "";
+ok(/IF v_task\.status IN \('picked_up', 'delivered'\) THEN\s+RAISE EXCEPTION 'delivery_decision_needed'[\s\S]*?The Helpr has this item/.test(hint), "  after pickup its words say the Helpr has it, never that it never left the seller");
+ok(refused(await me(ADMIN, `SELECT public.declutter_admin_decide_problem('${pB?.id}', 'refund_buyer', 'none', false, 'x')`), /delivery_decision_needed/), "  a plain refund, which would pay the Helpr, is refused");
+ok(refused(await me(BUYER, `SELECT public.declutter_admin_decide_stuck_delivery('${pB?.id}', 'none', 'x')`), /not_authorized/), "  a member can't decide");
+const dB = await me(ADMIN, `SELECT public.declutter_admin_decide_stuck_delivery('${pB?.id}', 'none', 'Nobody') AS r`);
+const rB = await refund(B.order);
+ok(!dB?.error && rB?.reason === "admin_no_fault" && (await helprPayout(B.task))?.amount_cents > 0 && (await strikes()) === 0, `  nobody's fault: the same outcome as a return (${short(dB)})`);
+
+// 3. Helpr's fault, full refund.
+const C = await carried(3);
+const repC = await cantFinish(C.task, "cant_finish", "My truck died.");
+ok(repC?.[0]?.r?.result === "returning" && repC?.[0]?.r?.strike === true && (await strikes()) === 1, `Helpr's fault: a strike when they report (${short(repC)})`);
+ok(refused(await me(SELLER, `SELECT public.helpr_task_buyer_choose('${C.task}', 'refund', '')`), /task_not_found/), "  only the buyer chooses");
+const chC = await me(BUYER, `SELECT public.helpr_task_buyer_choose('${C.task}', 'refund', '') AS r`);
+ok(chC?.[0]?.r?.choice === "refund" && !(await refund(C.order)), `  the buyer picks the refund; it waits for the item (${short(chC)})`);
+await bringBack(C.task);
+await svc(`UPDATE public.helpr_tasks SET return_answer_by = now() - interval '1 minute' WHERE id = '${C.task}'`);
+await sweep();
+const rC = await refund(C.order);
+ok(rC?.reason === "helpr_fault" && rC?.fee_policy === "full_seller_pays_fee" && rC?.refund_cents === C.total && rC?.paid_cents === C.total, `  the seller said nothing for 24 hours: everything back, delivery too (${short(rC)})`);
+ok((await task(C.task)).status === "failed" && !(await helprPayout(C.task)), "  the Helpr is not paid");
+ok(!(await sellerPayout(C.order)), "  the seller is not paid");
+const dC = (await svc(`SELECT d.seller_id::text AS who, d.amount_cents, d.remaining_cents FROM public.declutter_seller_fee_debts d JOIN public.declutter_refunds r ON r.id = d.refund_id WHERE r.order_id = '${C.order}'`))?.[0];
+ok(dC?.who === HELPR && dC?.amount_cents === rC?.card_fee_cents && dC?.amount_cents > 0, `  the Helpr owes the card fee, not the seller (${short(dC)})`);
+ok(/next Declutter payout/.test(await noteTo(HELPR, "You owe from a refund") ?? ""), "  and is told");
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_seller_fee_debts WHERE seller_id = '${SELLER}'`)) === 0, "  the seller owes nothing");
+ok((await strikes()) === 1, "  still one strike");
+
+// The debt comes off the Helpr's next delivery payout.
+const D = await carried(4);
+await me(BUYER, `SELECT public.helpr_task_customer_confirm('${D.task}')`);
+const pD = await helprPayout(D.task);
+const full = one(await svc(`SELECT public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) FROM public.helpr_tasks t WHERE t.id = '${D.task}'`));
+ok(pD?.debt_cents === dC?.amount_cents && pD?.amount_cents === full - dC?.amount_cents, `the next payout pays it off (${short(pD)}, full ${full})`);
+ok(one(await svc(`SELECT remaining_cents FROM public.declutter_seller_fee_debts WHERE seller_id = '${HELPR}'`)) === 0, "  nothing left owing");
+
+// 4. Helpr's fault, re-post; a buyer who hasn't chosen.
+const E = await carried(5);
+await cantFinish(E.task, "cant_finish");
+await bringBack(E.task);
+await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${E.task}', true, '')`);
+ok((await task(E.task)).stuck_stage === "awaiting_choice" && !(await refund(E.order)), "nothing chosen when it's back: the buyer gets 48 hours");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_choose('${E.task}', 'collect', 'Here')`), /too_late_to_collect/), "  it's too late to collect from the Helpr");
+const chE = await me(BUYER, `SELECT public.helpr_task_buyer_choose('${E.task}', 'repost', '') AS r`);
+const tE = await task(E.task);
+ok(chE?.[0]?.r?.result === "reposted" && tE.status === "open" && tE.helpr_id === null && tE.picked_up_at === null && tE.stuck_stage === null, `re-post: the delivery reopens from the seller (${short(chE)})`);
+ok((await order(E.order)).status === "paid" && !(await refund(E.order)) && !(await helprPayout(E.task)), "  no money moved");
+
+const F = await carried(6);
+await cantFinish(F.task, "cant_finish");
+await bringBack(F.task);
+await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${F.task}', true, '')`);
+await svc(`UPDATE public.helpr_tasks SET stuck_choice_by = now() - interval '1 minute' WHERE id = '${F.task}'`);
+await sweep();
+ok(!!(await openProblem(F.order)) && !(await refund(F.order)), "no choice in 48 hours: Louisiana Helpr decides, no automatic refund");
+const before = await strikes();
+const dF = await me(ADMIN, `SELECT public.declutter_admin_decide_stuck_delivery('${(await openProblem(F.order))?.id}', 'helpr', 'Helpr') AS r`);
+const rF = await refund(F.order);
+ok(!dF?.error && rF?.reason === "helpr_fault" && (await task(F.task)).status === "failed" && (await strikes()) === before, `  Helpr's fault decided: the same outcome, no second strike (${short(dF)})`);
+
+// 5. The buyer collects: the sale goes ahead.
+const G = await carried(7);
+await cantFinish(G.task, "cant_finish");
+ok(refused(await me(BUYER, `SELECT public.helpr_task_buyer_choose('${G.task}', 'collect', '')`), /note_required/), "collect needs a where and when");
+await me(BUYER, `SELECT public.helpr_task_buyer_choose('${G.task}', 'collect', 'Mall lot at noon')`);
+ok((await me(HELPR, `SELECT public.helpr_task_view('${G.task}') AS v`))?.[0]?.v?.stuck_collect_note === "Mall lot at noon", "  the Helpr sees it");
+ok((await me(SELLER, `SELECT public.helpr_task_view('${G.task}') AS v`))?.[0]?.v?.stuck_collect_note == null, "  the seller doesn't");
+const gotG = await me(BUYER, `SELECT public.helpr_task_customer_confirm('${G.task}') AS r`);
+ok(!gotG?.error && (await order(G.order)).status === "handed_over", `"I got it": the sale goes ahead (${short(gotG)})`);
+ok((await task(G.task)).status === "failed" && !(await helprPayout(G.task)), "  the Helpr is not paid");
+ok((await sellerPayout(G.order))?.amount_cents === 4000, "  the seller is paid the item price");
+ok(one(await svc(`SELECT refund_cents FROM public.declutter_delivery_refunds WHERE order_id = '${G.order}'`)) === G.delivery, "  the delivery fee goes back");
+
+// 6. A disagreement, and a report of damage: Louisiana Helpr, money held.
+const H = await carried(8);
+await cantFinish(H.task, "wrong_address");
+const dis = await me(BUYER, `SELECT public.declutter_report_problem('${H.order}', 'other', 'The address was right.', '{}') AS id`);
+ok(typeof dis?.[0]?.id === "string", `the buyer disagrees (${short(dis)})`);
+await svc(`UPDATE public.helpr_tasks SET stuck_fix_by = now() - interval '1 minute' WHERE id = '${H.task}'`);
+await sweep();
+ok((await task(H.task)).stuck_stage === "waiting_fix" && !(await refund(H.order)), "  the clocks wait for the decision");
+const I2 = await carried(9);
+const strikesI = await strikes();
+ok(refused(await cantFinish(I2.task, "damaged"), /note_required/), "damage needs words");
+const dmg = await cantFinish(I2.task, "damaged", "It fell over.");
+const pI = await openProblem(I2.order);
+ok(dmg?.[0]?.r?.result === "with_admin" && pI?.reporter_side === "helpr" && pI?.reason === "damaged", `damage goes to Louisiana Helpr (${short(dmg)})`);
+ok(!(await refund(I2.order)) && (await strikes()) === strikesI, "  no money and no strike until it decides");
+ok(refused(await me(HELPR, `SELECT public.helpr_task_cant_finish('${I2.task}', 'cant_finish', '')`), /problem_open/), "  and the Helpr can't report again meanwhile");
+
+// 7. The seller says it didn't come back.
+const J = await carried(10);
+await cantFinish(J.task, "cant_finish");
+await bringBack(J.task);
+ok(refused(await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${J.task}', false, '')`), /note_required/), "the seller says what happened");
+const noJ = await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${J.task}', false, 'Nothing here.') AS r`);
+ok(noJ?.[0]?.r?.result === "with_admin" && (await openProblem(J.order))?.reporter_side === "seller", `it didn't come back: Louisiana Helpr (${short(noJ)})`);
+await svc(`UPDATE public.helpr_tasks SET return_answer_by = now() - interval '1 minute' WHERE id = '${J.task}'`);
+await sweep();
+ok(!(await refund(J.order)), "  money held past the 24 hours");
+
+// 8. BUY-37's nudge leaves a reported delivery alone.
+const K = await carried(11);
+await cantFinish(K.task, "nobody_there");
+await svc(`UPDATE public.helpr_tasks SET picked_up_at = now() - interval '30 hours' WHERE id = '${K.task}'`);
+await sweep();
+ok((await task(K.task)).in_hand_nudged_at === null, "a delivery already reported isn't nudged");
+ok(one(await svc(`SELECT count(*)::int FROM public.cron_defects_seen WHERE fn = 'helpr_task_sweep'`)) === 0, "no sweep step failed");
+
+console.log(`\n${pass} PASS / ${fail} FAIL`);
+process.exit(fail ? 1 : 0);

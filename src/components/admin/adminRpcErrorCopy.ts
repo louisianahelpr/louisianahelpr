@@ -190,6 +190,14 @@ export const ADMIN_RPC_ERROR_COPY = {
     problem_open: DC.problem_open,
     refund_amount_unknown: DC.refund_amount_unknown,
   },
+  declutter_admin_decide_stuck_delivery: {
+    account_restricted: DC.account_restricted,
+    invalid_decision: DC.invalid_decision,
+    not_a_delivery_in_transit: DC.not_a_delivery_in_transit,
+    not_authorized: DC.not_authorized,
+    problem_already_decided: DC.problem_already_decided,
+    problem_not_found: DC.problem_not_found,
+  },
   declutter_admin_decide_delivery_damage: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,

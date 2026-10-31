@@ -139,7 +139,7 @@ describe("Declutter settings", () => {
     expect(screen.getByRole("checkbox", { name: "Safe meeting spot" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Porch pickup" })).not.toBeChecked();
     expect(screen.getByRole("switch", { name: "Keep it up until it sells" })).not.toBeChecked();
-    expect(screen.getByRole("radiogroup", { name: /make it free after/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /make it free after/i })).toHaveValue("14");
   });
 
   it("turning drops off hides its choices and is saved", async () => {

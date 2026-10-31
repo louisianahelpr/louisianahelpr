@@ -29,7 +29,8 @@
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
  * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals); |   const openToEveryone = useOpenToEveryoneAnswer(true);
  * @mutate src/components/DesktopSidebarNav.tsx |                   {preview && <PreviewPill variant="rail" />} |
- * @mutate src/components/sections/PreviewPill.tsx |       Coming soon\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
+ * @mutate src/components/sections/PreviewPill.tsx |       {t("soon.full")}\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
+ * @mutate src/components/sections/PreviewPill.tsx |         {t("soon.full")}\n      </span> |         Coming soon\n      </span>
  * @mutate src/components/create/CreateSheet.tsx |                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />} |                   {on && <PreviewPill data-create-preview={s.key} />}
  * @mutate src/components/profile/SettingsTab.tsx |           const preview = s.feature !== null && !!tab?.preview; |           const preview = s.feature !== null && !!tab?.on;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       await queryClient.invalidateQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY }); |
@@ -51,6 +52,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 import { sectionIsPreview, useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { __resetLangForTests, ensureLangLoaded, setLang } from "@/lib/i18n/language";
 
 const ROOT = resolve(__dirname, "..", "..");
 let client: QueryClient;
@@ -201,6 +203,21 @@ describe("(c) every listing draws PreviewPill, gated on the section's own previe
       const el = container.querySelector("[data-preview-pill]") as HTMLElement;
       expect({ variant, text: el.textContent?.trim(), color: el.style.color }).toEqual({ variant, text: "Coming soon", color: "hsl(var(--bark))" });
       unmount();
+    }
+  });
+
+  // AUD31-52: in Spanish the rail read "Tiendas · Muy pronto" (SoonPill) beside "Casas · Coming soon" (this mark).
+  it("speaks the viewer's language, like SoonPill (soon.full)", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      for (const variant of ["pill", "rail"] as const) {
+        const { container, unmount } = render(<PreviewPill variant={variant} data-x="" />);
+        expect((container.querySelector("[data-preview-pill]") as HTMLElement).textContent?.trim()).toBe("Muy pronto");
+        unmount();
+      }
+    } finally {
+      __resetLangForTests();
     }
   });
 

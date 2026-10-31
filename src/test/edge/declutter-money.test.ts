@@ -80,7 +80,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
-import { queueEmail, queuedEmails, resetEmailMocks } from "./mocks/email";
+import { emailRenders, queueEmail, queuedEmails, resetEmailMocks } from "./mocks/email";
 
 const BUYER = "0000000b-0000-4000-8000-000000000001";
 const SELLER = "0000000b-0000-4000-8000-000000000002";
@@ -207,8 +207,11 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe("seller@example.test");
     expect(sent[0].subject).toBe("Your payout is on its way");
-    expect(sent[0].text).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule\./);
-    expect(JSON.stringify(sent[0])).not.toMatch(/fee|%/i);
+    // AUD31-35: rendered from the branded notice email (the mock records the element).
+    const r = (emailRenders as Array<{ type: { name: string }; props: Record<string, string> }>).find((e) => e.props.title === "Your payout is on its way");
+    expect(r?.type.name).toBe("NotificationEmail");
+    expect(r?.props.message).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule\./);
+    expect(JSON.stringify({ sent: sent[0], message: r?.props.message })).not.toMatch(/fee|%/i);
   });
   it("a reconciled payout (sent earlier, recorded now) is emailed once; a failed or unrecorded one is not emailed", async () => {
     scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],

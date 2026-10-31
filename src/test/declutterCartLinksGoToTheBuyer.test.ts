@@ -92,7 +92,8 @@ describe("every ?view=cart notice goes to the buyer", () => {
   it.each(["supabase/functions/declutter-money/index.ts", "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts"])(
     "the money email in %s opens the buyer's tab", (file) => {
       const src = readFileSync(file, "utf8");
-      expect(src).toContain("/declutter?tab=buying`");
+      // AUD31-35: declutterCheckout passes the path to the branded email as a plain string.
+      expect(src).toMatch(/\/declutter\?tab=buying[`"]/);
       expect(src).not.toContain("const link = `${getAppUrl()}/declutter?view=cart`");
     });
 });

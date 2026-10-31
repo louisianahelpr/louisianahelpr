@@ -8,10 +8,10 @@
  * 'open' or 'decided' exactly. Reads EFFECTIVE definitions (helpers/effectiveFunctionDefs).
  * Backend proof: src/test/pglite/declutterTakeBackProblemReport.pglite.mjs (3x; 19 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF p.status <> 'open' THEN\n    RAISE EXCEPTION 'problem_already_decided' |   IF false THEN\n    RAISE EXCEPTION 'problem_already_decided'
-// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |      OR p.reporter_id IS DISTINCT FROM v_uid OR p.reporter_side IS DISTINCT FROM v_side THEN |      OR p.reporter_side IS DISTINCT FROM v_side THEN
+// @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |   IF p.status <> 'open' THEN\n    RAISE EXCEPTION 'problem_already_decided' |   IF false THEN\n    RAISE EXCEPTION 'problem_already_decided'
+// @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |      OR p.reporter_id IS DISTINCT FROM v_uid OR p.reporter_side IS DISTINCT FROM v_side THEN |      OR p.reporter_side IS DISTINCT FROM v_side THEN
 // @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql | p.reporter_id = v_uid AND p.status = 'withdrawn') THEN | p.reporter_id = v_uid AND p.status = 'nope') THEN
-// @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |    WHERE problem_id = p.id AND status = 'to_admin' AND v_side = 'buyer'; |    WHERE problem_id = p.id AND status = 'to_admin' AND false;
+// @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |    WHERE problem_id = p.id AND status = 'to_admin' AND v_side = 'buyer'; |    WHERE problem_id = p.id AND status = 'to_admin' AND false;
 // @mutate supabase/migrations/20261030134109_declutter_take_back_problem_report.sql | 'open'::text, 'decided'::text, 'withdrawn'::text | 'open'::text, 'decided'::text
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -32,7 +32,7 @@ describe("Declutter: take back my report", () => {
   it("reads the definitions (floors)", () => {
     expect(readers.length).toBeGreaterThan(20);
     expect(flat("declutter_withdraw_problem").length).toBeGreaterThan(1500);
-    expect(DEFS.get("declutter_withdraw_problem")?.file).toMatch(/20261031004529_declutter_handover_both_confirm\.sql$/); // T9: restated, also ends a no-show report
+    expect(DEFS.get("declutter_withdraw_problem")?.file).toMatch(/20261031103443_declutter_taken_back_notice_opens_the_tab\.sql$/); // T9 ends a no-show report; LEAD-TAKENBACK-LINK: tab link
     expect(DEFS.get("declutter_report_problem")?.file).toMatch(/20261031100935_declutter_problem_notices_name_the_item\.sql$/); // BUY-30: restated, its notice names the item
   });
 

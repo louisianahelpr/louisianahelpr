@@ -2,8 +2,9 @@
  * The buying audit's small findings of 10-30, each confirmed in the code or on prod's definition first. Words a member
  * reads, so each is held by what it says.
  *
- * BUY-13: Free can't be saved, and a search saved without it would alert on everything else in the category.
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | {member && !filters.freeOnly && (q \|\| filters.category | {member && (q \|\| filters.category
+ * BUY-13: Free, porch, drops and condition are saved with the search (20261031222115), so Save this search shows with
+ * Free on again and the draft carries them (src/test/savedSearchKeepsDeclutterFilters.test.ts has the rest).
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | origin: from ?? null, extras: saveExtras }} | origin: from ?? null }}
  * BUY-14: the Buying tab is called Buying, and a meetup isn't a pickup.
  * @mutate src/components/declutter/DeclutterPaySettling.tsx | the order moves to Buying once | the order moves to Purchases once
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "Meeting" : "Pickup"}: <span | Pickup: <span
@@ -40,8 +41,10 @@ const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "
 const D = "src/components/declutter/";
 
 describe("the buying audit's small findings", () => {
-  it("BUY-13: no Save this search while Free is on", () => {
-    expect(code(`${D}DeclutterBrowseView.tsx`)).toMatch(/\{member && !filters\.freeOnly && \(q \|\| filters\.category/);
+  it("BUY-13: Save this search keeps Free and the other filters", () => {
+    const view = code(`${D}DeclutterBrowseView.tsx`);
+    expect(view).not.toMatch(/!filters\.freeOnly &&/);
+    expect(view).toContain("origin: from ?? null, extras: saveExtras }}");
   });
 
   it("BUY-14: the words name what's on screen", () => {

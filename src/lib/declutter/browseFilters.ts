@@ -113,9 +113,24 @@ export function newSinceFromParams(p: URLSearchParams): number | null {
   return Number.isFinite(at) ? at : null;
 }
 
-export function isNewSince(item: { live_at: string | null }, since: number | null): boolean {
-  if (since === null || !item.live_at) return false;
-  return Date.parse(item.live_at) > since;
+/**
+ * New since the member last looked: went live after it, or (BUY-52) its price dropped into the search's top price after
+ * it (`dropped`, the ids declutter_dropped_into_budget gives, the same rule as saved_search_new_counts).
+ */
+export function isNewSince(item: { id?: string; live_at: string | null }, since: number | null, dropped?: ReadonlySet<string>): boolean {
+  if (since === null) return false;
+  if (item.id !== undefined && dropped?.has(item.id)) return true;
+  return !!item.live_at && Date.parse(item.live_at) > since;
+}
+
+/**
+ * BUY-52: what Browse asks for the price drops a saved search counted: the `new=` time as sent and the search's `max=`
+ * (whole dollars). Null without both: with no top price, a drop never makes a listing new.
+ */
+export function droppedQueryFromParams(p: URLSearchParams): { since: string; maxDollars: number } | null {
+  const since = p.get("new") ?? "";
+  const maxDollars = positive(p.get("max"));
+  return Number.isFinite(Date.parse(since)) && maxDollars !== null ? { since, maxDollars } : null;
 }
 
 /**

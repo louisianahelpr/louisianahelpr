@@ -962,6 +962,9 @@ export interface MyOffer {
   /** Audit 1d D4-3 (20261030134231): a seller's answer to the buyer's Wanted post, not an offer the buyer made.
    *  Absent before that migration is on prod (read as false). */
   from_wanted?: boolean;
+  /** BUY-29 (20261031095146): on the poster's own row only, the id of the still-open Wanted post this offer answers,
+   *  so the card can ask to close it after an accept. Null otherwise; absent before that migration is on prod. */
+  open_wanted_id?: string | null;
 }
 
 export interface CartLine {

@@ -15092,6 +15092,7 @@ export type Database = {
           item_title: string
           my_side: string
           offer_id: string
+          open_wanted_id: string
           respond_by: string
           status: string
           updated_at: string

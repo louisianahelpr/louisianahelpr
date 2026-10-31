@@ -14,20 +14,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem, type ProblemReason } from "@/lib/declutter/handover";
+import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
-const REASON_WORDS: Record<ProblemReason, string> = {
-  not_as_described: "It isn't as described",
-  damaged: "It's damaged",
-  not_received: "It didn't arrive",
-  no_show: "Someone didn't show",
-  safety: "Someone felt unsafe",
-  other: "Something else",
-};
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
@@ -68,7 +60,7 @@ export function DeclutterProblemDecided({ orderId, side }: { orderId: string; si
   return <p className="text-sm" data-problem-decided=""><span className="font-semibold">Louisiana Helpr decided:</span> {words}</p>;
 }
 
-export function DeclutterProblemSides({ orderId, side, delivery = false }: { orderId: string; side: "buyer" | "seller"; delivery?: boolean }) {
+export function DeclutterProblemSides({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
   const qc = useQueryClient();
   const problem = useQuery({ queryKey: ["declutter", "problem", orderId], queryFn: () => fetchOrderProblem(orderId) });
   const [open, setOpen] = useState(false);
@@ -99,15 +91,16 @@ export function DeclutterProblemSides({ orderId, side, delivery = false }: { ord
   const p = problem.data;
   if (!p || p.status !== "open") return null;
   const mine = p.reporter_side === side;
-  const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : p.reporter_side === "system" ? "Louisiana Helpr" : "The Helpr";
+  // NIGHT-BUYINGopenpr-8: this box said "You reported a problem: It's damaged." under the note's "Damaged, reported by
+  // you." The note (ProblemOpenNote) says what and who once; this box shows each side's own words and photos.
+  const whose = mine ? "Your" : p.reporter_side === "buyer" ? "The buyer's" : p.reporter_side === "seller" ? "The seller's" : p.reporter_side === "system" ? "Louisiana Helpr's" : "The Helpr's";
   const other = side === "buyer" ? "The seller" : "The buyer";
-  // A buyer's no-show report: "Someone didn't show" hid who was said not to; the seller's words are an answer to it.
+  // A buyer's no-show report: the seller's words are an answer to it.
   const noShow = p.reason === "no_show" && p.reporter_side === "buyer";
-  const reason = !noShow ? REASON_WORDS[p.reason] ?? "Something else" : delivery ? "It wasn't delivered" : side === "seller" ? "You didn't show" : "The seller didn't show";
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" data-problem-sides="">
       <p className="text-sm">
-        <span className="font-semibold">{by} reported a problem: {reason}.</span> "{p.note}"
+        <span className="font-semibold">{whose} report:</span> "{p.note}"
       </p>
       <ProblemPhotos paths={p.photo_paths ?? []} />
       {p.other_side_note && (

@@ -242,7 +242,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       )}
       {/* NIGHT-BUYINGopenpr-8: the same order as the buyer's card: the tracker, then the problem note, then each side. */}
       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
-      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} delivery={order.handover === "seller_delivery"} /></Suspense>
+      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
       {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
       {!sellerNextFirst && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {done ? (

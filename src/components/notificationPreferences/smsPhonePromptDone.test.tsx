@@ -11,7 +11,7 @@
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     if (alreadyOn) close(); |     if (alreadyOn) setAllSet(true);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, waitForElementToBeRemoved, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -24,11 +24,12 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { SmsPhonePrompt, SMS_PROMPT_ALL_SET_MS } from "./SmsPhonePrompt";
 
-const OFF = { phone_e164: null, sms_opt_in: false, opted_in_at: null, opted_out_at: null, opt_out_source: null, pending_phone: null, pending_since: null };
+type Consent = { phone_e164: string | null; sms_opt_in: boolean; opted_in_at: string | null; opted_out_at: null; opt_out_source: null; pending_phone: null; pending_since: null };
+const OFF: Consent = { phone_e164: null, sms_opt_in: false, opted_in_at: null, opted_out_at: null, opt_out_source: null, pending_phone: null, pending_since: null };
 const ON = { ...OFF, phone_e164: "+13375550123", sms_opt_in: true, opted_in_at: "2026-10-31T15:00:00Z" };
 
 let due = true;
-let consent: typeof OFF = OFF;
+let consent: Consent = OFF;
 beforeEach(() => {
   due = true;
   consent = OFF;
@@ -66,7 +67,8 @@ describe("the phone prompt closes itself once texts are on, and never comes back
     expect(screen.queryByRole("button", { name: /Turn off text alerts/ })).toBeNull();
     expect(screen.queryByText("Not now")).toBeNull();
 
-    await waitFor(() => expect(screen.queryByText(/You're all set/)).toBeNull(), { timeout: SMS_PROMPT_ALL_SET_MS + 2000 });
+    // Removed, not merely absent: the all-set line was on screen just above.
+    await waitForElementToBeRemoved(() => screen.queryAllByText(/You're all set/), { timeout: SMS_PROMPT_ALL_SET_MS + 2000 });
     expect(rpc).toHaveBeenCalledWith("dismiss_sms_phone_prompt");
 
     // Coming back this session (a remount on the same cache): nothing.
@@ -98,8 +100,9 @@ describe("the phone prompt closes itself once texts are on, and never comes back
     const qc = fresh();
     mount(qc);
     (await screen.findByText("Not now")).click();
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(rpc).toHaveBeenCalledWith("dismiss_sms_phone_prompt");
-    expect(qc.getQueryData(["sms-phone-prompt", "first_job", "u1"])).toBe(false);
+    // Wait for the dismissal to land in the cache (data, not a first-paint absence).
+    await waitFor(() => expect(qc.getQueryData(["sms-phone-prompt", "first_job", "u1"])).toBe(false));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("dismiss_sms_phone_prompt"));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

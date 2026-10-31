@@ -7,7 +7,8 @@
 -- members-only, as spec B11 asked "while the switch is not 'everyone'"):
 --   1. declutter_items: live and reserved rows, never a hidden seller's, never test data (is_seed), and only the
 --      columns the item page and Browse print (the same list as src/lib/declutter/api.ts ITEM_COLUMNS, plus
---      drops_stopped and handovers). No address is on this table: area_label is the city, area_lat/area_lng are
+--      handovers, and the price-drop columns a member buyer reads: DROP_COLUMNS sale_mode, last_price_drop_on,
+--      drop_pct, drops_stopped; without them the item page's drop read is refused and reported on every guest visit). No address is on this table: area_label is the city, area_lat/area_lng are
 --      numeric(5,2)/(6,2), about 1 km (20261014193955).
 --   2. declutter_item_photos: the photo rows of an item the guest can read (the files sit in the public bucket
 --      already; the rows say which files belong to which item).
@@ -31,7 +32,7 @@ COMMENT ON FUNCTION public.declutter_open_to_guests() IS
 
 GRANT SELECT (id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents,
               current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers,
-              drops_stopped, handovers)
+              drops_stopped, handovers, sale_mode, last_price_drop_on, drop_pct)
   ON public.declutter_items TO anon;
 
 DROP POLICY IF EXISTS "declutter items: guests read live" ON public.declutter_items;

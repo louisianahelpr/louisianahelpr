@@ -560,7 +560,7 @@ export function PayoutSetupForm({ onSettled }: {
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
               <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Payouts run automatically to your default method when jobs are completed.
+                Payouts run automatically to your default method when a job, a Declutter sale or a delivery is done.
               </p>
             </div>
           </div>

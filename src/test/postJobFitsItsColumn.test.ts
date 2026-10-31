@@ -29,7 +29,7 @@
  * @mutate src/pages/post-job/FormStep.tsx |       <aside className="hidden xl:block sticky top-6"> |       <aside className="hidden lg:block sticky top-6">
  * @mutate src/pages/post-job/FormStep.tsx |             <div className="xl:hidden"><PostJobPreviewCard |             <div className="lg:hidden"><PostJobPreviewCard
  * @mutate src/pages/post-job/FormStep.tsx | className={`${barFloats ? "sticky bottom-safe-nav" : "relative"} z-10 | className={`${"sticky bottom-safe-nav"} z-10
- * @mutate src/pages/post-job/FormStep.tsx | !lastPage ? pageReady : !submitDisabled; | !lastPage ? true : true;
+ * @mutate src/pages/post-job/FormStep.tsx | !lastPage ? pagePressable : !submitDisabled; | !lastPage ? true : true;
  * @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   cleaning: "e.g. Deep clean 2 bedrooms", |   cleaning: "e.g. Deep clean a 2-bedroom apartment",
  */
 import { readFileSync } from "node:fs";
@@ -105,7 +105,7 @@ describe("Post a job sizes its grids to its own column", () => {
 
   it("the action bar floats only while its button can be pressed", () => {
     const step = read("src/pages/post-job/FormStep.tsx");
-    expect(step).toMatch(/const barFloats = backTo && !atOpenJobLimit && !underAge \? true : !lastPage \? pageReady : !submitDisabled;/);
+    expect(step).toMatch(/const barFloats = backTo && !atOpenJobLimit && !underAge \? true : !lastPage \? pagePressable : !submitDisabled;/);
     expect(step).toMatch(/className=\{`\$\{barFloats \? "sticky bottom-safe-nav" : "relative"\} z-10 bg-premium-page/);
     expect(step.match(/sticky bottom-safe-nav/g)?.length).toBe(1);
   });

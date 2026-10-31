@@ -7,9 +7,15 @@
  */
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/FieldError";
 import { SELL_FOR_ME_BLANKS, fillSellForMeBlank, sellForMeBlankValue } from "@/lib/declutter/sellForMe";
 
-export function SellForMeBlanks({ description, setDescription }: { description: string; setDescription: (v: string) => void }) {
+export function SellForMeBlanks({ description, setDescription, refused = false }: {
+  description: string;
+  setDescription: (v: string) => void;
+  /** Continue was pressed with a blank left (POST-H15): each unanswered one says so in red, by the field itself. */
+  refused?: boolean;
+}) {
   const values = SELL_FOR_ME_BLANKS.map((b) => sellForMeBlankValue(description, b));
   if (values.some((v) => v === null)) return null;
   return (
@@ -17,19 +23,22 @@ export function SellForMeBlanks({ description, setDescription }: { description: 
       {SELL_FOR_ME_BLANKS.map((b, i) => {
         const value = values[i] ?? "";
         const id = `sell-for-me-${b.key}`;
+        const missing = refused && value === "" ? <FieldError id={`${id}-missing`}>Answer this to continue.</FieldError> : null;
         if (!("choices" in b)) {
           return (
-            <div key={b.key} className="space-y-1.5">
+            <div key={b.key} className="space-y-1.5" data-blank={b.key}>
               {/* Screen check b18 10-31 (375): the form's own Input, so this box matches Job title's below it; asked as a
                   question like the two chip rows. */}
               <label htmlFor={id} className="block text-ds-15 font-semibold">{b.label}?</label>
               <Input id={id} inputMode="numeric" maxLength={40} placeholder="About how many?" value={value}
+                aria-invalid={missing ? true : undefined} aria-describedby={missing ? `${id}-missing` : undefined}
                 onChange={(e) => setDescription(fillSellForMeBlank(description, b, e.target.value))} />
+              {missing}
             </div>
           );
         }
         return (
-          <fieldset key={b.key} className="space-y-1.5">
+          <fieldset key={b.key} className="space-y-1.5" data-blank={b.key}>
             <legend className="text-ds-15 font-semibold">{b.label}?</legend>
             <div className="flex flex-wrap gap-2">
               {b.choices.map((c) => {
@@ -42,6 +51,7 @@ export function SellForMeBlanks({ description, setDescription }: { description: 
                 );
               })}
             </div>
+            {missing}
           </fieldset>
         );
       })}

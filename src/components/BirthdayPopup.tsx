@@ -8,7 +8,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { useReducedMotion } from "@/lib/accessibility";
 import { parseLocalDate } from "@/lib/dateUtils";
 
-interface BirthdayPopupProps {
+export interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
   firstName: string;
   /**

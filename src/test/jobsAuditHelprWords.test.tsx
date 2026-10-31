@@ -12,7 +12,7 @@
  * JOBS-20: a restored draft silently lost its photos. JOBS-10: a copied job said nothing. JOBS3-52: the before photo
  * sheet said nothing. JOBS-27: crew lines still said every spot had to be filled.
  *
- * @mutate src/pages/jobs/appliedJobCard/helperCancelCopy.ts |   if (action === "none") return "Job cancelled. No strike: it was more than 24 hours before the start."; |
+ * @mutate src/pages/jobs/appliedJobCard/helperCancelCopy.ts |   if (action === "none") return "Job cancelled. No strike: the start was more than 24 hours away."; |
  * @mutate src/pages/jobs/appliedJobCard/helperCancelCopy.ts |   if (start && start.getTime() - nowMs >= DAY_MS) { |   if (false) {
  * @mutate src/components/tracker/jobProgressState.ts | const HELPR_NOT_STARTED = new Set<string>(["start_working", "before_photo"]); | const HELPR_NOT_STARTED = new Set<string>([]);
  * @mutate src/pages/posts/PostedJobCard.tsx | , pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined }) | })
@@ -53,12 +53,12 @@ describe("a Helpr's cancel says what it costs (JOBS-13)", () => {
 describe("the open card's tracker line (JOBS3-48)", () => {
   it("arrived, not started: the Helpr's line is the card's, not Mark it done", () => {
     const job = {
-      id: "j", status: "in_progress", helper_id: "h", date_needed: "2026-10-30", start_time: "09:00",
-      helper_confirmed_at: "2026-10-20T00:00:00Z", helper_dayof_confirmed_at: "2026-10-29T00:00:00Z", poster_confirmed_at: "2026-10-29T00:00:00Z",
-      helper_on_the_way_at: "2026-10-30T14:00:00Z", helper_arrived_at: "2026-10-30T14:30:00Z", helper_arrival_verified_at: "2026-10-30T14:30:00Z",
+      id: "j", status: "in_progress", helper_id: "h", date_needed: "2032-10-30", start_time: "09:00",
+      helper_confirmed_at: "2032-10-20T00:00:00Z", helper_dayof_confirmed_at: "2032-10-29T00:00:00Z", poster_confirmed_at: "2032-10-29T00:00:00Z",
+      helper_on_the_way_at: "2032-10-30T14:00:00Z", helper_arrived_at: "2032-10-30T14:30:00Z", helper_arrival_verified_at: "2032-10-30T14:30:00Z",
     };
     const line = { id: "start_working", detail: "Tap Start working" };
-    const p = jobProgress(job as never, { viewer: "helpr", now: NOW, card: { line, face: { tone: "primary", step: "working" } } as never });
+    const p = jobProgress(job as never, { viewer: "helpr", now: new Date("2032-10-30T18:00:00Z"), card: { line, face: { tone: "primary", step: "working" } } as never });
     expect(p.next).toBe("Tap Start working");
   });
 });

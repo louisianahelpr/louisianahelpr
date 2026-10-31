@@ -11,7 +11,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function helperCancelCallout(dateNeeded: string | null | undefined, startTime: string | null | undefined, nowMs = Date.now()): string {
   const start = jobStartDateTime(dateNeeded, startTime);
   if (start && start.getTime() - nowMs >= DAY_MS) {
-    return "This is more than 24 hours before the start, so it isn't a strike. Inside 24 hours, cancelling counts as one.";
+    return "The start is more than 24 hours away, so this isn't a strike. Inside 24 hours, cancelling counts as one.";
   }
   return `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`;
 }
@@ -20,6 +20,6 @@ export function helperCancelCallout(dateNeeded: string | null | undefined, start
 export function helperCancelToast(action: string | undefined): string {
   if (action === "temp_ban") return "Job cancelled — third strike: your account is suspended for 7 days.";
   if (action === "warning") return "Job cancelled — final warning. One more strike is a 7-day suspension.";
-  if (action === "none") return "Job cancelled. No strike: it was more than 24 hours before the start.";
+  if (action === "none") return "Job cancelled. No strike: the start was more than 24 hours away.";
   return "Job cancelled. This counts as a reliability strike.";
 }

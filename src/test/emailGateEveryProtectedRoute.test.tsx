@@ -155,7 +155,18 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     // The retired allowPending / allowUnapproved props were accepted and
     // ignored after Q193, then deleted. A bare boolean prop on a
     // <ProtectedRoute> in the route table is a per-route bypass in the making.
-    expect(protectedRoutes.filter((r) => Object.keys(r.props).length > 0).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`)).toEqual([]);
+    // The one named exception, exact by route and prop. Owner 10-30: guests see shared jobs; signed-in unverified
+    // accounts still go to verify-email (the it.each below renders /jobs/:id with this prop and proves it).
+    const GUEST_EXCEPTIONS = ["/jobs/:id: allowGuest"];
+    expect(protectedRoutes.filter((r) => Object.keys(r.props).length > 0).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`)).toEqual(GUEST_EXCEPTIONS);
+  });
+
+  it("the guest exception's route is mounted with its prop, and an unverified account there still goes to verify-email", () => {
+    const row = protectedRoutes.find((r) => r.path === "/jobs/:id")!;
+    expect(Object.keys(row.props)).toEqual(["allowGuest"]);
+    renderRoute(row, completeApproved);
+    expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
+    expect(screen.queryByText("PROTECTED")).toBeNull();
   });
 
   it.each(protectedRoutes.map((r) => [r.path, r] as const))(

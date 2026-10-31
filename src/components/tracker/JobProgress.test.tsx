@@ -66,7 +66,8 @@ describe("JobProgress: the 8-step bar", () => {
     expect(states(container)[5]).toBe("problem");
     expect(bar(container, 5).className).toContain("bg-[hsl(var(--burnt-sienna))]");
     expect(container.querySelectorAll("[data-step-state='problem'] svg").length).toBe(1);
-    expect(container.querySelector("[data-step-state='problem']")?.textContent).toContain("No-show?");
+    expect(container.querySelector("[data-step-state='problem']")?.textContent).toContain("No-show");
+    expect(container.querySelector("[data-step-state='problem']")?.textContent).not.toContain("No-show?");
     expect(container.querySelector("[role='img']")?.getAttribute("aria-label")).toContain("No-show?, needs attention");
   });
 

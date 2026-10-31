@@ -24,7 +24,7 @@ import { JobDetailNotes } from "@/components/job-card/JobNotes";
 import { ScopeVideo } from "@/components/jobs/ScopeVideo";
 import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 
-interface JobDetailDialogProps {
+export interface JobDetailDialogProps {
   job: EnrichedJob | null;
   effectiveFee: number;
   /** The helpr's currently-filtered job list — used for swipe navigation. */

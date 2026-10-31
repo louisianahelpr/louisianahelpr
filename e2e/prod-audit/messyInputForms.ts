@@ -838,6 +838,7 @@ export const GAPS: Record<string, string> = {
   // Message quiet time (Messages audit): the browser's own time picker.
   "src/components/notificationPreferences/QuietTimeInput.tsx": "no text input: one native type=time control, which only ever yields a valid HH:MM or empty.",
   // Live on post (20261030071816): the admin takes a live listing down from a report.
+  "src/components/admin/adminReports/WantedReportPanel.tsx": "admin-only (Admin -> Reports, on a Wanted post report); a sweep account is not an admin. Its one text box is length-capped (maxLength 500) and trimmed before it is sent.",
   "src/components/admin/adminReports/DeclutterTakeDown.tsx": "admin-only (Admin -> Reports, on a Declutter listing report) and behind the declutter switch; a sweep account is not an admin. Its one text box is length-capped (maxLength 500) and trimmed before it is sent, and declutter_admin_take_down_item refuses an empty note (review_note_required) and one over 500 characters (review_note_too_long).",
   // Porch days (owner 2026-10-29): the sell screen's porch-only tick.
   "src/components/declutter/SellPorchDays.tsx": "no text input: one checkbox and fixed weekday chips, saved as booleans/weekday numbers through declutter_set_porch_days, which refuses anything else (invalid_porch_days); behind the declutter switch on the sell screen.",

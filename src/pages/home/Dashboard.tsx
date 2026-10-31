@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, Suspense, type ReactNode } from "react";
 import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
 import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
@@ -25,17 +25,7 @@ import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapTo
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
-// Dialogs and overlays — none are visible on first paint. Each is code-split
-// and only the dialogs the user actually opens get fetched, keeping the
-// Dashboard route chunk small.
-const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
-const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmDialog/ApplyBody").then(m => ({ default: m.ApplyBody })));
-const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
-const ReportDialog = lazy(() => import("@/components/ReportDialog"));
-const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
-// Map column for the web-desktop two-pane (the map surface pulls Apple's
-// MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
-const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
+import { ApplyBody, ApplyConfirmDialog, BirthdayPopup, BrowseMap, JobDetailDialog, ReportDialog } from "./dashboardLazyParts";
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";

@@ -14833,6 +14833,23 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_create_item_with_id: {
+        Args: {
+          p_area_label: string
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_floor_price_cents: number
+          p_item_id: string
+          p_pickup_address: string
+          p_pickup_lat: number
+          p_pickup_lng: number
+          p_price_cents: number
+          p_title: string
+        }
+        Returns: string
+      }
       declutter_create_move_drafts: {
         Args: {
           p_area_label: string

@@ -95,6 +95,21 @@ describe("InstantPayoutDialog", () => {
     expect(requireBiometricMock).not.toHaveBeenCalled();
   });
 
+  // NIGHT-JOBSRE4-5 (night audit): the wallet behind shows "$80.00" and the fee "−$2.40", but a whole-dollar gross read
+  // "$80" in the dialog. Every amount in the dialog has its cents, like the wallet.
+  // @mutate src/components/InstantPayoutDialog.tsx | const fmt = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; | const fmt = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  it("NIGHT-JOBSRE4-5: a whole-dollar amount keeps its cents, like the wallet", async () => {
+    invokeMock.mockImplementation(async (_fn: string, opts: { body?: { action?: string } }) =>
+      opts?.body?.action === "quote"
+        ? { data: { ...QUOTE, gross_cents: 8000, fee_cents: 240, net_cents: 7760 }, error: null }
+        : { data: { ok: true }, error: null },
+    );
+    await openWithQuote();
+    expect(screen.getByText("$80.00")).toBeInTheDocument();
+    expect(screen.getByText("−$2.40")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cash Out \$77\.60/ })).toBeInTheDocument();
+  });
+
   it("a passed confirmation executes the payout once", async () => {
     const { btn, onOpenChange, onSuccess } = await openWithQuote();
     fireEvent.click(btn);

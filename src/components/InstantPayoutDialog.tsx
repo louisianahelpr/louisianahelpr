@@ -15,7 +15,6 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
 import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
-import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 
 interface Props {
@@ -97,7 +96,8 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     onSuccess?.();
   };
 
-  const fmt = (cents: number) => `$${formatPriceExact(cents / 100)}`;
+  // NIGHT-JOBSRE4-5: always with cents, like the wallet behind ("$80.00", not "$80").
+  const fmt = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   if (failure) {
     return (

@@ -374,7 +374,10 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
   const porchReady = !porchBuyer || !!handoverRow.data?.set_out_at || (pickupDay ? porchDayIsNow(pickupDay) : Date.now() >= new Date(slotStart).getTime());
   // #6: a free claim has no payment, payout or refund to speak of.
   const free = order.lines.every((l) => l.price_cents === 0);
-  const rule = (how: string) => <p className="text-sm text-muted-foreground">{free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "}The handover is when {how}.</p>;
+  // LEAD-DOOR-PAYLINE: when the seller is paid is said once, in the sale card's money note (sellerPayoutRule, owner
+  // 10-30 "Declutter handover money"). This line said it again and read as "paid 24 hours after Picked up". A free
+  // claim has no money note, so it says what finishes the handover.
+  const rule = (how: string) => free ? <p className="text-sm text-muted-foreground">The handover is when {how}.</p> : null;
   const [photo, setPhoto] = useState<File | null>(null);
   const [asking, setAsking] = useState(false);
   const confirm = useMutation({
@@ -417,11 +420,12 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
     }
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return rule('the buyer taps "I got it", or 24 hours after you tap "Picked up" from the pickup time, unless a problem is reported. If neither of you says anything, the money stays held');
+      return free ? rule('the buyer taps "I got it" or you tap "Picked up", from the pickup time')
+        : <p className="text-sm text-muted-foreground">You can tap "Picked up" from the pickup time.</p>;
     }
     return (
       <div className="space-y-2">
-        {rule('the buyer taps "I got it", or 24 hours after you tap "Picked up", unless a problem is reported. If neither of you says anything, the money stays held')}
+        {rule('the buyer taps "I got it" or you tap "Picked up"')}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>

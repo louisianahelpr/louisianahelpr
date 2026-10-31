@@ -46,6 +46,7 @@ import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { VehicleForm } from "./DeliverVehicleForm";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
+import { sellerPayoutRule } from "@/lib/declutter/sellerPayoutRule";
 import {
   acceptTask,
   confirmReceived,
@@ -159,7 +160,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else if (v.status === "delivered" && v.delivered_at) {
     line = side === "buyer"
       ? `${who} left it at your drop-off address ${when(v.delivered_at)}. Tap "I got it". If something is wrong, report a problem before it confirms itself ${when(new Date(new Date(v.delivered_at).getTime() + 24 * 3_600_000).toISOString())}.`
-      : `${who} left it at the buyer's address. You're paid when the buyer confirms, or after 24 hours.`;
+      // LEAD-DOOR-PAYLINE: the seller's rule for a Helpr delivery (sellerPayoutRule): "after 24 hours" was a day early.
+      : `${who} left it at the buyer's address. ${sellerPayoutRule("delivery")}`;
   } else if (v.status === "confirmed") {
     line = "Delivered.";
   } else if (v.status === "unfilled") {

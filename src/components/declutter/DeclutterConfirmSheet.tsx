@@ -50,7 +50,7 @@ export function ConfirmSheet({
           {children}
         </p>
         <SheetFooter className="mt-4">
-          <SheetSecondaryAction onClick={onClose} disabled={pending || confirmDisabled}>{cancelLabel}</SheetSecondaryAction>
+          <SheetSecondaryAction onClick={onClose} disabled={pending}>{cancelLabel}</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending || confirmDisabled}>{confirmLabel}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>

@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261031180550_declutter_deliver_off_stops_live_listings (LEAD-DELIVER-OFF-ALL, owner 2026-10-31).
+ * PGlite proof for 20261031180550_declutter_deliver_off_stops_live_listings (LEAD-DELIVER-OFF-ALL, owner 2026-10-31)
+ * and 20261031183416_declutter_deliver_off_saves_the_default (lead review: the saved default changes in the same call).
  *
- *   node src/test/pglite/declutterDeliverOffStopsLiveListings.pglite.mjs                     # after (3x replay)
- *   NEW_MIGRATION=skip node src/test/pglite/declutterDeliverOffStopsLiveListings.pglite.mjs  # RED: no such function
+ *   node src/test/pglite/declutterDeliverOffStopsLiveListings.pglite.mjs                     # after: both, 3x each
+ *   NEW_MIGRATION=skip node src/test/pglite/declutterDeliverOffStopsLiveListings.pglite.mjs  # RED: 180550 only (#3892)
+ *   NEW_MIGRATION=none node src/test/pglite/declutterDeliverOffStopsLiveListings.pglite.mjs  # RED: no such function
  *
  * World: declutter_items with the columns touched and its real ways guard (declutter_items_handovers_guard, the newest
  * CREATE, read from the migrations, as a BEFORE UPDATE trigger). Stubbed, and said so: require_feature (no-op),
  * is_caller_banned (false), declutter_assert_member (the GUC test.uid). Not read against prod.
- * [fix] checks FAIL on the before state; [keep] checks pass in both.
+ * [fix] checks FAIL with no function (none); [fix 183416] checks also FAIL with 180550 alone (skip); [keep] pass in all.
  */
 import os from "node:os";
 import { readFileSync, readdirSync } from "node:fs";
@@ -19,7 +21,9 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
 const FILES = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort();
 const THIS = "20261031180550_declutter_deliver_off_stops_live_listings.sql";
-const SKIP = process.env.NEW_MIGRATION === "skip";
+const NEXT = "20261031183416_declutter_deliver_off_saves_the_default.sql";
+const MODE = process.env.NEW_MIGRATION ?? "";
+const SKIP = MODE === "none";
 
 /** The newest CREATE of `name` in a migration before `before` (any dollar-quote tag). */
 function newest(name, before = THIS) {
@@ -69,7 +73,8 @@ await db.exec(`
 `);
 console.log(`guard: ${guard.file}`);
 if (!SKIP) for (let i = 0; i < 3; i++) await db.exec(readFileSync(MIG_DIR + THIS, "utf8"));
-console.log(SKIP ? "before: no declutter_stop_my_seller_delivery" : `after: ${THIS}, applied 3x`);
+if (!MODE) for (let i = 0; i < 3; i++) await db.exec(readFileSync(MIG_DIR + NEXT, "utf8"));
+console.log(SKIP ? "before: no declutter_stop_my_seller_delivery" : MODE === "skip" ? `skip: ${THIS} only, applied 3x` : `after: ${THIS} then ${NEXT}, each applied 3x`);
 
 const ways = async (n) => (await db.query(`SELECT handovers FROM public.declutter_items WHERE id = '${id(n)}'`)).rows[0].handovers.join(",");
 
@@ -88,7 +93,7 @@ check(await ways(4) === "porch,seller_delivery", "[keep] another seller's listin
 check(await ways(5) === "meetup,porch", "[keep] a listing without seller delivery is not touched");
 check(await ways(6) === "seller_delivery", "[keep] a sold listing is not touched");
 const def = async (m) => (await db.query(`SELECT handovers FROM public.declutter_seller_defaults WHERE member_id = '${m}'`)).rows[0].handovers.join(",");
-check(await def(SELLER) === "meetup", `[fix] the same call takes I'll deliver off the caller's saved default (got ${await def(SELLER)})`);
+check(await def(SELLER) === "meetup", `[fix 183416] the same call takes I'll deliver off the caller's saved default (got ${await def(SELLER)})`);
 check(await def(OTHER) === "porch,seller_delivery", "[keep] another member's saved default is not touched");
 const flag = (await db.query("SELECT current_setting('declutter.editing_listing', true) AS f")).rows[0].f;
 check(!flag, `[keep] the editing flag is cleared after (got ${JSON.stringify(flag)})`);
@@ -106,7 +111,7 @@ if (!SKIP) {
   check(again === 0, `[fix] a second call changes nothing (got ${again})`);
   await db.exec(`SET test.uid = '${THIRD}'`);
   await db.query("SELECT public.declutter_stop_my_seller_delivery()");
-  check(await def(THIRD) === "porch", `[fix] a default whose only way was I'll deliver becomes porch pickup, the column default (got ${await def(THIRD)})`);
+  check(await def(THIRD) === "porch", `[fix 183416] a default whose only way was I'll deliver becomes porch pickup, the column default (got ${await def(THIRD)})`);
   const acl = (await db.query("SELECT has_function_privilege('anon', 'public.declutter_stop_my_seller_delivery()', 'EXECUTE') AS a, has_function_privilege('authenticated', 'public.declutter_stop_my_seller_delivery()', 'EXECUTE') AS u")).rows[0];
   check(acl.a === false && acl.u === true, "[fix] anon cannot run it; a signed-in member can");
 }

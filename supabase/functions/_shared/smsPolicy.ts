@@ -90,6 +90,18 @@ export function buildSmsBody(input: {
   return parts.join(" ");
 }
 
+/**
+ * The text the owner gets when someone writes to support (owner 10-30). Fixed words and a link, so nothing a member or
+ * guest typed ever goes by SMS. The link is the Support inbox; a reply in a Team thread shows only in that thread, so it
+ * links there (lead 10-30). Only a well-formed uuid is ever embedded.
+ */
+export function ownerSupportText(appUrl: string, teamThreadUserId?: unknown): string {
+  const path = typeof teamThreadUserId === "string" && UUID_RE.test(teamThreadUserId)
+    ? `/messages?teamThread=${teamThreadUserId.toLowerCase()}`
+    : "/admin?view=support";
+  return `New Helpr support message ${appUrl.replace(/\/+$/, "")}${path}`;
+}
+
 /** The reply to HELP (sent as TwiML by twilio-inbound). */
 export const SMS_HELP_REPLY =
   "Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com. Msg & data rates may apply. Reply STOP to cancel.";

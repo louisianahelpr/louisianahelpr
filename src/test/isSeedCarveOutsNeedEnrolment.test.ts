@@ -173,6 +173,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   notification_crosses_seed_boundary: "hides",
   notify_admins_new_member: "hides",
   notify_admins_support_ticket: "hides",
+  notify_owner_support_text: "hides",
+  sms_claim_owner_support: "hides",
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",

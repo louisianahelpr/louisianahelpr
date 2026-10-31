@@ -5,6 +5,10 @@
 //     (public.sms_dispatch_due, migration 20261021193738_sms_alerts) when a
 //     queued text is due: 3 minutes after its alert, or the end of quiet hours.
 //   * { confirm_user_id } from set_sms_consent: the double opt-in text.
+//   * { owner_support_text: true } from notify_owner_support_text (migration
+//     20261031012518): tells the owner someone wrote to support. That trigger
+//     holds the test skip and the throttle; sms_claim_owner_support finds the
+//     number (the OWNER_ALERT_PHONE secret, else the real admins' one number).
 //
 // Every decision (the alert still unread, consent, seed/test suppression,
 // bans, the sms_alerts switch, category toggles, staleness, quiet hours,
@@ -21,7 +25,7 @@ import { serve } from '../_shared/buildStamp.ts'
 import { timingSafeEqual } from '../_shared/safe-strings.ts'
 import { caughtMessage } from '../_shared/caughtMessage.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { buildSmsBody, isSmsKind, twilioConfig, type SmsKind } from '../_shared/smsPolicy.ts'
+import { buildSmsBody, isSmsKind, ownerSupportText, twilioConfig, type SmsKind } from '../_shared/smsPolicy.ts'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -54,7 +58,7 @@ serve(async (req) => {
     return json(401, { error: 'Unauthorized' })
   }
 
-  let payload: { drain?: unknown; confirm_user_id?: unknown }
+  let payload: { drain?: unknown; confirm_user_id?: unknown; owner_support_text?: unknown; team_thread_user_id?: unknown }
   try {
     payload = ((await req.json()) ?? {}) as typeof payload
   } catch {
@@ -63,8 +67,9 @@ serve(async (req) => {
   const confirmUserId = payload.confirm_user_id
   const isConfirm = typeof confirmUserId === 'string' && UUID_RE.test(confirmUserId)
   const isDrain = payload.drain === true
-  if (!isConfirm && !isDrain) {
-    return json(400, { error: 'drain: true or confirm_user_id (a uuid) is required' })
+  const isOwnerSupport = payload.owner_support_text === true
+  if (!isConfirm && !isDrain && !isOwnerSupport) {
+    return json(400, { error: 'drain: true, owner_support_text: true or confirm_user_id (a uuid) is required' })
   }
 
   const twilio = twilioConfig((k) => Deno.env.get(k))
@@ -115,9 +120,18 @@ serve(async (req) => {
       appUrl: getAppUrl(),
       confirmCode: claim.code,
     })
+    const { sid, errorCode } = await postToTwilio(claim.phone, body)
+    const recorded = await recordResult(claim.sms_id, sid ? 'sent' : 'failed', sid, errorCode)
+    if (!sid) console.error(`[send-sms-notification] Twilio refused text ${claim.sms_id}: ${errorCode}`)
+    return { sent: sid !== null, errorCode, recorded }
+  }
+
+  /** One text to Twilio. Only called once `twilio` is known to be set. */
+  async function postToTwilio(to: string, body: string): Promise<{ sid: string | null; errorCode: string | null }> {
     let sid: string | null = null
     let errorCode: string | null = null
     try {
+      if (!twilio) throw new Error('twilio not configured')
       const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${twilio.accountSid}/Messages.json`,
         {
@@ -128,7 +142,7 @@ serve(async (req) => {
           },
           body: new URLSearchParams({
             MessagingServiceSid: twilio.messagingServiceSid,
-            To: claim.phone,
+            To: to,
             Body: body,
           }).toString(),
         },
@@ -143,9 +157,33 @@ serve(async (req) => {
       errorCode = 'network'
       console.error(`[send-sms-notification] Twilio request threw: ${caughtMessage(err)}`)
     }
+    return { sid, errorCode }
+  }
+
+  if (isOwnerSupport) {
+    const { data, error } = await supabase.rpc('sms_claim_owner_support', {
+      p_provider_ready: twilio !== null,
+      p_phone: Deno.env.get('OWNER_ALERT_PHONE')?.trim() || null,
+    })
+    if (error) {
+      console.error(`[send-sms-notification] owner support claim failed: ${error.message}`)
+      return json(500, { error: 'claim_failed' })
+    }
+    const claim = (data ?? {}) as Claim
+    // The claim logged why (no number, Twilio not set up); nothing to send.
+    if (claim.action !== 'send' || !claim.sms_id || !claim.phone) return json(200, { sent: false, reason: claim.reason ?? 'unknown' })
+    const { sid, errorCode } = await postToTwilio(claim.phone, ownerSupportText(getAppUrl(), payload.team_thread_user_id))
     const recorded = await recordResult(claim.sms_id, sid ? 'sent' : 'failed', sid, errorCode)
-    if (!sid) console.error(`[send-sms-notification] Twilio refused text ${claim.sms_id}: ${errorCode}`)
-    return { sent: sid !== null, errorCode, recorded }
+    if (sid) return json(200, { sent: true, recorded })
+    console.error(`[send-sms-notification] owner support text failed: ${errorCode}`)
+    const { error: logErr } = await supabase.from('error_logs').insert({
+      severity: 'error',
+      message: 'support text failed',
+      tags: { source: 'send-sms-notification', origin: 'server' },
+      context: { sms_id: claim.sms_id, error_code: errorCode },
+    })
+    if (logErr) console.error(`[send-sms-notification] could not log the failed support text: ${logErr.message}`)
+    return json(502, { sent: false, error_code: errorCode, recorded })
   }
 
   if (isConfirm) {

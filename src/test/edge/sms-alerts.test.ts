@@ -68,6 +68,76 @@ describe("send-sms-notification", () => {
 
   const DRAIN = { drain: true };
 
+  // Owner 10-30: "You will have to text me if someone messages in support".
+  // @mutate supabase/functions/send-sms-notification/index.ts |       p_phone: Deno.env.get('OWNER_ALERT_PHONE')?.trim() \|\| null, |       p_phone: null,
+  // @mutate supabase/functions/send-sms-notification/index.ts |     if (claim.action !== 'send' \|\| !claim.sms_id \|\| !claim.phone) return json(200, { sent: false, reason: claim.reason ?? 'unknown' }) |
+  // @mutate supabase/functions/send-sms-notification/index.ts |       message: 'support text failed', |       message: 'x',
+  describe("the owner's support text", () => {
+    const OWNER = { owner_support_text: true };
+    const send = async (env: Record<string, string> = TWILIO_ENV) => {
+      const fn = await loadSend(env);
+      return fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: OWNER }));
+    };
+
+    it("refuses a caller without the service-role bearer", async () => {
+      const fn = await loadSend(TWILIO_ENV);
+      const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer not-the-key" }, body: OWNER }));
+      expect(res.status).toBe(401);
+      expect(fetchCalls).toEqual([]);
+    });
+
+    it("sends the fixed words and the inbox link to the claimed number, and records it", async () => {
+      scenario.rpc.sms_claim_owner_support = { action: "send", sms_id: "sms-9", phone: "+12255550142" };
+      scenario.rpc.sms_record_result = true;
+      const res = await send();
+      expect(res.status).toBe(200);
+      expect(scenario.rpcCalls?.[0]).toMatchObject({ name: "sms_claim_owner_support", args: { p_provider_ready: true, p_phone: null } });
+      const form = new URLSearchParams(String(fetchCalls[0].init?.body));
+      expect(form.get("To")).toBe("+12255550142");
+      expect(form.get("Body")).toBe("New Helpr support message https://www.louisianahelpr.com/admin?view=support");
+      expect(scenario.rpcCalls?.[1]).toMatchObject({ name: "sms_record_result", args: { p_sms_id: "sms-9", p_status: "sent", p_provider_sid: "SM123" } });
+    });
+
+    it("a Team thread reply links to that thread", async () => {
+      scenario.rpc.sms_claim_owner_support = { action: "send", sms_id: "sms-9", phone: "+12255550142" };
+      scenario.rpc.sms_record_result = true;
+      const fn = await loadSend(TWILIO_ENV);
+      await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: { ...OWNER, team_thread_user_id: NOTIF } }));
+      expect(new URLSearchParams(String(fetchCalls[0].init?.body)).get("Body")).toBe(`New Helpr support message https://www.louisianahelpr.com/messages?teamThread=${NOTIF}`);
+    });
+
+    it("passes the OWNER_ALERT_PHONE secret to the claim", async () => {
+      scenario.rpc.sms_claim_owner_support = { action: "skip", reason: "no_owner_phone" };
+      await send({ ...TWILIO_ENV, OWNER_ALERT_PHONE: " +12255557777 " });
+      expect(scenario.rpcCalls?.[0]).toMatchObject({ args: { p_phone: "+12255557777" } });
+    });
+
+    it("a claim that says skip sends nothing", async () => {
+      scenario.rpc.sms_claim_owner_support = { action: "skip", reason: "no_owner_phone" };
+      const res = await send();
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ sent: false, reason: "no_owner_phone" });
+      expect(fetchCalls).toEqual([]);
+    });
+
+    it("without the Twilio secrets tells the claim the provider isn't ready", async () => {
+      scenario.rpc.sms_claim_owner_support = { action: "skip", reason: "twilio_not_configured" };
+      await send({});
+      expect(scenario.rpcCalls?.[0]).toMatchObject({ args: { p_provider_ready: false } });
+      expect(fetchCalls).toEqual([]);
+    });
+
+    it("a refused text is recorded as failed and logged", async () => {
+      stubTwilio({ status: 400, body: { code: 21610 } });
+      scenario.rpc.sms_claim_owner_support = { action: "send", sms_id: "sms-9", phone: "+12255550142" };
+      scenario.rpc.sms_record_result = true;
+      const res = await send();
+      expect(res.status).toBe(502);
+      expect(scenario.rpcCalls?.[1]).toMatchObject({ name: "sms_record_result", args: { p_status: "failed", p_error_code: "21610" } });
+      expect(JSON.stringify(scenario.writes.filter((w) => w.table === "error_logs" && w.op === "insert"))).toContain("support text failed");
+    });
+  });
+
   it("refuses a caller without the service-role bearer, before any claim", async () => {
     const fn = await loadSend(TWILIO_ENV);
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer not-the-key" }, body: DRAIN }));

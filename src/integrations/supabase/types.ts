@@ -12746,6 +12746,21 @@ export type Database = {
           },
         ]
       }
+      support_text_throttle: {
+        Row: {
+          conversation_key: string
+          last_sent_at: string
+        }
+        Insert: {
+          conversation_key: string
+          last_sent_at: string
+        }
+        Update: {
+          conversation_key?: string
+          last_sent_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -15770,6 +15785,10 @@ export type Database = {
         Returns: undefined
       }
       save_my_job_post_draft: { Args: { p_draft: Json }; Returns: undefined }
+      sms_claim_owner_support: {
+        Args: { p_phone?: string; p_provider_ready: boolean }
+        Returns: Json
+      }
       sms_phone_prompt_due: { Args: { p_moment: string }; Returns: boolean }
       dismiss_sms_phone_prompt: { Args: never; Returns: string }
       get_quotes_for_request: {

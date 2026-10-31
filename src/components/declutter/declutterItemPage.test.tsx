@@ -67,6 +67,7 @@ const state = {
   manage: null as unknown,
   reads: 0,
   geo: { status: "idle" } as unknown,
+  handovers: null as string[] | null,
 };
 const calls: [string, unknown[]][] = [];
 // A PostgREST builder that records each call and resolves to state.tableRows.
@@ -121,6 +122,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
     fetchItem: async () => state.item,
+    fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
     fetchManageState: async () => { state.reads++; state.manageReads++; return state.manage; },
     fetchPhotos: async () => state.photos,
@@ -172,6 +174,7 @@ function open(search = "") {
 describe("the photo-first Declutter item page", () => {
   beforeEach(() => {
     state.item = { ...ITEM };
+    state.handovers = null;
     state.geo = { status: "idle" };
     state.photos = [];
     state.rating = { avg: 4.8, count: 12 };
@@ -635,6 +638,35 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
     await screen.findByText("More from this seller");
     expect(document.querySelector("[data-bundle-row]")).toBeNull();
+  });
+
+  // Audit BUY-3: on an item the seller offers only delivered, "Buy now · $42.70 total" was a figure nobody can pay
+  // (the line above said "Or from $X delivered") and the bundle row promised "one pickup".
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const delivered = way === "none"; |   const delivered = false;
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           addCents={delivered ? deliveryPriceCents(1, [size]) : 0} |           addCents={0}
+  // @mutate src/components/declutter/DeclutterBundleRow.tsx |   const pickup = noDeliveryWay(ways.data) !== "none"; |   const pickup = true;
+  it("BUY-3: a delivery-only item's Buy now names the least it costs delivered, and the bundle row promises no pickup", async () => {
+    const { buyNowTotalCents } = await import("@/lib/declutter/money");
+    const { deliveryPriceCents } = await import("@/lib/declutter/delivery");
+    const { formatPrice } = await import("@/lib/declutter/distance");
+    const delivered = formatPrice(buyNowTotalCents(4000) + deliveryPriceCents(1, ["large"]));
+    expect(delivered).not.toBe("$42.70");
+    state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
+    state.more = [{ ...ITEM, id: "a1", title: "Side table", status: "live" }];
+    state.handovers = ["delivery"];
+    const first = open();
+    expect((await screen.findAllByRole("button", { name: `Buy now · from ${delivered} delivered` })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /\$42\.70 total/ })).toBeNull();
+    // The page's own "Or from $X delivered" line says the same figure.
+    expect(document.querySelector("[data-item-delivered]")?.textContent).toContain(delivered);
+    const row = await screen.findByRole("button", { name: /1 more from Dana\. Check out together: one payment\./ });
+    expect(row.textContent).not.toMatch(/pickup/);
+    first.unmount();
+    // A seller who offers the porch too: the pickup total and "one pickup" as before.
+    state.handovers = ["porch", "delivery"];
+    open();
+    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("button", { name: /Check out together: one pickup, one payment\./ })).toBeInTheDocument();
   });
 
   it("DA-6: the buyer's own sold item says You bought this (free: You claimed this), with Buying, and asks no item pickup times", async () => {

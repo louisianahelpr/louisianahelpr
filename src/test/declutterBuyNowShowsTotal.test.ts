@@ -25,8 +25,8 @@
  * no bare buyNowTotalCents( in src/components outside it, and every one of
  * those four screens renders it.
  *
- * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(priceCents + setupFeeCents)}{suffix}
- * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents))}{suffix}
+ * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents + addCents)}{suffix} | {formatPrice(priceCents + setupFeeCents + addCents)}{suffix}
+ * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents + addCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents) + addCents)}{suffix}
  * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
  * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | burnt-sienna))]"><BuyerTotal priceCents={takeCents} /> | burnt-sienna))]">{takeCents}

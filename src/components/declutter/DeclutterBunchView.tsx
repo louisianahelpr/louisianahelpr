@@ -58,7 +58,7 @@ import { BunchListStep } from "./DeclutterBunchListStep";
 import { BunchSection } from "./DeclutterBunchSection";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useSortingThumbs } from "./useBunchThumbs";
-import { BunchStager } from "@/lib/declutter/bunchStage";
+import { useBunchStager } from "./useBunchStager";
 import { BunchIntake } from "./DeclutterBunchIntake";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
@@ -114,16 +114,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     if (!sorting) setPhotos((ps) => photosInItems(ps, items));
   }, [items, sorting]);
   const files = useMemo(() => new Map(photos.map((p) => [p.key, p.file])), [photos]);
-  // LEAD-BUNCH-34-SLOW: each sorted item's photos go up while the seller looks them over (into the folder of the id its
-  // draft will be made with), so List only creates, attaches and publishes. Not during a run: listing sends its own.
-  const sellerId = user?.id;
-  const stager = useMemo(() => (sellerId ? new BunchStager(sellerId) : null), [sellerId]);
-  useEffect(() => {
-    if (listing || !stager) return;
-    // ONE id per item: an id given out here is saved on its item at once (the app id listing makes its draft with).
-    const given = stager.sync(items, files);
-    if (given.size > 0) setItems((its) => its.map((it) => (!it.appId && given.has(it.key) ? { ...it, appId: given.get(it.key) } : it)));
-  }, [stager, items, files, listing]);
+  const stager = useBunchStager(user?.id, items, files, !!listing, setItems); // LEAD-BUNCH-34-SLOW early upload
   const [askingStartOver, setAskingStartOver] = useState(false);
   useScreenAwake(!!sorting || !!listing || listingDrafts);
   const saved = useBunchSaved(

@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { spentRowNote, spentRows } from "@/lib/posterSpend";
+import { fullyRefundedJobs, spentRowNote, spentRows } from "@/lib/posterSpend";
 import { usePosterSpendData } from "@/components/profile/earningsTab/usePosterSpendData";
 import { rowMs as spentRowMs } from "@/components/profile/earningsTab/SpentSection";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -160,7 +160,18 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
   const receipts: Receipt[] = [];
   if (spend.data) {
     const { jobs, refunds, tips, gifts, blockFees } = spend.data;
-    for (const r of spentRows(jobs, refunds, gifts, tips, blockFees)) {
+    const rows = spentRows(jobs, refunds, gifts, tips, blockFees);
+    // AUD31-55: a job refunded in full stays on the list as "Refunded", as a refunded Declutter order does.
+    for (const job of fullyRefundedJobs(jobs, refunds, rows)) {
+      receipts.push({
+        key: `job-${job.id}`,
+        title: job.title ?? "Job",
+        ms: spentRowMs({ job, tip: null, cents: 0, tipCents: 0, refundedCents: 0, adminRefunded: false }),
+        cents: null,
+        note: spentRowNote({ job, tipCents: 0, refundedCents: 0 }, formatCents),
+      });
+    }
+    for (const r of rows) {
       if (r.cents <= 0) continue;
       receipts.push({
         key: r.job ? `job-${r.job.id}` : `tip-${r.tip?.id}`,

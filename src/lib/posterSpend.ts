@@ -229,6 +229,22 @@ export function spentRowNote(
     + (r.tipCents > 0 ? ` · includes ${money(r.tipCents)} tip and card fee` : "");
 }
 
+/**
+ * AUD31-55: the poster's jobs that were charged and then refunded in full. spentRows() leaves them out (they cost
+ * nothing, so the Spent total stays the sum of its rows), but a receipt list that dropped them made a paid-then-refunded
+ * job vanish while a refunded Declutter order shows "Refunded". These are the jobs with a refund ledgered against them
+ * that spentRows() kept no row for.
+ */
+export function fullyRefundedJobs<J extends PosterSpendJob>(
+  jobs: readonly J[],
+  refunds: readonly PosterRefundRow[],
+  rows: readonly SpentRow<J>[],
+): J[] {
+  const kept = new Set(rows.map((r) => r.job?.id).filter(Boolean));
+  const refunded = new Set(refunds.filter((r) => r.job_id && (r.amount_cents ?? 0) > 0).map((r) => r.job_id));
+  return jobs.filter((j) => !kept.has(j.id) && refunded.has(j.id));
+}
+
 /** The Spent total: the sum of spentRows(), in cents. */
 export const spentTotalCents = (rows: readonly { cents: number }[]) => rows.reduce((s, r) => s + r.cents, 0);
 

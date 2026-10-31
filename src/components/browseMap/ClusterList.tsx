@@ -46,7 +46,7 @@ export function ClusterList({ jobs, onOpen, onClose }: { jobs: MapJob[]; onOpen:
     >
       <div className="flex items-center justify-between gap-2 pl-2">
         <h2 className="text-sm font-semibold">{heading}</h2>
-        <Button type="button" variant="ghost" size="icon" aria-label="Close" onClick={onClose}>
+        <Button type="button" variant="ghost" size="icon" className="ctl-exit" aria-label="Close" onClick={onClose}>
           <X className="h-4 w-4" aria-hidden />
         </Button>
       </div>

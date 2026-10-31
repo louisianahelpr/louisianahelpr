@@ -8,7 +8,7 @@
 const REQUEST_TTL_MS = 10_000;
 const pending = new Map<string, { action: FaceRequest; at: number }>();
 
-type FaceRequest = "confirm";
+type FaceRequest = "confirm" | "approve";
 
 export function requestFaceAction(jobId: string, action: FaceRequest): void {
   pending.set(jobId, { action, at: Date.now() });

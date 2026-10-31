@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-31T18:24Z",
+  "measured_at": "2026-10-31T19:29Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 3802,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41229153473",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41233503277",
         "runTruncated": false
       },
       {
@@ -134,13 +134,6 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439",
         "runTruncated": false
-      },
-      {
-        "number": 3888,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41219348957",
-        "runTruncated": false
       }
     ]
   },
@@ -178,14 +171,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -660,19 +645,19 @@
         "issue": null
       },
       {
-        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
         "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
         "issue": null
       },
       {
@@ -764,19 +749,19 @@
         "issue": null
       },
       {
-        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "cr",
-        "issue": null
-      },
-      {
         "fingerprint": "e32aa223d475dd1349363e900374a77e",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "error: script error.",
+        "issue": null
+      },
+      {
+        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "cr",
         "issue": null
       },
       {
@@ -852,19 +837,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -1003,7 +988,6 @@
     "issue #3833": "Q1816",
     "issue #3846": "Q1816",
     "issue #3875": "Q1816",
-    "issue #3888": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -1146,7 +1130,6 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596",
     "ledger fba95b3590a6": "Q2538",
     "ledger fcb359880524": "Q2513"

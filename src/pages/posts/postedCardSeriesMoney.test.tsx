@@ -5,7 +5,9 @@
 //
 // Red first (2026-10-29) against origin/main 1a38dea437: no such line rendered.
 //
-// @mutate src/pages/posts/PostedJobSeriesControls.tsx |   const seriesMoney = visits > 1 && running && budget > 0 ? seriesMoneySentence(budget, visits) : null; |   const seriesMoney = null;
+// @mutate src/pages/posts/PostedJobSeriesControls.tsx |   const seriesMoney = visits > 1 && running && budget > 0 ? seriesMoneySentence(budget, visits, hasTaxableLine(job.category)) : null; |   const seriesMoney = null;
+// JOBS-28: a taxable category's card adds "plus its sales tax" (charge-recurring-visits taxes each later visit).
+// @mutate src/pages/posts/PostedJobSeriesControls.tsx | seriesMoneySentence(budget, visits, hasTaxableLine(job.category)) | seriesMoneySentence(budget, visits)
 // @mutate src/pages/posts/PostedJobSeriesControls.tsx |   const running = !job.series_ended_on && job.status !== "cancelled" && job.status !== "completed"; |   const running = true;
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -27,6 +29,11 @@ describe("A2-C36: the poster's series card says the budget is per visit and when
   it("a running weekly series of 4 at $40: Review's words", () => {
     render(<PostedJobSeriesControls job={series} userId="p1" />);
     expect(screen.getByText(SAID)).toBeTruthy();
+  });
+
+  it("a taxable category (plumbing): the later visits are charged their sales tax too", () => {
+    render(<PostedJobSeriesControls job={{ ...series, category: "plumbing" }} userId="p1" />);
+    expect(line()).toBe("$40 a visit · 4 visits. Each later visit, plus its sales tax, is charged to your saved card about 3 days before it.");
   });
 
   it("a visit row of the series (a child) does not repeat it", () => {

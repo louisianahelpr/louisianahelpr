@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up." | : t.payout_status === "failed" ? "Delivered. Your pay is on its way."
  * @mutate src/components/declutter/DeliverVehicleForm.tsx | With a truck you can take small and large items. | With a truck you can take small, medium and large items.
  * BUY-47: declutter_payouts_due stops at 12 attempts, so nothing promises it keeps trying.
- * @mutate src/lib/declutter/payoutWords.ts | If it still doesn't arrive, message Support. | We'll keep trying.
+ * @mutate src/lib/declutter/payoutWords.ts | set up. If it still doesn't arrive, message Support."; | set up. We'll keep trying.";
  * BUY-48: the seller's handover photos use the shared button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | <PhotoPickButton id={fileId} picked={photo} disabled={busy} onPick={setPhoto} /> | <input id={fileId} type="file" accept="image/*" disabled={busy} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
  * BUY-53: with Pause all on a row doesn't claim a channel, and deleting a search asks first.

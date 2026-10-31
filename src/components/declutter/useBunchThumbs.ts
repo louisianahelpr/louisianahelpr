@@ -9,13 +9,19 @@ import { bunchThumbnail } from "@/lib/declutter/photos";
 
 const SHOW_EVERY = 4;
 
-export function useBunchThumbs(photos: BunchPhoto[]): Map<string, string> {
+/**
+ * LEAD-BUNCH-34-SLOW: `paused` while a sort makes each photo's small copy (Sell a bunch shows that copy, so the full photo
+ * isn't decoded twice at once); `ready` = the photos that already have one, skipped here.
+ */
+export function useBunchThumbs(photos: BunchPhoto[], { paused = false, ready }: { paused?: boolean; ready?: ReadonlyMap<string, string> } = {}): Map<string, string> {
   const [shown, setShown] = useState<Map<string, string>>(() => new Map());
   const made = useRef(new Map<string, string>());
   const wanted = useRef(new Set<string>());
   const queue = useRef<BunchPhoto[]>([]);
   const running = useRef(false);
   const closed = useRef(false);
+  const readyNow = useRef(ready);
+  readyNow.current = ready;
 
   useEffect(() => {
     closed.current = false;
@@ -39,13 +45,13 @@ export function useBunchThumbs(photos: BunchPhoto[]): Map<string, string> {
     if (removed) setShown(new Map(made.current));
     for (const p of photos) if (!wanted.current.has(p.key)) queue.current.push(p);
     wanted.current = now;
-    if (running.current) return;
+    if (running.current || paused) return;
     running.current = true;
     void (async () => {
       let sinceShown = 0;
       while (queue.current.length > 0 && !closed.current) {
         const p = queue.current.shift()!;
-        if (!wanted.current.has(p.key)) continue;
+        if (!wanted.current.has(p.key) || readyNow.current?.has(p.key)) continue;
         const url = URL.createObjectURL(await bunchThumbnail(p.file));
         if (closed.current || !wanted.current.has(p.key)) {
           URL.revokeObjectURL(url);
@@ -61,7 +67,7 @@ export function useBunchThumbs(photos: BunchPhoto[]): Map<string, string> {
       running.current = false;
       if (!closed.current && sinceShown > 0) setShown(new Map(made.current));
     })();
-  }, [photos]);
+  }, [photos, paused]);
 
   return shown;
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261031010243_declutter_never_got_it_no_return (BUY-25, BUY-23; owner's rulings 10-30).
- * On "never got it" the seller's Refund in full refunds at once, with no return and no payout, down the same
- * declutter_refund_after_handover path as "I got it back". "The buyer brings it back" exists only where the seller offered
+ * On "never got it" the seller's Refund in full refunds at once, with no return and no payout, as reason seller_no_show:
+ * everything back, the seller owes the card fee. "The buyer brings it back" exists only where the seller offered
  * pickup, and the buyer is told the address while it is open.
  *
  *   node src/test/pglite/declutterNeverGotItNoReturn.pglite.mjs                    # GREEN
@@ -25,6 +25,7 @@ const BASES = [
   "20261029201542_declutter_porch_photo_not_before_the_day.sql",
   "20261029224147_declutter_admin_decision_closes_refund_request.sql",
   "20261029225634_declutter_problem_both_sides_and_photos.sql",
+  "20261029232103_declutter_refund_debt_notice.sql",
   "20261030071818_declutter_returns.sql",
   "20261030164712_declutter_porch_places.sql",
 ];
@@ -80,7 +81,11 @@ ok(ans?.[0]?.r?.result === "refunded", `Refund in full refunds at once (${short(
 const rN = await row(N.id);
 ok(rN?.status === "agreed" && !!rN?.refund_id && !!rN?.settled_at && rN?.return_way == null, `  agreed, with its refund, and no return (${short(rN)})`);
 const mN = await refund(N.id);
-ok(mN?.reason === "refund_request_full" && mN?.fee_policy === "keep_card_fee" && mN?.paid_cents === N.total && mN?.refund_cents === N.total - mN?.card_fee_cents, `  the refund row: the same amounts as any seller-agreed full refund (${short(mN)})`);
+ok(mN?.reason === "seller_no_show" && mN?.fee_policy === "full_seller_pays_fee" && mN?.paid_cents === N.total && mN?.refund_cents === N.total, `  the refund row: everything back, the seller pays the card fee (${short(mN)})`);
+const dN = (await svc(`SELECT d.seller_id::text AS seller, d.amount_cents, d.remaining_cents FROM public.declutter_seller_fee_debts d JOIN public.declutter_refunds r ON r.id = d.refund_id WHERE r.order_id = '${N.id}'`))?.[0];
+ok(dN?.seller === SELLER2 && dN?.amount_cents === mN?.card_fee_cents && dN?.remaining_cents === mN?.card_fee_cents && mN?.card_fee_cents > 0, `  the card fee is a debt on the seller, so the platform absorbs nothing (${short(dN)})`);
+ok(/next Declutter sale/.test(await noteTo(SELLER2, "You owe from a refund") ?? ""), "  the seller is told where it comes from");
+ok((await view(BUYER2, N.id))?.never_got_it_refund_cents === N.total, "  the view gives the buyer the whole amount");
 const pN = await payout(N.id);
 ok(pN?.amount_cents === 0 && pN?.status === "nothing_due", `  no payout for that sale (${short(pN)})`);
 ok(/The seller agreed you never got it/.test(await noteTo(BUYER2, "Refund on its way") ?? ""), "  the buyer's notice says why, not that the item came back");

@@ -15,14 +15,23 @@ const PROBLEM_OPEN_HEADLINE = "Problem reported: Louisiana Helpr is looking.";
 /** Where the order stands while a problem is open (the server refuses booking and a no-show then: problem_open). */
 export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the problem.";
 
+function noShowAnsweredWords(side: "buyer" | "seller", delivery: boolean) {
+  if (side === "buyer") return delivery ? "You reported it wasn't delivered, and the seller answered." : "You reported the seller didn't show, and the seller answered.";
+  return delivery ? "The buyer reported it wasn't delivered, and you answered." : "The buyer reported you didn't show, and you answered.";
+}
+
 /**
  * Audit 1b D2-2: after "Report a problem", both order cards say a problem is open, with its reason and who reported
  * it. The money is held until an admin decides (declutter_report_problem's notice; the payout waits on it).
  */
-export function ProblemOpenNote({ problem, side }: { problem: OpenProblem; side: "buyer" | "seller" }) {
+export function ProblemOpenNote({ problem, side, answered = false, delivery = false }: { problem: OpenProblem; side: "buyer" | "seller"; answered?: boolean; delivery?: boolean }) {
   const by = problem.reporter_side === side ? "you" : `the ${problem.reporter_side}`;
+  // A buyer's no-show report the seller answered (declutter_answer_no_show): whose report it is, and who answered it.
+  const noShowAnswered = answered && problem.reporter_side === "buyer" && problem.reason === "no_show";
   // Nobody's report: a sale held 60 days with nobody speaking (20261031004529).
-  const reported = problem.reporter_side === "system" ? "Nobody has confirmed this handover for 60 days." : `${REASON_WORDS[problem.reason] ?? REASON_WORDS.other}, reported by ${by}.`;
+  const reported = problem.reporter_side === "system" ? "Nobody has confirmed this handover for 60 days."
+    : noShowAnswered ? noShowAnsweredWords(side, delivery)
+    : `${REASON_WORDS[problem.reason] ?? REASON_WORDS.other}, reported by ${by}.`;
   return (
     <div role="status" className="rounded-xl border border-border px-3 py-2 text-ds-13" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-problem-open="">
       <p className="font-semibold">{PROBLEM_OPEN_HEADLINE}</p>

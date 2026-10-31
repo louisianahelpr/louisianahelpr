@@ -167,6 +167,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   already_confirmed: "You said it was handed over. If that's wrong, report a problem.",
   no_show_reported: "The buyer says you didn't show. Answer that report on this order.",
   no_show_not_reported: "The buyer hasn't reported anything on this order.",
+  no_show_waiting: "A no-show report on this pickup is waiting for an answer, so the time can't move.",
   no_show_answer_late: "The 24 hours to answer are over.",
   no_return_needed: "The buyer says they never got it, so there is nothing to bring back.",
   drop_off_not_offered: "Your address stays private on this sale, so you pick it up from the buyer.",

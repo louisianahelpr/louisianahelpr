@@ -103,6 +103,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_price_hint: "hides",
   sweep_job_post_drafts: "alerts", // 20261030223154: a test or seed member never gets the draft reminder
   declutter_move_reminder_sweep: "alerts", // 20261030221156: a test listing or seller never gets the reminder
+  declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; every other step of the sweep still runs on it
   declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
   declutter_refund_cancels_setup_jobs: "alerts",
   declutter_refund_gave_up_check: "alerts",

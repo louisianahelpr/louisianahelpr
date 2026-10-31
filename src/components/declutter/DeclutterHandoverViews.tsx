@@ -154,6 +154,9 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
   const done = order.status === "handed_over";
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
   const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
+  // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: !done });
+  const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
   const [problemOpen, setProblemOpen] = useState(false);
   const [atHandover, setAtHandover] = useState(false); // opened from the "I got it" sheet (D2-11)
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
@@ -187,11 +190,11 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
-      {problem && <ProblemOpenNote problem={problem} side={order.side} />}
+      {problem && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
-      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
+      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} delivery={order.handover === "seller_delivery"} /></Suspense>
       {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
       <OrderTalkButton orderId={order.orderId} side={order.side} />
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
@@ -247,7 +250,8 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
-          {problem ? null : order.handover === "porch"
+          {/* T9: while the seller has their 24 hours the time stands (the server refuses a move: no_show_waiting). */}
+          {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
             : <BookingPanel order={order} booking={booking} />}
@@ -255,7 +259,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
@@ -271,7 +275,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
   );
 }
 
-function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking | null }) {
+function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; booking: MyBooking | null; frozen?: boolean }) {
   const qc = useQueryClient();
   const [value, setValue] = useState("");
   // Deep audit #2: the buyer picks from the seller's own times (day + time chips); the seller's one move stays free.
@@ -294,6 +298,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
     return <p className="text-sm text-muted-foreground">Waiting for the buyer to book {order.handover === "meetup" ? "a time to meet" : "a pickup time"} (within 7 days of paying).</p>;
   }
   const id = `dcl-slot-${order.orderId}`;
+  if (frozen) return booked ? <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p> : null;
   return (
     <div className="space-y-2">
       {booked && <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
@@ -331,7 +336,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   );
 }
 
-function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; who: string; problemOpen: boolean; onProblem: () => void }) {
+function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
   const qc = useQueryClient();
   // A1-C2: the buyer's "I got it" on a porch pickup waits for the porch photo (set_out_at) or the pickup day
   // (the same handover row and key PorchOutPhoto reads, so nothing is read twice).
@@ -373,6 +378,8 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
       return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
+    // T9: any open problem, the 60-day one too: the server refuses "Picked up" then (problem_open). The card's note says why.
+    if (anyProblem) return null;
     // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
     if (handoverRow.data?.no_show_reported_at) return null;
     // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).
@@ -397,7 +404,6 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, problemOpen, 
     );
   }
   // Audit 1030 DB-2: no "I got it" while a problem is open (the server refuses it: problem_open); the card's note says why.
-  // The seller's "Picked up" above stays: it records the handover and the payout stays held.
   if (problemOpen) return null;
   if (!porchReady) {
     return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;

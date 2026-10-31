@@ -1874,6 +1874,10 @@ export type Database = {
           set_out_at: string | null
           set_out_photo_path: string | null
           set_out_note: string | null
+          seller_confirmed_at: string | null
+          no_show_reported_at: string | null
+          no_show_answer_by: string | null
+          held_nudged_at: string | null
           wrong_attempts: number
         }
         Insert: {
@@ -1889,6 +1893,10 @@ export type Database = {
           set_out_at?: string | null
           set_out_photo_path?: string | null
           set_out_note?: string | null
+          seller_confirmed_at?: string | null
+          no_show_reported_at?: string | null
+          no_show_answer_by?: string | null
+          held_nudged_at?: string | null
           wrong_attempts?: number
         }
         Update: {
@@ -1904,6 +1912,10 @@ export type Database = {
           set_out_at?: string | null
           set_out_photo_path?: string | null
           set_out_note?: string | null
+          seller_confirmed_at?: string | null
+          no_show_reported_at?: string | null
+          no_show_answer_by?: string | null
+          held_nudged_at?: string | null
           wrong_attempts?: number
         }
         Relationships: [

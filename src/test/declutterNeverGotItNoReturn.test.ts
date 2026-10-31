@@ -4,6 +4,7 @@
  * Reads EFFECTIVE definitions. Backend proof: src/test/pglite/declutterNeverGotItNoReturn.pglite.mjs (3x).
  */
 // @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |     IF r.reason = 'not_received' THEN\n      v_out := | IF false THEN\n      v_out :=
+// @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |       v_out := public.declutter_refund_after_handover(o.id, 'seller_no_show', NULL); |       v_out := public.declutter_refund_after_handover(o.id, 'refund_request_full', NULL);
 // @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   IF p_way = 'drop_off' AND o.handover NOT IN ('pickup_home', 'porch') THEN |   IF false THEN
 // @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   IF r.status = 'returning' AND r.return_way = 'drop_off' AND o.handover IN ('pickup_home', 'porch') THEN |   IF true THEN
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx | const [choice, setChoice] = useState<Answer \| null>(null); | const [choice, setChoice] = useState<Answer \| null>("full");
@@ -24,9 +25,10 @@ describe("BUY-25 and BUY-23", () => {
     }
   });
 
-  it("never got it: Refund in full goes down the same refund path as I got it back, at once", () => {
+  it("never got it: Refund in full refunds at once, with the seller paying the card fee (lead 10-30)", () => {
     const a = flat("declutter_answer_refund");
-    expect(a).toMatch(/IF r\.reason = 'not_received' THEN v_out := public\.declutter_refund_after_handover\(o\.id, 'refund_request_full', NULL\)/);
+    expect(a).toMatch(/IF r\.reason = 'not_received' THEN v_out := public\.declutter_refund_after_handover\(o\.id, 'seller_no_show', NULL\)/);
+    expect(flat("declutter_record_refund")).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
     expect(flat("declutter_refund_item_returned")).toContain("public.declutter_refund_after_handover(o.id, 'refund_request_full', NULL)");
     expect(flat("declutter_accept_refund_with_return")).toContain("IF r.reason = 'not_received' THEN RAISE EXCEPTION 'no_return_needed'");
   });

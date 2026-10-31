@@ -633,7 +633,6 @@ export const RPC_ERROR_COPY = {
     review_contact_info: DC.review_contact_info,
   },
   declutter_porch_photo: {
-    no_show_reported: DC.no_show_reported,
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,
@@ -686,16 +685,20 @@ export const RPC_ERROR_COPY = {
   },
   declutter_answer_no_show: {
     account_restricted: DC.account_restricted,
+    note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    problem_already_open: DC.problem_already_open,
+    too_many_photos: "Add up to 3 photos.",
     item_not_found: DC.item_not_found,
     no_show_answer_late: DC.no_show_answer_late,
     no_show_not_reported: DC.no_show_not_reported,
     not_authenticated: DC.not_authenticated,
     order_not_paid: DC.order_not_paid,
-    problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,
   },
   declutter_report_no_show: {
     account_restricted: DC.account_restricted,
+    problem_taken_back: DC.problem_taken_back,
     already_confirmed: DC.already_confirmed,
     no_show_reported: DC.no_show_reported,
     seller_confirmed: DC.seller_confirmed,
@@ -780,6 +783,12 @@ export const RPC_ERROR_COPY = {
   },
   declutter_answer_refund: {
     account_restricted: DC.account_restricted,
+    already_refunded: DC.already_refunded,
+    invalid_payout: DC.invalid_payout,
+    invalid_reason: DC.invalid_reason,
+    order_not_handed_over: DC.order_not_handed_over,
+    payout_missing: DC.payout_missing,
+    refund_amount_unknown: DC.refund_amount_unknown,
     feature_disabled: DC.feature_disabled,
     invalid_amount: DC.invalid_amount,
     invalid_answer: DC.invalid_answer,
@@ -839,6 +848,8 @@ export const RPC_ERROR_COPY = {
   // Declutter returns (20261030071818_declutter_returns.sql).
   declutter_accept_refund_with_return: {
     account_restricted: DC.account_restricted,
+    drop_off_not_offered: DC.drop_off_not_offered,
+    no_return_needed: DC.no_return_needed,
     feature_disabled: DC.feature_disabled,
     invalid_return_day: DC.invalid_return_day,
     invalid_return_time: DC.invalid_return_time,

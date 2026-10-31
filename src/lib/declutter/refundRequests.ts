@@ -68,6 +68,8 @@ export interface RefundRequestView {
   items_cents: number;
   /** What a full refund gives back: the payment minus the card fee (and minus a delivery fee a Helpr earned). */
   full_refund_cents: number;
+  /** BUY-25: "never got it", refunded in full: everything back, less a delivery a Helpr already made. Absent before the migration. */
+  never_got_it_refund_cents?: number;
   /** A delivery fee that paid a Helpr for the trip: never refunded. */
   delivery_kept_cents: number;
   request: RefundRequest | null;

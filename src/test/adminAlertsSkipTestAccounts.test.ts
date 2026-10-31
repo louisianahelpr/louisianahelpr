@@ -49,6 +49,8 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   auto_escalate_reports: "link",
   auto_restrict_repeat_violators: "link",
   block_user_and_settle: "link",
+  declutter_answer_no_show: "caller", // 20261031004529: the seller answering a buyer's no-show report
+  declutter_handover_sweep: "explicit", // 20261031004529: the 60-day held sale
   declutter_problem_add_side: "caller",
   declutter_refund_request_to_admin: "explicit",
   declutter_report_problem: "caller",

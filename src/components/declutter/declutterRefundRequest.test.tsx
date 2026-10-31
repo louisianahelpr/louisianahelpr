@@ -6,7 +6,7 @@
  *
  * Deep audit 2026-10-28 B-5 (#5): the full refund is less than the payment (the card network keeps its part); the buyer
  * is told why in words wherever that amount is shown, with no fee name or figure (membersSeeNoFeeWords scans the copy).
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | . <span data-full-refund-why="">{FULL_REFUND_WHY}</span>{" "} | .{" "}
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | .{reason === "not_received" ? "" : <> <span data-full-refund-why="">{FULL_REFUND_WHY}</span></>}{" "} | .{" "}
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice ?? "decline", offerCents);

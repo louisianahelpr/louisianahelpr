@@ -56,10 +56,12 @@ BEGIN
       RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',
         HINT = 'The seller was already paid for this sale. Louisiana Helpr settles it by hand.';
     END IF;
-    -- CHANGED (BUY-25, owner 10-30): the buyer never got it, so there is nothing to bring back: refunded now, as the
-    -- seller's "I got it back" does it (declutter_refund_item_returned), with the payout taken to nothing.
+    -- CHANGED (BUY-25, owner 10-30): the buyer never got it, so there is nothing to bring back: refunded now, with the
+    -- payout taken to nothing. Lead 10-30: reason seller_no_show, so fee policy full_seller_pays_fee: the buyer gets
+    -- everything back, and the seller owes the card fee (declutter_record_refund's debt row, out of their next payout).
+    -- A delivery fee that already paid a Helpr for the trip stays with the Helpr, as on every refund (B69).
     IF r.reason = 'not_received' THEN
-      v_out := public.declutter_refund_after_handover(o.id, 'refund_request_full', NULL);
+      v_out := public.declutter_refund_after_handover(o.id, 'seller_no_show', NULL);
       UPDATE public.declutter_refund_requests
          SET status = 'agreed', refund_id = (v_out->>'refund_id')::uuid, settled_at = now()
        WHERE id = r.id;
@@ -217,7 +219,7 @@ DECLARE
   v_policy text;
   v_never_got_it boolean;
 BEGIN
-  IF p_reason IS NULL OR p_reason NOT IN ('refund_request_full', 'refund_request_part', 'not_as_described', 'admin_no_fault', 'admin_buyer_fault') THEN
+  IF p_reason IS NULL OR p_reason NOT IN ('refund_request_full', 'refund_request_part', 'not_as_described', 'admin_no_fault', 'admin_buyer_fault', 'seller_no_show') THEN
     RAISE EXCEPTION 'invalid_reason' USING ERRCODE = '22023';
   END IF;
   o := public.declutter_lock_order(p_order_id);
@@ -232,9 +234,8 @@ BEGIN
     RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',
       HINT = 'The seller was already paid for this sale. Louisiana Helpr settles it by hand.';
   END IF;
-  -- CHANGED (BUY-25, owner 10-30): only the words below differ on a sale the buyer never got. Same amounts.
-  v_never_got_it := p_reason = 'refund_request_full'
-    AND EXISTS (SELECT 1 FROM public.declutter_refund_requests rr WHERE rr.order_id = o.id AND rr.reason = 'not_received');
+  -- CHANGED (BUY-25, owner 10-30): only declutter_answer_refund's "never got it" sends this reason here.
+  v_never_got_it := p_reason = 'seller_no_show';
   -- A delivery fee that paid a Helpr for the trip stays with the Helpr (owner #5, B69).
   v_reserved := public.declutter_delivery_reserved_cents(o.id);
   v_paid := o.total_cents - v_reserved;
@@ -268,10 +269,13 @@ BEGIN
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Refund on its way',
     CASE WHEN p_reason = 'refund_request_part'
          THEN format('$%s is coming back to your card for "%s". Keep the item.', to_char(v_cents / 100.0, 'FM999990.00'), COALESCE(v_title, 'your item'))
-         WHEN p_reason = 'refund_request_full'
-         THEN format('$%s is coming back to your card for "%s". %s%s%s',
+         WHEN v_never_got_it
+         THEN format('$%s is coming back to your card for "%s". The seller agreed you never got it.%s',
                      to_char(v_cents / 100.0, 'FM999990.00'), COALESCE(v_title, 'your item'),
-                     CASE WHEN v_never_got_it THEN 'The seller agreed you never got it.' ELSE 'The seller confirmed they have the item back.' END,
+                     CASE WHEN v_reserved > 0 THEN ' What you paid for delivery went to the Helpr who made the trip.' ELSE '' END)
+         WHEN p_reason = 'refund_request_full'
+         THEN format('$%s is coming back to your card for "%s". The seller confirmed they have the item back.%s%s',
+                     to_char(v_cents / 100.0, 'FM999990.00'), COALESCE(v_title, 'your item'),
                      CASE WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.' ELSE '' END,
                      CASE WHEN v_reserved > 0 THEN ' What you paid for delivery went to the Helpr who made the trip.' ELSE '' END)
          ELSE format('$%s is coming back to your card for "%s".%s%s Please give the item back to the seller; message the seller from your order.',
@@ -343,6 +347,8 @@ BEGIN
                   AND NOT EXISTS (SELECT 1 FROM public.declutter_problems x WHERE x.order_id = o.id AND x.status = 'open'), false),
     'items_cents', o.items_cents,
     'full_refund_cents', public.declutter_full_refund_cents(o.id),
+    -- BUY-25: never got it, the seller refunds in full: everything back, less a delivery a Helpr already made.
+    'never_got_it_refund_cents', o.total_cents - public.declutter_delivery_reserved_cents(o.id),
     'delivery_kept_cents', public.declutter_delivery_reserved_cents(o.id),
     'can_drop_off', o.handover IN ('pickup_home', 'porch'),
     'request', CASE WHEN r.id IS NULL THEN NULL ELSE jsonb_build_object(

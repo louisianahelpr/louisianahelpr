@@ -29,6 +29,7 @@ const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 /** NOT IN lists that are the function's ONLY accepted handovers (anything else, 'ship' included, is refused). */
 const REFUSALS: Record<string, string> = {
   "declutter_checkout_free|p_handover NOT IN ('pickup_home', 'porch')": "a free claim is porch or door pickup only; anything else raises",
+  "declutter_accept_refund_with_return|o.handover NOT IN ('pickup_home', 'porch')": "a drop-off is only where the seller offered pickup; anything else, shipped included, raises drop_off_not_offered",
   "declutter_on_my_way|o.handover NOT IN ('pickup_home', 'porch', 'meetup')": "I'm on my way is for a pickup; anything else raises not_a_pickup",
   "declutter_seller_picked_up|o.handover NOT IN ('pickup_home', 'meetup')": "\"Picked up\" is for a door pickup or a meetup; anything else raises not_a_door_pickup",
   "declutter_start_checkout|p_handover NOT IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup')":

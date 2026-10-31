@@ -13,7 +13,8 @@
 -- Restated from prod's effective definitions (md5 at read, 10-30): declutter_report_no_show 83452724,
 -- declutter_report_not_delivered 94e0eda0, declutter_seller_picked_up 7e28cf20, declutter_handover_sweep 2f42cd41,
 -- declutter_my_handover 3cf383ba, declutter_address_access (read 10-30), declutter_item_address 613df764,
--- declutter_order_place e70188a2, declutter_confirm_handover (read 10-30). Only the marked parts change.
+-- declutter_order_place e70188a2, declutter_confirm_handover (read 10-30), declutter_withdraw_problem (20261030134109).
+-- Only the marked parts change.
 
 ALTER TABLE public.declutter_handovers
   ADD COLUMN IF NOT EXISTS seller_confirmed_at timestamptz,
@@ -112,6 +113,12 @@ DECLARE
   h public.declutter_handovers;
 BEGIN
   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+  -- B100's rule: a member who took back their report on this sale cannot report it again.
+  IF EXISTS (SELECT 1 FROM public.declutter_problems p
+              WHERE p.order_id = o.id AND p.reporter_id = o.buyer_id AND p.reason = 'no_show' AND p.status = 'withdrawn') THEN
+    RAISE EXCEPTION 'problem_taken_back' USING ERRCODE = '55000',
+      HINT = 'You took back your report on this sale, so it can''t be reported again.';
+  END IF;
   INSERT INTO public.declutter_handovers (order_id, code) VALUES (o.id, public.declutter_new_handover_code())
   ON CONFLICT (order_id) DO NOTHING;
   SELECT * INTO h FROM public.declutter_handovers WHERE order_id = o.id;
@@ -278,6 +285,10 @@ DECLARE
   o public.declutter_orders;
   h public.declutter_handovers;
   v_side text;
+  v_open public.declutter_problems;
+  v_id uuid;
+  v_path text;
+  a record;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
@@ -304,8 +315,52 @@ BEGIN
     RAISE EXCEPTION 'no_show_answer_late' USING ERRCODE = '55000',
       HINT = 'The 24 hours to answer are over.';
   END IF;
-  -- declutter_report_problem checks the note and photos, holds the money, and tells the buyer and Louisiana Helpr.
-  RETURN public.declutter_report_problem(o.id, 'no_show', p_note, COALESCE(p_photo_paths, '{}'));
+  -- CHANGED (T9, 10-30): the report is the buyer's; the seller is answering it. So the problem names the buyer as its
+  -- reporter and carries the seller's words as the other side. Going through declutter_report_problem recorded the seller
+  -- as the reporter: their card said "reported by you", the buyer could not take it back, and a false-report decision
+  -- would have gone against the wrong person.
+  SELECT p.* INTO v_open FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open';
+  IF FOUND THEN
+    -- The same answer sent again (a double tap) answers the same; anything else goes on the open problem.
+    IF v_open.reporter_side = 'buyer' AND v_open.reason = 'no_show' AND v_open.other_side_note = btrim(p_note) THEN
+      RETURN v_open.id;
+    END IF;
+    RAISE EXCEPTION 'problem_already_open' USING ERRCODE = '55000',
+      HINT = 'A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.';
+  END IF;
+  IF p_note IS NULL OR char_length(btrim(p_note)) NOT BETWEEN 1 AND 1000 THEN
+    RAISE EXCEPTION 'note_required' USING ERRCODE = '22023', HINT = 'Tell us what happened (up to 1,000 characters).';
+  END IF;
+  IF cardinality(COALESCE(p_photo_paths, '{}')) > 3 THEN
+    RAISE EXCEPTION 'too_many_photos' USING ERRCODE = '22023';
+  END IF;
+  FOREACH v_path IN ARRAY COALESCE(p_photo_paths, '{}') LOOP
+    IF v_path IS NULL
+       OR split_part(v_path, '/', 1) IS DISTINCT FROM v_uid::text
+       OR split_part(v_path, '/', 2) IS DISTINCT FROM 'declutter'
+       OR split_part(v_path, '/', 3) IS DISTINCT FROM 'problem'
+       OR split_part(v_path, '/', 4) IS DISTINCT FROM o.id::text
+       OR split_part(v_path, '/', 5) = ''
+       OR split_part(v_path, '/', 6) <> ''
+       OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = v_path) THEN
+      RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';
+    END IF;
+  END LOOP;
+  INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths,
+                                         other_side_note, other_side_photo_paths, other_side_at)
+  VALUES (o.id, o.buyer_id, 'buyer', 'no_show',
+          CASE WHEN o.handover = 'seller_delivery' THEN 'It wasn''t delivered at the delivery time.' ELSE 'The seller didn''t show at the pickup time.' END,
+          '{}', btrim(p_note), COALESCE(p_photo_paths, '{}'), now())
+  RETURNING id INTO v_id;
+  PERFORM public.declutter_notify(o.buyer_id, 'warning', 'The seller answered your report',
+    format('About %s. Louisiana Helpr looks at both sides and tells you what it decides. The money stays held until then.',
+           public.declutter_order_items_named(o.id)),
+    '/declutter?tab=buying', v_uid);
+  FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
+    PERFORM public.declutter_notify(a.user_id, 'warning', 'Declutter problem reported',
+      'A buyer reported that the seller didn''t show, and the seller answered. The money is held until you decide it.', '/admin');
+  END LOOP;
+  RETURN v_id;
 END;
 $function$;
 REVOKE ALL ON FUNCTION public.declutter_answer_no_show(uuid, text, text[]) FROM PUBLIC, anon;
@@ -460,6 +515,104 @@ CREATE TRIGGER declutter_delivered_waits_for_no_show_answer
   BEFORE UPDATE OF delivered_at ON public.declutter_seller_deliveries
   FOR EACH ROW WHEN (NEW.delivered_at IS DISTINCT FROM OLD.delivered_at AND NEW.delivered_at IS NOT NULL)
   EXECUTE FUNCTION public.declutter_refuse_given_during_no_show();
+
+-- The seller's 24 hours: the pickup time stands while the report waits, so nobody moves it out from under the report.
+CREATE OR REPLACE FUNCTION public.declutter_refuse_move_during_no_show()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = NEW.order_id AND h.no_show_reported_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'no_show_waiting' USING ERRCODE = '55000',
+      HINT = 'A no-show report on this pickup is waiting for an answer, so the time can''t move.';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.declutter_refuse_move_during_no_show() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS declutter_booking_waits_for_no_show_answer ON public.declutter_bookings;
+CREATE TRIGGER declutter_booking_waits_for_no_show_answer
+  BEFORE UPDATE OF slot_start, pickup_day ON public.declutter_bookings
+  FOR EACH ROW WHEN (NEW.slot_start IS DISTINCT FROM OLD.slot_start OR NEW.pickup_day IS DISTINCT FROM OLD.pickup_day)
+  EXECUTE FUNCTION public.declutter_refuse_move_during_no_show();
+
+-- Restated from 20261030134109 (take back a problem report); only the marked lines change.
+CREATE OR REPLACE FUNCTION public.declutter_withdraw_problem(p_problem_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_order uuid;
+  o public.declutter_orders;
+  p public.declutter_problems;
+  v_side text;
+  v_withdrawn integer := 0;
+  a record;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  SELECT x.order_id INTO v_order FROM public.declutter_problems x WHERE x.id = p_problem_id;
+  IF v_order IS NULL THEN
+    RAISE EXCEPTION 'problem_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  -- Lock order: the order first, then the problem, as the decision does.
+  o := public.declutter_lock_order(v_order);
+  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);
+  SELECT * INTO p FROM public.declutter_problems WHERE id = p_problem_id FOR UPDATE;
+  -- Only the member who reported it, still that side of the sale; anyone else is not told it exists.
+  IF v_side IS NULL OR v_side NOT IN ('buyer', 'seller')
+     OR p.reporter_id IS DISTINCT FROM v_uid OR p.reporter_side IS DISTINCT FROM v_side THEN
+    RAISE EXCEPTION 'problem_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p.status = 'withdrawn' THEN
+    RETURN jsonb_build_object('result', 'already', 'problem_id', p.id);
+  END IF;
+  IF p.status <> 'open' THEN
+    RAISE EXCEPTION 'problem_already_decided' USING ERRCODE = '55000';
+  END IF;
+  -- A refund request that went to Louisiana Helpr with this report.
+  IF EXISTS (SELECT 1 FROM public.declutter_refund_requests r
+              WHERE r.problem_id = p.id AND r.status = 'to_admin' AND r.return_agreed_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'problem_has_return' USING ERRCODE = '55000',
+      HINT = 'A return was agreed on this sale, so Louisiana Helpr decides it.';
+  END IF;
+  IF v_side = 'seller' AND EXISTS (SELECT 1 FROM public.declutter_refund_requests r
+                                    WHERE r.problem_id = p.id AND r.status = 'to_admin') THEN
+    RAISE EXCEPTION 'problem_has_refund_request' USING ERRCODE = '55000',
+      HINT = 'The buyer''s refund request went to Louisiana Helpr with your report, so it stays with them.';
+  END IF;
+  UPDATE public.declutter_refund_requests SET status = 'withdrawn'
+   WHERE problem_id = p.id AND status = 'to_admin' AND v_side = 'buyer';
+  GET DIAGNOSTICS v_withdrawn = ROW_COUNT;
+  UPDATE public.declutter_problems SET status = 'withdrawn', withdrawn_at = now() WHERE id = p.id;
+  -- CHANGED (T9, 10-30): now the seller's answer sits on the buyer's report, taking it back ends the report. Left set, the
+  -- sweep would read the passed 24 hours as no answer and refund the buyer with a strike on a seller who did answer.
+  IF p.reason = 'no_show' AND v_side = 'buyer' THEN
+    UPDATE public.declutter_handovers SET no_show_reported_at = NULL, no_show_answer_by = NULL WHERE order_id = o.id;
+  END IF;
+  PERFORM public.declutter_notify(CASE WHEN v_side = 'buyer' THEN o.seller_id ELSE o.buyer_id END, 'declutter_refunds',
+    'Problem report taken back',
+    format('The %s took back their problem report on %s. Nothing is held for it any more.',
+           v_side, public.declutter_order_items_named(o.id)),
+    '/declutter?view=' || CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
+  FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
+    PERFORM public.declutter_notify(a.user_id, 'info', 'Declutter problem taken back',
+      'A member took back a Declutter problem they reported. It has left the problems queue.', '/admin');
+  END LOOP;
+  RETURN jsonb_build_object('result', 'withdrawn', 'problem_id', p.id, 'refund_requests_withdrawn', v_withdrawn);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.declutter_withdraw_problem(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_withdraw_problem(uuid) TO authenticated, service_role;
 
 -- 7 days after the booked time with nothing having happened, the buyer stops seeing the seller's address. A new time
 -- can't be booked by then (declutter_book_pickup: not past paid_at + 7 days), so no rebook needs it.
@@ -789,10 +942,13 @@ BEGIN
         PERFORM public.declutter_notify(o.seller_id, 'warning', 'Louisiana Helpr is looking at this order',
           'Nobody has confirmed this handover for 60 days. The money stays held until Louisiana Helpr decides. You can add your side on the order.',
           '/declutter?tab=selling', o.buyer_id);
-        FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
-          PERFORM public.declutter_notify(a.user_id, 'warning', 'Declutter sale held 60 days',
-            'Nobody has confirmed a paid handover for 60 days. The money is held until you decide it.', '/admin');
-        END LOOP;
+        -- A cron has no caller for the gate to read, so test data is skipped here too (20261030150104's rule).
+        IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN
+          FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
+            PERFORM public.declutter_notify(a.user_id, 'warning', 'Declutter sale held 60 days',
+              'Nobody has confirmed a paid handover for 60 days. The money is held until you decide it.', '/admin');
+          END LOOP;
+        END IF;
         v_to_admin := v_to_admin + 1;
       ELSE
         UPDATE public.declutter_handovers SET held_nudged_at = now() WHERE order_id = o.id;

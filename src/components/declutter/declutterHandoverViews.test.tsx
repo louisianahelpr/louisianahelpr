@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
  * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
@@ -667,7 +667,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Owner 2026-10-28: "make porch just pick a day but they also need to know once it's on the porch so they don't show
   // up and it's not there". The buyer picks one of the seller's days; until the porch photo the card says not to go.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : order.handover === "porch"\n            ? <PorchDayPanel |           {problem ? null : false\n            ? <PorchDayPanel
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"\n            ? <PorchDayPanel |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : false\n            ? <PorchDayPanel
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return "Not out yet. We'll tell you when it's on the porch. Don't go before then."; |       return "Booked. Pick it up on your day.";
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? "It's out. Pick it up today." | return porchDayIsNow(day) ? "It's out. Pick it up at your pickup time."
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "seller" && !booking.pickup_day && ( |       {order.side === "seller" && (
@@ -1120,8 +1120,8 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // Audit 1b D2-2 (1b-problem-after-375, 1b-s-order-afterprob-p1-1440): after "Report a problem" neither card said a
 // problem was open. The buyer was still asked to pick a day, offered "Book" and a second "Report a problem"; the
 // seller was still told "You get $12 once the sale is final" while the money was held.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && <ProblemOpenNote problem={problem} side={order.side} />} |
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : order.handover === "porch" |           {false ? null : order.handover === "porch"
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" |           {false ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen} |           {<ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {booking?.slot_start && !problem && <NoShowButton | {booking?.slot_start && <NoShowButton
@@ -1217,8 +1217,8 @@ describe("D2-2: an open problem shows on both cards", () => {
 
 // Audit 1030 DB-2 (live run A): with a problem report open, Details still offered the buyer "I got it", which then
 // failed (the server refuses it: problem_open). The card now offers no "I got it" while a problem is open, on a
-// pickup, a meetup, a porch pickup or a seller delivery (the panel is told); the seller's "Picked up" stays (it records
-// the handover, and the payout stays held).
+// pickup, a meetup, a porch pickup or a seller delivery (the panel is told). T9: nor the seller's "Picked up": the server
+// refuses that too on any open problem, the 60-day one included.
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (problemOpen) return null; |
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); | who={who} problemOpen={false} onProblem={() => { setAtHandover(true);
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} /> | onProblem={() => setProblemOpen(true)} />
@@ -1249,12 +1249,47 @@ describe("DB-2: no I got it while a problem is open", () => {
     });
   }
 
-  it("the seller's Picked up stays while a problem is open", async () => {
-    state.problems = [damaged];
+  it("T9: the seller's Picked up is gone while any problem is open, the 60-day one too", async () => {
     state.bookings = [slot(5)];
-    show([line({ my_side: "seller" })]);
-    await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+    const before = show([line({ my_side: "seller" })]);
     expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+    before.unmount();
+    for (const p of [damaged, { id: "p2", order_id: "o1", reporter_side: "system", reason: "other" }]) {
+      state.problems = [p];
+      const r = show([line({ my_side: "seller" })]);
+      await screen.findByText("Problem reported: Louisiana Helpr is looking.");
+      expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
+      r.unmount();
+    }
+  });
+
+  it("T9: a no-show report the seller answered says the buyer reported and the seller answered, on both cards", async () => {
+    state.bookings = [slot(30)];
+    state.problems = [{ id: "p3", order_id: "o1", reporter_side: "buyer", reason: "no_show" }];
+    state.handover = { no_show_reported_at: "2026-10-30T12:00:00Z", no_show_answer_by: "2026-10-31T12:00:00Z" };
+    const seller = show([line({ my_side: "seller" })]);
+    expect(await screen.findByText(/The buyer reported you didn't show, and you answered\./)).toBeInTheDocument();
+    expect(screen.queryByText(/reported by you/)).toBeNull();
+    seller.unmount();
+    show([line({ my_side: "buyer" })]);
+    expect(await screen.findByText(/You reported the seller didn't show, and the seller answered\./)).toBeInTheDocument();
+  });
+
+  it("T9: during the seller's 24 hours the pickup time stands: no move, and no 'if you miss it'", async () => {
+    state.bookings = [slot(30)];
+    const before = show([line({ my_side: "buyer" })]);
+    expect(await screen.findByRole("button", { name: "Move the pickup" })).toBeInTheDocument();
+    expect(screen.getByTestId("declutter-no-show-warning")).toBeInTheDocument();
+    before.unmount();
+    state.handover = { no_show_reported_at: "2026-10-30T12:00:00Z", no_show_answer_by: "2026-10-31T12:00:00Z" };
+    for (const my_side of ["buyer", "seller"] as const) {
+      const r = show([line({ my_side })]);
+      await screen.findByText(/has until|^Answer by/);
+      expect(screen.getByText(/^Pickup:/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Move the pickup" })).toBeNull();
+      expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
+      r.unmount();
+    }
   });
 
   it("porch, not out yet: no 'You can tap I got it' promise while a problem is open", async () => {

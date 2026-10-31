@@ -23,6 +23,7 @@ const BASES = [
   "20261029002010_declutter_handover_photos_live_only.sql",
   "20261029161347_declutter_porch_weekdays.sql",
   "20261029201542_declutter_porch_photo_not_before_the_day.sql",
+  "20261029225634_declutter_problem_both_sides_and_photos.sql",
   "20261030004216_declutter_order_talk.sql",
   "20261030134109_declutter_take_back_problem_report.sql",
   "20261030164712_declutter_porch_places.sql",
@@ -54,6 +55,8 @@ await run(`CREATE TABLE IF NOT EXISTS public.test_accounts (user_id uuid PRIMARY
     RETURNS bigint LANGUAGE sql AS $$ SELECT 1::bigint $$;`);
 const remindersBase = await run(readFileSync(`${MIG_DIR}20261027205028_declutter_pickup_reminders.sql`, "utf8"));
 ok(!remindersBase?.error, `base pickup reminders applies${remindersBase?.error ? `: ${remindersBase.error}` : ""}`);
+// Stubbed, and said so: who counts as test data has its own proof (adminAlertsSkipTestAccounts); nobody here does.
+await run(`CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;`);
 if (!skip) {
   const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
   for (let i = 0; i < 3; i++) {
@@ -135,11 +138,48 @@ ok(refused(await me(SELLER2, `SELECT public.declutter_answer_no_show('${B}', '  
 const ans = await me(SELLER2, `SELECT public.declutter_answer_no_show('${B}', 'I was on the porch from nine.') AS id`);
 ok(typeof ans?.[0]?.id === "string", `the seller answers (${short(ans)})`);
 const pb = await problems(B);
-ok(pb.length === 1 && pb[0].reason === "no_show" && pb[0].reporter_side === "seller" && pb[0].status === "open", `  a problem is open for admin (${short(pb)})`);
+ok(pb.length === 1 && pb[0].reason === "no_show" && pb[0].reporter_side === "buyer" && pb[0].reporter_id === BUYER && pb[0].status === "open", `  a problem is open for admin, reported by the buyer (${short(pb)})`);
+ok(one(await svc(`SELECT other_side_note FROM public.declutter_problems WHERE order_id = '${B}'`)) === "I was on the porch from nine.", "  the seller's words are the answer, on the other side");
+const again = await me(SELLER2, `SELECT public.declutter_answer_no_show('${B}', 'I was on the porch from nine.') AS id`);
+ok(again?.[0]?.id === ans?.[0]?.id, "  the same answer sent again answers the same problem");
+ok(refused(await me(SELLER2, `SELECT public.declutter_answer_no_show('${B}', 'Something different')`), /problem_already_open/), "  a different second answer goes on the open problem");
+ok((await problems(B)).length === 1, "  still one problem");
+ok(/seller answered/i.test(one(await svc(`SELECT title FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'The seller answered your report' LIMIT 1`)) ?? ""), "  the buyer is told the seller answered");
 await svc(`UPDATE public.declutter_handovers SET no_show_answer_by = now() - interval '1 minute' WHERE order_id = '${B}'`);
 await sweep();
 ok(await status(B) === "paid" && (await refunds(B)) === 0 && (await payouts(B)) === 0, "  money held past the 24 hours");
 ok((await strikes(SELLER2)) === s2, "  no strike until it is decided");
+
+// T9: the buyer takes back a report the seller answered. The report is over: no refund and no strike on the seller who
+// answered, even though the 24 hours have passed; and it can't be made again.
+const W = await paidDoor(40);
+await ageSlot(W, 1);
+await me(BUYER, `SELECT public.declutter_report_no_show('${W}')`);
+const wAns = await me(SELLER2, `SELECT public.declutter_answer_no_show('${W}', 'I was there.') AS id`);
+const wS = await strikes(SELLER2);
+await svc(`UPDATE public.declutter_handovers SET no_show_answer_by = now() - interval '1 minute' WHERE order_id = '${W}'`);
+const wBack = await me(BUYER, `SELECT public.declutter_withdraw_problem('${wAns?.[0]?.id}') AS r`);
+ok(wBack?.[0]?.r?.result === "withdrawn", `the buyer can take back the report the seller answered (${short(wBack)})`);
+ok(one(await svc(`SELECT no_show_reported_at FROM public.declutter_handovers WHERE order_id = '${W}'`)) == null, "  the report is over");
+await sweep();
+ok(await status(W) === "paid" && (await refunds(W)) === 0 && (await strikes(SELLER2)) === wS, "  the sweep doesn't read it as no answer: no refund, no strike");
+ok(refused(await me(BUYER, `SELECT public.declutter_report_no_show('${W}')`), /problem_taken_back/), "  and it can't be reported again");
+const W2 = await paidDoor(41);
+await ageSlot(W2, 1);
+await me(BUYER, `SELECT public.declutter_report_no_show('${W2}')`);
+const wAns2 = await me(SELLER2, `SELECT public.declutter_answer_no_show('${W2}', 'I was there too.') AS id`);
+ok(refused(await me(SELLER2, `SELECT public.declutter_withdraw_problem('${wAns2?.[0]?.id}')`), /problem_not_found/), "the seller can't take back the buyer's report");
+
+// T9: the pickup time stands during the seller's 24 hours (a trigger, so every way of moving it agrees).
+const MV = await paidDoor(42);
+await ageSlot(MV, 1);
+const mv0 = await run(`UPDATE public.declutter_bookings SET slot_start = slot_start + interval '1 minute', slot_end = slot_end + interval '1 minute' WHERE order_id = '${MV}'`);
+ok(!mv0?.error, `before a report the time can move${mv0?.error ? `: ${mv0.error}` : ""}`);
+await me(BUYER, `SELECT public.declutter_report_no_show('${MV}')`);
+const moved = await run(`UPDATE public.declutter_bookings SET slot_start = slot_start + interval '1 day' WHERE order_id = '${MV}'`);
+ok(/no_show_waiting/.test(String(moved?.error ?? "")), `after it the time can't move (${short(moved)})`);
+const movedDay = await run(`UPDATE public.declutter_bookings SET pickup_day = current_date + 1 WHERE order_id = '${MV}'`);
+ok(/no_show_waiting/.test(String(movedDay?.error ?? "")), "  nor a porch day");
 
 // A late answer.
 const L = await paidDoor(3);

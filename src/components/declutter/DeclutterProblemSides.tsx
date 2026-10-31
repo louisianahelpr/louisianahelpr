@@ -67,7 +67,7 @@ export function DeclutterProblemDecided({ orderId, side }: { orderId: string; si
   return <p className="text-sm" data-problem-decided=""><span className="font-semibold">Louisiana Helpr decided:</span> {words}</p>;
 }
 
-export function DeclutterProblemSides({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
+export function DeclutterProblemSides({ orderId, side, delivery = false }: { orderId: string; side: "buyer" | "seller"; delivery?: boolean }) {
   const qc = useQueryClient();
   const problem = useQuery({ queryKey: ["declutter", "problem", orderId], queryFn: () => fetchOrderProblem(orderId) });
   const [open, setOpen] = useState(false);
@@ -97,15 +97,18 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
   const mine = p.reporter_side === side;
   const by = mine ? "You" : p.reporter_side === "buyer" ? "The buyer" : p.reporter_side === "seller" ? "The seller" : p.reporter_side === "system" ? "Louisiana Helpr" : "The Helpr";
   const other = side === "buyer" ? "The seller" : "The buyer";
+  // A buyer's no-show report: "Someone didn't show" hid who was said not to; the seller's words are an answer to it.
+  const noShow = p.reason === "no_show" && p.reporter_side === "buyer";
+  const reason = !noShow ? REASON_WORDS[p.reason] ?? "Something else" : delivery ? "It wasn't delivered" : side === "seller" ? "You didn't show" : "The seller didn't show";
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" data-problem-sides="">
       <p className="text-sm">
-        <span className="font-semibold">{by} reported a problem: {REASON_WORDS[p.reason] ?? "Something else"}.</span> "{p.note}"
+        <span className="font-semibold">{by} reported a problem: {reason}.</span> "{p.note}"
       </p>
       <ProblemPhotos paths={p.photo_paths ?? []} />
       {p.other_side_note && (
         <div className="space-y-1" data-problem-other-side="">
-          <p className="text-sm"><span className="font-semibold">{mine ? `${other}'s side:` : "Your side:"}</span> "{p.other_side_note}"</p>
+          <p className="text-sm"><span className="font-semibold">{noShow ? (mine ? `${other} answered:` : "You answered:") : mine ? `${other}'s side:` : "Your side:"}</span> "{p.other_side_note}"</p>
           <ProblemPhotos paths={p.other_side_photo_paths ?? []} />
         </div>
       )}

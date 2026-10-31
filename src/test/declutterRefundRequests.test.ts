@@ -146,9 +146,9 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
 
   it("9. a full refund waits for the item: only the seller's 'I got it back' sends it (#3558 answer 2)", () => {
     const callers = [...DEFS.keys()].filter((n) => /declutter_refund_after_handover\([^;]*'refund_request_full'/.test(flat(body(n)))).sort();
-    // BUY-25 (owner 10-30): the one other way, and only when the buyer never got it: nothing can come back.
-    expect(callers).toEqual(["declutter_answer_refund", "declutter_refund_item_returned"]);
-    expect(flat(body("declutter_answer_refund"))).toMatch(/IF r\.reason = 'not_received' THEN v_out := public\.declutter_refund_after_handover\(o\.id, 'refund_request_full', NULL\)/);
+    // BUY-25 (owner 10-30) refunds at once when the buyer never got it, under its own reason (seller_no_show), so not here.
+    expect(callers).toEqual(["declutter_refund_item_returned"]);
+    expect(flat(body("declutter_answer_refund"))).toMatch(/IF r\.reason = 'not_received' THEN v_out := public\.declutter_refund_after_handover\(o\.id, 'seller_no_show', NULL\)/);
     const ans = flat(body("declutter_answer_refund"));
     expect(ans).toMatch(/SET status = 'returning', return_agreed_at = now\(\), return_by = now\(\) \+ interval '72 hours'/);
     expect(flat(body("declutter_refund_item_returned"))).toMatch(/IF r\.status <> 'returning' THEN RAISE EXCEPTION 'refund_already_answered'/);

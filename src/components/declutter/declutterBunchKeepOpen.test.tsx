@@ -201,6 +201,7 @@ describe("listBunch marks what stays", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: async (_id: string, p: number) => p,
       setKeepUp: async (_id: string, on: boolean) => on,
+      setOfferRules: async () => {},
       publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, error: new Error("attestation_required") }))),
     };
     const out = await real.listBunch("seller", [item("up", ["a"]), item("pub", ["b"])], files, place, ["porch"], () => {}, deps);

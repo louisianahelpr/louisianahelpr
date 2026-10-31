@@ -4,7 +4,7 @@
  * are remembered; pickup times already saved are not written over.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
- * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct }); |     void row;
+ * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
@@ -124,6 +124,24 @@ describe("Sell a bunch: listing choices", () => {
     expect(await screen.findByText(/didn't turn on for 1 item/)).toBeTruthy();
   });
 
+  // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): each item has its own Accept offers, starting from the saved default
+  // (no box for the whole bunch); what the seller flips on an item is what that item lists with.
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |                   offersDefault={choices.choices.acceptsOffers} | 
+  // @mutate src/components/declutter/DeclutterBunchCard.tsx | onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} | onCheckedChange={() => {}}
+  it("each item's Accept offers starts from the saved default, and the seller's flip is what that item lists with", async () => {
+    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: null, handovers: ["porch"], acceptsOffers: false };
+    await open();
+    fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
+    openRows();
+    const sw = await screen.findByRole("switch", { name: /^Accept offers for / });
+    await waitFor(() => expect(sw).toHaveAttribute("aria-checked", "false"));
+    fireEvent.click(sw);
+    expect(sw).toHaveAttribute("aria-checked", "true");
+    await listIt();
+    expect(state.listed[0].choices?.acceptsOffers).toBe(false);
+    expect(state.listed[0].items.map((it) => it.acceptsOffers)).toEqual([true]);
+  });
+
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
     state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     await open();
@@ -141,7 +159,8 @@ describe("Sell a bunch: listing choices", () => {
     fireEvent.click(switchOf(DROPS));
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, moveOutOn: null });
+    // LEAD-OFFERS-CHOICE: the saved Accept offers reaches the run, as each item's starting choice.
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null });
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });

@@ -60,6 +60,7 @@ import { useSavedPickup } from "./useSavedPickup";
 import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
+import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -247,8 +248,10 @@ export function useSellFlowState(urlItemId: string | null) {
   const [keepUpWanted, setKeepUpWanted] = useState(true);
   // A new listing's "make it free after __ days" (OWN-FREE): Never by default, saved on the draft at Post.
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
+  // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): a new listing's "Accept offers", from the saved default.
+  const [offersWanted, setOffersWanted] = useState(true);
   // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
-  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
+  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
@@ -470,14 +473,18 @@ export function useSellFlowState(urlItemId: string | null) {
 
   /** A setting that never blocks Post: if it fails it is said, with where to set it, and Post goes on. The words are
    *  written here (not passed in) so the toast check can read that the sentence ends. */
-  async function notBlocking(run: () => Promise<unknown>, setting: "keepUp" | "autoFree"): Promise<void> {
+  async function notBlocking(run: () => Promise<unknown>, setting: "keepUp" | "autoFree" | "offers"): Promise<void> {
     try {
       await run();
     } catch (err) {
-      const where = setting === "keepUp" ? 'You can turn on "Keep it up" from Manage listing.' : "You can choose when it becomes free from Manage listing.";
+      const where = setting === "keepUp"
+        ? 'You can turn on "Keep it up" from Manage listing.'
+        : setting === "offers" ? "You can turn offers off from Manage listing." : "You can choose when it becomes free from Manage listing.";
       toast.error(`${declutterErrorMessage(err)} ${where}`);
     }
   }
+
+  const offersAfter = useRef(false);
 
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
@@ -498,6 +505,7 @@ export function useSellFlowState(urlItemId: string | null) {
       // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
       if (failedPhotos.current > 0) return;
       setPostStep("Putting it up");
+      offersAfter.current = false;
       // LEAD-POST-SLOW (owner 2026-10-31: "nothing slow for users, under 2 s"; 20261031152545): the listing goes up at
       // once and the automatic photo check runs right after it. A flag takes it down and tells the seller why; a
       // check that never comes back is held after 15 minutes (declutter_hold_unchecked_listings). The settings below
@@ -510,6 +518,11 @@ export function useSellFlowState(urlItemId: string | null) {
         !urlItemId && autoFreeWanted !== null && !form.free
           ? notBlocking(() => setAutoFreeDays(id, autoFreeWanted), "autoFree")
           : null,
+        // "Accept offers" off (LEAD-OFFERS-CHOICE) goes on the draft before it is up, so it never goes live taking
+        // offers. Not a blocker. A free listing takes no offers anyway.
+        !urlItemId && !offersWanted && !form.free
+          ? notBlocking(async () => { offersAfter.current = (await offersOffOnDraft(id)) === "after"; }, "offers")
+          : null,
         // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
         urlItemId ? setPickupWindows(windows) : null,
         attestItem(id),
@@ -518,6 +531,8 @@ export function useSellFlowState(urlItemId: string | null) {
       // Asked twice, after the listing is up (not awaited: the seller is already on Selling). Not silent: a check that
       // fails both tries is said in the console, and the server holds the listing after 15 minutes (fail-safe).
       void requestAiCheckWithRetry(id);
+      // A server without 20261031201036 refuses a draft: offers go off now that it is up.
+      if (offersAfter.current) await notBlocking(() => offersOffAfterPublish(id, status), "offers");
       void keptWork.finish();
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -555,7 +570,7 @@ export function useSellFlowState(urlItemId: string | null) {
   return {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
-    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
+    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, coverUndo, undoCover,
   };
 }

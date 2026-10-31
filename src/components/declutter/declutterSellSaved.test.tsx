@@ -5,7 +5,7 @@
  *
  * @mutate src/components/declutter/useSellFlowState.ts |     setHeld((h) => [...back.held, ...h]); |     void back.held;
  * @mutate src/components/declutter/useSellFlowState.ts |     setBroughtBack(back.form.title.trim() ? "written" : "unwritten"); |     setBroughtBack("unwritten");
- * @mutate src/components/declutter/useSellFlowState.ts |       void requestAiCheckWithRetry(id);\n      void keptWork.finish(); |       void requestAiCheckWithRetry(id);\n      void 0;
+ * @mutate src/components/declutter/useSellFlowState.ts |       void keptWork.finish();\n      if (!urlItemId) void prefs.rememberChoices | void 0;\n      if (!urlItemId) void prefs.rememberChoices
  * @mutate src/components/declutter/useSellFlowState.ts |         void keptWork.finish();\n        toast(String( |         void 0;\n        toast(String(
  * @mutate src/components/declutter/useSellFlowState.ts |       setCreatedId(back.createdId); |       void setCreatedId;
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,

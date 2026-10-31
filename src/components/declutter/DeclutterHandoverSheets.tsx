@@ -114,14 +114,14 @@ export function PickedUpPhotoSheet({ file, who, free, pending, onSend, onRetake,
 }) {
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
-  const preview = safeBlobUrl(url);
+  const shown = safeBlobUrl(url);
   return (
     <Sheet open={!!file} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-picked-up-photo="">
         <SheetHero title="Picked up?" />
-        {preview && preview.startsWith("blob:") && (
+        {shown && shown.startsWith("blob:") && (
           <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
-            <img src={preview} alt="Your pickup photo" className="h-full w-full object-cover" />
+            <img src={shown} alt="Your pickup photo" className="h-full w-full object-cover" />
           </div>
         )}
         <Note>{`This photo tells ${who} you have it${free ? "." : ". They're paid 24 hours later, unless you report a problem."}`}</Note>

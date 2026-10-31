@@ -123,7 +123,7 @@ describe("Sell a bunch: listing choices", () => {
   });
 
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
-    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"] };
+    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     await open();
     // Saved settings are one line (owner 2026-10-30), saying the price choice; no form, and they reach the listing.
     const line = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
@@ -143,7 +143,7 @@ describe("Sell a bunch: listing choices", () => {
       { id: "p2", position: 2, label: "Mom's house", address: "2 Oak St, Baton Rouge, LA", area: "Garden District", lat: 30.2, lng: -91.2, weekdays: [6] },
       { id: "p1", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [0] },
     ];
-    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     await open();
     const where = await waitFor(() => { const el = document.querySelector("[data-saved-pickup]") as HTMLElement; expect(el).not.toBeNull(); return el; });
     expect(where.textContent).toContain("Pickup at Home, Mom's house. Buyers pick one.");

@@ -236,12 +236,12 @@ describe("a new listing is kept on this device", () => {
   // drop_pct 5 and a lowest price under the price, and the live sheet promised drops. Settings win over what was kept.
   // @mutate src/components/declutter/useSellFlowState.ts | keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined | keptFor: undefined
   it("LEAD-BUNCH-DROPS-IGNORED: a kept listing posts with the drops choice in Settings now, not the one it was kept with", async () => {
-    h.defaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"] };
+    h.defaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     await startAndEdit();
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening"));
     cleanup();
     // Settings: drops off. Then back to the kept listing.
-    h.defaults = { keepUp: true, drops: false, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"] };
+    h.defaults = { keepUp: true, drops: false, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await screen.findByText("We kept your listing from last time.");
     await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off. It stays at $45 until you change it."));

@@ -49,7 +49,7 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   async function remember(ways: SellerHandover[]): Promise<void> {
     if (!userId) return;
     try {
-      await saveSellerDefaults(userId, { ...choices, freeAfterDays: saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways });
+      await saveSellerDefaults(userId, { ...choices, freeAfterDays: saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways, acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers });
     } catch (err) {
       // Remembering is extra: logged, never a second error on a screen that says what was listed.
       console.warn("[declutter] could not save the seller's listing choices", err);

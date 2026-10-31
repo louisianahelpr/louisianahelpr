@@ -3516,6 +3516,7 @@ export type Database = {
       }
       declutter_seller_defaults: {
         Row: {
+          accepts_offers: boolean
           drop_pct: number
           drops: boolean
           floor_pct: number
@@ -3526,6 +3527,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_offers?: boolean
           drop_pct?: number
           drops?: boolean
           floor_pct?: number
@@ -3536,6 +3538,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_offers?: boolean
           drop_pct?: number
           drops?: boolean
           floor_pct?: number

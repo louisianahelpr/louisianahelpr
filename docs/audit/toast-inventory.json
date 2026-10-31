@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1051,
-    "files": 292,
-    "rendering": 970,
+    "calls": 1054,
+    "files": 293,
+    "rendering": 973,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 165,
-      "toast.error": 733,
+      "toast": 166,
+      "toast.error": 735,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 457,
-      "template": 95,
-      "dynamic": 550,
+      "literal": 458,
+      "template": 96,
+      "dynamic": 551,
       "jsx": 0
     }
   },
@@ -4923,7 +4923,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 86,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4933,7 +4933,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 89,
+      "line": 101,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4943,7 +4943,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 93,
+      "line": 105,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5155,6 +5155,36 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 23,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${changed > 0 ? `${done} ` : \"\"}${listingsWord(failed)} could not be changed. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 24,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 27,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't change your listings. Try again."
       },
       "renders": true
     },

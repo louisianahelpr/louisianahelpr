@@ -191,7 +191,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×2 |  |  | defaults-ways |
+| `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×3 |  |  | defaults-ways |
 | `src/components/declutter/DeclutterPickupTimes.tsx` | select×1 |  |  | Pickup times |
 | `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on · sd-free-over |
 | `src/components/declutter/SellPorchPlaces.tsx` | input×1 | text | 40 | e.g. Home, Mom · Days at this place · Pickup places |

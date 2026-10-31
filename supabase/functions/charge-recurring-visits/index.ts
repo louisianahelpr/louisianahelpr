@@ -2650,7 +2650,7 @@ serve(async (req) => {
             user_id: parent.customer_id,
             job_id: child.id,
             title: "Next visit funded",
-            message: `"${parent.title}" on ${visitDate} is booked and held in escrow.`,
+            message: `"${parent.title}" on ${visitDate} is booked and its payment is held.`,
             type: "job_updates",
             link: `/posts?job=${child.id}`,
           },

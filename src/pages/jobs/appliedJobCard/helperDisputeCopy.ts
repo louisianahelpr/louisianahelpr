@@ -16,10 +16,9 @@
  *   · offered a box to RESPOND to their own complaint, whose text lands on the
  *     poster's card under the heading "Helpr's response".
  *
- * The caption was not even inaccurate — `auto-resolve-disputes` settles every
- * non-escalated expired dispute with `_outcome: "helper"` and flips the job to
- * payout_pending. It had to be RE-AIMED, not softened: say the same mechanism
- * without dressing "wait it out" up as a win, and name the move that actually
+ * Since Q2362 `auto-resolve-disputes` never pays by silence: an expired dispute
+ * goes to Helpr support and the money stays held. The caption says that
+ * without dressing "wait it out" up as a win, and names the move that actually
  * ends it.
  *
  * Pure and separate from the component so `helperDisputeCopy.test.ts` can walk

@@ -475,7 +475,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-ds-11 text-primary font-medium">
-                    Free cancellation — more than 24 hours until the job starts.
+                    No charge for your Helpr's time — more than 24 hours until the job starts. A strike is still recorded.
                   </span>
                 </div>
               )}

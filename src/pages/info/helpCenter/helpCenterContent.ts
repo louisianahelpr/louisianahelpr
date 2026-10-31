@@ -222,15 +222,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "What is Helpr Escrow?",
         // WAS: "When a poster accepts your application, their payment is held
         // securely…". FALSE, and about the single most important fact on the
-        // page. The poster pays at CHECKOUT, when the job is posted
-        // (`useJobSubmit.ts` invokes create-payment action="escrow"; the funds
-        // are recorded held by `checkoutSessionCompleted.ts:664`) — long before
-        // anyone applies. `accept_application`
-        // (20260518120000_accept_application_rpc.sql) touches no Stripe or
-        // payment state at all. The old wording invited the exact worry escrow
-        // exists to remove: a Helpr doing work on a job that might never have
-        // been funded.
-        a: "Whoever posts the job pays at that moment, and Helpr holds that money (via Stripe) from that moment — before anyone applies, so a job you can apply to is a job that is already funded. It releases to you only after completion is confirmed. Neither side can touch it mid-job.",
+        // page. Since card_hold_at_post (Q2399) a card is held or saved at posting and charged
+        // at the Helpr's accept (src/lib/cardHoldCapture.ts); a bank payment or gift is paid at
+        // posting (JOBS-15). Either way nobody starts work on an unfunded job.
+        a: `A card is held or saved when the job is posted and charged when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Helpr holds that money (via Stripe) until the job is done, and you're paid ${STANDARD_PAYOUT_PHRASE}. Neither side can touch it mid-job.`,
       },
       {
         q: "What fees does Helpr charge?",
@@ -350,7 +345,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // not exist. Also added: `delete-own-account/index.ts:56-105` REFUSES
         // deletion while the account holds an active job or escrowed funds, so
         // "Yes." on its own was an answer some readers could not act on.
-        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still held in escrow. We retain transaction records per Louisiana law but remove all personal data.",
+        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still being held. We retain transaction records per Louisiana law but remove all personal data.",
       },
       {
         q: "What is Senior Mode?",

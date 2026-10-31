@@ -175,7 +175,7 @@ export function BlockUserDialog({
                         </>
                       )
                     ) : (
-                      <>Any escrow held on {activeJobCount === 1 ? "it" : "them"} settles under the normal cancellation rules.</>
+                      <>Any payment held on {activeJobCount === 1 ? "it" : "them"} settles under the normal cancellation rules.</>
                     )}
                   </li>
                 )}

@@ -175,7 +175,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             <p>Are you sure the Helpr didn't show up? This will:</p>
             <ul className="space-y-1 list-disc pl-5">
               <li>Go on the Helpr's record — {NO_SHOW_LADDER_SENTENCE}</li>
-              <li>Reopen your job so you can pick another applicant</li>
+              <li>Take them off your job. Its start time has passed, so to hire someone else, change the date right away. Otherwise it's cancelled and refunded</li>
               <li>Notify the admin team</li>
             </ul>
           </DialogBody>

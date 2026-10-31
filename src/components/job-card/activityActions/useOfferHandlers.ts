@@ -333,7 +333,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // Q997 (owner, 2026-10-07): the poster is told the payment is held.
     // Opened once the "Applicant hired" moment has faded, so it never lands
     // under it (measured 2026-10-07: the check overlay covered the sentence).
-    setPaymentHeldWho({ name: deadlineDialogApp.profiles?.full_name ?? null, dateNeeded: selectedJob.date_needed ?? null });
+    setPaymentHeldWho({ name: deadlineDialogApp.profiles?.full_name ?? null, dateNeeded: selectedJob.date_needed ?? null, cardHeld: selectedJob.payment_status === "held" });
     window.setTimeout(() => setPaymentHeldSide("poster"), SUCCESS_MOMENT_LIFETIME_MS + 250);
     await refresh();
     // The poster's OWN view after hiring. Same defect as the links above:

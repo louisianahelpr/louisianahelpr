@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1052,
-    "files": 293,
-    "rendering": 971,
+    "calls": 1051,
+    "files": 292,
+    "rendering": 970,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 164,
-      "toast.error": 735,
+      "toast.error": 734,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 455,
       "template": 96,
-      "dynamic": 551,
+      "dynamic": 550,
       "jsx": 0
     }
   },
@@ -576,16 +576,6 @@
             ]
           }
         ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/InstantPayoutDialog.tsx",
-      "line": 78,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "data?.error || (error ? await functionErrorMessage(error, \"Your instant payout didn't go through — try again?\") : \"Your instant payout didn't go through — try again?\")"
       },
       "renders": true
     },

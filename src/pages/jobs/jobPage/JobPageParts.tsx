@@ -54,7 +54,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
 const HELD_LINE: Partial<Record<string, string>> = {
   escrow: "Paid when you posted. We hold it until the job is done.",
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
-  held: "Your card isn't charged until you hire someone.",
+  held: "Your card isn't charged until a Helpr accepts your offer.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
   refunded: "Refunded to your card.",

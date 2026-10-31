@@ -9,7 +9,7 @@ import { formatJobDate } from "@/lib/dateUtils";
  */
 export type PaymentHeldSide = "poster" | "helpr";
 /** Board 78: the Helpr the poster offered the job to, and the job's date. Either may be unknown. */
-export type PaymentHeldWho = { name: string | null; dateNeeded: string | null; jobId?: string };
+export type PaymentHeldWho = { name: string | null; dateNeeded: string | null; jobId?: string; cardHeld?: boolean };
 
 /** The owner's sentence. One place, so both sides read the same words. */
 export const PAYMENT_HELD_SENTENCE = "The payment is held by Louisiana Helpr until the job is done.";
@@ -23,8 +23,9 @@ export function PaymentHeldDialog({ side, who, onClose }: { side: PaymentHeldSid
 /**
  * Board 78, the poster's "what next" after sending the offer, on the shared WhatNextSheet.
  * True to how hiring works today: the offer still needs the Helpr's accept, so the title is
- * "Offer sent" (not "hired"), the address is not promised, and no amount is printed (the card
- * was charged when the job was posted; the owner's held sentence says so in words).
+ * "Offer sent" (not "hired"), the address is not promised, and no amount is printed. A job paid at
+ * posting gets the owner's held sentence; a card only held or saved (payment_status 'held', Q2399) has
+ * paid nothing yet, so it says when the charge comes (JOBS3-45).
  */
 function PosterWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose: () => void }) {
   const name = who?.name?.trim().split(/\s+/)[0] || null;
@@ -34,7 +35,7 @@ function PosterWhatNext({ who, onClose }: { who: PaymentHeldWho | null; onClose:
       open
       onClose={onClose}
       title="Offer sent"
-      lead={<span data-payment-held="">{PAYMENT_HELD_SENTENCE}</span>}
+      lead={<span data-payment-held="">{who?.cardHeld ? `Your card is charged when ${name ?? "your Helpr"} accepts. Then we hold the payment until the job is done.` : PAYMENT_HELD_SENTENCE}</span>}
       steps={[
         { key: "sent", label: "You sent the offer", detail: "Today", state: "done" },
         { key: "accept", label: `${them} accepts`, detail: name ? `We'll let you know when ${name} answers` : "We'll let you know when you get an answer", state: "now" },

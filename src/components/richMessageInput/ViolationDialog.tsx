@@ -47,7 +47,7 @@ const EXPLANATION: Record<DetectedViolation["type"], string> = {
   payment_app:
     "Payment apps can't be arranged through Helpr. Money moves through Helpr so the job is covered — a payment sent outside it has no protection, no receipt and no dispute route.",
   direct_pay:
-    "This reads as moving the job off Helpr. Keeping it here is what makes the work covered, the payment held in escrow, and a dispute answerable.",
+    "This reads as moving the job off Helpr. Keeping it here is what keeps the work covered, the payment held safely, and a dispute answerable.",
 };
 
 /**
@@ -117,7 +117,7 @@ export const ViolationDialog = ({
             <p>
               Contact details and off-platform payment arrangements can't be
               sent through Helpr chat. Keeping the job here is what makes the
-              work covered, the payment held in escrow, and a dispute
+              work covered, the payment held safely, and a dispute
               answerable.
             </p>
           )}

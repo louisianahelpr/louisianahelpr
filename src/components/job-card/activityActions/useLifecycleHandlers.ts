@@ -21,6 +21,13 @@ import type { OptimisticJobCache } from "./types";
 import type { CompletionPromptTarget } from "@/components/job-card/activityConstants";
 
 /**
+ * JOBS-5: a no-show is reported after the start, and a hire is refused within 15 minutes of the start
+ * (job_starts_too_soon), so "your job is open again, pick another applicant" could not happen on that date,
+ * and auto-expire-jobs cancels the listing once it expires.
+ */
+const NO_SHOW_NEXT = "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded.";
+
+/**
  * Dependencies for the in-progress → completion → review lifecycle handlers,
  * extracted verbatim from useActivityActions. Cache helpers, per-action state
  * setters and the parent data (postedJobs/appliedApps/helperNames/…) are
@@ -420,8 +427,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         legacyBanned
           ? "No-show reported — this Helpr has been banned for repeated no-shows."
           : restricted
-            ? "No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again."
-            : "No-show reported — the Helpr has been warned and your job is open again.",
+            ? `No-show reported — the Helpr is restricted for 7 days while an admin reviews it. ${NO_SHOW_NEXT}`
+            : `No-show reported — the Helpr has been warned. ${NO_SHOW_NEXT}`,
       );
       refresh();
     } catch (err) { report(err, { tags: { area: "activity", op: "reportNoShow" } }); hapticError(); toast.error("We couldn't report the no-show just now — please try again."); }

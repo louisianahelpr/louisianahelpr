@@ -391,16 +391,11 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
             className="rounded-2xl p-3 bg-card border border-border"
           >
             {/* CONSEQUENCE COPY IS PER-SIDE, because the consequence is.
-                What the helper used to be shown here was the poster's list,
-                whose second line reads "If unresolved in 72 hours, payment
-                auto-releases to the Helpr" — i.e. "if nothing happens, you get
-                paid", handed to the person who just complained. It is not even
-                inaccurate: `auto-resolve-disputes` settles every non-escalated
-                expired dispute with `_outcome: "helper"` (index.ts:196) and
-                flips the job to payout_pending. So the sentence had to be
-                re-aimed, not softened — and the deterrent moved next to it,
-                because that combination is the whole reason the deterrent
-                exists.
+                Since Q2362 (owner: never auto-release) `auto-resolve-disputes`
+                never pays by silence: an expired dispute goes to Helpr support
+                and the money stays held, whoever filed it. Both lists say so;
+                the Helpr's used to promise the payment released on its own
+                (JOBS2-31), the poster's "72 hours only" (JOBS2-32).
 
                 No hour literal in the helper set, deliberately: the helper's
                 own card renders the job's ACTUAL `dispute_deadline` via
@@ -414,7 +409,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
               {side === "helper" ? (
                 <>
                   <li>Nothing moves while this is open — the payment is <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>frozen for both of you</strong>.</li>
-                  <li>Filing does not speed your payout up. If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.</li>
+                  <li>Filing does not speed your payout up. If nobody settles it by the deadline, Helpr support decides, and the payment stays on hold until then.</li>
                   <li>If the person who posted this job escalates, an admin decides the outcome and nothing releases until they do.</li>
                   <li>Evidence (photos, messages) makes your case stronger.</li>
                   <li>False or frivolous disputes can lead to warnings or suspension.</li>
@@ -422,7 +417,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
                 </>
               ) : (
                 <>
-                  <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>
+                  <li>Payment <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>stays on hold</strong> while this is open.</li>
                   <li>If unresolved in 72 hours, Helpr support decides, and the payment stays on hold until then.</li>
                   <li>Evidence (photos, messages) makes your case stronger.</li>
                   <li>False or frivolous disputes can lead to warnings or suspension.</li>
@@ -434,7 +429,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose} disabled={submitting}>Cancel</DialogSecondaryAction>
-          {/* Board 54: "Send to Helpr" is the olive commit, not the red
+          {/* Board 54: "Send to Helpr support" (JOBS3-53: "Helpr" alone is the other person here) is the olive commit, not the red
               destructive one. Filing deletes nothing; what it does to the
               money (held, frozen, the deadline) is stated in the box above.
               `!detailsOk` stays in the disable set, matching the RESPONSE box
@@ -443,7 +438,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
             onClick={handleSubmit}
             disabled={submitting || !reason || !detailsOk}
           >
-            {submitting ? "Sending…" : "Send to Helpr"}
+            {submitting ? "Sending…" : "Send to Helpr support"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

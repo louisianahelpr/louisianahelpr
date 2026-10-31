@@ -330,7 +330,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     completedJobMeta,
   });
 
-  useManageDeepLink(manageJobId, postedJobs, actions, { jobPageFirst: true });
+  useManageDeepLink(manageJobId, postedJobs, actions);
   useOpenWorkingDeepLink(defaultTab === "applied" ? searchParams : null, appliedApps, actions);
   useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList);
   const toastClearance = useToastClearance();

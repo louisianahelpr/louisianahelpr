@@ -23,6 +23,7 @@ import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
+import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import type { JobPageRow } from "./useJobPage";
 import type { PosterWait } from "@/components/job-card/jobStatusLine";
 
@@ -77,11 +78,13 @@ export function usePosterPageActions({
     : null;
   const canChange = !!job.date_needed && scheduleChangeAllowed(job as unknown as SeriesCardJob, userId, "poster");
   // Not once the Helpr set off or arrived: the card's cancel refuses it then (tryCancelJob's tracking check).
-  const canCancel = CANCELLABLE.has(status) && !job.helper_on_the_way_at && !job.helper_arrived_at;
+  // A never-paid draft is on no Posted list (JOBS-9), so a trip to its card would land on nothing: no Edit or Cancel.
+  const draft = jobIsUnfundedDraft(job);
+  const canCancel = !draft && CANCELLABLE.has(status) && !job.helper_on_the_way_at && !job.helper_arrived_at;
   // The card's other steps (report a no-show, the dispute, a fix asked for, tip and review): "More options" opens it.
   const cardSteps = MORE_ON_CARD.has(status) || (posterWait?.startsWith("overdue_") ?? false);
   // An open job's details (a crew's change only through a request once a member is hired: the card's own rule).
-  const canEdit = status === "open" && !job.is_group_job;
+  const canEdit = !draft && status === "open" && !job.is_group_job;
 
   const primary: PagePrimary | null =
     posterWait === "confirm_still_on"

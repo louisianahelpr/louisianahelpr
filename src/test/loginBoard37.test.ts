@@ -61,8 +61,11 @@ describe("Log in matches board 37", () => {
       at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),
-      at('t("login.createAccount")'),
+      // The card's own Create an account closes it. AUD31-16 adds one more, above the card in the notice, only for a
+      // guest bounced from a Declutter page (loginNotice.test.ts); the card's order is read from its last one.
+      src.lastIndexOf('t("login.createAccount")'),
     ];
+    expect(src.split('t("login.createAccount")').length - 1).toBe(2);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 

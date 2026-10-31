@@ -71,7 +71,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
-import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { TIP_WAITS_ON_ID_CODE, TIP_WAITS_ON_ID_MESSAGE, checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable, noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
@@ -2237,6 +2237,20 @@ serve(async (req) => {
       if (tipHold.kind === "held" || tipReview === "counterparty") {
         return new Response(
           JSON.stringify({ error: "This Helpr can't receive tips right now. Please try again later.", code: PAYOUT_HELD_CODE }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        );
+      }
+
+      // Owner 2026-10-30: tips are blocked until the Helpr has verified their ID. No checkout opens and no money is
+      // taken. FALSE while the identity_check switch is off. An unreadable answer fails closed.
+      const tipIdHold = await checkIdentityHold(supabaseAdmin, helperId);
+      if (tipIdHold.kind === "error") {
+        console.error(`[create-payment] tip — ID check read failed for ${helperId}: ${tipIdHold.message}`);
+        throw new PublicError("Could not verify the Helpr's payout account — please try again");
+      }
+      if (tipIdHold.kind === "waits") {
+        return new Response(
+          JSON.stringify({ error: TIP_WAITS_ON_ID_MESSAGE, code: TIP_WAITS_ON_ID_CODE }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
         );
       }

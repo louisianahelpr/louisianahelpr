@@ -15,6 +15,9 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
  * @mutate supabase/functions/stripe-idv-start/index.ts | if (stored.status === "verified" && stored.metadata?.user_id === user.id) { | if (stored.status === "verified") {
  * @mutate src/pages/info/legal/TermsSection.tsx | setup fee covers this check. | Helpr pays for this check.
+ * @mutate supabase/functions/create-payment/index.ts | const tipIdHold = await checkIdentityHold(supabaseAdmin, helperId); | const tipIdHold = { kind: "clear" as const };
+ * @mutate supabase/functions/auto-tip-charge/index.ts | const tipIdHold = await checkIdentityHold(supabase, c.helper_id as string); | const tipIdHold = { kind: "clear" as const };
+ * @mutate supabase/functions/declutter-checkout/index.ts | const tipIdHold = await checkIdentityHold(admin, helprId); | const tipIdHold = { kind: "clear" as const };
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -30,11 +33,11 @@ const rel = (f: string) => path.relative(FN_DIR, f).split(path.sep).join("/");
 
 /**
  * Files that send money with no ID ask of their own, each with why. EXACT both ways.
- * Tips are the lead's open decision on the owner's behalf; until it is made they follow the hold only.
+ * Tips are asked at the checkout (owner 2026-10-30: blocked until verified): see "tips wait" below.
  */
 const NOT_ASKING: Readonly<Record<string, string>> = {
   "_shared/chargebackClawback.ts": "re-pays a transfer the Helpr already had, after a chargeback reversal: not a first payout",
-  "_shared/heldTipRepay.ts": "tips: decision open",
+  "_shared/heldTipRepay.ts": "re-pays a tip the poster already paid, after a payout hold: a new tip is refused at its checkout",
 };
 
 describe("the ID check's timing", () => {
@@ -108,6 +111,19 @@ describe("the ID check's timing", () => {
     expect(terms).not.toMatch(/Helpr pays for this check|there is no charge to you/i);
     expect(terms).toMatch(/setup fee covers this check/);
     expect(code("src/components/identity/IdentityCheckSheet.tsx")).not.toMatch(/\bfree\b|no charge/i);
+  });
+
+  it("tips wait: every path that opens or takes a tip asks, before any charge", () => {
+    for (const [f, before] of [
+      ["supabase/functions/create-payment/index.ts", /checkout\.sessions\.create|tipChargeBreakdown\(/],
+      ["supabase/functions/auto-tip-charge/index.ts", /paymentIntents\.create/],
+      ["supabase/functions/declutter-checkout/index.ts", /tipChargeBreakdown\(/],
+    ] as const) {
+      const src = code(f);
+      const asked = src.search(/const tipIdHold = await checkIdentityHold\(/);
+      expect(asked, f).toBeGreaterThan(0);
+      expect(src.slice(asked).search(before), `${f}: no charge after the ask`).toBeGreaterThan(0);
+    }
   });
 
   it("the words about the old provider move are gone from the code that stays", () => {

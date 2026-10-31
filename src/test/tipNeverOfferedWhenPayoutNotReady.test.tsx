@@ -11,7 +11,8 @@
  * says why. Unknown (loading, read error) still offers it; create-payment stays
  * the backstop.
  *
- * @mutate src/hooks/useHelprTakesTips.ts |       return row ? row.is_payout_ready === true : null; |       return null;
+ * @mutate src/hooks/useHelprTakesTips.ts |     return row ? { payoutReady: row.is_payout_ready === true, idVerified: row.is_id_verified === true } : null; |     return null;
+ * @mutate src/hooks/useHelprTakesTips.ts |   return a.payoutReady && (!idCheckOn \|\| a.idVerified); |   return a.payoutReady;
  * @mutate src/components/TipDialog.tsx |         {takesTips === false ? ( |         {false ? (
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |   const offerTip = tipOpen && takesTips !== false; |   const offerTip = tipOpen;
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return job.is_group_job \|\| h.tipsReady === false |       return job.is_group_job
@@ -22,15 +23,16 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactElement } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 const HELPR = "00000000-0000-4000-8000-0000000000aa";
 const POSTER = "00000000-0000-4000-8000-0000000000bb";
-const db = vi.hoisted(() => ({ ready: false as boolean | null, rpcCalls: 0, byId: {} as Record<string, boolean> }));
+const db = vi.hoisted(() => ({ ready: false as boolean | null, idVerified: false, rpcCalls: 0, byId: {} as Record<string, boolean> }));
 const invoke = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -45,7 +47,7 @@ vi.mock("@/integrations/supabase/client", () => {
         if (name !== "get_safe_profiles") return { data: null, error: { message: `unexpected rpc ${name}` } };
         db.rpcCalls++;
         if (db.ready === null) return { data: null, error: { message: "read failed" } };
-        return { data: args.user_ids.map((id) => ({ user_id: id, is_payout_ready: id in db.byId ? db.byId[id] : db.ready })), error: null };
+        return { data: args.user_ids.map((id) => ({ user_id: id, is_payout_ready: id in db.byId ? db.byId[id] : db.ready, is_id_verified: db.idVerified })), error: null };
       },
       from: () => jobsChain,
       functions: { invoke: (...a: unknown[]) => invoke(...a) },
@@ -96,6 +98,36 @@ beforeEach(() => {
   db.rpcCalls = 0;
   db.byId = {};
   __resetHelprTakesTipsCache();
+});
+
+describe("Owner 2026-10-30: tips wait until the Helpr has verified their ID", () => {
+  const ID_LINE = "Hallie can receive tips once verified. Nothing was charged.";
+  beforeEach(() => { db.ready = true; db.idVerified = false; });
+  afterEach(() => { cleanup(); setIdentityCheckOn(false); db.idVerified = false; });
+
+  it("switch on, not verified: no amounts and no Tip button, just the line; create-payment is never called", async () => {
+    setIdentityCheckOn(true);
+    wrap(<TipDialog jobId="job-1" helperName="Hallie H." open onClose={() => {}} />);
+    expect(await screen.findByText(ID_LINE)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "$5" })).toBeNull();
+    expect(tipButtons()).toHaveLength(0);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("switch on, verified: the tip is offered", async () => {
+    setIdentityCheckOn(true);
+    db.idVerified = true;
+    wrap(<TipDialog jobId="job-1" helperName="Hallie H." open onClose={() => {}} />);
+    await waitFor(() => expect(tipButtons().length).toBeGreaterThan(0));
+    expect(screen.queryByText(ID_LINE)).toBeNull();
+  });
+
+  it("switch off: not verified changes nothing, the tip is offered", async () => {
+    wrap(<TipDialog jobId="job-1" helperName="Hallie H." open onClose={() => {}} />);
+    await waitFor(() => expect(db.rpcCalls).toBeGreaterThan(0));
+    await waitFor(() => expect(tipButtons().length).toBeGreaterThan(0));
+    expect(screen.queryByText(ID_LINE)).toBeNull();
+  });
 });
 
 describe("F29: a Helpr whose payout setup is not finished is never offered a tip", () => {

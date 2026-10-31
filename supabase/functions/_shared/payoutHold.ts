@@ -177,6 +177,10 @@ export type IdentityHoldCheck =
 /** The Helpr-facing words when a payout waits on their ID (owner 2026-10-30). */
 export const IDENTITY_HOLD_MESSAGE = "Verify your ID once with Stripe and we send your pay. Nothing was moved.";
 
+/** The tipper's words when the Helpr has not verified their ID (owner 2026-10-30: tips are blocked until they do; no money is taken). */
+export const TIP_WAITS_ON_ID_MESSAGE = "This Helpr can receive tips once verified. Nothing was charged.";
+export const TIP_WAITS_ON_ID_CODE = "tip_waits_on_identity";
+
 /**
  * No payout without a verified ID (owner 2026-10-30): public.payout_waits_on_identity,
  * FALSE while the `identity_check` switch is off and for an enrolled test account.

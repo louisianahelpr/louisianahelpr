@@ -184,6 +184,32 @@ describe("auto-tip-charge edge function", () => {
     expect(String(notice.message)).toMatch(/\$2\.50, under the \$3 tip minimum, so nothing was charged/);
   });
 
+  // Owner 2026-10-30: no tip until the Helpr has verified their ID. Not claimed and not charged.
+  it("a Helpr who has not verified their ID: no tips row, no charge, stays a candidate", async () => {
+    const fn = await loadConfigured();
+    scenario.rpc.auto_tip_candidates = [
+      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
+    ];
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+    scenario.rpc.payout_waits_on_identity = true;
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "tips" && w.op === "insert")).toHaveLength(0);
+  });
+
+  it("the ID check unreadable: fails closed, no charge, a defect", async () => {
+    const fn = await loadConfigured();
+    scenario.rpc.auto_tip_candidates = [
+      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
+    ];
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), payout_waits_on_identity: { message: "connection reset", code: "08006" } };
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(500);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
   describe("giveUp() — the terminal failure write", () => {
     /** Helper profile reads fine but has no connected account → giveUp(). */
     async function runGiveUp(): Promise<Response> {

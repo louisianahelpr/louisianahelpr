@@ -718,7 +718,7 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterGuest.tsx |  : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."} |  : "Sign up to buy it or make an offer."}
   // @mutate src/components/declutter/DeclutterGuest.tsx |         <GuestBrand />\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
-  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <>{children}</>; |   return <>{children}</>;
+  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
   // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
   it("BUY-16: a guest reads a shared listing and is asked to sign up to buy; no seller name; the wall while Declutter isn't open", async () => {

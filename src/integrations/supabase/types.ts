@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_log: {
+        Row: {
+          deleted_at: string
+          id: number
+          summarized_at: string | null
+        }
+        Insert: {
+          deleted_at?: string
+          id?: never
+          summarized_at?: string | null
+        }
+        Update: {
+          deleted_at?: string
+          id?: never
+          summarized_at?: string | null
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -17403,6 +17421,10 @@ export type Database = {
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
       note_failed_fee_transfer: {
         Args: { p_kind: string; p_reason: string; p_row: string; p_transfer: string }
+        Returns: string
+      }
+      daily_member_summary_message: {
+        Args: { p_deleted: number; p_ids: string[] }
         Returns: string
       }
       new_member_summary_message: { Args: { p_ids: string[] }; Returns: string }

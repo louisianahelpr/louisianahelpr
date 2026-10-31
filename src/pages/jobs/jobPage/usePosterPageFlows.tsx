@@ -16,7 +16,7 @@
  *
  * Guard: src/pages/jobs/jobPage/posterPageFlows.test.tsx.
  */
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -111,6 +111,11 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   // Bumped by "Approve and release": the card's PostedJobActions opens its CompletionChoiceSheet (the confirm).
   const [completionRequest, setCompletionRequest] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  // At 375 the panel opens below the fold, behind the bottom nav (headless check 10-31): bring it into view.
+  useEffect(() => {
+    if (moreOpen) moreRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, [moreOpen]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -143,7 +148,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   // would swap the whole job page for its loading fallback (the Posted list has one around its tab).
   const panel = (
     <Suspense fallback={null}>
-    <div data-poster-more="" hidden={!moreOpen}>
+    <div data-poster-more="" hidden={!moreOpen} ref={moreRef} className="scroll-mb-28">
       <PostedJobActions
         job={job}
         userId={userId}

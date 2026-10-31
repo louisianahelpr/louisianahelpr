@@ -7,7 +7,10 @@
  * realistic phone round trip (RPC_MS) and each photo upload for UPLOAD_MS, on fake timers so the number is exact.
  *
  * @mutate src/lib/declutter/bunch.ts |             const uploadedPath = (await early?.path(draftId, k)) ?? undefined; |             const uploadedPath = undefined;
- * @mutate src/lib/declutter/bunch.ts |  withId ? deps.createDraft(fields, withId) : deps.createDraft(fields); |  deps.createDraft(fields);
+ * @mutate src/lib/declutter/bunch.ts |         const appId = it.appId ?? early?.idFor(it.key) ?? newBunchItemId(); |         const appId = it.appId ?? newBunchItemId();
+ * @mutate src/lib/declutter/bunchStage.ts |       let id = it.draftId ?? it.appId ?? this.ids.get(it.key); |       let id = it.draftId ?? this.ids.get(it.key);
+ * @mutate src/lib/declutter/bunchStage.ts |         given.set(it.key, id); |         void given;
+ * @mutate src/lib/declutter/bunch.ts |       if ((await prepareOne(i, items[i])) === "already_posted") { |       if ((await prepareOne(i, items[i])) === "never") {
  * @mutate src/lib/declutter/bunch.ts |   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, items.length) }, readyWorker)); |   await Promise.all(Array.from({ length: Math.min(1, items.length) }, readyWorker));
  * @mutate src/lib/declutter/bunch.ts |       const [sent, settled, kept] = await Promise.allSettled([sendPhotos(), settle(), keepUp()]); |       const [sent, settled, kept] = [await Promise.allSettled([sendPhotos()]), await Promise.allSettled([settle()]), await Promise.allSettled([keepUp()])].map((r) => r[0]);
  * @mutate src/lib/declutter/bunch.ts | await Promise.allSettled([sendPhotos(), settle(), keepUp()]); | await Promise.all([sendPhotos(), settle(), keepUp()]);
@@ -231,5 +234,51 @@ describe("Sell a bunch: a setting that fails while the photos are still being at
     const attached = addPhoto.mock.calls.map((c) => (c[2] as File).name).sort();
     expect(attached).toEqual(["a1.jpg", "a2.jpg", "a3.jpg"]);
     expect(Object.keys(shown.uploaded ?? {}).sort()).toEqual(["a1", "a2", "a3"]);
+  });
+});
+
+describe("ONE id per item (lead 10-31): the saved app id is the early folder and the draft's id", () => {
+  it("an item formed without an app id is given one by sync, to save; one that has it keeps it as its folder", async () => {
+    const { stager } = stagerFor();
+    const saved = { ...item("s", ["s1"]), appId: "app-saved" };
+    const given = stager.sync([item("n", ["n1"]), saved], photos.set("s1", new File(["s1"], "s1.jpg")).set("n1", new File(["n1"], "n1.jpg")));
+    expect([...given.entries()]).toEqual([["n", "early-1"]]);
+    expect(stager.idFor("s")).toBe("app-saved");
+    await settle(Promise.resolve());
+    expect(await settle(stager.path("app-saved", "s1"))).toBe("seller/declutter/app-saved/s1.jpg");
+  });
+
+  it("listing makes the draft with that same id, so the photos already up are only attached", async () => {
+    const log: string[] = [];
+    const { d, createDraft } = slowDeps(log);
+    // No draft has that id yet: the server has no row for it.
+    d.itemStatuses = vi.fn(async () => new Map());
+    const { stager } = stagerFor();
+    const it1 = { ...item("a", ["a1", "a2"]), appId: "app-a" };
+    stager.sync([it1], photos);
+    await settle(Promise.all(it1.photoKeys.map((k) => stager.path("app-a", k))));
+    const steps: Partial<BunchItem>[] = [];
+    const out = await settle(listBunch("seller", [it1], photos, place, ["porch"], () => {}, d, (_k, p) => { if (p) steps.push(p); }, CHOICES, undefined, stager));
+    expect(out.map((o) => ("status" in o ? o.status : "error"))).toEqual(["live"]);
+    expect(createDraft.mock.calls.map((c) => c[1])).toEqual(["app-a"]);
+    expect(log.filter((l) => l.startsWith("upload"))).toEqual([]);
+    // Already saved: no second app id is written.
+    expect(steps.some((p) => "appId" in p)).toBe(false);
+  });
+
+  it("an item whose app id is already posted is counted done and cleared, never listed again", async () => {
+    const { AlreadyPosted } = await import("@/lib/declutter/api");
+    const { d } = slowDeps([]);
+    // The status read failed, so only the ask with the app id finds it posted (createDraft's AlreadyPosted path).
+    d.itemStatuses = vi.fn(async () => { throw new Error("network_error"); });
+    d.createDraft = vi.fn(async () => { throw new AlreadyPosted("app-a"); }) as unknown as ListDeps["createDraft"];
+    const progress: number[] = [];
+    const cleared: string[] = [];
+    const out = await settle(listBunch("seller", [{ ...item("a", ["a1"]), appId: "app-a" }], photos, place, ["porch"], (n) => progress.push(n), d, (k, p) => { if (p === null) cleared.push(k); }, CHOICES));
+    expect(out[0] && "error" in out[0] && out[0].error).toBeInstanceOf(AlreadyPosted);
+    expect(cleared).toEqual(["a"]);
+    expect(progress[progress.length - 1]).toBe(2);
+    expect(progress).toContain(1);
+    expect(d.publishMany).not.toHaveBeenCalled();
   });
 });

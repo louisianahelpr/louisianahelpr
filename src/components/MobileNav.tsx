@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
-import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
@@ -18,9 +18,9 @@ import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
 import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { useWarmPostedJobs } from "@/components/mobileNav/useWarmPostedJobs";
+import { useWarmAvatar, useWarmTabChunks } from "@/components/mobileNav/useDockWarmups";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
-import { transformedImageUrl } from "@/lib/imageUrl";
 import {
   authPages,
   noNavPages,
@@ -109,42 +109,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return () => document.documentElement.classList.remove("no-bottom-nav");
   }, [dockHidden]);
 
-  // Warm the tab chunks while the user is reading the page they're already on.
-  // The per-tab `onPrefetch` (hover / focus / touchstart) was the only caller of
-  // `prefetchRoute`, and on a phone touchstart lands a handful of ms before the
-  // tap — so every tab switch still paid the full lazy-chunk waterfall.
-  // Messages is the worst of them: three dependent levels of chunk before its
-  // first inbox query is even issued. See `prefetchRoutesWhenIdle` for the
-  // measurement. Skipped whenever the dock isn't shown (guests, marketing
-  // pages), so nobody prefetches tabs they can't reach.
-  //
-  // `/post-job` is in the list even though it is not a tab: it is reached from
-  // the Jobs top bar's "+", so it was the one authed destination this never warmed,
-  // and its chunk load sat in front of the entry screen's own query.
-  useEffect(() => {
-    if (dockHidden) return;
-    return prefetchRoutesWhenIdle([
-      ...[...dock.left, ...dock.right].map((i) => i.path),
-      "/post-job",
-    ]);
-  }, [dockHidden]);
+  useWarmTabChunks(dockHidden, [...dock.left, ...dock.right].map((i) => i.path));
 
   useWarmPostedJobs(!dockHidden, user?.id);
 
-  // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, so the
-  // top bar's avatar (AppTopBar, pixelSize 72) paints from the memory cache in
-  // its first frame instead of sitting on its monogram (measured cold at
-  // 375/slow-3G: up to 12s when the dock still drew it). The dock's "You" tab is
-  // a person icon now (2026-10-20), so this warms the TOP BAR's exact URL; a
-  // different size is a different CDN transform and would warm nothing.
-  // Fire-and-forget: the Image is not retained and nothing here decides anything.
-  const avatarUrl = profile?.avatar_url;
-  useEffect(() => {
-    if (!avatarUrl || typeof Image === "undefined") return;
-    const img = new Image();
-    img.decoding = "async";
-    img.src = transformedImageUrl(avatarUrl, { width: 72, height: 72 });
-  }, [avatarUrl]);
+  useWarmAvatar(profile?.avatar_url); // the top bar's photo, from memory on its first frame
 
   const [gateOpen, setGateOpen] = useState(false);
 

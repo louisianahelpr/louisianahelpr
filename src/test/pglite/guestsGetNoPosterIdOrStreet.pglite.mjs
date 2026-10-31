@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261030223527_guests_get_no_poster_id_or_street.sql (jobs audit 10-30): a guest reads no poster id from
+ * PGlite proof for 20261031000945_guests_get_no_poster_id_or_street.sql (jobs audit 10-30): a guest reads no poster id from
  * open_jobs_browse, and a two-part address loses its street. The same rows for every
  * caller, a member's own-job id intact, still a definer view, grants unchanged.
  *
@@ -17,7 +17,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const read = (rel) => readFileSync(new URL(rel, import.meta.url).pathname, "utf8");
 const MIGDIR = "../../../supabase/migrations/";
-const NEW = read(`${MIGDIR}20261030223527_guests_get_no_poster_id_or_street.sql`);
+const NEW = read(`${MIGDIR}20261031000945_guests_get_no_poster_id_or_street.sql`);
 const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the state before it (expect FAILs)`);
 
@@ -105,9 +105,21 @@ check("a guest sees the same rows", JSON.stringify(await as("anon", ROWS)) === b
 check("a member sees the same rows", JSON.stringify(await as("authenticated", ROWS, P)) === before.auth);
 
 const guest = await as("anon", "SELECT customer_id FROM public.open_jobs_browse");
-check("a guest reads no poster id", guest.length === 2 && guest.every((r) => r.customer_id === null), JSON.stringify(guest[0]));
+const ZERO = "00000000-0000-0000-0000-000000000000";
+check("a guest reads no poster id", guest.length === 2 && guest.every((r) => r.customer_id === ZERO), JSON.stringify(guest[0]));
+// Every client's browse cull is `!!customer_id` (useDashboardFilters), and installed apps keep it.
+check("a guest's rows survive the clients' empty-id cull", guest.every((r) => !!r.customer_id));
 const probe = await as("anon", `SELECT id FROM public.open_jobs_browse WHERE customer_id = '${P}'`);
 check("a guest cannot find a poster's jobs by filtering on the id", probe.length === 0, `${probe.length} rows`);
+// What a guest can do with the zero id: nothing. It groups every poster's jobs as one, and matches no other table.
+const grouped = await as("anon", "SELECT customer_id, count(*)::int n FROM public.open_jobs_browse GROUP BY 1");
+check("a guest can't tell whose jobs are whose: every row groups as one", grouped.length === 1 && grouped[0].n === 2, JSON.stringify(grouped));
+const byZero = await as("anon", `SELECT id FROM public.open_jobs_browse WHERE customer_id = '${ZERO}'`);
+check("filtering on the zero id returns only what the guest already sees", byZero.length === 2, `${byZero.length} rows`);
+const memberZero = await as("authenticated", `SELECT id FROM public.open_jobs_browse WHERE customer_id = '${ZERO}'`, "20000000-0000-4000-8000-000000000009");
+check("a member never sees the zero id", memberZero.length === 0, `${memberZero.length} rows`);
+const definerRead = (await db.query(`SELECT DISTINCT customer_id FROM public.open_jobs_browse`)).rows;
+check("a definer function (role postgres, as get_ranked_open_jobs) still reads the real id", definerRead.length === 1 && definerRead[0].customer_id === P, JSON.stringify(definerRead));
 const own = await as("authenticated", `SELECT customer_id FROM public.open_jobs_browse WHERE id = '${J1}'`, P);
 check("a poster still reads their own id, so the own-job check holds", own[0]?.customer_id === P);
 const other = await as("authenticated", `SELECT customer_id FROM public.open_jobs_browse WHERE id = '${J1}'`, "20000000-0000-4000-8000-000000000009");

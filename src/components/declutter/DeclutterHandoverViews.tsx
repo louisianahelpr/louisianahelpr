@@ -65,7 +65,7 @@ import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./Decl
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
-import { fetchRefundRequestView, refundHoldsTheItem } from "@/lib/declutter/refundRequests";
+import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem } from "@/lib/declutter/refundRequests";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -75,7 +75,7 @@ import { Link } from "react-router-dom";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
-import { onDay, PickupStatus, PorchOutPhoto, SellerDeliveryStatus } from "./DeclutterPorchHandover";
+import { DeliveryDoneStatus, onDay, PickupStatus, PorchOutPhoto, SellerDeliveryMoney, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { gotItOpen } from "./OrderSteps";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
@@ -178,12 +178,14 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
   const refundRequests = useFeature("declutter_refund_requests");
   // Audit BUY-31: the buyer's head line is always on screen, so it reads the refund panel's own query (same key).
+  // NIGHT-SELL-soldstates-7: the seller's card too, for a sale refunded in full (the panel reads it anyway).
   const refund = useQuery({
     queryKey: ["declutter", "refund-request", order.orderId],
     queryFn: () => fetchRefundRequestView(order.orderId),
-    enabled: !!view && done && refundRequests && items > 0,
+    enabled: done && refundRequests && items > 0,
   });
   const refundStatus = refund.data?.request?.status;
+  const fullRefund = refundedInFull(refund.data);
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
   const [open, setOpen] = useState(false);
   // Audit 1c D3-7: a Helpr delivery's "I got it" opened Details only; it now opens the "Do you have it?" sheet too.
@@ -213,7 +215,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       </div>
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
@@ -223,7 +225,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
       <OrderTalkButton orderId={order.orderId} side={order.side} />
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
-      {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} />}
+      {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
       {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
           orderId={order.orderId}
@@ -233,12 +235,14 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           day={booking?.pickup_day ?? null}
           itemsCents={items}
           problemOpen={!!problem}
+          refunded={fullRefund}
         />
       )}
       {done ? (
         <>
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
-          {order.handover === "delivery" && !view && <p className="text-sm font-medium">Handed over.</p>}
+          {/* NIGHT-SELL-soldstates-7: the seller's finished delivery shows the tracker at its end too. */}
+          {order.handover === "delivery" && !view && <DeliveryDoneStatus free={items === 0} refunded={fullRefund} />}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
@@ -261,6 +265,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         <>
           {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. D-NEW14: where, for the seller. */}
           {order.side === "seller" && <OrderPorchPlace orderId={order.orderId} side="seller" />}
+          {order.side === "seller" && <SellerDeliveryMoney itemsCents={items} problemOpen={!!problem} />}
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}

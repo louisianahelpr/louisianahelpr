@@ -6,6 +6,7 @@ import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
+import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -116,7 +117,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       publishableKey: SUPABASE_PUBLISHABLE_KEY,
       storage: authStorage,
       storageKey: defaultAuthStorageKey(SUPABASE_URL),
-      fetchImpl: signOutAwareFetch,
+      // noteReachableFetch: any answered request flips a wrong "offline" back at once (src/lib/connectivity.ts).
+      fetchImpl: noteReachableFetch(signOutAwareFetch),
       onHeld: reportHeld,
     }),
   },

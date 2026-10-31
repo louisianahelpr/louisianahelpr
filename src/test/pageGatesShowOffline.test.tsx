@@ -69,14 +69,15 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
     expect(screen.queryByText("secret admin")).toBeNull();
   });
 
-  it("AdminRoute: offline with a CACHED profile but auth still waiting (expired token) -> the offline card", () => {
-    // useOnlineStatus reads navigator.onLine; jsdom says online unless told.
+  it("AdminRoute: offline with a CACHED profile but auth still waiting (expired token) -> the offline card", async () => {
+    // useOnlineStatus confirms a false navigator.onLine with a probe (setup.ts's
+    // test probe agrees with it); jsdom says online unless told.
     const desc = Object.getOwnPropertyDescriptor(Navigator.prototype, "onLine");
     Object.defineProperty(Navigator.prototype, "onLine", { configurable: true, get: () => false });
     try {
       loadingUser({ status: "success", fetchStatus: "idle" });
       render(wrap(<AdminRoute><p>secret admin</p></AdminRoute>));
-      expect(screen.getByText("You're offline.")).toBeTruthy();
+      expect(await screen.findByText("You're offline.")).toBeTruthy();
       expect(screen.queryByText("secret admin")).toBeNull();
     } finally {
       if (desc) Object.defineProperty(Navigator.prototype, "onLine", desc);

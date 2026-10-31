@@ -69,64 +69,61 @@ describe("useOnlineStatus", () => {
     expect(typeof result.current.lastChangedAt).toBe("number");
   });
 
-  it("initial value reflects navigator.onLine when offline", () => {
+  it("a false navigator.onLine at start is confirmed by the probe before it reads offline", async () => {
     setNavigatorOnline(false);
     const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current.online).toBe(false);
+    // Not offline on the hint alone (owner 10-31): only once the probe agrees.
+    expect(result.current.online).toBe(true);
+    await waitFor(() => expect(result.current.online).toBe(false));
   });
 
-  it("flips to offline when window dispatches an 'offline' event", () => {
+  it("flips to offline when window dispatches an 'offline' event and the probe fails", async () => {
     setNavigatorOnline(true);
     const { result } = renderHook(() => useOnlineStatus());
     expect(result.current.online).toBe(true);
 
-    act(() => {
+    await act(async () => {
       setNavigatorOnline(false);
       window.dispatchEvent(new Event("offline"));
     });
 
-    expect(result.current.online).toBe(false);
+    await waitFor(() => expect(result.current.online).toBe(false));
   });
 
-  it("flips to online when window dispatches an 'online' event", () => {
+  it("flips to online when window dispatches an 'online' event and the probe succeeds", async () => {
     setNavigatorOnline(false);
     const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current.online).toBe(false);
+    await waitFor(() => expect(result.current.online).toBe(false));
 
-    act(() => {
+    await act(async () => {
       setNavigatorOnline(true);
       window.dispatchEvent(new Event("online"));
     });
 
-    expect(result.current.online).toBe(true);
+    await waitFor(() => expect(result.current.online).toBe(true));
   });
 
   it("updates lastChangedAt on every transition", async () => {
     setNavigatorOnline(true);
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const { result } = renderHook(() => useOnlineStatus());
+    const initial = result.current.lastChangedAt;
 
-    try {
-      const { result } = renderHook(() => useOnlineStatus());
-      const initial = result.current.lastChangedAt;
+    await new Promise((r) => setTimeout(r, 5));
+    await act(async () => {
+      setNavigatorOnline(false);
+      window.dispatchEvent(new Event("offline"));
+    });
+    await waitFor(() => expect(result.current.online).toBe(false));
+    expect(result.current.lastChangedAt).toBeGreaterThan(initial);
+    const afterOffline = result.current.lastChangedAt;
 
-      vi.setSystemTime(new Date("2026-01-01T00:00:05Z"));
-      act(() => {
-        setNavigatorOnline(false);
-        window.dispatchEvent(new Event("offline"));
-      });
-      expect(result.current.lastChangedAt).toBeGreaterThan(initial);
-      const afterOffline = result.current.lastChangedAt;
-
-      vi.setSystemTime(new Date("2026-01-01T00:00:10Z"));
-      act(() => {
-        setNavigatorOnline(true);
-        window.dispatchEvent(new Event("online"));
-      });
-      expect(result.current.lastChangedAt).toBeGreaterThan(afterOffline);
-    } finally {
-      vi.useRealTimers();
-    }
+    await new Promise((r) => setTimeout(r, 5));
+    await act(async () => {
+      setNavigatorOnline(true);
+      window.dispatchEvent(new Event("online"));
+    });
+    await waitFor(() => expect(result.current.online).toBe(true));
+    expect(result.current.lastChangedAt).toBeGreaterThan(afterOffline);
   });
 });
 
@@ -193,7 +190,7 @@ describe("useOnlineStatus — native (@capacitor/network) layer", () => {
       setNavigatorOnline(false);
       window.dispatchEvent(new Event("offline"));
     });
-    expect(result.current.online).toBe(false);
+    await waitFor(() => expect(result.current.online).toBe(false));
   });
 
   it("does not touch the plugin at all on web", async () => {

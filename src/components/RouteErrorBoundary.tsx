@@ -1,4 +1,5 @@
 import React from "react";
+import { isConfirmedOffline } from "@/lib/connectivity";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -164,7 +165,8 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // reload is an error like any other, and gets the same card; the only
     // distinction worth making is offline, because that one has a real cause
     // the member can act on.
-    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    // Confirmed offline only: navigator.onLine=false alone is a hint (connectivity.ts).
+    const offline = isConfirmedOffline();
 
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 p-8 text-center">

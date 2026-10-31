@@ -31,7 +31,7 @@ export function ItemPickupTimes({ itemId, label = "Pickup times" }: { itemId: st
  * An order (the buyer booking) or an OPEN delivery task (the Helpr accepting it: helpr_task_pickup_windows,
  * 20261028232930, the same chips and the same rule).
  */
-export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true }: {
+export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, own = false, current = null }: {
   orderId?: string;
   taskId?: string;
   value: string | null;
@@ -39,6 +39,10 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   fallback: ReactNode;
   /** Audit 1c D3-8: false once the task is taken, so no read asks for a task that is no longer open (task_not_found). */
   enabled?: boolean;
+  /** AUD31-83: the seller moving their own Helpr pickup reads "Your pickup times", not "The seller's". */
+  own?: boolean;
+  /** AUD31-83: the time booked now, marked among the chips ("now"). */
+  current?: string | null;
 }) {
   const q = useQuery(taskId
     ? { queryKey: ["helpr-tasks", "task-pickup-windows", taskId], queryFn: () => fetchTaskPickupWindows(taskId), enabled }
@@ -60,7 +64,7 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
   return (
     <div className="space-y-2" data-testid="declutter-slot-picker">
-      <p className="text-xs text-muted-foreground">The seller's pickup times: {windowsSummary(q.data?.windows ?? [])}</p>
+      <p className="text-xs text-muted-foreground">{own ? "Your pickup times" : "The seller's pickup times"}: {windowsSummary(q.data?.windows ?? [])}</p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup day">
         {days.map((d) => (
           <Chip key={d.ymd} on={d.ymd === chosenDay.ymd} onClick={() => { setDayPick(d.ymd); onPick(null); }}>{d.label}</Chip>
@@ -68,7 +72,7 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
       </div>
       <div className="flex flex-wrap gap-2" role="group" aria-label={`Pickup time on ${chosenDay.label}`}>
         {chosenDay.slots.map((s) => (
-          <Chip key={s.iso} on={s.iso === value} onClick={() => onPick(s.iso)}>{s.label}</Chip>
+          <Chip key={s.iso} on={s.iso === value} onClick={() => onPick(s.iso)}>{s.label}{current && Date.parse(s.iso) === Date.parse(current) ? " (now)" : ""}</Chip>
         ))}
       </div>
     </div>

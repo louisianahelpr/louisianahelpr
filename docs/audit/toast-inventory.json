@@ -6741,7 +6741,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 86,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6751,7 +6751,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 92,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6761,7 +6761,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 139,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6836,7 +6836,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 161,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6846,7 +6846,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 261,
+      "line": 268,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6860,7 +6860,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 277,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6870,7 +6870,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 290,
+      "line": 297,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6880,7 +6880,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 292,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6890,7 +6890,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 310,
+      "line": 317,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6900,7 +6900,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 314,
+      "line": 321,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6910,7 +6910,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 341,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6920,7 +6920,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 350,
+      "line": 357,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6930,7 +6930,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 385,
+      "line": 392,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6940,11 +6940,11 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 419,
+      "line": 426,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
-        "text": "legacyBanned ? \"No-show reported — this Helpr has been banned for repeated no-shows.\" : restricted ? \"No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again.\" : \"No-show reported — the Helpr has been warned and your job is open again.\"",
+        "text": "legacyBanned ? \"No-show reported — this Helpr has been banned for repeated no-shows.\" : restricted ? `No-show reported — the Helpr is restricted for 7 days while an admin reviews it. ${NO_SHOW_NEXT}` : `No-show reported — the Helpr has been warned. ${NO_SHOW_NEXT}`",
         "branches": [
           {
             "form": "literal",
@@ -6952,15 +6952,31 @@
           },
           {
             "form": "dynamic",
-            "text": "restricted ? \"No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again.\" : \"No-show reported — the Helpr has been warned and your job is open again.\"",
+            "text": "restricted ? `No-show reported — the Helpr is restricted for 7 days while an admin reviews it. ${NO_SHOW_NEXT}` : `No-show reported — the Helpr has been warned. ${NO_SHOW_NEXT}`",
             "branches": [
               {
-                "form": "literal",
-                "text": "No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again."
+                "form": "template",
+                "text": "No-show reported — the Helpr is restricted for 7 days while an admin reviews it. ${NO_SHOW_NEXT}",
+                "holes": {
+                  "NO_SHOW_NEXT": [
+                    {
+                      "form": "literal",
+                      "text": "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded."
+                    }
+                  ]
+                }
               },
               {
-                "form": "literal",
-                "text": "No-show reported — the Helpr has been warned and your job is open again."
+                "form": "template",
+                "text": "No-show reported — the Helpr has been warned. ${NO_SHOW_NEXT}",
+                "holes": {
+                  "NO_SHOW_NEXT": [
+                    {
+                      "form": "literal",
+                      "text": "To hire someone else, change the date right away. Otherwise the job is cancelled and refunded."
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -6970,7 +6986,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 427,
+      "line": 434,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11316,25 +11332,24 @@
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
-        "text": "action === \"temp_ban\" ? \"Job cancelled — third strike: your account is suspended for 7 days.\" : action === \"warning\" ? \"Job cancelled — final warning. One more strike is a 7-day suspension.\" : \"Job cancelled. This counts as a reliability strike.\"",
+        "text": "helperCancelToast(action)",
+        "from": "src/pages/jobs/appliedJobCard/helperCancelCopy.ts",
         "branches": [
           {
             "form": "literal",
             "text": "Job cancelled — third strike: your account is suspended for 7 days."
           },
           {
-            "form": "dynamic",
-            "text": "action === \"warning\" ? \"Job cancelled — final warning. One more strike is a 7-day suspension.\" : \"Job cancelled. This counts as a reliability strike.\"",
-            "branches": [
-              {
-                "form": "literal",
-                "text": "Job cancelled — final warning. One more strike is a 7-day suspension."
-              },
-              {
-                "form": "literal",
-                "text": "Job cancelled. This counts as a reliability strike."
-              }
-            ]
+            "form": "literal",
+            "text": "Job cancelled — final warning. One more strike is a 7-day suspension."
+          },
+          {
+            "form": "literal",
+            "text": "Job cancelled. No strike: it was more than 24 hours before the start."
+          },
+          {
+            "form": "literal",
+            "text": "Job cancelled. This counts as a reliability strike."
           }
         ]
       },
@@ -12359,7 +12374,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 156,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12369,7 +12384,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12389,7 +12404,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 278,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12399,7 +12414,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 440,
+      "line": 441,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

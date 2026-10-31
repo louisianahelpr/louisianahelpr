@@ -291,7 +291,7 @@ export default function SearchPage() {
           </Group>
         )}
         {q && section === "jobs" && jobCount > MAX_ROWS && (
-          <Link to={`/jobs?${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
+          <Link to={`/jobs?tab=browse&${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
             See all {jobCount} in Jobs
           </Link>
         )}

@@ -106,8 +106,8 @@ export function resultsPath(s: SavedSearch): string {
   if (s.min_budget) p.set("min", String(s.min_budget));
   if (s.max_budget) p.set("max", String(s.max_budget));
   if (s.radius_miles) p.set("loc", `nearby:${s.radius_miles}`);
-  const qs = p.toString();
-  return `/jobs${qs ? `?${qs}` : ""}`;
+  // Named, because /jobs?q= with no tab is an old My Jobs link and opens Working (resolveJobsTab, audit SS-1).
+  return `/jobs?${new URLSearchParams([["tab", "browse"], ...p]).toString()}`;
 }
 
 /** The columns before 20261021042132, for the minutes between this bundle and db-deploy. */

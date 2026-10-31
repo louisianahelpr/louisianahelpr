@@ -22,6 +22,10 @@ import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@te
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
+import { resultsPath } from "@/lib/savedSearches";
 
 vi.mock("@/pages/home/Dashboard", () => ({
   default: ({ embeddedHeader }: { embeddedHeader: () => ReactNode }) => <div data-testid="feed">{embeddedHeader()}</div>,
@@ -157,6 +161,30 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(screen.getByTestId("where").textContent).toBe("/jobs?q=f");
     expect(screen.getByTestId("feed")).toBeTruthy();
     expect(screen.queryByTestId("list-applied")).toBeNull();
+  });
+
+  // Audit SS-1: a Jobs saved search with words opened Working and cleared its "new" count; Search's link was the same.
+  // @mutate src/lib/savedSearches.ts |   return `/jobs?${new URLSearchParams([["tab", "browse"], ...p]).toString()}`; |   return `/jobs?${p.toString()}`;
+  it.each([
+    ["with words and filters", { query: "lawn", max_budget: 200, radius_miles: 25 }],
+    ["with words only", { query: "lawn" }],
+    ["with no words", { category: "yard_work" }],
+  ])("a Jobs saved search %s opens Browse", (_n, s) => {
+    open(resultsPath({ id: "s", name: "", section: "jobs", query: null, category: null, min_budget: null, max_budget: null, radius_miles: null, parish: null, location_keyword: null, notify_enabled: true, notify_email: true, last_seen_at: null, created_at: "", ...s }));
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("list-applied")).toBeNull();
+  });
+
+  // @mutate src/pages/search/SearchPage.tsx | <Link to={`/jobs?tab=browse&${qs}`} | <Link to={`/jobs?${qs}`}
+  it("Search's See all in Jobs names its tab and opens Browse", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../pages/search/SearchPage.tsx"), "utf8"));
+    const links = src.match(/\/jobs\?[^`"']*\$\{qs\}/g) ?? [];
+    expect(links.length).toBeGreaterThan(0);
+    for (const l of links) {
+      open(l.replace("${qs}", "q=lawn"));
+      expect(screen.getAllByTestId("feed").length).toBeGreaterThan(0);
+      expect(screen.queryByTestId("list-applied")).toBeNull();
+    }
   });
 
   it("/jobs?tab=posted (where /posts redirects) lands on Posted", () => {

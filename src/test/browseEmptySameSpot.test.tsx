@@ -8,17 +8,24 @@
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return (nav && nav.height > 0 ? nav.top : innerHeight) / 2; |   return innerHeight / 2;
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return Math.max(highest, Math.round(screenMid - natural)); |   return 0;
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return Math.max(highest, Math.round(screenMid - natural)); |   return Math.round(screenMid - natural);
+ * @mutate src/components/ui/BrowseEmptyState.tsx | "pointer-events-none flex min-h-0 | "flex min-h-0
+ * @mutate src/components/ui/BrowseEmptyState.tsx | [&_[data-empty-state]>*]:pointer-events-auto | [&_[data-empty-state]>*]:opacity-100
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { browseEmptyScreenMid, browseEmptyShift } from "@/components/ui/BrowseEmptyState";
+import { browseEmptyScreenMid, browseEmptyShift, SHIFTED_LAYER } from "@/components/ui/BrowseEmptyState";
 
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "../..", p), "utf8"));
 const SCREENS = ["src/components/dashboard/BrowseTasksFeed.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterFreeView.tsx"];
 
 describe("Browse empty states share one spot", () => {
+  // Audit SS-9: moved up, the layer's empty top lay over "Save this search" and took its press. The press itself is
+  // proved in a browser (jsdom has no hit test): ~/.lh-shots/b65-saved-search/.
+  it("the moved layer takes no press, except on the card's own content", () => {
+    expect(SHIFTED_LAYER.split(" ")).toEqual(expect.arrayContaining(["pointer-events-none", "[&_[data-empty-state]>*]:pointer-events-auto"]));
+  });
   it.each(SCREENS)("%s uses the shared layout, no bare EmptyState", (file) => {
     const src = read(file);
     expect(src).toContain("<BrowseEmptyState");

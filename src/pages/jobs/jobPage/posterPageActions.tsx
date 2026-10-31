@@ -5,10 +5,10 @@
  * gates), and a poster with no step due gets the next useful thing ("Message Yusef", "Post this job again"),
  * never a generic "Manage job".
  *
- * Still on the Posted card, through a one-shot request (faceActionRequest) the card's own control answers: the
- * edit (EditJobDialog), the release ("Approve and release", the create-payment money path) and the cancel (the fee quote, refund and the
- * Helpr-already-on-the-way check live in the card's CancellationDialog flow). Both are money writes; moving them
- * here is its own reviewed change.
+ * The money and card steps run HERE too (owner 2026-10-31, the money half): "Approve and release", "Cancel job",
+ * "Edit job" and "More options" call usePosterPageFlows, which mounts the Posted card's OWN handlers, dialogs and
+ * step controls on this page (createLifecycleHandlers, ActivityDialogs, PostedJobActions). No new money code: the
+ * release is still create-payment's, the cancel still the CancellationDialog's fee quote and refund.
  *
  * Guard: src/pages/jobs/jobPage/JobPage.test.tsx ("the poster acts on the job page").
  */
@@ -19,12 +19,12 @@ import { Button } from "@/components/ui/button";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { ChangeJobSheet } from "@/components/schedule/ChangeJobSheet";
 import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
-import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import type { JobPageRow } from "./useJobPage";
+import type { PosterPageFlows } from "./usePosterPageFlows";
 
 export type PagePrimary = { label: string; go: () => void; disabled?: boolean };
 
@@ -43,6 +43,7 @@ export function usePosterPageActions({
   open,
   pending,
   onChanged,
+  flows,
 }: {
   job: JobPageRow | null | undefined;
   userId: string;
@@ -54,6 +55,8 @@ export function usePosterPageActions({
   pending: number;
   /** Re-read the page after a write here (the confirm). */
   onChanged: () => void;
+  /** The Posted card's own flows, mounted on this page (usePosterPageFlows). */
+  flows: PosterPageFlows;
 }): { primary: PagePrimary | null; secondary: React.ReactNode; dialogs: React.ReactNode; edit: () => void } {
   const navigate = useNavigate();
   const helperId = enabled ? job?.helper_id ?? null : null;
@@ -69,10 +72,6 @@ export function usePosterPageActions({
 
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
-  const toCard = (action: "approve" | "cancel" | "edit" | "open") => {
-    requestFaceAction(job.id, action);
-    navigate(`/posts?highlight=${id}&manage=1`);
-  };
   const message = job.helper_id && HAS_HELPR.has(status)
     ? { label: helperFirst ? `Message ${helperFirst}` : "Message your Helpr", go: () => navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) }
     : null;
@@ -90,7 +89,8 @@ export function usePosterPageActions({
     posterWait === "confirm_still_on"
       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
       : posterWait === "approve"
-      ? { label: RELEASE_ACTION, go: () => toCard("approve") }
+      // The card's own CompletionChoiceSheet (the confirm), then create-payment's release (usePosterPageFlows).
+      ? { label: RELEASE_ACTION, go: flows.approve, disabled: !flows.ready || flows.completing }
       : open && pending > 0
       // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card.
       ? { label: `Review ${pending} applicant${pending === 1 ? "" : "s"}`, go: () => navigate(`/posts?highlight=${id}&applicants=1`) }
@@ -107,7 +107,7 @@ export function usePosterPageActions({
       </Button>
     ),
     canEdit && (
-      <Button key="edit" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => toCard("edit")}>
+      <Button key="edit" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} onClick={flows.edit}>
         Edit job
       </Button>
     ),
@@ -117,17 +117,21 @@ export function usePosterPageActions({
       </Button>
     ),
     canCancel && (
-      <Button key="cancel" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15 text-destructive" onClick={() => toCard("cancel")}>
+      <Button key="cancel" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15 text-destructive" disabled={!flows.ready} onClick={flows.cancel}>
         Cancel job
       </Button>
     ),
     cardSteps && (
-      <Button key="more" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => toCard("open")}>
-        More options
+      <Button key="more" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} aria-expanded={flows.moreOpen} onClick={flows.toggleMore}>
+        {flows.moreOpen ? "Fewer options" : "More options"}
       </Button>
     ),
   ].filter(Boolean);
-  const secondary = buttons.length > 0 ? <div data-poster-actions="" className="flex flex-wrap gap-2">{buttons}</div> : null;
+  const row = buttons.length > 0 ? <div data-poster-actions="" className="flex flex-wrap gap-2">{buttons}</div> : null;
+  // The card's own step controls, in place under the buttons; mounted (hidden) whenever the row is read, so
+  // "Approve and release" opens the card's CompletionChoiceSheet even with More options closed.
+  const panel = cardSteps || posterWait === "approve" ? flows.panel : null;
+  const secondary = row || panel ? <>{row}{panel}</> : null;
 
   const dialogs = (
     <>
@@ -152,7 +156,7 @@ export function usePosterPageActions({
             otherFirstName={helperFirst}
             rescheduled={rescheduled}
             onConfirm={onChanged}
-            onCantMakeIt={() => toCard("cancel")}
+            onCantMakeIt={flows.cancel}
           />
         </div>
       )}
@@ -166,10 +170,11 @@ export function usePosterPageActions({
           userId={userId}
           dateNeeded={job.date_needed}
           startTime={job.start_time ?? null}
-          onCancelJob={() => toCard("cancel")}
+          onCancelJob={flows.cancel}
         />
       )}
+      {flows.dialogs}
     </>
   );
-  return { primary, secondary, dialogs, edit: () => toCard("edit") };
+  return { primary, secondary, dialogs, edit: flows.edit };
 }

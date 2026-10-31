@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { jobIsUnfundedDraft } from "./activityFilters";
-import { hasFaceAction } from "./faceActionRequest";
 
 /** On Posted's list: everything but a never-paid draft (jobIsUnfundedDraft, Q1668). */
 export const onPostedList = (j: { payment_status?: string | null }): boolean => !jobIsUnfundedDraft(j);
@@ -82,12 +81,12 @@ export function useOpenWorkingDeepLink(
 /**
  * THE MANAGE JOB SCREEN IS GONE (owner 2026-10-31, LEAD-JOBPAGE-LAYOUT): its actions are on the job page, so an old
  * `/posts?highlight=<id>&manage=1` link (a chat card, an email, a notification already on a phone) opens /jobs/<id>.
- * Only a link the job page itself sent with a request for the card (approve, cancel, edit, more options:
- * faceActionRequest) still opens the card, whose own control answers it. JobsSection redirects BEFORE the Posted
+ * Every one: the job page runs the card's approve, cancel, edit and steps itself now (usePosterPageFlows), so no
+ * link is left that needs the card. JobsSection redirects BEFORE the Posted
  * list mounts: redirecting from inside the list raced its own deep-link URL writes, which put the list back
  * (measured in a browser, 2026-10-31).
  */
 export function manageLinkOpensJobPage(params: URLSearchParams): string | null {
   const id = params.get("manage") === "1" ? params.get("highlight") : null;
-  return id && !hasFaceAction(id) ? `/jobs/${encodeURIComponent(id)}` : null;
+  return id ? `/jobs/${encodeURIComponent(id)}` : null;
 }

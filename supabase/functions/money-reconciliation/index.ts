@@ -595,8 +595,27 @@ serve(async (req) => {
         crewSharesByJob.set(r.job_id, list);
       }
     }
+    // Owner 2026-10-30: poster_cancel_job records $0, not late, when the hired Helpr had not verified
+    // their ID, and writes job_cancel_id_waivers in the same transaction. That row is the only thing that
+    // explains a 0 below the ladder: the Helpr may verify later, and any other 0 is still a real mismatch.
+    // A crew needs none: its shares carry their own committed flag.
+    const waiverCandidates = jobRows
+      .filter((j) => j.status === "cancelled" && j.is_group_job !== true && !!j.helper_id && money(j.cancellation_fee) <= EPSILON)
+      .map((j) => j.id as string);
+    const idWaivedJobs = new Set<string>();
+    if (waiverCandidates.length > 0) {
+      const { data: waiverRows, error: waiverErr } = await admin
+        .from("job_cancel_id_waivers")
+        .select("job_id")
+        .in("job_id", waiverCandidates);
+      // Before the migration deploys the table does not exist, and no such cancel can exist either.
+      const noWaiverTable = !!waiverErr && (waiverErr.code === "42P01" || waiverErr.code === "PGRST205");
+      if (waiverErr && !noWaiverTable) throw new Error(`job_cancel_id_waivers read failed: ${waiverErr.message}`);
+      for (const r of (waiverRows ?? []) as Array<{ job_id: string }>) idWaivedJobs.add(r.job_id);
+    }
     /** What this cancelled job's fee must be: the single ladder, or the crew's re-priced ledger. */
     const expectedCancellationFee = (job: Record<string, unknown>): number => {
+      if (idWaivedJobs.has(job.id as string)) return 0;
       if (job.is_group_job === true) {
         const priced = crewCancellationFee(
           {
@@ -719,7 +738,7 @@ serve(async (req) => {
           job.cancelled_at as string | null,
           job.start_time as string | null,
         );
-        const expectedLate = hrs < 24;
+        const expectedLate = hrs < 24 && !idWaivedJobs.has(job.id as string);
         if (!!job.late_cancellation !== expectedLate) {
           checks.lateFlag.add({
             job_id: job.id,

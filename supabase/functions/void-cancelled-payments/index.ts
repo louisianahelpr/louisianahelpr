@@ -2181,7 +2181,7 @@ serve(async (req) => {
         // (_shared/seriesRefund.ts).
         // A10: a setup job a Declutter seller's backing out cancelled carries no fee.
         // Owner 2026-10-30: poster_cancel_job recorded no fee because the hired Helpr had not verified
-        // their ID: the poster may rehire at no cost. A 0 recorded by the poster's own cancel stands.
+        // their ID: the poster may rehire without paying for the Helpr's time. A 0 recorded by the poster's own cancel stands.
         const noFeeRecorded = job.cancelled_by === job.customer_id && job.cancellation_fee !== null && Number(job.cancellation_fee) === 0;
         jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
         // ... so a booked Helpr's late-cancel fee is withheld through no fault of

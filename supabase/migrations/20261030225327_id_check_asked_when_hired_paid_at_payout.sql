@@ -12,7 +12,8 @@
 -- check below answers as today and landing this interrupts nobody.
 --
 -- Also the owner's: the poster is told 24 hours before the start and may cancel and
--- rehire at no cost; nothing auto-cancels. A dispute split waits whole. The 5 members
+-- rehire without paying for the Helpr's time; nothing auto-cancels. What a captured charge
+-- always keeps (the card's cost, a first job's $2: _shared/refundAmount.ts) is still kept. A dispute split waits whole. The 5 members
 -- reset on 10-27 who were at 3 attempts get a fresh count.
 --
 -- poster_cancel_job and claim_payout_setup_reminders are restated whole; each base
@@ -71,8 +72,25 @@ CREATE TRIGGER trg_helpr_tasks_identity_before_take
   BEFORE UPDATE OF helpr_id ON public.helpr_tasks
   FOR EACH ROW EXECUTE FUNCTION public.enforce_identity_before_delivery();
 
--- ── 2. The poster may cancel and rehire at no cost ─────────────────────────
+-- ── 2. The poster may cancel and rehire without paying for the Helpr's time ─
 -- void-cancelled-payments honours the 0 recorded here (it would otherwise recompute a fee).
+-- The refund itself is the normal one. A hold is released whole; a captured charge comes back
+-- less the card's cost and a first job's $2 setup fee. The dialog shows the amount first.
+--
+-- The record that this 0 was the ID rule's, for money-reconciliation: the Helpr may verify later,
+-- so their status then cannot explain it, and only this row separates it from a real mismatch.
+-- A table of its own because authenticated holds table-level UPDATE and INSERT on public.jobs, so
+-- a new jobs column would be writable by a member. Service role reads; only poster_cancel_job writes.
+CREATE TABLE IF NOT EXISTS public.job_cancel_id_waivers (
+  job_id uuid PRIMARY KEY REFERENCES public.jobs(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.job_cancel_id_waivers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.job_cancel_id_waivers FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.job_cancel_id_waivers TO service_role;
+COMMENT ON TABLE public.job_cancel_id_waivers IS
+  'A single-Helpr job whose poster cancelled with no fee because the hired Helpr had not verified their ID (owner 2026-10-30). Written only by poster_cancel_job; read by money-reconciliation.';
+
 CREATE OR REPLACE FUNCTION public.poster_cancel_job(p_job_id uuid, p_reason text DEFAULT NULL::text, p_expected_fee_cents bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -95,7 +113,7 @@ DECLARE
   v_share record;
   v_verdict jsonb := jsonb_build_object('action', 'none', 'prior_count', 0);
   -- Owner 2026-10-30: a hired Helpr who has not verified their ID cannot head out, so the poster
-  -- may cancel and hire someone else at no cost: no fee to them and no strike on the poster.
+  -- may cancel and hire someone else: no pay for the Helpr's time and no strike on the poster.
   v_id_outstanding boolean := false;
 BEGIN
   IF v_uid IS NULL THEN
@@ -260,6 +278,10 @@ BEGIN
    WHERE id = v_job.id;
 
   PERFORM set_config('app.sanctioned_cancel', 'off', true);
+
+  IF v_id_outstanding THEN
+    INSERT INTO public.job_cancel_id_waivers (job_id) VALUES (v_job.id) ON CONFLICT (job_id) DO NOTHING;
+  END IF;
 
   v_commission := COALESCE(v_job.helper_fee_percent, 10);
 
@@ -606,7 +628,7 @@ BEGIN
   ), ins AS (
     INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
     SELECT d.customer_id, v_title,
-           format('They can''t head out to "%s" until they do. You can cancel at no cost and hire someone else, or wait for them. Nothing changes unless you choose.', COALESCE(d.title, 'your job')),
+           format('They can''t head out to "%s" until they do. You can cancel without paying for their time and hire someone else, or wait for them. You''ll see what comes back to you before you confirm. Nothing changes unless you choose.', COALESCE(d.title, 'your job')),
            'warning', '/jobs?job=' || d.id::text, d.id
       FROM due d
     RETURNING 1

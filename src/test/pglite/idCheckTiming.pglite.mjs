@@ -175,6 +175,10 @@ if (await fn("identity_notify_posters_before_start")) {
   ok("no notice for a job 72 h away", (await q(JOB_FAR)).c === 0);
   ok("no notice for a verified Helpr", (await q(JOB_VERIFIED)).c === 0);
   ok("no notice once the Helpr is on the way", (await q(JOB_OTW)).c === 0);
+  // A captured charge keeps the card's cost and a first job's $2 (_shared/refundAmount.ts): "no cost" would be false.
+  const words = (await one(`SELECT message FROM public.notifications WHERE job_id='${JOB_LATE}' AND user_id='${POSTER}' AND title LIKE 'Your Helpr%'`)).message;
+  ok("the notice never promises no cost", !/no cost|free|nothing to pay/i.test(words), words);
+  ok("the notice says what is true: no pay for their time, and the amount shown first", /without paying for their time/.test(words) && /what comes back to you before you confirm/.test(words), words);
 } else ok("identity_notify_posters_before_start exists", false);
 
 // Cancel, read only if the migration restated it
@@ -186,8 +190,15 @@ if (await fn("poster_cancel_job")) {
   const row = await one(`SELECT cancellation_fee, cancellation_fee_status FROM public.jobs WHERE id='${JOB_LATE}'`);
   ok("the recorded fee is 0, what void-cancelled-payments honours", Number(row.cancellation_fee) === 0 && row.cancellation_fee_status === null);
   ok("the Helpr is told why", (await one(`SELECT count(*)::int c FROM public.notifications WHERE user_id='${PLAIN}' AND message LIKE '%before your ID was verified%'`)).c === 1);
+  // The record money-reconciliation reads: only this cancel writes it, and members cannot.
+  ok("the waiver row is written for this cancel", (await one(`SELECT count(*)::int c FROM public.job_cancel_id_waivers WHERE job_id='${JOB_LATE}'`)).c === 1);
+  ok("members cannot write the waiver", (await one(`SELECT has_table_privilege('authenticated', 'public.job_cancel_id_waivers', 'INSERT') a`)).a === false);
+  ok("members cannot read the waiver", (await one(`SELECT has_table_privilege('authenticated', 'public.job_cancel_id_waivers', 'SELECT') a`)).a === false);
+  ok("the money sweep's role can read it", (await one(`SELECT has_table_privilege('service_role', 'public.job_cancel_id_waivers', 'SELECT') a`)).a === true);
+  ok("RLS is on", (await one(`SELECT relrowsecurity r FROM pg_class WHERE oid='public.job_cancel_id_waivers'::regclass`)).r === true);
   const v = (await one(`SELECT public.poster_cancel_job('${JOB_VERIFIED}') r`)).r;
   ok("a verified Helpr keeps the fee", Number(v.cancellation_fee) === 25, JSON.stringify(v));
+  ok("a verified Helpr's cancel writes no waiver", (await one(`SELECT count(*)::int c FROM public.job_cancel_id_waivers WHERE job_id='${JOB_VERIFIED}'`)).c === 0);
   const o = (await one(`SELECT public.poster_cancel_job('${JOB_OTW}') r`)).r;
   ok("a Helpr already on the way keeps the fee", Number(o.cancellation_fee) === 25, JSON.stringify(o));
   // A crew: per member. Unverified and not on the way costs nothing; verified, or already on the way, keeps the ladder.

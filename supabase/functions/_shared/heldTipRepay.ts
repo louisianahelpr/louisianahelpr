@@ -30,13 +30,16 @@
 
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { memberDisplayNameOf } from "../_shared/memberDisplayName.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
-type Db = { from: (t: string) => any };
+type Db = {
+  from: (t: string) => any;
+  rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
 
 /** A stale claim: older than this, the run that took it is gone. */
 const STALE_MS = 10 * 60 * 1000;
@@ -374,6 +377,18 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     transfer = (prior?.data ?? []).find((t) =>
       t.metadata?.type === "tip_hold_repay" && t.metadata?.tip_id === r.tip_id && !t.reversed);
     if (!transfer) {
+      // Owner 2026-10-30: no money reaches a Helpr who has not verified their ID, and that includes a tip
+      // held back before the switch went on. A NEW transfer only: one Stripe already holds moves no money.
+      const idHold = await checkIdentityHold(supabase, r.helper_id);
+      if (idHold.kind !== "clear") {
+        await backToWaiting(supabase, r.tip_id, idHold.kind === "waits" ? "identity_not_verified" : undefined);
+        if (idHold.kind === "error") out.defects.push(`tip ${r.tip_id} ID check: ${idHold.message}`);
+        else {
+          out.waiting++;
+          await ageAlert(r, now, "the Helpr has not verified their ID");
+        }
+        return false;
+      }
       // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): a NEW
       // transfer only when Stripe says the account is payable (an existing one
       // above is adopted whatever the account reads: no money moves).

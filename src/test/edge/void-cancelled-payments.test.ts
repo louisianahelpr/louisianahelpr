@@ -422,7 +422,7 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
 });
 
 // Owner 2026-10-30: poster_cancel_job records 0 when the hired Helpr had not verified their ID: the poster
-// rehires at no cost, so the money sweep must not recompute the ladder over it.
+// rehires without paying for the Helpr's time, so the money sweep must not recompute the ladder over it.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
 describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stands", () => {
   beforeEach(() => {

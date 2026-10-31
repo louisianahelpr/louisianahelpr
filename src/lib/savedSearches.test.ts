@@ -30,7 +30,7 @@ describe("saved searches in plain words (board 91)", () => {
   });
 
   it("a Jobs search opens Jobs Browse with the dashboard's own params", () => {
-    expect(resultsPath({ ...base, section: "jobs", category: "yard_work", min_budget: 50 })).toBe("/jobs?q=chair&cat=yard_work&min=50&max=100&loc=nearby%3A25");
+    expect(resultsPath({ ...base, section: "jobs", category: "yard_work", min_budget: 50 })).toBe("/jobs?tab=browse&q=chair&cat=yard_work&min=50&max=100&loc=nearby%3A25");
   });
 
   it("a bad URL value is no filter, not a wrong one", () => {

@@ -53,7 +53,10 @@ export async function fetchMyPorchPlaces(): Promise<MyPorchPlace[] | typeof PORC
   return (rpcData(r, (e) => rpcErrorMessage("declutter_my_porch_places", e)) ?? []) as MyPorchPlace[];
 }
 
-/** Adds a place (id null) or edits one of the caller's own. Returns the place id. */
+/**
+ * Adds a place (id null) or edits one of the caller's own. Returns the place id, and whether its hours were saved:
+ * false only when the server is older than 20261031145652 and took the days alone (the seller is told, review 2026-10-31).
+ */
 export async function saveMyPorchPlace(place: {
   id: string | null;
   label: string;
@@ -64,7 +67,7 @@ export async function saveMyPorchPlace(place: {
   weekdays: number[];
   /** The place's days and hours; the server takes the days from them. */
   windows?: PickupWindow[];
-}): Promise<string> {
+}): Promise<{ id: string; hoursSaved: boolean }> {
   const args = {
     // A new place has no id yet: the RPC takes NULL for "add".
     p_place_id: place.id as string,
@@ -78,10 +81,14 @@ export async function saveMyPorchPlace(place: {
   const first = await supabase.rpc("declutter_save_porch_place", place.windows ? { ...args, p_windows: place.windows } : args);
   // Before 20261031145652 is on the server the 8-argument call has no match (PGRST202): save the days alone, as before.
   if (first.error?.code === "PGRST202" && place.windows) {
-    return rpcData(await supabase.rpc("declutter_save_porch_place", args), (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+    const id = rpcData(await supabase.rpc("declutter_save_porch_place", args), (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+    return { id, hoursSaved: false };
   }
-  return rpcData(first, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+  return { id: rpcData(first, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string, hoursSaved: !!place.windows };
 }
+
+/** Said when an older server saved a place's days but not its hours. */
+export const PLACE_HOURS_NOT_SAVED = "Place saved, but not its hours. Update the app, then set its hours again.";
 
 export async function deleteMyPorchPlace(id: string): Promise<string> {
   const r = await supabase.rpc("declutter_delete_porch_place", { p_place_id: id });

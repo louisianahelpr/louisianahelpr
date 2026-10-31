@@ -57,8 +57,10 @@ export function DayChip({ day, on, onToggle, disabled }: { day: number; on: bool
 }
 
 /** "Sat, Sun": short weekday names, in week order. */
-export function shortDays(days: number[]): string {
-  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).join(", ");
+export function shortDays(days: readonly number[] | null | undefined): string {
+  // A row missing its days (an older server, a mocked read) shows nothing rather than blanking the page (review 2026-10-31).
+  if (!Array.isArray(days)) return "";
+  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).filter(Boolean).join(", ");
 }
 
 const byDayThenStart = (a: PickupWindow, b: PickupWindow) => a.weekday - b.weekday || a.starts.localeCompare(b.starts);
@@ -203,7 +205,7 @@ export function windowsSummary(windows: PickupWindow[]): string {
  * One place's days and hours in words (LEAD-POST-PLACES): "Every day 7:00 AM–9:00 PM", "Mon, Wed 9:00 AM–12:00 PM",
  * or per day when they differ: "Sat 9:00 AM–12:00 PM; Sun 1:00 PM–3:00 PM". No hours (an older server): the days.
  */
-export function placeHoursLine(windows: PickupWindow[] | null | undefined, weekdays: number[]): string {
+export function placeHoursLine(windows: PickupWindow[] | null | undefined, weekdays: number[] | null | undefined): string {
   const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
   if (ws.length === 0) return shortDays(weekdays);
   const range = (w: PickupWindow) => `${timeLabel(w.starts)}–${timeLabel(w.ends)}`;

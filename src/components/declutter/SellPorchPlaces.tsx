@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  deleteMyPorchPlace, fetchItemPickupPlaces, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
+  deleteMyPorchPlace, fetchItemPickupPlaces, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PLACE_HOURS_NOT_SAVED, PORCH_PLACES_NOT_DEPLOYED,
   saveMyPorchPlace, type MyPorchPlace, type PickupPlaceHours,
 } from "@/lib/declutter/porchPlaces";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
@@ -94,8 +94,10 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       return saveMyPorchPlace({ id: d.id, label: d.label.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, weekdays, windows: d.windows });
     },
     onMutate: () => setProblem(null),
-    onSuccess: () => {
+    onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: MY_PORCH_PLACES_KEY });
+      // Review 2026-10-31: an older server took the days alone; never report the hours as saved.
+      if (!r.hoursSaved) toast.error(PLACE_HOURS_NOT_SAVED);
       onDone();
     },
     onError: (err) => {
@@ -228,9 +230,15 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
       )}
       {draft
         ? <PlaceForm key={draft.id ?? "new"} initial={draft} free={free} onDone={() => setDraft(null)} />
-        : places.length < MAX_PORCH_PLACES && (
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ id: null, label: "", address: "", area: "", windows: usual })}>Add a pickup place</Button>
-        )}
+        : places.length < MAX_PORCH_PLACES && (usualRead.isError
+          // Review 2026-10-31: a failed read of the usual times is said, with a retry, never a silent Sat 9-12.
+          ? <ErrorState variant="inline" title="We couldn't load your usual pickup times." body={declutterErrorMessage(usualRead.error)} onRetry={() => void usualRead.refetch()} />
+          : (
+            <Button type="button" variant="outline" className="rounded-full" disabled={usualRead.isLoading} aria-busy={usualRead.isLoading || undefined}
+              onClick={() => setDraft({ id: null, label: "", address: "", area: "", windows: usual })}>
+              {usualRead.isLoading ? "Loading your times…" : "Add a pickup place"}
+            </Button>
+          ))}
     </div>,
   );
 }
@@ -260,6 +268,10 @@ export function MyPickupPlacesSummary() {
 /** The item page's places (declutter_item_pickup_places): label, area, days and hours; nothing before it is on the server. */
 export function ItemPickupPlaces({ itemId }: { itemId: string }) {
   const read = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId) });
+  // Review 2026-10-31: a failed read says so, with a retry, instead of dropping the places silently.
+  if (read.isError) {
+    return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(read.error)} onRetry={() => void read.refetch()} />;
+  }
   if (!Array.isArray(read.data) || read.data.length === 0) return null;
   return (
     <div className="space-y-1 pt-1" data-item-pickup-places="">

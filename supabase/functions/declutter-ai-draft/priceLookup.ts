@@ -15,8 +15,8 @@
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 const LOOKUP_MODEL = "claude-sonnet-5-5";
-export const LOOKUP_TIMEOUT_MS = 8_000;
-export const LOOKUP_MAX_SEARCHES = 3;
+const LOOKUP_TIMEOUT_MS = 8_000;
+const LOOKUP_MAX_SEARCHES = 3;
 
 export type PriceRange = { low: number; high: number };
 export type LookupItem = { title: string; details?: string | null; conditionStars?: number | null };
@@ -99,7 +99,7 @@ export function lookupReason(r: PriceRange): string {
 }
 
 /** The fallback label when no lookup answered. */
-export const estimateReason = (reason: string): string => `Our estimate: ${reason}`;
+const estimateReason = (reason: string): string => `Our estimate: ${reason}`;
 
 /** The fields of a draft the lookup reads and may change (DeclutterDraft and Sell a bunch's items both have them). */
 export type PricedDraft = {

@@ -421,10 +421,14 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
   });
 });
 
-// Owner 2026-10-30: poster_cancel_job records 0 when the hired Helpr had not verified their ID: the poster
-// rehires without paying for the Helpr's time, so the money sweep must not recompute the ladder over it.
+// Owner 2026-10-30: poster_cancel_job records 0 when the hired Helpr had not verified their ID, and writes a
+// job_cancel_id_waivers row in the same transaction: the poster rehires without paying for the Helpr's time, so the
+// money sweep must not recompute the ladder over it. Keyed on that row, as money-reconciliation is (lead 10-31, B37 1b):
+// a 0 a poster's cancel wrote for any other reason is re-priced.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | \|\| noFeeRecorded ? 0 : computeCancellationFee(job); | ? 0 : computeCancellationFee(job);
-describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stands", () => {
+// @mutate supabase/functions/void-cancelled-payments/index.ts | const noFeeRecorded = idWaivedJobs.has(job.id); | const noFeeRecorded = job.cancelled_by === job.customer_id && job.cancellation_fee !== null && Number(job.cancellation_fee) === 0;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | if (idWaiverReadError !== null && job.helper_id) { | if (false) {
+describe("void-cancelled-payments: an ID-check waiver row waives the fee", () => {
   beforeEach(() => {
     resetStripeMock();
     resetSupabaseMock();
@@ -435,7 +439,7 @@ describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stand
   const seed = (over: Record<string, unknown>) => {
     scenario.reads.jobs = {
       selectOverrides: [{
-        // The sweep's own select must name cancelled_by, or the row never carries it and the 0 never stands.
+        // The sweep's own select must name cancelled_by (the same Part A read every job comes from).
         includes: "cancelled_by",
         result: {
           rows: [{
@@ -457,12 +461,31 @@ describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stand
     stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
   };
 
-  it("a late cancel with fee 0 recorded by the poster: nothing is captured", async () => {
+  it("a late cancel the poster made with a waiver row: nothing is captured", async () => {
     seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: "job-hold" }] };
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
     expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("the waivers are read once, for the Part A jobs with a hired Helpr", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: "job-hold" }] };
+    const h = await load();
+    await h.fetch(cronReq());
+    const reads = scenario.readQueries.filter((r) => r.table === "job_cancel_id_waivers");
+    expect(reads).toHaveLength(1);
+    expect(reads[0].filters).toEqual([{ op: "in", column: "job_id", value: ["job-hold"] }]);
+  });
+
+  it("control: a 0 the poster's cancel recorded with NO waiver row is re-priced by the ladder", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    scenario.reads.job_cancel_id_waivers = { rows: [] };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
   });
 
   it("control: no fee recorded yet, the ladder still charges", async () => {
@@ -472,11 +495,26 @@ describe("void-cancelled-payments: a 0 recorded by the poster's own cancel stand
     expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
   });
 
-  it("control: a 0 not written by the poster's cancel does not waive the ladder", async () => {
-    seed({ cancellation_fee: 0, cancelled_by: "someone-else" });
+  it("before the migration (no table) the ladder charges", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    scenario.reads.job_cancel_id_waivers = { error: { message: "relation does not exist", code: "42P01" } };
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails CLOSED when the waivers cannot be read: no money moves for the job, and the run reports a defect", async () => {
+    seed({ cancellation_fee: 0, cancelled_by: "poster-1" });
+    scenario.reads.job_cancel_id_waivers = { error: { message: "waiver read blew up" } };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const body = JSON.parse(await res.text());
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    expect(JSON.stringify(body.results)).toContain('"job_id":"job-hold","title":"Late cancel on a hold","status":"id_waiver_read_failed"');
+    expect(res.status).toBe(500);
   });
 });
 

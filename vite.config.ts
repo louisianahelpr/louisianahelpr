@@ -494,7 +494,7 @@ export default defineConfig(({ mode }) => ({
       },
       manifest: {
         id: "/?source=helpr-pwa",
-        name: "Helpr — Louisiana Help Marketplace",
+        name: "Louisiana Helpr",
         short_name: "Helpr",
         description: "Connect with trusted Louisiana neighbors for cleaning, errands, moving, yard work, and more.",
         // MUST match public/manifest.webmanifest and the five other places

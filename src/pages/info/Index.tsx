@@ -39,7 +39,7 @@ const louisianaCities = [
 const webAppSchema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "Helpr",
+  name: "Louisiana Helpr",
   description: "Connect with trusted neighbors in Louisiana for everyday jobs — cleaning, yard work, moving, errands & more.",
   url: SITE_URL,
   applicationCategory: "Marketplace",

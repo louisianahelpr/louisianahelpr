@@ -4,9 +4,9 @@
  * index.html (what crawlers and the first paint read) and LANDING_PAGE_META (what
  * usePageMeta sets) must agree.
  *
- * @mutate src/lib/publicPageMeta.mjs | ogTitle: "Helpr — Louisiana's local partner.", | ogTitle: "Helpr — Louisiana's Local Job Partner",
+ * @mutate src/lib/publicPageMeta.mjs | ogTitle: "Louisiana Helpr — Louisiana's local partner.", | ogTitle: "Louisiana Helpr — Louisiana's Local Job Partner",
  * @mutate src/components/auth/AuthShell.tsx | eyebrow = "Louisiana's local partner.", | eyebrow = "Louisiana's Local Job Partner",
- * @mutate index.html | <meta property="og:title" content="Helpr — Louisiana's local partner." /> | <meta property="og:title" content="Helpr — Louisiana's Local Job Partner" />
+ * @mutate index.html | <meta property="og:title" content="Louisiana Helpr — Louisiana's local partner." /> | <meta property="og:title" content="Louisiana Helpr — Louisiana's Local Job Partner" />
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -16,7 +16,7 @@ import { LANDING_PAGE_META } from "@/lib/publicPageMeta.mjs";
 const ROOT = resolve(__dirname, "..", "..");
 const html = readFileSync(join(ROOT, "index.html"), "utf8");
 const authShell = readFileSync(join(ROOT, "src/components/auth/AuthShell.tsx"), "utf8");
-const WORDS = "Helpr — Louisiana's local partner.";
+const WORDS = "Louisiana Helpr — Louisiana's local partner.";
 
 describe("landing tab and share titles match the hero (Q2198)", () => {
   it("LANDING_PAGE_META carries the hero words", () => {

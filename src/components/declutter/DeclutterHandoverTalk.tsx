@@ -29,9 +29,11 @@ import {
   openHandoverTalk,
   sendHandoverMessage,
 } from "@/lib/declutter/handoverTalk";
+import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
 
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+// AUD31-12: the weekday alone only within 6 days; older lines carry their date.
+const when = (iso: string) => talkTime(iso);
 
 /** Puts ?talk=<id> on the current address (the Declutter page opens the chat from it). */
 function useOpenTalk() {

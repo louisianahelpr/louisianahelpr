@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
 import { fetchItemHandovers, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { closeWanted } from "@/lib/declutter/wanted";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dollarsInputToCents } from "@/lib/declutter/money";
@@ -55,6 +56,16 @@ function OfferRow({ o }: { o: MyOffer }) {
   const [declining, setDeclining] = useState(false);
   // BUY-10 (buying audit 10-30 #10): "Take back my offer" ended it in one tap; it asks first, like Say no.
   const [withdrawing, setWithdrawing] = useState(false);
+  // BUY-29 (lead decision 10-31): after accepting a reply to their Wanted post, the buyer is asked whether to close it
+  // (the owner prefers asking over a silent change). Only the poster's own row carries the open post's id (20261031095146).
+  const [askClose, setAskClose] = useState(false);
+  const wantedId = o.my_side === "buyer" ? o.open_wanted_id ?? null : null;
+  const close = useMutation({
+    mutationFn: (id: string) => closeWanted(id),
+    onSettled: () => setAskClose(false),
+    onSuccess: () => { toast("Your Wanted post is closed."); invalidateTrades(qc); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const act = useMutation({
     mutationFn: (v: { action: "accept" | "decline" | "counter" | "withdraw"; cents?: number }) => respondOffer(o.offer_id, v.action, v.cents ?? null),
     onSettled: () => { setAccepting(false); setDeclining(false); setWithdrawing(false); },
@@ -68,6 +79,7 @@ function OfferRow({ o }: { o: MyOffer }) {
               : "Declined.",
       );
       invalidateTrades(qc);
+      if (res === "accepted" && wantedId) setAskClose(true);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -195,6 +207,12 @@ function OfferRow({ o }: { o: MyOffer }) {
         title="Take back your offer?" confirmLabel="Take it back" cancelLabel="Keep my offer" testId="withdraw-offer">
         {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`}
       </ConfirmSheet>
+      {wantedId && (
+        <ConfirmSheet open={askClose} pending={close.isPending} onConfirm={() => close.mutate(wantedId)} onClose={() => setAskClose(false)}
+          title="Close your Wanted post?" confirmLabel="Close it" cancelLabel="Keep it open" testId="close-wanted-after-accept">
+          {`You're getting "${o.item_title}". Closing your Wanted post stops new matches and replies. You can post it again any time from Wanted.`}
+        </ConfirmSheet>
+      )}
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}
         title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">
         {o.my_side === "seller"

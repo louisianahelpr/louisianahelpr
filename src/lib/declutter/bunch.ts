@@ -26,7 +26,8 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, setOfferRules, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -120,6 +121,8 @@ export interface BunchItem {
   failedPhoto?: string;
   /** Why they aren't sorted, in the seller's words. */
   sortReason?: string;
+  /** LEAD-OFFERS-CHOICE part (2): this item's own "Accept offers"; unset, it follows the seller's saved default. */
+  acceptsOffers?: boolean;
   /** The item this may be the same thing as, when the check across two batches couldn't run. The screen offers to merge. */
   mergeHint?: string;
 }
@@ -655,8 +658,9 @@ export function listingProgressLine(done: number, total: number, names: readonly
 }
 
 export type BunchOutcome =
+  /** `offersFailed`: listed, but taking offers although the seller turned them off (they can, from Manage listing). */
   /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). `id`: its listing. */
-  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; id?: string }
+  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; offersFailed?: boolean; id?: string }
   /**
    * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
    * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
@@ -685,10 +689,11 @@ export interface ListDeps {
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
+  setOfferRules: typeof setOfferRules;
   publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setOfferRules, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -699,6 +704,13 @@ export interface BunchChoices {
   floorPct: number;
   /** The move-out date (YYYY-MM-DD): new drafts join the seller's moving sale. Blank or absent: ordinary listings. */
   moveOutOn?: string | null;
+  /** The seller's saved "Accept offers" (Settings): an item with no choice of its own follows it. Absent: on. */
+  acceptsOffers?: boolean;
+}
+
+/** Whether this item goes up taking offers: its own switch, else the saved default. A free item is claimed, never offered on. */
+export function bunchItemTakesOffers(it: Pick<BunchItem, "free" | "acceptsOffers">, choices: Pick<BunchChoices, "acceptsOffers">): boolean {
+  return !it.free && (it.acceptsOffers ?? choices.acceptsOffers ?? true);
 }
 
 /** Taking a photo off a draft. Already gone (a run cut off after this step, before it was saved) is what was asked for. */
@@ -839,7 +851,7 @@ export async function listBunch(
   }, 0);
   let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
-  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
+  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean; offersAfter: boolean; offersFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
   const held = keptItemIds(items);
   let statuses: Map<string, string> | null = null;
@@ -987,14 +999,28 @@ export async function listBunch(
           return true;
         }
       };
+      // "Accept offers" off (LEAD-OFFERS-CHOICE) goes on the draft beside the other settings, so it never goes live
+      // taking offers and waits for nothing. Not a blocker: "after" sends it again once the item is up.
+      const offersOff = async (): Promise<"done" | "after" | "failed"> => {
+        // A free item is claimed, never offered on: nothing to turn off.
+        if (it.free || bunchItemTakesOffers(it, choices)) return "done";
+        try {
+          return await offersOffOnDraft(draftId, deps.setOfferRules);
+        } catch (err) {
+          console.warn("[declutter] could not turn offers off", err);
+          return "failed";
+        }
+      };
       // allSettled, never all: a setting refused first must not end this item while its photos are still being
-      // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All three
+      // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All of them
       // finish, then the first failure is the item's.
-      const [sent, settled, kept] = await Promise.allSettled([sendPhotos(), settle(), keepUp()]);
-      const failed = [sent, settled, kept].find((r): r is PromiseRejectedResult => r.status === "rejected");
+      const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff()]);
+      const failed = [sent, settled, kept, offers].find((r): r is PromiseRejectedResult => r.status === "rejected");
       if (failed) throw failed.reason;
       const keepUpFailed = kept.status === "fulfilled" && kept.value;
-      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed });
+      const offersAfter = offers.status === "fulfilled" && offers.value === "after";
+      const offersFailed = offers.status === "fulfilled" && offers.value === "failed";
+      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed, offersAfter, offersFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
@@ -1021,10 +1047,24 @@ export async function listBunch(
       const p = prepared[index];
       if (p) onStep(p.key, null);
     });
-    results.forEach((r, i) => {
+    for (const [i, r] of results.entries()) {
       const p = prepared[i];
-      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}) });
-    });
+      if ("error" in r) {
+        out.set(p.key, { key: p.key, title: p.title, error: r.error, draftId: p.id });
+        continue;
+      }
+      let offersFailed = p.offersFailed;
+      if (p.offersAfter) {
+        // A server without 20261031201036 refuses a draft: sent again now that it is up.
+        try {
+          await offersOffAfterPublish(p.id, r.status, deps.setOfferRules);
+        } catch (err) {
+          console.warn("[declutter] could not turn offers off after listing", err);
+          offersFailed = true;
+        }
+      }
+      out.set(p.key, { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}), ...(offersFailed ? { offersFailed: true } : {}) });
+    }
   }
   onProgress(total, total);
   return items.map((it) => out.get(it.key)!).filter(Boolean);

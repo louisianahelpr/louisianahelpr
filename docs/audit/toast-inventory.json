@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1053,
-    "files": 293,
-    "rendering": 972,
+    "calls": 1056,
+    "files": 294,
+    "rendering": 975,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 169,
-      "toast.error": 731,
+      "toast": 170,
+      "toast.error": 733,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
-      "template": 95,
-      "dynamic": 551,
+      "literal": 459,
+      "template": 96,
+      "dynamic": 552,
       "jsx": 0
     }
   },
@@ -4494,7 +4494,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 490,
+      "line": 501,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4903,7 +4903,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 101,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4913,7 +4913,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 104,
+      "line": 114,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4933,7 +4933,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 111,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4943,7 +4943,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 161,
+      "line": 172,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5185,6 +5185,36 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 23,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${changed > 0 ? `${done} ` : \"\"}${listingsWord(failed)} could not be changed. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 24,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOffersForAll.tsx",
+      "line": 27,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't change your listings. Try again."
       },
       "renders": true
     },
@@ -5736,7 +5766,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5746,7 +5776,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 318,
+      "line": 324,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5756,7 +5786,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 327,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5781,7 +5811,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 333,
+      "line": 339,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6516,7 +6546,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 289,
+      "line": 292,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6526,7 +6556,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 294,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6536,7 +6566,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 321,
+      "line": 324,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6546,7 +6576,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 364,
+      "line": 367,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6556,7 +6586,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 368,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6566,7 +6596,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 384,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6576,7 +6606,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 434,
+      "line": 437,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6586,7 +6616,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 467,
+      "line": 470,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6596,7 +6626,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 478,
+      "line": 483,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6605,15 +6635,25 @@
           "where": [
             {
               "form": "dynamic",
-              "text": "setting === \"keepUp\" ? 'You can turn on \"Keep it up\" from Manage listing.' : \"You can choose when it becomes free from Manage listing.\"",
+              "text": "setting === \"keepUp\" ? 'You can turn on \"Keep it up\" from Manage listing.' : setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
               "branches": [
                 {
                   "form": "literal",
                   "text": "You can turn on \"Keep it up\" from Manage listing."
                 },
                 {
-                  "form": "literal",
-                  "text": "You can choose when it becomes free from Manage listing."
+                  "form": "dynamic",
+                  "text": "setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "You can turn offers off from Manage listing."
+                    },
+                    {
+                      "form": "literal",
+                      "text": "You can choose when it becomes free from Manage listing."
+                    }
+                  ]
                 }
               ]
             }
@@ -6624,7 +6664,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 485,
+      "line": 492,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6634,7 +6674,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 528,
+      "line": 543,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6644,7 +6684,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 532,
+      "line": 547,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6664,7 +6704,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 537,
+      "line": 552,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6674,7 +6714,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 543,
+      "line": 558,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

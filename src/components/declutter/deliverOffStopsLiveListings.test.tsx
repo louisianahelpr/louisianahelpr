@@ -24,6 +24,8 @@ vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({
   saveSellerDefaults: async (_u: string, d: unknown) => { h.saved = d; return true; },
 }));
 // The delivery price and times under a ticked "I'll deliver" (LEAD-DELIVER-TWICE) have their own tests.
+// LEAD-OFFERS-CHOICE: the card's "for all my listings" row reads the seller's listings (none here, so it stays hidden).
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyItems: async () => [] }));
 vi.mock("./SellerDeliverySettings", async (orig) => ({ ...(await orig<object>()), SellerDeliveryDetails: () => null }));
 vi.mock("@/lib/declutter/stopSellerDelivery", () => ({
   stopMySellerDelivery: async () => {
@@ -35,7 +37,7 @@ vi.mock("@/lib/declutter/stopSellerDelivery", () => ({
 
 import { ListingDefaultsCard } from "./DeclutterListingDefaults";
 
-const BASE: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch", "seller_delivery"] };
+const BASE: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, acceptsOffers: true, handovers: ["porch", "seller_delivery"] };
 const NOTE = "Off. Your listings stop offering delivery; orders already placed are kept.";
 
 function show() {

@@ -34,6 +34,7 @@ function deps(over: Partial<ListDeps> = {}): ListDeps {
     setHandovers: vi.fn(async (_id, w) => w),
     setDropPct: vi.fn(async (_id, p) => p),
     setKeepUp: vi.fn(async (_id, on) => on),
+    setOfferRules: vi.fn(async () => {}),
     publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
     ...over,
   };

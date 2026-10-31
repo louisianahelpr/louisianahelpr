@@ -156,6 +156,8 @@ REVOKE ALL ON FUNCTION public.helpr_task_send_message(uuid, text) FROM PUBLIC, a
 GRANT EXECUTE ON FUNCTION public.helpr_task_send_message(uuid, text) TO authenticated, service_role;
 
 -- A member's data export carries what they wrote here. Restated from the effective definition; only that section is new.
+-- Q408, restated from 20261030223154: the old no-argument door stays dropped.
+DROP FUNCTION IF EXISTS public.export_my_data();
 CREATE OR REPLACE FUNCTION public.export_my_data(p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -680,3 +682,5 @@ BEGIN
   RETURN v_out;
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;

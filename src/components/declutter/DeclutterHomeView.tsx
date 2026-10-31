@@ -224,7 +224,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
       return (await haulLib()).cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
-      toast.success(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
+      toast(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -247,7 +247,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSettled: () => setAsking(null),
     onSuccess: () => {
-      toast.success("Taken down.");
+      toast("Taken down.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

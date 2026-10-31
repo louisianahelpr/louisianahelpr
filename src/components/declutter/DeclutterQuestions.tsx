@@ -85,7 +85,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
     mutationFn: (args: { id: string; text: string }) => answerQuestion(args.id, args.text),
     onSuccess: () => {
       setAnswer("");
-      toast.success("Answer posted.");
+      toast("Answer posted.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
       onClose();
     },
@@ -167,7 +167,7 @@ export function DeclutterQuestions({
     mutationFn: (text: string) => askQuestion(itemId, text),
     onSuccess: () => {
       setQuestion("");
-      toast.success("Question posted. The answer will show here.");
+      toast("Question posted. The answer will show here.");
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
     },
   });

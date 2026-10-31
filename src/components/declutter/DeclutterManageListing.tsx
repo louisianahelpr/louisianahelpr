@@ -76,7 +76,7 @@ function useListingAction<V>(fn: (v: V) => Promise<unknown>, done: string, after
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
-      toast.success(done);
+      toast(done);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       after?.();
     },

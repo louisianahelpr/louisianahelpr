@@ -33,7 +33,7 @@ export function AutoFreeRow({ itemId, rowClassName, as = "li" }: { itemId: strin
   const pick = useMutation({
     mutationFn: (days: number | null) => setAutoFreeDays(itemId, days),
     onSuccess: (days) => {
-      toast.success(autoFreeSaved(days));
+      toast(autoFreeSaved(days));
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

@@ -61,9 +61,9 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
       return { done: todo.length - skipped, total: todo.length };
     },
     onSuccess: ({ done, total }, next) => {
-      if (!next) toast.success("Stopped watching the items in this sale.");
-      else if (done < total) toast.success(`Following ${done} of ${total} items. The others aren't for sale anymore.`);
-      else toast.success("Following. We'll tell you if their prices drop.");
+      if (!next) toast("Stopped watching the items in this sale.");
+      else if (done < total) toast(`Following ${done} of ${total} items. The others aren't for sale anymore.`);
+      else toast("Following. We'll tell you if their prices drop.");
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
     onSettled: () => {

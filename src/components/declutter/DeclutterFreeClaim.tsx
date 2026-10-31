@@ -73,7 +73,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const ask = useMutation({
     mutationFn: () => requestFree(item.id),
     onSuccess: () => {
-      toast.success("Asked. The giver picks who gets it, and we'll tell you.");
+      toast("Asked. The giver picks who gets it, and we'll tell you.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -81,7 +81,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
     onSuccess: () => {
-      toast.success("Your ask is taken back.");
+      toast("Your ask is taken back.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -131,7 +131,7 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   const pick = useMutation({
     mutationFn: (requestId: string) => pickFreeRequest(requestId),
     onSuccess: () => {
-      toast.success("Picked. They have 48 hours to choose a pickup.");
+      toast("Picked. They have 48 hours to choose a pickup.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -241,7 +241,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       return checkoutFree(sellerId, chosen);
     },
     onSuccess: () => {
-      toast.success("It's set. Next: choose your pickup time.");
+      toast("It's set. Next: choose your pickup time.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onDone();
     },

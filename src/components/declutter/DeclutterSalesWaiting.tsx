@@ -63,7 +63,7 @@ export function SalesWaiting() {
     onSettled: () => setAsking(null),
     onSuccess: (n, { kind }) => {
       // A free claim gives no strike (20261030132149), so its toast names no strike count.
-      toast.success(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
+      toast(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
       // The same as DeclutterTradeViews' invalidateTrades (not imported: that file imports this one).
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },

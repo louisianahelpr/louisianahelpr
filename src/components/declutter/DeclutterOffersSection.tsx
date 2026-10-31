@@ -72,7 +72,7 @@ function OfferRow({ o }: { o: MyOffer }) {
     onSuccess: (res) => {
       setCountering(false);
       setCounter("");
-      toast.success(
+      toast(
         res === "accepted" ? (o.my_side === "buyer" ? "Accepted. Check out within 48 hours." : "Accepted. The buyer has 48 hours to pay.")
           : res === "countered" ? "Sent. They have 48 hours to answer."
             : res === "withdrawn" ? "Offer taken back."

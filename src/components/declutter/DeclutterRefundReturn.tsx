@@ -115,7 +115,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
       const path = await uploadReturnPhoto(user.id, v.order_id, file);
       return returnDroppedOff(r.id, path, where);
     },
-    onSuccess: () => { toast.success(`Dropped off. ${cap(who)} is told.`); refresh(); },
+    onSuccess: () => { toast(`Dropped off. ${cap(who)} is told.`); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const addr = useMutation({
@@ -127,7 +127,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
       return { approximate: g.approximate === true };
     },
     onSuccess: ({ approximate }) => {
-      toast.success(approximate
+      toast(approximate
         ? `Saved. ${cap(who)} is told where to pick it up. Their map may only show the area, but they'll read the address you typed.`
         : `Saved. ${cap(who)} is told where to pick it up.`);
       setAddress("");

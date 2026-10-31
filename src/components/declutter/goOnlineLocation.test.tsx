@@ -20,7 +20,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("sonner", () => ({
-  toast: { success: (m: string) => state.toasts.success.push(m), error: (m: string) => state.toasts.error.push(m) },
+  toast: Object.assign((m: string) => state.toasts.success.push(m), { error: (m: string) => state.toasts.error.push(m) }),
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
 // The profile -> area chain the rest of Declutter uses (deriveFallbackLocation); audit DD D3 makes Go online read it.

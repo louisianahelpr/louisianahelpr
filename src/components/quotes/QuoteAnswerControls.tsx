@@ -73,7 +73,7 @@ export function QuoteAnswerControls({
         note: action === "counter" ? note : undefined,
       }),
     onSuccess: (out) => {
-      toast.success(
+      toast(
         out === "accepted" ? "Quote accepted" : out === "declined" ? "Quote declined" : "Counter-offer sent",
       );
       setCountering(false);

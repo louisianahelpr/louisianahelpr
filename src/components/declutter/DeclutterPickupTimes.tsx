@@ -216,7 +216,7 @@ export function PickupTimesCard({ userId }: { userId: string }) {
   const save = useMutation({
     mutationFn: () => setPickupWindows(windows),
     onSuccess: () => {
-      toast.success("Pickup times saved.");
+      toast("Pickup times saved.");
       void qc.invalidateQueries({ queryKey: ["declutter", "windows"] });
       setOpen(false);
     },

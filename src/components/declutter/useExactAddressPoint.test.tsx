@@ -114,7 +114,7 @@ describe("AddressNeedsExactSpot", () => {
   });
 });
 
-const toasted = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toasted = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast: toasted }));
 const refund = vi.hoisted(() => ({ setReturnAddress: vi.fn(async () => undefined) }));
 vi.mock("@/lib/declutter/refundReturns", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/refundReturns")>()), setReturnAddress: refund.setReturnAddress }));
@@ -130,7 +130,7 @@ describe("the return address form", () => {
     fireEvent.change(screen.getByLabelText("Where should they pick it up?"), { target: { value: TYPED } });
     fireEvent.click(screen.getByRole("button", { name: "Send the address" }));
     await waitFor(() => expect(refund.setReturnAddress).toHaveBeenCalledWith("r1", TYPED, { lat: 30.5, lng: -92.1 }));
-    await waitFor(() => expect(toasted.success).toHaveBeenCalledWith(expect.stringMatching(/map may only show the area.*address you typed/)));
+    await waitFor(() => expect(toasted).toHaveBeenCalledWith(expect.stringMatching(/map may only show the area.*address you typed/)));
     expect(screen.queryByRole("button", { name: /use my location/ })).toBeNull();
   });
 

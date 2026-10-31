@@ -1324,6 +1324,20 @@ describe("D2-2: an open problem shows on both cards", () => {
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 
+  // NIGHT-BUYINGopenpr-6: a held order said nothing of what happens next. Both sides, any reporter, are told the next
+  // step inside the note; no time is promised (nothing on the server sets one).
+  // @mutate src/components/declutter/DeclutterProblemOpen.tsx |       <p className="text-muted-foreground" data-problem-next="">{PROBLEM_NEXT}</p> |
+  it("openpr-6: a held order says what happens next, on both sides, with no time promised", async () => {
+    state.problems = [damaged];
+    for (const my_side of ["buyer", "seller"] as const) {
+      const r = show([line({ my_side })]);
+      const note = (await screen.findByText("Problem reported: Louisiana Helpr is looking.")).closest("[data-problem-open]") as HTMLElement;
+      expect(within(note).getByText("Next: they read both sides, then send you both a notice with what they decide.")).toBeInTheDocument();
+      expect(note.textContent).not.toMatch(/\d+ (hours?|days?)|within|by tomorrow/i);
+      r.unmount();
+    }
+  });
+
   it("the seller: the reason and who reported it, and the money is held, not 'once the sale is final'", async () => {
     state.problems = [damaged];
     state.bookings = [slot(-120)];

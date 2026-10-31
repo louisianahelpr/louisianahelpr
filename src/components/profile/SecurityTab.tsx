@@ -33,6 +33,9 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { PasswordResetCard } from "@/components/profile/PasswordResetCard";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
+import { useQuery } from "@tanstack/react-query";
+import type { User } from "@supabase/supabase-js";
+import { SECURITY_AUTH_USER_KEY, readSecurityAuthUser } from "@/components/profile/securityAuthUser";
 import { SignInMethodsCard } from "@/components/profile/SignInMethodsCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -108,6 +111,18 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const [newEmail, setNewEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // AUD31-70: an address change waits for the member to confirm it from the new inbox. Supabase keeps that address
+  // on the auth user as `new_email` until then; the row says so (same query as the two-step card: no extra read),
+  // and `sentTo` covers the moment between a send and that read coming back.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const pendingEmail = useQuery<User, Error, string | null>({
+    queryKey: SECURITY_AUTH_USER_KEY,
+    queryFn: readSecurityAuthUser,
+    select: (u) => u.new_email ?? null,
+    staleTime: 30_000,
+    meta: { persist: false },
+  }).data;
+  const waitingFor = sentTo ?? pendingEmail ?? null;
   // Prevents double-submit on the "Reset password" button — the Supabase
   // call is async and users on slow connections can tap twice.
 
@@ -127,6 +142,10 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     if (!validateEmail(trimmed)) {
       setEmailError("That doesn't look like a valid email — check the address and try again.");
+      return;
+    }
+    if (email && trimmed.toLowerCase() === email.trim().toLowerCase()) {
+      setEmailError("That's already your email.");
       return;
     }
     setEmailError("");
@@ -155,6 +174,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     setSubmitting(false);
     setEmailDialogOpen(false);
+    setSentTo(trimmed);
     // The dialog just closes on success — without this the user has no cue
     // that a confirmation email is now sitting in the NEW inbox.
     confirmConsequential(`Check ${trimmed} to confirm your new address.`);
@@ -281,7 +301,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               onClick={handleEmailChange}
               disabled={submitting || !newEmail.trim()}
             >
-              {submitting ? "Sending…" : "Confirm Change"}
+              {submitting ? "Sending…" : "Confirm change"}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
@@ -337,6 +357,11 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             </h2>
             {email && (
               <p className="text-ds-12 font-medium text-foreground [overflow-wrap:anywhere] mt-0.5">{email}</p>
+            )}
+            {waitingFor && waitingFor.toLowerCase() !== (email ?? "").toLowerCase() && (
+              <p data-email-waiting="" className="text-ds-11 font-sans mt-0.5 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Waiting for you to confirm {waitingFor}.
+              </p>
             )}
           </div>
           <Button

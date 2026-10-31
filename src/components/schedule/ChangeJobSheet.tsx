@@ -8,8 +8,8 @@ import { chipStyles } from "@/components/dashboard/JobFilters";
 import { useScheduleChangeAct } from "./ScheduleChangeControl";
 import { requestScheduleChange } from "@/lib/scheduleChange";
 
-/** The next 14 days, from tomorrow (lead default for board 66: no Helpr availability shown). */
-const DAYS = 14;
+/** The next 60 days, from tomorrow (JOBS-19: 14 could not move a job further out; request_job_schedule_change sets only a one-hour floor). No Helpr availability shown (board 66). */
+const DAYS = 60;
 
 /**
  * Board 66 (poster: reschedule or cancel a hired job), one sheet over what

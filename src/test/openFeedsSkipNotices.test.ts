@@ -45,9 +45,10 @@ describe("informational ledger notices are not mirrored into OPEN.md (Q1580)", (
   it("reads the newest admin_alert_close_rule and finds its notices", () => {
     expect(ruleDef, "no migration defines public.admin_alert_close_rule").toBeTruthy();
     expect(RULES.length).toBeGreaterThan(15);
-    // "new member joined" (the Q1580 row) and "dispute auto-resolved", at least.
+    // "new member summary" (the Q1580 row; one daily summary since 20261031152136, owner 2026-10-30) and
+    // "dispute auto-resolved", at least.
     expect(NOTICES.length).toBeGreaterThan(1);
-    expect(NOTICES).toContain("new member joined");
+    expect(NOTICES).toContain("new member summary");
   });
 
   it("the mirror's ledger query excludes the 'notice' rule by calling the database's rule table", () => {

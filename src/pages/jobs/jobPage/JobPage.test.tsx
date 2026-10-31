@@ -705,6 +705,20 @@ describe("a crew member's own job page (A2-B8)", () => {
     expect(document.querySelector("[data-job-tracker]")).not.toBeNull();
   });
 
+  // JOBS-27 (Jobs audit 10-30, h6-crew): the member's page offered only a generic "Manage job"; their steps are on
+  // the crew roster in the Working card, so the button names them and opens that card.
+  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | return { ...face, label: "See your crew steps" }; | return face;
+  it("names the crew steps as the button, not a generic Manage job, and opens the Working card", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: "4412 Highland Rd, Baton Rouge, LA 70808" });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "See your crew steps" }));
+    expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
   it("an applicant NOT on the crew still reads as closed out", async () => {
     state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: null });
     state.party = false;

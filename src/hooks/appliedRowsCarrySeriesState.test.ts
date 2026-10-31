@@ -3,7 +3,7 @@
  * (fetchJobSeriesState ran for posted rows only), so on every Helpr card a split series read as one-Helpr:
  * the Leave series / Give up dates dialogs and SeriesDatesPanel's intro said nobody else was on it.
  *
- * @mutate src/hooks/useActivityData.ts |       return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null }; |       return { ...a, job: job ?? null };
+ * @mutate src/hooks/useActivityData.ts |       return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null, |       return { ...a, job: job ?? null,
  */
 import { describe, expect, it, vi } from "vitest";
 

@@ -163,6 +163,7 @@
     "get_job_offer_targets(uuid[])": "client",
     "get_job_pets(uuid)": "client",
     "get_job_view_counts(uuid[])": "client",
+    "get_closed_application_job_labels()": "client",
     "get_jobs_for_my_applications()": "client",
     "get_messaging_closes_at(uuid[])": "client",
     "get_muted_threads(jsonb)": "client",

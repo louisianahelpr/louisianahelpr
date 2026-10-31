@@ -16278,6 +16278,14 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_closed_application_job_labels: {
+        Args: never
+        Returns: {
+          date_needed: string
+          job_id: string
+          title: string
+        }[]
+      }
       get_jobs_for_my_applications: {
         Args: never
         Returns: {

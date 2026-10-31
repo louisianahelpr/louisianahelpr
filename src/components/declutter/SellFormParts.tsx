@@ -66,13 +66,18 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
       <Checkbox checked={form.free} onCheckedChange={(v) => setForm((f) => ({ ...f, free: v === true }))} />
       Give it away free
     </label>
-    {form.free && (
-      <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
-        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
-        from your porch, and nothing is charged.
-      </p>
-    )}
+    {form.free && <SellFreeNote />}
   </>);
+}
+
+/** What free means, under a free listing's price (LEAD-FREE-MOVE: free is chosen on the sell chooser's first screen). */
+export function SellFreeNote() {
+  return (
+    <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
+      Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
+      from your porch, and nothing is charged.
+    </p>
+  );
 }
 
 /**

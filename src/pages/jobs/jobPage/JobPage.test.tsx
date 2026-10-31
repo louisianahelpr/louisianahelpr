@@ -916,7 +916,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(screen.getByTestId("where").textContent).toBe(`/post-job?rebook=${row().id}`);
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = status === "open" && !job.is_group_job; |   const canEdit = false;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job; |   const canEdit = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | disabled={!flows.ready} onClick={flows.edit}> | disabled={!flows.ready} onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
   it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {

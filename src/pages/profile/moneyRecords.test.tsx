@@ -177,6 +177,23 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(text()).toContain("Available in January if you qualify");
   });
 
+  // AUD31-55 (lead decision 10-31): a job refunded in full stays on Receipts, "Refunded in full", $0 net; a partly
+  // refunded one says what came back. Jobs with nothing charged stay out.
+  // @mutate src/pages/profile/Receipts.tsx |       if (r.cents <= 0 && !r.refundedInFull) continue; |       if (r.cents <= 0) continue;
+  it("AUD31-55: a job refunded in full stays on Receipts as Refunded in full, $0.00", async () => {
+    tables.jobs = [
+      { id: "j1", title: "Gutter clean", budget: 80, status: "cancelled", payment_status: "refunded", stripe_payment_intent_id: "pi_1",
+        poster_completed_at: null, helper_completed_at: null, created_at: "2026-09-30T12:00:00Z", cancelled_at: "2026-10-01T12:00:00Z" },
+      { id: "j2", title: "Never paid", budget: 50, status: "cancelled", payment_status: "cancelled", stripe_payment_intent_id: null,
+        poster_completed_at: null, helper_completed_at: null, created_at: "2026-09-30T12:00:00Z" },
+    ];
+    tables.payment_refunds = [{ job_id: "j1", amount_cents: 8000, stripe_payment_intent_id: "pi_1", source: "cancel_escrow" }];
+    renderAt(<Receipts />, "?tab=receipts");
+    await screen.findByText("Gutter clean");
+    expect(text()).toMatch(/Gutter clean.*Refunded in full\s*\$0\.00/);
+    expect(text()).not.toContain("Never paid");
+  });
+
   // Audit 2026-10-30 DB-13: the receipt was bare ("Declutter purchase" and a total) and did nothing when tapped.
   // @mutate src/pages/profile/Receipts.tsx |         title: itemsTitle(titles.get(o.id)), |         title: "Declutter purchase",
   // @mutate src/pages/profile/Receipts.tsx |               if (!r.lines) return | if (true) return

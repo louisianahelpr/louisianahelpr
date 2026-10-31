@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261031021800_helpr_delivery_cant_finish (BUY-36; "Delivery Helpr can't finish after pickup", owner 10-30).
+ * PGlite proof for 20261031231150_helpr_delivery_cant_finish (BUY-36; "Delivery Helpr can't finish after pickup", owner 10-30).
  *
  *   node src/test/pglite/helprDeliveryCantFinish.pglite.mjs                    # GREEN (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/helprDeliveryCantFinish.pglite.mjs # RED: the chain without it
@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
-const NEW_FILE = "20261031021800_helpr_delivery_cant_finish.sql";
+const NEW_FILE = "20261031231150_helpr_delivery_cant_finish.sql";
 const TALK_FILE = "20261031043609_helpr_delivery_talk.sql";
 const BASES = [
   "20261027171453_declutter_withdraw_refund_not_once_returning.sql",

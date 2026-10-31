@@ -1,6 +1,6 @@
 /**
  * BUY-36: a delivery the Helpr has and can't finish ("Delivery Helpr can't finish after pickup", owner 10-30; migration
- * 20261031021800). The Helpr reports it with a reason; on nobody's fault the buyer fixes it once; then the item goes back
+ * 20261031231150). The Helpr reports it with a reason; on nobody's fault the buyer fixes it once; then the item goes back
  * to the seller. On the Helpr's fault the buyer picks a full refund, re-posting or collecting it. The rules and the money
  * are the server's; this only asks and says where it stands. toast.success renders nothing, so the card itself says it.
  */

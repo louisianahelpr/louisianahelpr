@@ -471,7 +471,7 @@ export async function adminDecideDeliveryDamage(problemId: string, note: string 
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_delivery_damage", e) ?? null) as unknown as Record<string, unknown>;
 }
 
-/** BUY-36 (20261031021800): a delivery the Helpr has and can't finish: nobody's fault, or the Helpr's. */
+/** BUY-36 (20261031231150): a delivery the Helpr has and can't finish: nobody's fault, or the Helpr's. */
 export async function adminDecideStuckDelivery(problemId: string, fault: "none" | "helpr", note: string | null): Promise<Record<string, unknown>> {
   const res = await supabase.rpc("declutter_admin_decide_stuck_delivery", { p_problem_id: problemId, p_fault: fault, p_note: note as string });
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;

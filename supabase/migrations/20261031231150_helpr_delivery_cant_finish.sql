@@ -9,6 +9,17 @@
 --   Back at the seller: a photo at the pickup address, and the seller confirms or 24 hours pass.
 --   Disagreement, a report of damage, or anything else: Louisiana Helpr decides, with the money held.
 -- Restated from the newest definitions, each compared with prod's md5(prosrc) on 10-30. Only the marked parts change.
+--
+-- RE-TIMESTAMPED 2026-10-31 by Builder 36 (was 20261031231150, never on main or prod; main has since moved past it).
+-- RESTATED FROM origin/main's NEWEST CREATE @ 70f35119f9 (checked 18:11 CT), three-way merged with the BUY-36 changes:
+--   declutter_record_refund      from 20261031105148 (the debt notice names the item; ?tab=selling) + BUY-36 helpr_fault
+--   helpr_task_customer_confirm  from 20261031082308 (BUY-39: not "I got it" while on the road) + BUY-36 going back /
+--                                collecting (BUY-39's check skips a buyer collecting from a Helpr at fault)
+--   helpr_task_sweep             from 20261031134217 (soldstates-5: unanswered seller report) + BUY-36 stuck steps
+--   helpr_task_events CHECK      from 20261031134217 (pickup_moved, seller_no_show_report, seller_no_show_answer) + BUY-36
+--   declutter_delivery_on_task_event: NOT restated. Its only change here was BUY-44's "Delivered" notice, which main's
+--                                20261031170803 already carries (newer words), so this file no longer touches it.
+--   Every other function here has no CREATE on main newer than the one it was restated from (checked by name).
 
 ALTER TABLE public.helpr_tasks
   ADD COLUMN IF NOT EXISTS stuck_at timestamptz,
@@ -45,12 +56,13 @@ BEGIN
   ALTER TABLE public.helpr_task_payouts ADD CONSTRAINT helpr_task_payouts_amount CHECK (
     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents AND amount_cents >= 0);
   -- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.helpr_task_events.helpr_task_events_task_event_check
-  -- ACK-REASON: re-added on the next line with every event it allowed plus the can't-finish steps.
+  -- ACK-REASON: re-added on the next line with every event it allowed (newest: 20261031134217) plus the can't-finish steps.
   -- ACK-DATA-LOSS: none; no rows are deleted or rewritten.
   ALTER TABLE public.helpr_task_events DROP CONSTRAINT IF EXISTS helpr_task_events_task_event_check;
   ALTER TABLE public.helpr_task_events ADD CONSTRAINT helpr_task_events_task_event_check CHECK (task_event = ANY (ARRAY[
     'created', 'accepted', 'released', 'helpr_no_show', 'picked_up', 'delivered', 'wrong_code', 'confirmed', 'unfilled',
-    'cancelled', 'failed', 'pickup_no_show', 'handed_over', 'cant_finish', 'buyer_fix', 'returned', 'buyer_choice']));
+    'cancelled', 'failed', 'pickup_no_show', 'handed_over', 'pickup_moved', 'seller_no_show_report', 'seller_no_show_answer',
+    'cant_finish', 'buyer_fix', 'returned', 'buyer_choice']));
   -- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_refunds.declutter_refunds_reason_check
   -- ACK-REASON: re-added on the next line with every reason it allowed plus 'helpr_fault'; the column is never unchecked once this block commits.
   -- ACK-DATA-LOSS: none; no rows are deleted or rewritten, and every existing row's reason is still in the new list.
@@ -194,12 +206,17 @@ BEGIN
       ON CONFLICT (refund_id) DO NOTHING;
       -- D2-6 (audit 1b #6): the seller is told when a refund leaves them owing money, and where it comes from.
       -- In words, never a fee name (the owner's rule: members see no fee words); the amount is what they owe.
+      -- CHANGED (BUY-30): the notice names the item (no other party is passed, so the writer could not) and
+      -- opens Selling by its tab address.
       IF FOUND THEN
         PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+          -- BUY-36 (CHANGED): a Helpr's own fault comes out of their next payout, and opens their deliveries.
           CASE WHEN p_reason = 'helpr_fault'
-               THEN format('This refund leaves you owing $%s. It comes out of your next Declutter payout.', to_char(v_fee / 100.0, 'FM999990.00'))
-               ELSE format('This refund leaves you owing $%s. It comes out of your next Declutter sale''s payout.', to_char(v_fee / 100.0, 'FM999990.00')) END,
-          CASE WHEN p_reason = 'helpr_fault' THEN '/declutter?view=deliver' ELSE '/declutter?view=selling' END, NULL);
+               THEN format('This refund on %s leaves you owing $%s. It comes out of your next Declutter payout.',
+                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00'))
+               ELSE format('This refund on %s leaves you owing $%s. It comes out of your next Declutter sale''s payout.',
+                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00')) END,
+          CASE WHEN p_reason = 'helpr_fault' THEN '/declutter?view=deliver' ELSE '/declutter?tab=selling' END, NULL);
       END IF;
     END IF;
   END IF;
@@ -341,6 +358,12 @@ BEGIN
   -- CHANGED (BUY-36): the item is on its way back, so there is nothing to confirm.
   IF t.stuck_stage IN ('returning', 'returned', 'awaiting_choice') THEN
     RAISE EXCEPTION 'item_going_back' USING ERRCODE = '55000', HINT = 'This item is going back to the seller.';
+  END IF;
+  -- BUY-39: on the road is not "I got it". From the drop-off, or after 24 h in the Helpr's hands.
+  -- CHANGED (BUY-36): except when the buyer collected it from a Helpr at fault (below).
+  IF t.status = 'picked_up' AND t.stuck_stage IS DISTINCT FROM 'collecting'
+     AND (t.picked_up_at IS NULL OR t.picked_up_at > now() - interval '24 hours') THEN
+    RAISE EXCEPTION 'delivery_on_the_way' USING ERRCODE = '55000', HINT = 'The Helpr is bringing it. Tap I got it once it is dropped off.';
   END IF;
   -- CHANGED (BUY-36): the buyer collected it from a Helpr at fault: the sale goes ahead, the Helpr is unpaid, the delivery fee goes back.
   IF t.stuck_stage = 'collecting' THEN
@@ -1181,7 +1204,32 @@ DECLARE
   v_stuck integer := 0;
   v_o public.declutter_orders;
   a record;
+  v_no_answer integer := 0;
 BEGIN
+  -- NEW (soldstates-5): the seller said the Helpr didn't come and the Helpr didn't answer in 24 hours. A strike, and a
+  -- task still booked goes back up for another Helpr. The buyer's money is not refunded: the delivery goes on. An open
+  -- problem on the order means Louisiana Helpr already has it: nothing here.
+  FOR r IN SELECT x.id FROM public.helpr_tasks x
+            WHERE x.seller_no_show_answer_by <= now() AND x.seller_no_show_answered_at IS NULL
+              AND x.seller_no_show_settled_at IS NULL ORDER BY x.id LIMIT 200 LOOP
+    BEGIN
+      t := public.helpr_task_lock(r.id);
+      IF t.seller_no_show_answer_by <= now() AND t.seller_no_show_answered_at IS NULL AND t.seller_no_show_settled_at IS NULL
+         AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = t.source_id AND p.status = 'open') THEN
+        UPDATE public.helpr_tasks SET seller_no_show_settled_at = now(), updated_at = now() WHERE id = t.id;
+        -- Review #4: only a Helpr still booked for it (picked up, cancelled or closed since: no strike).
+        IF t.status = 'accepted' THEN
+          PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,
+            'The seller said you didn''t come for a Helpr delivery pickup, and you didn''t answer within 24 hours');
+          -- helpr_task_reopen clears the report, so the next Helpr starts clean (review #3).
+          PERFORM public.helpr_task_reopen(t.id, 'helpr_no_show', t.helpr_id, 'the seller said the Helpr did not come; no answer in 24 h');
+        END IF;
+        v_no_answer := v_no_answer + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      PERFORM public.log_cron_defect('helpr_task_sweep', r.id::text, SQLERRM);
+    END;
+  END LOOP;
   FOR r IN SELECT x.id FROM public.helpr_tasks x WHERE x.status = 'open' AND x.open_until <= now() ORDER BY x.id LIMIT 200 LOOP
     BEGIN
       t := public.helpr_task_lock(r.id);
@@ -1312,7 +1360,8 @@ BEGIN
     END;
   END LOOP;
   RETURN jsonb_build_object('unfilled', v_unfilled, 'helpr_no_show', v_noshow, 'auto_confirmed', v_auto,
-                            'still_in_hand_nudged', v_in_hand, 'stuck_steps', v_stuck);
+                            'still_in_hand_nudged', v_in_hand, 'seller_report_unanswered', v_no_answer,
+                            'stuck_steps', v_stuck);
 END;
 $function$;
 
@@ -1351,122 +1400,5 @@ BEGIN
       '/declutter?tab=selling', t.helpr_id);
   END IF;
   RETURN jsonb_build_object('result', 'still_in_hand');
-END;
-$function$;
-
--- BUY-44: the seller is told when it is delivered. Restated from the effective definition (20261030031642); only that notice is new.
-CREATE OR REPLACE FUNCTION public.declutter_delivery_on_task_event(p_order_id uuid, p_task uuid, p_event text, p_by text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-DECLARE
-  o public.declutter_orders;
-  t public.helpr_tasks;
-  v_out jsonb;
-  v_refund uuid;
-  v_problem uuid;
-BEGIN
-  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
-  SELECT * INTO t FROM public.helpr_tasks WHERE id = p_task;
-  IF p_event = 'accepted' THEN
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'A Helpr took your delivery',
-      format('A Helpr picks up %s from the seller %s. They leave it at your door with a photo.',
-             public.declutter_order_items_named(o.id),
-             to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD at FMHH12:MI AM')),
-      '/declutter?tab=buying', t.helpr_id);
-    PERFORM public.declutter_notify(o.seller_id, 'payment', 'Helpr pickup booked',
-      format('A Helpr picks up %s %s. Have it ready.', public.declutter_order_items_named(o.id),
-             to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD at FMHH12:MI AM')),
-      '/declutter?tab=selling', t.helpr_id);
-  ELSIF p_event = 'released' THEN
-    PERFORM public.declutter_notify(o.buyer_id, 'info', 'Finding another Helpr',
-      format('Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),
-      '/declutter?tab=buying', NULL);
-    PERFORM public.declutter_notify(o.seller_id, 'info', 'Pickup time cancelled',
-      format('The Helpr can''t make it to pick up %s. You''ll be told the new pickup time.', public.declutter_order_items_named(o.id)),
-      '/declutter?tab=selling', NULL);
-  ELSIF p_event = 'picked_up' THEN
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your item is on its way',
-      format('The Helpr picked up %s. They leave it at your door with a photo; tap "I got it" when you have it.',
-             public.declutter_order_items_named(o.id)),
-      '/declutter?tab=buying', t.helpr_id);
-    PERFORM public.declutter_notify(o.seller_id, 'payment', 'Picked up',
-      format('The Helpr picked up %s. You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),
-      '/declutter?tab=selling', t.helpr_id);
-  ELSIF p_event = 'delivered' THEN
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Delivered',
-      format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
-             public.declutter_order_items_named(o.id)),
-      '/declutter?tab=buying', t.helpr_id);
-    -- BUY-44: the seller was told Picked up and then nothing.
-    PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered',
-      format('The Helpr left %s at the buyer''s drop-off address. You''re paid when the buyer has it.',
-             public.declutter_order_items_named(o.id)),
-      '/declutter?tab=selling', t.helpr_id);
-  ELSIF p_event = 'confirmed' THEN
-    -- The handover IS the delivery: the seller is paid (and the Helpr, below).
-    v_out := public.declutter_complete_handover(o.id,
-      CASE p_by WHEN 'code' THEN 'code' WHEN 'customer' THEN 'buyer' WHEN 'admin' THEN 'admin' ELSE 'auto' END);
-    RETURN v_out;
-  ELSIF p_event = 'unfilled' THEN
-    -- Row 40: no Helpr in 48 h. The delivery fee goes back in full; the order
-    -- becomes a pickup at the seller's home; the 7-day clock keeps running.
-    IF o.status = 'paid' AND o.handover = 'delivery' THEN
-      v_refund := public.declutter_delivery_refund(o.id, 'no_helpr');
-      -- B76: a Helpr who backed out or never came late in the week can leave
-      -- the buyer too little time to book a pickup, and the handover sweep
-      -- would then close it as the BUYER's no-show (strike, fee kept). With
-      -- under 48 h to the 7-day deadline the sale is closed instead as no one's
-      -- fault: the delivery fee back in full (above), the rest under the
-      -- no-fault policy (row 100: the card fee is kept), no strike, the item
-      -- back on sale.
-      IF o.paid_at + interval '7 days' < now() + interval '48 hours' THEN
-        PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your delivery fell through',
-          format('No Helpr could deliver %s in time, so this sale is cancelled. What you paid for delivery comes back in full, and most of the rest of your payment.',
-                 public.declutter_order_items_named(o.id)),
-          '/declutter?tab=buying', o.seller_id);
-        v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
-        RETURN jsonb_build_object('result', 'unfilled', 'delivery_refund_id', v_refund, 'closed', v_out);
-      END IF;
-      UPDATE public.declutter_orders SET handover = 'pickup_home' WHERE id = o.id AND status = 'paid';
-      PERFORM public.declutter_notify(o.buyer_id, 'payment', 'No Helpr took your delivery',
-        format('No Helpr took the delivery of %s. The $%s you paid for delivery is coming back to your card. Book a time to pick up at the seller''s home before your 7-day deadline.',
-               public.declutter_order_items_named(o.id), to_char(o.delivery_cents / 100.0, 'FM999990.00')),
-        '/declutter?tab=buying', o.seller_id);
-      PERFORM public.declutter_notify(o.seller_id, 'payment', 'The buyer will pick it up',
-        format('No Helpr took the delivery of %s, so the buyer will book a pickup at your home.', public.declutter_order_items_named(o.id)),
-        '/declutter?tab=selling', o.buyer_id);
-    END IF;
-    RETURN jsonb_build_object('result', 'unfilled', 'delivery_refund_id', v_refund);
-  ELSIF p_event = 'pickup_no_show' THEN
-    -- B67 (revised 2026-10-16 after lh-authz-rls #3): the Helpr's report, with
-    -- a photo at the pickup point, opens a problem on the order. The money
-    -- waits (the problem holds it; the task stays taken, so the Helpr is not
-    -- counted a no-show) and an admin decides: a seller no-show = refund the
-    -- buyer, the seller's fault (row 19: everything back, card fee to the
-    -- seller's debt, a strike); or pay the seller (the delivery fee goes
-    -- back, B70).
-    -- The Helpr's photo goes on the problem so the admin sees the evidence
-    -- (lh-silent-failure re-review #1); p_by carries "<metres> m|<photo path>".
-    INSERT INTO public.declutter_problems (order_id, reporter_id, reporter_side, reason, note, photo_paths, is_seed)
-    VALUES (o.id, t.helpr_id, 'helpr', 'no_show',
-            format('The Helpr says the seller wasn''t there for the pickup at %s. Their photo at the pickup address (%s m away) is on the delivery.',
-                   to_char(t.pickup_slot_start AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD FMHH12:MI AM'), COALESCE(split_part(p_by, '|', 1), '?')),
-            CASE WHEN NULLIF(split_part(p_by, '|', 2), '') IS NULL THEN '{}'::text[] ELSE ARRAY[split_part(p_by, '|', 2)] END,
-            o.is_seed)
-    RETURNING id INTO v_problem;
-    PERFORM public.declutter_notify(o.seller_id, 'info', 'The Helpr couldn''t pick up',
-      format('The Helpr says you weren''t there to hand over %s. Louisiana Helpr will look at it and decide; the money waits until then.',
-             public.declutter_order_items_named(o.id)),
-      '/declutter?tab=selling', t.helpr_id);
-    PERFORM public.declutter_notify(o.buyer_id, 'info', 'Your delivery is on hold',
-      format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
-             public.declutter_order_items_named(o.id)),
-      '/declutter?tab=buying', t.helpr_id);
-    RETURN jsonb_build_object('result', 'reported', 'problem_id', v_problem);
-  END IF;
-  RETURN jsonb_build_object('result', p_event);
 END;
 $function$;

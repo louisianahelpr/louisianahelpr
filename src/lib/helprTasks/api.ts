@@ -76,7 +76,7 @@ export interface TaskView {
   handed_over_at?: string | null;
   /** A problem holds the sale (the Helpr's "The seller wasn't there" among them); null for a candidate. */
   problem_open?: boolean | null;
-  /** BUY-36 (20261031021800): a delivery the Helpr can't finish; absent before the migration. */
+  /** BUY-36 (20261031231150): a delivery the Helpr can't finish; absent before the migration. */
   stuck_stage?: "waiting_fix" | "retrying" | "returning" | "returned" | "awaiting_choice" | "collecting" | null;
   stuck_reason?: string | null;
   stuck_note?: string | null;

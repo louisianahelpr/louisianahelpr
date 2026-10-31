@@ -217,6 +217,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <ProfileTabHeader
         title={TAB_TITLES.security}
         onBack={onBack}
+        wrapTitle
       />
 
       {/* Change-email dialog — replaces the native prompt(). iOS keyboard
@@ -334,7 +335,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               Email address
             </h2>
             {email && (
-              <p className="text-ds-12 font-medium text-foreground truncate mt-0.5">{email}</p>
+              <p className="text-ds-12 font-medium text-foreground [overflow-wrap:anywhere] mt-0.5">{email}</p>
             )}
           </div>
           <Button

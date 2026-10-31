@@ -36,7 +36,8 @@ function cleanParish(p: string | null | undefined): string | null {
 
 /** An area label ("Downtown, Baton Rouge", "Broussard, LA") -> its parish name, or null. */
 export function parishForAreaLabel(label: string | null | undefined): string | null {
-  const parts = (label ?? "").split(",").map((s) => s.trim()).filter((s) => s && !/^LA$/i.test(s) && !/^Louisiana$/i.test(s));
+  // AUD31-10: "New Iberia & Delcambre" (a prod pickup area, read 10-31) names two towns; each is a part.
+  const parts = (label ?? "").split(/,|&|\//).map((s) => s.trim()).filter((s) => s && !/^LA$/i.test(s) && !/^Louisiana$/i.test(s));
   for (let i = parts.length - 1; i >= 0; i--) {
     const parish = parishForCity(parts[i]);
     if (parish) return cleanParish(parish.name);

@@ -378,6 +378,20 @@ export async function fetchQuestions(itemId: string): Promise<DeclutterQuestion[
 }
 
 /**
+ * AUD31-15: which of this item's questions the caller asked, so the page can say "Your question" on them. Read through
+ * declutter_my_question_ids (20261031183631, SECURITY DEFINER): it answers only the caller's own question ids, so who
+ * asked any other question stays hidden (Q2278). Until that migration is on prod (PGRST202 naming it), none are marked.
+ */
+export async function fetchMyQuestionIds(itemId: string): Promise<Set<string>> {
+  const res = await supabase.rpc("declutter_my_question_ids", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_my_question_ids")) {
+    console.warn("[declutter] declutter_my_question_ids not deployed yet; no question is marked as yours");
+    return new Set();
+  }
+  return new Set((rpcData(res, (e) => rpcErrorMessage("declutter_my_question_ids", e)) ?? []) as string[]);
+}
+
+/**
  * Audit DC-9: the questions still waiting for the seller's answer on these listings (the seller's own, from
  * myItemsQuery), oldest first, for Selling's "To answer". The table read keeps asker_id out (members have no grant
  * on it); its row policy hides removed questions.

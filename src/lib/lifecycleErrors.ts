@@ -915,6 +915,10 @@ export const RPC_ERROR_COPY = {
   declutter_item_questions: {
     feature_disabled: DC.feature_disabled,
   },
+  // AUD31-15: the caller's own question ids on an item (20261031183631); the switch is its only refusal.
+  declutter_my_question_ids: {
+    feature_disabled: DC.feature_disabled,
+  },
   declutter_ask_question: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

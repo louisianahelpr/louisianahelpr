@@ -20,6 +20,7 @@
  * the Move page are retired): with a date, the drafts join the seller's moving sale.
  * Behind the 'declutter' switch (DeclutterGate on the page). Every write is an ordinary declutter_* call that refuses without it.
  */
+import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
@@ -61,6 +62,10 @@ import { useBunchThumbs } from "./useBunchThumbs";
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
 let photoSeq = 0;
+
+function PlacesComeFirstLine() {
+  return useHasPorchPlaces() ? <SavedPlacesComeFirst free={false} /> : null;
+}
 
 export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const { user } = useCurrentUser();
@@ -476,6 +481,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {whereFolded ? null : (
       <BunchSection id="bunch-where" title="1. Where buyers pick up">
+        {/* Q2492: the same rule and words as the one-item form; the server's rule is the same (declutter_start_checkout). */}
+        <PlacesComeFirstLine />
         <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
         <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>

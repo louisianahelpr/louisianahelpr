@@ -14,6 +14,7 @@
  * Neither side can cancel a paid order (owner 2026-10-29, Q2477: "once they pay it can only be
  * rescheduled once. never cancelled."; migration 20261030002630 makes both cancel RPCs refuse).
  */
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -155,7 +156,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           <label htmlFor={fileId} className="block text-xs font-medium">
             {b.handoff === "leave" ? "Photo of the items at the buyer's door (needed, taken there)" : "Photo of the handover (optional, taken at the buyer's address)"}
           </label>
-          <input id={fileId} type="file" accept="image/*" capture="environment" disabled={busy} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+          <PhotoPickButton id={fileId} picked={photo} disabled={busy} onPick={setPhoto} />
           <button type="button" className={primary} disabled={busy || (b.handoff === "leave" && !photo)} onClick={() => delivered.mutate(undefined)}>
             {b.handoff === "hand" ? "Handed over" : "Delivered"}
           </button>

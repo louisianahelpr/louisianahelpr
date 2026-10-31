@@ -19,6 +19,8 @@
  *
  * Audit 1028 part 2, D2-15: both pick-one lists are the app's RadioCardList (no browser radios), and the amount box
  * is capped to a money field's width.
+ * BUY-27: the seller answers with the buyer's photos in front of them; the form uploaded them and nothing showed them.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <ProblemPhotos paths={r.photo_paths ?? []} />\n |
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | const amountInput = `${input} max-w-[12rem]`; | const amountInput = input;
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           label="What's wrong?" |           label="Reason"
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |         label="Your answer" |         label="Answer"
@@ -55,6 +57,7 @@ vi.mock("@/lib/declutter/problemPhotos", () => ({
 }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, ...handover.row }),
+  handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
   uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push([orderId, f.name]); return `me/declutter/problem/${orderId}/${f.name}`; },
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
@@ -106,6 +109,14 @@ beforeEach(() => {
 // Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</button>
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
+describe("the seller's answer shows the buyer's photos", () => {
+  it("each photo is a signed link beside the buyer's words", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, photo_paths: ["b/declutter/problem/o1/a.jpg", "b/declutter/problem/o1/b.jpg"] } });
+    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/a.jpg");
+    expect(await screen.findByAltText("Problem photo 2")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/b.jpg");
+  });
+});
+
 describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
   it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
     show({ ...BASE, can_ask: false, request: REQ });

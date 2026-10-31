@@ -23,13 +23,10 @@ const ROOT = resolve(__dirname, "../..");
 
 /**
  * Raw file pickers not yet on PhotoPickButton. Countdown list: never add.
- * DeclutterHandoverViews, SellerDeliveryOrder: other lanes own these files on 2026-10-28.
  * MaintenanceRequestForm (Homes rentals): several photos at once, not a camera step; outside #49.
  */
 // @two-way src/test/noRawFilePicker.test.tsx:the legacy list only shrinks
 const LEGACY = new Set([
-  "src/components/declutter/DeclutterHandoverViews.tsx",
-  "src/components/declutter/SellerDeliveryOrder.tsx",
   "src/components/rentals/MaintenanceRequestForm.tsx",
 ]);
 

@@ -313,7 +313,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
         {/* No chip row under "Search items" (owner 2026-10-21): category, porch pickup and price drops live only in
             the filter sheet. Guard: src/test/browseCategoryGroups.test.tsx. */}
         {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
-        {(q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
+        {/* Free can't be kept yet: saved without it, the search would alert on everything else in the category (BUY-13). */}
+        {!filters.freeOnly && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
           <SaveSearchButton
             userId={userId}
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}

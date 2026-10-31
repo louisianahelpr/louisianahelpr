@@ -13,6 +13,7 @@
 //     rides that tap. Guard: src/test/shakeToReportNeverAsksOnWeb.test.ts.
 
 import { isNativePlatform } from "@/lib/nativeInit";
+import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 
 let cleanupFn: (() => void) | null = null;
 let shakeHandler: (() => void) | null = null;
@@ -34,7 +35,8 @@ const COOLDOWN_MS = 5000;
 // with typed text, a chosen file or a photo preview (pageHasUnsavedInput):
 // the report opens a new page, which would throw that work away.
 const FORM_ROUTES = [
-  "/declutter/sell",
+  // Every Sell flow (one item, a bunch, moving out, the chooser) lives under this path.
+  SELL_ONE_PATH,
   "/post-job",
   "/quotes/",
   "/support",

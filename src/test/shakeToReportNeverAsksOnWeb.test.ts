@@ -21,7 +21,7 @@
  * @mutate src/lib/shakeToReport.ts | export const SHAKE_PEAKS = 4; | export const SHAKE_PEAKS = 1;
  * @mutate src/lib/shakeToReport.ts | export const THRESHOLD = 32; | export const THRESHOLD = 22;
  * @mutate src/lib/shakeToReport.ts |     if (pageHasUnsavedInput()) return; |
- * @mutate src/lib/shakeToReport.ts |   "/declutter/sell", |
+ * @mutate src/lib/shakeToReport.ts |   SELL_ONE_PATH, |
  * @mutate src/lib/shakeToReport.ts |   if (doc.querySelector('input[type="file"], img[src^="blob:"], [contenteditable="true"]')) return true; |
  */
 import { readFileSync } from "node:fs";

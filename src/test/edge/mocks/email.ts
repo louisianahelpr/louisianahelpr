@@ -91,6 +91,7 @@ const inert = (name: string) => {
 };
 
 export const AdminDigestEmail = inert("AdminDigestEmail");
+export const OwnerDailySummaryEmail = inert("OwnerDailySummaryEmail");
 export const ReEngagementEmail = inert("ReEngagementEmail");
 export const WelcomeDripStep1Email = inert("WelcomeDripStep1Email");
 export const WelcomeDripStep2Email = inert("WelcomeDripStep2Email");

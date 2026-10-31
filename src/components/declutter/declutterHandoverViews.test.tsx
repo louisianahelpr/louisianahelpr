@@ -636,6 +636,27 @@ describe("Declutter slice 4: paid-order cards", () => {
   // Audit 1030 DB-12: after Louisiana Helpr paid the seller, the card said only "Handed over."; it now says what was
   // decided (declutter_order_problem's decision, 20261030080104), on the card itself, not only in a notice.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}\n |
+  // NIGHT-BUYINGopenpr-8: the buyer's card read tracker, then the problem note; the seller's put the note above its
+  // tracker. Both now read tracker, then the note (once), then each side's words.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && view && <ProblemOpenNote | {problem && <ProblemOpenNote
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && !view && <ProblemOpenNote | {false && <ProblemOpenNote
+  it("openpr-8: the seller's held card reads tracker, then the problem note, then the sides", async () => {
+    state.problems = [{ id: "p9", order_id: "o1", reporter_side: "buyer", reason: "no_show" }];
+    state.orderProblem = { id: "p9", reporter_side: "buyer", reason: "no_show", note: "Nobody came.", photo_paths: [], status: "open", created_at: "2026-10-20T14:00:00Z" };
+    try {
+      const v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+      await waitFor(() => expect(v.container.querySelectorAll("[data-problem-open]").length).toBe(1));
+      const note = v.container.querySelector("[data-problem-open]") as Element;
+      const steps = await waitFor(() => { const e = v.container.querySelector("[data-order-steps]"); expect(e).not.toBeNull(); return e as Element; });
+      expect(steps.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const sides = await waitFor(() => { const e = v.container.querySelector("[data-problem-sides]"); expect(e).not.toBeNull(); return e as Element; });
+      expect(note.compareDocumentPosition(sides) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      state.problems = [];
+      state.orderProblem = null;
+    }
+  });
+
   it("DB-12: a sale Louisiana Helpr decided says what it decided on the card, for each side", async () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     state.problems = [];
@@ -1282,7 +1303,8 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // Audit 1b D2-2 (1b-problem-after-375, 1b-s-order-afterprob-p1-1440): after "Report a problem" neither card said a
 // problem was open. The buyer was still asked to pick a day, offered "Book" and a second "Report a problem"; the
 // seller was still told "You get $12 once the sale is final" while the money was held.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" |           {false ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen} |           {<ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}

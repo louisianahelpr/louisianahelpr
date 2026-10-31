@@ -84,7 +84,7 @@ describe("a price drop into a saved search's budget alerts it (BUY-52)", () => {
 
     rpc.answer = { data: ["t1"], error: null };
     expect([...(await fetchDroppedIntoBudget("2026-10-30T12:00:00.000Z", 50))]).toEqual(["t1"]);
-    expect(rpc.calls.at(-1)).toEqual(["declutter_dropped_into_budget", { p_since: "2026-10-30T12:00:00.000Z", p_max_budget: 50 }]);
+    expect(rpc.calls[rpc.calls.length - 1]).toEqual(["declutter_dropped_into_budget", { p_since: "2026-10-30T12:00:00.000Z", p_max_budget: 50 }]);
     // Before the function is on the server: no marks, never an error.
     rpc.answer = { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
     expect((await fetchDroppedIntoBudget("2026-10-30T12:00:00.000Z", 50)).size).toBe(0);

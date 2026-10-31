@@ -141,7 +141,7 @@ serve(async (req) => {
     // Owner 2026-10-30: a poster is told 24 hours before the start that their hired Helpr has not
     // verified their ID (the SQL writes the one notice and is a no-op while the switch is off).
     const { error: posterErr } = await supabase.rpc("identity_notify_posters_before_start", { p_limit: CAP });
-    if (posterErr && posterErr.code !== "PGRST202") defects.push(`poster ID notices: ${posterErr.message}`);
+    if (posterErr && posterErr.code !== "PGRST202") defects.push(`ID notices before the start: ${posterErr.message}`);
 
     return cronResult("payout-setup-reminders", counts, { count: defects.length, reasons: defects }, corsHeaders);
   } catch (e) {

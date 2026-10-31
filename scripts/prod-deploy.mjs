@@ -19,7 +19,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readdirSync } from "node:fs";
-import { decide, summarize, pendingMigrationVersions } from "./lib/prodDeployDebounce.mjs";
+import { decide, summarize, pendingMigrationVersions, edgeDeployState } from "./lib/prodDeployDebounce.mjs";
 
 const TEAM_ID = "team_UQHppAVoPIPQbyh2b43y21BG";
 const PROJECT_ID = "prj_pDcXQcTz4zPMNwewE9wmz09PvNag";
@@ -102,6 +102,40 @@ async function pendingMigrations() {
   }
 }
 
+/**
+ * Edge gate (10-31): the newest functions-deploy.yml run on HEAD or an
+ * ancestor of HEAD. null = cannot tell (decide() then holds the deploy, red).
+ */
+async function edgeDeploy(head) {
+  const gh = process.env.GITHUB_TOKEN;
+  if (!gh) {
+    console.error("::error::GITHUB_TOKEN not set: cannot check that functions-deploy finished for main HEAD.");
+    return null;
+  }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${ORG}/${REPO}/actions/workflows/functions-deploy.yml/runs?branch=main&per_page=30`, {
+      headers: { Authorization: `Bearer ${gh}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) throw new Error(`GitHub API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = await res.json();
+    if (!Array.isArray(body.workflow_runs)) throw new Error(`no workflow_runs array: ${JSON.stringify(body).slice(0, 200)}`);
+    const isOnHead = (sha) => {
+      try {
+        execFileSync("git", ["merge-base", "--is-ancestor", sha, head], { stdio: "ignore" });
+        return true;
+      } catch {
+        // exit 1 = not an ancestor; 128 = sha not in this clone's history. Either way the run is not for HEAD.
+        return false;
+      }
+    };
+    return edgeDeployState(body.workflow_runs, isOnHead);
+  } catch (e) {
+    console.error(`::error::could not read functions-deploy runs: ${e.message}`);
+    return null;
+  }
+}
+
 async function main() {
   const head = sh("git", ["rev-parse", "origin/main"]);
   const list = await api(`/v6/deployments?projectId=${PROJECT_ID}&target=production&limit=50`);
@@ -109,13 +143,15 @@ async function main() {
   const { newest, base } = summarize(list.deployments);
   const changed = base ? deployPathsChanged(base.sha, head) : null;
   const pending = await pendingMigrations();
-  const d = decide({ head, now: Date.now(), newest, base, deployPathsChanged: changed, pendingMigrations: pending });
+  const edge = await edgeDeploy(head);
+  const d = decide({ head, now: Date.now(), newest, base, deployPathsChanged: changed, pendingMigrations: pending, edgeDeploy: edge });
 
   console.log(`main HEAD:            ${head}`);
   console.log(`newest prod deploy:   ${newest ? `${newest.id} ${newest.state} ${newest.sha} ${new Date(newest.created).toISOString()}` : "none"}`);
   console.log(`prod serves/will:     ${base ? `${base.id} ${base.state} ${base.sha}` : "none"}`);
   console.log(`deploy paths changed: ${changed}`);
   console.log(`unapplied migrations: ${pending === null ? "cannot tell" : pending.length ? pending.map((m) => m.version).join(", ") : "none"}`);
+  console.log(`functions-deploy:     ${edge === null ? "cannot tell" : edge.runId ? `${edge.state} (run ${edge.runId} on ${edge.sha}, ${edge.status})` : "ok (no run on main HEAD's history)"}`);
   console.log(`decision:             ${d.action} (${d.reason})`);
   out("action", d.action);
   out("sha", head);

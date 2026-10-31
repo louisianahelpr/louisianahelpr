@@ -16,6 +16,10 @@ name: Prod deploy
 #   - it HOLDS (Q1824) while any migration on main HEAD is not yet applied on
 #     prod, so the client never goes live ahead of its schema; it goes red if
 #     that lasts an hour (db-deploy stuck) or the check cannot read prod;
+#   - it HOLDS (edge gate, 10-31) while the newest functions-deploy run on
+#     HEAD or an ancestor is queued, in progress or failed, so web never goes
+#     live ahead of its edge functions; red when edge failed or the runs
+#     cannot be read (2026-10-31: web was READY ~19:19Z, edge green 19:28:50Z);
 #   - otherwise it creates ONE production deployment of main at HEAD through
 #     the Vercel API and waits for READY.
 # Rules: scripts/lib/prodDeployDebounce.mjs, pinned by
@@ -45,6 +49,10 @@ jobs:
     name: Ship main to production (batched)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      # Edge gate: read the newest functions-deploy.yml runs on main.
+      actions: read
     outputs:
       action: ${{ steps.run.outputs.action }}
       deployment: ${{ steps.run.outputs.deployment }}
@@ -69,6 +77,8 @@ jobs:
           # the commit being shipped (supabase_migrations.schema_migrations).
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # Edge gate: read-only list of functions-deploy.yml runs (actions: read).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/prod-deploy.mjs
 
       - name: Summary

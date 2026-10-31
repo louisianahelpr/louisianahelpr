@@ -46,6 +46,33 @@ export function pendingMigrationVersions(repoFiles, applied) {
     .sort();
 }
 
+/**
+ * Edge gate (10-31): the newest Supabase Edge Functions Deploy run
+ * (.github/workflows/functions-deploy.yml) on main HEAD or an ancestor of it.
+ * The web client can call a function, or a function's new reply, that the same
+ * merge changes; shipping it while edge is still deploying (or after edge
+ * failed) puts a client on prod ahead of its server. On 2026-10-31 the bot
+ * inventory push 7121ae45e9 ran prod-deploy once db-deploy had applied #3892's
+ * migrations, and dpl_Gj9VU6itKr7dA8fun69vWM2nb5th was READY at ~19:19Z while
+ * functions-deploy 41232537450 ran until 19:28:50Z; the lead rolled web back.
+ *
+ * @param {Array<{ id: number, head_sha: string, status: string, conclusion: string | null, created_at: string }>} runs
+ * @param {(sha: string) => boolean} isOnHead  true when sha is HEAD or an ancestor of HEAD
+ * @returns {{ state: "ok" | "pending" | "failed", runId: number | null, sha: string | null, status: string | null }}
+ */
+export function edgeDeployState(runs, isOnHead) {
+  const mine = runs
+    .filter((r) => r && r.head_sha && isOnHead(r.head_sha))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const run = mine[0];
+  if (!run) return { state: "ok", runId: null, sha: null, status: null };
+  const status = run.status === "completed" ? `completed/${run.conclusion}` : run.status;
+  const base = { runId: run.id, sha: run.head_sha, status };
+  if (run.status !== "completed") return { state: "pending", ...base };
+  if (run.conclusion === "success" || run.conclusion === "skipped" || run.conclusion === "neutral") return { state: "ok", ...base };
+  return { state: "failed", ...base };
+}
+
 /** States of a deployment whose commit prod is serving or about to serve. */
 export const LIVE_OR_COMING = new Set(["READY", "BUILDING", "QUEUED", "INITIALIZING"]);
 
@@ -80,11 +107,12 @@ export function summarize(deployments) {
  *   base: { id: string, created: number, state: string, sha: string | null } | null,
  *   deployPathsChanged: boolean | null,        // base.sha..head touched scripts/deploy-paths.sh? null = cannot tell
  *   pendingMigrations: Array<{ version: string, committedAt: number }> | null, // Q1824: on HEAD, not applied on prod; null = cannot tell
+ *   edgeDeploy: { state: "ok" | "pending" | "failed", runId: number | null, sha: string | null, status: string | null } | null, // edge gate (10-31); null = cannot tell
  *   debounceMs?: number,
  * }} input
  * @returns {{ action: "deploy" | "skip", reason: string, fail?: boolean }}
  */
-export function decide({ head, now, newest, base, deployPathsChanged, pendingMigrations, debounceMs = DEBOUNCE_MS }) {
+export function decide({ head, now, newest, base, deployPathsChanged, pendingMigrations, edgeDeploy, debounceMs = DEBOUNCE_MS }) {
   if (!head) throw new Error("decide: no main HEAD sha");
   if (base && base.sha === head) {
     return { action: "skip", reason: `prod is already at main HEAD (${base.id}, ${base.state})` };
@@ -112,6 +140,20 @@ export function decide({ head, now, newest, base, deployPathsChanged, pendingMig
       reason: stuck
         ? `${pendingMigrations.length} migration(s) on main HEAD are still not applied on prod after ${Math.round((now - oldest) / 60000)} min (${names}): db-deploy is stuck or red`
         : `waiting for db-deploy: ${pendingMigrations.length} migration(s) on main HEAD not applied on prod yet (${names}); the 20-minute schedule ships main once they are`,
+    };
+  }
+  // Edge gate (10-31): never ship a client while functions-deploy for its
+  // commit (or an ancestor) is queued, running or failed. Like Q1824, "cannot
+  // tell" holds and goes red. A failed edge deploy also goes red: web is held
+  // until a newer functions-deploy run on main goes green.
+  if (!edgeDeploy) {
+    return { action: "skip", fail: true, reason: "waiting for functions-deploy: cannot read its runs, so the build may need an edge function that is not live yet" };
+  }
+  if (edgeDeploy.state !== "ok") {
+    return {
+      action: "skip",
+      fail: edgeDeploy.state === "failed",
+      reason: `waiting for functions-deploy: run ${edgeDeploy.runId} on ${edgeDeploy.sha} is ${edgeDeploy.status}${edgeDeploy.state === "failed" ? "; web is held until a newer functions-deploy run on main goes green" : "; the 20-minute schedule ships main once it is green"}`,
     };
   }
   if (newest && now - newest.created < debounceMs) {

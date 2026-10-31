@@ -8,14 +8,14 @@
  * Behaviour (red/green, 3x replay): src/test/pglite/declutterLiveOnPost.pglite.mjs
  * (40 PASS after; NEW_MIGRATION=skip 32 FAIL, measured 2026-10-30).
  *
- * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live' |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    WHEN v_floor > 0 THEN 'pending_review'\n    ELSE 'live'
- * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |       UPDATE public.declutter_items\n         SET status = 'live', updated_at = v_at | UPDATE public.declutter_items\n         SET status = 'pending_review', updated_at = v_at
+ * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live' |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live'
+ * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |       UPDATE public.declutter_items\n         SET status = 'live', updated_at = v_at | UPDATE public.declutter_items\n         SET status = 'pending_review', updated_at = v_at
  * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated |     UPDATE public.declutter_offers SET status = 'voided' WHERE item_id = p_item_id AND status = 'open';\n    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |  'application'::text, 'declutter_item'::text, 'declutter_wanted'::text])); |  'application'::text, 'declutter_wanted'::text]));
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |           jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)); |           jsonb_build_object('note', v_note, 'was', v_item.status));
  * @mutate src/lib/declutter/api.ts |   for (let attempt = 1; attempt <= 2; attempt++) { |   for (let attempt = 1; attempt <= 1; attempt++) {
- * @mutate src/components/declutter/useSellFlowState.ts |       const checked = requestAiCheckWithRetry(id); |       const checked = Promise.resolve(null);
+ * @mutate src/components/declutter/useSellFlowState.ts |       void requestAiCheckWithRetry(id); |       void id;
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id); |       void item.id;
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!ownListing && user && <DeclutterReportListing itemId={itemId} />} |           {null}
  * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
@@ -32,17 +32,22 @@ const code = (p: string) => blankComments(readFileSync(p, "utf8"));
 
 describe("item B: a listing goes live when posted; only a failed automatic check holds it", () => {
   it("reads the newest definitions (floor)", () => {
-    for (const n of ["declutter_publish_item", "declutter_record_ai_check",
-      "declutter_admin_take_down_item", "declutter_admin_reported_items"]) {
+    for (const n of ["declutter_admin_take_down_item", "declutter_admin_reported_items"]) {
       expect(newestFunction(n).file, n).toContain("20261030071816");
+    }
+    // LEAD-POST-SLOW (owner 2026-10-31): publish and the check restated so the check runs right after Post.
+    for (const n of ["declutter_publish_item", "declutter_record_ai_check"]) {
+      expect(newestFunction(n).file, n).toContain("20261031152545");
     }
     // BUY-11 (20261031083708) restated the edit with the small-edit notice; the rules read here are unchanged.
     expect(newestFunction("declutter_edit_listing").file).toContain("20261031083708");
   });
 
-  it("publish holds a listing only on a flagged or missing check (no 'first 3 listings' hold)", () => {
+  it("publish holds a listing only on a flagged check (no 'first 3 listings' hold; the check runs after Post)", () => {
     const pub = sql("declutter_publish_item");
-    expect(pub).toContain("v_status := CASE WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;");
+    expect(pub).toContain("v_status := CASE WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review' ELSE 'live' END;");
+    // A check that never comes back is still held (B19), by the sweep, after 15 minutes.
+    expect(sql("declutter_hold_unchecked_listings")).toContain("WHERE i.status = 'live' AND i.live_at < now() - interval '15 minutes'");
     expect(pub).not.toMatch(/admin_approved_at|v_approved/);
   });
 
@@ -88,8 +93,8 @@ describe("item B: a listing goes live when posted; only a failed automatic check
     let calls = 0;
     for (const p of callers) {
       const s = code(p);
-      // Awaited where it is asked, or (Post, LEAD-POST-SLOW) started first and awaited with the settings beside it.
-      const n = (s.match(/(?:await|const \w+ =) requestAiCheckWithRetry\(/g) ?? []).length;
+      // Awaited where it is asked, or (Post, LEAD-POST-SLOW) asked right after publishing, not awaited.
+      const n = (s.match(/(?:await|void) requestAiCheckWithRetry\(/g) ?? []).length;
       expect(n, p).toBe(1);
       calls += n;
       // The single-try call is gone from every caller.

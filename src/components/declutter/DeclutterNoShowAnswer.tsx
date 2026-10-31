@@ -7,7 +7,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { answerNoShow, fetchMyHandover } from "@/lib/declutter/handover";
+import { answerNoShow, fetchMyHandover, reportNoShow } from "@/lib/declutter/handover";
+import { toast } from "sonner";
+import { NoShowSheet } from "./DeclutterHandoverSheets";
+import { invalidate, type PaidOrder } from "./paidOrders";
+
+const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -51,6 +56,30 @@ export function NoShowAnswer({ orderId, side, delivery, free }: { orderId: strin
       <Button type="button" className="rounded-full" disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
         {delivery ? "I delivered it" : "I was there"}
       </Button>
+    </div>
+  );
+}
+
+export function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {
+  const qc = useQueryClient();
+  const [asking, setAsking] = useState(false);
+  const report = useMutation({
+    mutationFn: () => reportNoShow(order.orderId),
+    // Where it stands shows on the card (NoShowAnswer): toasts for a confirmation show nothing (toastPolicy).
+    onSuccess: () => { setAsking(false); invalidate(qc, order.orderId); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const handover = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
+  // Row 94: from 15 minutes after the booked time. The server checks again.
+  if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
+  // One report at a time; after the seller's "Picked up" it is a problem report (seller_confirmed).
+  if (handover.data?.no_show_reported_at || handover.data?.seller_confirmed_at) return null;
+  return (
+    <div>
+      <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
+        They didn't show
+      </button>
+      <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />
     </div>
   );
 }

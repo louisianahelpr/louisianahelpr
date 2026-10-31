@@ -72,6 +72,7 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_withdraw_refund: "selling",
   helpr_task_close: "deliver",
   helpr_task_offer_online: "deliver",
+  helpr_task_payout_take_setup_fee: "deliver",
   helpr_task_tip_paid: "deliver",
   helpr_task_tip_payout_sent: "deliver",
 };

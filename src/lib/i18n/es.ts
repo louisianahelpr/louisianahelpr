@@ -223,6 +223,7 @@ export const es: Record<MsgKey, string> = {
 
   // Jobs browse (the section tabs)
   "tabs.browse": "Ver todo",
+  "tabs.less": "Pestañas anteriores",
   "tabs.more": "Más pestañas",
   "jobs.tabPosted": "Publicados",
   "jobs.tabWorking": "Trabajando",

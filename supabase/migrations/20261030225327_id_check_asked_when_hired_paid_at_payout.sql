@@ -88,6 +88,13 @@ CREATE TABLE IF NOT EXISTS public.job_cancel_id_waivers (
 ALTER TABLE public.job_cancel_id_waivers ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.job_cancel_id_waivers FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.job_cancel_id_waivers TO service_role;
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END;
+$gate$;
 COMMENT ON TABLE public.job_cancel_id_waivers IS
   'A single-Helpr job whose poster cancelled with no fee because the hired Helpr had not verified their ID (owner 2026-10-30). Written only by poster_cancel_job; read by money-reconciliation.';
 

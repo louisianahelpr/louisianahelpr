@@ -133,8 +133,9 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
-| `src/components/declutter/DeclutterHandoverViews.tsx` | input×2, textarea×1 | file | 1000 | declutter-no-show-warning · declutter-move-used |
+| `src/components/declutter/DeclutterHandoverViews.tsx` | input×1, textarea×1 | file | 1000 | declutter-no-show-warning · declutter-move-used |
 | `src/components/declutter/DeclutterMeetup.tsx` | input×1 | radio |  | Meeting spot |
+| `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterPorchPlaces.tsx` | input×1 | radio |  |  |
 | `src/components/declutter/DeclutterProblemSides.tsx` | textarea×1 |  | 1000 |  |
@@ -144,7 +145,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×2 | radio, text | 300 |  |
 | `src/components/declutter/paidOrders.ts` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/SellerDeliveryChoice.tsx` | input×1 | text | 300 | Delivery day · Delivery time · When the seller arrives |
-| `src/components/declutter/SellerDeliveryOrder.tsx` | input×1 | file |  | When the seller arrives · New delivery day · New delivery time |
 
 ## /declutter, /declutter/settings, /declutter/item/:id
 

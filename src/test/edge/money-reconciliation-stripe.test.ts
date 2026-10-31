@@ -134,8 +134,8 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     const lateCancel = () => cancelledJob({
       helper_id: "helper-1",
       helper_confirmed_at: new Date(Date.now() - 2 * DAY).toISOString(),
-      date_needed: new Date(Date.now() + 5 * 3600_000).toISOString().slice(0, 10),
-      start_time: new Date(Date.now() + 5 * 3600_000).toISOString().slice(11, 19),
+      date_needed: new Date(Date.now() + 5 * 3600_000).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }),
+      start_time: new Date(Date.now() + 5 * 3600_000).toLocaleTimeString("en-GB", { timeZone: "America/Chicago", hourCycle: "h23" }),
       cancelled_at: new Date(Date.now() - 3600_000).toISOString(),
     });
 

@@ -317,7 +317,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
         {!filters.freeOnly && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
           <SaveSearchButton
             userId={userId}
-            draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}
+            draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null }}
           />
         )}
         {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}

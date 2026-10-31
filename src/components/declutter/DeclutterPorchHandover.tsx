@@ -19,7 +19,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
-import { fetchSellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
+import { fetchSellerDeliveryBooking, slotLabel } from "@/lib/declutter/sellerDelivery";
 import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { useMyPaidCents } from "./useMyPaidCents";
@@ -188,10 +188,16 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
+  // AUD31-3 (the other side): a move the OTHER party asked for waits on this viewer's answer; the sentence says so
+  // instead of "Booked" (the panel below has Accept the new time / Keep the current time).
+  const p = b.data;
+  const moveAskedOfMe = !done && !facts.delivered && p.proposed_start && p.proposed_by && p.proposed_by !== side
+    ? `The ${p.proposed_by} asked to move it to ${slotLabel(p.proposed_start)}. Accept the new time or keep it, below.`
+    : null;
   return (
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : deliveryStanding(side, at, free)}</p>
+      <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : moveAskedOfMe ?? deliveryStanding(side, at, free)}</p>
       <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
         deliveryCents={b.data.delivery_cents ?? 0} />
     </div>

@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
+ * @mutate src/components/declutter/handoverCopy.ts |   porch: "Porch pickup", |   porch: "Porch or safe place",
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => !!offerAmountFromState(location.state)); | useState(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | \|\| card.isLoading \|\| checkingCard} | }
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | variant={needCard === "offer" ? "outline" : undefined} | variant={undefined}
@@ -1104,7 +1105,10 @@ describe("Declutter slice 3 screens", () => {
     await screen.findByLabelText(/Seller delivers/);
     const radios = screen.getAllByRole("radio").filter((r) => r.tagName === "INPUT");
     expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "seller_delivery"]);
-    expect(screen.getByLabelText(/Porch or safe place/)).toBeChecked();
+    // BUY-14: "Porch pickup" as on the item page, its line names the other safe place.
+    expect(screen.getByLabelText(/^Porch pickup/)).toBeChecked();
+    expect(screen.getByText(/porch or another safe place/)).toBeInTheDocument();
+    expect(screen.queryByText("Porch or safe place")).toBeNull();
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
     // DB-9: the address is typed and checked in this checkout first (see the DB-9 tests below).
     fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "12 Oak St, Baton Rouge" } });
@@ -1199,7 +1203,7 @@ describe("Declutter slice 3 screens", () => {
     first.unmount();
     state.sdOffer = { ...(state.sdOffer as object), reason: "out_of_range" };
     show(<CartView />);
-    await screen.findByLabelText(/Porch or safe place/);
+    await screen.findByLabelText(/^Porch pickup/);
     expect(screen.queryByLabelText(/Seller delivers/)).toBeNull();
   });
 

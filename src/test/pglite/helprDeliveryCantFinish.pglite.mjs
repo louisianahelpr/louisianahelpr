@@ -225,6 +225,22 @@ const full = one(await svc(`SELECT public.helpr_payout_round_down_cents(t.pay_ce
 ok(pD?.debt_cents === dC?.amount_cents && pD?.amount_cents === full - dC?.amount_cents, `the next payout pays it off (${short(pD)}, full ${full})`);
 ok(one(await svc(`SELECT remaining_cents FROM public.declutter_seller_fee_debts WHERE seller_id = '${HELPR}'`)) === 0, "  nothing left owing");
 
+// Money review 10-31 (1): a debt bigger than the payout, on a delivery the buyer raised. The raise is sent whole from
+// its own charge (helprPayoutParts throws when the order part goes below 0), so the take leaves the order part at $1
+// and the rest waits for the next payout. Before the cap the whole payout went to the debt and was never sendable.
+const R = await carried(12);
+const fullR = one(await svc(`SELECT public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) FROM public.helpr_tasks t WHERE t.id = '${R.task}'`));
+const raisedR = fullR - 300;
+await svc(`UPDATE public.helpr_tasks SET raised_cents = ${raisedR}, picked_up_at = now() - interval '25 hours' WHERE id = '${R.task}'`);
+await svc(`INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents)
+  SELECT '${HELPR}', r.id, 5000, 5000 FROM public.declutter_refunds r WHERE r.order_id = '${A.order}'`);
+await me(BUYER, `SELECT public.helpr_task_customer_confirm('${R.task}')`);
+const pR = await helprPayout(R.task);
+ok(pR?.debt_cents === 200 && pR?.amount_cents === fullR - 200 && pR.amount_cents - raisedR === 100 && pR?.status === "pending",
+  `a debt bigger than a raised payout: the take stops at $1 of order part (${short(pR)}, full ${fullR}, raised ${raisedR})`);
+ok(one(await svc(`SELECT remaining_cents FROM public.declutter_seller_fee_debts WHERE seller_id = '${HELPR}' AND remaining_cents > 0`)) === 4800, "  the rest waits for the next payout");
+await svc(`UPDATE public.declutter_seller_fee_debts SET remaining_cents = 0 WHERE seller_id = '${HELPR}'`);
+
 // 4. Helpr's fault, re-post; a buyer who hasn't chosen.
 const E = await carried(5);
 await cantFinish(E.task, "cant_finish");
@@ -318,7 +334,7 @@ ok(!(await say(BUYER, "Coming down."))?.error && !(await say(SELLER, "Thanks."))
 const vB = await view(BUYER);
 ok(vB?.side === "buyer" && vB?.open === true && vB?.messages?.length === 3 && vB.messages[0].side === "helpr" && vB.messages[0].mine === false && vB.messages[1].mine === true,
   `  each reads all three, as sides (${short(vB)})`);
-ok(!JSON.stringify(vB).includes(HELPR) && !JSON.stringify(vB).includes(SELLER), "  no one's id in what they read");
+ok(vB != null && !JSON.stringify(vB).includes(HELPR) && !JSON.stringify(vB).includes(SELLER), "  no one's id in what they read");
 ok(refused(await say(OUTSIDER, "hello"), /task_not_found/), "a stranger can't send");
 ok(refused(await me(OUTSIDER, `SELECT public.helpr_task_talk_view('${L.task}')`), /task_not_found/), "  or read");
 ok(refused(await say(BUYER, "call me at 225-555-0123"), /contact|phone|Keep contact/i), "the contact filter runs");
@@ -345,6 +361,39 @@ const talkSql = readFileSync(process.env.TALK_PATH ?? `${MIG_DIR}${TALK_FILE}`, 
 const expLine = /jsonb_build_object\('helpr_task_talk_messages', (\(SELECT [^\n]*?WHERE t\.sender_id = v_uid\))\);/.exec(talkSql)?.[1];
 const exp = expLine ? await svc(`SELECT ${expLine.replace(/v_uid/g, `'${HELPR}'::uuid`)} AS d`) : null;
 ok(Array.isArray(exp?.[0]?.d) && exp[0].d.length === 2, `the Helpr's export carries what they wrote (${short(exp?.[0]?.d ?? exp)})`);
+
+// Money review 10-31 (2): a re-post keeps the task id. The new Helpr reads only their own run of the chat, never what
+// the buyer and the seller said to the Helpr before, and is told of the buyer's first message to them.
+const M = await carried(31);
+const sayM = (who, words) => me(who, `SELECT public.helpr_task_send_message('${M.task}', '${words}') AS id`);
+const viewM = async (who) => (await me(who, `SELECT public.helpr_task_talk_view('${M.task}') AS r`))?.[0]?.r;
+await sayM(BUYER, "Old run: the side door is open.");
+await sayM(HELPR, "Old run: on my way.");
+await cantFinish(M.task, "cant_finish");
+await bringBack(M.task);
+await me(SELLER, `SELECT public.helpr_task_seller_return_answer('${M.task}', true, '')`);
+const reM = await me(BUYER, `SELECT public.helpr_task_buyer_choose('${M.task}', 'repost', '') AS r`);
+ok(reM?.[0]?.r?.result === "reposted", `  (re-posted: ${short(reM)})`);
+const NEW_HELPR = OUTSIDER;
+const accM = await svc(`UPDATE public.helpr_tasks SET status = 'accepted', helpr_id = '${NEW_HELPR}', accepted_at = now(), pickup_slot_start = now() + interval '1 hour' WHERE id = '${M.task}' RETURNING status`);
+ok(accM?.[0]?.status === "accepted", `  (a new Helpr takes it: ${short(accM)})`);
+const vNew = await viewM(NEW_HELPR);
+ok(vNew?.side === "helpr" && vNew?.open === true && Array.isArray(vNew?.messages) && vNew.messages.length === 0,
+  `the new Helpr reads none of the old run's chat (${short(vNew ?? await me(NEW_HELPR, `SELECT public.helpr_task_talk_view('${M.task}') AS r`))})`);
+ok(refused(await me(HELPR, `SELECT public.helpr_task_talk_view('${M.task}')`), /task_not_found/), "  the old Helpr is no longer in it");
+const toldNew = await told(NEW_HELPR);
+ok(!(await sayM(BUYER, "New run: hello."))?.error && (await told(NEW_HELPR)) === toldNew + 1, "  the buyer's first message to the new Helpr tells them");
+const vNew2 = await viewM(NEW_HELPR);
+ok(vNew2?.messages?.length === 1 && vNew2.messages[0].body === "New run: hello.", `  and it is the only one they read (${short(vNew2)})`);
+// The column CHECK allows only 'declutter_delivery' today; the chat checks it too, for the next kind of task. The CHECK
+// is lifted for this one case so the check is really exercised, then put back.
+const kindOff = await run(`ALTER TABLE public.helpr_tasks DROP CONSTRAINT IF EXISTS helpr_tasks_source_kind_check;
+  UPDATE public.helpr_tasks SET source_kind = 'haul_away' WHERE id = '${M.task}';`);
+ok(!kindOff?.error, `  (a task of another kind: ${short(kindOff)})`);
+ok(refused(await me(BUYER, `SELECT public.helpr_task_talk_view('${M.task}')`), /task_not_found/), "the chat is for Declutter deliveries only: no read");
+ok(refused(await sayM(BUYER, "Other kind."), /task_not_found/), "  and no send");
+await run(`UPDATE public.helpr_tasks SET source_kind = 'declutter_delivery' WHERE id = '${M.task}';
+  ALTER TABLE public.helpr_tasks ADD CONSTRAINT helpr_tasks_source_kind_check CHECK (source_kind IN ('declutter_delivery'));`);
 
 console.log(`\n${pass} PASS / ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

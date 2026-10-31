@@ -33,7 +33,7 @@ const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short
 
 /** What the buyer gets back when nobody is at fault (owner 10-30: the buyer bears the card fee, and the screen says so). */
 export const NOBODYS_FAULT_REFUND =
-  "You'd get back what you paid, less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn't give back.";
+  "You'd get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn't give back.";
 
 const REASONS: { value: CantFinishReason; label: string; then: string }[] = [
   { value: "wrong_address", label: "The address or pin is wrong", then: "The buyer gets 24 hours to fix it, then you try once more. No strike." },
@@ -227,7 +227,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
         <div className="space-y-2">
           <label htmlFor={`${id}-where`} className="block text-xs font-medium">Where and when can you meet?</label>
           <textarea id={`${id}-where`} rows={2} maxLength={1000} value={where} onChange={(e) => setWhere(e.target.value)} className={input} />
-          <p className="text-ds-13 text-muted-foreground">Once you tap "I got it" the seller is paid, {who} isn't, and your delivery fee comes back.</p>
+          <p className="text-ds-13 text-muted-foreground">Once you tap "I got it" the seller is paid, {who} isn't, and you get back what you paid for the delivery.</p>
           <button type="button" className={`${primary} disabled:opacity-50`} disabled={choose.isPending || !where.trim()} onClick={() => choose.mutate({ choice: "collect", note: where.trim() })}>Tell {who}</button>
         </div>
       )}

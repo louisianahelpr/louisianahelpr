@@ -119,8 +119,12 @@ BEGIN
    WHERE id = t.id AND status IN ('picked_up', 'delivered');
   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents);
   -- CHANGED (BUY-36): a card fee the Helpr owes (declutter_seller_fee_debts, reason helpr_fault) comes off this payout.
+  -- Capped (money review 10-31, the Jobs helprFaultFeeCapCents rule): the raises are sent whole from their own charges
+  -- (helprPayoutParts throws when the order part goes below 0), so the take leaves the order part at $1 or more; the
+  -- rest of the debt waits for the next payout.
   IF t.helpr_id IS NOT NULL AND v_amount > 0 THEN
-    v_debt := public.declutter_consume_fee_debt(t.helpr_id, 'helpr_task_' || t.id::text, v_amount);
+    v_debt := public.declutter_consume_fee_debt(t.helpr_id, 'helpr_task_' || t.id::text,
+      greatest(0, v_amount - COALESCE(t.raised_cents, 0) - 100));
   END IF;
   v_amount := v_amount - v_debt;
   INSERT INTO public.helpr_task_payouts (task_id, helpr_id, pay_cents, fee_cents, debt_cents, amount_cents, status)
@@ -734,7 +738,7 @@ BEGIN
     -- The Helpr is paid for the trip (declutter_close_paid_order confirms a picked-up task, and keeps the delivery fee back).
     v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your delivery couldn''t be finished',
-      format('%s went back to the seller, so this sale is cancelled. You get back what you paid, less the delivery fee, which paid the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.',
+      format('%s went back to the seller, so this sale is cancelled. You get back what you paid, less what the delivery cost, which paid the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.',
              public.declutter_order_items_named(o.id)),
       '/declutter?tab=buying', t.helpr_id);
     RETURN v_out;
@@ -793,6 +797,10 @@ BEGIN
   END IF;
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  -- Membership before any lock (authz review 10-31): a stranger never locks someone else's delivery.
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.helpr_id = v_uid) THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   t := public.helpr_task_lock(p_task_id);
   IF t.helpr_id IS DISTINCT FROM v_uid THEN
@@ -861,7 +869,7 @@ BEGIN
            stuck_return_by = now() + interval '48 hours', updated_at = now()
      WHERE id = t.id;
     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'The delivery couldn''t be finished',
-      format('The Helpr tried again and couldn''t leave %s, so it goes back to the seller and the sale is cancelled. You get back what you paid, less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back. If you disagree, report a problem in Buying.', v_item),
+      format('The Helpr tried again and couldn''t leave %s, so it goes back to the seller and the sale is cancelled. You get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back. If you disagree, report a problem in Buying.', v_item),
       '/declutter?tab=buying', v_uid);
     PERFORM public.declutter_notify(o.seller_id, 'info', 'Your item is coming back',
       format('The Helpr couldn''t leave %s and brings it back within 48 hours. Confirm in Selling when you have it.', v_item),
@@ -899,6 +907,10 @@ BEGIN
   END IF;
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  -- Membership before any lock (authz review 10-31): a stranger never locks someone else's delivery.
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.customer_id = v_uid) THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   t := public.helpr_task_lock(p_task_id);
   IF t.customer_id IS DISTINCT FROM v_uid THEN
@@ -955,6 +967,10 @@ BEGIN
   END IF;
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  -- Membership before any lock (authz review 10-31): a stranger never locks someone else's delivery.
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.customer_id = v_uid) THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   t := public.helpr_task_lock(p_task_id);
   IF t.customer_id IS DISTINCT FROM v_uid THEN
@@ -1014,6 +1030,10 @@ BEGIN
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
+  -- Membership before any lock (authz review 10-31): a stranger never locks someone else's delivery.
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.helpr_id = v_uid) THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+  END IF;
   t := public.helpr_task_lock(p_task_id);
   IF t.helpr_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
@@ -1071,6 +1091,10 @@ BEGIN
   END IF;
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  -- Membership before any lock (authz review 10-31): a stranger never locks someone else's delivery.
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.pickup_contact_id = v_uid) THEN
+    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   t := public.helpr_task_lock(p_task_id);
   IF t.pickup_contact_id IS DISTINCT FROM v_uid THEN
@@ -1165,7 +1189,7 @@ BEGIN
   IF p_fault = 'none' THEN
     v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',
-      format('We looked at the problem with %s. It was nobody''s fault, so the sale is cancelled. You get back what you paid, less the delivery fee, which paid the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.',
+      format('We looked at the problem with %s. It was nobody''s fault, so the sale is cancelled. You get back what you paid, less what the delivery cost, which paid the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.',
              public.declutter_order_items_named(o.id)), '/declutter?tab=buying', o.seller_id);
   ELSE
     UPDATE public.helpr_tasks SET status = 'failed', closed_at = now(), close_note = 'Decided as the Helpr''s fault', updated_at = now() WHERE id = v_task.id;
@@ -1323,7 +1347,7 @@ BEGIN
           format('The buyer didn''t fix the delivery of "%s". Take it back to the seller within 48 hours, and you''re paid for the trip.', t.title),
           '/declutter?tab=deliver', t.customer_id);
         PERFORM public.declutter_notify(t.customer_id, 'payment', 'The delivery couldn''t be finished',
-          format('"%s" goes back to the seller and the sale is cancelled. You get back what you paid, less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.', t.title),
+          format('"%s" goes back to the seller and the sale is cancelled. You get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.', t.title),
           '/declutter?tab=buying', t.helpr_id);
         PERFORM public.declutter_notify(t.pickup_contact_id, 'info', 'Your item is coming back',
           format('The Helpr couldn''t leave "%s" and brings it back within 48 hours. Confirm in Selling when you have it.', t.title),

@@ -564,7 +564,7 @@ describe("DeliverView (the Helpr's screen)", () => {
   it("BUY-36: nobody's fault: the buyer can fix it once, and is told about the delivery fee and the card fee", async () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "waiting_fix", stuck_fault: "none", stuck_fix_by: "2026-10-31T12:00:00Z", problem_open: false };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
-    expect(await screen.findByText(/less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept/)).toBeInTheDocument();
+    expect(await screen.findByText(/less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("What the Helpr needs to know"), { target: { value: "Gate code 1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Send it to Hank" }));
     await waitFor(() => expect(state.calls).toContainEqual(["buyer_fix", "t1", "Gate code 1234", null, null]));

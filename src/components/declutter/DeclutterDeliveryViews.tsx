@@ -248,7 +248,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {problemForm && <ProblemForm orderId={orderId} side={side} stage="delivery" trigger={deliveryProblemTimeCame(v)} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
-        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and your delivery fee comes back." : "Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours."}
+        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and you get back what you paid for the delivery." : "Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours."}
       </ConfirmSheet>
     </div>
   );

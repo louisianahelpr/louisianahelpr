@@ -55,6 +55,9 @@ CREATE TRIGGER trg_reject_contact_leak_in_helpr_task_talk
   FOR EACH ROW EXECUTE FUNCTION public.reject_contact_leak_in_helpr_task_talk();
 
 -- The chat as the caller sees it. A Declutter delivery only; a Helpr who released the task is no longer a side.
+-- Money review 10-31 (2): a re-posted delivery keeps its task id, so the chat is only the CURRENT run's: messages from
+-- this Helpr's accept on (helpr_task_accept sets accepted_at = now(); a re-post and a release clear it). A new Helpr
+-- never reads what the buyer and seller said to the one before.
 CREATE OR REPLACE FUNCTION public.helpr_task_talk_view(p_task_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -70,7 +73,7 @@ BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
-  SELECT * INTO t FROM public.helpr_tasks WHERE id = p_task_id;
+  SELECT * INTO t FROM public.helpr_tasks WHERE id = p_task_id AND source_kind = 'declutter_delivery';
   v_side := CASE WHEN NOT FOUND THEN NULL
                  WHEN t.helpr_id = v_uid THEN 'helpr' WHEN t.customer_id = v_uid THEN 'buyer' WHEN t.pickup_contact_id = v_uid THEN 'seller' END;
   IF v_side IS NULL THEN
@@ -82,7 +85,7 @@ BEGIN
     'open', t.helpr_id IS NOT NULL AND t.status IN ('accepted', 'picked_up', 'delivered'),
     'messages', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', m.id, 'side', m.sender_side, 'mine', m.sender_id = v_uid, 'body', m.body, 'created_at', m.created_at)
                                            ORDER BY m.created_at, m.id), '[]'::jsonb)
-                   FROM public.helpr_task_talk_messages m WHERE m.task_id = t.id));
+                   FROM public.helpr_task_talk_messages m WHERE m.task_id = t.id AND m.created_at >= t.accepted_at));
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.helpr_task_talk_view(uuid) FROM PUBLIC, anon;
@@ -110,7 +113,8 @@ BEGIN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   -- Membership before any lock: a stranger never locks someone else's delivery.
-  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND v_uid IN (x.helpr_id, x.customer_id, x.pickup_contact_id)) THEN
+  IF NOT EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.id = p_task_id AND x.source_kind = 'declutter_delivery'
+                   AND v_uid IN (x.helpr_id, x.customer_id, x.pickup_contact_id)) THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
   t := public.helpr_task_lock(p_task_id);
@@ -133,8 +137,11 @@ BEGIN
        WHERE m.task_id = t.id AND m.sender_id = v_uid AND m.created_at > now() - interval '1 hour') >= 30 THEN
     RAISE EXCEPTION 'message_rate_limited' USING ERRCODE = '42501', HINT = 'Slow down a little, then send again.';
   END IF;
+  -- Money review 10-31 (2): only this run's messages keep a sender quiet, so a new Helpr is told of the first message
+  -- the buyer or seller sends them, even one sent minutes after a message to the Helpr before.
   v_quiet := EXISTS (SELECT 1 FROM public.helpr_task_talk_messages m
-                      WHERE m.task_id = t.id AND m.sender_id = v_uid AND m.created_at > now() - interval '15 minutes');
+                      WHERE m.task_id = t.id AND m.sender_id = v_uid AND m.created_at >= t.accepted_at
+                        AND m.created_at > now() - interval '15 minutes');
   INSERT INTO public.helpr_task_talk_messages (task_id, sender_id, sender_side, body)
   VALUES (t.id, v_uid, v_side, v_body)
   RETURNING id INTO v_id;

@@ -263,7 +263,7 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
-          {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
+          {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
@@ -439,9 +439,11 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
   );
 }
 
-function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId: string; booking: MyBooking; who: string }) {
+function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; userId: string; booking: MyBooking; who: string; held: boolean }) {
   const qc = useQueryClient();
   const free = order.lines.every((l) => l.price_cents === 0); // #6: no pay words on a free claim
+  // LEAD-PORCH-SR: while a problem holds the money, the photo pays nobody; its label and hint stop saying it does.
+  const payWords = !free && !held;
   // Board 159: the seller checks the porch photo in "Put it out" before sending it.
   const [preview, setPreview] = useState<File | null>(null);
   // Audit 1028 D1-5: once the seller's porch photo is in, the card stops asking for it (a retake stays possible).
@@ -513,7 +515,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         <p className="text-sm" data-porch-not-yet="">Put it out {onDay(booking.pickup_day as string)}.</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
-        {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${free ? ")" : ": needed before you can be paid automatically)"}` : `Photo when you pick it up, taken at the address ("Picked up"${free ? ")" : ": this pays the seller 24 hours later)"}`}
+        {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
@@ -524,7 +526,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       </button>
       {!posted && (
         <p className="text-ds-12 text-muted-foreground">
-          {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
+          {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${payWords ? " You need it before you can be paid automatically." : ""}` : `Taken at the address. It tells the seller you have it${payWords ? "; they're paid 24 hours later." : "."}`}
         </p>
       )}
       {!seller && (

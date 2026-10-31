@@ -1,7 +1,7 @@
 /**
  * LEAD-DELIVER-OFF-ALL (owner 2026-10-31): unticking "I'll deliver" in Declutter settings also stops delivery on the
  * seller's live listings (declutter_stop_my_seller_delivery, 20261031180550). Open orders keep the way they chose.
- * The same call takes it off the saved default too (one transaction), so the card calls it before saving the rest.
+ * The same call takes it off the saved default too (one transaction, 20261031183416), so the card calls it before saving the rest.
  * Returns how many listings changed, or null while the function is not deployed yet.
  */
 import { supabase } from "@/integrations/supabase/client";

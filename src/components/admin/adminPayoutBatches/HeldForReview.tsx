@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,8 +63,8 @@ async function fetchHeld(): Promise<HeldRow[]> {
 /** Payee names for the held rows (AUD31-43: a bare user id told the admin nothing). A failed read shows the ids alone. */
 async function fetchPayeeNames(ids: string[]): Promise<Record<string, string>> {
   if (ids.length === 0) return {};
-  const { data, error } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
-  if (error) throw new Error(error.message);
+  // unwrap keeps the HTTP status the retry policy reads (src/lib/queryRetry.ts).
+  const data = unwrap(await supabase.from("profiles").select("user_id, full_name").in("user_id", ids));
   const out: Record<string, string> = {};
   for (const p of (data ?? []) as Array<{ user_id: string; full_name: string | null }>) {
     if (p.full_name?.trim()) out[p.user_id] = p.full_name.trim();

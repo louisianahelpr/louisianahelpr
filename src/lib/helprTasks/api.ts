@@ -256,7 +256,7 @@ export async function acceptTask(taskId: string, pickupSlotStartIso: string): Pr
   data(await supabase.rpc("helpr_task_accept", { p_task_id: taskId, p_pickup_slot_start: pickupSlotStartIso }), (e) => rpcErrorMessage("helpr_task_accept", e));
 }
 
-/** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike. */
+/** Back out before the pickup. Under 2 hours before the pickup time it costs a delivery strike, unless the seller moved the time. */
 export async function releaseTask(taskId: string): Promise<{ result: string; strike: boolean }> {
   return data<{ result: string; strike: boolean }>(await supabase.rpc("helpr_task_release", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_release", e));
 }

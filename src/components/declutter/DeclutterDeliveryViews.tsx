@@ -403,7 +403,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       )}
       <ConfirmSheet open={ask?.kind === "backOut"} title="Back out of this delivery?" confirmLabel="Back out" pending={backOut.isPending}
         onConfirm={() => backOut.mutate()} onClose={() => setAsk(null)} testId="delivery-back-out">
-        Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike.
+        Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike, unless the seller moved the time.
       </ConfirmSheet>
     </li>
   );

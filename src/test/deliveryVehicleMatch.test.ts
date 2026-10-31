@@ -19,11 +19,11 @@
  *
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |        AND v.has_car\n |
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   IF EXISTS (SELECT 1 FROM public.helpr_tasks t\n              WHERE t.helpr_id = v_uid AND t.status IN ('accepted', 'picked_up') |   IF false AND EXISTS (SELECT 1 FROM public.helpr_tasks t\n              WHERE t.helpr_id = v_uid AND t.status IN ('accepted', 'picked_up')
- * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |      RAISE EXCEPTION 'vehicle_needs_car' USING ERRCODE = '42501', |      RAISE EXCEPTION 'vehicle_too_small' USING ERRCODE = '42501',
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |      RAISE EXCEPTION 'vehicle_needs_car' USING ERRCODE = '42501', |      RAISE EXCEPTION 'vehicle_too_small' USING ERRCODE = '42501',
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   p_has_car := p_has_car OR p_has_truck;\n |
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR UPDATE;\n |
- * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR SHARE;\n |
- * @mutate supabase/migrations/20261027200024_helpr_route_suggestions.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR SHARE;\n |
+ * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
  * @mutate supabase/migrations/20261027203030_helpr_go_online_for_deliveries.sql |        AND public.helpr_task_vehicle_fits(h.user_id, NEW.size)\n |        AND true\n
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const noCar = vehicle.isSuccess && !vehicle.data?.has_car; |   const noCar = false;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx | <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} | <input type="checkbox" id={`helpr-truck-${userId}`} checked={hasTruck}

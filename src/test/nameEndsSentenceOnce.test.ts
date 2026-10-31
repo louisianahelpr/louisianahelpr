@@ -9,7 +9,7 @@
  * through endSentence, or be listed below with why its value can never end in a period (an admin's full name, a
  * file name). The list is EXACT, both ways.
  *
- * @mutate src/pages/posts/CompletionChoiceSheet.tsx | released to {endSentence(groupJob ? "your Helprs" : helperName)} If | released to {groupJob ? "your Helprs" : helperName}. If
+ * @mutate src/pages/posts/CompletionChoiceSheet.tsx | released to {endSentence(groupJob ? "your Helprs" : helperName)} Their | released to {groupJob ? "your Helprs" : helperName}. Their
  * @mutate src/lib/utils.ts |   return /[.!?]$/.test(t) ? t : `${t}.`; |   return `${t}.`;
  */
 import { describe, it, expect } from "vitest";

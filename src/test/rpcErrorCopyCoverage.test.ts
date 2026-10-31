@@ -71,6 +71,17 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // OPS-3 job drafts (20261030223154): saveDraftToAccount and clearDraftOnAccount (src/lib/jobPostDraftAccount.ts)
+  // run in the background while typing and after posting. Any error goes to the console and the device keeps its copy; no message exists.
+  save_my_job_post_draft: {
+    not_authenticated: { reason: ANON_REVOKED },
+    account_restricted: { reason: "no message exists at this site: saveDraftToAccount only logs; the device keeps the draft" },
+    draft_too_large: { reason: "no message exists at this site: saveDraftToAccount only logs; the device keeps the draft" },
+    invalid_draft: { reason: "no message exists at this site: saveDraftToAccount only logs; the device keeps the draft" },
+  },
+  clear_my_job_post_draft: {
+    not_authenticated: { reason: ANON_REVOKED },
+  },
   // B65 web push (20261030022344): saveWebPushSubscription and removeWebPushSubscription
   // (src/lib/webPush.ts) run in the background after sign-in and during sign-out. Any error is
   // reported (area push) and the caller goes on; neither ever shows a message.

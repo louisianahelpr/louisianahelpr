@@ -4,6 +4,7 @@
  * failure here is logged, and the device still has the draft.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 /** Long enough for a normal read, short enough that Post a job never waits on a bad connection. */
 const READ_TIMEOUT_MS = 1500;
@@ -16,7 +17,7 @@ async function signedIn(): Promise<boolean> {
 export async function saveDraftToAccount(draft: object): Promise<void> {
   try {
     if (!(await signedIn())) return;
-    const { error } = await supabase.rpc("save_my_job_post_draft", { p_draft: draft as never });
+    const { error } = await supabase.rpc("save_my_job_post_draft", { p_draft: draft as Json });
     if (error) console.warn("[post-job] draft not kept on the account", error.message);
   } catch (err) {
     console.warn("[post-job] draft not kept on the account", err);

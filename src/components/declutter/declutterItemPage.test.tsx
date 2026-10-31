@@ -111,9 +111,11 @@ vi.mock("@/lib/authRedirects", async () => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    // The pickup-times and bundle reads (2026-10-28) answer their own shapes: no windows, no discountable items.
+    // The pickup-times, pickup-places and bundle reads answer their own shapes: no windows, no places (so the usual
+    // times are the item's pickup times, ItemHandoverTimes), no discountable items. Without its own answer the places
+    // read got the seller-card rows an earlier case left in state.safeRows, and DA-6 lost its pickup-times read.
     rpc: async (fn: string) =>
-      fn === "declutter_item_pickup_windows" || fn === "declutter_bundle_applies"
+      fn === "declutter_item_pickup_windows" || fn === "declutter_item_pickup_places" || fn === "declutter_bundle_applies"
         ? { data: [], error: null }
         : fn === "declutter_guest_seller_first_name"
           ? { data: "Dana", error: null }

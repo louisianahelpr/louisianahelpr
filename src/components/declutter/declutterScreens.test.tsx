@@ -49,7 +49,10 @@ const state = {
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
+  // The item page's places read (ItemHandoverTimes): none saved, so the usual times are the pickup times. Unmocked, it
+  // went to the network and the file ran for 10+ minutes.
+  fetchItemPickupPlaces: async () => [] }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,

@@ -12,7 +12,7 @@
  * without / doesn't).
  *
  * @mutate src/pages/auth/SignupPending.tsx | " The first time you hire someone or get paid, there's a one-time quick identity check." | " Posting or accepting your first job adds a quick identity check."
- * @mutate src/pages/info/helpCenter/helpCenterContent.ts | confirmed email. The first time you hire someone or get paid, there's a one-time quick identity check through Stripe." | confirmed email and a quick identity check through Stripe."
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy, claim a free item or take a delivery." | confirmed email and a quick identity check through Stripe."
  */
 import { describe, it, expect } from "vitest";
 import { resolve, relative } from "node:path";

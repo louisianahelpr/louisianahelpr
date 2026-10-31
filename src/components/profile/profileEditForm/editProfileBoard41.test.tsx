@@ -6,7 +6,7 @@
  *
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     view === "verified" |     view === "never"
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     profile?.stripe_payouts_enabled\n      ? { key: "bank" |     false\n      ? { key: "bank"
- * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx | onClick: () => openIdentityCheck("general") | onClick: () => {}
+ * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx | const idUnderWay = idOn && (view === "checking" \|\| view === "with_team"); | const idUnderWay = true;
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     phone.trim() |     ""
  * @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Neighbors see &ldquo;{formatName(`${firstName} ${lastName}`)}&rdquo; | Neighbors see &ldquo;{`${firstName} ${lastName}`}&rdquo;
  * @mutate src/components/profile/ProfileEditForm.tsx |             onClick={() => navigate(`/user/${profile.user_id}`)} |             onClick={() => navigate(`/profile`)}
@@ -74,8 +74,9 @@ describe("TRUST MARKS (board 41)", () => {
 
   it("nothing done: each row is its next step", () => {
     inRouter(<TrustMarksCard profile={P({})} phone="" />);
-    fireEvent.click(screen.getByRole("button", { name: "Verify now" }));
-    expect(idCheck.opened).toEqual(["general"]);
+    // Never an ask (owner 2026-10-30): no Photo ID row until there is a check to report.
+    expect(text()).not.toContain("Photo ID");
+    expect(idCheck.opened).toEqual([]);
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Set up" }));
     expect(at).toBe("/profile?tab=earnings");

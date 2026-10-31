@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Link } from "react-router-dom";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
@@ -33,15 +34,23 @@ const ExportCardOnSearch = ({ children }: { children: ReactNode }) => {
 };
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
-export const PrivacyContent = () => (
-  <div className="space-y-3">
+/** The ID words follow the ID check switch (owner 2026-10-30): "when we ask for it" only once we do. */
+const PrivacyShortVersion = () => {
+  const idCheckOn = useIdentityCheckOnStore();
+  return (
     <TldrCard
       items={[
-        "We collect only what we need to match jobs and process payments — name, email, phone, location, usage data, and ID, if you choose to verify it.",
+        `We collect only what we need to match jobs and process payments — name, email, phone, location, usage data, and ID, ${idCheckOn ? "when we ask for it" : "if you choose to verify it"}.`,
         "Stripe handles payments. We never store full card numbers.",
         "Delete your account or download your data yourself, anytime, from the Download your data card in this policy — no waiting on support.",
       ]}
     />
+  );
+};
+
+export const PrivacyContent = () => (
+  <div className="space-y-3">
+    <PrivacyShortVersion />
 
     <PolicySection
       icon={Database}

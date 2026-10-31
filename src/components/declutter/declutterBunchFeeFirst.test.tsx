@@ -4,8 +4,8 @@
  * already saved, after the same four confirmations. Free items never owe it (declutter_setup_fee_before_list asks no
  * fee at price 0; read on prod 2026-10-30), so they carry on while it is due: T2's finding, lead's decision 10-30.
  *
- * @mutate src/components/declutter/BunchFeeGate.tsx |   if (!profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (true) return null;
- * @mutate src/components/declutter/BunchFeeGate.tsx |   if (!profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (!profile) return null;
+ * @mutate src/components/declutter/BunchFeeGate.tsx |   if (idCheckOn \|\| !profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (true) return null;
+ * @mutate src/components/declutter/BunchFeeGate.tsx |   if (idCheckOn \|\| !profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (idCheckOn \|\| !profile) return null;
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const blocked = busy; |   const blocked = busy \|\| feeDue != null;
  * @mutate src/components/declutter/BunchDraftsSection.tsx |   const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved; |   const drafts = saved;

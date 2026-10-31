@@ -5,7 +5,7 @@
  * component that always (or never) shows the ask fails.
  * Class guard (every ask/claim reads the switch): src/test/identityCheckOffEntryPoints.test.ts.
  *
- * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |   const rows = allRows.filter((r) => r.key !== "id" \|\| idOn \|\| r.done); |   const rows = allRows;
+ * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |   const rows = allRows.filter((r) => r.key !== "id" \|\| r.done \|\| idUnderWay); |   const rows = allRows;
  * @mutate src/components/identity/IdentityPromptCard.tsx |   if (!idOn \|\| view === "verified") return null; |   if (view === "verified") return null;
  * @mutate src/components/landing/LandingProof.tsx |   return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM]; |   return [ID_ITEM, PRICE_ITEM];
  */
@@ -34,13 +34,14 @@ const UNVERIFIED = { idv_status: "not_started", stripe_payouts_enabled: true } a
 const inRouter = (n: React.ReactNode) => render(<MemoryRouter>{n}</MemoryRouter>);
 
 describe("ID check off", () => {
-  it("Trust marks: no Photo ID row for an unverified member (on: 'Verify now')", () => {
+  it("Trust marks: no Photo ID row for an unverified member, on or off (owner 2026-10-30: never an ask)", () => {
     inRouter(<TrustMarksCard profile={UNVERIFIED} phone="(337) 555-0142" />);
     expect(screen.queryByText("Photo ID")).toBeNull();
     cleanup();
     setIdentityCheckOn(true);
     inRouter(<TrustMarksCard profile={UNVERIFIED} phone="(337) 555-0142" />);
-    expect(screen.getByText("Verify now")).toBeTruthy();
+    expect(screen.queryByText("Verify now")).toBeNull();
+    expect(screen.queryByText("Photo ID")).toBeNull();
   });
 
   it("Trust marks: a member who really verified still reads Done", () => {

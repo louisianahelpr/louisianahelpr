@@ -1,4 +1,5 @@
 /**
+ * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *
@@ -19,7 +20,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BunchItem, BunchPhoto } from "@/lib/declutter/bunch";
 
 const { ListingPhotoError } = await vi.hoisted(async () => await import("@/lib/declutter/errors"));
-const h = vi.hoisted(() => ({
+const h = vi.hoisted(() => ({ refuseBlobs: false,
   withdrawn: [] as string[],
   statuses: new Map<string, string>(),
   disk: new Map<string, unknown>(),
@@ -31,6 +32,7 @@ vi.mock("idb-keyval", () => ({
   get: async (k: string) => h.disk.get(k),
   set: async (k: string, v: unknown) => {
     if (h.failWrites) throw new Error("quota");
+    if (h.refuseBlobs && v instanceof Blob) throw new Error("UnknownError: blobs aren't stored in this session");
     h.disk.set(k, v);
   },
   del: async (k: string) => void h.disk.delete(k),
@@ -108,6 +110,26 @@ beforeEach(() => {
   h.statuses = new Map();
 });
 afterEach(cleanup);
+
+describe("a session that refuses a File stores the photo's bytes (WebKit's throwaway session, measured 10-30)", () => {
+  it("the photo comes back whole, as a file with its name and type, and no one is told it wasn't saved", async () => {
+    const { deviceStore } = await import("@/lib/declutter/bunchSaved");
+    h.refuseBlobs = true;
+    try {
+      const store = deviceStore<{ userId: string; savedAt: number; photos: { key: string; name: string; type: string }[] }>("lh-test-bytes");
+      await store.savePhoto({ key: "k1", file: new File(["photo-bytes"], "a.jpg", { type: "image/jpeg" }) });
+      expect(h.disk.get("lh-test-bytes-photo:k1")).toBeInstanceOf(ArrayBuffer);
+      await store.saveMeta({ userId: "u1", savedAt: Date.now(), photos: [{ key: "k1", name: "a.jpg", type: "image/jpeg" }] });
+      const back = await store.load("u1");
+      expect(back?.photos[0].file.name).toBe("a.jpg");
+      expect(back?.photos[0].file.type).toBe("image/jpeg");
+      expect(await back?.photos[0].file.text()).toBe("photo-bytes");
+      await store.clearNow();
+    } finally {
+      h.refuseBlobs = false;
+    }
+  });
+});
 
 describe("which photos a saved bunch keeps", () => {
   const photo = (key: string) => ({ key }) as unknown as BunchPhoto;

@@ -113,7 +113,7 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
   const addId = `add-photo-${item.key}`;
   return (
     <div className="space-y-2">
-      <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6" data-bunch-photo-grid="">
         {item.photoKeys.map((k, i) => {
           const url = urls.get(k);
           const on = live.includes(k);
@@ -126,8 +126,10 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
                   ? <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>
                   : i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">Cover</span>}
               </button>
+              {/* A corner, never the middle (T8 at 375: the 44 px floor every button gets reached the centre of a 61 px photo, so a tap
+                  ticked instead of opening). Under half the photo each way, whatever its size; 44 px once the photo is big enough. */}
               <button type="button" aria-pressed={on} aria-label={`Choose ${name}, photo ${i + 1}`} onClick={() => toggle(k)} data-bunch-tick={k}
-                className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                className="absolute right-0 top-0 flex h-[45%] max-h-11 min-h-0 w-[45%] min-w-0 max-w-11 items-start justify-end p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-bunch-tick-area="">
                 <span className={`flex h-5 w-5 items-center justify-center rounded-full border border-border shadow ${on ? "btn-grad-primary" : "bg-background text-foreground"}`} aria-hidden>
                   {on && <Check className="h-3.5 w-3.5" />}
                 </span>

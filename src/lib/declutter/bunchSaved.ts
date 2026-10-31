@@ -26,7 +26,17 @@ export function deviceStore<M extends SavedPhotos>(metaKey: string) {
   };
   return {
     saveMeta: (saved: M): Promise<void> => set(metaKey, saved),
-    savePhoto: (photo: BunchPhoto): Promise<void> => set(photoPrefix + photo.key, photo.file),
+    savePhoto: async (photo: BunchPhoto): Promise<void> => {
+      try {
+        await set(photoPrefix + photo.key, photo.file);
+      } catch (blobRefused) {
+        // WebKit's throwaway session refuses a File or Blob and takes the same bytes as an ArrayBuffer (measured 10-30, Playwright
+        // ephemeral context; persistent context takes both). Private browsing is the same kind of session on a member's phone
+        // (not measured there). A full disk refuses this too, and that throw is what says "couldn't save".
+        console.warn("[declutter] a photo as a file wasn't stored, trying its bytes", blobRefused);
+        await set(photoPrefix + photo.key, await photo.file.arrayBuffer());
+      }
+    },
     removePhoto: (key: string): Promise<void> => del(photoPrefix + key),
     clearNow,
     /** This member's saved work and the photos that are still there, or null. Another member's or an old one is removed. */
@@ -39,7 +49,7 @@ export function deviceStore<M extends SavedPhotos>(metaKey: string) {
       }
       const photos: BunchPhoto[] = [];
       for (const p of saved.photos) {
-        const blob = await get<Blob>(photoPrefix + p.key);
+        const blob = await get<Blob | ArrayBuffer>(photoPrefix + p.key);
         if (blob) photos.push({ key: p.key, file: blob instanceof File ? blob : new File([blob], p.name, { type: p.type }) });
       }
       return { saved, photos };

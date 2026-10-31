@@ -1,0 +1,91 @@
+/**
+ * OPS-5 (owner 10-29): where a new member came from, privacy-safe. The device keeps only two short words (source and
+ * campaign) from the first visit, the first one wins for 30 days, and a signed-in account sends them once.
+ *
+ * @mutate src/lib/signupSource.ts |   const kept = readFirstTouch(now);\n  if (kept) return kept; |   const kept = readFirstTouch(now);
+ * @mutate src/lib/signupSource.ts |     if (now - t.at > TOUCH_DAYS * 86_400_000) return null; |
+ * @mutate src/lib/signupSource.ts |   if (!word \|\| word.includes("@") \|\| /\d{7,}/.test(word)) return null; |   if (!word \|\| /\d{7,}/.test(word)) return null;
+ * @mutate src/lib/signupSource.ts |   if (!word \|\| word.includes("@") \|\| /\d{7,}/.test(word)) return null; |   if (!word \|\| word.includes("@")) return null;
+ * @mutate src/lib/signupSource.ts | rawTag && clean(rawTag) === null ? null : | false ? null :
+ * @mutate src/lib/signupSource.ts |   if (safeStorage.getItem(SENT_KEY) === userId) return; |
+ * @mutate src/lib/signupSource.ts |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });\n      return; |       if (error.code !== "PGRST202") report(error, { tags: { source: "signup-source" } });
+ * @mutate src/lib/signupSource.ts |       if (error.code !== "PGRST202") report | if (false) report
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const rpc = vi.fn();
+const report = vi.fn();
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
+vi.mock("@/lib/errorLogger", () => ({ report: (...a: unknown[]) => report(...a) }));
+
+import { readFirstTouch, rememberFirstTouch, reportSignupSource } from "./signupSource";
+
+const DAY = 86_400_000;
+
+beforeEach(() => {
+  localStorage.clear();
+  rpc.mockReset();
+  report.mockReset();
+});
+
+describe("rememberFirstTouch", () => {
+  it("keeps only utm_source and utm_campaign, cleaned to short words", () => {
+    const t = rememberFirstTouch("?utm_source=Facebook&utm_campaign=Post-12&email=a@b.c&fbclid=xyz", "", 1000);
+    expect(t).toEqual({ source: "facebook", campaign: "post-12", at: 1000 });
+    expect(localStorage.getItem("lh_first_touch")).not.toMatch(/a@b|xyz|email/);
+  });
+
+  it("the first visit wins: a later tagged visit does not replace it", () => {
+    rememberFirstTouch("?utm_source=facebook", "", 1000);
+    const t = rememberFirstTouch("?utm_source=google&utm_campaign=x", "", 2000);
+    expect(t.source).toBe("facebook");
+    expect(readFirstTouch(2000)?.source).toBe("facebook");
+  });
+
+  it("after 30 days the old touch is gone and a new visit counts", () => {
+    rememberFirstTouch("?utm_source=facebook", "", 0);
+    expect(readFirstTouch(31 * DAY)).toBeNull();
+    expect(rememberFirstTouch("?utm_source=google", "", 31 * DAY).source).toBe("google");
+  });
+
+  it("a word holding an email address is never kept", () => {
+    const t = rememberFirstTouch("?utm_source=me@mail.com&utm_campaign=you@mail.com", "", 1000);
+    expect(t.source).toBe("direct");
+    expect(t.campaign).toBeNull();
+  });
+
+  it("a word with a phone number in it is never kept", () => {
+    const t = rememberFirstTouch("?utm_source=5045551234&utm_campaign=call-3375550000", "", 1000);
+    expect(t.source).toBe("direct");
+    expect(t.campaign).toBeNull();
+  });
+
+  it("no tag and no outside referrer is direct", () => {
+    expect(rememberFirstTouch("", "", 1000)).toEqual({ source: "direct", campaign: null, at: 1000 });
+  });
+});
+
+describe("reportSignupSource", () => {
+  it("sends the kept words once per account", async () => {
+    rememberFirstTouch("?utm_source=facebook&utm_campaign=post-12", "");
+    rpc.mockResolvedValue({ data: true, error: null });
+    await reportSignupSource("u1");
+    await reportSignupSource("u1");
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("record_my_signup_source", { p_source: "facebook", p_campaign: "post-12" });
+  });
+
+  it("a missing function (web before the migration) is quiet and tried again next time", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "PGRST202", message: "not found" } });
+    await reportSignupSource("u1");
+    await reportSignupSource("u1");
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it("any other failure is reported, never thrown", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "42501", message: "nope" } });
+    await expect(reportSignupSource("u1")).resolves.toBeUndefined();
+    expect(report).toHaveBeenCalledTimes(1);
+  });
+});

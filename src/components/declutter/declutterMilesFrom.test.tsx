@@ -9,6 +9,7 @@
  */
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | return ask.zip ? `Miles from ${ask.zip}` : "Miles from your ZIP code's area"; | return "Miles from your ZIP code's area";
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | ) : offerAsk(ask) ? ( | ) : false ? (
+// @mutate src/components/declutter/DeclutterMilesFrom.tsx | variant="link" size="sm" className="shrink-0 px-1 text-ds-13 font-semibold" | variant="outline" size="sm" className="rounded-full"
 // @mutate src/components/declutter/DeclutterBrowseBar.tsx |   return !fromDevice && (!ask.asked \|\| ask.canAskAgain); |   return !ask.asked \|\| ask.canAskAgain;
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} | {null}
 // @mutate src/components/declutter/DeclutterFreeView.tsx | <DeclutterMilesFrom ask={{ origin, askDevice, asked, asking, canAskAgain, deviceNote, zip }} /> | {null}
@@ -34,6 +35,15 @@ describe("Declutter miles line (DA-10)", () => {
     expect(screen.getByText("Miles from 70501")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Use my location" }));
     expect(a.askDevice).toHaveBeenCalledTimes(1);
+  });
+
+  it("BUY-21: Use my location is a text button that shares the line's row (no outline, no wrap row of its own)", () => {
+    render(<DeclutterMilesFrom ask={ask({ origin: at("profile") })} />);
+    const btn = screen.getByRole("button", { name: "Use my location" });
+    expect(btn.className).not.toMatch(/\bborder\b|ctl-tint/);
+    expect(btn.className).toContain("text-primary");
+    expect(btn.className).toContain("text-ds-13");
+    expect(btn.className).toContain("shrink-0");
   });
 
   it.each([

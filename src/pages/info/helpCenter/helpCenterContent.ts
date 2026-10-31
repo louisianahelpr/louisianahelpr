@@ -1,4 +1,5 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -44,7 +45,8 @@ const EARLY_ACCESS_LADDER = EARLY_ACCESS_TIERS
 const CREDENTIAL_CATEGORY_PHRASE = (() => {
   const names = JOB_CATEGORY_VALUES
     .filter((value) => CREDENTIAL_TIER_CATEGORIES.has(value))
-    .map((value) => JOB_CATEGORY_LABELS[value].toLowerCase());
+    // AUD31-58: an acronym keeps its capitals ("HVAC", not "hvac").
+    .map((value) => (/^[A-Z0-9]+$/.test(JOB_CATEGORY_LABELS[value]) ? JOB_CATEGORY_LABELS[value] : JOB_CATEGORY_LABELS[value].toLowerCase()));
   if (names.length <= 1) return names[0] ?? "";
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
@@ -83,7 +85,7 @@ export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now.";
 // small lie: it tells the next reader there is a card grid to maintain, and it
 // invites "fixing" a colour nobody renders. The `label` keys must still be
 // byte-identical to the FAQ_SECTIONS `topic` values below — see the lookup note
-// on "Payments & Escrow".
+// on "Payments & how your money is held".
 export const TOPICS: { label: string; desc: string }[] = [
   { label: "Getting Started", desc: "New to Helpr? Start here." },
   { label: "Posting a Job", desc: "Write a great post and get results." },
@@ -94,11 +96,11 @@ export const TOPICS: { label: string; desc: string }[] = [
     // this said "Payments & How Funds Work" against a topic of "Payments &
     // Escrow" and silently resolved to undefined — the section rendered with
     // no description at all, with nothing to indicate a miss.
-    label: "Payments & Escrow",
+    label: "Payments & how your money is held",
     desc: "How money is held, released, and paid.",
   },
   { label: "Trust & Safety", desc: "Verification, disputes, and reporting." },
-  { label: "Account & Settings", desc: "Email, password, deletion, Senior Mode." },
+  { label: "Account & Settings", desc: "Email, password, deletion, bigger text." },
   // The seventh FAQ topic had no blurb entry, so it rendered bare next to
   // six that carry one.
   { label: "Membership & Billing", desc: "Plans, upgrades, and cancelling." },
@@ -130,7 +132,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // writing a job post is the worst moment to learn it. There is no
         // approval from our team any more (Q193: every signup is
         // auto-approved), so the answer no longer promises one.
-        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early.",
+        // AUD31-57: the ID check is the `identity_check` switch (off since owner
+        // 2026-10-23), so the answer reads it like the Terms do; HelpCenter
+        // subscribes (useIdentityCheckOnStore) so the getter is re-read.
+        get a() {
+          return identityCheckOn()
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. The first time you hire someone or get paid, there's a one-time quick identity check through Stripe."
+            : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
+        },
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",
@@ -216,16 +225,19 @@ export const FAQ_SECTIONS: FaqSection[] = [
     ],
   },
   {
-    topic: "Payments & Escrow",
+    // JOBS-28 (lead 10-31): no "Escrow" in member copy. Was "Payments & Escrow" /
+    // "What is Helpr Escrow?"; the old #faq-payments-escrow anchor still opens this
+    // topic (LEGACY_TOPIC_ANCHORS in HelpCenter.tsx).
+    topic: "Payments & how your money is held",
     items: [
       {
-        q: "What is Helpr Escrow?",
+        q: "How does Louisiana Helpr hold my payment?",
         // WAS: "When a poster accepts your application, their payment is held
         // securely…". FALSE, and about the single most important fact on the
         // page. Since card_hold_at_post (Q2399) a card is held or saved at posting and charged
         // at the Helpr's accept (src/lib/cardHoldCapture.ts); a bank payment or gift is paid at
         // posting (JOBS-15). Either way nobody starts work on an unfunded job.
-        a: `A card is held or saved when the job is posted and charged when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Helpr holds that money (via Stripe) until the job is done, and you're paid ${STANDARD_PAYOUT_PHRASE}. Neither side can touch it mid-job.`,
+        a: `A card is held or saved when the job is posted and charged when a Helpr accepts the offer; a bank payment or gift is paid when the job is posted. Louisiana Helpr holds that money (via Stripe) until the job is done, and you're paid ${STANDARD_PAYOUT_PHRASE}. Neither side can touch it mid-job.`,
       },
       {
         q: "What fees does Helpr charge?",
@@ -331,7 +343,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I change my email or password?",
-        a: "Go to Profile → Account Security.",
+        // AUD31-58: the app's screens are You › Settings › Account and security (TAB_TITLES.security).
+        a: "Go to You › Settings › Account and security.",
       },
       {
         q: "Can I delete my account?",
@@ -345,10 +358,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // not exist. Also added: `delete-own-account/index.ts:56-105` REFUSES
         // deletion while the account holds an active job or escrowed funds, so
         // "Yes." on its own was an answer some readers could not act on.
-        a: "Yes. Open your Profile and scroll to the very bottom — \"Delete Account\" is the last control on the page. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still being held. We retain transaction records per Louisiana law but remove all personal data.",
+        a: "Yes. Go to You › Settings: \"Delete account\" is under Your account. We ask for your password, or a code we email you, to confirm it's you. Finish or cancel any active job first: we can't delete an account while money is still being held. We retain transaction records per Louisiana law but remove all personal data.",
       },
       {
-        q: "What is Senior Mode?",
+        q: "How do I make the text and buttons bigger?",
         // There is no Settings TAB. Senior Mode lives on the Accessibility tab
         // (AccessibilityTab.tsx). A help answer that names a screen the app
         // does not have sends the reader looking for it.
@@ -362,7 +375,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // enlarge type and tap targets (index.css:2683-2694, 2747-2749) — it
         // enlarges, it does not remove or simplify anything, so "simplifies" is
         // corrected too.
-        a: "Senior Mode makes the app easier to read and tap — larger type and bigger touch targets throughout. Enable it in Profile → Accessibility.",
+        // AUD31-58: the switch is "Bigger text and buttons" in You › Settings (SettingsTab), not "Senior Mode".
+        a: "Turn on Bigger text and buttons in You › Settings. It makes the app easier to read and tap: larger type and bigger touch targets throughout.",
       },
     ],
   },
@@ -394,7 +408,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "Can I cancel my membership anytime?",
         // WAS "Your paid perks stay active through the end of your billing
         // period": while memberships are off no paid perk is active (F4a).
-        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time from Profile → Membership → Manage.`,
+        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time.`,
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,

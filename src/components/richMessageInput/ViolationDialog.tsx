@@ -108,8 +108,8 @@ export const ViolationDialog = ({
                 >
                   “{excerpt(v.match)}”
                 </span>
-                {" — "}
-                {unique.length === 1 ? EXPLANATION[v.type] : null}
+                {/* AUD31-41: with two or more catches no explanation follows, so no dash either. */}
+                {unique.length === 1 ? <>{" — "}{EXPLANATION[v.type]}</> : null}
               </li>
             ))}
           </ul>

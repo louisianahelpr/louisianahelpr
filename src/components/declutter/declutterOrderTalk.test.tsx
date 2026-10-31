@@ -35,7 +35,7 @@ const state = {
   title: "Oak rocking chair" as string | null,
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/lib/declutter/orderTalk", () => ({
   MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],

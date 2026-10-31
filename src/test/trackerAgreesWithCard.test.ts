@@ -123,7 +123,7 @@ const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^Review \d+ applicants?$/, [0], []],
   // The day-before confirm, on the face (owner, 2026-10-23, card critique item 1).
   [/^(I'm still on|Confirm you'll be at the job)$/, [3], []],
-  [/^Confirm(ing…| arrival)$/, [5], []],
+  [/^Confirm(ing…| they've arrived)$/, [5], []],
   [/^Approve and release$/, [7], []],
   [/^I'm on my way$/, [4], [3]],
   // En route (step in play: On the way) or past the day stuck before Arrived: the tap completes Arrived.
@@ -232,7 +232,7 @@ describe("the 8-step bar reads the card's own line and button (lead review 2026-
   it("(a) arrived with only the geofence stamp: Arrived, the poster's move, and the job page's line asks for the confirm", () => {
     const c = posterCard(STATES.arrived_verified_only);
     expect(c.line.id).toBe("confirm_arrival");
-    expect(c.face.label).toBe("Confirm arrival");
+    expect(c.face.label).toBe("Confirm they've arrived");
     expect(c.bar).toMatchObject({ stage: 5, waitingOnYou: true, tone: "progress" });
     expect(c.page.next).toBe("Hallie arrived — confirm it");
   });

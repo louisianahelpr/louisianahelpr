@@ -130,6 +130,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_refund_reversed',          'action',   'VOLATILE: the webhook reopens the Shops refund row that recorded a refund Stripe later failed, TRUE = it did (service only; a NULL id or refund id matches no row and answers FALSE; 20261019071055)'),
   ('shop_order_unaccounted_hand_refund','deny', 'TRUE = a refund made in Stripe the app has not accounted for stands on the order: every Shops queue, the order lock and the admin release refuse it (service only; 20261019071055)'),
   ('declutter_retire_order',        'action',   'VOLATILE: retires an unpaid order whose Stripe page timed out and reports whether it did (service only; a NULL argument matches no order and answers FALSE; 20261014224914)'),
+  ('declutter_order_slot_in_windows', 'allow', 'place hours (20261031145652): TRUE = a 30-minute slot at this time fits this order''s frozen place hours, else the seller''s usual times, so book_pickup and delivery_slot_ok accept it'),
+  ('declutter_place_windows_valid', 'absent',   'place hours (20261031145652): NULL = no hours stored for the place (both nullable windows CHECKs say windows IS NULL OR ...; the save checks only a non-NULL p_windows)'),
   ('declutter_delivery_slot_ok',    'allow',    'TRUE = a Helpr may pick this delivery order up at this time (seller''s window, before the 7-day deadline; 20261017055505)'),
   ('helpr_task_photo_access',       'allow',    'TRUE = the caller may write (the assigned Helpr, own folder, active task) or read (a party or an admin) this helpr-tasks object (20261017055505)'),
   ('helpr_task_photo_ok',           'allow',    'TRUE = this path is the Helpr''s own uploaded photo of this task (20261017055505; a stale one raises photo_too_old, 20261029002010)'),
@@ -294,6 +296,7 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_listing_photo_deletable','00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000d/rental-listings/00000000-0000-4000-8140-000000000304/x.jpg'''], ARRAY[1]),
   -- Slice 5 (the 'delivery' fixture step): O is B's paid delivery order from seller A, whose windows cover
   -- every day 09:00-18:00 Louisiana time, so tomorrow 10:00 there is a valid pickup time.
+  ('declutter_order_slot_in_windows', NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2,3]),
   ('declutter_delivery_slot_ok',    NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2]),
   ('helpr_task_source_slot_ok',     NULL, ARRAY['''declutter_delivery''', '''00000000-0000-4000-8140-000000000501''::uuid', '((((now() AT TIME ZONE ''America/Chicago'')::date + 1) + time ''10:00'') AT TIME ZONE ''America/Chicago'')'], ARRAY[1,2,3]),
   -- B uploaded p.jpg for task T (the 'objects' step).

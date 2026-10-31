@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
+ * @mutate src/components/declutter/handoverCopy.ts |   porch: "Porch pickup", |   porch: "Porch or safe place",
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => !!offerAmountFromState(location.state)); | useState(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | \|\| card.isLoading \|\| checkingCard} | }
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | variant={needCard === "offer" ? "outline" : undefined} | variant={undefined}
@@ -62,6 +63,11 @@ const state = {
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
   returnWithCard: null as unknown,
   strikes: 0,
+  /** BUY-9: the buyer's newest drop-off (declutter_delivery_dropoffs, theirs only); null = none. */
+  lastDropoff: null as string | null,
+  lastDropoffReads: 0,
+  /** BUY-9: the signed-in buyer (null = none, as every other case here reads it). */
+  me: null as string | null,
   offers: [] as unknown[],
   cart: [] as unknown[],
   /** A2-8: cart lines the buyer removed (declutter_remove_cart_item). */
@@ -99,13 +105,15 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   fetchSellerDeliveryOffer: async () => state.sdOffer,
   quoteSellerDelivery: async () => state.sdOffer,
 }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
+vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
 vi.mock("@/lib/declutter/delivery", () => ({
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
     return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,
@@ -207,6 +215,9 @@ describe("Declutter slice 3 screens", () => {
     sessionStorage.clear();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     state.strikes = 0;
+    state.lastDropoff = null;
+    state.lastDropoffReads = 0;
+    state.me = null;
     state.offers = [];
     state.cart = [];
     state.sent = [];
@@ -946,6 +957,44 @@ describe("Declutter slice 3 screens", () => {
     state.deliveryOn = false;
   });
 
+  // BUY-9 (buying audit 10-30 #9): "Deliver to" was typed from nothing on every order. The buyer's newest drop-off
+  // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} /> | onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+  it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    expect(await screen.findByLabelText(/Porch pickup/)).toBeChecked();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(state.lastDropoffReads).toBe(0);
+    fireEvent.click(screen.getByLabelText(/Helpr delivery/));
+    await waitFor(() => expect((screen.getByLabelText(/^Deliver to/) as HTMLInputElement).value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+    await waitFor(() => expect(state.quotes).toEqual([{ sellerId: "s2", address: "12 Oak St, Baton Rouge, LA" }]));
+    state.deliveryOn = false;
+  });
+
+  it("BUY-9: what the buyer types is never replaced, even emptied", async () => {
+    state.deliveryOn = true;
+    state.lastDropoff = "12 Oak St, Baton Rouge, LA";
+    state.me = "b1";
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+    const box = () => screen.getByLabelText(/^Deliver to/) as HTMLInputElement;
+    await waitFor(() => expect(box().value).toBe("12 Oak St, Baton Rouge, LA"));
+    fireEvent.change(box(), { target: { value: "" } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(box().value).toBe("");
+    state.deliveryOn = false;
+  });
+
   // Owner 2026-10-28: checkout offers only the ways the seller ticked for EVERY item in it (20261028235247;
   // the server refuses the rest with handover_not_offered).
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]).filter((h) => wayAllowed(ways, h)); |     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]);
@@ -1104,7 +1153,10 @@ describe("Declutter slice 3 screens", () => {
     await screen.findByLabelText(/Seller delivers/);
     const radios = screen.getAllByRole("radio").filter((r) => r.tagName === "INPUT");
     expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "seller_delivery"]);
-    expect(screen.getByLabelText(/Porch or safe place/)).toBeChecked();
+    // BUY-14: "Porch pickup" as on the item page, its line names the other safe place.
+    expect(screen.getByLabelText(/^Porch pickup/)).toBeChecked();
+    expect(screen.getByText(/porch or another safe place/)).toBeInTheDocument();
+    expect(screen.queryByText("Porch or safe place")).toBeNull();
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
     // DB-9: the address is typed and checked in this checkout first (see the DB-9 tests below).
     fireEvent.change(screen.getByLabelText(/^Deliver to/), { target: { value: "12 Oak St, Baton Rouge" } });
@@ -1199,7 +1251,7 @@ describe("Declutter slice 3 screens", () => {
     first.unmount();
     state.sdOffer = { ...(state.sdOffer as object), reason: "out_of_range" };
     show(<CartView />);
-    await screen.findByLabelText(/Porch or safe place/);
+    await screen.findByLabelText(/^Porch pickup/);
     expect(screen.queryByLabelText(/Seller delivers/)).toBeNull();
   });
 
@@ -1250,6 +1302,8 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText(/asked buyers to meet at their home for this order/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Porch pickup/)).toBeNull();
     expect(screen.getByLabelText(/Meet at the seller's home/)).toBeChecked();
+    // LEAD-PLACE-TIMES (20261031164337): a door pickup reads the seller's places too, so Pay waits for that read.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "pickup_home" }]));
   });

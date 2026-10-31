@@ -14,4 +14,6 @@ export function signedInSplit(root: string): {
   firstScreen: Set<string>;
   deep: Set<string>;
   declutterOnly: Set<string>;
+  homeOff: Set<string>;
 };
+export function homeFirstScreenRoots(root: string): string[];

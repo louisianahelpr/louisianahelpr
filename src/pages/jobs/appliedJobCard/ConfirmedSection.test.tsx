@@ -12,7 +12,7 @@ import type { AppliedApp, Job } from "../../../components/job-card/activityConst
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), hapticWarning: vi.fn() }));
 vi.mock("./HelperTrackerPanel", () => ({ HelperTrackerPanel: () => null }));
 vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));

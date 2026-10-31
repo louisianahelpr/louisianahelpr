@@ -217,6 +217,8 @@ function tsSites(): Site[] {
 // account (their payout, subscription, verification, warning), or an operator
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
+  "sql:declutter_record_ai_check#1": "an admin alert that a sold listing failed its check: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(v_item.seller_id), 20261031152545)",
+  "sql:declutter_hold_unchecked_listings#1": "an admin alert that a sold listing was never checked: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(r.seller_id), 20261031152545)",
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
   "ts:supabase/functions/admin-support-reply/index.ts#1": "an admin's answer to the member's own support ticket",
   "ts:supabase/functions/str-ical-sync/index.ts#1": "own calendar's checkout ready to post (Q768): the host's own STR connection, no job exists yet",
@@ -236,6 +238,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/stripe-webhook/handlers/payoutFailed.ts#1": "own bank payout failed (board 143): the member's own connected account, no job or other person in it",
   "ts:supabase/functions/weekly-helper-report/index.ts#1": "own weekly stats",
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
+  "sql:send_new_member_daily_summary#1": "an admin alert listing who joined: test and seed members are refused at the queue and checked again at send time (20261031152136)",
   "sql:notify_admins_support_ticket#1": "an admin alert about a ticket: a test or seed reporter is skipped in the function itself, and a guest has no account (fixed words)",
   "sql:review_credential#1": "own credential reviewed",
   "sql:bill_helpr_fault_card_fee#1": "own card fee billed after a Helpr-at-fault refund (the recipient's own debt; the poster is never named, and the ruling copies the job's is_seed)",

@@ -341,7 +341,7 @@ const ConversationRowBase = ({
                 the chip and the timestamp grow ~27% and the name's box fell to
                 20px: "A..", two characters of a ten-character name.
 
-                A basis of 5.5rem says "the name gets 88px before anything else
+                A basis says "the name gets this much before anything else
                 is considered". Wrapping is decided on hypothetical main sizes
                 (i.e. the basis), before shrinking, so when 88 + chip + time no
                 longer fit, the chip and time drop to a second line together and
@@ -350,11 +350,11 @@ const ConversationRowBase = ({
                 `min-w-0` is kept so `truncate` still works if the row is ever
                 narrower than the basis itself.
 
-                Chosen so the DEFAULT 375 rendering is unchanged: 88 + 68.7 +
-                49.9 + 12 of gaps = 218.6 against 231px available, so it stays on
-                one line exactly as before. It wraps at 320 (where it was already
-                cutting the name at the default scale) and at both widths in
-                Senior Mode. */}
+                AUD31-40 (audit 10-31): 88px still cut the deleted-person label to
+                "Former memb…" at 375 (and "Former mem…" in the 1440 inbox pane)
+                beside a "Completed" chip. The basis is now 7.5rem (120px, about
+                14 characters at ds-15), so a two-word name keeps its last
+                letters and the chip drops under it when both don't fit. */}
             {/* LINE 1 = name (+ status chip) on the left, pin + time pinned to
                 the TOP-RIGHT corner (owner, 2026-10-19: an IN PROGRESS chip used
                 to push the pin and "30m" down to a second line, unlike every
@@ -373,7 +373,7 @@ const ConversationRowBase = ({
               <p
                 data-testid="row-name"
                 title={c.otherUserName}
-                className="font-sans truncate min-w-0 basis-[5.5rem] grow text-ds-15"
+                className="font-sans truncate min-w-0 basis-[7.5rem] grow text-ds-15"
                 style={{
                   color: "hsl(var(--ink-deep))",
                   letterSpacing: "-0.012em",

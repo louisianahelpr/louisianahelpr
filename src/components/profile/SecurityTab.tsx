@@ -15,6 +15,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Mail, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
+import { ShakeToReportCard } from "@/components/profile/ShakeToReportCard";
 import { Switch } from "@/components/ui/switch";
 import {
   APP_LOCK_GRACE_OPTIONS,
@@ -217,6 +218,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <ProfileTabHeader
         title={TAB_TITLES.security}
         onBack={onBack}
+        wrapTitle
       />
 
       {/* Change-email dialog — replaces the native prompt(). iOS keyboard
@@ -334,7 +336,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               Email address
             </h2>
             {email && (
-              <p className="text-ds-12 font-medium text-foreground truncate mt-0.5">{email}</p>
+              <p className="text-ds-12 font-medium text-foreground [overflow-wrap:anywhere] mt-0.5">{email}</p>
             )}
           </div>
           <Button
@@ -367,6 +369,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           already guards individual money actions; this guards the app itself.
           Card structure copied from "Active sessions" below so the two read as
           siblings rather than one-offs. */}
+      <ShakeToReportCard />
       {/* `isAppLockSupported()`, not the raw `isNativePlatform`: it is the same
           `isNativePlatform` in every production build, but it ALSO honours the
           dev-only `?app_lock_demo=1` harness that `AppLockGate` already gates

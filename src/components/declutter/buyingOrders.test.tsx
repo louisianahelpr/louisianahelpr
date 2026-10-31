@@ -131,7 +131,7 @@ type Case = { id: string; line: Record<string, unknown>; slot?: string; handover
 
 /** Every handover kind through its states, as the rows fill in. */
 const CASES: Case[] = [
-  { id: "porch0", line: { handover: "porch" }, step: 0, bucket: "needs_you", action: "Pick a pickup day" },
+  { id: "porch0", line: { handover: "porch" }, step: 0, bucket: "needs_you", action: "Pick a pickup time" },
   { id: "porch1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null },
   { id: "porch2", line: { handover: "porch" }, slot: iso(2), handover: { set_out_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
   { id: "porch3", line: { handover: "porch" }, slot: iso(-1), handover: { set_out_at: iso(-3), picked_up_at: iso(-1) }, step: 3, bucket: "waiting", action: null },
@@ -157,7 +157,7 @@ const CASES: Case[] = [
   { id: "hd3", line: { handover: "delivery", delivery_task_id: "t-hd3" }, task: { accepted_at: iso(-3), picked_up_at: iso(-2), delivered_at: iso(-1) }, step: 3, bucket: "needs_you", action: "I got it" },
   { id: "done", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "done", action: null },
   { id: "refunded", line: { order_status: "refunded" }, step: 0, bucket: "cancelled", action: null },
-  { id: "free", line: { handover: "porch", price_cents: 0, premium_cents: 0, total_cents: 0 }, step: 0, bucket: "needs_you", action: "Pick a pickup day" },
+  { id: "free", line: { handover: "porch", price_cents: 0, premium_cents: 0, total_cents: 0 }, step: 0, bucket: "needs_you", action: "Pick a pickup time" },
 ];
 
 function load(cases: Case[]) {
@@ -302,7 +302,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // Audit 1b D2-2 (1b-problem-after-375): after "Report a problem" the collapsed porch card still said "Pick the day
-  // you'll come for it" with "Pick a pickup day" as its next action. Now it says the problem is open and asks nothing.
+  // you'll come for it" with "Pick a pickup time" as its next action. Now it says the problem is open and asks nothing.
   // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
   // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return PROBLEM_ON_HOLD; |
   it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
@@ -313,7 +313,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const el = card("porch0");
     expect(within(el).getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
     expect(within(el).getByText(/Not as described, reported by you\./)).toBeInTheDocument();
-    expect(within(el).queryByRole("button", { name: "Pick a pickup day" })).toBeNull();
+    expect(within(el).queryByRole("button", { name: "Pick a pickup time" })).toBeNull();
     expect(el.textContent).not.toContain("Pick the day you'll come for it");
     // The other order is untouched.
     expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();

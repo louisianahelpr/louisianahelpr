@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { Switch } from "@/components/ui/switch";
 import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createSavedSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
+import { createSavedSearch, fetchSavedSearches, sameSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 
 export const SAVED_SEARCHES_KEY = ["saved-searches"] as const;
 
@@ -25,12 +25,15 @@ export function SaveSearchSheet({
   draft,
   sections,
   userId,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   draft: SearchDraft;
   sections?: SavedSearchSection[];
   userId: string;
+  /** BUY-54: the search is saved (now, or already), so the pill can say so. */
+  onSaved?: (d: SearchDraft) => void;
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -51,6 +54,18 @@ export function SaveSearchSheet({
   const save = async () => {
     if (saving) return;
     setSaving(true);
+    const toList = { label: "View", onClick: () => navigate("/profile?tab=saved_searches") };
+    // BUY-54: the same search saved twice alerts twice and uses up the cap. The list is the Saved searches tab's own
+    // read (one cache). If it can't be read, the save goes ahead: a duplicate is better than a search never saved.
+    const mine = await qc.fetchQuery({ queryKey: [...SAVED_SEARCHES_KEY, "list", userId], queryFn: () => fetchSavedSearches(userId) })
+      .catch((err: unknown) => { report(err, { tags: { source: "SaveSearchSheet.sameSearch" } }); return null; });
+    if (mine?.some((s) => sameSearch(s, d))) {
+      setSaving(false);
+      toast("You already saved this search", { description: "Find it in You › Settings › Saved searches.", action: toList });
+      onSaved?.(d);
+      onOpenChange(false);
+      return;
+    }
     try {
       await createSavedSearch(userId, d, email);
     } catch (err) {
@@ -66,8 +81,9 @@ export function SaveSearchSheet({
     // NIGHT-SAVEDS1-SS-2: toast.success renders nothing (toastPolicy); the bare toast() does, with a way to the list.
     toast("Search saved", {
       description: "Find it in You › Settings › Saved searches.",
-      action: { label: "View", onClick: () => navigate("/profile?tab=saved_searches") },
+      action: toList,
     });
+    onSaved?.(d);
     onOpenChange(false);
   };
 

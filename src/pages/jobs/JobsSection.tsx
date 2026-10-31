@@ -31,8 +31,8 @@ export const JOBS_TABS = [
   { value: "working", label: "Working", labelKey: "jobs.tabWorking" },
 ] as const;
 
-/** Params only the old My Jobs page read: their presence (with no ?tab=) means Working. */
-export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q"] as const;
+/** Params only the old My Jobs page read (and ?quotes=, QUOTE_HOMES.myQuotes): their presence (with no ?tab=) means Working. */
+export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const;
 
 /** Every param a tab's list reads; switching tab drops them so one tab's state never leaks into another. */
 const LIST_PARAMS = ["tab", "status", ...MY_JOBS_LINK_PARAMS] as const;
@@ -91,18 +91,17 @@ const JobsSection = () => {
       <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false} />
       <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} onlySelected={browse?.onlySelected} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
-          the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search
-          ICON at the end of their status chip row that opens IN PLACE, leftward, and filters that tab's list
-          (owner 2026-10-27: "search should just open where its at"; EmbeddedActivityHeader, InlineListSearch).
-          Guards: src/test/jobsSearchIsAnIcon.test.tsx, src/test/jobsToolbarRowIsOneRow.test.tsx. */}
+          the search not expanded"): every tab's search is an ICON at the end of the tabs row, before the gear
+          (Browse: owner 2026-10-28; Posted / Working: owner 2026-10-31, "move it up into the tab row next to the
+          gear"), and it opens IN PLACE, leftward (owner 2026-10-27; InlineListSearch). Posted / Working hand it in
+          through makeHeader (EmbeddedActivityHeader). Guards: src/test/jobsSearchIsAnIcon.test.tsx,
+          src/test/jobsToolbarRowIsOneRow.test.tsx. */}
     </div>
   );
 
   // Board 141: the refund_requests switch, read once for every job card in the list.
-  const header = makeHeader();
-
-  if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={header} /></RefundsSwitchProvider>;
-  if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={header} /></RefundsSwitchProvider>;
+  if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;
+  if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;
   return <Dashboard embeddedHeader={makeHeader} />;
 };
 

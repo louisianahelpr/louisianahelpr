@@ -18,7 +18,7 @@
 // @mutate supabase/migrations/20261029162620_declutter_smart_offers.sql | v_item.o_title),\n    '/declutter?tab=selling', v_uid); | v_item.o_title),\n    '/declutter?view=offers', v_uid);
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=buying', v_uid); | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=selling', v_uid);
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | '/declutter?tab=' \|\| CASE WHEN p_side = 'seller' THEN 'selling' ELSE 'buying' END | '/declutter?view=offers'
-// @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=selling' | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart'
+// @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=selling' | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart'
 // @mutate supabase/migrations/20261030164712_declutter_porch_places.sql | you''ll be told the pickup time.', '/declutter?tab=selling' | you''ll be told the pickup time.', '/declutter?view=cart'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

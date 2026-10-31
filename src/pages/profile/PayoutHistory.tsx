@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -141,12 +141,25 @@ function PayoutDetailView({ payoutId }: { payoutId: string }) {
           </ul>
         )}
         <div className="mt-2 pt-2 flex items-center justify-between gap-3" style={{ borderTop: "1px solid hsl(var(--border))" }}>
-          <span className="font-bold text-ds-15" style={ink}>
-            {data.bank_last4 ? `To bank ending ${data.bank_last4}` : "To your bank"}
+          <span className="min-w-0" style={ink}>
+            {/* AUD31-54: the detail ignored data.status, so a failed payout read "To bank ending 6789" like a sent one. */}
+            <span className="block font-bold text-ds-15">
+              {data.status === "paid" ? "Sent to " : "To "}
+              {data.bank_last4 ? `bank ending ${data.bank_last4}` : "your bank"}
+            </span>
+            <span data-payout-status={data.status} className="block text-ds-12 mt-0.5" style={data.status === "failed" ? rust : quiet}>
+              {payoutStatusLabel(data.status)}
+            </span>
           </span>
           <span className="font-bold tabular-nums text-ds-20" style={rust}>{formatCents(data.amount_cents, data.currency)}</span>
         </div>
       </div>
+      {data.status === "failed" && (
+        <p className="text-ds-13 px-1" style={ink}>
+          Your bank didn't take this payout.{" "}
+          <Link to="/profile?tab=payment" className="underline font-semibold">Check your bank details</Link>
+        </p>
+      )}
       {data.lines.some((l) => l.href) && (
         <p className="text-ds-12 px-1" style={quiet}>Each line opens the job or sale with its own breakdown.</p>
       )}

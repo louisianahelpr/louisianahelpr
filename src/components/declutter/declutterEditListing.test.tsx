@@ -29,6 +29,8 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   editListing: (...a: unknown[]) => editListing(...a),
   fetchItemHandovers: async () => ["porch"],
+  // The seller's usual pickup times (b9 place times reads them on the edit form): none saved.
+  fetchMyPickupWindows: async () => [],
   fetchPhotos: async () => photoRows.value,
   addPhotoSteadily: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
   removePhoto: async (id: string) => { calls.push(`remove:${id}`); },

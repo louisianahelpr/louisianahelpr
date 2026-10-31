@@ -114,6 +114,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Porch places (D-NEW14, 20261030164712).
   invalid_porch_place: "Give the place a name and its full address.",
   porch_places_full: "You can save up to 5 pickup places.",
+  // Place hours (LEAD-PLACE-TIMES, 20261031145652).
+  invalid_place_hours: "Each pickup time must end at least 30 minutes after it starts.",
   porch_place_not_found: "We couldn't find that pickup place. It may have been removed.",
   porch_place_unavailable: "That pickup place isn't available. Pick another.",
   porch_place_needed: "Pick which of the seller's pickup places you'll use.",
@@ -169,6 +171,14 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_show_not_reported: "The buyer hasn't reported anything on this order.",
   no_show_waiting: "A no-show report on this order is waiting for an answer, so the time can't move.",
   no_show_answer_late: "The 24 hours to answer are over.",
+  // BUY-2 (20261031133938): the buyer's cancel after no Helpr took the delivery.
+  pickup_booked: "You booked a pickup time, so this sale goes ahead. If something is wrong, report a problem.",
+  not_a_no_helpr_order: "This sale can't be cancelled here.",
+  // soldstates-5 (20261031134217): the seller's "The Helpr didn't come" and the Helpr's answer.
+  not_a_helpr_delivery: "This sale isn't a Helpr delivery.",
+  no_helpr_booked: "No Helpr is booked for this pickup now.",
+  already_handed_over: "You said you handed it over to this Helpr. If something is wrong, report a problem.",
+  already_answered: "You already answered. Louisiana Helpr looks at both sides and tells you what it decides.",
   no_return_needed: "The buyer says they never got it, so there is nothing to bring back.",
   drop_off_not_offered: "Your address stays private on this sale, so you pick it up from the buyer.",
   too_early: "You can report a no-show 15 minutes after the booked time, or for a porch pickup day, once that day is over.",

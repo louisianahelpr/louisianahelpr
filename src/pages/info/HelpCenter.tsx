@@ -7,6 +7,7 @@ import FaqRow from "@/components/marketing/FaqRow";
 // Help Center and the policy pages cannot drift into two support cards.
 import { PolicyFooter } from "@/pages/info/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
@@ -43,7 +44,7 @@ import {
 // ─── Topic anchor slugs ───────────────────────────────────────────────────────
 //
 // Each section carries `id="faq-<slug>"`, which is what makes
-// `/help#faq-payments-escrow` a real destination — the shape a support reply, a
+// `/help#faq-payments-how-your-money-is-held` a real destination — the shape a support reply, a
 // push deep link or a search result uses to send someone to ONE answer instead
 // of to the top of a seven-section page.
 //
@@ -57,10 +58,23 @@ import {
 const topicSlug = (label: string) =>
   label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+/**
+ * Anchors a renamed topic used to have. A support reply, a notice or a search
+ * result sent before the rename still opens the topic it meant (JOBS-28:
+ * "Payments & Escrow" became "Payments & how your money is held").
+ */
+// @two-way src/pages/info/HelpCenter.test.tsx:stale topic anchor alias
+export const LEGACY_TOPIC_ANCHORS: Readonly<Record<string, string>> = {
+  "faq-payments-escrow": "faq-payments-how-your-money-is-held",
+};
+
 /** The `faq-…` slug currently addressed by `location.hash`, live. */
 function useHashTarget(): string | null {
-  const read = () =>
-    typeof window === "undefined" ? null : decodeURIComponent(window.location.hash.replace(/^#/, "")) || null;
+  const read = () => {
+    if (typeof window === "undefined") return null;
+    const raw = decodeURIComponent(window.location.hash.replace(/^#/, "")) || null;
+    return raw ? LEGACY_TOPIC_ANCHORS[raw] ?? raw : null;
+  };
   const [hash, setHash] = useState<string | null>(read);
   useEffect(() => {
     const onChange = () => setHash(read());
@@ -77,7 +91,7 @@ const topicDesc = (topic: string): string | undefined =>
   TOPICS.find((t) => t.label.toLowerCase() === topic.toLowerCase())?.desc;
 
 // ─── TopicSection — collapsible topic wrapper ────────────────────────────────
-/** "Payments & Escrow" -> "Payments & escrow" (spec v2: sentence case). */
+/** "Trust & Safety" -> "Trust & safety" (spec v2: sentence case). */
 const sentenceCase = (t: string): string => t.charAt(0) + t.slice(1).toLowerCase();
 
 const TopicSection = ({
@@ -97,7 +111,7 @@ const TopicSection = ({
   // you had to scroll past to find the one question you came for, and it is
   // what pushed the real content so far below the title.
   //
-  // The ONE exception is the section the URL asked for. `/help#faq-payments-escrow`
+  // The ONE exception is the section the URL asked for. `/help#faq-trust-safety`
   // is a request for that topic, not for the page, so it opens and scrolls
   // itself into view — the browser's own anchor jump fires before React has
   // painted the section's contents, so `scroll-mt-24` alone lands the reader on
@@ -189,6 +203,8 @@ const HelpCenter = () => {
 
   // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
   usePageMeta(PUBLIC_PAGE_META["/help"]);
+  // An answer that names the ID check reads the identity_check switch (helpCenterContent's getter); re-render when it changes.
+  useIdentityCheckOnStore();
 
   return (
     // Shared shell (PublicHeaderPage) — same component Legal, Jobs and

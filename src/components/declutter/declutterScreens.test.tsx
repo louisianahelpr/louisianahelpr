@@ -49,7 +49,10 @@ const state = {
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
+  // The item page's places read (ItemHandoverTimes): none saved, so the usual times are the pickup times. Unmocked, it
+  // went to the network and the file ran for 10+ minutes.
+  fetchItemPickupPlaces: async () => [] }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
@@ -344,7 +347,7 @@ describe("Declutter screens", () => {
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
-  // @mutate src/components/declutter/DeclutterItemView.tsx |             {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes itemId={itemId} label={way === "meetup" ? "Meeting times" : "Pickup times"} />} |
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |     {plan.usual && <ItemPickupTimes itemId={itemId} label={plan.usual} />}\n |
   it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
@@ -378,17 +381,18 @@ describe("Declutter screens", () => {
   // and checkout then had no pickup. The block follows the ways the seller ticked; an older item keeps "Pickup".
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2> | Pickup</h2>
   // @mutate src/components/declutter/DeclutterItemView.tsx | {way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label} | Pickup in {it.area_label}
-  // @mutate src/components/declutter/DeclutterItemView.tsx | label={way === "meetup" ? "Meeting times" : "Pickup times"} | label="Pickup times"
-  // @mutate src/components/declutter/DeclutterItemView.tsx |   const porchOnly = way === "porch" && !(ways.data ?? []).includes("meetup"); |   const porchOnly = false;
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |   if (!meetup) return { places, usual: !hasPlaces && ways === null ? "Pickup times" : null }; |   if (!meetup) return { places, usual: !hasPlaces ? "Pickup times" : null };
+  // @mutate src/components/declutter/ItemHandoverTimes.tsx |   const pickup = ways === null \|\| ways.includes("porch"); |   const pickup = true;
   it("DB-4: the item page says pickup only when the seller offers one", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
     const cases: [string[] | null, string, string, string | null][] = [
       [["seller_delivery", "delivery"], "Delivery", "Comes from Mid-City, Baton Rouge", null],
-      [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meeting times: Mon–Fri 5–8 PM"],
+      // Lead's call 2026-10-31: the usual times are the Meetup times (no pickup place saved in this world).
+      [["meetup", "delivery"], "Meetup", "Meet near Mid-City, Baton Rouge", "Meetup times: Mon–Fri 5–8 PM"],
       // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them.
       [["porch"], "Pickup", "Pickup in Mid-City, Baton Rouge", null],
-      [["porch", "meetup"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
+      [["porch", "meetup"], "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup and meetup times: Mon–Fri 5–8 PM"],
       [null, "Pickup", "Pickup in Mid-City, Baton Rouge", "Pickup times: Mon–Fri 5–8 PM"],
     ];
     for (const [ways, heading, area, times] of cases) {

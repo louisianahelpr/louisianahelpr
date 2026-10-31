@@ -562,7 +562,7 @@ const NotificationPreferences = () => {
             // `toggle()` names its spinner after the column it writes, so the
             // id has to follow which path toggleEmailMaster took.
             savingId={emailMasterColumn ? "email_enabled" : "email_master"}
-            title="Mutes every email below. Your per-category choices are kept."
+            title="Off mutes every email below. Your per-category choices are kept."
           />
         </div>
       </div>

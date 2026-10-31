@@ -34,6 +34,7 @@ import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
+import { fetchMyLastDropoff } from "@/lib/declutter/lastDropoff";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
@@ -43,7 +44,7 @@ import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
+import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
@@ -144,8 +145,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
   // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
-  // refuses checkout and a delivery price without it, porch_place_needed).
-  const needsPlace = chosen === "porch" || delivering;
+  // refuses checkout and a delivery price without it, porch_place_needed). LEAD-PLACE-TIMES (20261031164337): a door
+  // pickup is at the chosen place too.
+  const needsPlace = chosen === "porch" || chosen === "pickup_home" || delivering;
   const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents, needsPlace);
   const placeReady = !needsPlace || porchPlaces.ready;
   // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
@@ -163,6 +165,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
+  // BUY-9: the last drop-off this buyer sent (theirs only) fills "Deliver to" once, while the box is still empty and
+  // untouched; asked only when a way that delivers is chosen.
+  const lastDropoff = useQuery({ queryKey: ["declutter", "last-dropoff", me?.id], queryFn: () => fetchMyLastDropoff(me!.id),
+    enabled: !!me?.id && (delivering || sellerDelivering), staleTime: 5 * 60_000 });
+  const [addressTouched, setAddressTouched] = useState(false);
+  useEffect(() => {
+    if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data);
+  }, [addressTouched, lastDropoff.data, address]);
   const meetingUp = chosen === "meetup";
   const meetupReady = !meetingUp || spotsNear.some((s) => s.chosen);
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
@@ -199,7 +209,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
-              <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
+              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
@@ -222,7 +232,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
-          typed={address} onTyped={(a) => { setAddress(a); setQuote(null); }}
+          typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
           onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
       )}
       {delivering && (
@@ -231,7 +241,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           <div className="flex gap-2">
             <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               autoComplete="street-address" maxLength={300} value={address}
-              onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+              onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} />
             <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
               disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate()}>
               {priceIt.isPending ? "Pricing…" : "Get price"}
@@ -243,7 +253,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               <div className="flex justify-between text-xs text-muted-foreground"><dt>$10 + $2 a mile{liveQuote.size_cents > 0 ? " + size" : ""}</dt><dd>{formatPrice(liveQuote.base_cents)} + {formatPrice(liveQuote.per_mile_cents)}{liveQuote.size_cents > 0 ? ` + ${formatPrice(liveQuote.size_cents)}` : ""}</dd></div>
             </dl>
           ) : (
-            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back and you pick it up instead.</p>
+            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
           )}
         </div>
       )}

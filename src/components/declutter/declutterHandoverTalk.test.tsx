@@ -36,7 +36,7 @@ const state = {
   messages: [] as { id: string; talk_id: string; sender_id: string; body: string; created_at: string }[],
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: state.me } }) }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({

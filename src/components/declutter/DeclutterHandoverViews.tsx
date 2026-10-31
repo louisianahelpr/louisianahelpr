@@ -84,6 +84,7 @@ import { ProblemForm } from "./DeclutterProblemForm";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
+import { NoHelprChoice } from "./DeclutterNoHelpr";
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -279,13 +280,20 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}
-          {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
+          {/* LEAD-PLACE-TIMES (owner 2026-10-31, lead's decision 1): the porch buyer picked the place at checkout, then
+              picks a day and a time inside that place's hours (BookingPanel: declutter_order_pickup_windows reads the
+              hours frozen on the order; declutter_book_pickup checks them). A porch DAY booked under the 10-28 design
+              keeps its day card. */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
           {/* T9: while the seller has their 24 hours the time stands (the server refuses a move: no_show_waiting). */}
-          {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
+          {/* BUY-2 (owner 10-31): no Helpr took the delivery; the buyer may cancel instead (the buyer bears the card fee). A
+              pickup order with a delivery fee is one (CartLine.delivery_cents is kept after the no-Helpr fallback). */}
+          {order.side === "buyer" && order.handover === "pickup_home" && order.lines.some((l) => (l.delivery_cents ?? 0) > 0) && !booking?.slot_start && !problem && <NoHelprChoice orderId={order.orderId} />}
+          {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" && booking?.pickup_day
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
-            : <BookingPanel order={order} booking={booking} />}
+            : <BookingPanel order={order} booking={booking}
+                noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm orderId={order.orderId} side={order.side} stage="waiting" /> : null} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
@@ -306,7 +314,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   );
 }
 
-function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; booking: MyBooking | null; frozen?: boolean }) {
+function BookingPanel({ order, booking, frozen = false, noTimes = null }: { order: PaidOrder; booking: MyBooking | null; frozen?: boolean; noTimes?: ReactNode }) {
   const qc = useQueryClient();
   const [value, setValue] = useState("");
   // Deep audit #2: the buyer picks from the seller's own times (day + time chips); the seller's one move stays free.
@@ -355,7 +363,7 @@ function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; bo
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
-        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot}
+        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes}
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}

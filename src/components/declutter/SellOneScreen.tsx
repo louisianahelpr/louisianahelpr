@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { StepHead } from "./DeclutterSellSteps";
 import { windowsSummary } from "./DeclutterPickupTimes";
+import { MyPickupPlacesSummary, useHasPorchPlaces } from "./SellPorchPlaces";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { autoFreeOutcomeLine } from "@/lib/declutter/autoFree";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
@@ -80,6 +81,7 @@ export function SellOneScreen() {
 
 function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
+  const hasPlaces = useHasPorchPlaces();
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   const [open, setOpen] = useState<SummaryField | null>(null);
   const [tried, setTried] = useState(false);
@@ -183,8 +185,10 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         {/* What will happen, in plain words, before Post; the choices themselves are made ahead (owner 2026-10-30). */}
         <div className="space-y-1" data-sell-outcome="" data-sell-row="settings">
           <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
-            {[handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)].filter(Boolean).join(" · ")}
+            {/* LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows below with its own days and hours, not one area. */}
+            {(hasPlaces ? [handoverSummary(savedWays)] : [handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)]).filter(Boolean).join(" · ")}
           </p>
+          {hasPlaces && <MyPickupPlacesSummary />}
           {s.saved.pickup && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{s.saved.pickup.line}</p>}
           {!form.free && dropsLine && <p className="text-ds-14 font-semibold text-foreground">{dropsLine}</p>}
           {!form.free && <p className="text-ds-13 text-muted-foreground">{autoFreeOutcomeLine(autoFreeWanted)}</p>}

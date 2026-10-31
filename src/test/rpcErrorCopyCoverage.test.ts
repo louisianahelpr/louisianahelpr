@@ -482,7 +482,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
       if (error) {
         toast.error(
           /not_abortable/.test(error.message)
-            ? "This job has already moved on — pull to refresh and take another look."
+            ? "This job has already moved on. Refresh the page and take another look."
             : "We couldn’t send that — check your connection and try again.",
         );
       }
@@ -491,7 +491,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
   it("an RPC code with no copy and no allowlist entry is reported", () => {
     const withoutCompleted: CopyTable = {
       ...COPY,
-      helper_abort_job: { not_abortable: "This job has already moved on — pull to refresh and take another look." },
+      helper_abort_job: { not_abortable: "This job has already moved on. Refresh the page and take another look." },
     };
     const onlyAbort = new Map([["helper_abort_job", inventory.get("helper_abort_job")!]]);
     expect(findUnmapped(onlyAbort, withoutCompleted, UNREACHABLE)).toContain(

@@ -92,7 +92,7 @@ function problemAwaitsBuyer(p: Pick<OrderProblem, "status" | "reporter_side" | "
 export function buyerNextAction(f: OrderFacts): string | null {
   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side";
   if (!orderWaitsOnYou(f)) return null;
-  if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup day";
+  if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup time";
   if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
   return "I got it";

@@ -2532,6 +2532,7 @@ export type Database = {
           place_id: string | null
           seller_id: string | null
           weekdays: number[]
+          windows: Json | null
         }
         Insert: {
           address?: string | null
@@ -2544,6 +2545,7 @@ export type Database = {
           place_id?: string | null
           seller_id?: string | null
           weekdays: number[]
+          windows?: Json | null
         }
         Update: {
           address?: string | null
@@ -2556,6 +2558,7 @@ export type Database = {
           place_id?: string | null
           seller_id?: string | null
           weekdays?: number[]
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -2863,6 +2866,7 @@ export type Database = {
           seller_id: string
           updated_at: string
           weekdays: number[]
+          windows: Json | null
         }
         Insert: {
           address: string
@@ -2876,6 +2880,7 @@ export type Database = {
           seller_id: string
           updated_at?: string
           weekdays: number[]
+          windows?: Json | null
         }
         Update: {
           address?: string
@@ -2889,6 +2894,7 @@ export type Database = {
           seller_id?: string
           updated_at?: string
           weekdays?: number[]
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -5117,6 +5123,10 @@ export type Database = {
           pickup_slot_start: string | null
           raised_cents: number
           releases: number
+          seller_no_show_answer_by: string | null
+          seller_no_show_answered_at: string | null
+          seller_no_show_reported_at: string | null
+          seller_no_show_settled_at: string | null
           size: string
           source_id: string
           source_kind: string
@@ -5162,6 +5172,10 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          seller_no_show_answer_by?: string | null
+          seller_no_show_answered_at?: string | null
+          seller_no_show_reported_at?: string | null
+          seller_no_show_settled_at?: string | null
           size: string
           source_id: string
           source_kind: string
@@ -5207,6 +5221,10 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          seller_no_show_answer_by?: string | null
+          seller_no_show_answered_at?: string | null
+          seller_no_show_reported_at?: string | null
+          seller_no_show_settled_at?: string | null
           size?: string
           source_id?: string
           source_kind?: string
@@ -5273,6 +5291,9 @@ export type Database = {
           created_at: string
           error_message: string | null
           fee_amount: number
+          fee_reversal_id: string | null
+          fee_state: string
+          fee_transfer_id: string | null
           gross_amount: number
           helper_id: string
           id: string
@@ -5285,6 +5306,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           fee_amount: number
+          fee_reversal_id?: string | null
+          fee_state?: string
+          fee_transfer_id?: string | null
           gross_amount: number
           helper_id: string
           id?: string
@@ -5297,6 +5321,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           fee_amount?: number
+          fee_reversal_id?: string | null
+          fee_state?: string
+          fee_transfer_id?: string | null
           gross_amount?: number
           helper_id?: string
           id?: string
@@ -7724,16 +7751,19 @@ export type Database = {
       new_member_admin_notices: {
         Row: {
           notified_at: string
+          summarized_at: string | null
           user_id: string
           via: string
         }
         Insert: {
           notified_at?: string
+          summarized_at?: string | null
           user_id: string
           via: string
         }
         Update: {
           notified_at?: string
+          summarized_at?: string | null
           user_id?: string
           via?: string
         }
@@ -14417,6 +14447,10 @@ export type Database = {
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
+      declutter_order_slot_in_windows: {
+        Args: { p_order_id: string; p_seller: string; p_start: string }
+        Returns: boolean
+      }
       declutter_pair_needs_talk: {
         Args: { p_buyer: string; p_seller: string }
         Returns: boolean
@@ -14427,6 +14461,14 @@ export type Database = {
       }
       declutter_pair_talking: {
         Args: { p_buyer: string; p_seller: string }
+        Returns: boolean
+      }
+      declutter_place_windows_fill: {
+        Args: { p_days: number[]; p_seller: string; p_windows: Json }
+        Returns: Json
+      }
+      declutter_place_windows_valid: {
+        Args: { p_windows: Json }
         Returns: boolean
       }
       declutter_public_photo_path: {
@@ -14682,6 +14724,7 @@ export type Database = {
       }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }
@@ -14697,6 +14740,7 @@ export type Database = {
       declutter_pick_free_request: { Args: { p_request_id: string }; Returns: string }
       declutter_my_free_pause: { Args: never; Returns: string }
       declutter_open_to_guests: { Args: never; Returns: boolean }
+      declutter_cancel_after_no_helpr: { Args: { p_order_id: string }; Returns: Json }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string
@@ -15163,16 +15207,20 @@ export type Database = {
       declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_porch_places: {
         Args: never
-        Returns: { address: string; area: string; id: string; label: string; lat: number; lng: number; position: number; weekdays: number[] }[]
+        Returns: { address: string; area: string; id: string; label: string; lat: number; lng: number; position: number; weekdays: number[]; windows: Json }[]
       }
       declutter_save_porch_place: {
-        Args: { p_address: string; p_area: string; p_label: string; p_lat: number; p_lng: number; p_place_id: string; p_weekdays: number[] }
+        Args: { p_address: string; p_area: string; p_label: string; p_lat: number; p_lng: number; p_place_id: string; p_weekdays: number[]; p_windows?: Json }
         Returns: string
       }
       declutter_delete_porch_place: { Args: { p_place_id: string }; Returns: string }
       declutter_seller_porch_places: {
         Args: { p_seller_id: string }
-        Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[] }[]
+        Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[]; windows: Json }[]
+      }
+      declutter_item_pickup_places: {
+        Args: { p_item_id: string }
+        Returns: { area: string; label: string; weekdays: number[]; windows: Json }[]
       }
       declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
       declutter_order_place: {
@@ -15435,6 +15483,13 @@ export type Database = {
         }[]
       }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
+      declutter_report_helpr_no_show: { Args: { p_order_id: string }; Returns: Json }
+      declutter_helpr_answer_no_show: {
+        Args: { p_note: string; p_photo_path?: string; p_task_id: string }
+        Returns: string
+      }
+      declutter_no_helpr_choice: { Args: { p_order_id: string }; Returns: Json }
+      declutter_no_helpr_refusal: { Args: { p_order_id: string }; Returns: string }
       declutter_report_no_show: { Args: { p_order_id: string }; Returns: Json }
       declutter_held_address_closed: { Args: { p_order_id: string }; Returns: boolean }
       declutter_start_no_show_answer: { Args: { p_order_id: string }; Returns: Json }
@@ -17025,6 +17080,7 @@ export type Database = {
       helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
+      helpr_task_no_show_report: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
       helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
@@ -17346,6 +17402,7 @@ export type Database = {
         Args: { p_kind: string; p_reason: string; p_row: string; p_transfer: string }
         Returns: string
       }
+      new_member_summary_message: { Args: { p_ids: string[] }; Returns: string }
       notification_admin_full_names: {
         Args: {
           p_job_id: string
@@ -18540,6 +18597,7 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: number
       }
+      send_new_member_daily_summary: { Args: never; Returns: Json }
       send_ops_daily_digest: { Args: never; Returns: Json }
       send_team_reply: {
         Args: { p_client_id?: string; p_content: string }

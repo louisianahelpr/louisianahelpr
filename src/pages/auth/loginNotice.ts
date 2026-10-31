@@ -49,7 +49,8 @@ export function loginNotice(o: {
 export function declutterGatedNotice(redirect: string | null | undefined): string | null {
   if (!redirect) return null;
   const url = new URL(redirect, "https://x.invalid");
-  if (url.pathname !== "/declutter" && !url.pathname.startsWith("/declutter/")) return null;
+  // The first path segment, so "/declutter" and everything under it match, and "/declutterx" does not.
+  if (url.pathname.split("/")[1] !== "declutter") return null;
   const back = "Create an account, or log in and we'll take you straight back to it.";
   if (url.pathname.startsWith("/declutter/item/")) return `That's an item for sale on Declutter, neighbors selling what they don't need. ${back}`;
   // Every Sell address (the one-item form, a bunch, the chooser) starts with the one-item form's path.

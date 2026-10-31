@@ -14,7 +14,7 @@
  * again. Both boxes now carry what the buyer typed in this checkout (it still has to be checked / priced).
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |   const [address, setAddress] = useState(checked ?? typed); |   const [address, setAddress] = useState(checked ?? "");
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx | setAddress(e.target.value); onTyped?.(e.target.value); | setAddress(e.target.value);
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |           typed={address} onTyped={(a) => { setAddress(a); setQuote(null); }} |
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |           typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }} |
  */
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -23,7 +23,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 
 const state = { fail: true };
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
   quoteSellerDelivery: async () => {
@@ -126,6 +126,6 @@ describe("BUY-9: the Deliver to address is typed once per checkout", () => {
 
   it("the cart hands the one typed address to the seller-delivery box and takes its typing back (source)", () => {
     const cart = blankComments(readFileSync(resolve(__dirname, "DeclutterTradeViews.tsx"), "utf8"));
-    expect(cart).toContain("typed={address} onTyped={(a) => { setAddress(a); setQuote(null); }}");
+    expect(cart).toContain("typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}");
   });
 });

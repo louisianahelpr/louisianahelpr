@@ -834,6 +834,10 @@ export const FORMS: FormSpec[] = [
 export const GAPS: Record<string, string> = {
   "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",
   "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
+  // LEAD-SHAKE-PROMPT: the shake switch, split out of SecurityTab (componentSizeRatchet).
+  "src/components/profile/ShakeToReportCard.tsx": "no text input: one on/off switch, saved on the device only (no server write); it renders only in the native app (isShakeToReportSupported), never on the website the sweep drives.",
+  // LEAD bundle dropdown (b4 1b53b4f42b): the bundle discount's on/off row became one dropdown.
+  "src/components/declutter/BundleDiscountCard.tsx": "no text input: one native select whose options are Off and the fixed BUNDLE_PERCENTS list, saved the moment it changes; nothing can be typed.",
   "src/components/declutter/DeclutterListingDefaults.tsx": "no typed text: switches and choices only, saved as the seller's listing defaults.",
   // Message quiet time (Messages audit): the browser's own time picker.
   "src/components/notificationPreferences/QuietTimeInput.tsx": "no text input: one native type=time control, which only ever yields a valid HH:MM or empty.",
@@ -979,6 +983,7 @@ export const GAPS: Record<string, string> = {
   "src/components/declutter/DeclutterWantedReplies.tsx": "behind the 'declutter' + 'declutter_wanted' switches and only with a public Wanted post near you; its one text field is the reply price, capped client-side and server-side at the lower of the Wanted max and the listing's price (declutter_wanted_reply; b3c-wanted-replies PGlite proof); FORMS sweep owed at testers",
   "src/components/declutter/DeclutterMovingSaleDetails.tsx": "behind the 'declutter' AND 'declutter_moving_out' switches, shown only once the seller has a moving sale; name 3-60 letters + contact-leak filter and the start-date window pinned server-side in declutter_set_moving_sale (b3c-moving-sale-name PGlite proof); FORMS sweep owed at testers",
   "src/components/declutter/DeclutterHandoverSheets.tsx": "behind the 'declutter' switch and a PAID porch order (live Stripe, none on the test accounts); its one text field is the optional porch note, capped at 200 letters by the input and server-side in declutter_porch_note (b3c-porch-note PGlite proof); FORMS sweep owed at testers",
+  "src/components/declutter/DeclutterNoHelpr.tsx": "soldstates-5 (b83): the Helpr's answer to a seller's \"The Helpr didn't come\", shown only on a booked Helpr delivery a seller reported (a PAID order, live Stripe, none on the test accounts); its one text field is the answer, 1-1000 letters by the input and server-side in declutter_helpr_answer_no_show (helprDeliverySellerReportsNoShow.pglite.mjs); FORMS sweep owed at testers",
   "src/components/declutter/DeclutterReviewForm.tsx": "behind the 'declutter' switch and a HANDED-OVER order (live Stripe, none on the test accounts); stars 1-5, 1000-letter cap and the contact-leak refusal pinned server-side in declutter_leave_review (declutterSlice4.pglite.mjs); FORMS sweep owed at testers",
   "src/components/admin/settings/DeclutterProblemsCard.tsx": "admin-only, behind the OFF 'declutter' switch, needs an open problem on a PAID order; decide rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   // Rentals S1 (2026-10-15): every Rentals form renders the 404 until the hidden 'rentals' switch is on for the member,

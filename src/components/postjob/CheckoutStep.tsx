@@ -296,7 +296,7 @@ export function CheckoutStep({
               </p>
               <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={totalWithTax} hasGift={hasGift} giftAppliedAmount={giftAppliedAmount}
                 isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount}
-                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} />
+                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} taxable={hasTaxableLine(category)} />
 
             </div>
           </div>}

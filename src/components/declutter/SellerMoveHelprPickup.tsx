@@ -14,7 +14,7 @@ import { PickupSlotPicker } from "./DeclutterPickupWindows";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
-export function SellerMoveHelprPickup({ taskId, orderId, who }: { taskId: string; orderId: string; who: string }) {
+export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: { taskId: string; orderId: string; who: string; current?: string | null }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [pick, setPick] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export function SellerMoveHelprPickup({ taskId, orderId, who }: { taskId: string
       <p className="text-ds-13">
         Can't make it? Pick another of your pickup times, at least 2 hours from now. You can move it once; {who} and the buyer are told.
       </p>
-      <PickupSlotPicker orderId={orderId} value={pick} onPick={setPick}
+      <PickupSlotPicker orderId={orderId} value={pick} onPick={setPick} own current={current}
         fallback={<p className="text-sm text-muted-foreground">Message the Helpr to agree a new time.</p>} />
       <div className="flex flex-wrap gap-2">
         <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" disabled={!pick || move.isPending}

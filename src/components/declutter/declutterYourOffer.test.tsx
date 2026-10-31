@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |       onChange();\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (myAsk) { |   if (false) {
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : chosen === "porch" ? "Confirm and pick a day" : "Confirm and pick a time" | "Confirming…" : "Ask for it"
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : "Confirm and pick a time" | "Confirming…" : "Ask for it"
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {freeAskLine(offered)} | {freeAskLine(["porch", "pickup_home"])}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | .filter((h) => wayAllowed(ways, h)); | ;
  *   DA-5 (Declutter audit 2026-10-30): the free ask line names only the ways the giver ticked, by the same rule
@@ -184,8 +184,8 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     await waitFor(() => expect(state.claimed).toBe(1));
     expect(where).not.toBe("/declutter?tab=buying");
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
-    // Porch comes first, and porch is picked by the day (BUY-18).
-    expect(screen.getByRole("button", { name: "Confirm and pick a day" })).toBeInTheDocument();
+    // Porch comes first; it is picked by a time in the place's hours (LEAD-PLACE-TIMES; was a day, BUY-18).
+    expect(screen.getByRole("button", { name: "Confirm and pick a time" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });
 

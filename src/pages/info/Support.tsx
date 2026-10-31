@@ -357,7 +357,7 @@ const Support = () => {
                     </p>
                     {profile?.email && (
                       <p
-                        className="font-sans text-ds-11 mt-0.5 truncate"
+                        className="font-sans text-ds-11 mt-0.5 [overflow-wrap:anywhere]"
                         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                       >
                         {profile.email}

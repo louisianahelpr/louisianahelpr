@@ -32,7 +32,6 @@ const SQL_RAW_NAME_OK: Record<string, string> = {
   auto_escalate_reports: "staff only: admin fan-out with an /admin link",
   auto_restrict_repeat_violators: "staff only: admin fan-out with an /admin link",
   detect_stuck_payments: "staff only: admin fan-out with an /admin link",
-  notify_admins_new_member: "staff only: the new-member notice goes to admins",
   sweep_expired_auto_bans: "the label is for the cron's own log; the member notice names nobody",
   notify_on_application: "the recipient's OWN name, for their email greeting",
   // nudge_confirm and notify_message_recipient left this list in 20261021131322: their own split on ' '

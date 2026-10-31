@@ -69,22 +69,20 @@ export function StatusBoxes<K extends string>({
   onToggle,
   allCount,
   end,
-  onlyLit = false,
+  emptyLine = true,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
   onToggle: (k: K) => void;
   /** How many rows "All" shows. Only a caller whose list is exactly that many rows passes it; without it All has no number (the groups need not add up to the list). */
   allCount?: number;
-  /** A control pinned at the row's end, outside the sideways scroll (Jobs: the search icon, owner 2026-10-25). */
-  end?: ReactNode;
+  /** "Nothing in X right now" under the chips. Jobs passes false: its list's own empty card already says it (owner 2026-10-31, LEAD-SEARCH-BY-GEAR: the line showed twice). */
+  emptyLine?: boolean;
   /**
-   * Show ONLY the lit chip (All when nothing is picked), at its own width, with no fade: while Posted / Working's
-   * search field is open on a phone (lead 2026-10-28, audit F20). The open field took the row and left a sliver of
-   * cut chips ("Ne", "Waitir": 129px of scroller at 375, 80px at 320). The lit chip drops its count meanwhile
-   * (lead's choice C). The caller brings every chip, and every count, back when the field closes.
+   * A control pinned at the row's end, outside the sideways scroll. No section passes one today: Jobs' search moved up
+   * beside the gear (owner 2026-10-31, LEAD-SEARCH-BY-GEAR), and with it went the open-field "only the lit chip" mode.
    */
-  onlyLit?: boolean;
+  end?: ReactNode;
 }) {
   const active = boxes.find((b) => b.key === value);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -116,9 +114,7 @@ export function StatusBoxes<K extends string>({
       className={`${CHIP} shrink-0 whitespace-nowrap ${on ? CHIP_ON : CHIP_OFF}`}
     >
       <span data-chip-label="">{label}</span>
-      {/* Beside the open phone search the lone lit chip drops its count, so the field keeps room for its word (lead's
-          choice C, audit 2026-10-28 F20: with "Not picked · 19" lit at 320 the input was 22px and read "Sea"). */}
-      {count > 0 && !onlyLit && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
+      {count > 0 && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
     </button>
   );
   return (
@@ -129,21 +125,16 @@ export function StatusBoxes<K extends string>({
         // With a control at the end, the row softly fades over its last 44px (one icon wide), so the chip that runs
         // under it reads as "more", never as clipped; the same 44px of end padding lets the last chip scroll fully
         // clear of the fade (lead, 390, 2026-10-25).
-        className={
-          onlyLit
-            ? // One chip at its own width; the open field beside it takes the rest of the row.
-              "-mx-1 flex flex-none gap-2 px-1 pb-0.5"
-            : `-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : "px-1"}`
-        }
+        className={`-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : "px-1"}`}
         role="group"
         aria-label="Filter by status"
       >
-        {(!onlyLit || value === null) && chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
-        {boxes.filter((b) => !onlyLit || b.key === value).map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
+        {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
+        {boxes.map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
       </div>
       {end}
       </div>
-      {active && active.count === 0 && (
+      {emptyLine && active && active.count === 0 && (
         <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">
           Nothing in <b className="text-foreground">{active.label}</b> right now
         </p>

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { SellerHandedOver } from "./SellerHandedOver";
+import { HelprNoShowAnswer, HelprNoShowReportButton } from "./DeclutterNoHelpr";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
@@ -166,6 +167,11 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
     line = "Delivered.";
   } else if (v.status === "unfilled") {
     line = "No Helpr took this delivery. What you paid for delivery was refunded.";
+  } else if (v.status === "failed") {
+    // BUY-45: the buyer read only "This delivery was closed" (declutter_admin_decide_delivery_damage: decided as damaged).
+    line = side === "buyer" ? "Louisiana Helpr decided this delivery as damaged on the way. What happens to your money shows on this order." : "Louisiana Helpr decided this delivery as damaged on the way.";
+  } else if (v.status === "cancelled") {
+    line = side === "buyer" ? "This delivery was cancelled. What happens to your money shows on this order." : "This delivery was cancelled.";
   } else {
     line = "This delivery was closed.";
   }
@@ -209,7 +215,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
         </button>
       )}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
-      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} />}
+      {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
+      {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
+      {side === "seller" && v.status === "accepted" && !v.problem_open && <SellerHandedOver taskId={taskId} orderId={orderId} who={who} handedOverAt={v.handed_over_at} pickupAt={v.pickup_slot_start} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
         Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours.
@@ -399,6 +407,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               </div>
             </>
           )}
+          {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} />}
           {v.status === "picked_up" && toRoute}
           <TaskPhotos view={v} />
         </>

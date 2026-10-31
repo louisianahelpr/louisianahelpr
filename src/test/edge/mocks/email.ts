@@ -96,6 +96,8 @@ export const WelcomeDripStep1Email = inert("WelcomeDripStep1Email");
 export const WelcomeDripStep2Email = inert("WelcomeDripStep2Email");
 export const WelcomeDripStep3Email = inert("WelcomeDripStep3Email");
 export const NotificationEmail = inert("NotificationEmail");
+/** send-notification-email's button words: the REAL pure function (no Deno, no React), reached through the harness's template rewrite. @public */
+export { notificationActionLabel } from "../../../../supabase/functions/_shared/email-templates/notificationAction";
 export const SignupLeadReminderEmail = inert("SignupLeadReminderEmail");
 /** admin-support-reply's template, reached through the harness rewrite. @public */
 export const AdminActionEmail = inert("AdminActionEmail");

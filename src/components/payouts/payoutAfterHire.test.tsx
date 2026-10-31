@@ -43,7 +43,7 @@ const openExternal = vi.fn(async () => undefined);
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: (...a: unknown[]) => openExternal(...(a as [])) }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), AhaEvent: { PayoutSetupStarted: "payout_setup_started" } }));
 vi.mock("@/lib/authRedirects", () => ({ getPublicReturnUrl: () => "https://louisianahelpr.com/jobs" }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDialog";
 import { PayoutSetupJobNotice } from "@/components/payouts/PayoutSetupJobNotice";

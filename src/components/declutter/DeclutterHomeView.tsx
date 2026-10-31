@@ -52,6 +52,7 @@ import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
+import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
@@ -471,7 +472,33 @@ const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: own
 const MINE_TABS_FREE = [...MINE_TABS, "free"] as const;
 const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted", "free"] as const;
 
+/**
+ * BUY-16: a signed-out visitor (DeclutterGate lets one in only while Declutter is open to everyone) gets Browse alone:
+ * Buying, Selling, Deliver, Wanted and Free and the settings gear are a member's own, and a sign-up line sits on top.
+ */
 export default function DeclutterHome() {
+  const { user, isLoading } = useCurrentUser();
+  if (user) return <DeclutterMemberHome />;
+  if (isLoading) return <DeclutterHomeSkeleton />;
+  return <DeclutterGuestHome />;
+}
+
+function DeclutterGuestHome() {
+  const tabsFor = (browse: DeclutterBrowseHeader) => (
+    <SectionTabs<DeclutterTab>
+      label="Declutter view"
+      browseCount={browse.count}
+      onlySelected={browse.onlySelected}
+      end={browse.end}
+      value="browse"
+      onChange={() => undefined}
+      tabs={[]}
+    />
+  );
+  return <DeclutterBrowse userId={null} tabs={tabsFor} top={<DeclutterGuestBrowseJoin />} />;
+}
+
+function DeclutterMemberHome() {
   const { user } = useCurrentUser();
   const [params, setParams] = useSearchParams();
   const location = useLocation();

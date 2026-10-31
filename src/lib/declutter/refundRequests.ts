@@ -96,6 +96,22 @@ export function refundHoldsTheItem(status: string | null | undefined): boolean {
   return status === "returning" || status === "to_admin";
 }
 
+/** NIGHT-SELL-soldstates-7: what a sale refunded in full says on each side's card, in place of "Handed over". */
+export const REFUNDED_IN_FULL = {
+  buyer: "Refunded in full to your card.",
+  seller: "Refunded in full to the buyer. You get no payout for this sale.",
+} as const;
+
+/**
+ * NIGHT-SELL-soldstates-7: the request settled with everything back (a full refund, or "never got it" in full, both at
+ * least declutter_full_refund_cents), so the sale was undone. The card says so in place of "Handed over" and asks for
+ * no review. A part refund (an offer taken, always below the item price) is not this.
+ */
+export function refundedInFull(v: Pick<RefundRequestView, "full_refund_cents" | "request"> | null | undefined): boolean {
+  const r = v?.request;
+  return !!r && r.status === "agreed" && r.refund_cents != null && r.refund_cents >= v.full_refund_cents;
+}
+
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {
   return rpcData(
     await supabase.rpc("declutter_refund_request_view", { p_order_id: orderId }),

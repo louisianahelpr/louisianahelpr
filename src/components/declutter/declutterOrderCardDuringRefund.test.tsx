@@ -3,10 +3,10 @@
  * Louisiana Helpr, it still said "Handed over. It's yours.", offered "Need help moving it?" and "Leave a review"; a
  * delivery printed "Handed over." twice.
  *
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus)} | standing={null}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | standing={problem ? null : refundStanding(refundStatus, fullRefund)} | standing={null}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus)} | bookedOnly={false}
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     enabled: !!view && done && refundRequests && items > 0, |     enabled: false,
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <p | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <p
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     enabled: done && refundRequests && items > 0, |     enabled: false,
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <DeliveryDoneStatus | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <DeliveryDoneStatus
  * @mutate src/components/declutter/BuyingOrders.tsx | {standing ?? view.standing} | {view.standing}
  * @mutate src/lib/declutter/refundRequests.ts |   return status === "returning" \|\| status === "to_admin"; |   return false;
  */

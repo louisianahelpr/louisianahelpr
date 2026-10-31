@@ -19,8 +19,12 @@ import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 export { daysBetween, formatMoveDate, louisianaToday };
 
 const MOVE_DATE_MAX_DAYS = 180;
-/** declutter-ai-draft allows 6 calls a minute per member: one photo check every 10.5 s stays under it. */
-export const AI_CHECK_GAP_MS = 10_500;
+/**
+ * declutter-ai-draft allows 12 calls a minute per member: one call every 5.25 s stays under it. LEAD-BUNCH-34-SLOW (owner
+ * 10-31): it was 6 a minute and 10.5 s, so 34 photos on Sell a bunch (5 sorting calls) took at least 42 s of waiting
+ * alone. The hourly caps per mode (the cost cap) are unchanged. The edge function must be deployed before this.
+ */
+export const AI_CHECK_GAP_MS = 5_250;
 
 /** What is wrong with a move-out date, in plain words, or null. Mirrors declutter_move_out_date_problem. */
 export function moveDateProblem(date: string, today: string): string | null {

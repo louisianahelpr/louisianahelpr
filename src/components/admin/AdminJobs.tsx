@@ -32,6 +32,9 @@ import { userFacingError } from "@/lib/userFacingError";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 
 
+/** The job statuses whose flags count as open work in the Flagged tab (NOID-24, M5). */
+const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]);
+
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,7 +411,10 @@ const AdminJobs = () => {
   // Owner 2026-10-27: admin never shows a test (is_seed) job, not even in a tab of its own.
   const realJobs = jobs.filter((j) => j.is_seed !== true);
   const realIds = new Set(realJobs.map((j) => j.id));
-  const flaggedIds = [...jobFlags.keys()].filter((id) => realIds.has(id) && !resolvedFlags.has(id));
+  // NOID-24 (M5): a flag is work only while the job can still go wrong. A finished or cancelled job's flags ("date
+  // passed" above all) were noise in the Flagged count; they stay readable under All.
+  const flagLive = new Set(realJobs.filter((j) => FLAG_LIVE_STATUSES.has(j.status)).map((j) => j.id));
+  const flaggedIds = [...jobFlags.keys()].filter((id) => flagLive.has(id) && !resolvedFlags.has(id));
   const flaggedCount = flaggedIds.length;
   const resolvedCount = [...jobFlags.keys()].filter((id) => realIds.has(id) && resolvedFlags.has(id)).length;
   // Ghosts: open to helpers, no money behind them. Computed from the job row
@@ -421,7 +427,7 @@ const AdminJobs = () => {
   const applicantCounts = useApplicantCounts(activeJobs.map((j) => j.id));
   const baseJobs =
     filter === "flagged"
-      ? realJobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
+      ? realJobs.filter((j) => flagLive.has(j.id) && jobFlags.has(j.id) && !resolvedFlags.has(j.id))
       : filter === "resolved"
       ? realJobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
       : filter === "ghost"

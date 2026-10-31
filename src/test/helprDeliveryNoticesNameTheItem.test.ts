@@ -66,7 +66,7 @@ const KNOWN_OLD_LINKS = [
   "declutter_pickup_reminder_sweep", "declutter_record_hand_refund", "declutter_refund_after_handover", "declutter_refund_gave_up_check",
   "declutter_refund_paid_order", "declutter_refund_request_to_admin", "declutter_report_no_show", "declutter_seller_cancel_sale",
   "declutter_seller_delivered", "declutter_seller_delivery_on_order", "declutter_setup_fee_refunded", "declutter_take_item",
-  "declutter_delivery_still_in_hand", "helpr_task_close", "helpr_task_offer_online", "helpr_task_tip_paid", "helpr_task_tip_payout_sent",
+  "declutter_delivery_still_in_hand", "helpr_task_offer_online", "helpr_task_tip_paid", "helpr_task_tip_payout_sent",
 ].sort();
 
 describe("Helpr delivery notices name the item and open the right tab (audit 1c D3-5)", () => {

@@ -258,7 +258,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const listLoading = (items.isLoading && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
-  const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip };
+  const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
 
   const [searchOpen, setSearchOpen] = useState(false);
   const header: DeclutterBrowseHeader = desktop

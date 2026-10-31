@@ -713,7 +713,9 @@ describe("the photo-first Declutter item page", () => {
 
   // BUY-16 (audit 10-30, High; owner 10-30: guests see item pages, sign up to buy or offer, no seller full name).
   // @mutate src/components/declutter/declutterUi.tsx |   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>; |
-  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} /> | <DeclutterGuestJoin free={free} />
+  // @mutate src/components/declutter/DeclutterGuest.tsx |  : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."} |  : "Sign up to buy it or make an offer."}
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <>{children}</>; |   return <>{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
@@ -739,6 +741,15 @@ describe("the photo-first Declutter item page", () => {
     expect(screen.queryByRole("link", { name: /See the seller/ })).toBeNull();
     expect(screen.queryByText("LOGIN WALL")).toBeNull();
     first.unmount();
+    // AUD31-68: a Buy-now-only listing (accepts_offers false) asks a guest to sign up to buy it, never to make an offer.
+    state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString(), accepts_offers: false };
+    const noOffers = open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    const joinNoOffers = document.querySelector("[data-guest-join]") as HTMLElement;
+    expect(joinNoOffers).toHaveTextContent("Sign up to buy it.");
+    expect(joinNoOffers.textContent).not.toMatch(/offer/i);
+    expect(joinNoOffers).toHaveAttribute("aria-label", "Buy this item");
+    noOffers.unmount();
     // Declutter not open to everyone: the login wall, as before.
     guest.open = [];
     open();

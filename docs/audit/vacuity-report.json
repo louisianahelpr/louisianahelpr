@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-30T22:41:32.355Z",
-  "guards": 2828,
-  "registered": 2826,
+  "generated": "2026-10-30T23:58:54.468Z",
+  "guards": 2838,
+  "registered": 2836,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts"
@@ -11,10 +11,12 @@
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
     "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
+    "src/components/messages/MessageText.test.tsx",
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/browseEmptySameSpot.test.tsx",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
+    "src/test/instantReleaseSaysThreeDays.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
     "src/test/vitestShardsGateTheCheck.test.ts"
@@ -220,6 +222,15 @@
       ],
       "parents": [
         "src/pages/messages/Messages.tsx"
+      ]
+    },
+    {
+      "module": "src/components/messages/MessageText.tsx",
+      "tests": [
+        "src/components/messages/MessageText.test.tsx"
+      ],
+      "parents": [
+        "src/components/messages/MessageBubble.tsx"
       ]
     },
     {

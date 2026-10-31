@@ -6,6 +6,7 @@
     "auth_db_connections_absolute": 1
   },
   "unused_index": [
+    "public.account_deletion_log.account_deletion_log_unsummarized_idx",
     "public.admin_audit_log.admin_audit_log_payout_release_idx",
     "public.admin_audit_log.admin_audit_log_shop_item_rejected_owner_idx",
     "public.admin_user_notes.idx_admin_user_notes_admin_id",

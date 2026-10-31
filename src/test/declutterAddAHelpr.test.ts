@@ -289,7 +289,7 @@ describe("Declutter Add a Helpr", () => {
     // The sweep reads the marker and prices a marked job at no fee and no card fee kept.
     const vcp = code("supabase/functions/void-cancelled-payments/index.ts");
     expect(vcp).toContain('.select("seller_fault_refund_id")');
-    expect(vcp).toContain("jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);");
+    expect(vcp).toContain("jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);");
     expect(vcp).toContain('supabaseAdmin.rpc("declutter_setup_job_fee_debt", {');
   });
 });

@@ -21,7 +21,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
-import { checkJobPayoutHold, checkPayoutHold, type JobPayoutHoldCheck } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkJobPayoutHold, checkPayoutHold, type JobPayoutHoldCheck } from "../_shared/payoutHold.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
@@ -142,6 +142,13 @@ export async function payCrewBlockFees(
     }
     if (hold.kind === "held") {
       // An outcome, not a defect: the job waits until the hold is released.
+      allPaid = false;
+      continue;
+    }
+    // No payout without a verified ID (owner 2026-10-30): an outcome too, retried next run.
+    const idHold = await checkIdentityHold(admin, row.helper_id);
+    if (idHold.kind === "error") problems.push(`crew block fee ID check ${row.id}: ${idHold.message}`);
+    if (idHold.kind !== "clear") {
       allPaid = false;
       continue;
     }

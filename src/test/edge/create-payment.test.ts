@@ -2162,6 +2162,19 @@ describe("create-payment edge function", () => {
       expect((await json(res)).error).toMatch(/only the person who posted this job can tip/i);
     });
 
+    // Owner 2026-10-30: tips are blocked until the Helpr has verified their ID. No checkout, no money.
+    it("a Helpr who has not verified their ID: refused with the reason, no checkout", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", title: "Mow lawn" }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.rpc.payout_waits_on_identity = true;
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15 } }));
+      expect(res.status).toBe(409);
+      expect(await json(res)).toEqual({ error: "This Helpr can receive tips once verified. Nothing was charged.", code: "tip_waits_on_identity" });
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
     it("creates a tip checkout with a direct transfer to the helper's connected account", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {

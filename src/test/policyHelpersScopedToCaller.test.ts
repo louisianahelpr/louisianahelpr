@@ -138,7 +138,6 @@ const CROSS_USER: Record<string, string> = {
   "fn admin_apply_account_action: has_role(p_admin_id)": "EXECUTE is service_role only (20261012185742; admin-action passes its verified caller): is_server_context()",
   "fn clear_test_mode_dispute_ledger: has_role(_admin)": "EXECUTE is service_role only (20261012215235; execute-dispute-split passes its verified admin): is_server_context()",
   "fn declutter_free_claim_gate: has_role(p_member)": "returns first unless p_member = auth.uid() (20261031211922): the caller arm",
-  "fn declutter_setup_fee_from_payout_cents: has_role(p_seller)": "EXECUTE revoked from PUBLIC, anon, authenticated (20261031214749); called by the service_role take functions (is_server_context()) and by declutter_complete_handover, where a buyer-side caller reads has_role false for the seller: at worst an admin seller's handover notice names a fee that is never taken (identity_check_exempt and the take's own has_role run as the server)",
   "fn enforce_block_on_message_insert: has_role(NEW.receiver_id)": "trigger body: pg_trigger_depth() > 0",
   "fn enforce_block_on_message_insert: has_role(NEW.sender_id)": "trigger body; also the caller (the bypass requires NEW.sender_id = auth.uid())",
   "fn feature_enabled_for_user: has_role(p_user_id)": "EXECUTE is service_role only (edge functions pass their verified caller): is_server_context(); feature_enabled_for passes auth.uid(): the caller arm",

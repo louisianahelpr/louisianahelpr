@@ -9,6 +9,9 @@
  *   FOLLOWUP=skip node src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs       # RED (20261031225132 left out: a row a
  *                                                                                 # send was tried for, reset to 0 tries,
  *                                                                                 # gets the fee under the same Stripe key)
+ *   FIX=skip node src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs            # RED (20261031232943 left out: an admin
+ *                                                                                 # seller's handover notice, written as
+ *                                                                                 # the buyer, names the fee)
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR). The migration runs verbatim against
  * stubs of what it reads, on top of the REAL older bodies of the two functions it restates, cut from their migrations.
@@ -29,6 +32,8 @@ const url = (p) => new URL(`../../../supabase/migrations/${p}`, import.meta.url)
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? url("20261031214749_seller_setup_fee_from_payout_restated.sql"), "utf8");
 // Review finding (2), 10-31: never on a row a send was tried for, even after a reset of its tries.
 const FOLLOWUP = readFileSync(url("20261031225132_setup_fee_never_after_a_send.sql"), "utf8");
+// Lead 10-31 (B37 1a): the admin test reads user_roles directly, so it answers the same to the buyer as to the server.
+const FIX = readFileSync(url("20261031232943_setup_fee_admin_check_reads_roles.sql"), "utf8");
 
 /** The newest CREATE of a function in one older migration, verbatim. */
 function cutFn(file, name) {
@@ -42,7 +47,7 @@ function cutFn(file, name) {
 }
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED, REBOOK, REBOOK2, RESET, MARKED, OLDTRY] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(id);
+const [BUYER, SELLER, PAID, ADMIN, TESTER, SMALL, TRIED, REBOOK, REBOOK2, RESET, MARKED, OLDTRY, ADMIN2, MEMBER2] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(id);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -132,9 +137,9 @@ if (!skip) {
 } else console.log("NEW_MIGRATION=skip: the old functions");
 
 /** A paid sale handed over: answers the payout row. */
-async function sale(seller, cents) {
+async function sale(seller, cents, caller = null) {
   const o = (await one(`INSERT INTO public.declutter_orders (buyer_id, seller_id, status, handover, items_cents) VALUES ('${BUYER}','${seller}','paid','pickup_home',${cents}) RETURNING id`)).id;
-  await as(null);
+  await as(caller);
   await one(`SELECT public.declutter_complete_handover('${o}','buyer') r`);
   return one(`SELECT * FROM public.declutter_payouts WHERE order_id='${o}'`);
 }
@@ -164,6 +169,11 @@ if (!skipFollowup) {
   for (let i = 0; i < 3; i++) await db.exec(FOLLOWUP);
   console.log("20261031225132 applied 3x");
 } else console.log("FOLLOWUP=skip: 20261031225132 left out");
+const skipFix = skip || process.env.FIX === "skip";
+if (!skipFix) {
+  for (let i = 0; i < 3; i++) await db.exec(FIX);
+  console.log("20261031232943 applied 3x");
+} else console.log("FIX=skip: 20261031232943 left out");
 
 // ── OFF: exactly as today ──────────────────────────────────────────────────
 await as(SELLER);
@@ -268,6 +278,27 @@ if (!skipFollowup) {
   ok("nothing can set the marker back to false", (await payoutRow(reset.id)).send_tried === true);
   ok("members cannot run the marker trigger function", (await acl("public.payout_send_tried_sticky()")) === false);
 }
+
+// Lead 10-31 (B37 1a): the real has_role answers false for someone else's role unless the caller is them, an admin or
+// the server (20261012184600). declutter_complete_handover writes the seller's notice as the BUYER, so an admin seller
+// must still be told no fee comes out, as the take (which takes none) does.
+await db.exec("DROP FUNCTION public.has_role(uuid, text)");
+await db.exec(cutFn("20261012184600_scope_policy_helpers_to_caller.sql", "has_role").replaceAll("public.app_role", "text"));
+await db.exec(`INSERT INTO public.profiles (user_id, stripe_account_id) VALUES ('${ADMIN2}','a'); INSERT INTO public.user_roles VALUES ('${ADMIN2}','admin');`);
+await as(BUYER);
+ok("the real has_role is caller-scoped here (a buyer reads no admin role for the seller)",
+  (await one(`SELECT public.has_role('${ADMIN2}', 'admin') a`)).a === false);
+const adminAsBuyer = await sale(ADMIN2, 1000, BUYER);
+ok("ON: an admin seller's handover notice, written as the buyer, names no fee",
+  (await notices(ADMIN2, "%account setup fee comes out%")) === 0);
+await as(null);
+ok("and the take, from a caller who cannot read the role through has_role, takes nothing",
+  (await take(adminAsBuyer.id)) === 1000 && (await flag(ADMIN2)) === false);
+await as(BUYER);
+await db.exec(`INSERT INTO public.profiles (user_id, stripe_account_id) VALUES ('${MEMBER2}','a')`);
+await sale(MEMBER2, 1000, BUYER);
+ok("a member seller who owes it is still told, when the buyer writes the notice",
+  (await notices(MEMBER2, "%one-time $2.00 account setup fee comes out%")) === 1);
 
 if (!skip) {
   ok("members cannot take the fee", (await acl("public.declutter_payout_take_setup_fee(uuid)")) === false);
